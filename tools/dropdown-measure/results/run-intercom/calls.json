@@ -1,0 +1,66 @@
+[
+  {
+    "method": "open",
+    "ms": 8325,
+    "ok": true
+  },
+  {
+    "method": "form",
+    "ms": 1123,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 9859,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 8823,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 11386,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 1600,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 2177,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 7843,
+    "ok": false,
+    "code": "WORKER_UNREACHABLE"
+  },
+  {
+    "method": "answers",
+    "ms": 0,
+    "ok": false,
+    "code": "WORKER_UNREACHABLE"
+  },
+  {
+    "method": "fill",
+    "ms": 0,
+    "ok": false,
+    "code": "WORKER_UNREACHABLE"
+  },
+  {
+    "method": "answers",
+    "ms": 0,
+    "ok": false,
+    "code": "WORKER_UNREACHABLE"
+  },
+  {
+    "method": "close",
+    "ms": 221,
+    "ok": true
+  }
+]

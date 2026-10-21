@@ -1,0 +1,458 @@
+{
+  "url": "https://job-boards.greenhouse.io/gusto/jobs/7905578",
+  "finalUrl": "https://job-boards.greenhouse.io/gusto/jobs/7905578",
+  "when": "2026-10-21T19:05:04.686Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "preferred_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Preferred First Name"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_66629655",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Zip Code / Postal Code (Non-U.S. based candidates, please enter \"00000\")*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_66629656",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile*"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604357",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "LinkedIn"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604358",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Glassdoor"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604359",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Indeed"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604360",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Facebook"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604361",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Built In Colorado"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604362",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "News Article"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604363",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Conference or Meetup"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604364",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Company Blog"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604365",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Company Employee"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604366",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Company Website"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_66629657[]_710604367",
+      "name": "question_66629657[]",
+      "cls": "",
+      "visible": true,
+      "label": "Billboard/Outdoor Ads"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_66629658",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you legally authorized to work in the country where you are applying?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you legally authorized to work in the country where you are applying?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_66629659",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Will you now or in the future require visa sponsorship for employment?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Will you now or in the future require visa sponsorship for employment?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68983257",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Have you ever, or are you currently working at Gusto or Symmetry in any capacity (ie: employee or contingent worker)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "605",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "How would you describe your gender identity (please select one)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "How would you describe your gender identity (please select one)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "606",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify as transgender (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify as transgender (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "607",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my sexual orientation as (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my sexual orientation as (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "608",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my race/ethnicity as (mark all that apply):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my race/ethnicity as (mark all that apply):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "609",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Veteran Status (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Veteran Status (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "610",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I have a disability (please select one): *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I have a disability (please select one): *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "1012",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify as a first-generation professional (please select one):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify as a first-generation professional (please select one):*"
+    }
+  ]
+}

@@ -1,0 +1,278 @@
+{
+  "url": "https://job-boards.greenhouse.io/affirm/jobs/8009657003",
+  "finalUrl": "https://job-boards.greenhouse.io/affirm/jobs/8009657003",
+  "when": "2026-10-21T19:05:17.408Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949664003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949665003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Current Company"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949666003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Preferred Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949667003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Name Pronunciation"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_32949668003",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Pronouns *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Pronouns *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_32949669003",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you now, or will you in the future, require immigration sponsorship to work for Affirm in Canada?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Do you now, or will you in the future, require immigration sponsorship to work for Affirm in Canada?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_32949670003",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Which U.S. State or Canadian Province do you reside in?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Which U.S. State or Canadian Province do you reside in?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_32949671003",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "How did you first learn about Affirm as an employer? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "How did you first learn about Affirm as an employer? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949672003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "GitHub"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949673003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Twitter"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_32949674003",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Portfolio"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_32949675003",
+      "name": null,
+      "cls": "input input__multi-line",
+      "visible": true,
+      "label": "Other Links"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_32949676003",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Have you previously been employed at Affirm for any length of time?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Have you previously been employed at Affirm for any length of time?*"
+    }
+  ]
+}

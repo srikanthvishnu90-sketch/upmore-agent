@@ -1,0 +1,398 @@
+{
+  "url": "https://job-boards.greenhouse.io/intercom/jobs/8263057",
+  "finalUrl": "https://job-boards.greenhouse.io/intercom/jobs/8263057",
+  "when": "2026-10-21T19:05:29.282Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input--outside-label input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697040",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you authorised to work in the country in which this role is located? (Fin sponsors immigration for some roles so we encourage you to still apply if you require sponsorship.)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you authorised to work in the country in which this role is located? (Fin sponsors immigration for some roles so we encourage you to still apply if you require sponsorship.)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697041",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Current Location*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Current Location*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697042",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you willing to relocate?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you willing to relocate?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69697043",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Current or most recent company?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69697044",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69697045",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Website"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697046",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "How did you hear about this job?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "How did you hear about this job?*"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_69697047",
+      "name": null,
+      "cls": "input input--outside-label",
+      "visible": true,
+      "label": "What excites you most about this opportunity?"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_69697048",
+      "name": null,
+      "cls": "input input--outside-label",
+      "visible": true,
+      "label": "Which Fin value resonates most with you and why? (Our values can be found on our Careers Page)"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697049",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "We work under a hybrid in-office model. Are you willing to work from our office location 3 days per week?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "We work under a hybrid in-office model. Are you willing to work from our office location 3 days per week?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697050",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Please email me about future job openings *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Please email me about future job openings *"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_69697051[]_754935482",
+      "name": "question_69697051[]",
+      "cls": "",
+      "visible": true,
+      "label": "Acknowledge"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697052",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "US Export Control laws 2026: Are you a citizen, national or permanent resident of Iran, Cuba, North Korea or Syria? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "US Export Control laws 2026: Are you a citizen, national or permanent resident of Iran, Cuba, North Korea or Syria? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697053",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "US Export Control laws 2026: Do you hold an ADDITIONAL citizenship, nationality, or permanent residency of any other country that is NOT Iran, Cuba, Syria or North Korea?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "US Export Control laws 2026: Do you hold an ADDITIONAL citizenship, nationality, or permanent residency of any other country that is NOT Iran, Cuba, Syria or North Korea?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697054",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "US Export Control laws 2026: In which country did you obtain citizenship, nationality, or permanent residency first? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "US Export Control laws 2026: In which country did you obtain citizenship, nationality, or permanent residency first? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69697055",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Have you previously worked for Fin (formerly Intercom) or Salesforce?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Have you previously worked for Fin (formerly Intercom) or Salesforce?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "gender",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Gender"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "hispanic_ethnicity",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you Hispanic/Latino?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "veteran_status",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Veteran Status"
+    }
+  ]
+}

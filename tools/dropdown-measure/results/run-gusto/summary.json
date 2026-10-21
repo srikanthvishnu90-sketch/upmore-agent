@@ -1,0 +1,66 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:08:46.730Z",
+  "target": {
+    "company": "gusto",
+    "title": "AI/IT Controls Engineer, Enterprise Applications",
+    "url": "https://job-boards.greenhouse.io/gusto/jobs/7905578"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 94213,
+  "runApply": {
+    "resultStatus": "blocked",
+    "code": "ANSWER_OBSERVATION_MISMATCH",
+    "field_id": "605",
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 21,
+  "dropdownRecords": 7,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_66629658",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_66629659",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68983257",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "608",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "1012",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    }
+  ],
+  "boardCalls": 13
+}

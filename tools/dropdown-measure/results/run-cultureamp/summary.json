@@ -1,0 +1,85 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:24:14.191Z",
+  "target": {
+    "company": "cultureamp",
+    "title": "Senior Customer Success Manager (Enterprise-at-scale)",
+    "url": "https://job-boards.greenhouse.io/cultureamp/jobs/8263267"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 189732,
+  "runApply": {
+    "resultStatus": "awaiting_user",
+    "field_id": null,
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 22,
+  "dropdownRecords": 16,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69698749",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "136",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "138",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "141",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "142",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "143",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "146",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "29635",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "29636",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    }
+  ],
+  "boardCalls": 28
+}

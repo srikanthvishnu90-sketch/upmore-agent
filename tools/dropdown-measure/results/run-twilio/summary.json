@@ -1,0 +1,56 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:13:31.680Z",
+  "target": {
+    "company": "twilio",
+    "title": "Sales Development Representative",
+    "url": "https://job-boards.greenhouse.io/twilio/jobs/7481689"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 61765,
+  "runApply": {
+    "resultStatus": "blocked",
+    "code": "ANSWER_OBSERVATION_MISMATCH",
+    "field_id": "75375",
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 18,
+  "dropdownRecords": 4,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_62249350",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_62249351",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_62249352",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    }
+  ],
+  "boardCalls": 9
+}

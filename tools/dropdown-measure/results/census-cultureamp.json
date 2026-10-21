@@ -1,0 +1,288 @@
+{
+  "url": "https://job-boards.greenhouse.io/cultureamp/jobs/8263267",
+  "finalUrl": "https://job-boards.greenhouse.io/cultureamp/jobs/8263267",
+  "when": "2026-10-21T19:16:20.756Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "preferred_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Preferred First Name"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69698747",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Website"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69698748",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_69698749",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you now or will you in the future require immigration sponsorship to work for Culture Amp? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Do you now or will you in the future require immigration sponsorship to work for Culture Amp? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_69698750",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Are you currently located within a commutable distance of downtown Chicago and able to work on-site 2x per week?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "136",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Gender identity"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "138",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you identify as transgender?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "141",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you identify as Hispanic or Latinx (“Hispanic / Latinx” refers to people with cultural history from Spanish-speaking and/or Latin American countries)?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "142",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Race / Ethnicity (Select all that apply)"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "143",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you identify as LGBTQIA?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "146",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Disability"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29635",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Veteran Status"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29636",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Highest degree attained by parents/guardians"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "gender",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Gender"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "hispanic_ethnicity",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you Hispanic/Latino?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "veteran_status",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Veteran Status"
+    }
+  ]
+}

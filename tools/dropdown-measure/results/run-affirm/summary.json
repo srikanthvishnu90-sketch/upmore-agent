@@ -1,0 +1,55 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:11:22.579Z",
+  "target": {
+    "company": "affirm",
+    "title": "Manager, Software Engineering (Marketing and Privacy Engineering)",
+    "url": "https://job-boards.greenhouse.io/affirm/jobs/8009657003"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 21632,
+  "runApply": {
+    "resultStatus": "awaiting_user",
+    "field_id": null,
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 19,
+  "dropdownRecords": 1,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_32949669003",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_32949670003",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_32949671003",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_32949676003",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    }
+  ],
+  "boardCalls": 6
+}

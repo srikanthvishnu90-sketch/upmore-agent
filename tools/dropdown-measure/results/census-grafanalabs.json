@@ -1,0 +1,328 @@
+{
+  "url": "https://job-boards.greenhouse.io/grafanalabs/jobs/6222975004",
+  "finalUrl": "https://job-boards.greenhouse.io/grafanalabs/jobs/6222975004",
+  "when": "2026-10-21T19:16:11.133Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "preferred_name",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Preferred First Name"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input--outside-label input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_20269764004",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile*"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_20269765004",
+      "name": null,
+      "cls": "input input--outside-label",
+      "visible": true,
+      "label": "Please explain you experience/exposure to the following: Observability, devops, logs, metrics, tracing, kubernetes and general enterprise open source technology?*"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_20310617004",
+      "name": null,
+      "cls": "input input--outside-label",
+      "visible": true,
+      "label": "Have you ever deployed infrastructure or monitoring capabilities using Cloud Architecture? If so, please summarize. *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_20310618004",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Have you ever worked within a Channel, Enabling Partners? *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_20269766004",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "Current company (if applicable)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_20269767004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you currently eligible to work in your country of residence?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you currently eligible to work in your country of residence?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_20269768004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you now or in the future require visa sponsorship to continue working in your country of residence?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Do you now or in the future require visa sponsorship to continue working in your country of residence?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_20269769004",
+      "name": null,
+      "cls": "input input--outside-label input__single-line",
+      "visible": true,
+      "label": "How did you hear about this opportunity at Grafana?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_20269770004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Which of the following best describes you?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Which of the following best describes you?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_20269771004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "How did you hear about this opportunity at Grafana?"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "4000713004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "What gender identity do you most closely identify with?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "What gender identity do you most closely identify with?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "4000714004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you a person of transgender experience?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you a person of transgender experience?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "4000715004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Which race and ethnicity group or groups do you identify with?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Which race and ethnicity group or groups do you identify with?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "4000716004",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you have a visible or non-visible disability?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Do you have a visible or non-visible disability?*"
+    }
+  ]
+}

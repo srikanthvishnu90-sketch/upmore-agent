@@ -1,0 +1,91 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:12:18.595Z",
+  "target": {
+    "company": "intercom",
+    "title": "Relationship Manager, Sr MidMarket",
+    "url": "https://job-boards.greenhouse.io/intercom/jobs/8263057"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 41127,
+  "runApply": {
+    "resultStatus": "blocked",
+    "code": "ANSWER_OBSERVATION_MISMATCH",
+    "field_id": "veteran_status",
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 26,
+  "dropdownRecords": 5,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697040",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697041",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697042",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697046",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697049",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697050",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697052",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_69697053",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "question_69697054",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "question_69697055",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    }
+  ],
+  "boardCalls": 12
+}

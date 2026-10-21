@@ -1,0 +1,458 @@
+{
+  "url": "https://job-boards.greenhouse.io/greenhouse/jobs/8168227?gh_jid=8168227",
+  "finalUrl": "https://job-boards.greenhouse.io/greenhouse/jobs/8168227?gh_jid=8168227",
+  "when": "2026-10-21T19:06:17.507Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "preferred_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Preferred First Name"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_68910733",
+      "name": null,
+      "cls": "input input__multi-line",
+      "visible": true,
+      "label": "In 2-3 sentences, what excites you about this position at Greenhouse, and how does it align with your long-term career goals?*"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_68910736",
+      "name": null,
+      "cls": "input input__multi-line",
+      "visible": true,
+      "label": "\"Growth\" and \"SMB\" mean something different at every company. Rather than assume we're speaking the same language, tell us in your own terms: who did you sell to, how did you find them, and what would your manager say you owned end-to-end versus handed off? Deal size, cycle length, and how much of your pipeline came from your own outbound work (versus inbound or SDR-sourced leads) would all help us picture it accurately.*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_68910734",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910735",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Due to current team needs, we are only considering candidates based in Ireland. Please confirm you're based in Ireland. *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Due to current team needs, we are only considering candidates based in Ireland. Please confirm you're based in Ireland. *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910737",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Do you require immigration permission/an employment permit to work in the Republic of Ireland?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Do you require immigration permission/an employment permit to work in the Republic of Ireland?*"
+    },
+    {
+      "tag": "textarea",
+      "type": "textarea",
+      "widget": "text",
+      "id": "question_68910738",
+      "name": null,
+      "cls": "input input__multi-line",
+      "visible": true,
+      "label": "If yes, please confirm what immigration permission/employment permit you hold and when this is to expire."
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910739",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you subject to any non-compete, non-solicitation, or confidentiality agreements with your current or former employers that would impact your employment at Greenhouse?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you subject to any non-compete, non-solicitation, or confidentiality agreements with your current or former employers that would impact your employment at Greenhouse?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910740",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "How did you initially hear about this job?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "How did you initially hear about this job?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_68910741",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "If you chose Greenhouse Employee, Greenhouse Event, or Other, please specify here:"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_68910742[]_749792298",
+      "name": "question_68910742[]",
+      "cls": "",
+      "visible": true,
+      "label": "Acknowledge/Confirm"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910743",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Point of Data Transfer*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Point of Data Transfer*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910744",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Greenhouse Interview Recording Policy (Fraud Detection)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Greenhouse Interview Recording Policy (Fraud Detection)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_68910745",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Greenhouse Interview Recording Policy (Candidate Evaluation and Training)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Greenhouse Interview Recording Policy (Candidate Evaluation and Training)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29665",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my gender as:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my gender as:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29666",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify as transgender:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify as transgender:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29667",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my sexual orientation as:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my sexual orientation as:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29668",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my ethnicity as (mark all that apply):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my ethnicity as (mark all that apply):*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29669",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I have a physical disability:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I have a physical disability:*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "29670",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "I identify my nationality as*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "I identify my nationality as*"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "gdpr_demographic_data_consent_given_1",
+      "name": "gdpr_demographic_data_consent_given",
+      "cls": "checkbox--full-width",
+      "visible": true,
+      "label": "By checking this box, I consent to Greenhouse collecting, storing, and processing my responses to the demographic data surveys above.*"
+    }
+  ]
+}

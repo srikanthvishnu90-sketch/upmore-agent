@@ -1,0 +1,398 @@
+{
+  "url": "https://job-boards.greenhouse.io/twilio/jobs/7481689",
+  "finalUrl": "https://job-boards.greenhouse.io/twilio/jobs/7481689",
+  "when": "2026-10-21T19:05:54.397Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "first_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "last_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Last Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "preferred_name",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Preferred First Name*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "email",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Email*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "country",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Country*"
+    },
+    {
+      "tag": "input",
+      "type": "search",
+      "widget": "text",
+      "id": "iti-0__search-input",
+      "name": null,
+      "cls": "iti__search-input",
+      "visible": false,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "tel",
+      "widget": "text",
+      "id": "phone",
+      "name": null,
+      "cls": "input input__single-line iti__tel-input",
+      "visible": true,
+      "label": "Phone*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "candidate-location",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Location (City)*"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "resume",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "file",
+      "widget": "file",
+      "id": "cover_letter",
+      "name": null,
+      "cls": "visually-hidden",
+      "visible": true,
+      "label": "Attach"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "question_62249348",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "LinkedIn Profile URL"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676713",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Careers Website"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676714",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "LinkedIn"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676715",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Twitter"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676716",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Glassdoor"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676717",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Indeed"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676718",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Twilio Blog"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676719",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Conference or Event"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676720",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Content (e.g. videos, ads, billboards etc)"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249349[]_612676721",
+      "name": "question_62249349[]",
+      "cls": "",
+      "visible": true,
+      "label": "Other"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_62249350",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Are you legally authorized to work in the United States?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Are you legally authorized to work in the United States?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_62249351",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa status)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B visa status)?*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "question_62249352",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Please indicate whether you are either a citizen or resident of any of the following countries: Cuba, Iran, North Korea, Syria or Crimea Region of Ukraine. *"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Please indicate whether you are either a citizen or resident of any of the following countries: Cuba, Iran, North Korea, Syria or Crimea Region of Ukraine. *"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249353[]_612676722",
+      "name": "question_62249353[]",
+      "cls": "",
+      "visible": true,
+      "label": "Acknowledge"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "question_62249354[]_612676723",
+      "name": "question_62249354[]",
+      "cls": "",
+      "visible": true,
+      "label": "Acknowledge"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "75375",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Gender*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Gender*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "75376",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Race/Ethnicity*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Race/Ethnicity*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "75377",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Protected Veteran Status*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Protected Veteran Status*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "75378",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Sexual Orientation*"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": null,
+      "name": null,
+      "cls": "remix-css-1a0ro4n-requiredInput",
+      "visible": true,
+      "label": "Voluntary Self-Identification of Sexual Orientation*"
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "widget": "checkbox",
+      "id": "gdpr_demographic_data_consent_given_1",
+      "name": "gdpr_demographic_data_consent_given",
+      "cls": "checkbox--full-width",
+      "visible": true,
+      "label": "By checking this box, I consent to Twilio collecting, storing, and processing my responses to the demographic data surveys above.*"
+    }
+  ]
+}

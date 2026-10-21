@@ -1,0 +1,28 @@
+{
+  "url": "https://job-boards.greenhouse.io/natera/jobs/6222763004",
+  "finalUrl": "https://job-boards.greenhouse.io/natera?error=true",
+  "when": "2026-10-21T19:15:28.962Z",
+  "navError": null,
+  "fields": [
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "text",
+      "id": "keyword-filter",
+      "name": null,
+      "cls": "input input__single-line",
+      "visible": true,
+      "label": "Search"
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "widget": "react-select",
+      "id": "department-filter",
+      "name": null,
+      "cls": "select__input",
+      "visible": true,
+      "label": "Department"
+    }
+  ]
+}

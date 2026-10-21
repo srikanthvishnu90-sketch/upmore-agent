@@ -1,0 +1,67 @@
+[
+  {
+    "method": "open",
+    "ms": 10763,
+    "ok": true
+  },
+  {
+    "method": "form",
+    "ms": 1571,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 13383,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 11857,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 11369,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 21201,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 11689,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 11745,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 628,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 985,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 24943,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 1984,
+    "ok": true
+  },
+  {
+    "method": "close",
+    "ms": 750,
+    "ok": true
+  }
+]

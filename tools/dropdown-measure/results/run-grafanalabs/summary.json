@@ -1,0 +1,61 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:18:18.388Z",
+  "target": {
+    "company": "grafanalabs",
+    "title": "Senior Partner Solutions Engineer | East Coast | Remote",
+    "url": "https://job-boards.greenhouse.io/grafanalabs/jobs/6222975004"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 62835,
+  "runApply": {
+    "resultStatus": "blocked",
+    "code": "ANSWER_OBSERVATION_MISMATCH",
+    "field_id": "4000713004",
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 20,
+  "dropdownRecords": 5,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_20269767004",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_20269768004",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_20269770004",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "4000716004",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    }
+  ],
+  "boardCalls": 11
+}

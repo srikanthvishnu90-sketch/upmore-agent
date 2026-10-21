@@ -1,0 +1,32 @@
+[
+  {
+    "method": "open",
+    "ms": 7044,
+    "ok": true
+  },
+  {
+    "method": "form",
+    "ms": 1012,
+    "ok": true
+  },
+  {
+    "method": "fill",
+    "ms": 13045,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 518,
+    "ok": true
+  },
+  {
+    "method": "answers",
+    "ms": 403,
+    "ok": true
+  },
+  {
+    "method": "close",
+    "ms": 111,
+    "ok": true
+  }
+]

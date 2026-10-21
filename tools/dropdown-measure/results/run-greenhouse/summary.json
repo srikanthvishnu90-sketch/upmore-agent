@@ -1,0 +1,96 @@
+{
+  "lane": "DROPDOWN-MEASURE",
+  "when": "2026-10-21T19:28:16.682Z",
+  "target": {
+    "company": "greenhouse",
+    "title": "Growth Account Executive",
+    "url": "https://job-boards.greenhouse.io/greenhouse/jobs/8168227?gh_jid=8168227"
+  },
+  "profileKeys": [
+    "answers"
+  ],
+  "probeFactsFound": {
+    "country": false,
+    "location": false,
+    "school": false
+  },
+  "runApplyMs": 98112,
+  "runApply": {
+    "resultStatus": "blocked",
+    "code": "ANSWER_OBSERVATION_MISMATCH",
+    "field_id": "29666",
+    "filledKeys": null,
+    "stops": null
+  },
+  "runApplyErr": null,
+  "defsSeen": 28,
+  "dropdownRecords": 9,
+  "probes": [
+    {
+      "fieldId": "country",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "candidate_location",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910735",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910737",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910739",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910740",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910743",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910744",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "question_68910745",
+      "skipped": "no_probe_value",
+      "valueSource": null
+    },
+    {
+      "fieldId": "29665",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "29667",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "29668",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    },
+    {
+      "fieldId": "29670",
+      "skipped": null,
+      "valueSource": "eeo_decline_default"
+    }
+  ],
+  "boardCalls": 18
+}

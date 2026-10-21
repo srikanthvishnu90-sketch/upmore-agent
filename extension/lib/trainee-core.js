@@ -3171,6 +3171,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return null;
     const v = String(value).trim(), label = norm(f.label);
     if (f.type === "number" && (!/^-?\d+(?:\.\d+)?$/.test(v) || !Number.isFinite(Number(v)))) return "needs a finite number, written as digits";
+    const component = ![
+      "date",
+      "month",
+      "year"
+    ].includes(f.type) && !f.section?.format ? /\bdate\s+(month|year)\s*[*:]?$/i.exec(label)?.[1] : null;
+    if (component === "year") {
+      const p2 = calendarParts(v);
+      return /^\d{4}$/.test(v) && p2 && p2.month === null ? null : "needs a valid four-digit year";
+    }
+    if (component === "month") {
+      const valid = MONTHS.some((month) => month.toLowerCase() === v.toLowerCase()) || /^\d{1,2}$/.test(v) && Number(v) >= 1 && Number(v) <= 12;
+      return valid ? null : "needs a valid month only";
+    }
     const format = dateFormat(f);
     const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
     const yearOnly = format === "YYYY" || f.type === "year";
@@ -3984,6 +3997,25 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var US2 = /^(?:the )?(?:US|U\.S\.?|USA|United States(?: of America)?)$/i;
   var countryValue = (s) => /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(s) && !/\b(?:not|unknown|maybe|perhaps|or|unsure)\b/i.test(s) ? s : null;
   var phoneValue = (s) => /^\+?[\d ()-]+$/.test(s) && s.replace(/\D/g, "").length >= 7 && s.replace(/\D/g, "").length <= 15 ? s : null;
+  function derivationIds(f) {
+    const ids = /* @__PURE__ */ new Set();
+    let present = false;
+    for (const key of [
+      "derived_from",
+      "derivedFrom"
+    ]) {
+      if (!Object.hasOwn(f, key)) continue;
+      present = true;
+      if (!Array.isArray(f[key])) return null;
+      for (const id of f[key]) {
+        if (typeof id !== "string" || !id.trim()) return null;
+        ids.add(id);
+      }
+    }
+    return present ? [
+      ...ids
+    ] : void 0;
+  }
   function fieldOf(f) {
     const t = clean(f.text), name = clean(f.name || f.title);
     let m;
@@ -4038,6 +4070,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         });
         continue;
       }
+      const derived = derivationIds(f);
+      if (derived === null) {
+        needs.push({
+          factId: id,
+          reason: "Malformed derivation metadata requires review before its source dependencies can be checked."
+        });
+        continue;
+      }
       const field = fieldOf(f);
       if (!field) {
         needs.push({
@@ -4050,7 +4090,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const rows = candidates.get(field.key) ?? [];
       rows.push({
         fact: f,
-        value: field.value
+        value: field.value,
+        derived
       });
       candidates.set(field.key, rows);
     }
@@ -4062,7 +4103,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         });
         continue;
       }
-      const { fact: f, value } = rows[0];
+      const { fact: f, value, derived } = rows[0];
       file.answers[key] = {
         value,
         factId: f.id,
@@ -4070,8 +4111,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         user_id: o.owner,
         provenance: f.provenance,
         confirmation_event_id: f.confirmation_event_id,
-        ...Array.isArray(f.derived_from) ? {
-          derived_from: f.derived_from.slice()
+        ...derived !== void 0 ? {
+          derived_from: derived
         } : {}
       };
     }
@@ -4093,6 +4134,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
     }
     return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  }
+  function factDependencies(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+    const row = value, ids = [];
+    for (const key of [
+      "derived_from",
+      "derivedFrom"
+    ]) {
+      if (!Object.hasOwn(row, key)) continue;
+      const list = row[key];
+      if (!Array.isArray(list) || list.some((id) => typeof id !== "string" || !id.trim())) return null;
+      ids.push(...list);
+    }
+    return [
+      ...new Set(ids)
+    ];
   }
 
   // supabase/functions/_shared/posting_key.ts
@@ -4876,12 +4933,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       changed = false;
       const ids = new Set(live.map((c) => String(c.a.factId)));
       live = live.filter((c) => {
-        const from = Array.isArray(c.a.derived_from) ? c.a.derived_from.map(String) : [];
-        if (from.every((x) => ids.has(x))) return true;
+        const from = factDependencies(c.a);
+        if (from !== null && from.every((x) => ids.has(x))) return true;
         excluded.push({
           key: c.key,
           factId: String(c.a.factId),
-          why: "derived from an excluded or unknown fact"
+          why: from === null ? "malformed dependency metadata" : "derived from an excluded or unknown fact"
         });
         changed = true;
         return false;

@@ -710,6 +710,23 @@
    "run": "39590964501",
    "read": "failing ids per judge; H027 traces p1/p2, p2 judge note and last replies (160 chars); every reply in this run and the two before scanned by code for error, step-limit and empty replies and for no-tool turns of 2+ steps (ids only)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H006",
+    "H009",
+    "H018",
+    "H026",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39592260931",
+   "read": "failing ids per judge; H009 traces, stored row (stage_detail) and last replies (200 chars) in three passes; H018 p1 trace and last reply (flagged by the dangling-question scan); every reply scanned by code for error and empty replies",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

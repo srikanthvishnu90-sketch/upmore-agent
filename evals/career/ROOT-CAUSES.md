@@ -335,3 +335,14 @@ of private content.
   of its own draft. Gate test: the retry payload's messages carry no check text and end with the person's message;
   the system prompt carries the draft and the changes. Same mechanism for the empty-reply retry (H027, queued).
 - Re-run: pending; ordered after the second judge's verdict on the waiver round, so the base is known.
+
+### H001 (39552801613 p1, second judge): the greeting saved as a fact ("Saved: Said: 'hello - first message'")
+- Why: add_profile_fact's code check (career_tools.ts factRefusal) only asks whether the saved text's words were in the
+  person's message. A greeting passes that test trivially: "hello" was in the message. Nothing asks whether the text
+  says anything ABOUT the person (experience, education, skill, goal, place, preference). And the prompt's rule
+  ("What they tell you about themselves ... Save it with add_profile_fact") gives the model no line for a message
+  with no fact in it, so on a bare greeting it sometimes saves the greeting and plays it back with "Saved: ...".
+- Line: `supabase/functions/_shared/agent/career_tools.ts` factRefusal (lines 54-62 at 3aa906b4), no content test.
+- Fix: factRefusal refuses a text with no content beyond greetings, thanks, acknowledgements or chat about the chat
+  ("hello", "first message", "thanks", "ok"); gate test with synthetic greetings and real facts. Queued after the
+  owner's order (self-review, H027, H004, H002, H025).

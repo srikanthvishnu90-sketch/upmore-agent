@@ -100,7 +100,8 @@ export function fromOpenAI(body: any): any {
     content.push({ type: "tool_use", id: c.id, name: c.function.name, input });
   }
   const used = content.some(b => b.type === "tool_use");
-  const stop_reason = used ? "tool_use" : choice.finish_reason === "length" ? "max_tokens" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
+  // A parsed call does not override the provider saying the generation was cut off; the loop must repair without effects.
+  const stop_reason = choice.finish_reason === "length" ? "max_tokens" : used ? "tool_use" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
   const u = body.usage || {};
   const cached = Number(u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || 0;
   const usage = { input_tokens: Math.max(0, (Number(u.prompt_tokens) || 0) - cached), output_tokens: Number(u.completion_tokens) || 0, cache_read_input_tokens: cached, cache_creation_input_tokens: 0 };

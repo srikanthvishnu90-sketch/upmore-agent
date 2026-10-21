@@ -211,16 +211,12 @@ Deno.test("WO-061/R1 code's review of its draft never enters the conversation; t
   eq(r.reply, "You're set.");
 });
 
-Deno.test("WO-061/H002 a tool that refuses twice for the same reason is not called a third time; the person gets an answer, not the step-limit text", async () => {
-  const why = "not confirmed: the person's message is not a plain yes; ask them to confirm the fact as written";
-  const confirm: ToolSpec = { name: "confirm_profile_fact", description: "confirm", effect: "write_own", input_schema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }, run: async () => { throw new Error(why); } };
-  const m = scripted([call("c1", "confirm_profile_fact", { id: "F-001" }), call("c2", "confirm_profile_fact", { id: "F-001" }), text("Noted. Want me to search analyst roles in Chicago now?")]);
-  const r = await runAgentTurn({ ...base(m, { message: "ok thanks" }), tools: [confirm] });
-  eq(r.reply, "Noted. Want me to search analyst roles in Chicago now?", "the model's answer is the reply");
-  assert(r.reply !== MAX_STEPS_REPLY && r.stopped === "final");
-  eq(m.payloads.length, 3, "two refusals, then one call");
-  eq(m.payloads[2].tool_choice, { type: "none" }, "the third call runs no tool");
-  assert(/confirm_profile_fact refused twice with the same reason/.test(m.payloads[2].system) && m.payloads[2].system.includes(why), "code's note says why, in that call's system prompt");
-  assert(!m.payloads[1].tool_choice, "one refusal leaves the tools on");
-  assert(!JSON.stringify(m.payloads[2].messages).includes("CODE'S NOTE"), "the note never enters the conversation");
+Deno.test("WO-061/H027 an empty answer is asked for once more, tools off; the person never gets an empty reply", async () => {
+  const m = scripted([{ content: [], stop_reason: "end_turn" }, text("Here's a prep plan for your interview.")]);
+  const r = await runAgentTurn(base(m, { message: "help me prep for my interview" }));
+  eq(r.reply, "Here's a prep plan for your interview.", "the second answer is the reply");
+  eq(m.payloads.length, 2, "one retry");
+  eq(m.payloads[1].tool_choice, { type: "none" }, "the retry runs no tool");
+  assert(/Your last answer was empty/.test(m.payloads[1].system), "the note is in the retry's system prompt");
+  eq(m.payloads[1].messages.at(-1), { role: "user", content: [{ type: "text", text: "help me prep for my interview" }] }, "the person's message stays last");
 });

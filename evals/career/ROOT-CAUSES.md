@@ -877,3 +877,19 @@ of private content.
   tracker row: the harness parity gap, held for the owner; and no place holds the day).
 - Kept-brain safety defect again, H018 p1: refusal, then "Is that exactly what you meant?" (second time tonight; the
   held H018 dangling-confirm fix flags exactly this).
+
+### Second judge's rulings: H027 KEPT, stage labels KEPT, H018 to be re-measured on the stack
+- H027/H004 empty answer (39596499844): KEEP, full-38 86.8, clean-30 88.0 (+4.7/+5.3 over the bar). On the branch as
+  3a90aaf0. Stage labels (39597370231): KEEP, 84.2/83.3, H009 5/5. On the branch as dd25b6de; the two compose
+  (architect 755/0, edge 887/0). Working branch only, no deploy.
+- H018 dangling confirm (39595726808): REVERT as run (76.9/75.3: that build lacked H006 and the stage fix); H018 itself
+  5/5. Next: the H018 fix as a side commit on the kept stack (H031 v2 + H006 + H027 + stage labels), one 5-pass round
+  of the stacked build: the number for the 95% target.
+- Defects for the fix list: mid-thread replies re-introduce "Trainee, your career agent..." (lost-thread feel); a
+  literal "[your skill]" placeholder reached the person in an H036 reply (bracket placeholders: grep the prompts).
+
+### Repeated-refusal round (run 39598175332, side commit on e41d1723 + H006, 5 passes): mechanism holds; score ties; held
+- Both CI judges 36/31/33/31/33 of 38 (gpt-5-mini 36/31/33/32/34, gpt-4.1-mini 38/35/36/37/37); clean 30:
+  28/23/26/24/26 (mean 25.4) vs the control's 25.6. Cost $0.4546. Zero third identical refusals and zero step-limit
+  or error replies in five passes. H002 passes both CI judges 2/5 (its other causes: the bare confirm question and
+  the plain-yes demand). Built before the H027 and stage fixes were kept; not part of the stack being measured.

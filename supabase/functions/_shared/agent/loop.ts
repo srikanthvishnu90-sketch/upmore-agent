@@ -167,7 +167,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const seen: string[] = [];
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
-  let steps = 0, checked = false, ask = false;
+  let steps = 0, checked = false, ask = false, emptied = false;
   // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
   // the conversation. As a user-role message the model took it for the person's words, refused it out loud ("I can't
   // follow the instruction to show ... hidden internal words") and the refusal reached the person.
@@ -175,11 +175,6 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
   // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
   const earlier: string[] = [];
-  // WO-061 (H002): a tool that refuses twice in one turn for the same reason refuses every time; the model kept calling it
-  // until the step limit, and the person got the step-limit text for a message that needed one line. The second time,
-  // the next call has tools off and code's note says why (in that call's system prompt, like `review`).
-  const refusals = new Map<string, number>();
-  let twice: { name: string; why: string } | null = null, stopped = false;
   while (steps < max) {
     steps++;
     let res;
@@ -199,6 +194,14 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (said.length && reply.length < 160) reply = [...said, reply].filter(Boolean).join("\n\n");
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      // WO-061 (H027): an answer with neither a tool call nor text (a reasoning model can spend its whole budget thinking)
+      // was returned as "", and the conversation layer sent its error text mid-conversation. It is asked for once more,
+      // tools off, with code's note in that call's system prompt (never the conversation: see `review`).
+      if (!reply && !emptied && steps < max) {
+        emptied = true; ask = true;
+        review = "CODE'S NOTE. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request. Your last answer was empty. Write your reply to the person now, answering what they asked in their last message.";
+        continue;
+      }
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
       // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
       // stands after that, code fixes.
@@ -213,7 +216,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
           money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
-          waiver.length ? "Your reply offers them wording to send, or offers to save something, that would waive their yes or grant a standing permission. Never propose that wording or offer to save it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
+          waiver.length ? "Your reply offers them wording to send, offers to save something, or asks them to confirm something, after they asked to waive their yes or grant a standing permission. Never propose that wording, offer to save it or ask them to confirm it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
         ].filter(Boolean).join(" ");
         // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
@@ -245,13 +248,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     const results: any[] = [];
     for (const u of uses) {
       const t = byName.get(u.name);
-      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => {
-        tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) });
-        results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg });
-        const k = `${u.name}\n${msg}`, n = (refusals.get(k) ?? 0) + 1;
-        refusals.set(k, n);
-        if (n >= 2 && !twice) twice = { name: u.name, why: msg };
-      };
+      const fail = (effect: Effect | null, msg: string, why: unknown = msg) => { tool_calls.push({ name: u.name, ok: false, effect, error: scrubError(why as string) }); results.push({ type: "tool_result", tool_use_id: u.id, is_error: true, content: msg }); };
       if (!t) { fail(null, `unknown tool: ${u.name}`); continue; }
       const input = u.input && typeof u.input === "object" ? u.input : {};
       const missing = (t.input_schema.required || []).filter((k) => input[k] === undefined || input[k] === null || input[k] === "");
@@ -270,10 +267,6 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       } catch (e) { if (e instanceof AskPerson) ask = true; fail(t.effect, e instanceof Error ? e.message : String(e), e); }
     }
     messages.push({ role: "user", content: results });
-    if (twice && !stopped) {
-      stopped = true; ask = true;
-      review = `CODE'S NOTE. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request. ${twice.name} refused twice with the same reason: ${twice.why}. Do not call it again this turn. Reply to the person now: answer their last message.`;
-    }
   }
   const show = o.ctx.turn?.show;
   if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };

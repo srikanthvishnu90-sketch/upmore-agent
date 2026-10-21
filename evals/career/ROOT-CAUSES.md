@@ -805,3 +805,8 @@ of private content.
   screen", assessment/test -> "OA/assessment", final -> "Final", offer, rejected, withdrawn, accepted, applied ->
   "Submitted", saved); a label that maps to none is refused with the list of stages. Gate tests: "Interview" saves
   as "Interview rounds" and the next update succeeds; nonsense is refused with the list.
+
+### 5-pass control of the kept brain (run 39593068532, e41d1723): the same-night reference for 5-pass rounds
+- Both CI judges 34/33/32/32/35 of 38 (gpt-5-mini 34/34/33/34/36, gpt-4.1-mini 37/37/35/33/36); clean 30:
+  26/26/25/24/27 (mean 25.6). One error reply (H004 p2, the invalid-stage path above). H018 fails gpt-5-mini in p2.
+  Cost $0.4484.

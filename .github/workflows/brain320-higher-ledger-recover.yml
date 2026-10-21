@@ -1,0 +1,136 @@
+name: brain320-higher-existing-ledger-safe-export
+on:
+  push:
+    branches: [ci/brain320-higher-ledger-recover-20261021]
+    paths: [.github/workflows/brain320-higher-ledger-recover.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export-existing-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1ec88f3cca4b21200be5c4f16ba2a948a72614b0
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /supabase/functions/_shared/model_gateway.ts
+            /supabase/functions/_shared/model_calls.ts
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: "v2.9.6"}
+      - name: Verify existing private archive metadata identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          req=urllib.request.Request('https://api.github.com/repos/srikanthvishnu90-sketch/upmore-agent/actions/artifacts/12383020538',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req) as r: a=json.load(r)
+          assert a['id']==12383020538 and a['name']=='brain320-39675214823-1'
+          assert a['workflow_run']['id']==39675214823 and not a['expired']
+          assert a['workflow_run']['head_sha']=='d8d1b9012395a2c5351a8a0bd0aa6382f9211e1f'
+          assert a['digest']=='sha256:581ee66c76cdb056b550b0d38317f4fe1da91c030f1956b6e078b385ac14ec6f'
+          print('PINNED_EXISTING_ARCHIVE_ID_AND_PUBLISHED_DIGEST_VERIFIED')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: "12383020538"
+          run-id: 39675214823
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/higher-private
+      - name: Export strict safe aggregate and call events with provider access denied
+        run: |
+          cat > "$RUNNER_TEMP/export-higher-safe.mjs" <<'TS'
+          const source = "1ec88f3cca4b21200be5c4f16ba2a948a72614b0";
+          const corpusHash = "91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc";
+          const resultDigest = "e202c69abdda286bf0a38e9828cb226cef0f5d8711d1f53f4c94308f4ccfaa7f";
+          const artifactDigest = "581ee66c76cdb056b550b0d38317f4fe1da91c030f1956b6e078b385ac14ec6f";
+          const base = new URL("file://" + Deno.args[1] + "/");
+          const {costMicros} = await import(new URL("supabase/functions/_shared/model_gateway.ts",base).href);
+          const fail = (ok, message) => { if (!ok) throw new Error(message); };
+          const hash = async (raw) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", typeof raw === "string" ? new TextEncoder().encode(raw) : raw))].map(n=>n.toString(16).padStart(2,"0")).join("");
+          const parse = (raw) => { try { return JSON.parse(raw); } catch { throw new Error("Invalid private artifact JSON"); } };
+          const select = (obj, keys) => Object.fromEntries(keys.filter(k=>Object.hasOwn(obj,k)).map(k=>[k,obj[k]]));
+          const equal = (a,b) => JSON.stringify(a)===JSON.stringify(b);
+          const count = (v) => typeof v==="number" && Number.isSafeInteger(v) && v>=0;
+          const folder=Deno.args[0];
+          const resultRaw=await Deno.readTextFile(folder+"/brain320-result.json");
+          fail(await hash(resultRaw)===resultDigest,"Pinned result digest differs");
+          const arm=parse(resultRaw);
+          fail(arm.model==="gpt-5" && arm.status==="NOT_SCORED" && arm.planned===320 && arm.items.length===257,"Partial result envelope differs");
+          fail(arm.identity.source_commit===source && arm.identity.corpus_sha256===corpusHash,"Pinned source/corpus identity differs");
+          const journalRaw=await Deno.readTextFile(folder+"/brain320-result.journal.jsonl");
+          const lines=journalRaw.split("\n"); if(lines.at(-1)==="")lines.pop();
+          const events=lines.map(parse), headers=events.filter(e=>e.type==="arm"), completes=events.filter(e=>e.type==="complete");
+          fail(headers.length===1 && events[0]===headers[0] && completes.length===1 && events.at(-1)===completes[0],"Journal envelope differs");
+          const header=headers[0];
+          fail(header.model===arm.model && header.identity.source_commit===source && header.identity.corpus_sha256===corpusHash,"Journal identity differs");
+          fail(header.approval.model==="gpt-5" && header.approval.source_commit===source && header.approval.corpus_sha256===corpusHash && header.approval.cap_usd===8 && header.approval.comparison_spent_usd===2.258950,"Approved cap/source binding differs");
+          const usageKeys=["input_tokens","output_tokens","cache_read_input_tokens","cache_creation_input_tokens"];
+          const usage=(u) => {
+            if(u===null)return null;
+            fail(u && typeof u==="object" && !Array.isArray(u) && Object.keys(u).every(k=>usageKeys.includes(k)) && count(u.input_tokens) && count(u.output_tokens) && usageKeys.filter(k=>Object.hasOwn(u,k)).every(k=>count(u[k])),"Invalid usage counters");
+            return select(u,usageKeys);
+          };
+          const safeCall=(c) => {
+            fail(count(c.call_id) && c.call_id>0 && count(c.reserve_micros) && c.reserve_micros>0,"Invalid call ordinal/reservation");
+            fail(c.role==="brain" ? c.model==="gpt-5" : c.role==="judge" && ["gpt-5-mini","gpt-4.1-mini"].includes(c.model),"Invalid call role/model");
+            fail(["settled","unknown"].includes(c.status),"Invalid settlement status");
+            const u=usage(c.usage);
+            fail(c.status==="unknown" ? u===null && c.usd_micros===null : u!==null && count(c.usd_micros) && costMicros(c.model,u)===c.usd_micros && c.usd_micros<=c.reserve_micros,"Recorded cost differs from pinned costMicros");
+            return {evidence_run_id:39675214823,call_id:c.call_id,model:c.model,role:c.role,status:c.status,reserve_micros:c.reserve_micros,usage:u,usd_micros:c.usd_micros};
+          };
+          const calls=arm.calls.map(safeCall), byCall=new Map(calls.map((c)=>[c.call_id,c]));
+          fail(byCall.size===calls.length,"Duplicate result call ordinal");
+          const open=new Map(), settled=new Set(), safeEvents=[];
+          const roleTotals={};
+          const modelTotals={};
+          let charged=0,unknown=0,reservations=0,settlements=0;
+          for(const e of events) {
+            if(e.type==="reserved") {
+              fail(count(e.call_id) && e.call_id>0 && count(e.reserve_micros) && e.reserve_micros>0 && !open.has(e.call_id) && !settled.has(e.call_id),"Invalid or duplicate reservation");
+              const c=byCall.get(e.call_id);
+              fail(c && c.model===e.model && c.role===e.role && c.reserve_micros===e.reserve_micros,"Reservation/result safe binding differs");
+              open.set(e.call_id,e.reserve_micros);reservations++;
+              safeEvents.push({type:"reserved",evidence_run_id:39675214823,call_id:e.call_id,model:e.model,role:e.role,reserve_micros:e.reserve_micros});
+            } else if(e.type==="settlement") {
+              const c=safeCall(e);
+              fail(open.has(c.call_id) && !settled.has(c.call_id) && equal(c,byCall.get(c.call_id)),"Journal/result safe settlement differs");
+              settled.add(c.call_id);settlements++;
+              if(c.usd_micros===null)unknown++;else{charged+=c.usd_micros;open.delete(c.call_id);}
+              safeEvents.push({type:"settlement",...c});
+            }
+          }
+          fail(reservations===calls.length && settlements===calls.length,"Call/event inventory differs");
+          for(const c of calls) {
+            for(const [totals,key] of [[roleTotals,c.role],[modelTotals,c.model]]) {
+              totals[key]??={calls:0,known_usd_micros:0,unknown_calls:0};
+              totals[key].calls++;totals[key].known_usd_micros+=c.usd_micros??0;totals[key].unknown_calls+=c.usd_micros===null?1:0;
+            }
+          }
+          const held=[...open.values()].reduce((a,n)=>a+n,0);
+          const ledger={usd_micros:charged,unsettled_calls:open.size,reserved_micros:held,unknown_charges:unknown,unpriced_calls:0,stopped:true};
+          const ledgerKeys=Object.keys(ledger);
+          fail(equal(ledger,select(arm.ledger,ledgerKeys)) && charged===6244150 && open.size===1 && unknown===1 && held===70743,"Journal/result unresolved cost snapshot differs");
+          fail(charged+held<=8000000,"Known plus held exceeds approved cap");
+          const summaryKeys=["model","status","score_kind","final_acceptance","planned","completed","full","clean","categories","metrics","cost_usd","ledger"];
+          const summary=select(completes[0].summary,summaryKeys);
+          fail(summary.model==="gpt-5" && summary.status==="NOT_SCORED" && summary.planned===320 && summary.completed===257 && summary.full===null && summary.clean===null && summary.categories===null,"Journal partial summary differs");
+          fail(equal(ledger,select(summary.ledger,ledgerKeys)) && summary.cost_usd.total===charged/1000000,"Summary/journal known cost differs");
+          fail(summary.cost_usd.brain===roleTotals.brain.known_usd_micros/1000000 && summary.cost_usd.judge===roleTotals.judge.known_usd_micros/1000000,"Summary role cost differs");
+          const pairedRaw=await Deno.readTextFile(folder+"/brain320-comparison.json");
+          const paired=select(parse(pairedRaw),["status","mini_status","higher_status","mini_cost_usd","higher_cost_usd"]);
+          fail(paired.status==="NOT_COMPARABLE" && paired.mini_status==="SCORED" && paired.higher_status==="NOT_SCORED" && paired.mini_cost_usd.total===2.258950 && equal(paired.higher_cost_usd,summary.cost_usd),"Paired partial aggregate differs");
+          const safeSummary={evidence_run_id:39675214823,artifact_id:12383020538,artifact_zip_sha256_attestation:artifactDigest,result_sha256_attestation:resultDigest,journal_sha256_attestation:await hash(journalRaw),source_commit:source,pricing_module_sha256:await hash(await Deno.readFile(new URL("supabase/functions/_shared/model_gateway.ts",base))),call_count:calls.length,reservation_count:reservations,settlement_count:settlements,roles:roleTotals,models:modelTotals,...summary,ledger,final_cost:"UNRECONCILED",known_combined_usd_micros:charged+2258950,retained_reservation_usd_micros:held,combined_max_exposure_usd_micros:10258950,packet_integrity:"PRIVATE_DIGEST_ATTESTATION_ONLY; no private case packets inspected",paid_calls:0,model_runs:0};
+          console.log("BRAIN320_HIGHER_SAFE_SUMMARY "+JSON.stringify(safeSummary));
+          console.log("BRAIN320_HIGHER_SAFE_PAIRED "+JSON.stringify(paired));
+          for(const c of calls)console.log("BRAIN320_HIGHER_SAFE_CALL "+JSON.stringify(c));
+          for(const e of safeEvents)console.log("BRAIN320_HIGHER_SAFE_EVENT "+JSON.stringify(e));
+          TS
+          deno run --cached-only --no-remote --deny-net --deny-env --deny-write --deny-run --no-prompt \
+            --allow-read="$GITHUB_WORKSPACE/supabase/functions/_shared/model_gateway.ts,$GITHUB_WORKSPACE/supabase/functions/_shared/model_calls.ts,$RUNNER_TEMP/higher-private/brain320-result.json,$RUNNER_TEMP/higher-private/brain320-result.journal.jsonl,$RUNNER_TEMP/higher-private/brain320-comparison.json" \
+            "$RUNNER_TEMP/export-higher-safe.mjs" "$RUNNER_TEMP/higher-private" "$GITHUB_WORKSPACE"

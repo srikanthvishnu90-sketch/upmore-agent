@@ -17,7 +17,7 @@ export interface WantStore {
 const NEVER = /(^|\.)(linkedin\.com|indeed\.com)$/i;
 const host = (url: string) => { try { return new URL(url).hostname; } catch { return ""; } };
 
-export interface Pick { url?: string; job_id?: string; company?: string; title?: string }
+export interface Pick { url?: string; job_id?: string; company?: string; title?: string; location?: string }
 // WO-091b: a refused pick names the posting and the reason, so the model says exactly what happened. `url` and `why` are
 // the same refusal in WO-066's words, kept for its callers.
 export interface Refusal { posting: { job_id: string | null; company: string; title: string; url: string }; reason: string; url: string; why: string }
@@ -85,7 +85,7 @@ export async function resolvePicks(picks: Pick[], get?: ((jobId: string) => Prom
       refused.push(refusal(p, "not found among the postings on file (it may have closed, or was never listed); nothing was queued for it. Search again, or the person can paste its link into the Trainee extension's queue themselves"));
       continue;
     }
-    const real: Pick = { job_id: String(rec.job_id ?? id), url: String(rec.url || p.url || ""), company: String(rec.company ?? ""), title: String(rec.title ?? "") };
+    const real: Pick = { job_id: String(rec.job_id ?? id), url: String(rec.url || p.url || ""), company: String(rec.company ?? ""), title: String(rec.title ?? ""), location: String(rec.location ?? "") };
     if (rec.closed_at) { refused.push(refusal(real, `${real.title} at ${real.company} has closed; nothing was queued for it`)); continue; }
     ok.push(real);
   }

@@ -15,7 +15,7 @@
 // A verification check (a captcha) at open, review or Submit is never solved or got around: the job goes back to the
 // person with its link ("finish this one yourself"), and the check counts in the telemetry, which pauses a portal or a
 // person before failures pile up under their name.
-import { factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
+import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
 import { questionsToStore } from "../career-browser/ask-once.ts";
 
 export interface CloudJob {
@@ -48,6 +48,7 @@ const BY_DESIGN = new Set([
   "RESUME_CHANGED", "RESUME_NOT_IN_CLOUD", "NO_ENGINE_APPROVAL", "CONFLICTING_APPROVED_ANSWERS", "FACTS_EXPIRED", "ACCOUNT_PAUSED",
   "FACTS_ERASED", "duplicate_job", "daily_cap", "company_cooldown", "UNCONFIRMED_HIDDEN_FIELD", "UNSUPPORTED_FILE_ARTIFACT",
   "SUBMIT_DESTINATION_NOT_BOUND", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
+  "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED", "FACT_OWNER_MISMATCH",
 ]);
 const BOT_CHECK = (state: string, reason: string) =>
   (state === "needs_user" && reason === "captcha") || (state === "not_submitted" && reason === "CAPTCHA_AT_SUBMIT");
@@ -130,7 +131,7 @@ export async function runCloudJob(job: CloudJob, d: {
   try {
     await Deno.chmod(dir, 0o700);
     const p = job.payload;
-    if (!/^[0-9a-f]{64}$/.test(String(p?.engine_approval))) throw Object.assign(Error("NO_ENGINE_APPROVAL"), { code: "NO_ENGINE_APPROVAL" });
+    await assertApprovedPayload(p, { url: job.url, user_id: job.user_id });
     const r = await d.queue.resume(job);
     if (!r) throw Object.assign(Error("RESUME_NOT_IN_CLOUD"), { code: "RESUME_NOT_IN_CLOUD" });
     const bytes = b64bytes(r.b64);
@@ -148,7 +149,10 @@ export async function runCloudJob(job: CloudJob, d: {
   } catch (e: any) {
     // Before the engine started nothing could have been sent; after it started, nothing is known.
     const code = String(e?.code || e?.message || e).split(":")[0].slice(0, 80);
-    s = began
+    const recovered = !began && ["CONTRACT_REFUSED", "APPROVED_APPLICATION_CHANGED"].includes(code)
+      ? await approvedQuestionsAfterRefusal(job.payload, { url: job.url, user_id: job.user_id }) : null;
+    if (recovered) { run = { result: recovered, evidence: null }; s = settle(recovered); }
+    else s = began
       ? { state: "unknown_outcome", reason: "the run stopped after the engine started; not retried",
         outcome: d.stopping?.() ? "interrupted" : "error", errorKind: d.stopping?.() ? "WORKER_STOPPED" : code }
       : settle({ state: "not_submitted", reason: code });

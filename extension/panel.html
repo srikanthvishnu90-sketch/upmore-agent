@@ -20,6 +20,14 @@
   <section id="setup" hidden>
     <div class="row"><span>Resume: <b id="resume-name">none yet</b></span><label class="file">Choose file<input id="resume" type="file" accept=".pdf,.doc,.docx,.txt"></label></div>
     <div class="row"><span class="small">Your confirmed answers come from what you told Trainee. <span id="facts-count"></span></span><label class="file small">Import facts file<input id="facts" type="file" accept=".json"></label></div>
+    <div id="fact-import-review" hidden>
+      <div class="row"><b>Review imported answers</b><button id="fact-import-cancel" class="link">Close preview</button></div>
+      <p id="fact-import-file" class="small"></p>
+      <p class="small">Every answer starts as a draft. Confirm each answer only if it is your own correct information. This does not approve an application.</p>
+      <p class="small">A confirmed answer is added to this browser session, replacing only the same answer key. Other imported answers are kept. Nothing is saved to your account's fact bank here.</p>
+      <ol id="fact-import-list"></ol>
+    </div>
+    <p id="fact-import-msg" class="msg" role="status" aria-live="polite"></p>
     <details id="stated"><summary class="small">Type or paste facts about you</summary>
       <textarea id="stated-text" rows="4" placeholder="Name, city, phone, email, school and years, jobs, skills, work authorization"></textarea>
       <div class="row"><button id="stated-read">Read</button><button id="stated-confirm" disabled>Confirm the checked facts</button></div>

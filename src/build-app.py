@@ -2,7 +2,7 @@
 """Build the full Upmore app: inject upmore-data.json into the template."""
 import base64
 import hashlib
-import json, pathlib
+import json, pathlib, os, uuid
 import re
 
 HERE = pathlib.Path(__file__).parent
@@ -39,6 +39,7 @@ for marker, filename, wrapped in [
     ('<!--__LEDGER_CONTROLLER__-->', 'ledger-review-controller.js', True),
     ('<!--__BILL_CONTROLLER__-->', 'bill-workflow-controller.js', True),
     ('<!--__CHAT_CONTROLLER__-->', 'chat-request-controller.js', True),
+    ('<!--__CAREER_APPROVAL_CARD__-->', 'career-approval-card.js', True),
     ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
     ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),
@@ -51,6 +52,15 @@ for marker, filename, wrapped in [
     assert marker in out, f'{marker} missing from template'
     content = (HERE / filename).read_text()
     out = out.replace(marker, '<script>\n' + content + '\n</script>' if wrapped else content, 1)
+
+# Lane B's first render path is limited to one explicitly configured TEST account.
+# An ordinary build leaves this empty, disabling approval cards for every account.
+test_profile = os.environ.get('UPMORE_APPROVAL_CARD_TEST_USER_ID', '')
+if test_profile:
+    assert str(uuid.UUID(test_profile)) == test_profile.lower(), 'Invalid approval-card TEST profile UUID'
+marker = '/*__CAREER_APPROVAL_TEST_PROFILE__*/'
+assert marker in out, 'approval-card TEST profile placeholder missing'
+out = out.replace(marker, 'const CAREER_APPROVAL_TEST_USER_ID = ' + json.dumps(test_profile.lower()) + ';', 1)
 
 # Guided manual connect: the platforms with a playbook (names and whether a live run verified it; nothing else).
 playbooks = json.loads((HERE.parent / "packages" / "connectors" / "manual-playbooks.json").read_text())["playbooks"]

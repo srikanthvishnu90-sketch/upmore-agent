@@ -21606,7 +21606,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs
    Pure: no I/O. The caller passes CSV / resume text in. UMD like the other
    domain modules. */
 const CareerProfile = (() => {
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+  // WO-106: "goal" and "location" are kinds the agent saves (its add_profile_fact offers them); without them every stated
+  // goal and place was kept as "other" and could not be found again.
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "eligibility", "profile", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;
@@ -21631,6 +21633,8 @@ const CareerProfile = (() => {
       connections: [],
       _seq: 0,
     };
+    // Preserve an explicitly supplied owner for the source-bound application adapter; never infer one.
+    if (typeof s.user_id === "string") p.user_id = s.user_id;
     for (const f of s.facts || []) addFact(p, f, { keepId: true });
     for (const c of s.connections || []) p.connections.push(Object.assign({}, c));
     return p;
@@ -22026,6 +22030,45 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerProf
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // Same negative D-007 predicate as _shared/fact_quarantine.ts; Node tests bundle that pure TS module and
+  // compare this consumer at the ID boundaries and provenance cases. No source row is changed or deleted.
+  const quarantinedFact = (f) => {
+    if (!f || typeof f !== "object" || Array.isArray(f)) return false;
+    for (const id of [f.factId, f.id]) {
+      const m = /^F-0*(\d+)$/.exec(String(id == null ? "" : id).trim());
+      if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    }
+    return /owner-delegated|answer-all/i.test(String(f.provenance == null ? "" : f.provenance));
+  };
+  const sourceLabel = (v) => typeof v === "string" ? v.trim().toLowerCase().replace(/[\s_]+/g, "-") : "";
+  const deniedLabel = (v) => /^(?:agent|assistant|model|llm|ai|inferred|generated|(?:agent|assistant|model|ai)-generated|quarantined|rejected)$/.test(sourceLabel(v));
+  const record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  const deniedRecord = (v) => v.unproven === true || v.quarantined === true || v.rejected === true ||
+    sourceLabel(v.status) === "rejected" || deniedLabel(v.source) || deniedLabel(v.origin);
+  // Negative metadata mirrors personal_fact_source.ts; it is never inferred from title/text/skills.
+  const contentSourceDenied = (v) => record(v) && (quarantinedFact(v) || deniedRecord(v) || deniedLabel(v.provenance) || record(v.provenance) && deniedRecord(v.provenance));
+  function contentProfile(profile) {
+    const facts = profile && Array.isArray(profile.facts) ? profile.facts : [];
+    const idsOf = (f) => [f && f.id, f && f.factId].filter((id) => typeof id === "string" && id.trim());
+    const denied = new Set(), deniedIds = new Set(), known = new Set(facts.flatMap(idsOf));
+    const deny = (f) => { denied.add(f); for (const id of idsOf(f)) deniedIds.add(id); };
+    for (const f of facts) if (contentSourceDenied(profile) || !f || typeof f !== "object" || contentSourceDenied(f) ||
+      f.needs_confirmation || f.status !== undefined && f.status !== "confirmed") deny(f);
+    const badRef = (id) => typeof id !== "string" || !id.trim() || quarantinedFact({ id }) || !known.has(id) || deniedIds.has(id);
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const f of facts) {
+        if (denied.has(f)) continue;
+        // Both stored derivation spellings are dependency declarations; a confirmed child cannot erase its source.
+        // Domain skill evidence entries are fact-ID links too, not independent permission to repeat an excluded claim.
+        const fields = ["derived_from", "derivedFrom", ...(f.kind === "skill" ? ["evidence"] : [])];
+        const bad = idsOf(f).some((id) => deniedIds.has(id)) || fields.some((key) => Object.prototype.hasOwnProperty.call(f, key) &&
+          (!Array.isArray(f[key]) || f[key].some(badRef)));
+        if (bad) { deny(f); changed = true; }
+      }
+    }
+    return Object.assign({}, profile || {}, { facts: facts.filter((f) => !denied.has(f)) });
+  }
   // CA-02 document renderer (148) is loaded lazily, only when render()
   // runs — same global-or-require pattern as Profile above.
   let _renderMod;
@@ -22328,6 +22371,7 @@ const CareerTailor = (() => {
     return { factId: fact.id, relevance: Math.round(relevance * 100) / 100, recency: Math.round(recency * 100) / 100, impact, total: Math.round((relevance * 10 + recency + impact) * 100) / 100 };
   }
   function selectFacts(profile, jd, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
     const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
@@ -22445,6 +22489,7 @@ const CareerTailor = (() => {
     return false;
   }
   function provenSkills(profile, jd) {
+    profile = contentProfile(profile);
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
     const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
     const byName = new Map();
@@ -22536,6 +22581,32 @@ const CareerTailor = (() => {
     return { text: base, factIds: [fact.id] };
   }
 
+  // Fact selection picks a role/project; a posting also needs the most relevant evidence WITHIN that entry.
+  // Rank the person's own bullet strings without rewriting, dropping, or borrowing words from the employer.
+  // Explicit requirements lead preferences, then task-word overlap; equal scores retain the source order.
+  function bulletsForPosting(bullets, jd) {
+    const must = new Set((jd.mustHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const nice = new Set((jd.niceToHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const tokens = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").split(/\s+/).filter((w) => w.length > 4);
+    const generic = new Set("requirements qualifications responsibilities experience required preferred skills ability minimum candidate applicants company people position years opportunities".split(" "));
+    const taskWords = new Set(jdSegments(jd.rawText || "").filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate")
+      .flatMap((sg) => tokens(sg.text)).filter((w) => !generic.has(w)));
+    const scored = bullets.map((text, index) => {
+      const skills = new Set(skillsInText(text).map((s) => s.toLowerCase()));
+      const words = new Set(tokens(text));
+      return { text, index, score: [
+        [...must].filter((s) => skills.has(s)).length,
+        [...nice].filter((s) => skills.has(s)).length,
+        [...taskWords].filter((w) => words.has(w)).length,
+      ] };
+    });
+    scored.sort((a, b) => {
+      for (let i = 0; i < a.score.length; i++) if (a.score[i] !== b.score[i]) return b.score[i] - a.score[i];
+      return a.index - b.index;
+    });
+    return scored.map((s) => s.text);
+  }
+
   // ---- entry dates (BUG-2026-10-14-NDER) ----
   // An entry line prints its fact's date range, in the one-pager's proven
   // shape ("Title, Org, 2025–2029" / "…, 2025–Present" / single year when
@@ -22560,6 +22631,7 @@ const CareerTailor = (() => {
   }
 
   function assemble(profile, jd, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const family = o.family || jd.family || "swe";
     const fam = FAMILIES[family] || FAMILIES.swe;
@@ -22653,7 +22725,7 @@ const CareerTailor = (() => {
       return out;
     };
     const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => {
-      const bullets = (f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
+      const bullets = bulletsForPosting(f.bullets && f.bullets.length ? f.bullets : [f.text], jd).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
       return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...bullets, ...operativeClauses(f, [entryTextFor(f), ...bullets.map((b) => b.text)])];
     }) } : null;
     // consulting: one structured bullet per fact replaces the raw bullets
@@ -22704,6 +22776,7 @@ const CareerTailor = (() => {
 
   // ---- TRUTH AUDIT — hard gate (APPE-002) ----
   function auditResume(resume, profile) {
+    const usable = contentProfile(profile), usableFacts = new Set(usable.facts);
     const lines = Array.isArray(resume) ? resume : (resume && resume.lines) || [];
     const violations = [];
     for (const line of lines) {
@@ -22714,6 +22787,7 @@ const CareerTailor = (() => {
       const facts = factIds.map((id) => Profile.getFact(profile, id));
       if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
+      if (facts.some((f) => !usableFacts.has(f))) violations.push({ line: text, reason: "supported by quarantined, unavailable or excluded-source evidence", factIds });
       // The fact's start/end fields are part of its support corpus: entry
       // lines print the date range from exactly those fields
       // (assemble/entryTextFor), so the years must trace here — and ONLY
@@ -22742,9 +22816,9 @@ const CareerTailor = (() => {
         return corpus.includes(` ${nm} `);
       };
       for (const skill of skillsInText(text)) {
-        const ev = Profile.skillEvidence(profile, skill);
+        const ev = Profile.skillEvidence(usable, skill);
         const nm = skill.toLowerCase();
-        const proven = ev.proven || (profile.facts || []).some((f) => factEvidencesSkill(f, nm));
+        const proven = ev.proven || usable.facts.some((f) => factEvidencesSkill(f, nm));
         const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill || factEvidencesSkill(Profile.getFact(profile, id), nm));
         const inSupport = supportText.includes(nm) && proven;
         if (!proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
@@ -23008,6 +23082,7 @@ const CareerTailor = (() => {
     return null;
   }
   function computeGaps(profile, jd) {
+    profile = contentProfile(profile);
     const gaps = [];
     const skillRows = provenSkills(profile, jd);
     const provenNames = new Set(skillRows.filter((s) => s.proven).map((s) => s.name.toLowerCase()));
@@ -23087,6 +23162,7 @@ const CareerTailor = (() => {
   // ---- main entry: tailor with the hard gate ----
   let versionSeq = 0;
   function tailorResume(profile, jdInput, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     const cir = o.cir || null;

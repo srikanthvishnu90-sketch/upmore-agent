@@ -4,6 +4,8 @@
 import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
 import { AskPerson, type ToolSpec, type ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
+import { searchWords, wordStem } from "../career_ingest.ts";
+import { liveOnly, type LinkCheck } from "../link_check.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
@@ -27,13 +29,46 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
-import { queueWants, resolvePicks, screenPicks, type WantStore } from "../career_apply_want.ts";
+import { queueWants, refusal, resolvePicks, screenPicks, type Pick as WantPick, type Refusal, type WantStore } from "../career_apply_want.ts";
 import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
 import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
+// WO-061 (H004): the model's label for a stage, as one of the tracker's stages: the exact name in any case, else by meaning.
+const STAGE_MEANING: [RegExp, string][] = [
+  [/\bwithdr[ae]w/i, "Withdrawn"], [/\baccept/i, "Accepted"], [/\breject|\bdeclined\b|\bturned down\b|\bnot moving forward\b/i, "Rejected"],
+  [/\boffer/i, "Offer"], [/\bfinal\b/i, "Final"], [/\binterview|\bon-?site\b|\bsuper ?day\b|\bpanel\b|\bround\b/i, "Interview rounds"],
+  [/\bscreen|\brecruiter\b|\bphone call\b/i, "Recruiter screen"], [/\bassessment|\boa\b|\btest\b|\btake-?home\b|\bchallenge\b/i, "OA/assessment"],
+  [/\bappl(?:ied|ication)|\bsubmitted\b|\bsent\b/i, "Submitted"], [/\bsaved?\b|\bbookmark/i, "Saved"],
+];
+export function trackerStage(label: unknown): string | null {
+  const l = String(label ?? "").trim(), stages = CareerTrack.STAGES as string[];
+  const exact = stages.find((x) => x.toLowerCase() === l.toLowerCase());
+  if (exact) return exact;
+  for (const [re, stage] of STAGE_MEANING) if (re.test(l) && stages.includes(stage)) return stage;
+  return null;
+}
+// WO-061 (H004): a day or time for the next step, kept only when every word of it is in the person's message this turn.
+export function whenSaid(message: unknown, when: unknown): string | null {
+  const w = String(when ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+  if (!w) return null;
+  const said = ` ${String(message ?? "").toLowerCase().replace(/[^a-z0-9:]+/g, " ")} `;
+  const words = w.toLowerCase().replace(/[^a-z0-9:]+/g, " ").trim().split(" ").filter(Boolean);
+  return words.length && words.every((x) => said.includes(` ${x} `)) ? w : null;
+}
+// A resume called by a name of its own ("my fintech resume", "the PM version of my resume"), as a saved persona would be;
+// words that only describe their one resume ("my updated resume", "my resume") name nothing.
+const NOT_A_RESUME_NAME = new Set(["new", "current", "latest", "updated", "old", "original", "own", "full", "whole", "last", "same", "this", "that", "one page", "one-page", "1 page", "two page", "2 page", "tailored", "existing", "real", "actual", "master", "complete", "uploaded", "saved", "plain", "best", "final", "other", "right", "correct", "appropriate", "relevant", "most relevant", "matching", "proper", "specific", "good", "better", "strongest", "strong", "short", "long", "generic", "general", "standard", "same old", "entire", "official", "a", "an", "my", "the", "your", "their", "pdf", "word"]);
+export function resumeNamedIn(text: string): string | null {
+  const re = /\b(?:my|the|use|using)\s+((?:[a-z0-9&+-]+\s+){0,2}?[a-z0-9&+-]+)\s+(?:resume|cv|persona|version of my resume)\b/gi;
+  for (const m of String(text ?? "").matchAll(re)) {
+    const name = validPersonaName(m[1].replace(/^(?:(?:my|the|a|an|your|their)\s+)+/i, ""));
+    if (name && !NOT_A_RESUME_NAME.has(name)) return name;
+  }
+  return null;
+}
 // A confirmation is the person's own yes, in this turn's message, to a fact they saw in an earlier turn (D-007): the
 // model can never confirm a fact it just wrote, or one the person has not answered.
 const AFFIRM = /\b(yes|yep|yeah|yup|correct|right|confirm(?:ed)?|accurate|exactly|true|looks (?:good|right)|that'?s (?:right|correct|it))\b/i;
@@ -62,6 +97,25 @@ export function factRefusal(text: string, message: string | undefined): string |
   const hit = mine.filter((w) => said.has(w) || [...said].some((s) => s.length >= 4 && (s.startsWith(w.slice(0, 4)) || w.startsWith(s.slice(0, 4))))).length;
   return hit * 2 >= mine.length ? null : "not saved: the person did not say this in their message; save only what they said, in their words";
 }
+// WO-106 (slice transcript run 39535880905: "apply to 15 data analyst jobs" queued 14 SpaceX postings, among them Payroll,
+// Legal and Real Estate Analyst): when the person names a role, every posting queued must carry the role's words in its
+// title, place or employer. A pick by reference ("the first one", "both") names no role and is not screened here.
+const ASK_FILLER = new Set(["apply", "applying", "submit", "send", "queue", "application", "applications", "jobs", "job", "roles", "role", "positions", "position", "openings", "them", "these", "those", "all", "for", "the", "to", "of", "please", "now", "today", "first", "second", "third", "last", "one", "ones", "both", "top", "best", "any", "some", "more", "few", "fit", "fits", "match", "matching"]);
+export function offRole(picks: WantPick[], message: string | undefined): { ok: WantPick[]; refused: Refusal[] } {
+  // The role is the words right before "jobs", "roles", "positions" or "openings" ("15 data analyst jobs"): never the rest
+  // of the message ("remote is fine"), and none at all for a pick by reference.
+  const phrase = /((?:[A-Za-z][A-Za-z+#.&-]*\s+){1,4})(?:jobs?|roles?|positions?|openings?)\b/i.exec(String(message ?? ""));
+  const words = phrase ? searchWords(phrase[1]).filter((w) => !ASK_FILLER.has(w) && !/^\d+$/.test(w) && !/^(?:inc|llc|ltd|corp|co|company)$/.test(w)) : [];
+  if (!words.length) return { ok: picks, refused: [] };
+  const ok: WantPick[] = [], refused: Refusal[] = [];
+  for (const p of picks) {
+    const hay = searchWords(`${p.title ?? ""} ${(p as any).location ?? ""} ${p.company ?? ""}`).map(wordStem);
+    const missing = words.filter((w) => !hay.includes(wordStem(w)));
+    if (missing.length) refused.push(refusal(p, `not a ${words.join(" ")} role (its title is "${p.title}"); nothing was queued for it`));
+    else ok.push(p);
+  }
+  return { ok, refused };
+}
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
 const trackOf = (c: ToolCtx) => ((c.state.trackStore as any) ??= CareerTrack.createMemoryStore([]));
@@ -82,6 +136,23 @@ export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
 // `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
 // queue_applications says applying from chat is not connected here. `limits` is the person's daily application limit.
+// Role and place preferences are a cache of what the person said: a goal "Data analyst role in Austin" put Data analyst in
+// roles and Austin in places, and memory and search read the cache. A correction of a goal, place or preference that drops a
+// role or place drops it from the cache too, unless another fact still says it ("Also open to Product manager roles in
+// Boston" keeps both); remote, pay floor and companies are not derived from these words and stay.
+const PREF_KINDS = new Set(["goal", "location", "preference"]);
+function dropSuperseded(profile: any, id: string, was: string, text: string) {
+  const said = (s: unknown) => ` ${String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const says = (s: unknown, entry: string) => said(entry).trim() !== "" && said(s).includes(said(entry));
+  const others = (profile.facts || []).filter((f: any) => f.id !== id).map((f: any) => f.text);
+  const p = profile.preferences;
+  if (!p) return;
+  for (const key of ["roles", "locations"]) {
+    if (!Array.isArray(p[key])) continue;
+    p[key] = p[key].filter((e: string) => !(says(was, e) && !says(text, e) && !others.some((o: unknown) => says(o, e))));
+  }
+}
+
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
@@ -89,6 +160,8 @@ export function careerTools(deps: {
   posting?: ((jobId: string) => Promise<any | null>) | null;
   // WO-100: the person's situation, read once this turn (career_situation.ts); absent, the tools read this thread alone.
   situation?: Situation | null;
+  // WO-106 (F4): each job link is checked just before it is shown (link_check.ts); absent, links are marked unchecked.
+  linkCheck?: LinkCheck | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -103,6 +176,15 @@ export function careerTools(deps: {
       input_schema: obj({ instruction: str("The instruction, short and plain, e.g. 'Needs visa sponsorship (F-1 OPT)'"), quote: str("Their exact words from this message that say it") }, ["instruction", "quote"]),
       run: async (i, c) => {
         if (!c.turn || !quotedFrom(c.turn.message, String(i.quote ?? ""))) throw new Error("not kept: the quote is not in the person's message this turn; only what they said is kept");
+        // WO-061/H031: a rule about a resume they name is about a record; when that resume is not on file, that is what
+        // they need to hear, first, before anything about keeping the rule.
+        const named = resumeNamedIn(`${i.quote ?? ""} ${i.instruction ?? ""}`);
+        if (named) {
+          const saved = deps.tailor ? (await deps.tailor.personas.get(c.userId)).items.map((p) => p.name) : [];
+          if (!saved.includes(named)) {
+            throw new Error(`not kept: they have no resume named "${named}" on file (saved: ${saved.join(", ") || "none"}); say that in your first sentence and ask them to add it (paste or upload it, or say what it should lead with); keep the rule only once that resume exists`);
+          }
+        }
         const store = memoryOf(), had = await store.standing(c.userId);
         const r = addStanding(had, { text: String(i.instruction ?? ""), said: String(i.quote), now: c.now });
         if (!r.ok) throw new Error(r.error);
@@ -173,12 +255,52 @@ export function careerTools(deps: {
       },
     },
     {
+      // WO-106 (slice step 1): a pasted resume read by code, every entry a draft fact in its own words, instead of one
+      // add_profile_fact call per line. It reads only the person's own message in this turn, never text the model writes,
+      // so nothing can be put in their mouth. A resume without section headings (Experience, Skills, Education) says so,
+      // and then the facts are saved one by one with add_profile_fact.
+      name: "read_resume", effect: "write_own",
+      description: "Read the resume the person pasted in this message: every entry under its section heading (Experience, Skills, Education, Projects) is saved as a draft fact in their words. Use it whenever their message is a resume.",
+      input_schema: obj(),
+      run: async (_i, c) => {
+        const text = String(c.turn?.message ?? "");
+        if (text.trim().length < 40) throw new Error("this message holds no resume text; ask them to paste it");
+        const r = CareerProfile.ingestResume(profileOf(c), { text, fileName: "pasted-in-chat.txt", mimeType: "text/plain" }, { now: new Date(c.now).toISOString() });
+        if (!r.ok) return { saved: 0, reason: r.failure?.reason ?? "nothing could be read", next: "save what they said with add_profile_fact, in their words" };
+        for (const id of r.added_fact_ids) c.turn?.added.push(id);
+        await record(c, "resume_read", `${r.drafts.length} entries`, { kinds: [...new Set(r.drafts.map((f: any) => f.kind))] });
+        return { saved: r.drafts.length, drafts: r.drafts.map((f: any) => ({ id: f.id, kind: f.kind, text: f.text })), skipped_duplicates: r.skipped_duplicates.length };
+      },
+    },
+    {
+      // WO-106 (F2; eval E044: a move to a new state left the old one on file): a correction replaces the fact it corrects,
+      // so the profile never holds both. The new words must be theirs from this message, and it waits for their yes again.
+      name: "correct_profile_fact", effect: "write_own",
+      description: "Replace a fact on file with the person's correction (\"I moved to Denver last month\", \"not Austin, Dallas\"): write the whole fact again with only the corrected part changed (a goal \"Senior data analyst role in Austin\" becomes \"Senior data analyst role in Denver\"). Use instead of add_profile_fact. It waits for their yes again.",
+      input_schema: obj({ id: str("The fact id being corrected, e.g. F-002"), text: str("The corrected fact in the person's own words") }, ["id", "text"]),
+      run: async (i, c) => {
+        const id = String(i.id), text = String(i.text ?? "");
+        const old = (profileOf(c).facts || []).find((f: any) => f.id === id);
+        if (!old) throw new Error(`no fact ${id} on file`);
+        const was = String(old.text ?? "");
+        // Their words this turn plus the fact being corrected: "Senior data analyst role in Denver" may keep the words of the
+        // goal it corrects, and only what they said may change.
+        const refused = factRefusal(text, c.turn?.message === undefined ? undefined : `${c.turn.message} ${was}`);
+        if (refused) throw new Error(refused);
+        const fact = CareerProfile.updateFact(profileOf(c), id, { text, needs_confirmation: true, status: "draft", corrected_from: was });
+        if (PREF_KINDS.has(old.kind)) dropSuperseded(profileOf(c), id, was, text);
+        c.turn?.added.push(id);
+        await record(c, "fact_corrected", text, { id, was: was.slice(0, 200) });
+        return { fact, was };
+      },
+    },
+    {
       name: "get_situation", effect: "read",
       description: "Read the person's situation as code built it this turn: every task in flight (applications, postings asked for in chat, open questions, drafts, interviews) with its state, what blocks it, who acts and how; the next steps in order; today's count; the last list shown; what Trainee can and cannot do right now; and what could not be read. Pass company for one employer.",
       input_schema: obj({ company: str("One employer, if they named one") }),
       run: async (i) => {
         const s = deps.situation;
-        if (!s) throw new Error("their situation could not be read this turn; say so, never guess");
+        if (!s) throw new Error("their records could not be read this turn. Do not mention this read. Only if they asked about their applications or tasks, say you can't see them right now; never guess them");
         const company = i.company ? String(i.company) : null;
         if (!company) return { ...s, text: statusText(s) };
         const tasks = s.tasks.filter((t) => t.company && sameCompany(t.company, company));
@@ -200,13 +322,23 @@ export function careerTools(deps: {
     {
       name: "track_application", effect: "write_own",
       description: "Record an application the person made, or move an existing one to a new stage when they report news (stages: Saved, Submitted, Recruiter screen, OA/assessment, Interview rounds, Final, Offer, Rejected, Withdrawn, Accepted).",
-      input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record") }, ["company", "stage"]),
+      input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record"),
+        when: str("The day or time of the next step (an interview, a call) in the person's own words from THIS message, e.g. 'Tuesday 2pm'; leave out if they did not say one") }, ["company", "stage"]),
       run: async (i, c) => {
         const s = trackOf(c);
-        const moved = CareerTrack.manualUpdate(s, String(i.company), String(i.stage), { now: c.now });
-        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
-        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
-        return { application };
+        // WO-061 (H004, run 39603731114 p1: a day said in words had nowhere to go, and the model called this tool five
+        // times until the step limit): the day of the next step is kept on the row, only in the person's own words.
+        const when = whenSaid(c.turn?.message, i.when);
+        // WO-061 (H004, run 39593068532 p2): addApplication kept any label ("Interview") and every later update refused it
+        // ("unknown stage"); the label is one of the tracker's stages before either call.
+        const stage = trackerStage(i.stage);
+        if (!stage) throw new Error(`not recorded: "${String(i.stage ?? "")}" is not a stage; use one of: ${(CareerTrack.STAGES as string[]).join(", ")}`);
+        const moved = CareerTrack.manualUpdate(s, String(i.company), stage, { now: c.now });
+        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage }, { now: c.now });
+        if (application && when) application.next_when = when;
+        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage), ...(when ? { when } : {}) });
+        const said = i.when && !when ? { when_not_kept: "that day or time is not in their message this turn; ask them" } : {};
+        return { application, ...(when ? { when_kept: when } : {}), ...said };
       },
     },
     {
@@ -227,8 +359,9 @@ export function careerTools(deps: {
         }
         const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
         const screened = screenPicks(found.ok, { message: c.turn?.message, before: c.turn?.before, apps, facts: CareerProfile.confirmedFacts(profileOf(c)), now: c.now });
-        const r = await queueWants(deps.wants, c.userId, screened.ok, c.now, { limits: deps.limits, tz: deps.tz });
-        const refused = [...found.refused, ...screened.refused, ...r.refused];
+        const onRole = offRole(screened.ok, c.turn?.message);
+        const r = await queueWants(deps.wants, c.userId, onRole.ok, c.now, { limits: deps.limits, tz: deps.tz });
+        const refused = [...found.refused, ...screened.refused, ...onRole.refused, ...r.refused];
         await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
         return { ...r, refused, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
       },
@@ -265,12 +398,19 @@ export function careerTools(deps: {
         const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
         const newest = [...pool].sort((a, b) => String(b.first_seen_at || "").localeCompare(String(a.first_seen_at || "")));
         const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
-        const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
-        const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
+        // WO-106 (F4): never a job without its own link, and every link checked just before it is shown: a dead one is
+        // dropped (and counted), the next best takes its place; one the check could not reach is shown marked so.
+        const want = Math.max(1, Math.min(20, Number(i.limit) || 10));
+        const r = searchPostings(kept, query, c.state.profile, Math.min(50, want * 3));
+        const withLink = r.postings.filter((p) => /^https?:\/\//i.test(String(p.url ?? "")));
+        const checked = await liveOnly(withLink, deps.linkCheck, want);
+        const found: any[] = checked.shown;
         // WO-100: the list in the order shown, so "the second one" resolves in any thread (the situation's last_shown).
         await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5),
           shown: found.slice(0, 10).map((p) => ({ job_id: String(p.job_id ?? ""), company: String(p.company ?? "").slice(0, 80), title: String(p.title ?? "").slice(0, 100) })) });
-        return { ...r, filtered, source: "live", ...relaxed };
+        return { ...r, postings: found, filtered, source: "live", ...relaxed,
+          links: { checked: checked.checked, dead_dropped: checked.dead, no_link_dropped: r.postings.length - withLink.length,
+            note: deps.linkCheck ? "each link was checked just now; a posting marked link 'unknown' could not be checked: say so beside it" : "links were not checked here" } };
       },
     },
     {

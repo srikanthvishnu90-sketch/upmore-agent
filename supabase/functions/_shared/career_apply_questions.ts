@@ -15,7 +15,8 @@
 // beside the questions shown (career:questions-shown), under the same rules: this thread's last word, a day, the numbers
 // shown. The employer's own AI policy decides first.
 import { chooseOption, yesNoOf } from "./answer_options.ts";
-import { matchOption } from "./career_apply.ts";
+import { decodeRowQuestionType } from "./row_answer.ts";
+import { matchOption, typedFieldProblem } from "./career_apply.ts";
 import { factType, mapQuestion, NEVER_BY_TEXT } from "./question_map.ts";
 import { readAiPolicy } from "./ai_policy.ts";
 import { type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
@@ -62,10 +63,11 @@ export const isAsk = (text: string) => ASK.test(plain(text));
 // The few words a person uses for yes and no that the option matcher does not know.
 const YES_WORDS = /^(yup|yea|ya|yes yes|sure|of course|absolutely|correct|definitely|affirmative|i do|i am|i will|i can|i have)$/;
 const NO_WORDS = /^(nope|nah|no no|negative|never|i don'?t|i'?m not|i won'?t|i can'?t|i haven'?t|not at all)$/;
-function yesNoWord(raw: string): "yes" | "no" | null {
+function yesNoWord(raw: string, explicit = false): "yes" | "no" | null {
   const t = plain(raw);
   if (YES_WORDS.test(t)) return "yes";
   if (NO_WORDS.test(t)) return "no";
+  if (explicit && !/^(yes|no|y|n|true|false)$/.test(t)) return null;
   return yesNoOf(t);
 }
 const REMOVED = /\[(?:SSN|card number|number|password|code|security code) removed\]/;
@@ -80,27 +82,32 @@ export type Check =
 // question asked on this wording or this posting, the person's own words (plain "Yes"/"No" for a yes or no) for a fact
 // that goes to every employer, so each form's options are chosen from it again (a choice that does not fit reopens it).
 export function checkAnswer(q: OpenQuestion, raw: string): Check {
+  const row = decodeRowQuestionType(q.type);
+  if (/^row:/i.test(q.type) && (!row || row.key !== q.key)) return { ok: false, why: "has no valid binding to its original form row; show the current questions again" };
+  const type = row?.type ?? q.type;
   const value = String(raw ?? "").replace(/\s+/g, " ").trim().replace(/^["“]|["”]$/g, "");
   if (!value) return { ok: false, why: "had no answer" };
   if (SKIP.test(plain(value))) return { ok: false, why: "left for later", skip: true };
   if (REMOVED.test(value)) return { ok: false, why: "had a number Upmore never keeps; type that one on the form yourself" };
   if (value.length > MAX_ANSWER) return { ok: false, why: `is longer than ${MAX_ANSWER.toLocaleString("en-US")} characters` };
   const shared = q.key.startsWith("fact:");
-  const fact = shared ? q.key.slice(5) : mapQuestion({ label: q.label, type: q.type }).fact;
+  const fact = shared ? q.key.slice(5) : mapQuestion({ label: q.label, type }).fact;
   if (q.options.length) {
     // Never chosen from the question's wording (no derivation here): the person's own answer, onto the form's own option.
     // A yes or a no is read as one only where the choices are yeses and noes ("I have a bachelor's" is not a yes).
     const opts = q.options.map((l) => ({ label: l, value: l }));
-    const yn = q.options.some((l) => yesNoOf(l) !== null) ? yesNoWord(value) : null;
+    const yn = q.options.some((l) => yesNoOf(l) !== null) ? yesNoWord(value, !!row) : null;
     const choice = matchOption(value, opts) ?? (yn ? matchOption(yn, opts) ?? chooseOption("", yn, opts) : null) ??
-      chooseOption(fact, value, opts);
+      (row ? null : chooseOption(fact, value, opts));
     if (choice === null) return { ok: false, why: `needs one of: ${choiceList(q.options, 8)}` };
     return { ok: true, value: shared && yn ? cap(yn) : choice };
   }
-  if (YES_NO_TYPE.test(q.type) || q.kind === "consent" || (shared && factType(fact) === "yesno")) {
-    const yn = yesNoWord(value);
+  if (YES_NO_TYPE.test(type) || q.kind === "consent" || (shared && factType(fact) === "yesno")) {
+    const yn = yesNoWord(value, !!row);
     return yn ? { ok: true, value: cap(yn) } : { ok: false, why: "needs a yes or a no" };
   }
+  const typedProblem = typedFieldProblem({ type, label: q.label, options: [] }, value);
+  if (typedProblem) return { ok: false, why: typedProblem };
   return { ok: true, value };
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);

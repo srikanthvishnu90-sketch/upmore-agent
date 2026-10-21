@@ -25,7 +25,7 @@ step() {
     details+=("--- $label, its failed tests:" "$(awk '/=> [^ ]+:[0-9]+:[0-9]+/ { print; next }
       /^[[:space:]]*not ok / { block = 1 }
       block { print }
-      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | head -n 200)")
+      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | sed -n '1,200p')")
     details+=("--- $label, its last 20 lines:" "$(tail -n 20 "$out")")
     failed=1
   fi

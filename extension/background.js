@@ -156,7 +156,7 @@ async function facts(userId) {
   // WO-054: the stored rows of answers the person gave in the panel before the session, for the card's mark.
   const beforeKeys = new Set(await get(S, "answered_before", []));
   return { answers: m.answers, saved: m.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id),
-    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
+    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, answers: m.answers, saved: m.saved, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
 }
 // The facts behind an application's answers must all still be in the person's manifest now (WO-102: revalidated at the
 // boundary): the trusted fact behind each answer Trainee filled, and the facts behind each drafted answer.
@@ -167,6 +167,85 @@ function factsStillGiven(payload, manifest) {
     if (ids.some((id) => !id || !manifest.byFactId[id])) gone.push(f.label);
   }
   return gone;
+}
+
+// Session-only fact import is a review, then one exact-row confirmation. File flags never supply that confirmation.
+// Serialize imports so two panel windows cannot read the same old map and overwrite each other's accepted answers.
+let factImportQueue = Promise.resolve();
+async function importFactFile(m, sender) {
+  const a = await session(), receipt = { version: 1, scope: "browser_session", actor_id: a?.user_id || null, accepted: [], rejected: [], needs_review: [] };
+  const fail = (message) => ({ ok: false, kept: 0, excluded: receipt.rejected.length, receipt, message });
+  if (!a || sender.id !== chrome.runtime.id || typeof sender.url !== "string" || sender.url.split(/[?#]/)[0] !== chrome.runtime.getURL("panel.html")) return fail("Only your signed-in Trainee panel can review imported answers.");
+  const record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  let doc;
+  try { doc = JSON.parse(m.json); } catch { return fail("That file is not valid JSON. Your existing imported answers were kept."); }
+  if (!record(doc) || doc.user_id !== a.user_id || (doc.format !== undefined && doc.format !== "trainee-facts") || (doc.version !== undefined && doc.version !== 1) || Object.hasOwn(doc, "facts") || (!Object.hasOwn(doc, "answers") && !Object.hasOwn(doc, "saved"))) return fail("Unsupported facts format, version or account owner. Your existing imported answers were kept.");
+  receipt.payload_hash = await sha256Hex(new TextEncoder().encode(m.json));
+  const valid = [];
+  for (const table of ["answers", "saved"]) {
+    const rows = doc[table] === undefined ? {} : doc[table];
+    if (!record(rows)) return fail("Each answers/saved section must be a named-answer map. Your existing answers were kept.");
+    for (const [key, row] of Object.entries(rows)) {
+      const item = { table, key, factId: typeof row?.factId === "string" ? row.factId : "" };
+      const deniedSource = (v) => typeof v === "string" && /^(?:agent|assistant|model|llm|generated|agent-generated|assistant-generated|model-generated|ai-generated|quarantined|rejected)$/.test(v.trim().toLowerCase().replace(/[ _]+/g, "-"));
+      const denied = record(row) && ([row, row.provenance].some((v) => record(v) && (v.quarantined === true || v.unproven === true || v.rejected === true || deniedSource(v.source) || deniedSource(v.origin))) || typeof row.provenance === "string" && /\b(?:agent|assistant|llm|generated|inferred|quarantined|unproven|rejected|unknown source)\b/i.test(row.provenance));
+      let reason = !record(row) || typeof row.value !== "string" || !row.value.trim() ? "Answer text is missing or has an unsupported type"
+        : ["__proto__", "constructor", "prototype"].includes(key) || !item.factId.trim() || item.factId.length > 200 ? "Invalid answer key or fact reference"
+        : row.user_id && row.user_id !== a.user_id ? "This answer belongs to another account"
+        : C.quarantinedFact(row) || denied ? "This answer is quarantined or explicitly untrusted"
+        : /^(text-answer:|approved-local-resume:|essay-draft:)/.test(item.factId) ? "This fact reference is reserved for another source" : "";
+      if (reason) { receipt.rejected.push({ ...item, reason }); continue; }
+      item.value_hash = await sha256Hex(new TextEncoder().encode(row.value));
+      valid.push({ item, row });
+      receipt.needs_review.push({ ...item, reason: "Review and confirm this exact answer" });
+    }
+  }
+  if (!valid.length) return fail("No valid answer is ready for review. Your existing imported answers were kept.");
+  const pending = await get(S, "fact_import_reviews", {}), now = Date.now();
+  for (const [token, review] of Object.entries(pending)) if (review.expires_at < now) delete pending[token];
+  if (m.phase === undefined || m.phase === "preview") {
+    const token = crypto.randomUUID();
+    pending[token] = { actor_id: a.user_id, payload_hash: receipt.payload_hash, rows: receipt.needs_review.map(({ reason, ...row }) => row), expires_at: now + 300000 };
+    while (Object.keys(pending).length > 20) delete pending[Object.keys(pending)[0]];
+    await put(S, "fact_import_reviews", pending);
+    return { ok: true, kept: 0, excluded: receipt.rejected.length, receipt: { ...receipt, review_token: token } };
+  }
+  if (m.phase !== "confirm" || m.actor_id !== a.user_id || m.payload_hash !== receipt.payload_hash || !record(m.row)) return fail("The reviewed actor or payload changed. Review the answer again.");
+  const sameRow = (r) => r.table === m.row.table && r.key === m.row.key && r.factId === m.row.factId && r.value_hash === m.row.value_hash;
+  const priorReceipts = await get(S, "fact_import_receipts", []);
+  const replay = priorReceipts.find((r) => r.actor_id === a.user_id && r.review_token === m.review_token && r.payload_hash === receipt.payload_hash && r.accepted?.some(sameRow));
+  const previous = await get(S, "imported_file", null);
+  if (replay) {
+    const r = replay.accepted.find(sameRow), live = previous?.user_id === a.user_id ? previous[r.table]?.[r.key] : null;
+    if (live?.confirmation_event_id === r.confirmation_event_id && await sha256Hex(new TextEncoder().encode(live.value)) === r.value_hash) return { ok: true, kept: 1, excluded: replay.rejected.length, receipt: replay, replayed: true };
+    return fail("That imported answer has since changed. Review its current value again.");
+  }
+  const review = pending[m.review_token];
+  if (!review || review.actor_id !== a.user_id || review.payload_hash !== receipt.payload_hash || review.expires_at < now || !review.rows.some(sameRow)) return fail("The exact-row review expired or changed. Review the answer again.");
+  const chosen = valid.find((v) => sameRow(v.item));
+  if (!chosen) return fail("That answer is not eligible for confirmation.");
+  const id = "panel-import:" + crypto.randomUUID(), at = new Date(now).toISOString();
+  const provenance = "owner confirmed this answer in the extension panel";
+  if (previous?.user_id === a.user_id && (!record(previous.answers || {}) || !record(previous.saved || {}))) return fail("Your existing session facts have an unsupported shape. They were kept unchanged.");
+  const file = previous?.user_id === a.user_id ? JSON.parse(JSON.stringify(previous)) : { user_id: a.user_id, answers: {}, saved: {} };
+  file[chosen.item.table] ||= {};
+  file[chosen.item.table][chosen.item.key] = { ...chosen.row, confirmed: true, user_id: a.user_id, provenance, confirmation_event_id: id, authorizes: false };
+  const mf = C.trustedManifest({ owner: a.user_id, file, rows: [], resume: null });
+  if (!mf[chosen.item.table][chosen.item.key] || mf[chosen.item.table][chosen.item.key].factId !== chosen.item.factId) {
+    receipt.rejected.push({ ...chosen.item, reason: mf.excluded.find((r) => r.key === chosen.item.key)?.why || "The trusted fact manifest excluded this answer" });
+    receipt.needs_review = receipt.needs_review.filter((r) => !sameRow(r));
+    return fail("That answer could not enter your trusted session facts. Existing answers were kept.");
+  }
+  const active = await session();
+  if (!active || active.user_id !== a.user_id) return fail("Your signed-in account changed. Nothing was imported.");
+  receipt.id = id;
+  receipt.review_token = m.review_token;
+  receipt.at = at;
+  receipt.accepted = [{ ...chosen.item, actor_id: a.user_id, confirmation_event_id: id, provenance, original_provenance: chosen.row.provenance ?? null, at }];
+  receipt.needs_review = receipt.needs_review.filter((r) => !sameRow(r));
+  delete pending[m.review_token];
+  await S.set({ imported_file: file, fact_import_receipts: [...priorReceipts, receipt].slice(-100), fact_import_reviews: pending });
+  return { ok: true, kept: 1, excluded: receipt.rejected.length, receipt };
 }
 
 // ------------------------------------------------------------------------------------------------ cards, queue, evidence
@@ -1052,7 +1131,7 @@ async function handle(m, sender) {
       const timing = await get(L, "timing", []);
       const card = m.tabId !== undefined ? (await cards())[m.tabId] || null : null;
       return {
-        signedIn: !!a, email: a?.email || "", resume: resume ? { name: resume.name, sha256: resume.sha256 } : null,
+        signedIn: !!a, user_id: a?.user_id || null, email: a?.email || "", resume: resume ? { name: resume.name, sha256: resume.sha256 } : null,
         card, drafts: card ? await draftsFor(m.tabId, card.jobId) : {}, queue: await queueState(),
         timing: { n: timing.length, avg_ms: timing.length ? Math.round(timing.reduce((x, y) => x + y, 0) / timing.length) : null },
         importedFacts: Object.keys((await get(S, "imported_file", { answers: {} })).answers || {}).length,
@@ -1069,7 +1148,7 @@ async function handle(m, sender) {
     case "signin-magic":
       return await magicLink(m.email);
     case "signout":
-      await S.remove(["auth", "imported_file"]);
+      await S.remove(["auth", "imported_file", "fact_import_reviews", "fact_import_receipts"]);
       return { ok: true };
     case "set-resume": {
       const bytes = b64ToBytes(m.base64);
@@ -1078,19 +1157,9 @@ async function handle(m, sender) {
       return { ok: true };
     }
     case "import-facts": {
-      const a = await session();
-      if (!a) return { ok: false, message: say.signedOut };
-      try {
-        const j = JSON.parse(m.json);
-        if (j.user_id !== a.user_id) return { ok: false, message: "That facts file does not name your account, so none of it is used." };
-        // Kept as given; what may be used is decided each time by the trusted fact manifest (WO-102).
-        await put(S, "imported_file", { user_id: j.user_id, answers: j.answers || {}, saved: j.saved || {} });
-        const mf = C.trustedManifest({ owner: a.user_id, file: j, rows: [], resume: null });
-        const quarantined = mf.excluded.filter((x) => /quarantined/.test(x.why)).length;
-        return { ok: true, kept: Object.keys(mf.answers).length + Object.keys(mf.saved).length, excluded: mf.excluded.length, quarantined };
-      } catch {
-        return { ok: false, message: "That file is not a confirmed-facts file." };
-      }
+      const run = factImportQueue.then(() => importFactFile(m, sender));
+      factImportQueue = run.catch(() => {});
+      return await run;
     }
     case "prepare":
       return await chrome.tabs.sendMessage(m.tabId, { type: "prepare" }).catch(() => ({ ok: false, message: "Open an application page first." }));

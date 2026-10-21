@@ -1,0 +1,44 @@
+name: lane-b-approval-card-browser
+on:
+  push:
+    branches: [wo/lane-b-card-browser-20261021, wo/lane-b-approval-card-20261021]
+    paths:
+      - src/career-approval-card.js
+      - src/upmore-app-template.html
+      - src/build-app.py
+      - src/chat-request-controller.js
+      - index.html
+      - tests/career-approval-messages-integration.test.cjs
+      - tests/career-approval-card-browser.test.cjs
+      - .github/workflows/lane-b-approval-card.yml
+  pull_request:
+    paths:
+      - src/career-approval-card.js
+      - src/upmore-app-template.html
+      - src/build-app.py
+      - src/chat-request-controller.js
+      - index.html
+      - tests/career-approval-messages-integration.test.cjs
+      - tests/career-approval-card-browser.test.cjs
+      - .github/workflows/lane-b-approval-card.yml
+permissions:
+  contents: read
+jobs:
+  synthetic-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22.23.3"}
+      - name: Install only browser tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/card-browser-tools" --no-audit --no-fund playwright@1.64.1
+          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/card-browser-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+      - name: Allow sandboxed Chromium user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Actual synthetic DOM and tap tests; no service or provider key
+        run: node --test --test-reporter=tap tests/career-approval-card-browser.test.cjs

@@ -1,0 +1,22 @@
+{
+  "terminal": {
+    "state": "unknown_outcome",
+    "accepted": true
+  },
+  "total_jobs": 1,
+  "renewal_attempt": {
+    "reason": "message approval boundary: TEST disabled or permission expired",
+    "accepted": false
+  },
+  "fresh_approval_id_differs": true,
+  "original_bound_id_unchanged": true,
+  "fresh_approval_remains_unused": true,
+  "provider_calls": 0,
+  "real_profile_access": false,
+  "transaction": "ROLLED_BACK",
+  "fixture": "Local operator aged only old bound-approval metadata after a real queue start, then a real second same-entry card was shown and approved; caller roles have no grant to alter that metadata.",
+  "sql_sha256": "b7583ca12cb5c8b95d798958082baa52a7440d3afdbd95b4cd40f25f3cfdf25d",
+  "passed": 4,
+  "total_checks": 4,
+  "status": "PASS"
+}

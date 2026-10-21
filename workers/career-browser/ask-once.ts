@@ -4,6 +4,7 @@
 import { answerKey, mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { aiPolicyStatements } from "../../supabase/functions/_shared/ai_policy.ts";
 import { factStaysHere } from "../../supabase/functions/_shared/career_apply.ts";
+import { decodeRowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
 
 // Ask once: the answers the person texted, as the engine's confirmed facts for the next preparation. A fact for every
 // employer goes under the fact's name (their own facts file wins when it states the same fact); an answer for one wording
@@ -36,12 +37,14 @@ export function questionsToStore(result: any, o: { facts: Record<string, unknown
     const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
     if (!label || NEVER_BY_TEXT.test(label)) continue;
     const options = (Array.isArray(q.options) ? q.options : []).map((x: unknown) => String(x).slice(0, 300)).slice(0, 60);
-    const type = String(q.type || "input_text").slice(0, 40);
+    const rawType = String(q.type || "input_text"), row = decodeRowQuestionType(rawType);
+    if (rawType.startsWith("row:") && !row) continue; // malformed/unbound rows never become generic label answers
+    const type = rawType.slice(0, 40);
     const shape = { label, type, options: options.map((l: string) => ({ label: l })) };
-    const m = mapQuestion(shape);
+    const m = row ? { kind: "unknown", fact: "unknown" } : mapQuestion(shape);
     // WO-055: the posting's location (as its page shows it) decides whether an answer may become the person's fact.
     const here = factStaysHere(shape, result?.location ? String(result.location) : undefined, o.facts);
-    const key = answerKey(shape, posting, { haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact), here });
+    const key = row?.key ?? answerKey(shape, posting, { haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact), here });
     if (out.has(key)) continue;
     out.set(key, {
       key, kind: m.kind, label, type, options, company: result?.company ? String(result.company).slice(0, 200) : null, misfit: o.answered.has(key),

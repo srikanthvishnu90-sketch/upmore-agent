@@ -4,18 +4,18 @@ Source: `evals/apply/questions-ci-b.json` (CI run 39230110480 of question-captur
 
 | Facts the person has given | Required questions covered | Postings with nothing left to ask |
 |---|---|---|
-| The standard facts only | 547/847 (65%) | 31/100 (31%) |
-| + the 10 most common other questions, answered once | 564/847 (67%) | 31/100 (31%) |
-| + the 20 most common | 574/847 (68%) | 33/100 (33%) |
-| + the 40 most common | 594/847 (70%) | 34/100 (34%) |
+| The standard facts only | 548/847 (65%) | 31/100 (31%) |
+| + the 10 most common other questions, answered once | 565/847 (67%) | 31/100 (31%) |
+| + the 20 most common | 575/847 (68%) | 33/100 (33%) |
+| + the 40 most common | 595/847 (70%) | 34/100 (34%) |
 
 | ATS | Postings | Required questions | Covered by standard facts | Ready with standard facts | Ready with + top 20 |
 |---|---|---|---|---|---|
 | greenhouse | 40 | 397 | 254 (64%) | 10 | 10 |
-| lever | 30 | 245 | 152 (62%) | 13 | 13 |
+| lever | 30 | 245 | 153 (62%) | 13 | 13 |
 | ashby | 30 | 205 | 141 (69%) | 8 | 10 |
 
-Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 54/100, at most 5 80/100, most 14.
+Questions left to ask per posting with the standard facts: median 2, none 31/100, at most 2 55/100, at most 5 80/100, most 14.
 
 ## The most common questions the standard facts do not answer
 
@@ -62,4 +62,4 @@ Questions left to ask per posting with the standard facts: median 2, none 31/100
 | Are you legally authorized to work in the US without sponsorship? | 1 |
 | Are you legally eligible for employment in the U.S.? | 1 |
 
-Unique unanswered wordings: 290; asked on only one posting: 286.
+Unique unanswered wordings: 289; asked on only one posting: 285.

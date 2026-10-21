@@ -90,7 +90,12 @@ function widgetValue(el: any): string | null {
   const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
   const sv = root && root.querySelector("[class*='select__single-value'], [class*='-singleValue']");
   const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-  return t || null;
+  if (t) return t;
+  // A Greenhouse multi-select persists one chip per choice, not a single-value node. Read only each chip's label,
+  // in page order: the remove buttons and unpicked search text are not answers and must never reach the review card.
+  const labels = Array.from(root?.querySelectorAll("[class*='select__multi-value__label']") ?? [])
+    .map((label: any) => String(label.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+  return labels.length ? labels.join(", ") : null;
 }
 // WO-042, measured on the live pages from CI (evals/apply/results/live-fill.json): a Greenhouse react-select menu opens
 // for a page script only through the widget's own "Toggle flyout" button (typing, ArrowDown or a mousedown on the
@@ -140,6 +145,12 @@ function closeMenu(el: any) {
 }
 async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<boolean> {
   const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+  // Picking again appends to a multi-select rather than replacing it. Leave existing choices for the person: the
+  // content script must not label their whole selection as this fill's one chosen answer or hide earlier chips.
+  if (control?.querySelector("[class*='select__multi-value__label']")) {
+    lastChoice = null;
+    return widgetValue(el) === String(wanted).replace(/\s+/g, " ").trim();
+  }
   const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   if (toggle) press(toggle);
@@ -761,6 +772,22 @@ function readWorkdayValue(b: any, el: any): string {
   return "";
 }
 
+// Carry the browser's declared native constraints with its type. Custom Workday date/list/prompt widgets have their
+// own formats and options; their internal search/spinbutton inputs are not the question's native field contract.
+function wdNativeConstraints(control: any): Record<string, string | number> {
+  if (!["INPUT", "TEXTAREA"].includes(String(control?.tagName))) return {};
+  const out: Record<string, string | number> = {};
+  for (const key of ["min", "max", "step", "pattern"]) {
+    const value = control.getAttribute(key);
+    if (value !== null) out[key] = String(value);
+  }
+  for (const [attr, key] of [["minlength", "minLength"], ["maxlength", "maxLength"]]) {
+    const value = control.getAttribute(attr);
+    if (value !== null && /^\d+$/.test(value) && Number.isSafeInteger(Number(value))) out[key] = Number(value);
+  }
+  return out;
+}
+
 // Every field of this step. Hidden fields (a conditional not shown) are not on the page for the person either: not read.
 export function readWorkday(): Form {
   wdEls.clear();
@@ -780,7 +807,7 @@ export function readWorkday(): Form {
     const radios = Array.from(w.querySelectorAll('input[type="radio"]')) as any[];
     const boxes = Array.from(w.querySelectorAll('input[type="checkbox"]')) as any[];
     const area = w.querySelector("textarea");
-    const text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"]');
+    const text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"], input[type="date"], input[type="month"]');
     let control: any = null, widget: string | null = null, inputType = "text", type = "text", optionEls: any[] = [];
     if (file) [control, widget, inputType, type] = [file, "wd-file", "file", "file"];
     else if (date) [control, widget, inputType, type] = [date, "wd-date", "text", "date"];
@@ -790,10 +817,10 @@ export function readWorkday(): Form {
     else if (boxes.length > 1) [control, inputType, type, optionEls] = [boxes[0], "checkbox_group", "checkbox", boxes];
     else if (boxes.length === 1) [control, inputType, type] = [boxes[0], "checkbox", "checkbox"];
     else if (area) [control, type] = [area, "textarea"];
-    else if (text) [control, type] = [text, "text"];
+    else if (text) [control, inputType, type] = [text, String(text.type || "text").toLowerCase(), String(text.type || "text").toLowerCase()];
     else continue;
     let label = wdLabelOf(w, control);
-    const required = !!w.querySelector('abbr[title="required"]') || (Array.from(w.querySelectorAll("abbr")) as any[]).some((a) => /\*/.test(a.textContent)) ||
+    const required = !!control.required || !!w.querySelector('abbr[title="required"]') || (Array.from(w.querySelectorAll("abbr")) as any[]).some((a) => /\*/.test(a.textContent)) ||
       control.getAttribute?.("aria-required") === "true";
     const rowEl = rowOfField(w);
     const g = rowEl ? sectionOfRow(rowEl) : null;
@@ -837,9 +864,10 @@ export function readWorkday(): Form {
       })
       : (wdOptions.get(name) ?? []).map((l) => ({ label: l, value: l, selector: "" }));
     if (new Set(options.map((o) => o.value)).size !== options.length) options.forEach((o) => (o.value = o.label));
-    const isPhone = !section && type === "text" && (/--phoneNumber$/.test(String(control.id || "")) || /^phone number$/i.test(label));
+    const isPhone = !section && ["text", "tel"].includes(type) && (/--phoneNumber$/.test(String(control.id || "")) || /^phone number$/i.test(label));
     schema.push({
       name, label: label || name, type, required, options: options.map((o) => ({ label: o.label, value: o.value })),
+      ...(!widget ? wdNativeConstraints(control) : {}),
       ...(section ? { section } : {}), ...(isPhone && dial !== undefined ? { dial } : {}), ...(wdPersonal(w, control) ? { personal: true } : {}),
     });
     bindings[name] = { field_id: name, inputType, selector: "wd:" + name, options: optionEls.length ? options : [], widget, elementRefs: [] };

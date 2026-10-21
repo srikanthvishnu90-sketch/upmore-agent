@@ -14,6 +14,9 @@
 // The resume is a TEST file.
 //
 //   node evals/apply/live-fill.cjs [--out evals/apply/results/live-fill.json]
+//   node evals/apply/live-fill.cjs --url <one live posting's form> [--out ...]   (WO-106: the posting the agent queued in
+//   the slice transcript, filled the same way and never sent; there is no answer key for it, so its card is recorded field
+//   by field, ungraded, and the read-only widget probes are skipped)
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -26,6 +29,7 @@ const arg = (k, d) => {
   return i > 0 ? process.argv[i + 1] : d;
 };
 const OUT = arg("out", path.join(ROOT, "evals/apply/results/live-fill.json"));
+const ONE = arg("url", null);
 const EXT = path.join(ROOT, "extension");
 const KEY = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/extension/answer-key.json"), "utf8"));
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/forms-ci/manifest.json"), "utf8"));
@@ -153,7 +157,10 @@ async function main() {
   await setup.close();
 
   const rows = [];
-  for (const f of MANIFEST.forms.filter((x) => x.status === "application" && KEY.forms[x.id])) {
+  const forms = ONE
+    ? [{ id: "queued", status: "application", final_url: ONE, family: /greenhouse/.test(ONE) ? "greenhouse" : /lever\.co/.test(ONE) ? "lever" : /ashbyhq/.test(ONE) ? "ashby" : "other" }]
+    : MANIFEST.forms.filter((x) => x.status === "application" && KEY.forms[x.id]);
+  for (const f of forms) {
     const r = { form: f.id, family: f.family, url: f.final_url || f.source_url };
     const page = await ctx.newPage();
     try {
@@ -188,7 +195,7 @@ async function main() {
           } });
           return result;
         }, tabId);
-        const key = KEY.forms[f.id];
+        const key = KEY.forms[f.id] || {};
         const byName = Object.fromEntries(card.payload.fields.map((x) => [x.name, x]));
         r.fields = fieldsNow.map((fld) => {
           const spec = key[fld.name];
@@ -209,7 +216,7 @@ async function main() {
       }
       // A react-select menu, opened the ways a page script can (untrusted events, as the extension's own): which way
       // opens it, and the employer's own option texts. Read only; Escape closes it again.
-      if (f.family === "greenhouse" && r.fields) {
+      if (!ONE && f.family === "greenhouse" && r.fields) {
         const targets = r.fields.filter((x) => x.widget).slice(0, 3).map((x) => x.name);
         // Untrusted ways first (what an extension's own events can do), then React's own props read from the page (what
         // a script in the page's main world could call), then one trusted click as the control experiment. Read only:
@@ -280,7 +287,7 @@ async function main() {
       }
       // Lever's and Ashby's place search, after the card (nothing is sent; the page closes after): what a page script's
       // typing lists, whether typed text alone is kept after blur, and one trusted typing as the control. Nothing chosen.
-      if ((f.family === "lever" || f.family === "ashby") && r.fields) {
+      if (!ONE && (f.family === "lever" || f.family === "ashby") && r.fields) {
         const sel = f.family === "lever" ? "input.location-input" : "[data-field-path='_systemfield_location'] input";
         if (f.family === "ashby") r.place_probe = await page.evaluate(async (s) => {
           const sleep = (ms) => new Promise((res) => setTimeout(res, ms));

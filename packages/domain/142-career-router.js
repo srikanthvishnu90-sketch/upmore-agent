@@ -4405,7 +4405,24 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      // ROUND 2 (judge blocker, PR #151): the union is by IDENTITY,
+      // not by kind+value. A keyed fact (kind+key) or a single-value
+      // kind whose identity the working set already holds is a
+      // REPLACED fact — the mirror's older value is a stale copy of
+      // the same fact, and pushing it re-enters the replaced value
+      // as a second fact under the same identity (the old thread's
+      // mirror resurrecting the goal another thread replaced, from
+      // where the write-back would commit it as a duplicate slot).
+      // Mirror facts whose identity the working set lacks entirely
+      // still join (the shallow-copy harness case the mirror exists
+      // for); multi-value kinds keep the kind+value union.
+      const factIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${lc(f.key)}` : (f && FACT_SINGLE_KINDS.has(f.kind) ? `kind:${f.kind}` : null);
+      for (const f of mirrored.facts) {
+        if (!f) continue;
+        const id = factIdOf(f);
+        if (id) { if (!primary.facts.some((x) => x && factIdOf(x) === id)) primary.facts.push(f); }
+        else if (!primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      }
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
@@ -8435,6 +8452,14 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // GOAL FRAME (spine): a goal declaration is a RECORD turn and
+    // its recall a read of that record — claimed here, beside the
+    // early recall claim, ahead of recommendations, the pending-mock
+    // capture and the discovery tail (which read the declaration's
+    // internship/summer words as a search ask on v247 and answered
+    // with a list verdict; the goal itself was never stored).
+    const goalTurn = handleGoalFrame(text, c);
+    if (goalTurn) return goalTurn;
     // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its
@@ -9736,6 +9761,18 @@ const CareerRouter = (() => {
       if ((m = u.match(new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+roles?\\s+in\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)`, "i"))) && asserted(m.index)) {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
       }
+      // Career goal: "my (career) goal is ..." — the user's target
+      // in their own words, recorded VERBATIM as a keyed fact (kind
+      // "goal", key "career") on the same stated-facts record, so it
+      // takes the keyed carriage past the account validator and
+      // folds back into every later thread's working set (the
+      // spine: stated -> recorded -> recallable). One slot: a later
+      // goal statement REPLACES the earlier one under the same
+      // kind+key, never accumulates a contradiction. The clause is
+      // captured to the end of its own sentence only.
+      if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
+        pushKeyed("goal", "career", m[1], m[0]);
+      }
     }
     // (1) Per-clause declarative capture.
     for (const cl of factClausesOf(raw)) {
@@ -10015,7 +10052,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -10044,6 +10081,43 @@ const CareerRouter = (() => {
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],
     };
+  }
+  // GOAL FRAME (spine fix, 2026-10-21): a first-person goal
+  // declaration ("my career goal is ...") is a RECORD turn, and
+  // "what's my (career) goal?" is a read of that record. On v247
+  // the declaration was unowned until the discovery tail, which
+  // read its internship/summer words as a search ask and answered
+  // with a list verdict — the goal was never acknowledged, and the
+  // next turn's recall fell to the generic fallback (battery
+  // scenarios 4-5). Capture lives in captureStatedFacts (kind
+  // "goal", keyed carriage — see the frame there); this claim is
+  // dispatched beside the early conversation-recall claim, ahead
+  // of recommendations, the pending-mock capture and the
+  // discovery tail, and the discovery tail never sees a
+  // declaration. Both halves answer from the record in the user's
+  // own words: the clause is quoted VERBATIM, never paraphrased.
+  // The recall stands down when no goal is recorded (the existing
+  // fall-through is unchanged), and a declaration shape under a
+  // question is not claimed here (capture's assertion gate has
+  // already recorded nothing from it — BUG-169 discipline).
+  function handleGoalFrame(text, ctx) {
+    const t = lc(text);
+    const goal = statedFactsOf(ctx).find((f) => f.kind === "goal");
+    // Recall: resolve against the recorded kind-"goal" fact.
+    if (/\bwhat'?s\s+my\s+(?:career\s+)?goal\b/.test(t) || /\bwhat\s+is\s+my\s+(?:career\s+)?goal\b/.test(t)) {
+      if (!goal) return null;
+      const reply = compose({ headline: `Your career goal, in your words: ${goal.value}.`, facts: ["That is the goal on your record — stated by you, stored verbatim, and the target your searches, drafts, and prep are aimed at."], nextStep: "Want the search run against it, or the goal restated first?" });
+      return { intent: "career_goal_recall", reply, resultStatus: "answered", sends: 0, stated_facts: statedFactsOf(ctx) };
+    }
+    // Declaration: captureStatedFacts recorded this turn's
+    // statement at the head of dispatch; answer with the record
+    // surface, quoting the recorded clause verbatim.
+    if (/\?/.test(s(text))) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t)) return null;
+    if (!goal) return null;
+    const all = statedFactsOf(ctx);
+    const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
+    return { intent: "career_goal_record", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;

@@ -1,10 +1,11 @@
-# D-008 (architect, WO-059): the brain-versus-router eval on the architect-owned set (evals/career/messages.json, 50 items),
-# run where the model is reachable. Both brains are scored by the same model judge; the agent brain switches on only if it
-# passes 95% or more AND at least 40 points above the router (owner, 2026-10-20). Needs the repository secret
-# OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it the run prints NOT RUN and fails: a score is never faked.
-# Spend: $15 in total across every run (D-027). Each step passes --budget-usd, the runner counts the spend recorded in
-# evals/career/results/ on this branch and stops before the item that would cross it; a stopped run is not a score.
-# On a push to ci/brain-eval (or by hand): the results land in evals/career/results/ on ci/brain-eval only.
+# WO-061 (owner, 2026-10-21): the chat brain's one bar is 95% or better on the held-out set (evals/career/heldout-live.json),
+# one full pass, on the build that is live. Two independent judges score each item (gpt-5-mini and gpt-4.1-mini, both
+# OpenAI; no Anthropic spend); an item passes only when both pass it. The router runs beside it on the same set as the
+# comparison. Every run adds one line per brain to evals/career/SCORE-LOG.md (date/time, brain commit, set size, score)
+# and commits it with the result files to ci/brain-eval. Needs the repository secret OPENAI_API_KEY; without it the run
+# prints NOT RUN and fails: a score is never faked. Spend: the runner counts every result file's recorded spend against
+# EVAL_BUDGET_USD and stops before the item that would cross it; a stopped run is not a score.
+# A measurement commit on ci/brain-eval merges the branch measured as its second parent; that is the brain commit logged.
 name: brain-eval
 on:
   push:
@@ -12,9 +13,7 @@ on:
     paths:
       - .github/workflows/brain-eval.yml
       - evals/career/**
-      - evals/apply/live-fill.cjs
       - supabase/functions/_shared/**
-      - supabase/functions/_shared/agent/**
       - supabase/functions/agent-chat/career_brain.ts
   workflow_dispatch: {}
 permissions:
@@ -23,69 +22,40 @@ concurrency: { group: brain-eval, cancel-in-progress: false }
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 45
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
       EVAL_BUDGET_USD: "15"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22.23.3" }
+        with: { fetch-depth: 2 }
       - uses: denoland/setup-deno@v2
         with: { deno-version: "v2.9.6" }
       - name: The key is present
         run: |
           if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
-      - name: Router (the live brain today)
-        run: deno run -A evals/career/run.ts --brain router --label "router-${{ github.run_id }}" | tee "$RUNNER_TEMP/router.txt"
-      - name: Agent (WO-002)
-        run: deno run -A evals/career/run.ts --brain agent --label "agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/agent.txt"
-      - name: Held-out live phrasings (reported beside the official set; not the bar)
-        run: |
-          deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
-          deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
-      - name: Slice transcripts on the agent brain (WO-106; real model, today's boards, every link fetched)
+      - name: Held-out set, agent brain (the bar)
+        run: deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
+      - name: Held-out set, router (the comparison)
         if: always()
-        run: deno run -A evals/career/slice.ts --boards 600 --out "evals/career/results/slice-${{ github.run_id }}.md" | tail -5
-      - name: Playwright's Chromium for the extension (the one-application fill below)
+        run: deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
+      - name: The score log and the verdict
         if: always()
         run: |
-          npm install --prefix "$RUNNER_TEMP/tools" --no-audit --no-fund playwright@1.64.1
-          (cd "$RUNNER_TEMP/tools" && npx --no-install playwright install chromium)
-          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/tools/node_modules/playwright" >> "$GITHUB_ENV"
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: The application the agent queued, filled by the real extension and never sent (WO-106)
-        if: always()
-        run: |
-          f="evals/career/results/slice-${{ github.run_id }}.md"
-          url=$(sed -n '/^## The apply queue after the run/,$p' "$f" 2>/dev/null | grep -oE 'https://[^ ]+' | head -1 || true)
-          if [ -z "$url" ]; then echo "NOT RUN: the slice transcript queued no application, so there is nothing to fill" | tee "evals/career/results/fill-${{ github.run_id }}.txt"; exit 0; fi
-          echo "filling (never sending): $url"
-          node evals/apply/live-fill.cjs --url "$url" --out "evals/career/results/fill-${{ github.run_id }}.json" | tail -30
-      - name: F5 on the real handler (staged) - a batch ask is never "handed" to a worker that nothing runs
-        if: always()
-        run: node --experimental-vm-modules --test --test-name-pattern "WO-106/F5|degradation|delegation" tests/career-batch-delegation.test.cjs 2>&1 | tee "evals/career/results/f5-${{ github.run_id }}.txt" | grep -E "^(ok|not ok)|^# person:"
-      - name: The D-008 verdict
-        run: |
+          deno run -A evals/career/score-log.ts evals/career/results/heldout-agent-${{ github.run_id }}.json evals/career/results/heldout-router-${{ github.run_id }}.json --run ${{ github.run_id }}
           deno eval '
-            const r = JSON.parse(Deno.readTextFileSync("evals/career/results/router-${{ github.run_id }}.json"));
-            const a = JSON.parse(Deno.readTextFileSync("evals/career/results/agent-${{ github.run_id }}.json"));
-            if (r.stopped || a.stopped) { console.log("D-008: NOT RUN (a run stopped at the spend cap; a partial run is not a score)"); Deno.exit(0); }
-            const gap = (a.pass_rate - r.pass_rate) * 100;
-            const cost = (x) => x.cost_usd.brain + x.cost_usd.judge;
-            const all = [];
-            for (const e of Deno.readDirSync("evals/career/results")) if (e.name.endsWith(".json")) all.push(JSON.parse(Deno.readTextFileSync("evals/career/results/" + e.name)));
-            console.log(`router ${r.passed}/${r.total} · agent ${a.passed}/${a.total} · gap ${gap.toFixed(1)} points · this run $${(cost(r) + cost(a)).toFixed(3)} · all runs $${all.reduce((s, x) => s + cost(x), 0).toFixed(3)} of $15`);
-            console.log(`D-008 as first written (80%, +40): ${a.pass_rate >= 0.80 && gap >= 40 ? "met" : "not met"}`);
-            console.log(a.pass_rate >= 0.95 && gap >= 40 ? "D-008: PASS (agent >= 95% and >= 40 points above the router; D-027)" : "D-008: NOT MET (the agent stays off; D-027 needs 95% and +40)");
+            const a = JSON.parse(Deno.readTextFileSync("evals/career/results/heldout-agent-${{ github.run_id }}.json"));
+            if (a.stopped) { console.log("WO-061: NOT A SCORE (the run stopped at the spend cap)"); Deno.exit(0); }
+            console.log(`WO-061: held-out agent ${a.passed}/${a.total} (${(a.pass_rate * 100).toFixed(1)}%), two judges, brain ${a.source_commit}: ${a.pass_rate >= 0.95 ? "AT THE BAR (95%); live only once this exact build is deployed" : "BELOW THE BAR (95%)"}`);
           ' | tee "$RUNNER_TEMP/verdict.txt"
       - name: Commit the results to ci/brain-eval
         if: always()
         run: |
           git config user.name "brain-eval[ci]"
           git config user.email "brain-eval@users.noreply.github.com"
-          git add evals/career/results/ || true
-          git commit -m "D-008 data: brain-versus-router eval, run ${{ github.run_id }} ($(cat "$RUNNER_TEMP/verdict.txt" 2>/dev/null | tail -1))" || exit 0
+          git add evals/career/results/ evals/career/SCORE-LOG.md || true
+          git commit -m "WO-061 data: held-out eval, run ${{ github.run_id }} ($(tail -1 "$RUNNER_TEMP/verdict.txt" 2>/dev/null))" || exit 0
           git push origin HEAD:ci/brain-eval

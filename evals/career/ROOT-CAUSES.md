@@ -893,3 +893,13 @@ of private content.
   28/23/26/24/26 (mean 25.4) vs the control's 25.6. Cost $0.4546. Zero third identical refusals and zero step-limit
   or error replies in five passes. H002 passes both CI judges 2/5 (its other causes: the bare confirm question and
   the plain-yes demand). Built before the H027 and stage fixes were kept; not part of the stack being measured.
+
+## "[your skill]" in an H036 reply (second judge's defect, run 39597370231 p3): an emphasis word read as a skill
+- Reply: "The one step that starts applying: paste your resume [your skill] tell me the role and city". Reproduced in code:
+  the model wrote "paste your resume OR tell me ..."; reply_guards.ts classify() treats any 2-5 letter all-caps word
+  after a skill cue as a skill acronym (as it should for SQL, AWS), "OR" is untraced, and bracketUntraced replaces it
+  with the "[your skill]" placeholder. Not a prompt placeholder: the prompt's brackets are for drafts the person fills
+  (cover letters, emails: H024, H011), which are intended.
+- Fix (code, one cause): ordinary English words written in capitals for emphasis (OR, AND, NOT, ONLY, NOW, EACH ...)
+  join COMMON_CAPS, the words the guard never reads as claims. Gate test: the H036 sentence is untouched; "SQL" after
+  a skill cue is still a claim.

@@ -142,6 +142,8 @@ declare u uuid := auth.uid(); c public.career_apply_message_cards; n integer; st
 begin
  if u is null then raise exception 'not signed in'; end if;
  if not public.career_apply_message_card_test_enabled_own() then raise exception 'message approvals are TEST-only'; end if;
+ -- Serialize separate Messages cards for one account too; the underlying batch mint replaces earlier live rows.
+ perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  select * into c from public.career_apply_message_cards where id=p_card and user_id=u for update;
  if c.id is null or not exists(select 1 from public.agent_threads where id=c.thread_id and user_id=u) then
   raise exception 'message approval card is not yours'; end if;

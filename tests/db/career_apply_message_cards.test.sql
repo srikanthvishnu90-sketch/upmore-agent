@@ -90,6 +90,43 @@ reset role;
 select t.ok((select count(*)=1 from career_apply_batch_approvals),'replay created zero additional approval rows');
 select t.ok((select count(*)=0 from career_apply_jobs),'the tap itself submits nothing');
 
+-- The actual modern consumer exercises this card's approval once. These are invented stated facts / attachment.
+set role service_role;
+insert into career_watch_kv(user_id,key,value) values
+ ('00000000-0000-4000-8000-000000001171','career:account','{"epoch":2,"version":3,"paused":false,"daily_limit":"5"}');
+reset role;
+insert into career_cloud_settings(key,value) values('CAREER_AGENT_SUBMIT','on') on conflict(key) do update set value=excluded.value;
+create temp table mc_payload as select jsonb_build_object('version',1,'source','extension','user_id','00000000-0000-4000-8000-000000001171',
+ 'manifest_hash',repeat('6',64),'quarantine_version','d007-v1','job_id',pg_temp.mc_entry()->>'jobId',
+ 'company','Synthetic card employer','url',pg_temp.mc_entry()->>'url','family','lever',
+ 'fields',jsonb_build_array(
+  jsonb_build_object('name','name','label','Full name','value','TEST Person','source','trainee','factId','TEST-NAME','detail',''),
+  jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','source','trainee','factId','TEST-RESUME','detail','')),
+ 'resume_name','synthetic.pdf','resume_sha256',repeat('a',64),'privacy_epoch',2,'account_version',3,
+ 'expires_at',(clock_timestamp()+interval '2 hours')::text) p;
+grant select on mc_payload to authenticated;
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+insert into mc_state select 'consumer',career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_entry())) from mc_payload;
+select t.ok((select (v->>'id') is not null and (v->>'lease') is not null from mc_state where k='consumer'),'the actual consumer accepts the exact card-authorized payload');
+select t.ok((select count(*)=1 and bool_and(used_at is not null) from career_apply_batch_approvals),'the actual consumer marks the card-minted authorization used');
+select t.must_fail($$select career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_entry())) from mc_payload$$,'no live batch approval','actual consumer cannot exercise the approval twice');
+select t.must_fail($$select career_apply_message_card_approve_own((select (v->>'id')::uuid from mc_state where k='card'),(select v->>'hash' from mc_state where k='card'))$$,'already used','card cannot remint after its authorization was consumed');
+reset role;
+select t.ok((select count(*)=1 from career_apply_jobs),'the actual consumer created exactly one application record');
+
+-- A separately approved Messages entry is refused by the consumer once its authorization reaches 24 hours.
+set role service_role;
+insert into mc_state values('permission-expiry-card',career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_entry('lever:synthetic:expired-permission'))));
+reset role;
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+insert into mc_state values('permission-expiry-receipt',career_apply_message_card_approve_own((select (v->>'id')::uuid from mc_state where k='permission-expiry-card'),(select v->>'hash' from mc_state where k='permission-expiry-card')));
+reset role;
+update career_apply_batch_approvals set approved_at=clock_timestamp()-interval '24 hours' where job_id='lever:synthetic:expired-permission';
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+select t.must_fail($$select career_apply_extension_begin_agent_own(p||'{"job_id":"lever:synthetic:expired-permission"}'::jsonb,pg_temp.mc_hash(p||'{"job_id":"lever:synthetic:expired-permission"}'::jsonb),pg_temp.mc_hash(pg_temp.mc_entry('lever:synthetic:expired-permission'))) from mc_payload$$,'no live batch approval','actual consumer refuses a card authorization at 24 hours');
+reset role;
+select t.ok((select count(*)=1 from career_apply_jobs),'expired authorization created no second application');
+
 -- Synthetic expired nonce: at the deadline or later it is not open, and minting is refused.
 create temp table mc_expired as select gen_random_uuid() id,floor(extract(epoch from clock_timestamp())*1000)::bigint-86400000 issued;
 insert into agent_messages(thread_id,role,content,meta) select '00000000-0000-4000-8000-00000000117a','assistant','Synthetic expired card',jsonb_build_object('career_approval_card_id',id) from mc_expired;
@@ -102,7 +139,7 @@ select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
 select t.ok((select career_apply_message_card_read_own(id)->>'state'='expired' from mc_expired),'expired card is rendered as expired');
 select t.must_fail($$select career_apply_message_card_approve_own(id,pg_temp.mc_hash((career_apply_message_card_read_own(id))->'payload')) from mc_expired$$,'card expired','24h-old card mints nothing');
 reset role;
-select t.ok((select count(*)=1 from career_apply_batch_approvals),'expired tap preserves approval count');
+select t.ok((select count(*)=2 from career_apply_batch_approvals),'expired tap preserves approval count');
 -- Disabling the TEST account immediately closes its remaining access.
 update career_message_approval_private.test_users set enabled=false where user_id='00000000-0000-4000-8000-000000001171';
 select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;

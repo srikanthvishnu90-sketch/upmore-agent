@@ -1,0 +1,1 @@
+{"ts":"2026-10-21T18:20:36Z","mode":"dry-run","verdict":"healthy","action":"none","requiredGaps":[],"postureGaps":["smoke unit file absent (stopped-by-design when present)"],"probes":{"noSecret":401,"wrongSecret":401,"exampleCom":403,"lever":403}}

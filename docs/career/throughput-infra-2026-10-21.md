@@ -85,9 +85,37 @@ Consequences, stated plainly:
   attempt but pays a full re-drive per mismatch — its split is a
   follow-up probe on a form whose early fields are plain text.
 
-## 2. F8 auto-restore — see tools/worker-restore/
+## 2. F8 auto-restore — tools/worker-restore/
 
-(section added with deliverable 2)
+Contents: `restore-worker.sh` (detection + restore + verify; `--dry-run`
+is the default and the only mode run by this lane), `units/` (templates
+captured byte-faithful from live `systemctl cat`: board, executor,
+executor.timer at its live 20 s cadence, egress relay, the
+throughput-chromium drop-in; the smoke unit — absent from /etc at
+capture — is reconstructed from the flip doc and marked), `README.md`
+(detection set, restore steps, watchdog design, safety properties).
+
+Design in one paragraph: a watchdog unit cannot fix a wipe that takes
+/etc with it, so the trigger lives outside /etc — a Muse scheduler job
+(the one scheduler that demonstrably kept firing across both of
+2026-10-21's VM replacements) runs the script's dry-run every ~5 min;
+two consecutive DEGRADED verdicts trigger one `--execute` (install
+templates -> daemon-reload -> enable/start relay, board, timer ->
+re-verify by probes) and deliver the log record. The restore never
+touches Supabase state, never starts the smoke instance, and its gate
+probes create no sessions (both are refused by the board's own gates
+before the factory runs). If the worker-config material itself is
+gone, the verdict is UNRESTORABLE_LOCAL — the shared secret lives only
+there and in the function env — and the operator is paged.
+
+**Dry-run verdict (live host, 2026-10-21 18:20 UTC): HEALTHY, action
+none, exit 0.** All four gate probes green (no-secret 401 ·
+wrong-secret 401 · example.com 403 DRIVER_HOST_REFUSED · Lever 403
+FAMILY_NOT_DRIVEABLE); every required unit/config/port present. One
+posture gap, named in the log record (`tools/worker-restore/dry-run-log.jsonl`):
+the smoke unit file is absent — stopped-by-design when present, so
+operations are unaffected; a full restore would rewrite it and still
+never start it. No real restore was executed in this lane.
 
 ## 3. K=2 install prep — see docs/career/k2-install-checklist-2026-10-21.md
 

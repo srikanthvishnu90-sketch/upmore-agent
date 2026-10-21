@@ -1,0 +1,10 @@
+[Unit]
+Description=Upmore worker egress CONNECT relay (loopback -> hatch-egress-proxy; Chromium cannot CONNECT upstream directly - measured 2026-10-21)
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart=/usr/bin/node /home/hatch/worker-config/connect-relay.cjs 8474
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+# TEMPLATE RECONSTRUCTED from docs/gauntlet/worker-flip-2026-10-20.md.
+# This unit file was ABSENT from /etc/systemd/system at capture time
+# (2026-10-21, after the day's second VM replacement + restore) — the
+# restore that day re-registered the operating stack only. Standing
+# posture when present: STOPPED (no [Install]); started manually for
+# §5-style smokes only. A restore rewrites this file but NEVER starts it.
+[Unit]
+Description=Upmore career board service SMOKE (sandbox factory, 127.0.0.1:8472)
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+Restart=on-failure
+WorkingDirectory=/home/hatch/workspace/upmore-v2-candidate
+Environment=http_proxy=http://hatch-egress-proxy:3128
+Environment=https_proxy=http://hatch-egress-proxy:3128
+Environment=HTTP_PROXY=http://hatch-egress-proxy:3128
+Environment=HTTPS_PROXY=http://hatch-egress-proxy:3128
+Environment=NODE_USE_ENV_PROXY=1
+Environment=NODE_EXTRA_CA_CERTS=/run/hatch/egress-tls/ca-bundle.pem
+Environment=SSL_CERT_FILE=/run/hatch/egress-tls/ca-bundle.pem
+Environment=NO_PROXY=127.0.0.1,localhost
+Environment=no_proxy=127.0.0.1,localhost
+Environment=UPMORE_CHROMIUM_SANDBOX=off
+ExecStart=/usr/bin/node /home/hatch/worker-config/board-smoke-launcher.cjs

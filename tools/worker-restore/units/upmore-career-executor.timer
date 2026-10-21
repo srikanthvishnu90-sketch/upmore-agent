@@ -1,0 +1,8 @@
+[Unit]
+Description=Run the Upmore career batch executor every 60s
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=20s
+Unit=upmore-career-executor.service
+[Install]
+WantedBy=timers.target

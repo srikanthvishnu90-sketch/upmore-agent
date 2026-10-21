@@ -1,43 +1,78 @@
 {
   "source_pin": "01401cb456bc2982d67316165e183bbd275581c9",
+  "design_review": "6efca1a2b844b402579bfcf4238f3e53a33d0f90",
+  "scope": "TESTS_ONLY; no production/mainSQL/docs/engine_input edits; no SQL executed or migrations applied",
   "actual_offline_results": {
-    "real_planner_prepare_assertApprovedPayload": 19,
+    "real_planner_prepare_assertApprovedPayload_templates": 20,
     "captured_required_fields_per_payload": 6,
     "raw_id_vs_bank_factId_helper_controls": 2,
-    "typecheck": "PASS"
+    "pinned_live014_function_bodies_extracted": 12,
+    "generator_typecheck": "PASS",
+    "python_ast_and_concurrency_help": "PASS"
   },
-  "sql_runtime": "NOT_RUN; no database connection or migration application",
-  "browser_runtime": "NOT_RUN; actual local browser sandbox failure previously recorded separately",
-  "fresh_expiry": "pg_temp.cc_full_item refreshes P and approved_snapshot.original ONLY before display and computes new Hq; He unaffected by expiry",
-  "unknown_dependencies": [
-    "Claude engine_input raw profile id:F033 normalization (not faked as a canonical bank factId)",
-    "reviewed enrollment table column names approval_ref/user_id pending confirmation",
-    "reviewed source-snapshot digest RPC signature",
-    "future up/down files, maintenance lock key and explicit isolated DB authorization"
+  "sql_database_and_race_runtime": "NOT_RUN; no connection or migration execution",
+  "browser_runtime": "NOT_RUN; separately observed SUID sandbox launcher failure retained in prior artifact",
+  "written_test_lines": {
+    "tests/db/pending/career_apply_card_cloud_concurrency.py": 376,
+    "tests/db/pending/career_apply_card_cloud_rollback.test.sql": 272,
+    "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql": 188
+  },
+  "fresh_expiry": "cc_full_item refreshes P+approved_snapshot.original only before display, then computes Hq; call once per item",
+  "remaining_dependencies": [
+    "reviewed up/down and authorized disposable SQL execution",
+    "caller-created committed race/rollback seed fixtures and exact shared maintenance key",
+    "confirmed enrollment column names user_id/purpose/approval_ref",
+    "reviewed source-snapshot digest RPC signature and current source fixture seeding",
+    "Claude engine_input actual raw id:F033 projection; not faked by labelling it bank factId"
   ],
   "new_cost_usd": 0,
   "prior_known_usd": "8.503100",
-  "prior_unresolved_hold_usd": "0.070743",
+  "prior_unresolved_held_usd": "0.070743",
   "files": [
     {
-      "path": "tests/fixtures/card-cloud-db-20261021/fixture.sql",
-      "sha256": "9538d517c2e2765510220669de9f4804596e70da3e7b1b2337bfc4f2b99cb5ca",
-      "bytes": 223323
-    },
-    {
-      "path": "tests/fixtures/card-cloud-db-20261021/prepared-payloads.json",
-      "sha256": "479471de3977e2de5cea22736e4eb2df4d909fded0fcebfa1b755735f6d137a0",
-      "bytes": 356512
-    },
-    {
-      "path": "tests/fixtures/card-cloud-db-20261021/generate.ts",
-      "sha256": "e60f7aded000c4d3f369cf4ef5290d6710e49dbdd7bbb6878fa26e4d0a4787a4",
-      "bytes": 6915
+      "path": "tests/db/pending/career_apply_card_cloud_concurrency.py",
+      "bytes": 20275,
+      "sha256": "c3057ca82fe72cfb37205c262a83dc52a7101376380f9cfa9546283941384cfd"
     },
     {
       "path": "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql",
-      "sha256": "6a38507cbe221ce910466d194ac16b8219b941abee1c7ffda75bdb01e63f8468",
-      "bytes": 10497
+      "bytes": 14620,
+      "sha256": "68b734c2f2739a345cf037bf56b0919b13058c7a11c269ea3ea3865402c0eb92"
+    },
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_rollback.test.sql",
+      "bytes": 19741,
+      "sha256": "7cff5b747ab13627dbe51e12b75474c5c258ce8e820e532adde23b42b5c61b35"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/fixture.sql",
+      "bytes": 235035,
+      "sha256": "b2bb98f2b6441048a8e1ab1e43a40116bb88499b2ded3f9bac7beb9b62136127"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/generate-live-source.py",
+      "bytes": 2980,
+      "sha256": "df3eb65213062fd5f9b5f9deec157ecbf3b73e377e56b0c7aa6680117aae76cd"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/generate.ts",
+      "bytes": 6932,
+      "sha256": "8fb8602f7ab8c3bb7cbe19402ececfcae713ecfae9e9dd1916c77de8afaa6e79"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/live014-source-evidence.json",
+      "bytes": 3508,
+      "sha256": "e9eba7c3ed671712219029e25f976c348d65c6c08b657c149bf908f9708b4a7a"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/live014-source.sql",
+      "bytes": 30221,
+      "sha256": "19e164a26caebc148db0097bf125fc02df2a56b636ca8a24fb8a0c30a69082ed"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/prepared-payloads.json",
+      "bytes": 375093,
+      "sha256": "cd571a147f7eb08eb63033cc45e81036e23175d590459c0832308f81d8959423"
     }
   ]
 }

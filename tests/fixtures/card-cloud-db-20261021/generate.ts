@@ -19,7 +19,7 @@ const schema=[{name:'name',label:'Full name',type:'text',required:true,options:[
 const own=(factId:string,value:string,extra={})=>({value,factId,user_id:owner,confirmed:true,provenance:'owner stated synthetic fixture',confirmation_event_id:'evt-'+factId,...extra});
 const facts={user_id:owner,answers:{full_name:own('TEST-NAME','Synthetic Person'),email:own('TEST-EMAIL','synthetic@example.test'),sponsorship:own('TEST-SPONS','No'),work_authorization:own('TEST-AUTH','Yes')},saved:{[ack.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()]:own('TEST-ACK','Yes',{authorizes:true})}};
 const manifest=trustedFacts(facts,artifact),schemaHash=await hashApplyPayload(schema),templates:Record<string,unknown>={};
-const tags=['atomic-first','atomic-last','unknown-top','unknown-field','bank-quarantined','own-chat-f033','expired','renewal','ordinary','ordinary-expired','ordinary-revoked','ordinary-scope','ordinary-thread','ordinary-after','resume-negative','binding-negative','claim-race','tap-race','maintenance'];
+const tags=['atomic-first','atomic-last','unknown-top','unknown-field','bank-quarantined','own-chat-f033','expired','expired-queued','renewal','ordinary','ordinary-expired','ordinary-revoked','ordinary-scope','ordinary-thread','ordinary-after','resume-negative','binding-negative','claim-race','tap-race','maintenance'];
 for(const tag of tags){
  const job='lever:veeva:synthetic-'+tag,url='https://jobs.lever.co/veeva/synthetic-'+tag+'/apply',company='Synthetic '+tag;
  const plan=planApplication({manifest,userId:owner,jobId:job,employer:company,schema,artifact,now:0});

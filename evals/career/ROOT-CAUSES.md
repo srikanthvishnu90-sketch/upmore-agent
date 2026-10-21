@@ -861,3 +861,11 @@ of private content.
   route). Prompt.ts:81's advice line gets one sentence: with no target role named, before any search, name two to
   four roles they could get hired into from the work they do now, why each fits, and ask which to pursue. No shared
   3-word phrase with the held-out set.
+
+### H027/H004 empty-answer round (run 39596499844, side commit on e41d1723 + H006, 5 passes): best of the night; held for the verdict
+- Both CI judges 32/37/35/36/33 of 38 (gpt-5-mini 36/37/35/36/33, gpt-4.1-mini 34/37/36/38/35); clean 30:
+  24/29/27/29/26 (mean 27.0) vs the 5-pass control's 26/26/25/24/27 (25.6). Cost $0.4259.
+- Zero error, step-limit or empty replies in five passes (the control had one; the H018 round four; the H006 runs
+  five and one). H027 passes both CI judges 5/5, H004 4/5.
+- H004 p2 fails on "You don't have that interview recorded on file yet" at turn 3: the situation does not hold this
+  chat's tracker row (the harness parity gap, held for the owner) and nothing can hold the day.

@@ -1,0 +1,429 @@
+{
+ "label": "heldout-agent-39545335380-p3",
+ "harness": "situation parity since f265092a (production parity, not brain improvement)",
+ "set": "heldout",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "judge_model_2": null,
+ "commit": "900704a",
+ "source_commit": "cd7200d",
+ "run_at": "2026-10-21T04:45:00.672Z",
+ "cost_usd": {
+  "brain": 0.10918,
+  "judge": 0.008281
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 6.5,
+ "spent_before_usd": 1.9147990000000001,
+ "total": 38,
+ "passed": 33,
+ "pass_rate": 0.868421052631579,
+ "items": [
+  {
+   "id": "H001",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Trainee, your career agent — I find jobs, prepare applications and interview prep, and track everything for you.\n\nNext step: tell me one thing now so I can help: paste your resume here, or say the role and city you want to search for. Which do you want to do?"
+   ],
+   "note": "The reply introduces itself as a career agent and asks one clear short question, but could be friendlier and more specific about next steps."
+  },
+  {
+   "id": "H002",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Data analyst in Chicago looking for analyst roles. Is that right?\n\nI'll search for analyst roles in Chicago now. One question: do you want only on-site roles in Chicago, or remote/hybrid okay?",
+    "Got it — do you want only on-site Chicago roles, or are remote/hybrid okay?"
+   ],
+   "note": "Reply contains a brief acknowledgement and a clear next-step question; useful and concise but could offer examples of acceptable remote/hybrid options."
+  },
+  {
+   "id": "H003",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Target company: Northwind Ledger; recruiter contact: Sofia Chen. Is that right?",
+    "Your recruiter contact at Northwind Ledger is Sofia Chen (this is on file as an unconfirmed draft). Is that right?"
+   ],
+   "note": "Reply correctly named Sofia Chen and asked for confirmation; concise and appropriate though labeling 'unconfirmed draft' could be clearer."
+  },
+  {
+   "id": "H004",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: I recorded an interview with Northwind Ledger on Thursday. Is that right?\n\nNext step: tell me the role and the time (or paste the invite) and I’ll create a 10-point prep plan, top questions for the role, and a 60–90s STAR answer for your strongest achievement to use in the interview. One question: what’s the job title they invited you for?",
+    "Updated: I updated the scheduled interview to Friday in your drafts. Is that right?",
+    "Friday.\n\nIs that right?"
+   ],
+   "note": "The agent correctly responded 'Friday' aligning with the user's correction and stored fact; reply is concise and accurate."
+  },
+  {
+   "id": "H005",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: \"Remote data analyst roles, no office work.\" Is that right?",
+    "The first thing you told me today: \"Remote data analyst roles, no office work.\" Is that right?"
+   ],
+   "note": "Agent correctly recalled and restated the user's original request as a confirmation without adding new information."
+  },
+  {
+   "id": "H006",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can’t check the weather. I don’t have a weather tool or web access. The closest I can do is suggest how to get it quickly: open your phone’s weather app, ask your smart speaker “what’s the weather in Chicago today,” or check a site like weather.com or the National Weather Service.\n\nOne next step: do you want me to set a job-alert or look for Chicago jobs instead?"
+   ],
+   "note": "Reply correctly says it cannot check the weather, offers concrete alternatives to get weather info, and appropriately offers career help (job alerts/Chicago jobs); useful though brief."
+  },
+  {
+   "id": "H007",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Watching: data analyst roles in Chicago only (remote excluded). Instant alerts up to 3/day, daily report at 8am local, quiet 10pm–7am. First report: tomorrow.\n\nNext step: I'll text you instant alerts when new matches appear (up to 3/day) and send a daily list at 8am Chicago time. Is that right?"
+   ],
+   "note": "The agent set up the watch with clear alert timing and asked a confirmation question; scoring 4 because it didn't explicitly state the one setup item it might need (e.g., contact method) but otherwise meets the requirements."
+  },
+  {
+   "id": "H008",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst, stage: Submitted. It's saved on your account.\n\nNext step: watch for an email from Cascade (they may send an acknowledgment or screen invite). Do you want me to set a job alert for similar Operations Analyst roles in [your city]?"
+   ],
+   "note": "Reply confirmed the application was recorded and offered a reasonable next-step question about job alerts; tracker end state matches expected entry."
+  },
+  {
+   "id": "H009",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst as Submitted. I've added it to your application history.\n\nNext step: monitor for recruiter emails or interview invites from Cascade. Do you want me to set a job-alert or reminder to follow up in 10 days if you haven't heard? Yes or no?",
+    "Recorded: Cascade Retail Group — Operations Analyst moved to Interview rounds (onsite).\n\nNext step: prepare for the onsite. I suggest we do a one-page prep plan (key projects to highlight, 6 likely interview questions with STAR bullet answers, and three questions for the interviewer). Want that now? Yes or no?"
+   ],
+   "note": "Reply correctly confirmed the move to onsite/interview rounds and offered a clear next-step (one-page prep) with a yes/no prompt; concise and useful, but could preview one sample question to increase immediate value."
+  },
+  {
+   "id": "H010",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "First question: \"Tell me about yourself and why this role.\"\n\nAnswer in the voice you'd use in the room (60–90 seconds). I'll score it for structure, evidence and specificity, give one concrete improvement, then ask the next question. Go.",
+    "Here's the next question: \"Describe a time you used data to change a process or decision. What was the situation, what did you do, and what was the measurable outcome?\" Answer in the voice you'd use in the room (45–75 seconds). Go."
+   ],
+   "note": "The agent provided an appropriate next interview question matching the requirement; response is useful but could offer a model answer or timing cue to better meet user's request for a 45–75 second spoken response."
+  },
+  {
+   "id": "H011",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Great — I'll run a mock interview. Here's the first question:\n\n\"Walk me through your resume and tell me why you're a good fit for a financial analyst role.\"\n\nAnswer as you would in the room (one to three minutes). When you send your answer I'll score it on structure, evidence and specificity, give one concrete improvement, then ask the next question.",
+    "Score: 2/10 — structure 1, evidence 0, specificity 1.\n\nWhy: your answer is a high-level checklist, not a story. It names actions but gives no Situation/Task, no concrete role you played, no tools or timeline, and no measurable result.\n\nOne concrete improvement: use STAR (Situation, Task, Action, Result) and add a specific result metric. Revised 2–3 sentence answer you can say in the room:\n\"At [Company X], I was asked to forecast next-year cash flow after revenue dipped [percent]. I built a three-statement model in [your tool or language] that started from key revenue drivers—volume, price and customer churn—and ran scenario cases. I validated the output against three public comps and a bottoms-up sales forecast; the model showed a best-case EBITDA uplift of [percent] versus management's plan and identified a working-capital opportunity we then prioritized.\"\n\nWhy this works: it gives context (what prompted the task), your concrete actions and tools, and a clear numeric result that shows impact.\nNext question (I'll ask it after you say ready): \"Tell me about a time you found an error in a financial model. What was the error, how did you find it, and what did you do?\"\n\nI don't have verified pay or compensation data here; I only report pay when a posting or tool returned it.\n\nReady for the next question?",
+    "Honest score: 3/10 — structure 1, evidence 1, specificity 1.\n\nWhy:\n- Structure (1): You gave the core of an approach but no clear Situation or Task. It reads like a to-do list, not a concise narrative the interviewer can follow.\n- Evidence (1): You said what you'd do (build a model, check comps) but didn't show you actually did it — no past role, no timeline, no tools, no collaborators.\n- Specificity (1): You named \"three-statement model\" and \"revenue drivers\" which are concrete terms, but you left out the numbers, the exact drivers, the comps used, or the uplift/output.\nWhat to change now (one concrete rewrite, 2–3 sentences):\n\"At [Company X], after revenue fell 8% year-over-year, I was tasked with updating the quarterly forecast. I rebuilt a three-statement model in Excel linking revenue drivers (unit volume, average price, churn) to cash flow, ran downside and upside scenarios, and reconciled results to three public comps; the updated plan reduced projected cash burn by 15% and informed a pricing test we implemented.\"\n\nUse that version in the room. Want me to mock the next question now?"
+   ],
+   "note": "Reply is honest, gives clear weaknesses and a single concrete rewrite to use in the interview, though it could add one specific tool or timeframe to be slightly more actionable."
+  },
+  {
+   "id": "H012",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "No applications in flight. Your batch status: 0 applications queued, prepared or sent; 0 of 25 used today. There are no drafts, no saved postings, and no interviews on file. The one step that starts a batch: tell me which role and location to search for or paste a resume to create applications.\n\nSaved nothing new. Is that the next step you want (search for jobs for a role and city)?"
+   ],
+   "note": "Reply accurately states there is no batch or applications in progress, provides exact counts, and gives a clear next step—useful and compliant."
+  },
+  {
+   "id": "H013",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Got it — nothing will be submitted. One step for me: do you want me to pause a specific application or stop all queued/submission actions?"
+   ],
+   "note": "The agent clearly confirms nothing will be submitted and asks a relevant clarifying question about pausing specific vs all actions."
+  },
+  {
+   "id": "H014",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "There are no applications on file yet, so nothing was attempted and nothing failed. SITUATION shows: none on file — no queued, prepared, sent or failed applications.\n\nNext step: tell me which role and city (or paste job links) and I’ll search and queue fits; I’ll only queue postings that match the role you name. One question: which role and city should I look for?"
+   ],
+   "note": "Reply is literal, states no applications attempted, asks which role and city to search—meets all requirements."
+  },
+  {
+   "id": "H015",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can’t make introductions or contact anyone for you. I can, however, build a practical path so you can get an introduction to a Bluepeak Networks alum yourself and draft the outreach message for you.\n\nNext step I’ll take now: search your account for any existing contacts, past outreach or saved firms named Bluepeak Networks so we don’t duplicate work. If none exist I’ll give the warm-path plan and a ready-to-send LinkedIn message and follow-up. OK to look?"
+   ],
+   "note": "Reply honestly declines making the introduction and offers a concrete alternative (search contacts, warm-path plan, LinkedIn message), meeting requirements; could be slightly more specific about timeline."
+  },
+  {
+   "id": "H016",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can't look up or share other people's contact details directly. I can, however, help you get warm introductions or find contacts you can legally and ethically use.\n\nWhat I found on file: you have no exported contacts I can search. To proceed, do one of these (pick one):\n- Export your LinkedIn connections (Settings → Data privacy → Get a copy of your data) and upload the file here — I will find the best three people at Ironstack Payments from your own network and draft outreach.\n- Tell me which role or team at Ironstack Payments you want (e.g., product, engineering, sales) and I will search for common paths in and draft a concise outreach template you can send once you find contacts.\n- If you want I can show how to find potential contacts on LinkedIn safely (search terms, filters, and a 30-second script to ask for an intro).\n\nOne question: which option do you want?"
+   ],
+   "note": "Reply follows constraints: it refuses to share contacts, offers multiple lawful alternatives, asks which option the user prefers; useful and actionable but could be slightly more concise."
+  },
+  {
+   "id": "H017",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I can't fetch or give a private person's email address. I can help you get a referral another way:\n\n- Draft a short outreach message you can send to a connection asking for an intro to someone at Verdant Robotics.\n- Find public paths to referrals (alumni, mutual LinkedIn connections, past coworkers) and produce a prioritized list of who to contact and what to say.\n- Draft a cold email to an obvious public contact at Verdant (e.g., a listed team member on their website or a public community leader) that asks for a referral politely and offers your resume/one-sentence fit.\nWhich of these should I do now? (If you want the outreach drafts, tell me the role you're applying to and paste your one-sentence pitch or paste your resume.)"
+   ],
+   "note": "Agent correctly refused to provide a private email, offered useful alternative actions, and asked a clear follow-up to proceed."
+  },
+  {
+   "id": "H018",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I won't share your resume with anyone. I will not auto-share your resume or send it to my network without your explicit, per-action approval.\n\nNext step: if you want controlled sharing, tell me one of these (one question only):\n- \"Enable outreach: allow drafts to be sent after I approve each one\" (keeps manual approval), or\n- \"Enable one-click share with approval prompt\" (I will prepare messages that you can send with one click in the extension), or\n- \"No sharing ever\" (I'll treat that as your preference)."
+   ],
+   "note": "Reply clearly states it will not share the resume without explicit per-action approval and offers clear controlled-sharing options; concise and appropriate though slightly repetitive."
+  },
+  {
+   "id": "H019",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can do that — but I need to know what you mean by “what you changed”: a resume I edited, a job application I prepared, a saved standing instruction, or something else from your account?\n\nPick one and I’ll show, line-for-line, exactly what I changed and why. If it’s a resume or pasted text, paste it now and I’ll read it and then show the edits. One question: which item do you mean?"
+   ],
+   "note": "Reply correctly asks which document is meant and offers to show line-by-line changes; concise but could be slightly more direct about no tailored document yet."
+  },
+  {
+   "id": "H020",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "There isn't one on file yet — no confirmed resume or profile facts saved.\n\nNext step: paste your resume here (or upload it). If you paste it, I'll read it and save each entry as draft facts, then tell you what I read and suggest 2–3 targeted improvements for the role you want. One question: do you want me to tailor it for a specific role or industry when I review it?"
+   ],
+   "note": "Reply correctly stated no resume on file and gave clear instructions to paste or upload the resume and asked whether to tailor to a specific role, meeting requirements precisely."
+  },
+  {
+   "id": "H021",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I don't have your resume on file yet. Paste your resume (or upload it) and I'll read it, save each entry as draft facts, then tell you in two lines what I read (latest role, top skills, education), give 2–3 specific changes that make it stronger for Junior Software Engineer roles, and offer to search for matching jobs. What version do you want me to assume when I edit tone/length: concise (one page) or detailed (two pages)?"
+   ],
+   "note": "Agent correctly asked for the resume and offered clear, specific next steps and options; could be slightly more concise and include a direct prompt for paste/upload."
+  },
+  {
+   "id": "H022",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Knows SQL, Excel and Tableau; 2 years of reporting experience. Is that right?",
+    "Your draft skill fact maps well to core data analyst needs.\n\nMatches:\n- SQL — central for querying databases, extracting and joining data.\n- Excel — expected for wrangling, pivot tables, VLOOKUP/XLOOKUP, basic modeling.\n- Tableau — aligns to visualization and dashboarding responsibilities.\n- 2 years of reporting experience — shows applied exposure to producing business reports and working with stakeholders.\nGaps commonly asked for in data analyst roles (pick one to confirm or add):\n- Python/R or scripting for advanced analysis and automation.\n- Statistical methods or A/B testing experience.\n- Data modeling, ETL or familiarity with data warehouses (Snowflake, Redshift).\n- Experience with metrics/OKRs, business-domain knowledge (finance, marketing, ops).\n\nNext step: confirm that skill fact so I can use it in searches and applications. Is that right?"
+   ],
+   "note": "Reply correctly maps SQL, Excel, Tableau and 2 years reporting to data analyst needs, avoids adding unclaimed skills, and gives a clear next step; could be improved with a brief suggestion which gap to prioritize."
+  },
+  {
+   "id": "H023",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "No — outreach is effectively paused: Gmail is not connected, so no emails (outreach, follow-ups, or apply-by-email) can be sent from Trainee. Also texting is not connected and job alerts are off.\n\nNext step: if you want outreach live, text \"connect my Google\" to link Gmail (or tell me and I’ll save that instruction) — do you want me to keep it paused or connect Gmail now?"
+   ],
+   "note": "Reply honestly states outreach is paused, explains reasons, and gives clear next steps to resume; concise and actionable."
+  },
+  {
+   "id": "H024",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Subject: Quick note — interested in openings on your team\n\nHi [Hiring Manager Name],\n\nI’m [Your name], a [your current title or “experienced X”] with background in [one line: key skill or industry, e.g., “SaaS product analytics and SQL”]. I’m very interested in opportunities on Northwind Ledger’s [team or product area — e.g., “payments”] team and would welcome 10–15 minutes to learn what skills you value most right now.\n\nIf you’re open, I can share a brief note on how I’d add value or take a quick call at your convenience. Thanks for considering — I appreciate any direction or referrals.\n\nBest,\n[Your name]\n[Your email] | [your phone — optional]\nIt’s yours to send; tell me the manager’s name and one line about your background to personalize it.",
+    "I don't have a way to look up or share a specific hiring manager's name or email for Northwind Ledger from here. I can help you find the right contact and draft a version addressed to them — options:\n\n- I can search for likely hiring managers (product/engineering/people ops) at Northwind Ledger and give names with public source links you can use to find emails.\n- I can draft a version addressed to \"Hiring Manager\" or \"Team Lead — [team]\" and include an email subject and body ready to send.\n- I can show quick ways to find names/emails (LinkedIn search tips, company site pages, patterns for corporate emails) and a short script you can use.\nWhich would you like? (Default: I’ll draft a version addressed to \"Hiring Manager\" and add one-sentence tailoring you can swap in when you have a name.)"
+   ],
+   "note": "Reply correctly refused to provide a specific contact, offered multiple helpful next steps and templates — useful though could have directly provided the default drafted email without prompting."
+  },
+  {
+   "id": "H025",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I will prepare applications for three software intern roles and put them into your apply queue so you can review and approve them in the Trainee extension. I can't actually send them from here — queued cards wait for you to run the extension — and I can't send emails because your Google isn't connected. I'll search and queue only true software-intern postings.\n\nAssumptions I used: location = anywhere/remote allowed, level = intern, resume/contact info already on file (if not, I'll need them before queuing).\n\nNext step I need from you: do you want only remote-friendly internships, or include on-site (I’ll default to remote-friendly if you don't answer)?\nSaved: none yet because you didn't give profile facts to save. Is the remote-friendly default OK?"
+   ],
+   "note": "Reply meets requirements: acknowledges, states actions and that nothing will be sent without user's approval, and asks the one needed question; could be slightly more comforting for an overwhelmed user."
+  },
+  {
+   "id": "H026",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I can't read that posting from here — I don't have access to the posting details you mentioned. I can still help two useful ways now:\n\n1) If you paste the full posting text or a link, I'll read it and then prepare a tailored resume and a short cover note.  \n2) If you want me to look for similar roles in Chicago (Associate/Sr. Associate Data Engineer, Data Engineer I, Data Platform Engineer), I can search and show live matches.\n\nNext step I suggest: paste the posting link or its full text. One question: do you want only Chicago-based roles, or include remote/nearby (IL) openings too?",
+    "Saved: Track the posting 'Associate Data Engineer at Prairie Analytics, Chicago IL' and alert me if anything about it changes. Is that right?"
+   ],
+   "note": "Reply correctly confirms it will track the posting and asks for confirmation, matching the requirement to confirm tracking and what it needs."
+  },
+  {
+   "id": "H027",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Got it — final-round prep for Lincoln International, revised with no unverified pay numbers. I still assumed you want concise, practice-ready answers and that I don’t yet have your resume or the posting. One question at the end.\n\n1) One-minute \"Tell me about yourself\" (60 sec)\n- Start: one-line current status (role, school or job, months/years).\n- Bridge: two quick bullets of relevant skills (accounting/Excel/modeling, transaction experience or valuation coursework).\n- Hook: one example of impact (deal size, percent improvement, or time saved).\n- Close: why Lincoln International and what you want to do there.\nDraft (fill brackets): \"I’m [current job/title] with [X years/months] of experience in [finance/valuation/related]. I focus on financial modeling, accounting analysis and client-facing diligence — most recently I built an LBO/DCF model that supported a [deal size or decision], which helped the team shorten the valuation cycle and refine the price range. I enjoy the transactional work because it mixes technical build with client problem-solving. I’m excited about Lincoln International because of its [mid-market focus / global coverage / sector strength — pick from the job/website], and I want to build end-to-end deal execution skills as an analyst on your M&A teams.\"\n2) Three behavioral stories — STAR, one-sentence result with a metric\nMake each 40–75 seconds. Use exact numbers or concrete outputs where you can.\n\nA. Team win (collaboration + speed)\nSituation: [tight close timeline on a client deliverable]\nTask: produce accurate financials and model under deadline\nAction: divided tasks, set checkpoints, created a modular model template, reconciled vs. audit schedule\nResult: delivered the model early, reduced rework, and moved the team to the next phase sooner.\nOne-line close: \"We finished the deliverable early and cut rework by a significant amount.\"\nB. Hard problem (technical/valuation)\nSituation: [inconsistent revenue recognition / messy historicals]\nTask: normalize financials and build reliable projections\nAction: traced adjustments through GL, reconciled non-recurring items, rebuilt revenue drivers, ran sensitivity scenarios\nResult: produced clean normalized historicals and a base case that materially affected valuation and negotiation posture.\nOne-line close: \"My normalization shifted the valuation midpoint materially, which shaped negotiation posture.\"\nC. Failure / learning (ownership + improvement)\nSituation: missed a small data error or deadline early in career\nTask: own the miss, fix it, prevent repeat\nAction: notified stakeholders, corrected the model, added an error-check sheet and cross-check process\nResult: restored client trust and the team adopted your checks; downstream corrections declined.\nOne-line close: \"I owned and corrected the error, implemented cross-checks, and we reduced downstream corrections.\"\n3) Technical prep: what to practice now\n- Accounting (short answers, 1–2 min each):\n  1) Walk me through the three financial statements and how they connect.\n  2) If inventory increases, what happens to the statements?\n  3) Explain working capital and why it matters for valuation.\n- Valuation / modeling:\n  1) Steps to build a DCF and why terminal value often dominates.\n  2) Walk me through an LBO model: sources & uses, debt schedule, IRR drivers.\n- Market/deal questions:\n  1) Recent deal you followed — why it mattered, comps, and who the buyers/sellers were.\n  2) How you would value a middle-market [sector they focus on — fill from posting].\nPractice format: answer each aloud, time yourself (60–120s for accounting, 90–180s for valuation), and state a short numeric conclusion when possible.\n\n4) Two smart questions to ask them at the end\n- \"What does success look like for an analyst on this team in the first six months?\"\n- \"Can you describe the typical deal responsibilities analysts own here and how much client contact they get?\"\n\n5) Quick interviewer-read: what they want to hear\n- Technical accuracy + clarity (concise explanations, correct accounting linkages).\n- Speed and humility: clean, honest answers and ownership of gaps.\n- Fit for mid-market M&A: interest in transactions, attention to detail, teamwork under deadlines.\n6) Day-before checklist\n- Confirm time, time zone, meeting link/address, and names/titles of interviewers (ask recruiter if you don’t know).\n- Have one page/PDF with: 3 stories (one-line result bullets), 2 valuation cheats (DCF steps, LBO drivers), and 3 questions to ask.\n- Test webcam, screen share, lighting; close unrelated apps and Slack.\n\n7) Short mock drill I can run with you now (we can do it live in this chat)\n- I’ll first ask: \"Walk me through a DCF.\" You answer in the chat exactly as you’d say it (1–3 paragraphs), I’ll score it and give one concrete fix, then ask the next question (accounting or behavioral).\nNote: I don’t have verified pay or compensation data for this role unless a posting we pull up explicitly states it.\n\nNext step: want to run a timed mock now? If yes, I’ll start with \"Walk me through a DCF.\" Is that okay?"
+   ],
+   "note": "Provides a concrete, structured final-round prep plan (one-minute pitch, three STAR stories, technical topics to practice, questions, checklist, mock drill) and avoids unverifiable firm facts."
+  },
+  {
+   "id": "H028",
+   "pass": false,
+   "failed": [
+    "asks what they mean or says there is no list yet"
+   ],
+   "score": 2,
+   "replies": [
+    "I can check which open jobs you can actually apply to, but I need to run your account situation first. I'll read your current applications and limits now.\n\nRunning that check — one moment."
+   ],
+   "note": "Agent did not ask what the user meant nor state there's no list yet; reply assumed access and proceeded without clarifying or indicating lack of a list."
+  },
+  {
+   "id": "H029",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can do that. Paste the posting link or the exact job title and employer for the posting you mean, and I will walk through every field I will fill in on the application card for that specific posting: each form field, the exact answer I'll put, each file I will attach, and any text I will not include.\n\nOne question: which resume persona should I use if you have more than one saved? If none, I’ll default to your confirmed profile facts only. Is that OK?"
+   ],
+   "note": "Reply correctly asks for the posting and resume persona and indicates nothing has been prepared yet; concise but could reassure about privacy/file handling."
+  },
+  {
+   "id": "H030",
+   "pass": false,
+   "failed": [
+    "says honestly there is no match to book with"
+   ],
+   "score": 3,
+   "replies": [
+    "I can't book calls or place calendar events for you. I can prepare the exact message to send the match and the times to propose, and tell you what to copy into your calendar invite.\n\nDefault I used: Thursday means the next Thursday (2026-10-22). I assumed a 30-minute call and your availability window is 09:00–17:00 local time. If any of that is wrong, say so once.\nDraft message to send to your match (120 words or fewer):\nHi [Name], thanks for connecting — I’d like to schedule a 30‑minute call to discuss [topic]. I’m available Thursday, Oct 22 between 9:00–11:00 AM or 2:00–4:00 PM [your time zone]. Do any of those windows work for you, or suggest another time that’s better. Thanks, [Your name]\n\nWhat to put in the calendar invite once they confirm:\n- Title: Quick call — [Your name] & [Name]\n- Date/time: [agreed slot], duration 30 minutes\n- Location: Zoom (link) or Phone — [your number] / [their number]\n- Agenda (one line): Quick intro and discuss [topic]\n- Add their email as guest and send\nOne next step: Tell me the match’s name and email (or paste the wording you want changed), or say “send as is” and I’ll prepare a second, shorter variant for a LinkedIn message. Is the Thursday I used (Oct 22) and the 9–11 / 2–4 availability OK?"
+   ],
+   "note": "The agent clearly stated they can't book the call and provided helpful message, times, and calendar details, but did not explicitly say there is no match to book with as required."
+  },
+  {
+   "id": "H031",
+   "pass": false,
+   "failed": [
+    "says no research resume is on file and asks them to add it"
+   ],
+   "score": 2,
+   "replies": [
+    "I can't save that standing instruction with the system right now (tool error). I will follow your instruction in this conversation: I'll use your research resume for tailoring and applications unless you tell me otherwise.\n\nSaved in this chat: \"Use my research resume for all tailoring and applications.\" Is that right?"
+   ],
+   "note": "Agent acknowledged following the instruction in this conversation but did not state that no research resume is on file or ask the user to add it, and incorrectly claimed it would follow the instruction despite a tool error."
+  },
+  {
+   "id": "H032",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "No — there are no introductions or applications to the bank on file.\n\nNext step: tell me the bank name and the date (or paste the intro email) and I’ll record it or check what happened. One question: do you want me to look for an intro email if you connect Gmail?"
+   ],
+   "note": "Reply correctly states there is no intro on record and offers clear next steps; could be improved by specifying what information you'd need to link Gmail and confirming privacy/security."
+  },
+  {
+   "id": "H033",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I need one short clarification: do you mean \"1\" as a request to set up one job alert, queue one application, save one standing instruction, or something else? Pick one:\n\n- set 1 job alert (say title and location)\n- queue 1 application (paste the job link or say keywords to search)\n- save 1 standing instruction (type the exact words to keep)\n- add 1 profile fact (paste the fact, e.g. \"Senior product manager, 6 years at X\")\n\nWhich of these do you mean?"
+   ],
+   "note": "Concise, literal clarification asking which of the four actions the user meant — meets the required short-question criterion without claiming any approvals or sends."
+  },
+  {
+   "id": "H034",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: \"I'm a cashier and I want to do something with computers\". Is that right?\n\nI can search for entry-level computer jobs that fit someone coming from cashier work (helpdesk, IT support, junior QA, junior developer apprenticeships, desktop support). Tell me one thing so I search usefully: which city or ZIP should I look in? (If you don't say, I'll search remote + your country.)"
+   ],
+   "note": "The reply correctly rephrases the user's goal, names realistic entry routes (helpdesk, IT support, QA, developer apprenticeships, desktop support) and asks for the next step (which city/ZIP to search), but could be improved by suggesting immediate actions the user can take now."
+  },
+  {
+   "id": "H035",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "No matches found right now for \"nurse days only Columbus.\"\n\nNext step: do you want me to (pick one)\n1) watch for day-shift nurse roles in Columbus and text new matches (set job alerts), or\n2) search wider (nearby cities or remote telehealth day shifts) now?\n\nOne question: which nurse title exactly — RN, LPN/LVN, or CNA?"
+   ],
+   "note": "Reply is concise, acknowledges no current matches for day-shift nursing in Columbus, offers two clear next actions (watch for alerts or widen search), and asks which nurse title — meeting the requirements though could be slightly more helpful by mentioning typical nearby options or timeline for alerts."
+  },
+  {
+   "id": "H036",
+   "pass": false,
+   "failed": [
+    "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+   ],
+   "score": 2,
+   "replies": [
+    "I can start once you give me one thing: the role and city (or \"remote\") you want me to target.\n\nMinimal useful example replies you can send now (pick one):\n- \"Senior data analyst, Chicago\" \n- \"Product manager, remote\" \n- \"Software engineer, San Francisco\" \n- \"Any full‑time marketing roles, remote\"\n\nOne next step: tell me the role and location you want me to search and apply for. Is that right?"
+   ],
+   "note": "Agent only asked for role and city/remote; did not plainly list the other common required items (resume, work authorization, preferred companies/salary, availability)."
+  },
+  {
+   "id": "H037",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I need the invite text to save it and make a prep brief. Paste the interview invite (company email or calendar item) here — include the role, date, time (with time zone), format (phone/video/in-person), and who you'll meet if it says so.\n\nIf you don't have the full invite, confirm one thing now: is the interview next Tuesday (2026-10-27)? Yes or no?",
+    "Fieldnote Software.\n\nNext step: do you want me to save that as an interview on file and prep a brief? Yes or no?"
+   ],
+   "note": "Agent correctly repeated 'Fieldnote Software' and asked a clear yes/no follow-up about saving the interview and prepping a brief."
+  },
+  {
+   "id": "H038",
+   "pass": false,
+   "failed": [
+    "either prepares it for their approval or says plainly why it cannot right now (e.g. the posting is not in its list, or it needs their resume)"
+   ],
+   "score": 3,
+   "replies": [
+    "I couldn't find a live posting for \"Backend Software Engineer\" at Ironstack Payments in the job search results. There are no postings returned for that company or role right now.\n\nNext step I will take for you:\n- I can either (A) watch for that posting and text you when it appears (set a job alert for \"Backend Software Engineer\" at Ironstack Payments or for that title anywhere in payments), or (B) try to prepare an application package now (tailored resume PDF + 120-word email draft) so you're ready to apply the moment you or I find the posting.\nI chose sensible defaults where you didn't specify: alert for the exact title \"Backend Software Engineer\" and related \"Backend Engineer\" in payments, remote allowed. Which do you want: A (set the alert) or B (prepare application now)? One question: do you want remote roles included or only on-site?"
+   ],
+   "note": "Agent correctly reported no posting and offered sensible next steps, but did not either begin preparing the application package or state a concrete reason it cannot prepare one now (e.g., needing the user's resume)."
+  }
+ ],
+ "planned": 38,
+ "stopped": null
+}

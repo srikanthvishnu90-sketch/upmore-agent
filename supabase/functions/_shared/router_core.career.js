@@ -1128,7 +1128,7 @@ const CareerJobs = (() => {
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
 
 const CareerProfile = (() => {
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "eligibility", "profile", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;
@@ -1153,6 +1153,7 @@ const CareerProfile = (() => {
       connections: [],
       _seq: 0,
     };
+    if (typeof s.user_id === "string") p.user_id = s.user_id;
     for (const f of s.facts || []) addFact(p, f, { keepId: true });
     for (const c of s.connections || []) p.connections.push(Object.assign({}, c));
     return p;

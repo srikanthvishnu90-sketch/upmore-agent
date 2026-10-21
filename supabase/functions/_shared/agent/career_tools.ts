@@ -36,19 +36,6 @@ import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
-// WO-061 (H009): the person's own name for an interview step, from their message; the tracker's stages have none.
-const STEP_WORDS: [RegExp, string][] = [
-  [/\bvirtual on-?site\b/i, "virtual onsite"], [/\bon-?site\b/i, "onsite"], [/\bsuper ?day\b/i, "superday"], [/\bfinal[- ]round\b/i, "final round"],
-  [/\bphone screen\b/i, "phone screen"], [/\bhiring manager (?:interview|call|round)\b/i, "hiring manager interview"],
-  [/\btechnical (?:interview|round|screen)\b/i, "technical interview"], [/\bcase (?:interview|round)\b/i, "case interview"],
-  [/\bpanel (?:interview|round)\b/i, "panel interview"], [/\btake-?home\b/i, "take-home"], [/\bsecond[- ]round\b/i, "second round"],
-  [/\bfirst[- ]round\b/i, "first round"],
-];
-export function stepWord(message: unknown): string | null {
-  const m = String(message ?? "");
-  for (const [re, word] of STEP_WORDS) if (re.test(m)) return word;
-  return null;
-}
 // A resume called by a name of its own ("my fintech resume", "the PM version of my resume"), as a saved persona would be;
 // words that only describe their one resume ("my updated resume", "my resume") name nothing.
 const NOT_A_RESUME_NAME = new Set(["new", "current", "latest", "updated", "old", "original", "own", "full", "whole", "last", "same", "this", "that", "one page", "one-page", "1 page", "two page", "2 page", "tailored", "existing", "real", "actual", "master", "complete", "uploaded", "saved", "plain", "best", "final", "other", "right", "correct", "appropriate", "relevant", "most relevant", "matching", "proper", "specific", "good", "better", "strongest", "strong", "short", "long", "generic", "general", "standard", "same old", "entire", "official", "a", "an", "my", "the", "your", "their", "pdf", "word"]);
@@ -283,18 +270,14 @@ export function careerTools(deps: {
     },
     {
       name: "track_application", effect: "write_own",
-      description: "Record an application the person made, or move an existing one to a new stage when they report news (stages: Saved, Submitted, Recruiter screen, OA/assessment, Interview rounds, Final, Offer, Rejected, Withdrawn, Accepted). When the result has stage_in_their_words, confirm the move in those words (\"moved to the onsite\"), not the stage name.",
+      description: "Record an application the person made, or move an existing one to a new stage when they report news (stages: Saved, Submitted, Recruiter screen, OA/assessment, Interview rounds, Final, Offer, Rejected, Withdrawn, Accepted).",
       input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record") }, ["company", "stage"]),
       run: async (i, c) => {
         const s = trackOf(c);
-        // WO-061 (H009): the stages have no word for the step the person named ("onsite", "superday"); their own word,
-        // read from their message (never the model's input), is kept on the row and returned for the reply.
-        const theirs = stepWord(c.turn?.message);
-        const moved = CareerTrack.manualUpdate(s, String(i.company), String(i.stage), { now: c.now, ...(theirs ? { detail: `user reported: ${theirs}` } : {}) });
+        const moved = CareerTrack.manualUpdate(s, String(i.company), String(i.stage), { now: c.now });
         const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
-        if (application && theirs) application.stage_detail = theirs;
-        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage), ...(theirs ? { said: theirs } : {}) });
-        return theirs ? { application, stage_in_their_words: theirs } : { application };
+        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
+        return { application };
       },
     },
     {

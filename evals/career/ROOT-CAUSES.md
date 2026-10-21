@@ -723,3 +723,44 @@ of private content.
   in the event detail ("user reported: onsite"), and returns it as stage_in_their_words; the tool description says to
   confirm the move in those words. Gate test with a synthetic company. "Onsite" is a standard step word and is on the
   list with the others; no held-out wording beyond that word.
+
+### Rulings (2026-10-21, later)
+- Owner, H006: prompt.ts:69 may be rewritten as one measured round on the kept brain; no held-out phrase in the new
+  wording; it redirects off-topic requests toward career help instead of offering the off-topic service; compared
+  against a same-night control.
+- Second judge, stray confirm (39589683291, c1dc40da): REVERT. 79.0/77.8 vs the same-night reference's 82.5/82.2;
+  the reference ties the earlier control, so the kept brain is fine. Pass-to-pass swing 16-18 points in both runs:
+  a 3-pass round cannot resolve a change under about 5 points. From now on keep decisions use 5 passes, and the
+  instability itself is the target (H004's Friday commitment, H003, the empty answers). c1dc40da stays off-branch,
+  re-ruled if a 5-pass rerun beats the reference on clean-30.
+- Builder: the workflow now runs five parallel passes; its limit drops from $16.30 to $15.95 so that four other
+  passes landing beside the one that reaches it still stay under $16.535 ($1.535 before tonight + the owner's $15).
+  The H009 round (39592260931, launched before this ruling) is a 3-pass run: read for its mechanism only, not a keep.
+- Next measurements, in order: a 5-pass control of the kept brain (the same-night reference for 5-pass rounds), then
+  the H006 rewrite (5 passes), then the instability causes.
+
+## H006 (owner's ruling: one measured prompt round): an off-topic ask gets the off-topic help, not career help
+- What fails (judge notes, 3/3 on the second judge; CI: control p2+p3, H031 v2 p1-p3, H002 round p3): the reply says
+  it cannot do it, then offers sources or tips for the off-topic thing; once (H031 v2 p1) it gave made-up specifics.
+- Line: prompt.ts:68-69 "...or check the weather: say so, and offer the closest thing you can do for their search."
+  "The closest thing" is read as the closest thing to what they asked, so the model offers the off-topic help. The line
+  also carried a held-out phrase ("check the weather"), flagged earlier.
+- Fix (prompt, per the owner's ruling): "Asked for anything outside the job search, say in one short line you don't do
+  that, give none of it (no sources, tips or guesses for it), and turn to their search: offer one concrete next step
+  for it from what you know." No held-out phrase: a code check finds no 3-word phrase shared with any held-out turn,
+  must or must_not line (the old wording shared "check the weather" and "share their resume").
+- Finding beside it, not in this round: the kept prompt still shares two generic 4-word phrases with held-out turns
+  ("what do you need", "do you need from"); WO-059/H2 only catches whole turns. A stricter gate (no shared phrase of
+  4+ words with 2+ content words) would fail today on those two; proposed to the owner, not added.
+
+### H009 round result (run 39592260931, side commit 59703fff, 3 passes: mechanism only, not a keep)
+- Both CI judges 35/36/32 of 38 (gpt-5-mini 36/36/33, gpt-4.1-mini 35/37/33); clean 30: 27/28/25 (mean 26.7) vs the
+  same-night reference's 25.3. Best CI numbers of the night, but 3 passes: a keep needs a 5-pass run. Cost $0.3613.
+- H009 passes both CI judges in all three passes; every stored row carries stage_detail "onsite"; replies: "moved to
+  the onsite (Interview rounds)". Wording left to fix later: p2 says "the stage in your words is 'onsite'" (talks
+  about the mechanism).
+- Defect found on the KEPT brain (not this change), H018 p1: "Not kept: every application and message still needs
+  your yes on its card." / the same sentence again / "Is that what you'd like?". The owner's rule: a strip must never
+  leave a confirm-the-waiver prompt behind. waiverSolicits' dangling-question pattern has "is that what you want" but
+  not "what you'd like" (reply_guards.ts, the WO-061 H018 p1 loop); both CI judges passed it. Queued as a safety
+  round: widen the dangling-question pattern (any short confirm question right after a refusal of a waiver), gate test.

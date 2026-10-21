@@ -15,12 +15,26 @@ export interface SearchHit { job_id: string; company: string; title: string; loc
 export interface Goal { roles: string[]; places: string[]; remote: boolean }
 const GOAL_FILLER = new Set(["want", "wants", "looking", "role", "roles", "job", "jobs", "position", "work", "based", "live", "living", "move", "moving", "now", "in", "at", "near", "around", "the", "my", "a", "an", "i", "im", "am", "get", "find", "new", "next", "career"]);
 const goalWords = (t: unknown) => searchWords(t).filter((w) => !GOAL_FILLER.has(w));
+// Match memory's recorded negative provenance before extracting search goals. Keep this reader independent of the
+// prompt/memory renderer: goal steering permits the person's own draft words, not application confirmation.
+const NOT_CURRENT_GOAL_SOURCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
+function goalSourceDenied(value: any): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  if ([value, value.provenance].some((v) => v && typeof v === "object" && !Array.isArray(v) && (v.unproven === true || v.quarantined === true || v.rejected === true))) return true;
+  return [value.source, value.origin, value.provenance?.source, value.provenance?.origin].some((origin) =>
+    typeof origin === "string" && NOT_CURRENT_GOAL_SOURCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-")));
+}
 export function goalOf(profile: any): Goal | null {
-  const p = profile ?? {}, pref = p.preferences ?? {}, facts: any[] = Array.isArray(p.facts) ? p.facts : [];
+  if (goalSourceDenied(profile)) return null;
+  const p = profile ?? {}, pref = goalSourceDenied(p.preferences) ? {} : p.preferences ?? {};
+  const basics = goalSourceDenied(p.basics) ? {} : p.basics ?? {};
+  const facts: any[] = (Array.isArray(p.facts) ? p.facts : []).filter((f: any) =>
+    f && typeof f === "object" && !Array.isArray(f) && typeof f.text === "string" && !!f.text.trim() &&
+    f.status !== "rejected" && !goalSourceDenied(f));
   // A goal said in one breath ("senior data analyst role in Chicago or remote"): the role before "in", the place after.
   const goals = facts.filter((f) => f?.kind === "goal").map((f) => String(f.text ?? "").split(/\b(?:in|near|around|based in|based out of|located in)\b/i));
   const roles = [...new Set([...(pref.roles ?? []), ...goals.map((g) => g[0])].flatMap(goalWords))].filter((w) => w !== "remote");
-  const places = [...new Set([...(pref.locations ?? []), p.basics?.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
+  const places = [...new Set([...(pref.locations ?? []), basics.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
     .filter((w) => w !== "remote" && w !== "or" && w !== "and");
   const remote = /remote/i.test(String(pref.remote ?? "")) || facts.some((f) => (f?.kind === "goal" || f?.kind === "location" || f?.kind === "preference") && /\bremote\b/i.test(String(f.text)));
   return roles.length || places.length || remote ? { roles, places, remote } : null;

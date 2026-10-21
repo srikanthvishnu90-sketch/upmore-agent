@@ -193,6 +193,10 @@ done
 # enqueue, 120000's begin and 010000's finish_own, so it comes after them; applied twice (idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023091400_career_apply_states.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023091400_career_apply_states.sql"
+# WO-101: the connect link's single-use token (its own table and two functions; connect_link_nonces.test.sql runs in the
+# loop below). Applied twice: idempotent.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023110000_connect_link_nonces.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023110000_connect_link_nonces.sql"
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/trainee_agent_api.test.sql" || "$t" == "$HERE/career_apply_states.test.sql" ]]; then continue; fi

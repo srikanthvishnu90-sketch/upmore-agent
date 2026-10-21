@@ -125,6 +125,7 @@ MIGRATIONS=(
   20261023090700_trainee_agent_api.sql
   20261023091400_career_apply_states.sql
   20261023100000_career_events_apply_queued.sql
+  20261023110000_connect_link_nonces.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -169,6 +170,7 @@ MIGRATION_MARK=(
   "to_regclass('public.trainee_agent_grants') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_resolve_own')"
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"
+  "exists (select 1 from pg_proc where proname = 'connect_link_peek')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

@@ -168,5 +168,6 @@ test("SC-286 pin: connect_google returns the typed doorstep payload (landed fix 
   assert.equal(p.requires_user_tap, true);
   assert.equal(p.committed, false, "the connect turn never claims the connection happened");
   assert.ok(Array.isArray(p.scopes) && p.scopes.length === 4, "the four career scopes ride in the payload");
-  assert.ok(p.self_test && p.self_test.test_email && p.self_test.test_event, "the self-test plan rides in the payload");
+  // WO-101: email sending is disabled (SEND_DISABLED), so no self-test that sends a test email is planned any more.
+  assert.equal(p.self_test, undefined, "no self-test that sends rides in the payload");
 });

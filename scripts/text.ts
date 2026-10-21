@@ -25,6 +25,8 @@ import { memoryAlertStore, startWatching, validPrefs, type MemoryAlerts } from "
 import { runAlerts } from "../supabase/functions/_shared/career_proactive_run.ts";
 import { draftFor, memoryOutreachStore, outreachTurn, runOutreachSends } from "../supabase/functions/_shared/career_outreach.ts";
 import { dohMx } from "../supabase/functions/_shared/career_contacts.ts";
+import { disconnectTurn, memoryConnectStore, wantsConnectLink } from "../supabase/functions/_shared/career_connect.ts";
+import { connectLinkUrl } from "../supabase/functions/_shared/agent/integrations.ts";
 
 const args = Deno.args;
 const opt = (name: string, dflt: string | null = null) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : dflt; };
@@ -118,7 +120,27 @@ const agentBrain: Brain = async (a) => {
   if (t.stopped !== "final") console.log(`   · stopped: ${t.stopped}`);
   return { reply: t.reply, stores: { snapshot: host.extractSnapshot(ctx as any) } };
 };
-const brain = brainName === "agent" ? agentBrain : routerBrain;
+// WO-101: connect and disconnect as agent-chat runs them (handler-career.ts): "disconnect gmail" asks and only a yes on the
+// next turn disconnects, before the brain; the router's Gmail connect reply carries a link for this person. Here the link
+// is SIMULATED (a made-up project host and a random token nothing can consume) and connections live in memory: text
+// "/connected gmail" to stand in for allowing access on Google's page.
+const connections = memoryConnectStore();
+const SIM_PROJECT = "https://simulated-project.supabase.co";
+const simToken = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24)))).replace(/\+/g, "-").replace(/\//g, "_");
+function connectFirst(next: Brain): Brain {
+  return async (a) => {
+    const disc = await disconnectTurn({ message: a.message, userId: a.userId, threadId: a.userId, now, store: connections });
+    connections.setLast(a.userId, disc?.intent ?? null, now);
+    if (disc) return { reply: disc.reply, stores: a.stores };
+    if (!wantsConnectLink(CareerAccess, a.message)) return next(a);
+    const ctx = turnCtx(a.userId, a.stores) as any;
+    const link = connectLinkUrl(SIM_PROJECT, simToken());
+    ctx.secureLinkFor = (s: string) => (s === "google_career" ? link : null);
+    const out = host.runTurn(a.message, ctx);
+    return { reply: out.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
+  };
+}
+const brain = brainName === "agent" ? agentBrain : connectFirst(routerBrain);
 
 const log = (line: string) => { console.log(line); if (transcript) Deno.writeTextFileSync(transcript, line + "\n", { append: true }); };
 // WO-100: --world evals/career/worlds/in-flight.json seeds one SYNTHETIC person with tasks in flight and runs each text
@@ -198,6 +220,7 @@ async function line(input: string): Promise<boolean> {
     log(`  (simulator: alerts on for ${as}: ${v.prefs.keywords.join(", ")}${v.prefs.locations.length ? ` in ${v.prefs.locations.join(", ")}` : " anywhere"}, remote ok; ${v.prefs.max_instant_per_day} instant a day, report at ${v.prefs.report_hour}:00)`);
     return true;
   }
+  if (t === "/connected gmail") { const p = await mem.ensureUser(as, now); connections.connect(p.id); log(`  (simulator: Gmail marked connected for ${as}, as if they allowed access on Google's page)`); return true; }
   if (t === "/alerts-off") { const p = await mem.userFor(as); const r = p ? await alerts.get(p.id) : null; if (r) await alerts.save({ ...r, prefs: { ...r.prefs, on: false } }); log(`  (simulator: alerts off for ${as})`); return true; }
   if (t.startsWith("/post ")) {
     const [title, company, location] = t.slice(6).split("|").map((x) => x.trim());

@@ -36,6 +36,20 @@ import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
+// WO-061 (H004): the model's label for a stage, as one of the tracker's stages: the exact name in any case, else by meaning.
+const STAGE_MEANING: [RegExp, string][] = [
+  [/\bwithdr[ae]w/i, "Withdrawn"], [/\baccept/i, "Accepted"], [/\breject|\bdeclined\b|\bturned down\b|\bnot moving forward\b/i, "Rejected"],
+  [/\boffer/i, "Offer"], [/\bfinal\b/i, "Final"], [/\binterview|\bon-?site\b|\bsuper ?day\b|\bpanel\b|\bround\b/i, "Interview rounds"],
+  [/\bscreen|\brecruiter\b|\bphone call\b/i, "Recruiter screen"], [/\bassessment|\boa\b|\btest\b|\btake-?home\b|\bchallenge\b/i, "OA/assessment"],
+  [/\bappl(?:ied|ication)|\bsubmitted\b|\bsent\b/i, "Submitted"], [/\bsaved?\b|\bbookmark/i, "Saved"],
+];
+export function trackerStage(label: unknown): string | null {
+  const l = String(label ?? "").trim(), stages = CareerTrack.STAGES as string[];
+  const exact = stages.find((x) => x.toLowerCase() === l.toLowerCase());
+  if (exact) return exact;
+  for (const [re, stage] of STAGE_MEANING) if (re.test(l) && stages.includes(stage)) return stage;
+  return null;
+}
 // A resume called by a name of its own ("my fintech resume", "the PM version of my resume"), as a saved persona would be;
 // words that only describe their one resume ("my updated resume", "my resume") name nothing.
 const NOT_A_RESUME_NAME = new Set(["new", "current", "latest", "updated", "old", "original", "own", "full", "whole", "last", "same", "this", "that", "one page", "one-page", "1 page", "two page", "2 page", "tailored", "existing", "real", "actual", "master", "complete", "uploaded", "saved", "plain", "best", "final", "other", "right", "correct", "appropriate", "relevant", "most relevant", "matching", "proper", "specific", "good", "better", "strongest", "strong", "short", "long", "generic", "general", "standard", "same old", "entire", "official", "a", "an", "my", "the", "your", "their", "pdf", "word"]);
@@ -274,8 +288,12 @@ export function careerTools(deps: {
       input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record") }, ["company", "stage"]),
       run: async (i, c) => {
         const s = trackOf(c);
-        const moved = CareerTrack.manualUpdate(s, String(i.company), String(i.stage), { now: c.now });
-        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage: String(i.stage) }, { now: c.now });
+        // WO-061 (H004, run 39593068532 p2): addApplication kept any label ("Interview") and every later update refused it
+        // ("unknown stage"); the label is one of the tracker's stages before either call.
+        const stage = trackerStage(i.stage);
+        if (!stage) throw new Error(`not recorded: "${String(i.stage ?? "")}" is not a stage; use one of: ${(CareerTrack.STAGES as string[]).join(", ")}`);
+        const moved = CareerTrack.manualUpdate(s, String(i.company), stage, { now: c.now });
+        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage }, { now: c.now });
         await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
         return { application };
       },

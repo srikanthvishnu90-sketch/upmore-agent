@@ -132,6 +132,23 @@ export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
 // `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
 // queue_applications says applying from chat is not connected here. `limits` is the person's daily application limit.
+// Role and place preferences are a cache of what the person said: a goal "Data analyst role in Austin" put Data analyst in
+// roles and Austin in places, and memory and search read the cache. A correction of a goal, place or preference that drops a
+// role or place drops it from the cache too, unless another fact still says it ("Also open to Product manager roles in
+// Boston" keeps both); remote, pay floor and companies are not derived from these words and stay.
+const PREF_KINDS = new Set(["goal", "location", "preference"]);
+function dropSuperseded(profile: any, id: string, was: string, text: string) {
+  const said = (s: unknown) => ` ${String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const says = (s: unknown, entry: string) => said(entry).trim() !== "" && said(s).includes(said(entry));
+  const others = (profile.facts || []).filter((f: any) => f.id !== id).map((f: any) => f.text);
+  const p = profile.preferences;
+  if (!p) return;
+  for (const key of ["roles", "locations"]) {
+    if (!Array.isArray(p[key])) continue;
+    p[key] = p[key].filter((e: string) => !(says(was, e) && !says(text, e) && !others.some((o: unknown) => says(o, e))));
+  }
+}
+
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
@@ -260,6 +277,7 @@ export function careerTools(deps: {
         const refused = factRefusal(text, c.turn?.message === undefined ? undefined : `${c.turn.message} ${was}`);
         if (refused) throw new Error(refused);
         const fact = CareerProfile.updateFact(profileOf(c), id, { text, needs_confirmation: true, status: "draft", corrected_from: was });
+        if (PREF_KINDS.has(old.kind)) dropSuperseded(profileOf(c), id, was, text);
         c.turn?.added.push(id);
         await record(c, "fact_corrected", text, { id, was: was.slice(0, 200) });
         return { fact, was };

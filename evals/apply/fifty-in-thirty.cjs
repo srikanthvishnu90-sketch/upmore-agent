@@ -180,6 +180,11 @@ async function answerOnce(b, panel) {
 // for a person forever: that is a stall. skip: press the panel's Skip and go on (discovery); otherwise stop and report.
 async function runQueue(b, panel, isOurs, skip) {
   const skipped = [];
+  // Start answers before the queue is stored as running in some builds: wait for it to start first.
+  await waitFor(async () => {
+    const q = await b.store("session", "queue");
+    return q && (q.running || q.items.some((i) => i.state !== "waiting"));
+  }, 30000, "the queue to start");
   for (;;) {
     const end = await waitFor(async () => {
       const q = await b.store("session", "queue");

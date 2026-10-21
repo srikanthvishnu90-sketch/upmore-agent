@@ -1,6 +1,31 @@
 --- a/extension/background.js
 +++ b/extension/background.js
-@@ -277,36 +277,71 @@
+@@ -268,45 +268,95 @@
+ }
+ const NO_DRAFT = "Trainee couldn't draft this right now, so nothing changed and the question is still open. Try again in a few minutes.";
+ 
++// 50-in-30: the proof list is read and written whole after every application. With both pictures inline it grows by
++// about 0.1-1 MB per application (measured on the TEST world: +8.5 ms per earlier proof), so only the newest INLINE_SHOTS
++// proofs keep their pictures inline; older ones keep them under "shot:<id>" (read back by "proof").
++const INLINE_SHOTS = 10;
+ async function keepEvidence(rec) {
+   const list = await get(L, "evidence", []);
+   list.unshift(rec);
+-  await put(L, "evidence", list.slice(0, 300));
++  const kept = list.slice(0, 300), moved = {};
++  for (const e of kept.slice(INLINE_SHOTS)) {
++    if (!e.screenshot && !e.screenshot_after) continue;
++    moved["shot:" + e.id] = { screenshot: e.screenshot || null, screenshot_after: e.screenshot_after || null };
++    delete e.screenshot;
++    delete e.screenshot_after;
++    e.shots = true;
++  }
++  if (Object.keys(moved).length) await L.set(moved);
++  await put(L, "evidence", kept);
++  const gone = list.slice(300).filter((e) => e.shots).map((e) => "shot:" + e.id);
++  if (gone.length) await L.remove(gone);
+ }
+ 
  async function queueState() {
    return await get(S, "queue", { items: [], index: -1, tabId: null, running: false });
  }
@@ -91,7 +116,7 @@
  }
  
  // ------------------------------------------------------------------------------------------------ the submit
-@@ -394,13 +429,24 @@
+@@ -394,13 +444,24 @@
    await chrome.scripting.executeScript({ target: { tabId }, func: () => globalThis.__traineeUnmask?.() }).catch(() => {});
    return { observation: res?.result || null, shotAfter };
  }
@@ -123,7 +148,7 @@
  }
  
  // A submit that moved the page away: the new page is read once it loads (the content script there may not run, e.g. a
-@@ -518,7 +564,21 @@
+@@ -518,7 +579,21 @@
  // (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, four at a time: each is a whole employer page held in a
  // hidden tab, and an answer given now should be about postings this session reaches. Workday postings are left out: the
  // person signs in on the employer's site first (D-013), so their questions are asked on their own cards.
@@ -146,7 +171,7 @@
  const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
  let preparing = false;
  // A hidden tab sent to its posting while its own blank page was still loading was left "unloaded" by Chrome for Testing
-@@ -570,11 +630,18 @@
+@@ -570,11 +645,18 @@
    await put(S, "answer_once", base);
    const results = new Array(pick.length);
    let next = 0, read = 0;
@@ -167,7 +192,7 @@
      }
    };
    await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
-@@ -647,7 +714,7 @@
+@@ -647,7 +729,7 @@
  async function agentConsider(tabId, card) {
    if (!(await config()).agentSubmits || !card.batch) return;
    const q = await queueState();
@@ -176,7 +201,7 @@
    const a = (await agentApproved())[card.jobId];
    if (!a) return;
    const r = C.batchMatch({ approved: a.posting, now: card.batch, card: card.payload?.fields || [], openRequired: card.openRequired || [], blockers: card.blockers || [] });
-@@ -683,7 +750,7 @@
+@@ -683,7 +765,7 @@
    await setCard(tabId, { status: "needs_you", message, approved: false, beforeClick: true });
    await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, proof: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
    const q = await queueState();
@@ -185,7 +210,7 @@
  }
  
  // ------------------------------------------------------------------------------------------------ messages
-@@ -695,7 +762,7 @@
+@@ -695,7 +777,7 @@
        const a = await session();
        const q = await queueState();
        const p = (await pendings())[tabId] || null;
@@ -194,7 +219,7 @@
        let account = null;
        try {
          account = await rpc("career_apply_account_own", {});
-@@ -704,7 +771,7 @@
+@@ -704,7 +786,7 @@
        }
        const f = await facts(a.user_id);
        const resume = await get(L, "resume", null);
@@ -203,7 +228,7 @@
          agentSubmits: !!(await config()).agentSubmits };
      }
      case "queued": {
-@@ -714,7 +781,7 @@
+@@ -714,7 +796,7 @@
        // fill itself, once, within ten minutes.
        const next = (await get(S, "workday_next", {}))[tabId];
        if (next) await setWorkdayNext(tabId, false);
@@ -212,7 +237,7 @@
      }
      case "card": {
        // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
-@@ -749,8 +816,12 @@
+@@ -749,8 +831,12 @@
        const done = surveys.get(tabId);
        if (!done) return { ok: false };
        surveys.delete(tabId);
@@ -226,7 +251,23 @@
        return { ok: true };
      }
      case "questions": {
-@@ -1029,27 +1100,45 @@
+@@ -890,11 +976,13 @@
+     }
+     case "proof": {
+       const list = await get(L, "evidence", []);
+-      return { ok: true, proof: list.find((e) => e.id === m.id) || null };
++      const e = list.find((x) => x.id === m.id) || null;
++      if (e?.shots) Object.assign(e, (await L.get("shot:" + e.id))["shot:" + e.id] || {});
++      return { ok: true, proof: e };
+     }
+     case "clear-proof":
+       if (m.confirm !== "clear") return { ok: false, message: "Not cleared." };
+-      await L.remove(["evidence", "timing"]);
++      await L.remove(["evidence", "timing", ...Object.keys(await L.get(null)).filter((k) => k.startsWith("shot:"))]);
+       return { ok: true };
+     // ---- from the panel (the person)
+     case "status": {
+@@ -1029,27 +1117,46 @@
        }
      }
      case "queue-start": {
@@ -244,6 +285,7 @@
 +        if (!waiting) return { ok: false, message: "Add some posting links first." };
 +        q.running = true;
 +        q.tabId = m.tabId ?? q.tabId ?? null;
++        await put(S, "queue", q);
 +        // The person's own tab is the first lane; the others are windows of their own (kept from the last start if open).
 +        const lanes = [];
 +        if (q.tabId !== null) lanes.push(q.tabId);
@@ -289,7 +331,7 @@
      }
      case "queue-clear":
        await put(S, "queue", { items: [], index: -1, tabId: null, running: false });
-@@ -1087,13 +1176,16 @@
+@@ -1087,13 +1194,16 @@
      case "batch-stop": {
        // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
        // send in progress stops at its next check before the click.

@@ -1,6 +1,7 @@
 // A narrow projection into the existing WO-102 confirmed-facts file. Reading a profile is never a confirmation:
 // the owner, positive provenance and confirmation event must already exist and pass trustedManifest unchanged.
 import { FACT_SCHEMA } from './fact_schema.ts';
+import { quarantinedFact } from './fact_quarantine.ts';
 
 type Key = 'country' | 'work_authorization' | 'phone';
 interface FieldRow {
@@ -58,6 +59,9 @@ export function typedProfileFile(o: { owner: string; profile: any }): { file: Ty
   for (const f of Array.isArray(profile?.facts) ? profile.facts : []) {
     const id = typeof f?.id === 'string' ? f.id : '';
     if (!object(f) || profile.user_id !== o.owner || (f.user_id !== undefined && f.user_id !== o.owner) || denied(profile) || denied(f) ||
+      // D-007: a bank row (its factId) or delegated provenance never projects; the projection names the row by its own id,
+      // so a bank factId it carried would otherwise be dropped before the manifest's own check reads it.
+      quarantinedFact(f) ||
       f.status !== 'confirmed' || f.needs_confirmation !== false) {
       needs.push({ factId: id, reason: 'An owned confirmed source is required before this can answer an application field.' }); continue;
     }

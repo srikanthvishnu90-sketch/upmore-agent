@@ -425,6 +425,7 @@ async function main() {
       prepare_reads_ms: surveys.map((n) => (n.closed ? n.closed - n.at : null)),
       // The send.
       opened_at: item?.opened_at ?? null,
+      lane: item?.lane ?? null,
       open_to_nav_ms: sends.length && item?.opened_at ? sends[0].at - item.opened_at : null,
       load_ms: d(timing?.nav, timing?.dcl),
       script_to_prepare_ms: d(timing?.script, timing?.prepare),
@@ -446,10 +447,15 @@ async function main() {
     return row;
   });
   // The time between one posting's outcome and the next opening in the same tab (the queue's own gap).
-  const ordered = rows.filter((r) => r.opened_at).sort((a, b2) => a.opened_at - b2.opened_at);
-  for (let j = 1; j < ordered.length; j++) {
-    const prev = ordered[j - 1], fin = t(snaps.get(keyOf(prev.url))?.done?.times?.finished_at);
-    if (fin) ordered[j].gap_after_previous_ms = ordered[j].opened_at - fin;
+  // Per sending tab (a patched build runs several lanes; the item records its lane).
+  const lanes = new Map();
+  for (const r of rows.filter((x) => x.opened_at)) lanes.set(r.lane ?? "one", [...(lanes.get(r.lane ?? "one") || []), r]);
+  for (const ordered of lanes.values()) {
+    ordered.sort((a, b2) => a.opened_at - b2.opened_at);
+    for (let j = 1; j < ordered.length; j++) {
+      const prev = ordered[j - 1], fin = t(snaps.get(keyOf(prev.url))?.done?.times?.finished_at) || t(snaps.get(keyOf(prev.url))?.last?.updated_at);
+      if (fin) ordered[j].gap_after_previous_ms = ordered[j].opened_at - fin;
+    }
   }
   await b.close();
   await world.close();
@@ -472,6 +478,7 @@ async function main() {
     batch_ready_captures: found.ready, not_ready_captures: found.out,
     rounds: rounds.map(({ batch, ...r }) => r),
     stalled,
+    send_tabs: lanes.size,
     prepared: readyN, sent: sent.length, confirmed: confirmed.length,
     double_sends: rows.filter((r) => r.employer_received > 1).map((r) => r.i),
     wall_ms, prepare_ms, answer_ms, approve_ms, send_ms,

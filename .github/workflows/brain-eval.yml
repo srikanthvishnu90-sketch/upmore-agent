@@ -31,10 +31,12 @@ jobs:
       # Owner, 2026-10-21: "gpt-4.1-mini judges every run from now on ... A judge that runs only sometimes makes runs
       # incomparable." In CI an item passes only when both pass it; Instinct scores every run beside them.
       EVAL_JUDGE_MODEL_2: gpt-4.1-mini
-      # Owner, 2026-10-21 overnight: "hard cap $5 total tonight". The cap counts every recorded result file: $1.915 before
-      # tonight's first fix run, + $5 = $6.915; set lower ($6.50) because three passes run in parallel and each sees only the
-      # spend recorded before it started.
-      EVAL_BUDGET_USD: "6.50"
+      # OWNER'S RULING (2026-10-21, later): "Eval spend ceiling is now $15 total tonight ($4.57 used so far)."
+      # BUILDER'S ARITHMETIC (not an owner figure): this limit sums every recorded result file since the eval began,
+      # so it is set to (recorded spend before tonight, $1.535) + $15 = $16.535, and written a little lower ($16.30)
+      # because three passes run in parallel and each sees only the spend recorded before it started. Tonight's
+      # $4.569 is inside it. Ledger: evals/career/ROOT-CAUSES.md, "EVAL SPEND LEDGER".
+      EVAL_BUDGET_USD: "16.30"
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }

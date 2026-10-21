@@ -488,3 +488,49 @@ of private content.
     answer; it is never the whole reply, never asked about something they already told you, and never "Is that
     right?" with nothing played back.
   Prompt only, generic wording (WO-003/2). Verification: the measured re-run, three judges.
+
+### Shared-root-cause round result (run 39560112467, side commit 1fcbaccf on the baseline; for the second judge)
+- Targets: H002, H003, H004, H005 and H037 pass BOTH CI judges in ALL THREE passes (15/15); code scan finds no bare
+  "Is that right?" reply and no "not on file" among them.
+- Both CI judges 33/30/33 of 38; clean 30: 27/22/26 (mean 25.0) vs the baseline's 26.7. gpt-4.1-mini 38/36/36 (its
+  best of the night); gpt-5-mini 33/30/33, failing a spread of items the fix did not touch (H009, H010, H011, H033,
+  H036, mostly one judge). H027 p3 is a content miss (asked "mock or brief?" instead of giving a prep plan), not the
+  empty reply. Safety scans clean in every pass. Decision: the second judge's three-way score.
+
+## EVAL SPEND LEDGER AND THE $6.50 DISCREPANCY (owner, 2026-10-21: "record where the $6.50 figure came from")
+- The owner's rule: $5 total for tonight's eval spend, hard. There was never a $6.50 figure from the owner.
+- Recorded spend (sum of cost_usd in every result file on ci/brain-eval, at the stop): $6.104 all-time =
+  $1.535 before tonight's first fix run (runs before 39542849277) + $4.569 tonight (15 measured runs from
+  39542849277 to 39560112467, $4.561, plus $0.008 of judge-only re-scoring filed under run 39541224991). Tonight's
+  spend is under the $5 cap. The $6.104 is the all-time total the workflow's counter sums, not tonight's.
+- Where $6.50 came from: the builder, not the owner. To enforce the $5 cap in code, the builder set the workflow's
+  EVAL_BUDGET_USD (which sums every recorded result file since the eval began) to "spend before tonight + $5". It
+  took "spend before tonight" as $1.915, but that figure already included tonight's first two runs ($0.379); the
+  correct base is $1.535, so the matching limit was $6.535. The builder wrote $6.50 (below both) to leave room for
+  three parallel passes. Effect: the code never allowed tonight above $4.965. Fault: the commit and the workflow
+  comment presented $6.50 next to the owner's words, so it read like a budget figure; it was a derived backstop, and
+  its base number was wrong. Both are corrected here.
+- At the owner's stop order the limit is set to $6.00, below the recorded total, so any run stops before its first
+  item. No further eval spend tonight: H031 and every other measured round are not launched.
+
+### Shared-root-cause round (run 39560112467): REVERTED (second judge's ruling)
+- Three-way full-38 79.8 (31/29/31); clean-30 80.0 per the second judge vs the baseline 85.1 / 85.6. The builder's
+  recount from the recorded verdict files gives clean-30 26/22/25 = 81.1; the one-item difference is unexplained and
+  recorded, not changed. Its uncommitted changes are reverted; the branch brain equals 40eb3d03.
+- Second judge's drag breakdown: model-only fails on H010/H011 (all three passes), H026, H033, H036, H009, H027;
+  second-judge-only fails on H025 and H031. Lesson: the targets moved (15/15 on both CI judges) but the precedence
+  wording shifted unrelated items under gpt-5-mini; next time this cause is attacked, measure the precedence clause
+  alone, without v2's scope change, to separate their effects.
+- Correction (second judge): H004 v2 (run 39558487629) p3 rescored 31/38 combined; that round ties the baseline on
+  clean-30 (85.6) and is -0.9 on full-38. Still not kept. The per-item flip was not posted; its verdict file keeps
+  the original list.
+
+## Resumed (owner's rulings, 2026-10-21 later)
+- Bar: 95% on both judges for everything, all features; nothing ships below it; no deploy without 95% on both judges
+  and green CI, and the owner is told before any deploy. No merges of #129/#137/#140.
+- Eval ceiling: $15 total tonight ($4.569 used at the resume). The workflow limit (which sums all recorded spend since
+  the eval began) is the builder's arithmetic: $1.535 before tonight + $15 = $16.535, written as $16.30 for the
+  parallel passes. Not an owner figure.
+- Judge rounds on whether the live product does the task better (real-world, task-oriented), not on rubric wording.
+- Order: H031, H027, H002, H025 (+ gate test and tighter H025/H031 scoring), H001, H011, the fabricated-specifics
+  guard, H003. Note first, one fix per round, measured re-run, three-way ratchet.

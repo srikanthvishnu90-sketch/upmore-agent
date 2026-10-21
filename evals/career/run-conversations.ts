@@ -5,7 +5,7 @@
 // conversation is graded as a whole, with the end state where the item names one. A conversation passes only if every
 // graded turn and the whole pass; a judge error is a failure, never a pass.
 //
-//   deno run -A evals/career/run-conversations.ts --brain router|agent --label <label> [--only C01,C05]
+//   deno run -A evals/career/run-conversations.ts --brain router|agent --label <label> [--only C01,C05] [--set in-flight|in-flight-heldout]
 //
 // Needs OPENAI_API_KEY (the judge, and the agent brain). Without it: NOT RUN, exit 2. A score is never faked.
 // Results: evals/career/results/<label>.conversations.json, the pass rate and the failing ids on stdout.
@@ -123,17 +123,42 @@ export async function traineeBrain(o: { kind: "agent" | "router"; postings: any[
   };
 }
 
+// WO-100: the in-flight set (in-flight.json) runs each conversation against its seeded person through agent-chat's
+// dispatch (world.ts), each turn in the thread it names (a new thread starts empty).
+export async function worldBrain(o: { kind: "agent" | "router"; world: any; postings: any[]; items: ConvItem[]; model?: (p: any) => Promise<any> }): Promise<ConvBrain> {
+  const { openWorld, worldTurn } = await import("./world.ts");
+  return async (users) => {
+    const it = o.items.find((i) => JSON.stringify(i.turns.map((t) => t.user)) === JSON.stringify(users));
+    const w = await openWorld(o.world, { postings: o.postings });
+    let now = w.now;
+    const replies: string[] = [];
+    for (const [i, message] of users.entries()) {
+      const r = await worldTurn(w, { brain: o.kind, threadId: (it?.turns[i] as { thread?: string } | undefined)?.thread ?? "A", message, now, model: o.model });
+      if (o.kind === "agent" && r.handler === "agent" && !r.seen?.system) throw new Error("agent model unavailable");
+      replies.push(r.reply);
+      now += 90000;
+    }
+    return { replies, state: null };
+  };
+}
+
 // ---------------------------------------------------------------------------------------------------- CLI
 if (import.meta.main) {
   const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
   const brainName = opt("--brain") || "router", label = opt("--label") || `${brainName}-${new Date().toISOString().slice(0, 10)}`;
   if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
   const { callModel, modelConfig, newMeter } = await import("../../supabase/functions/_shared/model_gateway.ts");
-  const set = JSON.parse(await Deno.readTextFile(new URL("./conversations.json", import.meta.url)));
+  // --set in-flight | in-flight-heldout (WO-100): the seeded world's items, or their held-out paraphrases.
+  const setName = opt("--set") ?? "", inFlight = setName.startsWith("in-flight");
+  const base = JSON.parse(await Deno.readTextFile(new URL("./conversations.json", import.meta.url)));
+  const flight = inFlight ? JSON.parse(await Deno.readTextFile(new URL("./in-flight.json", import.meta.url))) : null;
+  const world = flight ? JSON.parse(await Deno.readTextFile(new URL(flight.world, new URL("./in-flight.json", import.meta.url)))) : null;
+  const set = flight ? { postings: [...base.postings, ...world.postings], items: setName === "in-flight-heldout" ? flight.heldout : flight.items } : base;
   const meter = newMeter(), judgeMeter = newMeter();
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
-  const brain = await traineeBrain({ kind: brainName === "agent" ? "agent" : "router", postings: set.postings, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
+  const kind = brainName === "agent" ? "agent" : "router", model = (p: any) => callModel(brainCfg, p, { meter, role: "chat" });
+  const brain = flight ? await worldBrain({ kind, world, postings: base.postings, items: set.items, model }) : await traineeBrain({ kind, postings: set.postings, model });
   const judge: ConvJudge = async (prompt) => {
     const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: prompt }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
     return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));

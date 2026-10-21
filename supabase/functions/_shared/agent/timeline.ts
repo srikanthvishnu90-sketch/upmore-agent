@@ -15,6 +15,8 @@ export const EVENT_KINDS = [
   "mock_done", "status_change", "note",
   // WO-033: an outreach draft approved, answered, or bounced (20261021010000_career_outreach.sql widens the table's check).
   "outreach_approved", "outreach_replied", "outreach_bounced",
+  // WO-100: queue_applications put postings in the person's apply queue (20261023100000_career_events_apply_queued.sql).
+  "apply_queued",
 ] as const;
 export type EventKind = typeof EVENT_KINDS[number];
 export const SUBJECT_MAX = 200, DETAIL_MAX = 4096, RECALL_MAX = 50, SUMMARY_MAX = 1600;

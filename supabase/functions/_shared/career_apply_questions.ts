@@ -19,6 +19,7 @@ import { matchOption } from "./career_apply.ts";
 import { factType, mapQuestion, NEVER_BY_TEXT } from "./question_map.ts";
 import { readAiPolicy } from "./ai_policy.ts";
 import { type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
+import { needsText, type Situation } from "./career_situation.ts";
 
 export interface OpenQuestion {
   id: string;
@@ -201,20 +202,25 @@ const said = (q: OpenQuestion, value: string) => {
 
 // One turn, before any brain. Null when the text is neither a request for the questions nor an answer to the ones just
 // shown, so the turn goes on as before.
+// WO-100: with the person's situation, the questions keep their numbers and everything else only the person can do (a
+// code, a card, a draft, a failure to decide) follows; "Nothing is waiting on you" only when the situation shows nothing.
 export async function questionsTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: QuestionStore; draft?: DraftDeps },
+  o: { message: string; userId: string; threadId: string; now: number; store: QuestionStore; draft?: DraftDeps; situation?: Situation | null },
 ): Promise<{ reply: string; status: string } | null> {
   if (isAsk(o.message)) {
     const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
     const t = questionsText(open, Math.max(total, open.length));
+    const rest = o.situation ? needsText(o.situation, { questionsShown: !!t }) : null;
     if (!t) {
+      if (rest) return { reply: rest, status: "none" };
       return {
-        reply: "Nothing is waiting on you. When an application stops on a question only you can answer, I'll ask it here once.",
+        reply: o.situation === null ? "No questions are open. The rest of your applications could not be read just now, so I can't say whether anything else waits on you."
+          : "Nothing is waiting on you. When an application stops on a question only you can answer, I'll ask it here once.",
         status: "none",
       };
     }
     await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at: new Date(o.now).toISOString() });
-    return { reply: t.text, status: "shown" };
+    return { reply: rest ? `${t.text}\n\n${rest}` : t.text, status: "shown" };
   }
   // An answer counts only while the questions were this thread's last word, and only for a day. This runs on every turn,
   // so the one key read comes first and the thread's last reply is read only while questions are showing here; a read

@@ -9,6 +9,7 @@
 // oldest pipeline lines go first, and the block says how many it left out.
 import type { AlertPrefs } from "../career_alerts.ts";
 import { dailyLimit } from "../career_apply.ts";
+import { type Situation, situationBlock } from "../career_situation.ts";
 
 export interface Standing { id: string; text: string; said: string; at: string }
 export interface MemoryStore {
@@ -136,25 +137,7 @@ export function summarizePipeline(r: PipelineRows, now: number): Pipeline {
     needs, recent,
   };
 }
-export async function readPipeline(admin: any, userId: string, now: number): Promise<Pipeline> {
-  const must = (r: any, what: string) => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data; };
-  const since = new Date(now - 3 * 86400000).toISOString();
-  const [prepared, cards, jobs, account, questions] = await Promise.all([
-    admin.from("career_apply_prepared").select("state").eq("user_id", userId).in("state", ["ready", "shown"]).limit(500),
-    admin.from("career_apply_cards").select("shown_at,items").eq("user_id", userId).eq("state", "open").order("shown_at", { ascending: false }).limit(1),
-    admin.from("career_apply_jobs").select("company,url,state,reason,created_at,updated_at").eq("user_id", userId).or(`updated_at.gte.${since},state.in.(queued,driving,needs_user)`).limit(500),
-    admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:account").maybeSingle(),
-    admin.from("career_apply_questions").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("state", "open"),
-  ]);
-  if (questions.error) console.error("agent memory: open questions", questions.error.message);
-  return summarizePipeline({
-    prepared: must(prepared, "read prepared applications") ?? [],
-    openCard: (must(cards, "read the open card") ?? [])[0] ?? null,
-    jobs: must(jobs, "read the application queue") ?? [],
-    dailyLimit: must(account, "read the account")?.value?.daily_limit,
-    openQuestions: questions.error ? null : questions.count ?? 0,
-  }, now);
-}
+// WO-100: readPipeline (3 tables, 3 days, counts with no names) is replaced by career_situation.ts readSituation.
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 export function alertLine(a: { prefs: AlertPrefs; tz: string } | null): string {
@@ -179,7 +162,9 @@ const STATE: Record<string, string> = {
 };
 
 export const BLOCK_BUDGET = 4500;
-export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; budget?: number }): string {
+// WO-100: with the situation, its block (every task by name, its blocker, who acts and how; the next steps; what Trainee
+// can do) replaces the pipeline counts and is kept whole, outside this budget (it has its own).
+export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null; budget?: number }): string {
   const facts = Array.isArray(o.profile?.facts) ? o.profile.facts : [];
   const confirmed = facts.filter((f: any) => !f.needs_confirmation && f.status !== "draft");
   const drafts = facts.filter((f: any) => f.needs_confirmation || f.status === "draft");
@@ -190,13 +175,14 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
     ...(o.standing.length ? o.standing.map((s) => `- ${s.id}: ${s.text} (they said: "${s.said}", ${s.at.slice(0, 10)})`) : ["- none yet"]),
   ];
   const p = o.pipeline;
-  const pipeline = p
+  const pipeline = o.situation ? [] : p
     ? [
       `Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`,
       ...(p.questions === null ? ["Questions only they can answer: could not be read this turn; never guess."]
         : p.questions ? [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] : []),
       ...(p.needs.length ? ["Stopped until they help:", ...p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`)] : []),
-      ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`),
+      // WO-100: finished ones under their own heading (they printed under "Stopped until they help:").
+      ...(p.recent.length ? ["Finished or failed:", ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`)] : []),
     ]
     : ["Applications: could not be read this turn; say so if they ask, never guess."];
   const optional = [
@@ -210,6 +196,7 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const budget = o.budget ?? BLOCK_BUDGET;
   const out = [...head, ""];
   let used = out.join("\n").length, dropped = 0;
+  if (o.situation) out.push(situationBlock(o.situation), "");
   for (const line of optional) {
     if (used + line.length + 1 > budget) { dropped++; continue; }
     out.push(line);

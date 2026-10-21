@@ -149,6 +149,7 @@ Deno.test("WO-023/B the handler reads what is known before the agent turn and fa
   const at = HANDLER.indexOf("const turn = await agentTurn(");
   const mem = HANDLER.indexOf("const standing = await memory.standing(user.id);");
   assert(mem > 0 && mem < at, "standing instructions are read before the turn, with no catch (a failure fails the turn)");
-  assert(/readPipeline\(admin, user\.id, now\)\.catch/.test(HANDLER) && /alertStore\.get\(user\.id\)\.catch/.test(HANDLER), "alerts and pipeline say 'could not be read' instead");
-  assert(/known: \{ standing, alerts: alertRow \? \{ prefs: alertRow\.prefs, tz: alertRow\.tz \} : null, pipeline \}, memory \}/.test(HANDLER));
+  // WO-100 superseded the pipeline read: the situation is read once at the top of the turn and names what it could not read.
+  assert(/readSituation\(admin, user\.id, Date\.now\(\)\)\.catch/.test(HANDLER) && /alertStore\.get\(user\.id\)\.catch/.test(HANDLER), "alerts and the situation say 'could not be read' instead");
+  assert(/known: \{ standing, alerts: alertRow \? \{ prefs: alertRow\.prefs, tz: alertRow\.tz \} : null, pipeline: null, situation \}, memory \}/.test(HANDLER));
 });

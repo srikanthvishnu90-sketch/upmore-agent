@@ -98,6 +98,13 @@
     if (n && form.bindings[n]?.widget) personEdit(n);
   }, true);
 
+  // An Ashby yes/no press: a click on the page's own button; its hidden box gets no input or change (a No leaves it
+  // unchecked), so the person's press is caught here and the card is read again.
+  document.addEventListener("click", (e) => {
+    if (!e.isTrusted || !form || !D.yesNoPress(e.target)) return;
+    const n = D.fieldNameFor(e.target, form);
+    if (n) setTimeout(() => personEdit(n), 0);
+  }, true);
   const scheduleRefresh = () => {
     if (!reviewed && !plan) return;
     clearTimeout(refreshTimer);

@@ -776,3 +776,48 @@ of private content.
   action in it) is flagged by waiverSolicits, so the loop's existing review and strip handle it. Gate tests on the
   guard and the loop. Not this round: the duplicated refusal (code prepends STANDING_REFUSED because its check does
   not count "your explicit yes" as a refusal: loop.ts, the "WO-061 (H018 p1)" line).
+
+## H004 instability (second judge's target): a harness parity gap first, then a missing place for the day
+- Traces (12 passes over four traced runs; H004 fails 4): turn 1 records the employer with track_application; turn 2
+  (the person corrects the day) has no tool that can keep a day: track_application has no date, brief_from_invite
+  needs pasted invite text, add_profile_fact refuses words from an earlier message; turn 3 ("when is it?") calls
+  get_situation, which shows nothing for the employer, and the reply says it is "not on file" instead of the day.
+- Harness parity gap (evals/career/run.ts): production's readSituation reads every thread's tracker rows
+  (career_situation.ts: agent_flow_state -> state.career.trackStore.rows); the harness passes threads: [], so a row
+  recorded earlier in the same chat is never in the situation. In production, turn 3 would see the row. Prepared as a
+  harness-only commit 2a914d15, off-branch: it changes the instrument, so it waits for the owner's
+  ruling and, if applied, a new control.
+- Brain cause behind it (after the parity fix): no place to keep the day of a next step. Candidate code fix:
+  track_application takes the day/time of the next step as the person said it, checked against their message words
+  (D-007), kept on the row and shown by the situation. One round, after the parity ruling.
+
+## H004 cause found in the 5-pass control (run 39593068532 p2): an invalid stage saved, then every update refused
+- Trace: turn 1 track_application(stage "Interview") succeeds; turn 2 track_application refuses three times ("unknown
+  stage: Interview", "unknown stage: Interview scheduled for Friday", "unknown stage: Interview"), the turn ends with
+  no text and the person gets the error text "Something went wrong on my side". The same refusal is in H004's failing
+  passes in 39588330975 p1 and 39590964501 p2: a direct source of H004's instability and of an empty answer.
+- Line: career_tools.ts track_application passes the model's label straight through. CareerTrack.addApplication
+  (router_core.career.js:4561) keeps any string, so a new row can carry a stage that is not one of STAGES; manualUpdate
+  -> moveStage (router_core.career.js:4585) throws "unknown stage" for the same label. The tool and the tracker
+  disagree on what a stage is.
+- Fix (code, one cause): track_application maps the model's label to one of CareerTrack.STAGES before either call
+  (exact name first, any case; then by meaning: interview/onsite/panel -> "Interview rounds", screen -> "Recruiter
+  screen", assessment/test -> "OA/assessment", final -> "Final", offer, rejected, withdrawn, accepted, applied ->
+  "Submitted", saved); a label that maps to none is refused with the list of stages. Gate tests: "Interview" saves
+  as "Interview rounds" and the next update succeeds; nonsense is refused with the list.
+
+### 5-pass control of the kept brain (run 39593068532, e41d1723): the same-night reference for 5-pass rounds
+- Both CI judges 34/33/32/32/35 of 38 (gpt-5-mini 34/34/33/34/36, gpt-4.1-mini 37/37/35/33/36); clean 30:
+  26/26/25/24/27 (mean 25.6). One error reply (H004 p2, the invalid-stage path above). H018 fails gpt-5-mini in p2.
+  Cost $0.4484.
+
+### H006 round result (run 39593783917, side commit 5ef54f5d, 5 passes): H006 fixed 5/5, but H029 now errors 5/5; held
+- Both CI judges 33/33/35/32/33 of 38 (gpt-5-mini 33/34/35/34/33, gpt-4.1-mini 36/35/37/34/36); clean 30:
+  26/25/27/25/26 (mean 25.8) vs the 5-pass control's 26/26/25/24/27 (25.6): a tie. Cost $0.5896.
+- H006 passes both CI judges in all five passes (control: both in 1, one in 2, failed both in 2). Every reply: "I
+  don't do weather" then a job-search next step (search, an alert, or their role and city). The task is done.
+- Regression: H029 ends with the model call failing (stopped "model_error", the person gets "Something went wrong on
+  my side") in ALL FIVE passes, at step 1 or step 2 with no tool call; in the control it answered normally. The
+  prompt line is the only difference. The eval does not record the provider's error, so the cause is not visible:
+  the harness now records it (trace errors), and H006 is re-measured after that. Not kept: an error for a class of
+  real messages is worse than the off-topic reply it fixes.

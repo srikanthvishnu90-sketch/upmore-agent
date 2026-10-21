@@ -13,7 +13,7 @@
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
 // `trace` (WO-061): per turn, how the agent loop ended and every tool it called (name, ok, error). Never shown to a judge;
 // it is there so a failure reply (the step-limit text) can be traced to its cause instead of guessed.
-export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[] }[];
+export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[]; errors?: string[] }[];
 export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown; trace?: Trace }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
 export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; trace?: Trace; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
@@ -129,9 +129,13 @@ if (import.meta.main) {
         const row = await alerts.get(a.userId);
         const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [],
           alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [], threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
-        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }),
+        // WO-061 (H029, run 39593783917: the model call failed in all five passes and the reason was not recorded): a failed
+        // model call's provider status and message go in the trace, never to a judge.
+        const errors: string[] = [];
+        const model = async (p: any) => { try { return await callModel(brainCfg, p, { meter, role: "chat" }); } catch (e) { errors.push(String((e as any)?.summary?.() ?? e).slice(0, 300)); throw e; } };
+        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model,
           known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
-        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })) });
+        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })), ...(errors.length ? { errors } : {}) });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {

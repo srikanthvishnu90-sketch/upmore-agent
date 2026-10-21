@@ -727,6 +727,48 @@
    "run": "39592260931",
    "read": "failing ids per judge; H009 traces, stored row (stage_detail) and last replies (200 chars) in three passes; H018 p1 trace and last reply (flagged by the dangling-question scan); every reply scanned by code for error and empty replies",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H015",
+    "H018",
+    "H026",
+    "H027",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39593068532 (5-pass control)",
+   "read": "failing ids per judge; H004 p2 trace and replies (120 chars); H004 traces, failure notes and replies (140 chars) in 39588330975, 39589683291, 39590964501, 39592260931; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H010",
+    "H011",
+    "H022",
+    "H025",
+    "H026",
+    "H027",
+    "H029",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39593783917",
+   "read": "failing ids per judge; the five H006 last replies (230 chars) to check the task; H029 traces and replies (90 chars) here and in the control 39593068532 p1-p2; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

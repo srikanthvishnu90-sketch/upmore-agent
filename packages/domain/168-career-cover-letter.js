@@ -24,11 +24,13 @@
    quarantine-cleared facts, nothing else. Resolution order:
      1. opts.reader (injected function),
      2. module 167 (global CareerTrustedFacts or
-        ./167-career-trusted-facts.js; any of its read-shaped exports),
-     3. stubClearedFacts below — a conservative LOCAL implementation of
-        the same contract, used only until 167 lands. Every record
-        carries readerSource ("injected" | "module167" | "stub167") so
-        which state produced a letter is never ambiguous.
+        ./167-career-trusted-facts.js, vendored in this tree at
+        1d27bf6b; any of its read-shaped exports).
+   There is no local fallback reader: if 167 cannot be resolved the
+   seam fails CLOSED (zero cleared facts, readerSource "unavailable")
+   rather than reading facts through a stand-in. Every record
+   carries readerSource ("injected" | "module167" | "unavailable")
+   so which reader produced a letter is never ambiguous.
    Defense in depth (the D-007 point): whatever the reader returns, a
    fact still carrying a standing uncleared marker (needs_confirmation,
    an explicit quarantine flag, a draft/quarantined status) is excluded
@@ -99,11 +101,6 @@ const CareerCoverLetter = (() => {
   function hasContent(f) {
     return Boolean(f && (String(f.text || "").trim() || String(f.title || "").trim() || String(f.name || "").trim()));
   }
-  // Conservative local implementation of the 167 contract — stub until
-  // 167 lands; labeled "stub167" on every record it produces.
-  function stubClearedFacts(profile) {
-    return ((profile && profile.facts) || []).filter((f) => hasContent(f) && !isUncleared(f));
-  }
   function pickReaderFn(mod) {
     if (!mod) return null;
     if (typeof mod === "function") return mod;
@@ -116,7 +113,9 @@ const CareerCoverLetter = (() => {
     if (opts && typeof opts.reader === "function") return { read: opts.reader, source: "injected" };
     const fn = pickReaderFn(readerModule());
     if (fn) return { read: (p) => fn(p), source: "module167" };
-    return { read: stubClearedFacts, source: "stub167" };
+    // Fail CLOSED: no reader resolvable -> no facts are cleared, and
+    // buildCoverLetter refuses on the empty cleared set. Never a stub.
+    return { read: () => [], source: "unavailable" };
   }
   function normalizeReaderOutput(out) {
     if (Array.isArray(out)) return out;
@@ -381,7 +380,7 @@ const CareerCoverLetter = (() => {
     };
   }
 
-  return { buildCoverLetter, auditSentences, resolveFactReader, stubClearedFacts, isUncleared, coverFilename, wordCount, DEFAULT_MAX_WORDS: 250 };
+  return { buildCoverLetter, auditSentences, resolveFactReader, isUncleared, coverFilename, wordCount, DEFAULT_MAX_WORDS: 250 };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerCoverLetter;

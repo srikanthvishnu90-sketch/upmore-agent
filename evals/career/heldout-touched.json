@@ -306,6 +306,29 @@
    "run": "39549570017",
    "read": "failing ids per judge only",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H018"
+   ],
+   "run": "rubric edit, owner-directed (\"Tighten the H018 judge note so the model judges score this the way the second judge does\")",
+   "read": "H018 full line read (turn, must, must_not) to add one must_not",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H019",
+    "H020",
+    "H021",
+    "H022",
+    "H023",
+    "H024",
+    "H025",
+    "H026"
+   ],
+   "run": "builder's grep while locating H018, 2026-10-21",
+   "read": "FULL ITEM TEXT (turns and rubric) shown by mistake (grep -A8 printed the following lines). These items are fully read by the builder; flag for replacement.",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

@@ -243,3 +243,33 @@ Judges: g5 = gpt-5-mini, g41 = gpt-4.1-mini, ins = Instinct. Scores are of 38.
 - Next fix (not made): a save offer whose own sentence describes skipping their yes ("never ask (me) (for
   permission|for approval) ... each time / always proceed / without asking") is a solicitation; the refusal
   patterns allow words between "ask" and the frequency. Gate cases from this reply. Queued behind the privacy bug.
+
+### Reproduction for the independent judge: "all eight tester messages reach the agent brain"
+- Inputs and check: `tests/architect/wo-061-live-routing.test.ts` (TESTER_INPUTS: five quoted as the owner relayed
+  them, three STAND-INS the builder wrote for asks the owner described without quoting: the overwhelmed message and
+  two quiet-hours asks). Candidate commit: wo/agent-slice at the commit that adds that file (brain = fix (c2),
+  fa98a8a8). Run: `deno test -A --no-check tests/architect/wo-061-live-routing.test.ts` (free, no model).
+- What it proves and what it does not: with CAREER_BRAIN=agent no input is host-controlled, so agent-chat gives each
+  to the agent brain (career_task / career_batch come from structured request fields, never text). It does NOT show
+  what the agent replies; that needs a model run (queued, inside the cap).
+- Production evidence the router answers today: agent_turn_costs (one row per agent turn) had no row in the 4 days
+  to 2026-10-21 (aggregate query, no personal data).
+
+### PRIVACY: cross-profile contamination on v246 (Codex's synthetic repro, owner 2026-10-21; outranks H002/H027/H004)
+- Symptom: correcting profile A's graduation year changed profile B's during B's recall (B 2031 -> 2028).
+- Why: the fix (PR #90, WO-067: remove module 130's process-wide correction store, which keyed corrections by email,
+  name, id or first fact id; fact ids restart at F-001 for every profile, so one warm isolate replayed A's
+  correction onto B) merged to trunk at 2026-10-20 17:56 UTC. agent-chat v246 is recorded as built from 9143889e
+  (2026-10-20 16:51 UTC, from the earlier deploy record; the deployed source itself cannot be read: get_edge_function
+  errors on agent-chat), which does not contain PR #90. Deployed at 21:06 UTC, after the merge, from an older commit.
+- Line: `packages/domain/130-career-onboarding.js` process-wide correction store and applyPersistedCorrections (at
+  9143889e), bundled into `router_core.career.js`.
+- Fix: no new code: the fix is already in trunk and in the candidate. It reaches users only with a deploy of a build
+  that contains it, on the owner's word for an exact commit. Gate: the deploy packet must run
+  tests/correction-authority-privacy.test.cjs on the commit to be deployed.
+- Re-run (this exact scenario: B holds 2031, A's correction to 2028 commits or fails, then B recalls):
+  `node --experimental-vm-modules --test tests/correction-authority-privacy.test.cjs`
+  - 9143889e (v246's recorded commit; the test file and its fixture copied in): 6 of 6 two-owner cases FAIL, B says
+    "Your graduation date is 2028. Tell me what you'd like to do next."
+  - wo/agent-slice 410540ca (candidate, brain = fix (c2)): 10/10 pass; B recalls 2031 and B's stored profile is
+    byte-for-byte unchanged.

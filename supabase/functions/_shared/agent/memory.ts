@@ -10,7 +10,7 @@
 import type { AlertPrefs } from "../career_alerts.ts";
 import { dailyLimit } from "../career_apply.ts";
 import { type Situation, situationBlock } from "../career_situation.ts";
-import { personalSourceDenied as memorySourceDenied } from "../personal_fact_source.ts";
+import { personalSourceGuard } from "../personal_fact_source.ts";
 
 export interface Standing { id: string; text: string; said: string; at: string }
 export interface MemoryStore {
@@ -175,10 +175,12 @@ export const BLOCK_BUDGET = 4500;
 // Rendering is not a confirmation operation. A missing/unknown status cannot become confirmed merely because a
 // flag is absent, and a rejected row must not return as either a goal or a pending fact. Ignore malformed stored rows
 // rather than letting one row prevent the entire context block from being built.
-const factRows = (profile: any): any[] => (Array.isArray(profile?.facts) && !memorySourceDenied(profile) ? profile.facts : []).filter((f: any) =>
-  f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && typeof f.kind === "string" && !!f.kind.trim() &&
-  typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected" && !memorySourceDenied(f)
-);
+const factRows = (profile: any): any[] => {
+  const denied = personalSourceGuard([profile]);
+  return (Array.isArray(profile?.facts) && !denied(profile) ? profile.facts : []).filter((f: any) =>
+    f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && typeof f.kind === "string" && !!f.kind.trim() &&
+    typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected" && !denied(f));
+};
 const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
 // A stored value is one row's data, never another prompt heading. Preserve its words while making embedded line and
 // control separators explicit; otherwise a draft can print a second "Confirmed facts" heading inside its own text.
@@ -197,9 +199,10 @@ function standingLine(s: Standing): string {
 // turn and never cut for length. Facts they have not confirmed yet count here (a goal steers search; it is never put in an
 // application unconfirmed), and say so.
 export function goalLines(profile: any): string[] {
-  if (memorySourceDenied(profile)) return [];
-  const p = profile ?? {}, pref = memorySourceDenied(p.preferences) ? {} : p.preferences ?? {};
-  const basics = memorySourceDenied(p.basics) ? {} : p.basics ?? {}, out: string[] = [];
+  const denied = personalSourceGuard([profile]);
+  if (denied(profile)) return [];
+  const p = profile ?? {}, pref = denied(p.preferences) ? {} : p.preferences ?? {};
+  const basics = denied(p.basics) ? {} : p.basics ?? {}, out: string[] = [];
   const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
   if (list(pref.roles).length) out.push(`- Roles: ${list(pref.roles).join(", ")}`);
   if (list(pref.locations).length || basics.location) out.push(`- Places: ${[...list(pref.locations), ...(basics.location ? [String(basics.location)] : [])].join(", ")}`);
@@ -221,7 +224,8 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const drafts = facts.filter((f: any) => !confirmedRow(f)).reverse();
   const goal = goalLines(o.profile);
   // The stored instruction remains important even when older rows lack optional quote/date metadata.
-  const standing = (Array.isArray(o.standing) ? o.standing : []).filter((s) => s && typeof s.id === "string" && typeof s.text === "string" && s.text.trim() && !memorySourceDenied(s));
+  const standingDenied = personalSourceGuard([o.profile, o.standing]);
+  const standing = (Array.isArray(o.standing) ? o.standing : []).filter((s) => s && typeof s.id === "string" && typeof s.text === "string" && s.text.trim() && !standingDenied(s));
   const head = [
     "WHAT YOU KNOW ABOUT THIS PERSON FROM THEIR ACCOUNT. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
     "What they told you earlier in this chat is known as well, even where this says none: \"none on file\" means their account has no record, never that you don't know it. Answer from what they said.",

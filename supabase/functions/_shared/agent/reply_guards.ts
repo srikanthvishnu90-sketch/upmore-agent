@@ -7,7 +7,7 @@
 //   leaks   no tool name, raw job id, uuid or JSON field name reaches the person.
 // Each finder returns what it found (for the one rewrite the loop asks for) and a fixer applies code's last resort.
 import { DEGREES, factLock, factText, norm, SCALE, TITLES, TOOLS } from "../essay_draft.ts";
-import { personalSourceDenied as sourceDenied } from "../personal_fact_source.ts";
+import { personalSourceDenied as sourceDenied, personalSourceGuard } from "../personal_fact_source.ts";
 
 // ------------------------------------------------------------------------------------------------ sentences
 // A reply as sentence pieces with the whitespace after each, so a piece can be dropped or changed and the rest of the
@@ -65,46 +65,49 @@ function currentFact(f: any): Record<string, unknown> {
 }
 const SOURCE_AUDIT_KEYS = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected", "requirement", "requirements"]);
 const pathMove = (v: any) => record(v) && record(v.requirement) && Object.hasOwn(v, "fact") && ["met", "unmet", "unknown"].includes(v.status);
-function sourceResult(v: any, factContext = false, depth = 0): any {
+function sourceResult(v: any, factContext = false, depth = 0, denied = sourceDenied): any {
   if (depth > 20) return undefined;
-  if (Array.isArray(v)) return v.map((x) => sourceResult(x, factContext, depth + 1)).filter((x) => x !== undefined);
+  if (Array.isArray(v)) return v.map((x) => sourceResult(x, factContext, depth + 1, denied)).filter((x) => x !== undefined);
   if (!record(v)) return v;
   // A child's own status cannot erase an enclosing record's explicit untrusted provenance.
-  if (sourceDenied(v)) return undefined;
+  if (denied(v)) return undefined;
   // An employer's requirements describe a job, not this person's experience. Posting display still reads raw results.
   if ((typeof v.job_id === "string" || typeof v.posting_id === "string") && typeof v.title === "string" &&
     (typeof v.description === "string" || typeof v.url === "string")) return undefined;
   // career_path_answer mixes cited personal facts with external requirements and prose rendered from those
   // requirements. Keep only each move's actual personal evidence; its messages are not an independent fact source.
-  if (Array.isArray(v.moves) && v.moves.some(pathMove)) return sourceResult(v.moves.filter(pathMove), false, depth + 1);
-  if (pathMove(v)) return record(v.fact) ? sourceResult(v.fact, true, depth + 1) : undefined;
+  if (Array.isArray(v.moves) && v.moves.some(pathMove)) return sourceResult(v.moves.filter(pathMove), false, depth + 1, denied);
+  if (pathMove(v)) return record(v.fact) ? sourceResult(v.fact, true, depth + 1, denied) : undefined;
   if (factContext || Object.hasOwn(v, "needs_confirmation") || FACT_KINDS.has(v.kind) ||
     (typeof v.text === "string" && Object.hasOwn(v, "status"))) return sourceFactOk(v, true) ? currentFact(v) : undefined;
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(v)) {
     if (SOURCE_AUDIT_KEYS.has(key)) continue;
-    const cleaned = sourceResult(value, key === "facts" || key === "fact" || key === "confirmed", depth + 1);
+    const cleaned = sourceResult(value, key === "facts" || key === "fact" || key === "confirmed", depth + 1, denied);
     if (cleaned !== undefined) out[key] = cleaned;
   }
   return out;
 }
-function resultSource(text: string): string {
-  let parsed: unknown;
-  try { parsed = JSON.parse(text); }
+function parseSourceResult(text: string): { raw: string; structured: boolean; value: unknown } {
+  try { return { raw: text, structured: true, value: JSON.parse(text) }; }
+  catch { return { raw: text, structured: false, value: undefined }; }
+}
+function resultSource(result: ReturnType<typeof parseSourceResult>, denied: (value: unknown) => boolean): string {
   // A truncated JSON result can still contain a rejected fact's words. Never reinterpret that broken record as prose.
-  catch { return /^\s*[\[{]/.test(text) ? "" : text; }
-  try { const clean = sourceResult(parsed); return clean === undefined ? "" : JSON.stringify(clean); }
+  if (!result.structured) return /^\s*[\[{]/.test(result.raw) ? "" : result.raw;
+  try { const clean = sourceResult(result.value, false, 0, denied); return clean === undefined ? "" : JSON.stringify(clean); }
   catch { return ""; }
 }
 export function factSources(o: { state: Record<string, unknown>; message: string; history: any[]; results: string[] }): string[] {
   const profile: any = o.state?.profile;
-  const facts = (Array.isArray(profile?.facts) && !sourceDenied(profile) ? profile.facts : []).filter((f: any) => sourceFactOk(f));
   const sf: any = o.state?.statedFacts;
+  const results = o.results.map(parseSourceResult), denied = personalSourceGuard([profile, sf, ...results.map(r => r.value)]);
+  const facts = (Array.isArray(profile?.facts) && !denied(profile) ? profile.facts : []).filter((f: any) => !denied(f) && sourceFactOk(f));
   const stated = Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : [];
   const userSaid = (Array.isArray(o.history) ? o.history : []).filter((m: any) => m && m.role === "user").map((m: any) =>
     typeof m.content === "string" ? m.content : Array.isArray(m.content) ? m.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : ""
   );
-  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => !sourceDenied(sf) && sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...o.results.map(resultSource)].filter(Boolean);
+  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => !denied(sf) && !denied(f) && sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...results.map(r => resultSource(r, denied))].filter(Boolean);
 }
 
 // ------------------------------------------------------------------------------------------------ the fact lock on a reply

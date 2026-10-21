@@ -306,3 +306,8 @@ called it the owner's; this line corrects the record.
 - Build note: the first version allowed any four words between the ask and the frequency, which refused "don't ask
   me about relocation again" (WO-091b/12 caught it). The words in between are now approval words only ("for
   permission", "for approval", "for a yes").
+
+Lane (owner, 2026-10-21): the PR #90 privacy fix and the build line are Muse's lane (F-014). The builder of the brain
+built nothing for it: the reproduction above used PR #90's own synthetic test; the fix and its deploy are Muse's.
+Standing rule (owner): privacy, security and data are non-negotiable; synthetic data only in every test; no logging
+of private content.

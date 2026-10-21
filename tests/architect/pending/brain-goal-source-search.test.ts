@@ -98,3 +98,44 @@ Deno.test('goal search source: explicit ai/inferred sources and rejected contain
 Deno.test('goal search source control: a user goal mentioning AI is content rather than source metadata', () => {
   eq(goalOf({ facts: [{ ...current(), text: 'AI engineer role in Denver', provenance: 'user' }], preferences: {} }), { roles: ['ai', 'engineer'], places: ['denver'], remote: false });
 });
+
+for (const chain of ['reserved', 'direct', 'transitive', 'missing-parent'] as const) {
+  Deno.test(`goal search quarantine: ${chain} source cannot steer the actual next-search tool`, async () => {
+    const reserved = { ...old({ source: 'user' }), id: 'F-033' };
+    const derived = { ...old({ source: 'user' }), id: 'SYN-DERIVED', derived_from: ['F-033'] };
+    const second = { ...old({ source: 'user' }), id: 'SYN-SECOND', derived_from: ['SYN-DERIVED'] };
+    const denied = chain === 'reserved' ? [reserved] : chain === 'direct' ? [reserved, derived] :
+      chain === 'transitive' ? [second, derived, reserved] : [derived, second];
+    const profile = { preferences: {}, facts: [current(), ...denied] }, before = JSON.stringify(profile);
+    const persisted = JSON.parse(before), search = careerTools({ postings: async () => pool }).find(t => t.name === 'search_jobs')!;
+    const result: any = await search.run({}, { userId: USER, threadId: 'SYN-QUARANTINE-SEARCH', now: NOW,
+      state: { profile: persisted }, turn: { message: 'Find jobs for my current goal.', added: [] } });
+    eq(result.goal, { roles: ['ux', 'designer'], places: ['denver'], remote: false }, 'quarantined lineage supplied goal terms');
+    eq(result.postings[0].job_id, 'SYN-NEW-JOB', 'quarantined lineage ranked the former goal first');
+    eq(JSON.stringify(persisted), before, 'source reads changed the stored bank');
+  });
+}
+for (const scope of ['profile', 'preferences', 'basics'] as const) {
+  Deno.test(`goal search quarantine: derived ${scope} container cannot lend authority to its children`, () => {
+    const profile: any = { preferences: { roles: ['Data analyst'], locations: ['Austin'], remote: 'remote' }, basics: { location: 'Austin' }, facts: [current()] };
+    if (scope === 'profile') profile.derived_from = ['F-033'];
+    if (scope === 'preferences') { profile.preferences.derived_from = ['F-033']; profile.basics = {}; }
+    if (scope === 'basics') { profile.basics.derived_from = ['F-033']; profile.preferences = {}; }
+    const before = JSON.stringify(profile);
+    eq(goalOf(profile), scope === 'profile' ? null : { roles: ['ux', 'designer'], places: ['denver'], remote: false });
+    eq(JSON.stringify(profile), before, 'container read changed stored values');
+  });
+}
+Deno.test('goal search quarantine control: own confirmed derivation and independent draft remain eligible', () => {
+  const ownParent = { id: 'SYN-OWN-PARENT', kind: 'preference', text: 'Also open to Data analyst roles in Austin', source: 'user', status: 'confirmed', needs_confirmation: false };
+  const derived = { ...old({ source: 'user' }), id: 'SYN-OWN-DERIVED', derived_from: [ownParent.id] };
+  const profile = { preferences: {}, facts: [derived, ownParent, current()] }, before = JSON.stringify(profile);
+  eq(goalOf(profile), { roles: ['data', 'analyst', 'ux', 'designer'], places: ['austin', 'denver'], remote: false });
+  eq(JSON.stringify(profile), before, 'own derivation or draft goal changed');
+});
+Deno.test('goal search quarantine control: historical quarantined data does not taint the corrected own current goal', () => {
+  const goal = { ...current(), corrected_from: { ...old(), id: 'F-033' }, audit: [{ ...old(), id: 'F-033' }] };
+  const profile = { facts: [goal], preferences: {} }, before = JSON.stringify(profile);
+  eq(goalOf(profile), { roles: ['ux', 'designer'], places: ['denver'], remote: false });
+  eq(JSON.stringify(profile), before, 'historical values were rewritten');
+});

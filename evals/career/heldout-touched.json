@@ -893,6 +893,23 @@
    "run": "39599518668 (stacked build)",
    "read": "failing ids per judge; H018 p1 judge note and last reply (500 chars); H011 failure reasons in five passes; every reply scanned by code for mid-thread re-introductions, '[your skill]' and error replies (ids only); H036 replies with brackets in six runs (200 chars); bracket placeholders in all stored replies (ids and 160 chars of context)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H003",
+    "H004",
+    "H010",
+    "H018",
+    "H026",
+    "H033",
+    "H034",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39601021457 (stacked build 2)",
+   "read": "failing ids per judge; the five H018 last lines (140 chars) and a code check for save words; every reply scanned by code for error replies",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

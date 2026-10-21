@@ -105,6 +105,7 @@ if (import.meta.main) {
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
   const { situationFrom } = await import("../../supabase/functions/_shared/career_situation.ts");
+  const { memoryBriefStores } = await import("../../supabase/functions/_shared/career_brief_store.ts");
   const meter = newMeter(), judgeMeter = newMeter();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -117,6 +118,11 @@ if (import.meta.main) {
     // WO-061: the agent gets an alert store, as agent-chat gives it in production; without one every alert request
     // failed with "job alerts are not configured here", a harness artifact the router (its own state) never paid.
     const alerts = memoryAlertStore();
+    // WO-061 (production parity, second judge's ruling 2026-10-21): agent-chat gives the brain the interviews store
+    // (handler-career.ts: supabaseInterviewStore) and readSituation reads its upcoming rows (career_situation.ts:
+    // career_interviews id, company, role, starts_at, interview_date, from a day ago on). The harness keeps the same
+    // store in memory for this persona; only rows the brain's own tools saved are in it.
+    const { interviews } = memoryBriefStores();
     let now = T0;
     const replies: string[] = [], trace: Trace = [];
     const turnFn = async (a: any) => {
@@ -127,13 +133,23 @@ if (import.meta.main) {
         // (readSituation) and passes it; the harness passed none, so every records question met "could not be read this
         // turn". An eval persona's account holds nothing but the alerts it set in this chat: that is its situation.
         const row = await alerts.get(a.userId);
-        const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: [],
-          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [], threads: [], connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
+        const today = new Date(now - 86400000).toISOString();
+        const upcoming = (await interviews.list(a.userId))
+          .map((r) => ({ id: r.key, company: r.company, role: r.role, starts_at: r.starts_at, interview_date: r.date }))
+          .filter((r) => (r.starts_at != null && r.starts_at >= today) || (r.interview_date != null && r.interview_date >= today.slice(0, 10)));
+        const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: upcoming,
+          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [],
+          // WO-061 (production parity, H004 traces; second judge's ruling 2026-10-21): readSituation reads every thread's
+          // tracker rows from agent_flow_state (career_situation.ts: state->career->trackStore->rows), as saved after each
+          // earlier turn; the harness passed none, so a row recorded earlier in the same chat was "not on file" by the next
+          // turn. The eval persona's one thread is this chat: its own rows as saved after the last turn, nothing added.
+          threads: [{ thread_id: a.userId, rows: a.stores?.snapshot?.stores?.trackStore?.rows ?? null }],
+          connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
         // WO-061 (H029, run 39593783917: the model call failed in all five passes and the reason was not recorded): a failed
         // model call's provider status and message go in the trace, never to a judge.
         const errors: string[] = [];
         const model = async (p: any) => { try { return await callModel(brainCfg, p, { meter, role: "chat" }); } catch (e) { errors.push(String((e as any)?.summary?.() ?? e).slice(0, 300)); throw e; } };
-        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model,
+        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, interviews, model,
           known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
         trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })), ...(errors.length ? { errors } : {}) });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");

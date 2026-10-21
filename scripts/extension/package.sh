@@ -15,6 +15,9 @@
 # files are the store package's (scripts/launch/extension-package-check.cjs list) and pass its checks. Prints the zip's
 # SHA-256 and the commit. Nothing is uploaded, deployed or sent; no secret is read or written.
 set -euo pipefail
+for tool in git deno node zip unzip; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "refused: '$tool' is not installed (needed: git, deno, node, zip, unzip)" >&2; exit 1; }
+done
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 root=$(pwd)
 check="$root/scripts/launch/extension-package-check.cjs"
@@ -56,7 +59,9 @@ name="trainee-extension-$version-$variant"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 stage="$work/$name"
-mapfile -t files < <(node "$check" list extension)
+# (A while-read loop, not mapfile: macOS ships bash 3.2.)
+files=()
+while IFS= read -r f; do [ -n "$f" ] && files+=("$f"); done < <(node "$check" list extension)
 [ "${#files[@]}" -gt 0 ] || { echo "refused: no files to package" >&2; exit 1; }
 for f in "${files[@]}"; do
   mkdir -p "$stage/$(dirname "$f")"
@@ -94,7 +99,8 @@ fi
 files+=("BUILD-INFO.txt")
 
 # 4. The zip: fixed timestamps for the package's own files, no extra attributes.
-find "$stage" -exec touch -h -d '2026-10-20 00:00:00 UTC' {} +
+# (touch -t is the form both GNU and BSD/macOS touch read.)
+find "$stage" -exec env TZ=UTC touch -h -t 202610200000 {} +
 zip_tmp="$work/$name.zip"
 (cd "$stage" && TZ=UTC zip -X -D -q "$zip_tmp" "${files[@]}")
 
@@ -110,7 +116,8 @@ fi
 rm -rf "${out:?}/$name" "$out/$name.zip"
 cp -R "$stage" "$out/$name"
 cp "$zip_tmp" "$out/$name.zip"
-sha=$(sha256sum "$out/$name.zip" | cut -d' ' -f1)
+if command -v sha256sum >/dev/null 2>&1; then sha=$(sha256sum "$out/$name.zip" | cut -d' ' -f1)
+else sha=$(shasum -a 256 "$out/$name.zip" | cut -d' ' -f1); fi
 
 echo "variant: $variant ($flags)"
 echo "folder (Load unpacked): $out/$name"

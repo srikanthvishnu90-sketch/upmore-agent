@@ -1,0 +1,108 @@
+# INERT proposal: pin source and fill each owner approval only after the priced proposal is approved.
+# Publishing this on a wo/ branch does not trigger any paid job.
+name: brain-reliability-320
+on:
+  push:
+    branches: [ci/brain320-mini-20261021, ci/brain320-higher-20261021]
+    paths: [.github/workflows/brain-reliability-320.yml]
+permissions:
+  contents: read
+concurrency:
+  group: brain-eval
+  cancel-in-progress: false
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    env:
+      SOURCE_COMMIT: NOT_PINNED
+      CORPUS_SHA256: 91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc
+      MINI_APPROVAL_REF: NOT_APPROVED
+      HIGHER_APPROVAL_REF: NOT_APPROVED
+      MINI_CAP_USD: NOT_APPROVED
+      HIGHER_CAP_USD: NOT_APPROVED
+      NEW_BUDGET_SPENT_USD: NOT_RECONCILED
+      OTHER_RESERVED_USD: NOT_RECONCILED
+      LEDGER_SNAPSHOT_AT: NOT_RECONCILED
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Reject retries and unapproved proposals before checkout or provider access
+        env:
+          ATTEMPT: ${{ github.run_attempt }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          test "$ATTEMPT" = "1"
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          case "$REF_NAME" in
+            ci/brain320-mini-20261021) MODEL=gpt-5-mini; APPROVAL_REF="$MINI_APPROVAL_REF"; CAP="$MINI_CAP_USD" ;;
+            ci/brain320-higher-20261021) MODEL=gpt-5; APPROVAL_REF="$HIGHER_APPROVAL_REF"; CAP="$HIGHER_CAP_USD" ;;
+            *) exit 2 ;;
+          esac
+          test -n "$APPROVAL_REF"
+          test "$APPROVAL_REF" != "NOT_APPROVED"
+          test "$CAP" != "NOT_APPROVED"
+          test "$NEW_BUDGET_SPENT_USD" != "NOT_RECONCILED"
+          test "$OTHER_RESERVED_USD" != "NOT_RECONCILED"
+          test "$LEDGER_SNAPSHOT_AT" != "NOT_RECONCILED"
+          echo "BRAIN320_MODEL=$MODEL" >> "$GITHUB_ENV"
+          echo "BRAIN320_APPROVAL_REF=$APPROVAL_REF" >> "$GITHUB_ENV"
+          echo "BRAIN320_CAP_USD=$CAP" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
+          fetch-depth: 1
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: "v2.9.6"}
+      - name: Free runner controls, with network denied
+        run: |
+          deno check evals/brain-reliability/run-comparison.ts tests/architect/brain-eval-comparison.test.ts
+          deno test --no-check --cached-only --no-remote --allow-read="$GITHUB_WORKSPACE" --deny-net --no-prompt tests/architect/brain-eval-comparison.test.ts
+      - name: Bind approval to one frozen source, corpus, model and owner ledger snapshot
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          src=pathlib.Path("evals/brain-reliability/scenarios320.json").read_bytes()
+          assert hashlib.sha256(src).hexdigest()==os.environ["CORPUS_SHA256"]
+          cap=float(os.environ["BRAIN320_CAP_USD"])
+          # Caps above $10 require a distinct explicit owner approval reference; do not infer it from budget headroom.
+          ref=os.environ["BRAIN320_APPROVAL_REF"]
+          assert cap<=10 or ref.startswith("OWNER_EXPLICIT_OVER_10:"), "Explicit over-$10 owner word required"
+          approval={"owner_approval_ref":ref,"model":os.environ["BRAIN320_MODEL"],
+            "source_commit":os.environ["SOURCE_COMMIT"],"corpus_sha256":os.environ["CORPUS_SHA256"],
+            "cap_usd":cap,"approved_over_ten":cap>10,
+            "new_budget_spent_usd":float(os.environ["NEW_BUDGET_SPENT_USD"]),
+            "other_reserved_usd":float(os.environ["OTHER_RESERVED_USD"]),
+            "ledger_snapshot_at":os.environ["LEDGER_SNAPSHOT_AT"]}
+          p=pathlib.Path(os.environ["RUNNER_TEMP"],"brain320-approval.json")
+          p.write_text(json.dumps(approval))
+          p.chmod(0o600)
+          PY
+      - name: One approved arm, no retries; keep sealed item evidence out of job logs
+        run: |
+          deno run --cached-only --no-remote --allow-read --allow-write="$RUNNER_TEMP" --allow-env=OPENAI_API_KEY --allow-net=api.openai.com --allow-run=git --no-prompt \
+            evals/brain-reliability/run-comparison.ts --run-approved --model "$BRAIN320_MODEL" \
+            --corpus evals/brain-reliability/scenarios320.json --manifest evals/brain-reliability/manifest320.json \
+            --approval-file "$RUNNER_TEMP/brain320-approval.json" --out "$RUNNER_TEMP/brain320-result" \
+            > "$RUNNER_TEMP/brain320-diagnostic.log" 2>&1
+      - name: Aggregate ledger only, including reservations left unresolved by a failed run
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/brain320-result.json"; then
+            deno eval 'import {armSummary} from "./evals/brain-reliability/run-comparison.ts"; const a=JSON.parse(Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.json")); console.log(JSON.stringify(armSummary(a),null,2));'
+          elif test -f "$RUNNER_TEMP/brain320-result.journal.jsonl"; then
+            deno eval 'import {recoverJournal} from "./evals/brain-reliability/run-comparison.ts"; const r=recoverJournal(Deno.readTextFile(Deno.env.get("RUNNER_TEMP")+"/brain320-result.journal.jsonl")); console.log(JSON.stringify({status:"NOT_SCORED",ledger:r},null,2));'
+          else
+            echo 'NOT_RUN: no provider-call reservation journal exists'
+          fi
+      - name: Preserve private packets, per-call usage, exact metered costs and diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brain320-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/brain320-approval.json
+            ${{ runner.temp }}/brain320-result.json
+            ${{ runner.temp }}/brain320-result.journal.jsonl
+            ${{ runner.temp }}/brain320-diagnostic.log
+

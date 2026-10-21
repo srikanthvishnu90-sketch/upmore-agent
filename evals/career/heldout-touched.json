@@ -369,6 +369,21 @@
    "run": "Instinct's verdicts for 39551229537 (p1-p3) and its H028/H035 injection-framing finding",
    "read": "the second judge's failure notes, posted in chat; no item text",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H004",
+    "H026",
+    "H027",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39552801613",
+   "read": "failing ids per judge only; every reply scanned by code for waiver/save-offer wording (no text printed)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

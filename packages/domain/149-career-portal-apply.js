@@ -57,6 +57,7 @@
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
   const ATS_HOSTS = [
@@ -264,7 +265,8 @@ const CareerPortalApply = (() => {
     if (!bank || !Array.isArray(bank.facts)) return out;
     const nowMs = tsMs(now);
     const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
-    const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
+    const view = Trusted.trustedProfile(bank);
+    const byKindName = (kind, nameRe) => view.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
     const put = (key, value, factId, how) => {
       out.answers[key] = { value, confirmed: true, factId };
       out.traces[key] = { factId, how };
@@ -307,7 +309,7 @@ const CareerPortalApply = (() => {
       if (first) { out.profileFields.preferred_name = first; out.traces.preferred_name = { factId: "basics.name", how: "first token of the bank's full name (no separate preferred-name fact on file)" }; }
     }
     // education facts (F-001 shape): the level token + the education block
-    const edu = bank.facts.find((f) => f.kind === "education");
+    const edu = view.facts.find((f) => f.kind === "education");
     if (confirmed(edu)) {
       const degreeText = [edu.title || "", edu.text || ""].join(" ");
       const lvl = DEGREE_LEVELS.find((d) => d.re.test(degreeText));
@@ -323,7 +325,7 @@ const CareerPortalApply = (() => {
       if (Object.keys(block).length) { out.profileFields.education = block; out.traces.education = { factId: edu.id, how: "education block from the education fact's structured fields" }; }
     }
     // experience facts: the span answers duration questions (F-002.. shape)
-    const exps = bank.facts.filter((f) => f.kind === "experience" && confirmed(f) && f.start);
+    const exps = view.facts.filter((f) => f.kind === "experience" && confirmed(f) && f.start);
     if (exps.length) {
       const earliest = exps.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
       const months = monthsBetween(earliest.start, nowMs);

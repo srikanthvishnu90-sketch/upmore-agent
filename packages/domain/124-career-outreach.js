@@ -12,6 +12,7 @@
    scraping or automation of any kind (user-owned export data only); suppression is shared cross-user
    (only the opt-out fact is shared, campaign data stays per-user) and a suppression failure is severity-1. */
 const CareerOutreach = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   "use strict";
   // COMPLEXITY WAVE (BUG-174): the firm sets load LAZILY — in the
   // shipped bundle the require below cannot see the repo's data
@@ -701,7 +702,7 @@ const CareerOutreach = (() => {
   }
   function determineTier(c, profile) {
     profile = profile || {}; const rel = norm(c.relationship_to_user);
-    const facts = c.personalization_facts || [];
+    const facts = Trusted.trustedContactFacts(c).usable;
     if (/mutual/.test(rel) || facts.some((f) => f.kind === "referral" && f.verified === true)) return "A";
     if (/club|team/.test(rel) && profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "A";
     if (facts.some((f) => f.strength === "strong" && !isGenericFact(f.fact))) return "A";
@@ -849,9 +850,7 @@ const CareerOutreach = (() => {
     const tier = opts.tier || determineTier(c, user);
     const structure = STRUCTURES[(opts.structureIndex != null ? opts.structureIndex : tier === "A" ? 0 : tier === "B" ? 1 : 3) % STRUCTURES.length];
     const first = (c.full_name || "").split(/\s+/)[0] || "there";
-    const facts = (c.personalization_facts || []).filter((f) => f && f.fact && f.source_url);
-    const dropped = [];
-    const usable = facts.filter((f) => { if (f.kind === "referral" && f.verified !== true) { dropped.push({ fact: f.fact, reason: "unverified_referral_claim" }); return false; } return true; });
+    const { usable, dropped } = Trusted.trustedContactFacts(c);
     for (const extra of opts.extraLines || []) if (!extra.source_url) dropped.push({ fact: extra.fact || extra.text || "", reason: "unsourced_extra_line" });
     const strong = usable.find((f) => f.strength === "strong") || usable[0] || null;
     const why = []; const lines = [];
@@ -1595,7 +1594,7 @@ const CareerOutreach = (() => {
   }
   function prepBrief(input) {
     input = input || {}; const cir = input.cir || {}; const c = normalizeCandidate(input.contact || {});
-    const facts = (c.personalization_facts || []).map((f) => f.fact);
+    const facts = Trusted.trustedContactFacts(c).usable.map((f) => f.fact);
     return { who: `${c.full_name}${c.title ? `, ${c.title}` : ""}${c.current_firm ? ` at ${c.current_firm}` : ""}`,
       path: cir.path || facts[0] || `${c.title || "Role"} at ${c.current_firm}`,
       talking_points: (cir.talking_points || cir.talkingPoints || [facts[0], facts[1], input.user_goal || input.goal]).filter(Boolean).slice(0, 3),

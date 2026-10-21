@@ -36,6 +36,7 @@
      caller swaps its candidate pipeline output in unchanged.
    Pure: no I/O, no network, no clock except values passed in. UMD. */
 const CareerApply = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const DAILY_CAP = 15;
   const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -80,7 +81,7 @@ const CareerApply = (() => {
 
   // ---------- current-employer guard (APPE-008) ----------
   function profileEmployers(profile) {
-    return ((profile && profile.facts) || []).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
+    return Trusted.trustedFacts(profile).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
   }
   function checkCurrentEmployer(profile, company) {
     const hit = profileEmployers(profile).find((e) => norm(e.org) === norm(company));
@@ -112,7 +113,7 @@ const CareerApply = (() => {
   // The saved sponsorship answer, derived ONLY from profile constraints/facts.
   function savedSponsorshipAnswer(profile) {
     const c = (profile && profile.constraints) || {};
-    const factText = ((profile && profile.facts) || []).map((f) => f.text || "").join(" ");
+    const factText = Trusted.trustedFacts(profile).map((f) => f.text || "").join(" ");
     if (c.needsSponsorship) {
       if (/F-1 OPT then H-1B/.test(factText) || /F-1/.test(String(c.workAuthorization || ""))) return "Yes — F-1 OPT then H-1B.";
       return "Yes — I will require sponsorship.";
@@ -154,10 +155,10 @@ const CareerApply = (() => {
 
   // ---------- knockout honesty (Doc 2 §5.3) ----------
   function yearsForSkill(profile, skill) {
-    const facts = (profile && profile.facts) || [];
+    const facts = Trusted.trustedFacts(profile);
     const sk = facts.find((f) => f.kind === "skill" && norm(f.name || f.title) === norm(skill));
     if (!sk) return 0;
-    const ev = require("./122-career-profile.js").skillEvidence(profile, skill);
+    const ev = require("./122-career-profile.js").skillEvidence(Trusted.trustedProfile(profile), skill);
     if (!ev.proven) return 0;
     // Conservative: one internship/project cycle counts as 1 year unless the
     // supporting facts carry explicit start/end spans summing higher.

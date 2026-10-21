@@ -21977,6 +21977,95 @@ const CareerProfile = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
 
+/* Career trusted-fact reader (D-007 fix, owner ruling 2026-10-21).
+   THE single read path every drafter uses for profile facts.
+
+   ROOT CAUSE this module exists to kill: the quarantine state on a 122
+   fact (needs_confirmation:true / status:"draft" — resume-ingested
+   facts arrive quarantined and are cleared only by confirmFact()) was
+   enforced by each drafter hand-rolling its own filter, and the filters
+   disagreed: 122's confirmedFacts checks only needs_confirmation,
+   149's local predicate checks status AND the flag, 123's audit checks
+   per-fact at one site, and 132 checked NOTHING — a quarantined fact's
+   text flipped its drafted sponsorship answer and its employer guard
+   blocked applications on unconfirmed employers. Any new drafter
+   started from raw profile.facts and inherited the bypass.
+
+   CONTRACT: given a profile (or a fact-bank object of the same shape),
+   this reader returns ONLY facts cleared for drafting. Quarantined
+   facts are unreachable through its API BY CONSTRUCTION: there is no
+   option, flag, or second export that includes them. Callers that need
+   to SEE quarantined facts (the profile's own UI, the audit that names
+   a violation, the coverage census) read the store directly — they are
+   not drafters, and this module is not their path.
+
+   A fact is QUARANTINED when any hold signal is present:
+     - needs_confirmation === true (122's ingest quarantine)
+     - status is "draft" | "quarantined" | "held" | "suppressed"
+     - quarantined === true (an explicit hold flag, if a writer sets one)
+   Everything else is cleared — the same default 122's normalizeFact
+   stamps ("confirmed") when no hold signal exists.
+
+   Deterministic, pure, no I/O, no model calls. UMD like its siblings. */
+const CareerTrustedFacts = (() => {
+  "use strict";
+
+  const QUARANTINE_STATUSES = new Set(["draft", "quarantined", "held", "suppressed"]);
+
+  function isQuarantined(fact) {
+    if (!fact || typeof fact !== "object") return true;
+    if (fact.needs_confirmation === true) return true;
+    if (fact.quarantined === true) return true;
+    if (typeof fact.status === "string" && QUARANTINE_STATUSES.has(fact.status)) return true;
+    return false;
+  }
+  function isTrusted(fact) { return !isQuarantined(fact); }
+
+  // The drafting pool. `filter` is an exact-match field filter (the shape
+  // 122's listFacts takes) applied AFTER the quarantine cut.
+  function trustedFacts(profile, filter) {
+    const all = profile && Array.isArray(profile.facts) ? profile.facts : [];
+    const cleared = all.filter(isTrusted);
+    if (!filter) return cleared;
+    return cleared.filter((f) => Object.entries(filter).every(([k, v]) => f[k] === v));
+  }
+
+  // A drop-in view of the profile whose facts array holds only cleared
+  // facts — for drafters that pass the profile onward (e.g. to 122's
+  // skillEvidence) and must not hand the raw store down the chain.
+  function trustedProfile(profile) {
+    if (!profile || typeof profile !== "object") return profile;
+    return Object.assign({}, profile, { facts: trustedFacts(profile) });
+  }
+
+  // By-id read for drafters: a quarantined fact reads as absent.
+  function trustedFactById(profile, id) {
+    return trustedFacts(profile).find((f) => f.id === id) || null;
+  }
+
+  // Outreach's fact universe is a contact record's personalization_facts,
+  // whose trust signals are sourcing, not confirmation: a fact is usable
+  // only when it carries a source_url, and a referral claim only when it
+  // is verified. Same accounting 124's draftFor kept inline (unsourced
+  // facts silently unreachable; unverified referrals named in `dropped`)
+  // — now the one shared implementation, so tiering and drafting can
+  // never again read different pools.
+  function trustedContactFacts(candidate) {
+    const raw = candidate && Array.isArray(candidate.personalization_facts) ? candidate.personalization_facts : [];
+    const usable = [], dropped = [];
+    for (const f of raw) {
+      if (!f || !f.fact || !f.source_url) continue;
+      if (f.kind === "referral" && f.verified !== true) { dropped.push({ fact: f.fact, reason: "unverified_referral_claim" }); continue; }
+      usable.push(f);
+    }
+    return { usable, dropped };
+  }
+
+  return { isQuarantined, isTrusted, trustedFacts, trustedProfile, trustedFactById, trustedContactFacts, QUARANTINE_STATUSES: [...QUARANTINE_STATUSES] };
+})();
+
+if (typeof module !== "undefined" && module.exports) module.exports = CareerTrustedFacts;
+
 /* Career tailoring + truth audit (Doc 2 §3, §3.5, §4.2, S8; capabilities
    APPL-001, APPL-002, APPE-002, APPE-003, APPE-004).
    Pipeline (Doc 2 §3.1): parse the JD (must-have vs nice-to-have, level,
@@ -22012,6 +22101,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerProf
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   // CA-02 document renderer (148) is loaded lazily, only when render()
   // runs — same global-or-require pattern as Profile above.
   let _renderMod;
@@ -22315,7 +22405,7 @@ const CareerTailor = (() => {
   }
   function selectFacts(profile, jd, opts) {
     const o = opts || {};
-    const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
+    const pool = Trusted.trustedFacts(profile).filter((f) => f.kind !== "skill");
     const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
     // Posting-driven selection (Lane B depth, Crew B Cycle 2): the old
     // rule returned the top-(limit) of the WHOLE pool for every posting;
@@ -22432,7 +22522,7 @@ const CareerTailor = (() => {
   }
   function provenSkills(profile, jd) {
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
-    const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
+    const all = Trusted.trustedFacts(profile, { kind: "skill" });
     const byName = new Map();
     for (const f of all) {
       for (const name of derivedSkillNames(f)) {
@@ -22459,7 +22549,7 @@ const CareerTailor = (() => {
   function nonSkillSkillRows(profile, jd) {
     const wanted = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => s.toLowerCase()));
     const byName = new Map();
-    for (const f of Profile.confirmedFacts(profile)) {
+    for (const f of Trusted.trustedFacts(profile)) {
       if (f.kind === "skill") continue;
       for (const name of factEvidencedSkillNames(f)) {
         const key = name.toLowerCase();
@@ -22578,9 +22668,9 @@ const CareerTailor = (() => {
     // user's own record, so invention stays 0 by construction — a
     // name from neither prose nor any skills[] list still never
     // prints (the guard in tests/career-tailor-depth2.test.cjs).
-    const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
+    const nameCorpus = Trusted.trustedFacts(profile).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
     const attestedListed = new Set();
-    for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
+    for (const f of Trusted.trustedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
     const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProvenAll = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
     // Posting-family scope (iteration lane, BUG-273): both row
@@ -22730,7 +22820,7 @@ const CareerTailor = (() => {
       for (const skill of skillsInText(text)) {
         const ev = Profile.skillEvidence(profile, skill);
         const nm = skill.toLowerCase();
-        const proven = ev.proven || (profile.facts || []).some((f) => factEvidencesSkill(f, nm));
+        const proven = ev.proven || Trusted.trustedFacts(profile).some((f) => factEvidencesSkill(f, nm));
         const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill || factEvidencesSkill(Profile.getFact(profile, id), nm));
         const inSupport = supportText.includes(nm) && proven;
         if (!proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
@@ -22933,7 +23023,7 @@ const CareerTailor = (() => {
   const gapFactNegatesCredential = (f) => /does not hold|doesn't hold|has not (yet )?(passed|obtained|earned)|not yet (passed|obtained|earned)|no (active |valid |current )?[a-z ]{0,24}licen[cs]e|unlicensed|not licensed/i.test(gapFactCorpus(f));
   function credentialSatisfied(tokens, profile) {
     if (!tokens.length) return null;
-    const facts = Profile.confirmedFacts(profile);
+    const facts = Trusted.trustedFacts(profile);
     const hasAll = (text) => tokens.every((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
     const usable = facts.filter((f) => !gapFactInProgress(f) && !gapFactNegatesCredential(f));
     for (const f of usable) if (f.kind === "certification" && hasAll(gapFactCorpus(f))) return true;
@@ -22960,12 +23050,12 @@ const CareerTailor = (() => {
   }
   function degreeSatisfied(level, profile) {
     const want = level || "bachelor";
-    const held = Profile.confirmedFacts(profile).map(degreeLevelOfFact).filter(Boolean);
+    const held = Trusted.trustedFacts(profile).map(degreeLevelOfFact).filter(Boolean);
     if (want === "jd") return held.includes("jd");
     return held.some((h) => DEGREE_RANK[h] >= (DEGREE_RANK[want] || 2));
   }
   function evidencedFullTimeYears(profile) {
-    const facts = (profile && profile.facts) || [];
+    const facts = Trusted.trustedFacts(profile);
     let months = 0, any = false;
     const now = new Date();
     const nowMonths = now.getFullYear() * 12 + now.getMonth();
@@ -23000,7 +23090,7 @@ const CareerTailor = (() => {
     const unprovenNames = new Map();
     for (const s of skillRows) if (!s.proven && !unprovenNames.has(s.name.toLowerCase())) unprovenNames.set(s.name.toLowerCase(), s);
     const factEvNames = new Set();
-    for (const f of Profile.confirmedFacts(profile)) if (f.kind !== "skill") for (const n of factEvidencedSkillNames(f)) factEvNames.add(n.toLowerCase());
+    for (const f of Trusted.trustedFacts(profile)) if (f.kind !== "skill") for (const n of factEvidencedSkillNames(f)) factEvNames.add(n.toLowerCase());
     const skillSatisfied = (name) => provenNames.has(name.toLowerCase()) || factEvNames.has(name.toLowerCase());
     // Knockouts first — a failed knockout is an eligibility fact, stated
     // with the posting's own requirement text and evidence sentence.
@@ -23157,6 +23247,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTail
    scraping or automation of any kind (user-owned export data only); suppression is shared cross-user
    (only the opt-out fact is shared, campaign data stays per-user) and a suppression failure is severity-1. */
 const CareerOutreach = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   "use strict";
   // COMPLEXITY WAVE (BUG-174): the firm sets load LAZILY — in the
   // shipped bundle the require below cannot see the repo's data
@@ -23846,7 +23937,7 @@ const CareerOutreach = (() => {
   }
   function determineTier(c, profile) {
     profile = profile || {}; const rel = norm(c.relationship_to_user);
-    const facts = c.personalization_facts || [];
+    const facts = Trusted.trustedContactFacts(c).usable;
     if (/mutual/.test(rel) || facts.some((f) => f.kind === "referral" && f.verified === true)) return "A";
     if (/club|team/.test(rel) && profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "A";
     if (facts.some((f) => f.strength === "strong" && !isGenericFact(f.fact))) return "A";
@@ -23994,9 +24085,7 @@ const CareerOutreach = (() => {
     const tier = opts.tier || determineTier(c, user);
     const structure = STRUCTURES[(opts.structureIndex != null ? opts.structureIndex : tier === "A" ? 0 : tier === "B" ? 1 : 3) % STRUCTURES.length];
     const first = (c.full_name || "").split(/\s+/)[0] || "there";
-    const facts = (c.personalization_facts || []).filter((f) => f && f.fact && f.source_url);
-    const dropped = [];
-    const usable = facts.filter((f) => { if (f.kind === "referral" && f.verified !== true) { dropped.push({ fact: f.fact, reason: "unverified_referral_claim" }); return false; } return true; });
+    const { usable, dropped } = Trusted.trustedContactFacts(c);
     for (const extra of opts.extraLines || []) if (!extra.source_url) dropped.push({ fact: extra.fact || extra.text || "", reason: "unsourced_extra_line" });
     const strong = usable.find((f) => f.strength === "strong") || usable[0] || null;
     const why = []; const lines = [];
@@ -24740,7 +24829,7 @@ const CareerOutreach = (() => {
   }
   function prepBrief(input) {
     input = input || {}; const cir = input.cir || {}; const c = normalizeCandidate(input.contact || {});
-    const facts = (c.personalization_facts || []).map((f) => f.fact);
+    const facts = Trusted.trustedContactFacts(c).usable.map((f) => f.fact);
     return { who: `${c.full_name}${c.title ? `, ${c.title}` : ""}${c.current_firm ? ` at ${c.current_firm}` : ""}`,
       path: cir.path || facts[0] || `${c.title || "Role"} at ${c.current_firm}`,
       talking_points: (cir.talking_points || cir.talkingPoints || [facts[0], facts[1], input.user_goal || input.goal]).filter(Boolean).slice(0, 3),
@@ -26701,6 +26790,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTrac
      voiceMockAvailability()           honest capability report for SC-174
 */
 const CareerPrep = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
@@ -26759,7 +26849,7 @@ const CareerPrep = (() => {
   // never invented to fill the field.
   function storyMapping(opts) {
     let stories = opts.stories || null;
-    if (!stories && (opts.facts || (opts.profile && opts.profile.facts))) stories = mineStories(opts.facts || opts.profile.facts);
+    if (!stories && (opts.facts || (opts.profile && opts.profile.facts))) stories = mineStories(opts.facts || Trusted.trustedFacts(opts.profile));
     if (!stories || !stories.length) {
       return { story_map: [], stories_mapped: [], no_fit_statement: true,
         stories_note: "No user stories were supplied with this brief, so no story is mapped to its questions — an explicit no-fit, not an omission: pass the story bank (or profile facts) and the mapping is computed from them. No story was invented." };
@@ -26789,10 +26879,10 @@ const CareerPrep = (() => {
     // what 142 passed. The third argument is now threaded through.
     if (postingArg && typeof postingArg === "object" && opts && typeof opts === "object"
       && !opts.cir && !opts.jdText && opts.company == null && (opts.facts || opts.basics || opts.id)) {
-      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "", cir: cirArg || undefined };
+      opts = { profile: opts, facts: Trusted.trustedFacts(opts), company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "", cir: cirArg || undefined };
     }
     opts = opts || {};
-    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: opts.profile.facts };
+    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: Trusted.trustedFacts(opts.profile) };
     const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
     const n = normalizeCir(opts.cir);
     const jdKw = jdKeywords(opts.jdText);
@@ -26861,7 +26951,7 @@ const CareerPrep = (() => {
     if (Array.isArray(input)) facts = input;
     else if (input && Array.isArray(input.stories)) existing = input.stories;
     else if (input && Array.isArray(input.facts)) facts = input.facts;
-    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = input.profile.facts;
+    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = Trusted.trustedFacts(input.profile);
     const stories = existing || (facts ? mineStories(facts) : []);
     return { kind: "star_bank", stories, count: stories.length,
       note: stories.length
@@ -27763,7 +27853,8 @@ const CareerPrep = (() => {
     opts = opts || {};
     // Facts arrive as opts.facts, opts.profile.facts, a bare facts array, or
     // a whole 122 profile (the chat router passes the profile itself).
-    const facts = opts.facts || (opts.profile && opts.profile.facts) || (Array.isArray(opts) ? opts : []);
+    const asProfile = opts.profile || (Array.isArray(opts.facts) && (opts.basics || opts.id || opts.constraints) ? opts : null);
+    const facts = Array.isArray(opts) ? opts : (asProfile ? Trusted.trustedFacts(asProfile) : (opts.facts || []));
     const hit = facts.find((f) => /\b(fail|failure|setback|missed|broke|broken|rejected|rejection|lost|delay|delayed|dropped|mistake|wrong)\b/i.test([f.title, f.text, f.action, f.result].join(" ")));
     if (!hit) return { status: "NO_SETBACK_FACT", ok: false, story: null, beats: [], ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
     const story = { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") };
@@ -28331,6 +28422,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerOS;
      caller swaps its candidate pipeline output in unchanged.
    Pure: no I/O, no network, no clock except values passed in. UMD. */
 const CareerApply = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const DAILY_CAP = 15;
   const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -28375,7 +28467,7 @@ const CareerApply = (() => {
 
   // ---------- current-employer guard (APPE-008) ----------
   function profileEmployers(profile) {
-    return ((profile && profile.facts) || []).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
+    return Trusted.trustedFacts(profile).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
   }
   function checkCurrentEmployer(profile, company) {
     const hit = profileEmployers(profile).find((e) => norm(e.org) === norm(company));
@@ -28407,7 +28499,7 @@ const CareerApply = (() => {
   // The saved sponsorship answer, derived ONLY from profile constraints/facts.
   function savedSponsorshipAnswer(profile) {
     const c = (profile && profile.constraints) || {};
-    const factText = ((profile && profile.facts) || []).map((f) => f.text || "").join(" ");
+    const factText = Trusted.trustedFacts(profile).map((f) => f.text || "").join(" ");
     if (c.needsSponsorship) {
       if (/F-1 OPT then H-1B/.test(factText) || /F-1/.test(String(c.workAuthorization || ""))) return "Yes — F-1 OPT then H-1B.";
       return "Yes — I will require sponsorship.";
@@ -28449,10 +28541,10 @@ const CareerApply = (() => {
 
   // ---------- knockout honesty (Doc 2 §5.3) ----------
   function yearsForSkill(profile, skill) {
-    const facts = (profile && profile.facts) || [];
+    const facts = Trusted.trustedFacts(profile);
     const sk = facts.find((f) => f.kind === "skill" && norm(f.name || f.title) === norm(skill));
     if (!sk) return 0;
-    const ev = require("./122-career-profile.js").skillEvidence(profile, skill);
+    const ev = require("./122-career-profile.js").skillEvidence(Trusted.trustedProfile(profile), skill);
     if (!ev.proven) return 0;
     // Conservative: one internship/project cycle counts as 1 year unless the
     // supporting facts carry explicit start/end spans summing higher.
@@ -28783,6 +28875,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerDisc
 const CareerPackets = (() => {
   const Access = typeof CareerAccess !== "undefined" ? CareerAccess : require("./120-career-access.js");
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : require("./123-career-tailor.js");
   const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -28811,7 +28904,7 @@ const CareerPackets = (() => {
   // ---- SC-084: current-employer refusal ----
   function currentEmployerCheck(profile, company) {
     const target = norm(company);
-    const hits = Profile.confirmedFacts(profile).filter((f) => (f.kind === "experience") && f.org && norm(f.org) === target);
+    const hits = Trusted.trustedFacts(profile).filter((f) => (f.kind === "experience") && f.org && norm(f.org) === target);
     // Only a CURRENT role counts: no end date, or an end date in the future.
     const now = Date.now();
     const current = hits.filter((f) => !f.end || Date.parse(`${f.end}-01T00:00:00Z`) >= now);
@@ -28885,7 +28978,7 @@ const CareerPackets = (() => {
   function gapCallout(profile, cir, fit) {
     const cirT = cirForTailor(cir);
     const gaps = [];
-    const profSkills = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation && !f.unproven).map((f) => f.name.toLowerCase());
+    const profSkills = Trusted.trustedFacts(profile, { kind: "skill" }).filter((f) => !f.unproven).map((f) => f.name.toLowerCase());
     for (const f of (cirT ? cirT.facts : [])) for (const s of Tailor.skillsInText(f.text)) if (!profSkills.includes(s.toLowerCase())) gaps.push({ skill: s, cirFact: f.text });
     const seen = new Set(); const uniq = gaps.filter((g) => !seen.has(g.skill) && seen.add(g.skill));
     return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No skill gap named in this company's file against your proven skills.", proceedIsUserCall: true };
@@ -28923,7 +29016,7 @@ const CareerPackets = (() => {
 
   // ---- SC-096: med-school essay packet from real experiences only ----
   function medEssayPacket(profile, prompts) {
-    const facts = Profile.confirmedFacts(profile).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
+    const facts = Trusted.trustedFacts(profile).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
     if (!facts.length) return { ok: false, reason: "no confirmed clinical/research/service facts — essays are never invented" };
     return { ok: true, essays: (prompts || ["Personal statement"]).map((prompt) => ({ prompt, outline: facts.map((f) => ({ point: f.text, factId: f.id })), instruction: "Outline + your real experiences, fact-cited. You write the essay prose — every claim traces to the cited fact." })) };
   }
@@ -48473,6 +48566,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
   const ATS_HOSTS = [
@@ -48680,7 +48774,8 @@ const CareerPortalApply = (() => {
     if (!bank || !Array.isArray(bank.facts)) return out;
     const nowMs = tsMs(now);
     const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
-    const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
+    const view = Trusted.trustedProfile(bank);
+    const byKindName = (kind, nameRe) => view.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
     const put = (key, value, factId, how) => {
       out.answers[key] = { value, confirmed: true, factId };
       out.traces[key] = { factId, how };
@@ -48723,7 +48818,7 @@ const CareerPortalApply = (() => {
       if (first) { out.profileFields.preferred_name = first; out.traces.preferred_name = { factId: "basics.name", how: "first token of the bank's full name (no separate preferred-name fact on file)" }; }
     }
     // education facts (F-001 shape): the level token + the education block
-    const edu = bank.facts.find((f) => f.kind === "education");
+    const edu = view.facts.find((f) => f.kind === "education");
     if (confirmed(edu)) {
       const degreeText = [edu.title || "", edu.text || ""].join(" ");
       const lvl = DEGREE_LEVELS.find((d) => d.re.test(degreeText));
@@ -48739,7 +48834,7 @@ const CareerPortalApply = (() => {
       if (Object.keys(block).length) { out.profileFields.education = block; out.traces.education = { factId: edu.id, how: "education block from the education fact's structured fields" }; }
     }
     // experience facts: the span answers duration questions (F-002.. shape)
-    const exps = bank.facts.filter((f) => f.kind === "experience" && confirmed(f) && f.start);
+    const exps = view.facts.filter((f) => f.kind === "experience" && confirmed(f) && f.start);
     if (exps.length) {
       const earliest = exps.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
       const months = monthsBetween(earliest.start, nowMs);

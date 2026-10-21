@@ -13,6 +13,7 @@
 const CareerPackets = (() => {
   const Access = typeof CareerAccess !== "undefined" ? CareerAccess : require("./120-career-access.js");
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : require("./123-career-tailor.js");
   const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -41,7 +42,7 @@ const CareerPackets = (() => {
   // ---- SC-084: current-employer refusal ----
   function currentEmployerCheck(profile, company) {
     const target = norm(company);
-    const hits = Profile.confirmedFacts(profile).filter((f) => (f.kind === "experience") && f.org && norm(f.org) === target);
+    const hits = Trusted.trustedFacts(profile).filter((f) => (f.kind === "experience") && f.org && norm(f.org) === target);
     // Only a CURRENT role counts: no end date, or an end date in the future.
     const now = Date.now();
     const current = hits.filter((f) => !f.end || Date.parse(`${f.end}-01T00:00:00Z`) >= now);
@@ -115,7 +116,7 @@ const CareerPackets = (() => {
   function gapCallout(profile, cir, fit) {
     const cirT = cirForTailor(cir);
     const gaps = [];
-    const profSkills = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation && !f.unproven).map((f) => f.name.toLowerCase());
+    const profSkills = Trusted.trustedFacts(profile, { kind: "skill" }).filter((f) => !f.unproven).map((f) => f.name.toLowerCase());
     for (const f of (cirT ? cirT.facts : [])) for (const s of Tailor.skillsInText(f.text)) if (!profSkills.includes(s.toLowerCase())) gaps.push({ skill: s, cirFact: f.text });
     const seen = new Set(); const uniq = gaps.filter((g) => !seen.has(g.skill) && seen.add(g.skill));
     return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No skill gap named in this company's file against your proven skills.", proceedIsUserCall: true };
@@ -153,7 +154,7 @@ const CareerPackets = (() => {
 
   // ---- SC-096: med-school essay packet from real experiences only ----
   function medEssayPacket(profile, prompts) {
-    const facts = Profile.confirmedFacts(profile).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
+    const facts = Trusted.trustedFacts(profile).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
     if (!facts.length) return { ok: false, reason: "no confirmed clinical/research/service facts — essays are never invented" };
     return { ok: true, essays: (prompts || ["Personal statement"]).map((prompt) => ({ prompt, outline: facts.map((f) => ({ point: f.text, factId: f.id })), instruction: "Outline + your real experiences, fact-cited. You write the essay prose — every claim traces to the cited fact." })) };
   }

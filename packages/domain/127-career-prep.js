@@ -53,6 +53,7 @@
      voiceMockAvailability()           honest capability report for SC-174
 */
 const CareerPrep = (() => {
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
@@ -111,7 +112,7 @@ const CareerPrep = (() => {
   // never invented to fill the field.
   function storyMapping(opts) {
     let stories = opts.stories || null;
-    if (!stories && (opts.facts || (opts.profile && opts.profile.facts))) stories = mineStories(opts.facts || opts.profile.facts);
+    if (!stories && (opts.facts || (opts.profile && opts.profile.facts))) stories = mineStories(opts.facts || Trusted.trustedFacts(opts.profile));
     if (!stories || !stories.length) {
       return { story_map: [], stories_mapped: [], no_fit_statement: true,
         stories_note: "No user stories were supplied with this brief, so no story is mapped to its questions — an explicit no-fit, not an omission: pass the story bank (or profile facts) and the mapping is computed from them. No story was invented." };
@@ -141,10 +142,10 @@ const CareerPrep = (() => {
     // what 142 passed. The third argument is now threaded through.
     if (postingArg && typeof postingArg === "object" && opts && typeof opts === "object"
       && !opts.cir && !opts.jdText && opts.company == null && (opts.facts || opts.basics || opts.id)) {
-      opts = { profile: opts, facts: opts.facts, company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "", cir: cirArg || undefined };
+      opts = { profile: opts, facts: Trusted.trustedFacts(opts), company: postingArg.company || "", role: postingArg.title || postingArg.role || "", jdText: postingArg.jdText || "", cir: cirArg || undefined };
     }
     opts = opts || {};
-    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: opts.profile.facts };
+    if (!opts.facts && opts.profile && opts.profile.facts) opts = { ...opts, facts: Trusted.trustedFacts(opts.profile) };
     const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
     const n = normalizeCir(opts.cir);
     const jdKw = jdKeywords(opts.jdText);
@@ -213,7 +214,7 @@ const CareerPrep = (() => {
     if (Array.isArray(input)) facts = input;
     else if (input && Array.isArray(input.stories)) existing = input.stories;
     else if (input && Array.isArray(input.facts)) facts = input.facts;
-    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = input.profile.facts;
+    else if (input && input.profile && Array.isArray(input.profile.facts)) facts = Trusted.trustedFacts(input.profile);
     const stories = existing || (facts ? mineStories(facts) : []);
     return { kind: "star_bank", stories, count: stories.length,
       note: stories.length
@@ -1115,7 +1116,8 @@ const CareerPrep = (() => {
     opts = opts || {};
     // Facts arrive as opts.facts, opts.profile.facts, a bare facts array, or
     // a whole 122 profile (the chat router passes the profile itself).
-    const facts = opts.facts || (opts.profile && opts.profile.facts) || (Array.isArray(opts) ? opts : []);
+    const asProfile = opts.profile || (Array.isArray(opts.facts) && (opts.basics || opts.id || opts.constraints) ? opts : null);
+    const facts = Array.isArray(opts) ? opts : (asProfile ? Trusted.trustedFacts(asProfile) : (opts.facts || []));
     const hit = facts.find((f) => /\b(fail|failure|setback|missed|broke|broken|rejected|rejection|lost|delay|delayed|dropped|mistake|wrong)\b/i.test([f.title, f.text, f.action, f.result].join(" ")));
     if (!hit) return { status: "NO_SETBACK_FACT", ok: false, story: null, beats: [], ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
     const story = { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") };

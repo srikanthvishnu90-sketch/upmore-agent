@@ -33,6 +33,7 @@
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Trusted = typeof CareerTrustedFacts !== "undefined" ? CareerTrustedFacts : require("./167-career-trusted-facts.js");
   // CA-02 document renderer (148) is loaded lazily, only when render()
   // runs — same global-or-require pattern as Profile above.
   let _renderMod;
@@ -336,7 +337,7 @@ const CareerTailor = (() => {
   }
   function selectFacts(profile, jd, opts) {
     const o = opts || {};
-    const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
+    const pool = Trusted.trustedFacts(profile).filter((f) => f.kind !== "skill");
     const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
     // Posting-driven selection (Lane B depth, Crew B Cycle 2): the old
     // rule returned the top-(limit) of the WHOLE pool for every posting;
@@ -453,7 +454,7 @@ const CareerTailor = (() => {
   }
   function provenSkills(profile, jd) {
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
-    const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
+    const all = Trusted.trustedFacts(profile, { kind: "skill" });
     const byName = new Map();
     for (const f of all) {
       for (const name of derivedSkillNames(f)) {
@@ -480,7 +481,7 @@ const CareerTailor = (() => {
   function nonSkillSkillRows(profile, jd) {
     const wanted = new Set([...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])].map((s) => s.toLowerCase()));
     const byName = new Map();
-    for (const f of Profile.confirmedFacts(profile)) {
+    for (const f of Trusted.trustedFacts(profile)) {
       if (f.kind === "skill") continue;
       for (const name of factEvidencedSkillNames(f)) {
         const key = name.toLowerCase();
@@ -599,9 +600,9 @@ const CareerTailor = (() => {
     // user's own record, so invention stays 0 by construction — a
     // name from neither prose nor any skills[] list still never
     // prints (the guard in tests/career-tailor-depth2.test.cjs).
-    const nameCorpus = (profile.facts || []).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
+    const nameCorpus = Trusted.trustedFacts(profile).map((f) => `${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")} ${f.org || ""}`).join(" ").toLowerCase();
     const attestedListed = new Set();
-    for (const f of Profile.confirmedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
+    for (const f of Trusted.trustedFacts(profile)) for (const s of f.skills || []) attestedListed.add(canonicalSkill(s).toLowerCase());
     const nameSafe = (name) => attestedListed.has(canonicalSkill(name).toLowerCase()) || String(name).split(/\s+/).every((w) => { const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, ""); return clean.length < 2 || nameCorpus.includes(clean.toLowerCase()); });
     const skillsProvenAll = [...skillRowByName.values()].filter((s) => nameSafe(s.name));
     // Posting-family scope (iteration lane, BUG-273): both row
@@ -751,7 +752,7 @@ const CareerTailor = (() => {
       for (const skill of skillsInText(text)) {
         const ev = Profile.skillEvidence(profile, skill);
         const nm = skill.toLowerCase();
-        const proven = ev.proven || (profile.facts || []).some((f) => factEvidencesSkill(f, nm));
+        const proven = ev.proven || Trusted.trustedFacts(profile).some((f) => factEvidencesSkill(f, nm));
         const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill || factEvidencesSkill(Profile.getFact(profile, id), nm));
         const inSupport = supportText.includes(nm) && proven;
         if (!proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
@@ -954,7 +955,7 @@ const CareerTailor = (() => {
   const gapFactNegatesCredential = (f) => /does not hold|doesn't hold|has not (yet )?(passed|obtained|earned)|not yet (passed|obtained|earned)|no (active |valid |current )?[a-z ]{0,24}licen[cs]e|unlicensed|not licensed/i.test(gapFactCorpus(f));
   function credentialSatisfied(tokens, profile) {
     if (!tokens.length) return null;
-    const facts = Profile.confirmedFacts(profile);
+    const facts = Trusted.trustedFacts(profile);
     const hasAll = (text) => tokens.every((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
     const usable = facts.filter((f) => !gapFactInProgress(f) && !gapFactNegatesCredential(f));
     for (const f of usable) if (f.kind === "certification" && hasAll(gapFactCorpus(f))) return true;
@@ -981,12 +982,12 @@ const CareerTailor = (() => {
   }
   function degreeSatisfied(level, profile) {
     const want = level || "bachelor";
-    const held = Profile.confirmedFacts(profile).map(degreeLevelOfFact).filter(Boolean);
+    const held = Trusted.trustedFacts(profile).map(degreeLevelOfFact).filter(Boolean);
     if (want === "jd") return held.includes("jd");
     return held.some((h) => DEGREE_RANK[h] >= (DEGREE_RANK[want] || 2));
   }
   function evidencedFullTimeYears(profile) {
-    const facts = (profile && profile.facts) || [];
+    const facts = Trusted.trustedFacts(profile);
     let months = 0, any = false;
     const now = new Date();
     const nowMonths = now.getFullYear() * 12 + now.getMonth();
@@ -1021,7 +1022,7 @@ const CareerTailor = (() => {
     const unprovenNames = new Map();
     for (const s of skillRows) if (!s.proven && !unprovenNames.has(s.name.toLowerCase())) unprovenNames.set(s.name.toLowerCase(), s);
     const factEvNames = new Set();
-    for (const f of Profile.confirmedFacts(profile)) if (f.kind !== "skill") for (const n of factEvidencedSkillNames(f)) factEvNames.add(n.toLowerCase());
+    for (const f of Trusted.trustedFacts(profile)) if (f.kind !== "skill") for (const n of factEvidencedSkillNames(f)) factEvNames.add(n.toLowerCase());
     const skillSatisfied = (name) => provenNames.has(name.toLowerCase()) || factEvNames.has(name.toLowerCase());
     // Knockouts first — a failed knockout is an eligibility fact, stated
     // with the posting's own requirement text and evidence sentence.

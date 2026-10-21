@@ -82,6 +82,22 @@ Deno.test("live meter: a failed concurrent crossing cannot release a request on 
   await refuses(() => pending); await refuses(() => f.meter.beforeDispatch());
   assert(paid === 0 && publications === 3 && recoverJournal(f.raw()).reserved_micros === 1000);
 });
+Deno.test("live meter: unknown settlement poisons the atomic request boundary at every microtask interleaving", async () => {
+  const escaped: number[] = [];
+  for (let depth = 0; depth < 32; depth++) {
+    const f = fixture(); const pendingCall = f.reserve(1000); let unknown = false, dispatchedAfterUnknown = false;
+    const pending = f.meter.wrapRequest((async () => { if (unknown) dispatchedAfterUnknown = true; return new Response("{}"); }) as typeof fetch)("https://provider.example.test").catch(() => null);
+    for (let i = 0; i < depth; i++) await Promise.resolve();
+    unknown = true; pendingCall.settle(null); await pending;
+    if (dispatchedAfterUnknown) escaped.push(depth);
+  }
+  assert(escaped.length === 0, "provider dispatch escaped a concurrent unknown-charge halt at depths " + escaped.join(","));
+});
+Deno.test("live meter: no provider request can dispatch without a retained budget reservation", async () => {
+  const f = fixture(); let dispatched = 0;
+  await refuses(() => f.meter.wrapRequest((async () => { dispatched++; return new Response("{}"); }) as typeof fetch)("https://provider.example.test"));
+  assert(dispatched === 0);
+});
 Deno.test("live meter: publication failure poisons every future dispatch and preserves reservation", async () => {
   let paid = 0, publishes = 0; const f = fixture(async () => { publishes++; throw new Error(SECRET + TOKEN); }); f.reserve(20000);
   const request = f.meter.wrapRequest((async () => { paid++; return new Response("{}"); }) as typeof fetch);

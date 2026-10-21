@@ -163,6 +163,9 @@ export class LiveCostMeter {
         await this.beforeDispatch();
         // Check and dispatch in the same continuation: another settlement may have run between
         // beforeDispatch resolving and this request resuming. Never pass an unacknowledged crossing.
+        const p = this.progress;
+        require(!this.failed && p.status === "RUNNING" && p.unknown_charges === 0 && p.unsettled_calls !== null && p.unsettled_calls > 0 &&
+          p.known_cost_usd !== null && p.held_reservations_usd !== null && micros(p.known_cost_usd) + micros(p.held_reservations_usd) <= micros(this.binding.cap_usd));
         if (this.publishedSequence === this.sequence) return await request(...args);
       }
     }) as typeof fetch;

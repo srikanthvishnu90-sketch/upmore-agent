@@ -41,6 +41,7 @@ async function panel() {
       if (m.type === "status") return structuredClone(__state);
       if (m.type === "signout") __state.signedIn = false;
       if (m.type === "import-facts" && __importResult.ok) __state.importedFacts = Object.keys(JSON.parse(m.json).answers || {}).length;
+      if (m.type === "import-facts" && globalThis.__loseImportReply) { globalThis.__loseImportReply = false; throw Error("Synthetic reply lost after storage"); }
       return structuredClone(__importResult);
     } }, storage: { onChanged: { addListener(fn) { globalThis.__storageChange = fn; } } }, tabs: { query: async () => [{ id: 1 }], onActivated: listener, onUpdated: listener } };
   });
@@ -140,5 +141,19 @@ test("fact import panel: full imported text is displayed as data rather than exe
     assert.ok((await row(f.page).innerText()).includes(data.answers.note.value));
     assert.equal(await row(f.page).locator("img").count(), 0); assert.equal(await f.page.evaluate(() => globalThis.SYNTHETIC_EXECUTED === true), false);
     assert.equal(f.networkAttempts(), 0);
+  } finally { await f.close(); }
+});
+
+test("fact import panel: a lost import reply permits only an exact retry before another row replaces session data", async () => {
+  const f = await panel(); try {
+    await choose(f.page); await f.page.evaluate(() => { globalThis.__loseImportReply = true; });
+    await row(f.page).locator("button").click();
+    await f.page.waitForFunction(() => document.getElementById("fact-import-msg").textContent.includes("could not be confirmed"));
+    assert.equal(await row(f.page).getAttribute("data-state"), "draft", "a missing reply was counted as confirmed");
+    assert.equal(await row(f.page, 1).locator("button").isDisabled(), true, "another row could replace a possibly committed answer before reconciliation");
+    await row(f.page).locator("button").click(); await row(f.page).locator('[data-import-state="confirmed"]').waitFor();
+    const calls = await imports(f.page);
+    assert.equal(calls[0].json, calls[1].json, "reconciliation changed the exact reviewed payload");
+    assert.equal(await row(f.page, 1).locator("button").isEnabled(), true);
   } finally { await f.close(); }
 });

@@ -462,8 +462,8 @@ function renderFactImport() {
       li.append(done);
     } else {
       const button = document.createElement("button");
-      button.textContent = "Confirm this answer";
-      button.disabled = preview.busy;
+      button.textContent = preview.uncertain === index ? "Retry this exact answer" : "Confirm this answer";
+      button.disabled = preview.busy || (preview.uncertain !== undefined && preview.uncertain !== index);
       button.onclick = (e) => confirmImportedAnswer(e, preview, index);
       li.append(button);
     }
@@ -471,7 +471,7 @@ function renderFactImport() {
   });
 }
 async function confirmImportedAnswer(e, preview, index) {
-  if (!e.isTrusted || factImport !== preview || preview.busy || preview.confirmed.has(index)) return;
+  if (!e.isTrusted || factImport !== preview || preview.busy || preview.confirmed.has(index) || (preview.uncertain !== undefined && preview.uncertain !== index)) return;
   preview.busy = true;
   renderFactImport();
   try {
@@ -488,10 +488,16 @@ async function confirmImportedAnswer(e, preview, index) {
     if (factImport !== preview) return;
     if (!r?.ok) { text($("fact-import-msg"), r?.message || "The answer was not imported. Try again.", true); return; }
     preview.confirmed = confirmed;
+    delete preview.uncertain;
     text($("fact-import-msg"), `${confirmed.size} answer${confirmed.size === 1 ? "" : "s"} confirmed for this browser session. No application was approved.`);
     render();
   } catch {
-    if (factImport === preview) text($("fact-import-msg"), "The import could not be confirmed. Check this browser's imported-answer count before trying again.", true);
+    if (factImport === preview) {
+      // The write may have landed before its reply was lost. Replacing the file with a different subset now could
+      // silently drop that answer; the same reviewed payload is safe to retry because this API replaces session data.
+      preview.uncertain = index;
+      text($("fact-import-msg"), "The import could not be confirmed. Retry this exact answer before confirming another.", true);
+    }
   } finally {
     preview.busy = false;
     if (factImport === preview) renderFactImport();

@@ -1,4 +1,4 @@
-// Connector double opt-in state machine (157). Check: node --test tests/career-connector-match.test.cjs
+// Connector double opt-in state machine (158). Check: node --test tests/career-connector-match.test.cjs
 // Lane B package 2 of 4: pure state machine — consent comes from the injected
 // isConsented predicate (package 1 owns the consent model); the intro composer
 // (package 4) consumes the single intro_unlocked event. This file is the
@@ -7,7 +7,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
-const M = require(path.join(root, "packages/domain/157-career-connector-match.js"));
+const M = require(path.join(root, "packages/domain/158-career-connector-match.js"));
 
 const T0 = 1_800_000_000_000; // fixed clock base — deterministic tests
 function harness(consentedIds, startAt = T0) {

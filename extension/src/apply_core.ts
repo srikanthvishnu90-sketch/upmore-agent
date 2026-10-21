@@ -13,7 +13,7 @@ import { howHeardChannel } from "../../supabase/functions/_shared/answer_options
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
 import { rowAnswerKey, rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
-import { quarantinedFact as sharedQuarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
+import { factDependencies, quarantinedFact as sharedQuarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -625,9 +625,9 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
     changed = false;
     const ids = new Set(live.map((c) => String(c.a.factId)));
     live = live.filter((c) => {
-      const from = Array.isArray(c.a.derived_from) ? c.a.derived_from.map(String) : [];
-      if (from.every((x: string) => ids.has(x))) return true;
-      excluded.push({ key: c.key, factId: String(c.a.factId), why: "derived from an excluded or unknown fact" });
+      const from = factDependencies(c.a);
+      if (from !== null && from.every((x: string) => ids.has(x))) return true;
+      excluded.push({ key: c.key, factId: String(c.a.factId), why: from === null ? "malformed dependency metadata" : "derived from an excluded or unknown fact" });
       changed = true;
       return false;
     });

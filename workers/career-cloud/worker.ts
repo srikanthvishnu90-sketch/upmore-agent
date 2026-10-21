@@ -16,6 +16,7 @@
 // person with its link ("finish this one yourself"), and the check counts in the telemetry, which pauses a portal or a
 // person before failures pile up under their name.
 import { factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
+import { questionsToStore } from "../career-browser/ask-once.ts";
 
 export interface CloudJob {
   id: string;
@@ -30,6 +31,9 @@ export interface CloudQueue {
   claim(limit: number): Promise<CloudJob[]>;
   resume(job: CloudJob): Promise<CloudResume | null>;
   finish(job: CloudJob, state: string, evidence: Record<string, unknown>, outcome: Outcome, errorKind: string | null): Promise<unknown>;
+  // Ask, never guess: the questions a required field with no confirmed fact raised, as the person's open questions (the
+  // rows Messages asks), for the job this worker holds the lease on (career_apply_cloud_ask). Returns how many were kept.
+  ask(job: CloudJob, questions: Record<string, unknown>[]): Promise<number>;
   gatePresent(): Promise<boolean>;
 }
 // "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
@@ -151,7 +155,21 @@ export async function runCloudJob(job: CloudJob, d: {
   } finally {
     await Deno.remove(dir, { recursive: true }).catch(() => {});
   }
-  const evidence = await evidenceOf(job, run, s, { started, finished: now() });
+  const evidence: Record<string, unknown> = await evidenceOf(job, run, s, { started, finished: now() });
+  // Ask, never guess: a stop on required fields with no confirmed fact (needs_answers) puts each one to the person as an
+  // open question, keyed as the person's computer keys it (ask-once.ts), while the lease is still held, before finish.
+  // An identity or bank number is never asked by text (NEVER_BY_TEXT); the person types it on the form.
+  if (s.reason === "needs_answers") {
+    const result = { ...(run?.result ?? {}), posting: run?.result?.posting || job.payload?.posting || job.payload?.job_id || job.url, company: run?.result?.company || job.company };
+    const { questions } = questionsToStore(result, { facts: {}, answered: new Set() });
+    evidence.asked = 0;
+    try {
+      if (questions.length) evidence.asked = await d.queue.ask(job, questions);
+    } catch (e: any) {
+      evidence.ask_error = String(e?.message ?? e).slice(0, 200);
+    }
+    if ((Array.isArray(result.questions) ? result.questions.length : 0) > questions.length) evidence.not_asked_by_text = "typed on the form (an identity or bank number), never by text";
+  }
   let recorded = false;
   for (let i = 0; i < 4 && !recorded; i++) {
     try {
@@ -268,6 +286,7 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
       return rows;
     },
     resume: (job) => rpc("career_apply_cloud_resume", { p_id: job.id, p_lease: job.lease_token }),
+    ask: (job, questions) => rpc("career_apply_cloud_ask", { p_id: job.id, p_lease: job.lease_token, p_questions: questions }),
     finish: (job, state, evidence, outcome, errorKind) =>
       rpc("career_apply_cloud_finish", { p_id: job.id, p_lease: job.lease_token, p_state: state, p_evidence: evidence, p_outcome: outcome, p_error_kind: errorKind }),
     async gatePresent() {

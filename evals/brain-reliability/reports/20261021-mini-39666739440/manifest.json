@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-21T20:32:12.246208+00:00",
+  "purpose": "Portable safe score summary and exact per-call cost ledger for the completed 320-scenario mini run.",
+  "repository": "srikanthvishnu90-sketch/upmore-agent",
+  "bundle": {
+    "branch": "wo/mini-safe-ledger-20261021",
+    "base_commit": "2267169728be49f814ffda9ca3e11f9065a0c15a",
+    "directory": "evals/brain-reliability/reports/20261021-mini-39666739440",
+    "fetch_note": "Resolve the bundle branch to its Git commit SHA and fetch all files at that SHA. Verify each payload against its SHA-256 below. The bundle commit SHA is supplied with the published handoff."
+  },
+  "artifacts": [
+    {
+      "path": "summary.json",
+      "sha256": "e647f4a331b9565f263f216a68b7c4ef9b08aba24079c3a529a26bf24140490d",
+      "size_bytes": 6974,
+      "media_type": "application/json",
+      "repository_path": "evals/brain-reliability/reports/20261021-mini-39666739440/summary.json",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/summary.json",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/summary.json"
+    },
+    {
+      "path": "call-ledger.jsonl",
+      "sha256": "ec324bd2c90198bc3bad26f0936d948612a65022e00f92eac2f4a47e4e4c582f",
+      "size_bytes": 395329,
+      "media_type": "application/x-ndjson",
+      "repository_path": "evals/brain-reliability/reports/20261021-mini-39666739440/call-ledger.jsonl",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/call-ledger.jsonl",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/call-ledger.jsonl"
+    },
+    {
+      "path": "cost-verdict.json",
+      "sha256": "ec33c07992abbac5cc7bb43afcd51d578248d4fb8671b8c0ce8d4057bcd26bd8",
+      "size_bytes": 1295,
+      "media_type": "application/json",
+      "repository_path": "evals/brain-reliability/reports/20261021-mini-39666739440/cost-verdict.json",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/cost-verdict.json",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/mini-safe-ledger-20261021/evals/brain-reliability/reports/20261021-mini-39666739440/cost-verdict.json"
+    }
+  ],
+  "provenance": {
+    "paid_run": {
+      "id": 39666739440,
+      "source_commit": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39666739440",
+      "model_work": "COMPLETE",
+      "job_outcome": "Model work completed; the final Deno aggregation step lacked await."
+    },
+    "free_recovery": {
+      "id": 39669772205,
+      "source_commit": "44ab350497df19e46d73601e347eba3b4cd2ab6c",
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39669772205",
+      "job_id": 119464253718,
+      "job_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39669772205/job/119464253718",
+      "conclusion": "SUCCESS",
+      "paid_calls": 0
+    },
+    "private_original_artifact": {
+      "id": 12379695085,
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39669772205/artifacts/12379695085",
+      "zip_sha256": "43d90f6772d8e87aeef97c3d8474a6b4d79bc2d1ff5d37776619f0831d692f28",
+      "result_sha256": "72539f4b441f29c9a35e3f68385e2d15b01cb91aca57979a7bdbe08472ddd927",
+      "access": "Private, authorized access only; private score packets are not included in this bundle."
+    },
+    "independent_qa": {
+      "verdict": "cost-verdict.json",
+      "status": "VERIFIED_SAFE_LEDGER_COST",
+      "passed_checks": 10,
+      "scope": "Reused existing independent repricing and aggregate arithmetic verification; no repricing or model run performed to publish this bundle."
+    }
+  },
+  "cost": {
+    "currency": "USD",
+    "unit": "usd_micros",
+    "total_calls": 2181,
+    "total_usd_micros": 2258950,
+    "total_usd": "2.258950",
+    "roles": {
+      "brain": {
+        "calls": 1541,
+        "usd_micros": 1960611
+      },
+      "judge": {
+        "calls": 640,
+        "usd_micros": 298339
+      }
+    },
+    "judge_models": {
+      "gpt-5-mini": {
+        "calls": 320,
+        "usd_micros": 135364
+      },
+      "gpt-4.1-mini": {
+        "calls": 320,
+        "usd_micros": 162975
+      }
+    },
+    "unsettled_calls": 0,
+    "unknown_charges": 0,
+    "unpriced_calls": 0,
+    "prior_separate_usd_micros": 139984,
+    "prior_separate_included_in_total": false,
+    "evidence_note": "Recorded model usage priced per call; this is not provider invoice reconciliation."
+  },
+  "score": {
+    "kind": "CI_INTERSECTION",
+    "planned": 320,
+    "completed": 320,
+    "full": {
+      "passed": 111,
+      "n": 320,
+      "rate": 0.346875
+    },
+    "clean": {
+      "passed": 107,
+      "n": 311,
+      "rate": 0.3440514469453376
+    },
+    "target_rate": 0.95,
+    "target_met": false,
+    "independent_owner_appointed_third_judge": "NOT_RUN",
+    "final_acceptance": "NOT_RUN: independent owner-appointed third judge required",
+    "journal_note": "The recovered_journal.score_valid=false field in summary.json applies to the recovered cost journal alone; the journal does not establish score integrity. Aggregate scores are recovered from the complete result artifact, with provenance limits stated in cost-verdict.json."
+  },
+  "budget_state_at_handoff": {
+    "higher_launch": "HELD: owner recheck required",
+    "owner_recheck_threshold_usd_micros": 2143269,
+    "over_threshold_usd_micros": 115681,
+    "pool_usd_micros": 20000000,
+    "remaining_pool_usd_micros": 17741050,
+    "remaining_pool_basis": "20 USD pool less this run only; prior separate spend excluded."
+  },
+  "privacy": {
+    "contents": "Aggregate scores, token usage, per-call local numeric ordinals, model and role labels, recorded cost, hashes and run references only.",
+    "excluded": [
+      "case IDs",
+      "prompts",
+      "replies",
+      "rubrics",
+      "private score packets",
+      "API keys"
+    ],
+    "sealed_scenario_reads_for_publication": 0
+  },
+  "publication": {
+    "paid_calls": 0,
+    "model_runs": 0,
+    "merge": false,
+    "deploy": false
+  }
+}

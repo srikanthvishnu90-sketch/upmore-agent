@@ -1,0 +1,46 @@
+{
+  "status": "VERIFIED_SAFE_LEDGER_COST",
+  "checks": {
+    "summary_sha256": true,
+    "ledger_sha256": true,
+    "all_2181_unique_calls": true,
+    "every_usage_repriced": true,
+    "exact_summary_total": true,
+    "role_totals": true,
+    "aggregate_scores_arithmetic": true,
+    "aggregate_categories_reconcile": true,
+    "no_reported_unknown_or_open": true,
+    "within_mini_cap": true
+  },
+  "errors": [],
+  "roles": {
+    "brain": {
+      "calls": 1541,
+      "micros": 1960611
+    },
+    "judge": {
+      "calls": 640,
+      "micros": 298339
+    }
+  },
+  "models": {
+    "gpt-5-mini": {
+      "calls": 1861,
+      "micros": 2095975
+    },
+    "gpt-4.1-mini": {
+      "calls": 320,
+      "micros": 162975
+    }
+  },
+  "total_usd": 2.25895,
+  "over_owner_recheck_threshold_usd": 0.115681,
+  "higher_launch": "HELD: owner recheck required",
+  "summary_score_arithmetic": {
+    "full": 0.346875,
+    "clean": 0.3440514469453376
+  },
+  "limits": "Repriced every safe-ledger call and reconciled aggregate arithmetic only. Safe export omits source identity, original reservation events and private score packets; their provenance/score integrity remains attested by recovery, not independently proven here. Not provider invoice reconciliation.",
+  "paid_calls": 0,
+  "sealed_case_reads": 0
+}

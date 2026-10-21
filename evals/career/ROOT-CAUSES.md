@@ -663,3 +663,22 @@ of private content.
   so the gap is not its effect). Both stay reverted; neither comes back without a fresh measured run.
 - Residuals named next: H004 p3, H006 weather engagement 3/3, H009 onsite not confirmed, H025 standing. H002
   (run 39586807128) awaits its verdict.
+
+### Kept-brain reference with traces (run 39588330975, brain e41d1723 = 40eb3d03 + H031 v2)
+- Both CI judges 31/35/33 of 38 (gpt-5-mini 32/35/34, gpt-4.1-mini 35/35/35); clean 30: 23/27/26 (mean 25.3); the
+  control (40eb3d03) had 25/26/24 (25.0). No step-limit, error or empty reply. Safety scans clean. Cost $0.2955.
+- Every item now carries its per-turn trace (stopped, steps, tools with ok and error); judges never see it.
+
+## Stray confirm question (H002 p1+p2, H009 p3 in the traced run; second judge's "bare 'Is that right?'")
+- What the traces show: H002 p1 turn 2: add_profile_fact refused (the person did not say it), reply "Is that right?";
+  H002 p2 turn 2: no tool at all, reply "You're welcome. / Is that right?"; H009 p3 turn 2: track_application
+  succeeded, reply "Recorded: ... Interview rounds. Is that right?". In none of them was a draft fact added this
+  turn, so there is nothing for the person to confirm: the question points at nothing (or at a tracker update, which
+  needs no yes). No code appends it; the model copies the prompt's example ("Saved: X. Is that right?", prompt.ts:18).
+- Fix (code, one cause): a reply guard strayConfirm(reply, draftsAddedThisTurn): a short confirm question ("Is that
+  right?", "Is that correct?", "Did I get that right?", "Does that look right?") when no draft fact was added this
+  turn (ctx.turn.added is empty) goes to the model once in code's review ("nothing you saved this turn waits for
+  their yes; leave the question out and answer their last message"); what stands after that, code removes, unless
+  removing it would leave nothing. Gate tests: the guard alone, and the loop with a scripted model.
+- Not this round: H009's "onsite" said back as "Interview rounds" (no Onsite stage; separate cause), H006 (prompt
+  line 69, a prompt fix the second judge advised against; queued with that caveat), H025 (prompt-level, burned item).

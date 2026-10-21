@@ -260,3 +260,12 @@ export function waiverSolicits(reply: string, refuse: (text: string) => string |
   return [...hit].filter((i) => i >= 0 && i < ps.length).sort((a, b) => a - b);
 }
 
+
+// ------------------------------------------------------------------------------------------------ stray confirm
+// WO-061 (H002, H009; traced run 39588330975): "Is that right?" is for a draft fact saved this turn. Asked when nothing
+// was (a refused save, a thank-you, a tracker update, which needs no yes), it points at nothing and the person is left
+// with a bare question instead of an answer. The caller passes this only when no draft was added this turn.
+const CONFIRM_Q = /^(?:is|does|did|was|are)\b[^?]{0,30}\b(?:right|correct|accurate)\b[^?]{0,12}\?$/i;
+export function strayConfirm(reply: string): number[] {
+  return pieces(reply).flatMap((p, i) => { const t = p.text.trim(); return CONFIRM_Q.test(t) && t.split(/\s+/).length <= 8 ? [i] : []; });
+}

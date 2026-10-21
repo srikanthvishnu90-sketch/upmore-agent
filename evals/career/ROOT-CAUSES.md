@@ -605,3 +605,24 @@ of private content.
   Covers every tool that thrashes this way, not only confirmations. Gate: a scripted model that calls
   confirm_profile_fact on every step gets the tools-off call on step 3 and its text is the reply (before: the
   step-limit text). The "Got it. / Is that right?" fragment and the plain-yes demand are other causes, not this round.
+
+### Second judge's rulings on the H031 clause and H027 rounds (recorded as posted; per-pass item lists were not posted, so no verdict files)
+- Run 39582229542 (H031 prompt clause): REVERT. Combined full-38 78.9%, clean-30 77.8% vs the baseline's 85.1/85.6.
+  H031 fails 3/3 on the strict rubric: no reply says the named resume is not on file or asks to add it (the CI
+  judges' pass was lenient, the same false pass the builder recorded). Side regressions: H004 p1; H009 onsite not
+  confirmed p2/p3; H006 weather engaged p2.
+- Run 39583493501 (H027): REVERT. Combined full-38 76.3%, clean-30 74.4%. H027 2/3 (p3 announces a plan and never
+  delivers it). H004 regressed p2; H003 fails all three passes (never names the recruiter); H026 p2 an error reply.
+  New defect: p3's H004 invents an example invite and then treats it as supplied by the person (fabricated-specifics
+  class, already queued).
+- Builder's correction to the H027 note above: "zero error replies" counted only the model-error text. H026 p2 is
+  the STEP-LIMIT text (MAX_STEPS_AFTER_SAVE_REPLY), a different failure reply. Code scan of every stored pass file
+  (70 files, 2660 items): the step-limit text appears 4 times, all in the last two runs (39583493501 p2 H026, p3 H002;
+  39584579483 p1 H002, p2 H002) and never in the 64 files before them; its wording dates from WO-002, so the count is
+  not a wording artifact. That is the H002 cause (a repeated refusal runs the turn to the step limit).
+- Pattern call (second judge): four rounds reverted in a row; the baseline is a local optimum; the next change should
+  be a real code fix, not a prompt tweak. Baseline stays 40eb3d03.
+- Open question raised by the builder, not settled: the last two runs both scored about 3 items under the baseline on
+  clean-30 with changes that could not touch most items, and the step-limit replies appeared only in them. Either
+  run-to-run variance or a shift in the provider's model behavior since the baseline run (39556113702, ~08:20). A
+  re-run of the unchanged baseline 40eb3d03 tells which; until then the 85.6 bar may be a stale reference.

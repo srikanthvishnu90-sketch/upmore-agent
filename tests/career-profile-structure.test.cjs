@@ -49,7 +49,7 @@ test("full corpus: canonical model, headline derived from the current role", () 
   assert.equal(m.education[0].gpa.text, "3.7/4.0");
   assert.equal(m.experience[0].org.value, "Example Widgets Inc"); // present end sorts first
   assert.equal(m.target.goal.value, "a data analyst internship for summer 2027");
-  assert.equal(m.provenance.reader.stub, true); // 167 has not landed — said out loud
+  assert.equal(m.provenance.reader.stub, false); // 167 has landed — the real reader is wired, said out loud
   assert.equal(m.provenance.quarantined.length, 0);
 });
 

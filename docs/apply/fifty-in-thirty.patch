@@ -1,0 +1,325 @@
+--- a/extension/background.js
++++ b/extension/background.js
+@@ -277,36 +277,71 @@
+ async function queueState() {
+   return await get(S, "queue", { items: [], index: -1, tabId: null, running: false });
+ }
+-async function openNext(q) {
+-  q.index++;
+-  while (q.index < q.items.length && q.items[q.index].state !== "waiting") q.index++;
+-  if (q.index >= q.items.length) {
+-    q.running = false;
++// 50-in-30: the queue sends on SEND_LANES tabs at once, each the only tab of its own window, so each is "in front" (active)
++// for its own picture. Every change to the queue goes through one lock (lanes finish at the same moment). Two lanes never
++// hold postings of one company at once (the account allows one per company per 30 days: the second would be refused at
++// its start, after its fill). What stays one at a time: the pictures (Chrome allows two captures a second), the start of
++// each application (the database takes the person's lock for the daily limit and the company rule), the batch tap.
++const SEND_LANES = 3, QUEUE_GAP_MS = 150;
++let queueLock = Promise.resolve();
++function withQueue(f) {
++  const run = queueLock.then(f);
++  queueLock = run.catch(() => {});
++  return run;
++}
++const lanesOf = (q) => (Array.isArray(q.lanes) && q.lanes.length ? q.lanes : q.tabId !== null && q.tabId !== undefined ? [q.tabId] : []);
++const inLane = (q, tabId) => lanesOf(q).includes(tabId);
++const companyOf = (url) => C.tenantOf(C.postingKey(url) || url) || url;
++async function openNext(q, tabId = q.tabId) {
++  const busy = new Set(q.items.filter((x) => x.state === "open").map((x) => companyOf(x.url)));
++  const i = q.items.findIndex((x) => x.state === "waiting" && !busy.has(companyOf(x.url)));
++  if (i < 0) {
++    if (!q.items.some((x) => x.state === "waiting" || x.state === "open")) q.running = false;
++    else if (q.items.some((x) => x.state === "waiting")) {
++      setTimeout(() => withQueue(async () => {
++        const q2 = await queueState();
++        if (q2.running && inLane(q2, tabId) && !q2.items.some((x) => x.state === "open" && x.lane === tabId)) await openNext(q2, tabId);
++      }), 500);
++    }
+     await put(S, "queue", q);
+     return;
+   }
+-  q.items[q.index].state = "open";
+-  q.items[q.index].opened_at = Date.now();
++  q.index = i;
++  q.items[i].state = "open";
++  q.items[i].opened_at = Date.now();
++  q.items[i].lane = tabId;
+   await put(S, "queue", q);
+-  if (q.tabId !== null) {
++  if (tabId !== null && tabId !== undefined) {
+     try {
+-      await chrome.tabs.update(q.tabId, { url: q.items[q.index].url, active: true });
++      await chrome.tabs.update(tabId, { url: q.items[i].url, active: true });
+       return;
+     } catch { /* the tab was closed */ }
+   }
+-  const t = await chrome.tabs.create({ url: q.items[q.index].url, active: true });
+-  q.tabId = t.id;
++  const w = await chrome.windows.create({ url: q.items[i].url, focused: false, width: 1280, height: 900 });
++  const t = w.tabs[0];
++  q.lanes = lanesOf(q).filter((x) => x !== tabId).concat(t.id);
++  if (q.tabId === tabId || q.tabId === null) q.tabId = t.id;
++  q.items[i].lane = t.id;
+   await put(S, "queue", q);
+ }
+ async function queueAfter(tabId, state, ms, proofId) {
+-  const q = await queueState();
+-  if (!q.running || q.tabId !== tabId || q.index < 0) return;
+-  const it = q.items[q.index];
+-  it.state = state;
+-  if (ms !== null) it.ms = ms;
+-  if (proofId) it.proof_id = proofId;
+-  await put(S, "queue", q);
+-  setTimeout(() => queueState().then((q2) => q2.running && openNext(q2)), 900);
++  const moved = await withQueue(async () => {
++    const q = await queueState();
++    if (!q.running || !inLane(q, tabId)) return false;
++    const it = q.items.find((x) => x.state === "open" && (x.lane ?? q.tabId) === tabId);
++    if (!it) return false;
++    it.state = state;
++    if (ms !== null) it.ms = ms;
++    if (proofId) it.proof_id = proofId;
++    await put(S, "queue", q);
++    return true;
++  });
++  if (moved) {
++    setTimeout(() => withQueue(async () => {
++      const q2 = await queueState();
++      if (q2.running && inLane(q2, tabId)) await openNext(q2, tabId);
++    }), QUEUE_GAP_MS);
++  }
+ }
+ 
+ // ------------------------------------------------------------------------------------------------ the submit
+@@ -394,13 +429,24 @@
+   await chrome.scripting.executeScript({ target: { tabId }, func: () => globalThis.__traineeUnmask?.() }).catch(() => {});
+   return { observation: res?.result || null, shotAfter };
+ }
+-async function capture(windowId) {
+-  try {
+-    const url = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
+-    return { sha256: await sha256Hex(b64ToBytes(url.split(",")[1])), dataUrl: url };
+-  } catch {
+-    return null;
+-  }
++// 50-in-30: one picture at a time, at least SHOT_SPACING_MS apart. Chrome refuses more than two captures a second
++// (MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND), and with several lanes a refused picture would stop a ready application.
++const SHOT_SPACING_MS = 520;
++let shotChain = Promise.resolve(), lastShot = 0;
++function capture(windowId) {
++  const run = shotChain.then(async () => {
++    const wait = lastShot + SHOT_SPACING_MS - Date.now();
++    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
++    lastShot = Date.now();
++    try {
++      const url = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
++      return { sha256: await sha256Hex(b64ToBytes(url.split(",")[1])), dataUrl: url };
++    } catch {
++      return null;
++    }
++  });
++  shotChain = run.catch(() => {});
++  return run;
+ }
+ 
+ // A submit that moved the page away: the new page is read once it loads (the content script there may not run, e.g. a
+@@ -518,7 +564,21 @@
+ // (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, four at a time: each is a whole employer page held in a
+ // hidden tab, and an answer given now should be about postings this session reaches. Workday postings are left out: the
+ // person signs in on the employer's site first (D-013), so their questions are asked on their own cards.
+-const PREPARE_MAX = 20, PREPARE_AT_ONCE = 4, SURVEY_WAIT_MS = 45_000;
++// 50-in-30: up to 100 postings (the queue's and the batch approval's own limit), eight hidden tabs at a time. A posting
++// read in the last SURVEY_FRESH_MS is planned again here from the form as it was read (after the person answered the
++// panel's questions) instead of loading the employer's page a second time; the send still checks the live page against
++// the approval (TraineeCore.batchMatch), so a form changed since is caught there, as before.
++const PREPARE_MAX = 100, PREPARE_AT_ONCE = 8, SURVEY_WAIT_MS = 45_000, SURVEY_FRESH_MS = 10 * 60_000;
++const surveyCache = new Map(); // posting url -> { at, r } (memory only: a restarted worker reads the page again)
++function planSurveyed(r, f, resume) {
++  const rs = resume ? { filename: resume.name, sha256: resume.sha256 } : null;
++  const plan = C.planForm({ userId: f.userId, jobId: r.jobId, company: r.company, family: r.family, schema: r.schema, answers: f.answers, saved: f.saved, now: Date.now(), location: r.location });
++  const cf = C.contractFill({ schema: r.schema, plan, manifest: f.manifest, listed: r.listed, resume: rs });
++  const asked = new Set(plan.needs.map((n) => n.label));
++  const p = { ...plan, fill: cf.fill, needs: [...plan.needs, ...cf.asks.filter((q) => !asked.has(q.label)).map((q) => ({ label: q.label, type: q.type, options: q.options }))] };
++  const batch = C.batchPlan({ jobId: r.jobId, company: r.company, url: r.pageUrl, family: r.family, schema: r.schema, plan: p, challenge: false, resume: rs, listed: r.listed, manifest: f.manifest });
++  return { ...r, needs: p.needs.slice(0, 200), batch };
++}
+ const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
+ let preparing = false;
+ // A hidden tab sent to its posting while its own blank page was still loading was left "unloaded" by Chrome for Testing
+@@ -570,11 +630,18 @@
+   await put(S, "answer_once", base);
+   const results = new Array(pick.length);
+   let next = 0, read = 0;
++  const f0 = await facts(a.user_id), resume0 = await get(L, "resume", null);
+   const worker = async () => {
+     while (next < pick.length) {
+       const i = next++;
+-      results[i] = await surveyOne(pick[i].url);
+-      await put(S, "answer_once", { ...base, read: ++read });
++      const c = surveyCache.get(pick[i].url);
++      if (c && Date.now() - c.at < SURVEY_FRESH_MS && c.r.userId === a.user_id) results[i] = { ...planSurveyed(c.r, f0, resume0), url: pick[i].url, replanned: true };
++      else {
++        results[i] = await surveyOne(pick[i].url);
++        if (results[i].ok && Array.isArray(results[i].schema) && results[i].pageUrl) surveyCache.set(pick[i].url, { at: Date.now(), r: { ...results[i], userId: a.user_id } });
++      }
++      read++;
++      if (!results[i].replanned || read === pick.length || read % 10 === 0) await put(S, "answer_once", { ...base, read });
+     }
+   };
+   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
+@@ -647,7 +714,7 @@
+ async function agentConsider(tabId, card) {
+   if (!(await config()).agentSubmits || !card.batch) return;
+   const q = await queueState();
+-  if (!q.running || q.tabId !== tabId) return;
++  if (!q.running || !inLane(q, tabId)) return;
+   const a = (await agentApproved())[card.jobId];
+   if (!a) return;
+   const r = C.batchMatch({ approved: a.posting, now: card.batch, card: card.payload?.fields || [], openRequired: card.openRequired || [], blockers: card.blockers || [] });
+@@ -683,7 +750,7 @@
+   await setCard(tabId, { status: "needs_you", message, approved: false, beforeClick: true });
+   await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, proof: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
+   const q = await queueState();
+-  if (q.running && q.tabId === tabId) await queueAfter(tabId, "needs_you", null);
++  if (q.running && inLane(q, tabId)) await queueAfter(tabId, "needs_you", null);
+ }
+ 
+ // ------------------------------------------------------------------------------------------------ messages
+@@ -695,7 +762,7 @@
+       const a = await session();
+       const q = await queueState();
+       const p = (await pendings())[tabId] || null;
+-      if (!a) return { signedIn: false, message: say.signedOut, queued: q.running && q.tabId === tabId };
++      if (!a) return { signedIn: false, message: say.signedOut, queued: q.running && inLane(q, tabId) };
+       let account = null;
+       try {
+         account = await rpc("career_apply_account_own", {});
+@@ -704,7 +771,7 @@
+       }
+       const f = await facts(a.user_id);
+       const resume = await get(L, "resume", null);
+-      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits,
++      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && inLane(q, tabId), pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits,
+         agentSubmits: !!(await config()).agentSubmits };
+     }
+     case "queued": {
+@@ -714,7 +781,7 @@
+       // fill itself, once, within ten minutes.
+       const next = (await get(S, "workday_next", {}))[tabId];
+       if (next) await setWorkdayNext(tabId, false);
+-      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000, survey: surveys.has(tabId) };
++      return { queued: q.running && inLane(q, tabId), pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000, survey: surveys.has(tabId) };
+     }
+     case "card": {
+       // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
+@@ -749,8 +816,12 @@
+       const done = surveys.get(tabId);
+       if (!done) return { ok: false };
+       surveys.delete(tabId);
++      // 50-in-30: the form as read (its schema, the fields whose options live on the page), kept to plan it again after
++      // the person answers the panel's questions, without loading the page a second time.
++      const schema = Array.isArray(m.schema) && JSON.stringify(m.schema).length < 1_000_000 ? m.schema : null;
+       done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [],
+-        batch: m.batch && typeof m.batch === "object" ? m.batch : null });
++        batch: m.batch && typeof m.batch === "object" ? m.batch : null, schema, listed: Array.isArray(m.listed) ? m.listed.map(String) : [], family: m.family,
++        pageUrl: typeof m.url === "string" ? m.url : null });
+       return { ok: true };
+     }
+     case "questions": {
+@@ -1029,27 +1100,45 @@
+       }
+     }
+     case "queue-start": {
+-      const q = await queueState();
+-      if (!q.items.some((x) => x.state === "waiting")) return { ok: false, message: "Add some posting links first." };
+-      q.running = true;
+-      q.index = Math.max(-1, q.items.findIndex((x) => x.state === "waiting") - 1);
+-      q.tabId = m.tabId ?? q.tabId ?? null;
+-      await put(S, "queue", q);
+-      await openNext(q);
+-      return { ok: true };
++      return await withQueue(async () => {
++        const q = await queueState();
++        const waiting = q.items.filter((x) => x.state === "waiting").length;
++        if (!waiting) return { ok: false, message: "Add some posting links first." };
++        q.running = true;
++        q.tabId = m.tabId ?? q.tabId ?? null;
++        // The person's own tab is the first lane; the others are windows of their own (kept from the last start if open).
++        const lanes = [];
++        if (q.tabId !== null) lanes.push(q.tabId);
++        for (const t of lanesOf(q)) if (!lanes.includes(t) && (await chrome.tabs.get(t).catch(() => null))) lanes.push(t);
++        while (lanes.length < Math.min(SEND_LANES, waiting)) {
++          const w = await chrome.windows.create({ url: "about:blank", focused: false, width: 1280, height: 900 });
++          lanes.push(w.tabs[0].id);
++        }
++        q.lanes = lanes.slice(0, Math.max(1, Math.min(SEND_LANES, waiting)));
++        if (q.tabId === null) q.tabId = q.lanes[0];
++        await put(S, "queue", q);
++        for (const t of q.lanes) await openNext(await queueState(), t);
++        return { ok: true };
++      });
+     }
+     case "queue-skip": {
+-      const q = await queueState();
+-      if (q.index >= 0 && q.items[q.index]) q.items[q.index].state = "skipped";
+-      await put(S, "queue", q);
+-      if (q.running) await openNext(q);
+-      return { ok: true };
++      return await withQueue(async () => {
++        const q = await queueState();
++        // The posting open in the panel's tab's lane, else the last one opened.
++        const it = q.items.find((x) => x.state === "open" && m.tabId !== undefined && x.lane === m.tabId) || q.items[q.index];
++        if (it && it.state === "open") it.state = "skipped";
++        await put(S, "queue", q);
++        if (q.running) await openNext(q, it?.lane ?? q.tabId);
++        return { ok: true };
++      });
+     }
+     case "queue-stop": {
+-      const q = await queueState();
+-      q.running = false;
+-      await put(S, "queue", q);
+-      return { ok: true };
++      return await withQueue(async () => {
++        const q = await queueState();
++        q.running = false;
++        await put(S, "queue", q);
++        return { ok: true };
++      });
+     }
+     case "queue-clear":
+       await put(S, "queue", { items: [], index: -1, tabId: null, running: false });
+@@ -1087,13 +1176,16 @@
+     case "batch-stop": {
+       // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
+       // send in progress stops at its next check before the click.
+-      const q = await queueState();
+-      q.running = false;
+-      await put(S, "queue", q);
++      const q = await withQueue(async () => {
++        const x = await queueState();
++        x.running = false;
++        await put(S, "queue", x);
++        return x;
++      });
+       await S.remove("agent_approved");
+       for (const t of agentWait.values()) clearTimeout(t);
+       agentWait.clear();
+-      if (q.tabId !== null) chrome.tabs.sendMessage(q.tabId, { type: "agent-stop" }).catch(() => {});
++      for (const t of lanesOf(q)) chrome.tabs.sendMessage(t, { type: "agent-stop" }).catch(() => {});
+       let withdrawn = true;
+       try {
+         await rpc("career_apply_batch_revoke_own", {});
+--- a/extension/content.js
++++ b/extension/content.js
+@@ -327,7 +327,9 @@
+     // is left out of a batch (anything the person must answer or do first).
+     const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
+       challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f), manifest: c.manifest }) : undefined;
+-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch });
++    // 50-in-30: the form as read goes with it, so the background can plan it again after the person's answers.
++    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch,
++      schema: f.schema, listed: listedNames(f), family: portal.family });
+   }
+   function formReady(ms) {
+     return new Promise((resolve) => {

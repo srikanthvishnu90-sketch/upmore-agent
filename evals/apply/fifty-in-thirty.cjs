@@ -24,6 +24,8 @@
 //   --silent K         every K-th posting is a slow employer that never answers (the world's ?trainee_test=silent), to
 //                      measure the 30 s outcome wait
 //   --begin-delay MS   the TEST world's begin RPC takes this long (world.state.beginDelayMs), a stand-in for live latency
+//   --seed-evidence K  start with K earlier proofs on this computer (chrome.storage.local "evidence"; the extension keeps
+//                      300), each with two pictures of --seed-shot-kb KB (default 300), to measure the proof list's cost
 //   --label NAME / --out FILE
 // Output: JSON (report + one row per posting) and a summary line.
 const fs = require("node:fs");
@@ -43,6 +45,8 @@ const CHUNK = Number(arg("chunk", 20));
 const PATCH = arg("patch", "");
 const SILENT = Number(arg("silent", 0));
 const BEGIN_DELAY = Number(arg("begin-delay", 0));
+const SEED = Number(arg("seed-evidence", 0));
+const SEED_KB = Number(arg("seed-shot-kb", 300));
 const LABEL = arg("label", `n${N}-${MODE}${PATCH ? "-patched" : ""}`);
 const OUT = arg("out", path.join(ROOT, `evals/apply/results/fifty-${LABEL}.json`));
 const READY_GIVEN = arg("ready", "");
@@ -172,6 +176,33 @@ async function answerOnce(b, panel) {
   return { n: qs.length, ms: Date.now() - t0, labels: qs.map((q) => q.label.slice(0, 60)) };
 }
 
+// Start pressed: wait until the queue ends. A card that is ready but nobody approved (no batch approval for it) waits
+// for a person forever: that is a stall. skip: press the panel's Skip and go on (discovery); otherwise stop and report.
+async function runQueue(b, panel, isOurs, skip) {
+  const skipped = [];
+  for (;;) {
+    const end = await waitFor(async () => {
+      const q = await b.store("session", "queue");
+      if (!q) return null;
+      if (!q.running && !q.items.some((i) => i.state === "open")) return { q, how: "finished" };
+      if (!q.running) return { q, how: "finished" };
+      const all = (await b.store("session", "cards")) || {};
+      const ap = (await b.store("session", "agent_approved")) || {};
+      for (const c of Object.values(all)) {
+        if (!c?.url || !isOurs(c.url) || skipped.includes(c.url)) continue;
+        const open = q.items.some((i) => i.state === "open" && i.url === c.url);
+        if (open && ["ready", "blocked", "stopped"].includes(c.status) && !c.approved && !ap[c.jobId] && Date.now() - c.updated_at > STALL_MS) {
+          return { q, how: "stalled", at: c.url, since: c.updated_at };
+        }
+      }
+      return null;
+    }, 3600000, "the queue to end");
+    if (end.how !== "stalled" || !skip) return { ...end, skipped };
+    skipped.push(end.at);
+    await panel.click("#q-skip");
+  }
+}
+
 // Which captures become batch-ready for the TEST person (Prepare + the panel's answers + Prepare again): one clone each.
 async function discover(persona) {
   const world = await newWorld(persona);
@@ -196,10 +227,8 @@ async function discover(persona) {
     await waitFor(async () => world.state.batchApprovals.length >= batch.ready.length, 30000, "the approval recorded");
     world.state.agentSubmit = "on";
     await panel.click("#q-start");
-    const q = await waitFor(async () => {
-      const x = await b.store("session", "queue");
-      return x && !x.running ? x : null;
-    }, 600000, "the discovery queue");
+    const ours = new Set(urls);
+    const { q } = await runQueue(b, panel, (u) => ours.has(u), true);
     const ready = [];
     for (const e of batch.ready) {
       const id = ids[urls.indexOf(e.url)];
@@ -268,6 +297,17 @@ async function main() {
   ctx.on("page", watchPage);
   for (const pg of ctx.pages()) watchPage(pg);
 
+  // A person who already applied before: the proof list on this computer (chrome.storage.local "evidence", kept to 300,
+  // each with its two pictures) is read and written whole after every application.
+  if (SEED) {
+    await sw.evaluate(async ([k, kb]) => {
+      const shot = "data:image/png;base64," + "A".repeat(kb * 1024);
+      const list = Array.from({ length: k }, (_, i) => ({ id: "TEST-seed-" + i, state: "confirmed", proved: true, screenshot: shot, screenshot_after: shot, answers: [] }));
+      await chrome.storage.local.set({ evidence: list });
+    }, [SEED, SEED_KB]);
+  }
+  const evidenceBytes = () => sw.evaluate(() => chrome.storage.local.getBytesInUse("evidence"));
+  const evidence_bytes_before = await evidenceBytes();
   const page = await ctx.newPage();
   await page.goto("https://upmore-topaz.vercel.app/?fifty=1");
   await sleep(100);
@@ -340,18 +380,7 @@ async function main() {
     const ts = Date.now();
     r.start_at = ts;
     await panel.click("#q-start");
-    const end = await waitFor(async () => {
-      const q = await b.store("session", "queue");
-      if (!q) return null;
-      if (!q.running && q.items.every((i) => !["open"].includes(i.state))) return { q, how: "finished" };
-      const all = await sw.evaluate(async () => (await chrome.storage.session.get("cards")).cards || {});
-      const ap = (await b.store("session", "agent_approved")) || {};
-      for (const c of Object.values(all)) {
-        if (!c?.url || !byKey.has(keyOf(c.url))) continue;
-        if (c.status === "ready" && !c.approved && !ap[c.jobId] && Date.now() - c.updated_at > STALL_MS) return { q, how: "stalled", at: c.url, since: c.updated_at };
-      }
-      return null;
-    }, 3600000, "the queue to end");
+    const end = await runQueue(b, panel, (u) => byKey.has(keyOf(u)), false);
     r.send_ms = (end.how === "stalled" ? end.since : Date.now()) - ts;
     r.end = end.how;
     if (end.how === "stalled") {
@@ -370,6 +399,12 @@ async function main() {
   await poller;
   const q = await b.store("session", "queue");
   const receipts = (await b.store("local", "agent_receipts")) || [];
+  const evidence_bytes_after = await evidenceBytes();
+  const shotBytes = await sw.evaluate(async () => {
+    const e = (await chrome.storage.local.get("evidence")).evidence || [];
+    const real = e.filter((x) => !String(x.id).startsWith("TEST-seed-"));
+    return real.map((x) => String(x.screenshot || "").length + String(x.screenshot_after || "").length);
+  });
 
   // ------------------------------------------------------------------------------------------------ per posting
   const rows = postings.map((p) => {
@@ -448,6 +483,8 @@ async function main() {
     steps_ms: Object.fromEntries(keys.map((k) => [k, stats(rows.flatMap((r) => (Array.isArray(r[k]) ? r[k] : [r[k]])))])),
     queue_states: (q?.items || []).reduce((a, x) => ((a[x.state] = (a[x.state] || 0) + 1), a), {}),
     receipts: receipts.length,
+    evidence: { seeded: SEED || 0, seeded_shot_kb: SEED ? SEED_KB : null, bytes_before: evidence_bytes_before, bytes_after: evidence_bytes_after,
+      pictures_bytes_per_application: stats(shotBytes) },
   };
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ report, rows }, null, 1) + "\n");

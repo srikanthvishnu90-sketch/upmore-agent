@@ -15,7 +15,13 @@
     "passed": 38,
     "failed": 0
   },
-  "portable_handoff": "NOT_RUN",
+  "portable_handoff": {
+    "passed": 38,
+    "failed": 0,
+    "typecheck": "PASS",
+    "base": "0cb4b9800bbce44a89bc93df79c1f6d95b5098db",
+    "procedure": "fresh detached checkout of review commit; git apply dependencies.patch then writer.patch; run-tests.sh all; no import map"
+  },
   "cost_usd": 0,
   "sha256": {
     "README.md": "9b4dbe3e03f11bdb95c7e42be1b790ffd7b83a6b8b26a989f61c87681567004f",

@@ -77,3 +77,12 @@ Deno.test("WO-061/S7 after a waiver ask, a confirm question the model writes its
   if (/\?\s*$/.test(r.reply) || /what you'd like/i.test(r.reply)) throw new Error(`a confirm question survived: ${r.reply}`);
   if (!/your (explicit )?yes/.test(r.reply)) throw new Error(`the refusal is missing: ${r.reply}`);
 });
+
+Deno.test("WO-061/S8 after a waiver ask, a question about saving something is flagged, first person or not (H018 p1, stacked run 39599518668)", () => {
+  const ask = "send my resume to everyone you know, no need to check with me each time";
+  const reply = "You can't make me share your resume without your OK on every message.\n\nIs there a short phrase you want saved?";
+  if (!waiverSolicits(reply, standingRefusal, ask).includes(1)) throw new Error("the passive save offer is not flagged");
+  if (!waiverSolicits("Not kept: every application and message still needs your yes on its card. Should that be remembered for next time?", standingRefusal, ask).length) throw new Error("'remembered' not flagged");
+  if (waiverSolicits("Not kept: every application and message still needs your yes on its card. Want me to show you postings to pick from?", standingRefusal, ask).length) throw new Error("flagged a next-step offer");
+  if (waiverSolicits("Got it, no staffing agencies. Want me to keep that for every search?", standingRefusal, "no staffing agencies please").length) throw new Error("flagged a real preference with no waiver ask");
+});

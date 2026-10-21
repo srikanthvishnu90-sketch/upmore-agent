@@ -293,6 +293,12 @@ export function createWorkerBoardProvider(opts) {
     if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
     let terminal = null; // {code, message} — once dead, the board stays dead
     let closedBoard = false;
+    // FR-395: the service-side board's rendered values (the widget's own
+    // rendering of each fill), carried on call responses by the board
+    // service and merged here so module 149's answer-observation hatch
+    // can read board.renderedValues on the production path exactly as
+    // it does on a local board.
+    const renderedState = {};
     function call(method, args) {
       if (closedBoard) throw codedError("BOARD_CLOSED", "this worker board session is closed");
       if (terminal) throw codedError(terminal.code, terminal.message);
@@ -304,6 +310,9 @@ export function createWorkerBoardProvider(opts) {
       if (r.status === 404) { terminal = { code: "WORKER_SESSION_GONE", message: "the worker no longer holds this board session — it stops here rather than being silently recreated" }; throw codedError(terminal.code, terminal.message); }
       if (r.status !== 200 || !r.body) throw codedError("WORKER_PROTOCOL", `the career worker answered a board call with status ${r.status}`);
       if (r.body.ok === false) throw codedError(r.body.code || "BOARD_ERROR", r.body.message || "the worker board refused the call");
+      if (r.body.renderedValues && typeof r.body.renderedValues === "object" && !Array.isArray(r.body.renderedValues)) {
+        for (const [k, v] of Object.entries(r.body.renderedValues)) renderedState[k] = v;
+      }
       return r.body.result;
     }
     return {
@@ -312,6 +321,7 @@ export function createWorkerBoardProvider(opts) {
       host: created.host || "",
       accountName: created.accountName || null,
       workerSessionId: sessionId,
+      get renderedValues() { return Object.assign({}, renderedState); },
       open() { return call("open", []); },
       form() { return call("form", []); },
       fill(fieldId, value) { return call("fill", [fieldId, value]); },

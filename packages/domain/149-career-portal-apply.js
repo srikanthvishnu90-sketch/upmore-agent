@@ -708,6 +708,15 @@ const CareerPortalApply = (() => {
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
           || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
+      // FR-395: hatch use is recorded in the run record — that the
+      // board's rendered value was consulted as the expectation, and
+      // whether the acceptance was hatch-ONLY (the raw profile value
+      // alone would have mismatched the readback).
+      if (rendered !== undefined) {
+        logStep("answer_observation_rendered", { field_id: id, matched: !!same,
+          hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
+            && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
+      }
       if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
     }
     for (const field of formDef.fields || []) {

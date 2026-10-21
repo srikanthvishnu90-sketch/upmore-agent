@@ -70,6 +70,18 @@ function secretMatches(given, secret) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// A board's rendered-values snapshot, deep-copied for the wire; null
+// when the board does not render (or renders nothing yet).
+function renderedSnapshot(board) {
+  try {
+    const rv = board && board.renderedValues;
+    if (!rv || typeof rv !== "object" || Array.isArray(rv)) return null;
+    const keys = Object.keys(rv);
+    if (!keys.length) return null;
+    return JSON.parse(JSON.stringify(rv));
+  } catch (_) { return null; }
+}
+
 function createBoardService(config) {
   const cfg = config || {};
   const secret = typeof cfg.secret === "string" && cfg.secret ? cfg.secret : null;
@@ -189,7 +201,19 @@ function createBoardService(config) {
       const result = board[method](...args);
       session.lastActivityAt = now();
       counters.callsServed += 1;
-      return respond(200, { ok: true, result: result === undefined ? null : result });
+      const responseBody = { ok: true, result: result === undefined ? null : result };
+      // FR-395 rendered-values carriage: module 150 boards expose a
+      // renderedValues snapshot (the widget's own single-value
+      // rendering of each fill — e.g. "+1" for "United States").
+      // Module 149's answer-observation hatch compares the readback
+      // against that rendering, but the values live on THIS side of
+      // the wire; without carriage the hatch can never fire on the
+      // production path and correct fills get rejected on vocabulary
+      // alone. The snapshot rides every successful call response
+      // (small, additive; boards without renderings omit it).
+      const rv = renderedSnapshot(board);
+      if (rv) responseBody.renderedValues = rv;
+      return respond(200, responseBody);
     } catch (e) {
       session.lastActivityAt = now();
       counters.callsServed += 1;

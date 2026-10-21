@@ -241,10 +241,48 @@ export function createWorkerBoardProvider(opts) {
     if (!res || typeof res.status !== "number") throw codedError("WORKER_UNREACHABLE", "the career worker board service answered with no readable status");
     return res;
   }
+  // WORKER RECOVERY (2026-10-21; root-cause note
+  // docs/career/worker-unreachable-root-cause-2026-10-21.md): bounded
+  // retry at the SESSION-CREATE seam only. The sync pump transport
+  // intermittently loses a create whose answer is stuck behind a long
+  // board call in the single-threaded board service. Re-asking a create
+  // is safe: if it never arrived, no session exists; if it landed but
+  // its answer was lost, the extra idle session is reaped by the
+  // service's TTL. Board CALLS are never retried — a lost call answer
+  // is ambiguous (the call may have executed) and the terminal rule in
+  // call() stands. Answered refusals (any HTTP response) and
+  // WORKER_TRANSPORT_TIMEOUT (which already waited out the transport's
+  // full budget) are never retried either.
+  const retryCfg = (o.createRetry && typeof o.createRetry === "object") ? o.createRetry : {};
+  const CREATE_MAX_ATTEMPTS = Math.max(1, Math.min(8, retryCfg.maxAttempts || 4));
+  const CREATE_BASE_DELAY_MS = Math.max(0, Math.min(10000, retryCfg.baseDelayMs != null ? retryCfg.baseDelayMs : 1000));
+  const CREATE_DEADLINE_MS = Math.max(0, retryCfg.deadlineMs != null ? retryCfg.deadlineMs : 30000);
+  const nowFn = typeof o.now === "function" ? o.now : () => Date.now();
+  const sleepSync = typeof o.sleepSync === "function" ? o.sleepSync : (ms) => {
+    if (!(ms > 0)) return;
+    try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
+    catch (_) { const end = Date.now() + ms; while (Date.now() < end) { /* bounded fallback spin (retry sleeps are seconds) */ } }
+  };
+  function createSessionWithRetry(url) {
+    const startedAt = nowFn();
+    let attempt = 0;
+    for (;;) {
+      attempt += 1;
+      try { return callService("/board-sessions", { userId, url }); }
+      catch (e) {
+        if (!e || e.code !== "WORKER_UNREACHABLE" || attempt >= CREATE_MAX_ATTEMPTS) throw e;
+        const remaining = CREATE_DEADLINE_MS - (nowFn() - startedAt);
+        if (remaining <= 0) throw e;
+        const ladder = CREATE_BASE_DELAY_MS * Math.pow(3, attempt - 1);
+        const jittered = ladder * (0.75 + Math.random() * 0.5);
+        sleepSync(Math.min(jittered, remaining));
+      }
+    }
+  }
   function boardFor(posting) {
     const url = posting && typeof posting.url === "string" ? posting.url : null;
     if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
-    const res = callService("/board-sessions", { userId, url });
+    const res = createSessionWithRetry(url);
     if (res.status !== 201) {
       const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
       const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;

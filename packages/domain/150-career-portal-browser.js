@@ -339,7 +339,40 @@ const CareerPortalBrowser = (() => {
   let helperDir = null, helperProc = null, cmdSeq = 0;
   const commandLimits = new Map();
   const liveBoards = new Set();
+  // WORKER RECOVERY (2026-10-21, root-cause note
+  // docs/career/worker-unreachable-root-cause-2026-10-21.md): the last
+  // board's close used to shut the helper down immediately, so every
+  // serial create -> ... -> close pattern paid a full helper + Chromium
+  // cold start inside the NEXT board's first call — the latency that,
+  // under load, pushed board-service calls past the point where the
+  // sync pump transport loses them (WORKER_UNREACHABLE). The helper now
+  // stays warm for an idle grace after the last board closes; the
+  // helper's own 15-minute idle self-exit remains the backstop.
+  let helperIdleGraceMs = (() => { const v = Number(process.env.UPMORE_HELPER_IDLE_GRACE_MS); return Number.isFinite(v) && v >= 0 ? v : 90000; })();
+  let helperIdleTimer = null;
+  let exitHookRegistered = false;
+  function cancelHelperIdleShutdown() {
+    if (helperIdleTimer) { clearTimeout(helperIdleTimer); helperIdleTimer = null; }
+  }
+  function shutdownHelperNow() {
+    cancelHelperIdleShutdown();
+    if (helperProc) { try { call("sys", { type: "shutdown" }, 5000); } catch (e) {} helperProc = null; }
+  }
+  function scheduleHelperIdleShutdown() {
+    cancelHelperIdleShutdown();
+    if (!helperProc) return;
+    helperIdleTimer = setTimeout(() => {
+      helperIdleTimer = null;
+      if (liveBoards.size === 0) shutdownHelperNow();
+    }, helperIdleGraceMs);
+    if (helperIdleTimer.unref) helperIdleTimer.unref();
+  }
   function ensureHelper() {
+    cancelHelperIdleShutdown();
+    // A helper that died on its own (crash, OOM) leaves a stale handle:
+    // detect it and respawn instead of writing commands into a dead
+    // seam directory until the call times out.
+    if (helperProc && (helperProc.exitCode !== null || helperProc.signalCode)) helperProc = null;
     if (helperProc) return;
     // Session scratch defaults to the OS temp dir; UPMORE_SEAM_TMP relocates
     // it (sandboxes whose /tmp is a small shared tmpfs would be exhausted by
@@ -359,7 +392,14 @@ const CareerPortalBrowser = (() => {
       if (Date.now() > deadline) throw coded("HELPER_TIMEOUT", "browser helper did not become ready in 20s");
       Atomics.wait(buf, 0, 0, 25);
     }
-    process.on("exit", () => { try { fs.writeFileSync(path.join(helperDir, "cmd-sys-exit.json"), JSON.stringify({ type: "shutdown", boardId: "sys" })); } catch (e) {} });
+    // Registered ONCE per factory: this used to be added on every spawn,
+    // so a churning helper leaked one process listener per respawn (the
+    // board service logged MaxListenersExceededWarning at 11 during the
+    // 2026-10-21 scan window).
+    if (!exitHookRegistered) {
+      exitHookRegistered = true;
+      process.on("exit", () => { try { if (helperDir) fs.writeFileSync(path.join(helperDir, "cmd-sys-exit.json"), JSON.stringify({ type: "shutdown", boardId: "sys" })); } catch (e) {} });
+    }
   }
   function call(boardId, cmd, timeoutMs) {
     ensureHelper();
@@ -389,11 +429,9 @@ const CareerPortalBrowser = (() => {
   }
   function shutdownAll() {
     for (const b of Array.from(liveBoards)) { try { b.close(); } catch (e) {} }
-    if (helperProc) {
-      try { call("sys", { type: "shutdown" }, 5000); } catch (e) {}
-      helperProc = null;
-    }
+    shutdownHelperNow();
   }
+  function setHelperIdleGraceMs(ms) { if (Number.isFinite(ms) && ms >= 0) helperIdleGraceMs = ms; }
 
   // ---------- the board ----------
   let boardSeq = 0;
@@ -703,13 +741,13 @@ const CareerPortalBrowser = (() => {
         state.closed = true;
         liveBoards.delete(board);
         try { call(boardId, { type: "close" }, 15000); } catch (e) { /* helper may already be gone */ }
-        if (liveBoards.size === 0 && helperProc) { try { call("sys", { type: "shutdown" }, 5000); } catch (e) {} helperProc = null; }
+        if (liveBoards.size === 0 && helperProc) scheduleHelperIdleShutdown();
       },
     };
     liveBoards.add(board);
     return board;
   }
 
-  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, extractConfirmation, shutdownAll };
+  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, extractConfirmation, shutdownAll, setHelperIdleGraceMs };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalBrowser;

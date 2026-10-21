@@ -1128,7 +1128,7 @@ const CareerJobs = (() => {
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
 
 const CareerProfile = (() => {
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;

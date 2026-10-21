@@ -554,7 +554,17 @@ export function parseMockCommand(text: string): MockCommand | null {
 
 // The person says they are in a real interview right now: never help during one (D-015), never score it as practice.
 const LIVE = /\b(?:i'?m|i am|im) (?:in|on) (?:an?|my|the) (?:real |actual |live )?interview\b|\b(?:real|actual|live) interview\b.*\b(?:now|right now|currently)\b|\binterviewer (?:just )?(?:asked|is asking)\b/i;
-const LIVE_REFUSAL = "I can't help during a real interview; that is off by decision. When it ends, text me and we'll go over how it went. Your practice mock is saved: text \"resume mock\" to pick it up later.";
+const MOCK_EXIT = /^(?:please )?(?:exit|leave|quit|stop|end|cancel)(?: (?:the|this|my))?(?: mock| interview| practice| mock interview| practice interview)(?: now)?(?: please)?$|^(?:exit|leave)$/i;
+// Not an answer to an interview question: a platform command, a greeting or "help", or another task named up front.
+export function notAnAnswer(text: string): boolean {
+  const t = String(text ?? "").trim();
+  return /^\//.test(t) ||
+    /^(?:hi|hello|hey|hiya|yo|good (?:morning|afternoon|evening)|help|menu|main menu|start over|restart|never ?mind|nvm|what can you do|what do you do)\b[^.?!]{0,30}[.?!]*$/i.test(t) ||
+    /^(?:(?:can you|could you|please|now|ok(?:ay)?|so)[\s,]+)*(?:find|show|search|list|look for|get me|pull up|apply|queue|upload)\b/i.test(t) ||
+    /^(?:what'?s|what is|where'?s|where is|how'?s|how is|how are)\s+my\b/i.test(t) ||
+    /^here'?s my (?:resume|cv)\b/i.test(t);
+}
+const LIVE_REFUSAL ="I can't help during a real interview; that is off by decision. When it ends, text me and we'll go over how it went. Your practice mock is saved: text \"resume mock\" to pick it up later.";
 
 export interface MockStore {
   get(userId: string, threadId: string): Promise<MockState | null>;
@@ -698,6 +708,14 @@ export async function mockTurn(
     return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
   }
   if (LIVE.test(o.message)) return { reply: LIVE_REFUSAL, status: "live_refused", intent: MOCK_PAUSED_INTENT };
+  // Live 2026-10-21: "/start", "hi" and "find jobs" were scored as interview answers. "exit the interview" ends it with its
+  // debrief; anything that is not an answer goes on to the brain and leaves the mock saved ("resume mock" picks it up).
+  if (MOCK_EXIT.test(low)) {
+    const e = end(s!, o.now, "asked");
+    await o.store.clear(o.userId, o.threadId);
+    return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
+  }
+  if (notAnAnswer(low)) return null;
   const r = next(s!, cmd?.kind === "skip" ? null : o.message, o.now);
   if (r.done) await o.store.clear(o.userId, o.threadId);
   else await o.store.save(o.userId, o.threadId, r.state);

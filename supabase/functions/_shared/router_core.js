@@ -21606,7 +21606,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs
    Pure: no I/O. The caller passes CSV / resume text in. UMD like the other
    domain modules. */
 const CareerProfile = (() => {
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+  // WO-106: "goal" and "location" are kinds the agent saves (its add_profile_fact offers them); without them every stated
+  // goal and place was kept as "other" and could not be found again.
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;

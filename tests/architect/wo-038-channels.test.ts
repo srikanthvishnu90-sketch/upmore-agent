@@ -150,21 +150,31 @@ Deno.test("WO-038/P1 first text: sign-up refused (closed) says the same once on 
   eq([h.read(ADDR.whatsapp), h.read(ADDR.telegram)], [["You said: hi"], ["You said: hi"]]);
 });
 
-Deno.test("WO-038/P2 HELP, STOP and START: the same fixed words on every channel, never the brain; Telegram's /help /stop /start are the same commands", async () => {
+// WO-106 (owner, 2026-10-21 live test: help and /start dead-ended) changed P2: HELP and Telegram's /start from a known person
+// are brain turns (the reply ends in their next step); STOP, /stop and the word START keep their fixed words, never the brain.
+Deno.test("WO-038/P2 STOP and START: the same fixed words on every channel, never the brain; HELP is a brain turn; Telegram's /stop is STOP and /help, /start reach the brain", async () => {
   const got = await parity(async (h, ch, addr) => {
     await h.text(ch, addr, "hi");
     const m = h.mark();
-    for (const t of ["HELP", "STOP", "START"]) await h.text(ch, addr, t);
-    eq(h.chats.length, 1, `${ch}: commands never reach the brain`);
-    return h.read(addr, m);
+    for (const t of ["STOP", "START"]) await h.text(ch, addr, t);
+    eq(h.chats.length, 1, `${ch}: STOP and START never reach the brain`);
+    await h.text(ch, addr, "HELP");
+    eq(h.chats.length, 2, `${ch}: HELP is a turn for the brain`);
+    return h.read(addr, m).slice(0, 2);
   });
-  eq(got, norm([CHANNEL_REPLIES.help, CHANNEL_REPLIES.stop, CHANNEL_REPLIES.start]));
+  eq(got, norm([CHANNEL_REPLIES.stop, CHANNEL_REPLIES.start]));
   const h = harness();
   await h.text("telegram", ADDR.telegram, "hi");
   const m = h.mark();
-  for (const t of ["/help", "/stop", "/start", "/stop@TraineeTestBot"]) await h.text("telegram", ADDR.telegram, t);
-  eq(norm(h.read(ADDR.telegram, m)), norm([CHANNEL_REPLIES.help, CHANNEL_REPLIES.stop, CHANNEL_REPLIES.start, CHANNEL_REPLIES.stop]));
+  for (const t of ["/stop", "/stop@TraineeTestBot"]) await h.text("telegram", ADDR.telegram, t);
+  eq(norm(h.read(ADDR.telegram, m)), norm([CHANNEL_REPLIES.stop, CHANNEL_REPLIES.stop]));
   assert(h.W.contacts.get("tg:7001")!.optedOut, "/stop opts out");
+  const before = h.chats.length;
+  await h.text("telegram", ADDR.telegram, "/start");
+  assert(!h.W.contacts.get("tg:7001")!.optedOut, "/start lifts the STOP");
+  await h.text("telegram", ADDR.telegram, "/help");
+  eq(h.chats.length, before + 2, "/start and /help reach the brain");
+  assert(h.read(ADDR.telegram, m).some((r: string) => r.startsWith(CHANNEL_REPLIES.start)), "/start's reply opens with the back-on line");
 });
 
 Deno.test("WO-038/P3 a chat turn: the same answer on every channel, and the brain is never told the channel", async () => {

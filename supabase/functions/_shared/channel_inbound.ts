@@ -28,6 +28,7 @@ export const ALREADY_TELEGRAM_REPLY = "This chat is already on Telegram, so ther
 export const TELEGRAM_LINKED_REPLY = "Telegram is linked to your Trainee account. Text here any time; Trainee answers on whichever channel you text.";
 export const TELEGRAM_LINK_INVALID_REPLY = "That link has expired or was already used. Text \"connect telegram\" to Trainee where you already use it for a new one.";
 export const TELEGRAM_LINKED_ELSEWHERE_REPLY = "This Telegram account is already linked to a different Trainee account, so nothing changed.";
+export const FILE_NOT_READ_REPLY = "I can't open files sent here yet, so I haven't read that one. Paste your resume as text in this chat and I'll read it now.";
 export const LINK_NONCE_MS = 10 * 60000;
 export const LINK_ASK_MS = 60 * 60000; // a yes counts for an hour after the question
 
@@ -112,7 +113,15 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (person?.contact) contact = person.contact;
     if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
     if (msg.kind === "blocked") { await store.setOptOut(contact, true, now); return ok({ command: "stop", blocked: true }); }
-    if (msg.kind === "seen") return ok({ ignored: "no text (attachments are not read yet)" });
+    if (msg.kind === "seen") {
+      // WO-106 (live 2026-10-21: a resume sent as a file got no answer at all): a file or photo from a known person is told
+      // what to do instead; a sticker or reaction is still left alone.
+      if (msg.file && person) {
+        const r = await d.reply(contact, d.render(FILE_NOT_READ_REPLY));
+        return ok({ ignored: "a file (not read yet); told to paste the text", sent: r.ok });
+      }
+      return ok({ ignored: "no text (attachments are not read yet)" });
+    }
 
     if (msg.startPayload && store.redeemLinkNonce) {
       const r = await store.redeemLinkNonce(msg.startPayload, contact, now);
@@ -124,10 +133,16 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     // Telegram's Start from a chat Trainee has never seen is the person's first message, not a START: it goes through
     // sign-up like any first text.
     const firstStart = command === "start" && !!msg.command && !person;
+    // WO-106 (live 2026-10-21): on a chat channel a known person's HELP (or /help) and Telegram's /start are also a turn for
+    // the brain, which knows their goal and what is in flight, so the reply ends in their next step; /start's "you're back
+    // on" line goes first. STOP, the word START (a re-subscribe after STOP) and every command on SMS keep their fixed reply.
+    const toBrain = !!msg.channel && !!person && (command === "help" || (command === "start" && !!msg.command));
     if (command && !firstStart) {
       if (command !== "help") await store.setOptOut(contact, command === "stop", now);
-      const r = await d.reply(contact, d.render(CHANNEL_REPLIES[command]));
-      return ok({ command, sent: r.ok });
+      if (!toBrain) {
+        const r = await d.reply(contact, d.render(CHANNEL_REPLIES[command]));
+        return ok({ command, sent: r.ok });
+      }
     }
 
     if (!person) {
@@ -149,10 +164,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       }
       person = await store.createPerson(contact, now, msg.phone ?? null);
       if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
-      if (firstStart) {
-        const r = await d.reply(contact, d.render(CHANNEL_REPLIES.help));
-        return ok({ command: "start", welcomed: true, sent: r.ok });
-      }
+      // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).
     }
 
     const key = `reply:${scoped(msg)}`;
@@ -181,9 +193,15 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     let reply: string, parts: string[] | null = null;
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: msg.text.slice(0, 4000), turnKey });
+      // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
+      const said = msg.text || (command ? `/${command}` : "");
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
       parts = replyParts(out.parts);
+      if (toBrain && command === "start") {
+        reply = `${CHANNEL_REPLIES.start}\n\n${reply}`;
+        if (parts) parts = [`${CHANNEL_REPLIES.start}\n\n${parts[0]}`, ...parts.slice(1)];
+      }
       if (out.threadId && out.threadId !== person.threadId) await store.setThread(contact, out.threadId, person.userId);
     } catch (e) {
       console.error("inbound: chat failed:", e instanceof Error ? e.message : String(e));

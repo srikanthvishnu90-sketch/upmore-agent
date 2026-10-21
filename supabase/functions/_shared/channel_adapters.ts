@@ -38,6 +38,7 @@ export function contactKey(channel: Channel, address: string): string {
 export interface InboundMessage {
   provider: Provider; channel: Channel; messageId: string;
   kind: "text" | "blocked" | "seen"; // blocked: the person blocked the bot (Telegram); seen: a non-text message (it still opens WhatsApp's window)
+  file?: boolean; // WO-106: the non-text message is a file or a photo (a resume sent as a PDF), so it gets an answer
   contact: string; address: string;
   aliases?: string[]; // other contact keys of the same sender (WhatsApp: the business-scoped id when the key is the wa_id)
   alias?: string | null; // the alias to record on the contact row

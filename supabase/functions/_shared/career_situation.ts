@@ -201,7 +201,11 @@ function taskLine(t: Task, how = true): string {
     `${b ? `; blocker: ${b.what}; who acts: ${WHO[b.who]}${how ? `; how: ${b.how}` : ""}` : ""}${t.since ? ` (since ${day(t.since)})` : ""}`;
 }
 const nextLine = (n: Situation["next"][number], i: number) => `${i + 1}. [${WHO[n.who]}] ${n.what}${n.say ? ` (they text: "${n.say}")` : ""}`;
-const goalLine = (s: Situation) => `Goal: ${s.goal.roles.join(", ") || "not stated"}${s.goal.places.length ? ` in ${s.goal.places.join(" or ")}` : ""}${s.goal.constraints.length ? `; must hold: ${s.goal.constraints.join("; ")}` : ""}.`;
+// WO-106 (F2): this goal is the job alerts' only. "Goal: not stated" here sat beside the goal they had told the chat (kept in
+// their profile, "Their goal") and the model was handed both; it now says which goal it is.
+const goalLine = (s: Situation) => (s.goal.roles.length || s.goal.places.length
+  ? `Job-alert goal: ${s.goal.roles.join(", ") || "any role"}${s.goal.places.length ? ` in ${s.goal.places.join(" or ")}` : ""}`
+  : "Job-alert goal: no alerts set (the goal they told you is under \"Their goal\")") + `${s.goal.constraints.length ? `; must hold: ${s.goal.constraints.join("; ")}` : ""}.`;
 
 // The block for the system prompt. Next steps, tasks waiting on the person and what Trainee can do are never cut for
 // length; past the budget the other task lines go first (from the end), then the last list shown, and the cut is said.

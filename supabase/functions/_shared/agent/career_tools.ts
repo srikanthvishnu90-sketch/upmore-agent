@@ -4,6 +4,7 @@
 import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
 import { AskPerson, type ToolSpec, type ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
+import { liveOnly, type LinkCheck } from "../link_check.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
 import { applyFloor } from "../career_floor.ts";
@@ -85,6 +86,8 @@ export function careerTools(deps: {
   posting?: ((jobId: string) => Promise<any | null>) | null;
   // WO-100: the person's situation, read once this turn (career_situation.ts); absent, the tools read this thread alone.
   situation?: Situation | null;
+  // WO-106 (F4): each job link is checked just before it is shown (link_check.ts); absent, links are marked unchecked.
+  linkCheck?: LinkCheck | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -159,6 +162,25 @@ export function careerTools(deps: {
         const fact = CareerProfile.confirmFact(profileOf(c), id);
         await record(c, "fact_confirmed", fact?.text ?? id, { id, kind: fact?.kind ?? null });
         return { fact };
+      },
+    },
+    {
+      // WO-106 (F2; eval E044: a move to a new state left the old one on file): a correction replaces the fact it corrects,
+      // so the profile never holds both. The new words must be theirs from this message, and it waits for their yes again.
+      name: "correct_profile_fact", effect: "write_own",
+      description: "Replace a fact on file with the person's correction (\"I moved to Denver last month\", \"not Austin, Dallas\"), in their words. Use instead of add_profile_fact whenever what they say changes a fact already on file. The corrected fact waits for their yes again.",
+      input_schema: obj({ id: str("The fact id being corrected, e.g. F-002"), text: str("The corrected fact in the person's own words") }, ["id", "text"]),
+      run: async (i, c) => {
+        const id = String(i.id), text = String(i.text ?? "");
+        const old = (profileOf(c).facts || []).find((f: any) => f.id === id);
+        if (!old) throw new Error(`no fact ${id} on file`);
+        const refused = factRefusal(text, c.turn?.message);
+        if (refused) throw new Error(refused);
+        const was = String(old.text ?? "");
+        const fact = CareerProfile.updateFact(profileOf(c), id, { text, needs_confirmation: true, status: "draft", corrected_from: was });
+        c.turn?.added.push(id);
+        await record(c, "fact_corrected", text, { id, was: was.slice(0, 200) });
+        return { fact, was };
       },
     },
     {
@@ -254,12 +276,19 @@ export function careerTools(deps: {
         const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
         const newest = [...pool].sort((a, b) => String(b.first_seen_at || "").localeCompare(String(a.first_seen_at || "")));
         const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
-        const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
-        const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
+        // WO-106 (F4): never a job without its own link, and every link checked just before it is shown: a dead one is
+        // dropped (and counted), the next best takes its place; one the check could not reach is shown marked so.
+        const want = Math.max(1, Math.min(20, Number(i.limit) || 10));
+        const r = searchPostings(kept, query, c.state.profile, Math.min(50, want * 3));
+        const withLink = r.postings.filter((p) => /^https?:\/\//i.test(String(p.url ?? "")));
+        const checked = await liveOnly(withLink, deps.linkCheck, want);
+        const found: any[] = checked.shown;
         // WO-100: the list in the order shown, so "the second one" resolves in any thread (the situation's last_shown).
         await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5),
           shown: found.slice(0, 10).map((p) => ({ job_id: String(p.job_id ?? ""), company: String(p.company ?? "").slice(0, 80), title: String(p.title ?? "").slice(0, 100) })) });
-        return { ...r, filtered, source: "live", ...relaxed };
+        return { ...r, postings: found, filtered, source: "live", ...relaxed,
+          links: { checked: checked.checked, dead_dropped: checked.dead, no_link_dropped: r.postings.length - withLink.length,
+            note: deps.linkCheck ? "each link was checked just now; a posting marked link 'unknown' could not be checked: say so beside it" : "links were not checked here" } };
       },
     },
     {

@@ -70,7 +70,7 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
         const text = m.type === "text" ? m.text?.body : m.type === "button" ? m.button?.text
           : m.type === "interactive" ? (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title) : null;
         if (typeof text === "string" && text.trim()) messages.push({ ...base, kind: "text", text });
-        else { messages.push({ ...base, kind: "seen", text: "" }); ignored.push(`a ${String(m.type ?? "message").slice(0, 20)} message (not read yet)`); }
+        else { messages.push({ ...base, kind: "seen", text: "", file: m.type === "document" || m.type === "image" }); ignored.push(`a ${String(m.type ?? "message").slice(0, 20)} message (not read yet)`); }
       }
       for (const s of Array.isArray(v.statuses) ? v.statuses : []) {
         if (s?.status !== "failed" || typeof s.id !== "string") continue;

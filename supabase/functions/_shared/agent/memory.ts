@@ -164,15 +164,38 @@ const STATE: Record<string, string> = {
 export const BLOCK_BUDGET = 4500;
 // WO-100: with the situation, its block (every task by name, its blocker, who acts and how; the next steps; what Trainee
 // can do) replaces the pipeline counts and is kept whole, outside this budget (it has its own).
+// WO-106 (F2, live 2026-10-21: the bot could not say back the goal it had saved): what they want, from their account, every
+// turn and never cut for length. Facts they have not confirmed yet count here (a goal steers search; it is never put in an
+// application unconfirmed), and say so.
+export function goalLines(profile: any): string[] {
+  const p = profile ?? {}, pref = p.preferences ?? {}, out: string[] = [];
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
+  if (list(pref.roles).length) out.push(`- Roles: ${list(pref.roles).join(", ")}`);
+  if (list(pref.locations).length || p.basics?.location) out.push(`- Places: ${[...list(pref.locations), ...(p.basics?.location ? [String(p.basics.location)] : [])].join(", ")}`);
+  if (pref.remote) out.push(`- Remote: ${pref.remote}`);
+  if (pref.compFloor) out.push(`- Pay floor: ${pref.compFloor}`);
+  if (list(pref.targetCompanies).length) out.push(`- Companies they want: ${list(pref.targetCompanies).join(", ")}`);
+  for (const f of Array.isArray(p.facts) ? p.facts : []) {
+    if (!["goal", "location", "preference"].includes(String(f?.kind))) continue;
+    const draft = f.needs_confirmation || f.status === "draft";
+    out.push(`- ${f.id} [${f.kind}] ${f.text}${draft ? " (said, not confirmed yet)" : ""}`);
+  }
+  return out;
+}
+
 export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null; budget?: number }): string {
   const facts = Array.isArray(o.profile?.facts) ? o.profile.facts : [];
   const confirmed = facts.filter((f: any) => !f.needs_confirmation && f.status !== "draft");
   const drafts = facts.filter((f: any) => f.needs_confirmation || f.status === "draft");
+  const goal = goalLines(o.profile);
   const head = [
     "WHAT YOU KNOW ABOUT THIS PERSON. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
     "",
     "Standing instructions (they said these must always hold; follow every one, mention it when it shapes an answer, never ask for it again):",
     ...(o.standing.length ? o.standing.map((s) => `- ${s.id}: ${s.text} (they said: "${s.said}", ${s.at.slice(0, 10)})`) : ["- none yet"]),
+    "",
+    "Their goal (what they want; answer \"what's my goal\" from this, and search for it unless they ask for something else):",
+    ...(goal.length ? goal : ["- none on file yet"]),
   ];
   const p = o.pipeline;
   const pipeline = o.situation ? [] : p

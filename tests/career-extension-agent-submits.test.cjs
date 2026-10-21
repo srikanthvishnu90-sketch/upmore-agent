@@ -323,3 +323,46 @@ test("A6 in the browser: the owner's switch off refuses the agent's start; nothi
     await end(s);
   }
 });
+
+test("WO-102 rehearsal: the batch is filled and checked exactly as for a send, and nothing is approved on the account, started, clicked or sent; the report says how well every answer is supported", async (t) => {
+  if (skip(t)) return;
+  assert.ok(ready && ready.length >= 2);
+  fresh();
+  world.state.agentSubmit = "on"; // even with the owner's switch on, a rehearsal sends nothing
+  // A contaminated facts file is loaded too: an invented fact (F-033) and a legacy fact without provenance never feed it.
+  await sw.evaluate((uid) => chrome.storage.session.set({ imported_file: { user_id: uid, saved: {}, answers: {
+    sponsorship: { value: "Yes", factId: "F-033", confirmed: true, user_id: uid, provenance: "owner stated in chat", confirmation_event_id: "evt-33" },
+    linkedin: { value: "https://www.linkedin.com/in/someone-invented", factId: "F-010", confirmed: true, user_id: uid },
+  } } }), world.userId);
+  const s = await session([ready[0], ready[1]]);
+  try {
+    const b = await prepare(s);
+    assert.equal(b.ready.length, 2, JSON.stringify(b.out));
+    for (const e of b.ready) {
+      assert.ok(!e.posting.ledger.some((l) => l.fact_refs.some((r) => r === "F-033" || r === "F-010")), "no quarantined or legacy fact behind any answer");
+      assert.equal(e.posting.ledger.length, e.posting.answers.length, "a ledger row for every answer");
+    }
+    await s.panel.click("#agent-rehearse");
+    const q = await waitFor(async () => {
+      const x = await queueNow();
+      return x && !x.running && x.items.every((i) => !["waiting", "open"].includes(i.state)) ? x : null;
+    }, 90000, "the rehearsal to finish");
+    assert.deepEqual(q.items.map((i) => i.state), ["rehearsed", "rehearsed"], JSON.stringify(q.items));
+    assert.equal(world.state.submits.length, 0, "nothing reached an employer");
+    assert.equal(world.state.begins.length + world.state.agentBegins.length, 0, "nothing was started");
+    assert.equal(world.state.batchApprovals.length, 0, "nothing was approved on the account");
+    const r = await store("local", "agent_rehearsals");
+    assert.equal(r.length >= 2, true);
+    for (const x of r.slice(0, 2)) {
+      assert.equal(x.matched, true, JSON.stringify(x.diffs));
+      assert.equal(x.supported_pct, 100);
+      assert.equal(x.quarantined_dependencies, 0);
+      assert.equal(x.unanswered_required, 0);
+      assert.ok(x.ledger.length >= 5 && x.readback.length === x.ledger.length, "the final form readback, one per answer");
+    }
+    console.log("rehearsal: " + r.slice(0, 2).map((x) => `${x.company}: ${x.answers} answers, ${x.supported_pct}% supported, ${x.quarantined_dependencies} quarantined, ${x.unanswered_required} unanswered`).join("; "));
+  } finally {
+    await sw.evaluate(() => chrome.storage.session.remove(["imported_file"]));
+    await end(s);
+  }
+});

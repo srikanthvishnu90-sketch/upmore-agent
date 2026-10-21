@@ -658,6 +658,14 @@ async function agentConsider(tabId, card) {
   }
   clearTimeout(agentWait.get(tabId));
   agentWait.delete(tabId);
+  // WO-102 rehearsal: the same fill and the same exact-match check as a send, then a report and the next posting.
+  // Nothing is started or clicked: no "submit" message exists on this path, and "begin" refuses while rehearsing.
+  if ((await get(S, "agent_mode", "send")) === "rehearse") {
+    await agentRehearsal(card, a, r, true);
+    await setCard(tabId, { status: "rehearsed", message: "Rehearsed: every answer on the page is exactly what you approved, each from a fact you gave. Nothing was sent." });
+    await queueAfter(tabId, "rehearsed", null);
+    return;
+  }
   let taken = false;
   await withCards(tabId, "agent-approve", (prev) => {
     if (!prev || prev.hash !== card.hash || prev.status !== "ready" || prev.approved) return null;
@@ -676,7 +684,33 @@ async function agentGiveUp(tabId, jobId) {
   agentWait.delete(tabId);
   const card = (await cards())[tabId];
   if (!card || card.jobId !== jobId || card.approved || card.begun || !card.agent_diffs?.length) return;
+  if ((await get(S, "agent_mode", "send")) === "rehearse") {
+    const a = (await agentApproved())[jobId];
+    if (a) await agentRehearsal(card, a, { ok: false, diffs: card.agent_diffs }, false);
+    await setCard(tabId, { status: "needs_you", message: `Rehearsal: this page differs from what you approved. ${card.agent_diffs.slice(0, 5).join(" ")} Nothing was sent.` });
+    await queueAfter(tabId, "needs_you", null);
+    return;
+  }
   await agentStopped(tabId, card, `${say.agentDiffers} ${card.agent_diffs.slice(0, 5).join(" ")}`);
+}
+// WO-102: what a rehearsal found for one posting: the approved ledger, the final form as read back (values and what the
+// browser sends, file bytes included), and the contract's three numbers: supported answers, quarantined dependencies,
+// unanswered required questions.
+async function agentRehearsal(card, a, r, matched) {
+  const ledger = a.posting.ledger || [];
+  const names = new Set(ledger.map((l) => l.field_id));
+  const readback = (card.payload?.fields || []).filter((f) => names.has(f.name)).map((f) => ({ name: f.name, label: f.label, value: f.value, source: f.source, factId: f.factId, detail: f.detail }));
+  const supported = ledger.filter((l) => l.fact_refs.length && l.confirmation_event_id && l.derivation_rule).length;
+  const rec = {
+    at: Date.now(), company: card.company, url: card.url, jobId: card.jobId, batch_hash: a.hash, matched, diffs: (r.diffs || []).slice(0, 20),
+    answers: a.posting.answers.length, supported_pct: a.posting.answers.length ? Math.round((100 * supported) / a.posting.answers.length) : 0,
+    quarantined_dependencies: ledger.reduce((n, l) => n + l.fact_refs.filter((id) => C.quarantinedFact({ factId: id })).length, 0),
+    unanswered_required: (card.openRequired || []).length, ledger, readback,
+    manifest_hash: a.posting.manifest_hash, quarantine_version: a.posting.quarantine_version, question_set_hash: a.posting.question_set_hash,
+  };
+  const list = await get(L, "agent_rehearsals", []);
+  list.unshift(rec);
+  await put(L, "agent_rehearsals", list.slice(0, 200));
 }
 // An agent send that stopped before its start was recorded: the card says why, a receipt line, the queue goes on.
 async function agentStopped(tabId, card, message) {
@@ -787,6 +821,8 @@ async function handle(m, sender) {
       // WO-101: a card code approved from the person's batch starts only while that approval is still here (Stop applying
       // removes it) and through the owner-switched agent start, which uses the approval once.
       const agent = card.approved_by === "agent";
+      // WO-102: a rehearsal never starts an application, whatever asks.
+      if ((await get(S, "agent_mode", "send")) === "rehearse") return { ok: false, message: "Rehearsal: nothing is sent." };
       if (agent) {
         const a = (await agentApproved())[card.jobId];
         if (!(await config()).agentSubmits || !a || a.hash !== card.batch_hash) {
@@ -909,7 +945,9 @@ async function handle(m, sender) {
         importedFacts: Object.keys((await get(S, "imported_file", { answers: {} })).answers || {}).length,
         answerOnce: await get(S, "answer_once", null),
         agent: (await config()).agentSubmits
-          ? { batch: await get(S, "agent_batch", null), approved: Object.keys(await agentApproved()).length, receipts: (await get(L, "agent_receipts", [])).slice(0, 20) }
+          ? { batch: await get(S, "agent_batch", null), approved: Object.keys(await agentApproved()).length, receipts: (await get(L, "agent_receipts", [])).slice(0, 20),
+            mode: await get(S, "agent_mode", "send"), rehearsals: (await get(L, "agent_rehearsals", [])).slice(0, 20).map((x) => ({ company: x.company, url: x.url, matched: x.matched,
+              answers: x.answers, supported_pct: x.supported_pct, quarantined_dependencies: x.quarantined_dependencies, unanswered_required: x.unanswered_required, diffs: x.diffs })) }
           : null,
       };
     }
@@ -1081,8 +1119,26 @@ async function handle(m, sender) {
       const ap = await agentApproved();
       for (const e of pick) ap[e.jobId] = { hash: e.hash, posting: e.posting, url: e.url, approved_at: Date.now() };
       await put(S, "agent_approved", ap);
+      await put(S, "agent_mode", "send");
       await put(S, "agent_batch", { ...st, approved: [...new Set([...(st.approved || []), ...pick.map((e) => e.hash)])] });
       return { ok: true, approved: pick.length };
+    }
+    case "batch-rehearse": {
+      // WO-102: the protected no-submit rehearsal of a batch: approved on this computer only (nothing recorded on the
+      // account), filled and checked exactly as a send would be, never started or clicked; a report per posting.
+      if (!(await config()).agentSubmits) return { ok: false, message: say.agentOff };
+      const st = await get(S, "agent_batch", null);
+      const want = new Set(Array.isArray(m.hashes) ? m.hashes.map(String) : []);
+      const pick = (st?.ready || []).filter((e) => want.has(e.hash));
+      if (!pick.length || pick.length !== want.size) return { ok: false, message: "This batch changed; read it again before rehearsing." };
+      const ap = {};
+      for (const e of pick) ap[e.jobId] = { hash: e.hash, posting: e.posting, url: e.url, approved_at: Date.now(), rehearsal: true };
+      await put(S, "agent_approved", ap);
+      await put(S, "agent_mode", "rehearse");
+      const q = await queueState();
+      for (const it of q.items) if (it.state === "rehearsed" || it.state === "needs_you") it.state = "waiting";
+      await put(S, "queue", q);
+      return await handle({ type: "queue-start", tabId: m.tabId }, {});
     }
     case "batch-stop": {
       // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
@@ -1090,7 +1146,7 @@ async function handle(m, sender) {
       const q = await queueState();
       q.running = false;
       await put(S, "queue", q);
-      await S.remove("agent_approved");
+      await S.remove(["agent_approved", "agent_mode"]);
       for (const t of agentWait.values()) clearTimeout(t);
       agentWait.clear();
       if (q.tabId !== null) chrome.tabs.sendMessage(q.tabId, { type: "agent-stop" }).catch(() => {});
@@ -1118,7 +1174,7 @@ async function handle(m, sender) {
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
-  "answer-once-prepare", "answer-once-save", "answer-once-skip", "batch-approve", "batch-stop"]);
+  "answer-once-prepare", "answer-once-save", "answer-once-skip", "batch-approve", "batch-rehearse", "batch-stop"]);
 const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "awaiting-person", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).

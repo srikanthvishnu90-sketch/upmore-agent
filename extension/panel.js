@@ -179,6 +179,17 @@ function renderAgent(ag) {
     ol.append(li);
   }
   $("agent-approve").hidden = !pending.length;
+  $("agent-rehearse").hidden = !pending.length;
+  $("agent-rehearse").dataset.hashes = JSON.stringify(pending.map((e) => e.hash));
+  const reh = $("agent-rehearsals");
+  reh.textContent = "";
+  for (const x of ag.rehearsals || []) {
+    const li = document.createElement("li");
+    li.textContent = x.matched
+      ? `${x.company}: ${x.answers} answers, ${x.supported_pct}% from facts you gave, ${x.quarantined_dependencies} quarantined, ${x.unanswered_required} unanswered. Nothing was sent.`
+      : `${x.company}: differs from what you approved. ${(x.diffs || []).slice(0, 3).join(" ")} Nothing was sent.`;
+    reh.append(li);
+  }
   $("agent-approve").dataset.hashes = JSON.stringify(pending.map((e) => e.hash));
   $("agent-approve").textContent = `Approve these answers for ${pending.length} posting${pending.length === 1 ? "" : "s"}; Trainee sends them`;
   const out = $("agent-out");
@@ -202,6 +213,12 @@ $("agent-approve").onclick = async (e) => {
   if (!e.isTrusted) return; // only the person's own tap approves
   const r = await send({ type: "batch-approve", hashes: JSON.parse(e.target.dataset.hashes || "[]") });
   text($("agent-msg"), r?.ok ? `Approved ${r.approved}. Press Start: Trainee sends each one that still matches exactly, and stops for anything else.` : r?.message || "Not approved.", !r?.ok);
+  render();
+};
+$("agent-rehearse").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const r = await send({ type: "batch-rehearse", hashes: JSON.parse(e.target.dataset.hashes || "[]"), tabId: await targetTab() });
+  text($("agent-msg"), r?.ok ? "Rehearsing: each posting is filled and checked; nothing is sent." : r?.message || "Not started.", !r?.ok);
   render();
 };
 $("agent-stop").onclick = async (e) => {

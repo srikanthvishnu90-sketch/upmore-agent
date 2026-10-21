@@ -320,6 +320,140 @@ test("the intro check-in reads the user's own record back (follow-up state inclu
   assert.match(r.out.reply, /72-hour|follow-up/i, "the follow-up marker is part of the read-back");
 });
 
+// ---- ASSEMBLY guards 15-19 (integration design, SPECIFIED there;
+// written for the assembled tree: gate module wired per-turn,
+// modules 156-159 on one tree) ----
+
+test("guard 15 (double-yes race): a yes from the side not yet proposed to is never accepted early", () => {
+  const w = makeWorld();
+  optIn(w, ANA, "ta", ANA_CAPTURE);
+  optIn(w, BEN, "tb", BEN_CAPTURE);
+  w.say(ANA, "ta", "find me a match");
+  const prop = w.pool.openProposalFor(ANA);
+  assert.ok(prop && prop.state === "awaiting_a", "the proposal awaits the asker first");
+  // B answers before A has said yes — B has not been proposed to
+  // yet, so the answer must not land at all.
+  const early = w.say(BEN, "tb", "yes to the match");
+  assert.notEqual(early.out.intent, "connector_match_decision", "an early yes is not recorded as a decision");
+  assert.notEqual(early.out.intent, "connector_intro", "an early yes fires nothing");
+  assert.equal(w.pool.proposal(prop.id).state, "awaiting_a", "the proposal still awaits A — B's early yes changed nothing");
+  assert.deepEqual(introFacts(w.store, ANA), [], "no intro on A's record");
+  assert.deepEqual(introFacts(w.store, BEN), [], "no intro on B's record");
+  // The real sequence still completes, exactly once.
+  w.say(ANA, "ta", "yes to the match");
+  const ri = w.say(BEN, "tb", "yes — introduce us");
+  assert.equal(ri.out.intent, "connector_intro", `got ${ri.out.intent}`);
+  assert.equal(introFacts(w.store, ANA).length, 1, "exactly one intro for A across the whole race");
+  assert.equal(introFacts(w.store, BEN).length, 1, "exactly one intro for B across the whole race");
+});
+
+test("guard 16 (stale proposal): a proposal closed by revoke stays closed across re-opt-in; a fresh ask mints a new id", () => {
+  const w = makeWorld();
+  optIn(w, ANA, "ta", ANA_CAPTURE);
+  optIn(w, BEN, "tb", BEN_CAPTURE);
+  w.say(ANA, "ta", "find me a match");
+  const prop = w.pool.openProposalFor(ANA);
+  w.say(ANA, "ta", "yes to the match");
+  w.say(ANA, "ta", "opt me out — revoke my consent");
+  assert.equal(w.pool.proposal(prop.id).state, "closed_revoked", "the revoke closed the proposal");
+  optIn(w, ANA, "ta", ANA_CAPTURE); // re-opt-in: profile restated + explicit yes
+  assert.equal(acctKeyed(w.store, ANA, "connector_consent", "pool").status, "opted_in", "the re-opt-in is on record");
+  // A yes aimed at the closed proposal fires nothing.
+  const stale = w.say(ANA, "ta", "yes to the match");
+  assert.notEqual(stale.out.intent, "connector_intro", "a yes at a closed proposal fires nothing");
+  assert.equal(w.pool.proposal(prop.id).state, "closed_revoked", "the closed proposal is untouched by the stale yes");
+  assert.deepEqual(introFacts(w.store, ANA), [], "no intro was recorded");
+  assert.deepEqual(introFacts(w.store, BEN), [], "no intro was recorded");
+  // A fresh match ask mints a NEW proposal — the closed one is never reused.
+  const r = w.say(ANA, "ta", "find me a match");
+  assert.equal(r.out.intent, "connector_match_proposal", `got ${r.out.intent}`);
+  const fresh = w.pool.openProposalFor(ANA);
+  assert.ok(fresh && fresh.id !== prop.id && fresh.state === "awaiting_a", "a new proposal id was minted, awaiting A");
+});
+
+test("guard 17 (cross-user isolation): no turn by A reads, names, or mutates B's records", () => {
+  const w = makeWorld();
+  optIn(w, ANA, "ta", ANA_CAPTURE);
+  optIn(w, BEN, "tb", BEN_CAPTURE);
+  const benBefore = JSON.stringify(acctFacts(w.store, BEN));
+  w.say(ANA, "ta", "find me a match");
+  w.say(ANA, "ta", "yes to the match");
+  assert.equal(JSON.stringify(acctFacts(w.store, BEN)), benBefore, "A's turns never write B's account record");
+  // A cannot answer for the side the proposal now awaits.
+  w.say(ANA, "ta", "yes to the match");
+  const prop = w.pool.openProposalFor(ANA);
+  assert.equal(prop.state, "awaiting_b", "A's repeated yes does not answer B's side");
+  assert.deepEqual(introFacts(w.store, ANA), [], "no intro fired by A answering twice");
+  // B is surfaced the pending proposal (the designed surfacing
+  // path) — identity-free: the need/offer SUMMARY is the sanctioned
+  // pre-intro disclosure (design identity rule), the NAME is not.
+  const rb1 = w.say(BEN, "tb", "any matches for me?");
+  assert.equal(rb1.out.intent, "connector_match_proposal", `got ${rb1.out.intent}`);
+  assert.ok(!/\bAna\b/.test(rb1.out.reply), "the proposal to B never names A before the intro");
+  // B's pure status read-back (proposal already presented) contains
+  // none of A's identity AND none of A's facts.
+  const rb = w.say(BEN, "tb", "what's my match status?");
+  assert.equal(rb.out.intent, "connector_status", `got ${rb.out.intent}`);
+  assert.ok(!/\bAna\b/.test(rb.out.reply), "B's status never names A before the intro");
+  assert.ok(!rb.out.reply.includes("intros to alumni working in investment banking"), "B's status never quotes A's needs");
+  assert.ok(!rb.out.reply.includes("interview prep and resume reviews"), "B's status never quotes A's offers");
+  // And A's status contains none of B's.
+  const ra = w.say(ANA, "ta", "what's my match status?");
+  assert.ok(!/\bBen\b/.test(ra.out.reply), "A's status never names B before the intro");
+});
+
+test("guard 18 (gate flip mid-flow): an account removed from the allowlist mid-proposal stands down; the other side is unaffected", () => {
+  const w = makeWorld();
+  optIn(w, ANA, "ta", ANA_CAPTURE);
+  optIn(w, BEN, "tb", BEN_CAPTURE);
+  w.say(ANA, "ta", "find me a match");
+  const prop = w.pool.openProposalFor(ANA);
+  assert.ok(prop && prop.state === "awaiting_a", "a proposal is open, awaiting A");
+  w.setAllowlist([BEN, EVE]); // A's gate flips OFF mid-flow
+  const r = w.say(ANA, "ta", "yes to the match");
+  assert.notEqual(r.out.intent, "connector_match_decision", "a flipped-off account's yes is not recorded as a decision");
+  assert.notEqual(r.out.intent, "connector_intro", "a flipped-off account's yes fires nothing");
+  assert.equal(w.pool.proposal(prop.id).state, "awaiting_a", "no decision from a flipped-off account is accepted");
+  assert.deepEqual(introFacts(w.store, ANA), [], "nothing fired");
+  const r2 = w.say(ANA, "ta", "find me a mentor");
+  assert.equal(r2.out.intent, "people_matching_stop", "the whole connector family stands down for the flipped-off account — the honest stop answers");
+  // The other side is unaffected: B's connector turns still run.
+  const rb = w.say(BEN, "tb", "what's my match status?");
+  assert.equal(rb.out.intent, "connector_status", `B's flow is unaffected — got ${rb.out.intent}`);
+  assert.ok(!/\bAna\b/.test(rb.out.reply), "B's status still reveals nothing about A");
+  // The flip is per-turn, not sticky: restored, A's pending decision lands.
+  w.setAllowlist([ANA, BEN, EVE]);
+  const r3 = w.say(ANA, "ta", "yes to the match");
+  assert.equal(r3.out.intent, "connector_match_decision", `got ${r3.out.intent}`);
+  assert.equal(w.pool.proposal(prop.id).state, "awaiting_b", "A's decision is accepted again once the gate allows");
+});
+
+test("guard 19 (record forward-compat): monolith-era records with unknown fields are read correctly by the assembled flow", () => {
+  const w = makeWorld();
+  // Seed A's account with records in the monolith's exact shapes,
+  // carrying unknown extra fields (records outlive module versions).
+  w.store.accounts.set(ANA, { stated_facts: { facts: [], keyed: [
+    { kind: "connector_profile", key: "self", value: JSON.stringify({ name: "Ana", needs: "intros to alumni working in investment banking", offers: "interview prep and resume reviews", updatedAt: "2026-10-20T10:00:00.000Z", futureField: { nested: [1, 2] }, legacy_v0: true }), evidence: "match profile, stated by the user", at: "2026-10-20T10:00:00.000Z" },
+    { kind: "connector_consent", key: "pool", value: JSON.stringify({ status: "opted_in", at: "2026-10-20T10:00:00.000Z", scope: "matching", version: 1, unknownFlag: "x" }), evidence: "explicit opt-in to the matching pool", at: "2026-10-20T10:00:00.000Z" },
+  ], offer: null, updated_at: "2026-10-20T10:00:00.000Z" } });
+  optIn(w, BEN, "tb", BEN_CAPTURE);
+  const rs = w.say(ANA, "ta", "am I opted in?");
+  assert.equal(rs.out.intent, "connector_status", `got ${rs.out.intent}`);
+  assert.match(rs.out.reply, /opted in/i, "the seeded consent record reads as opted in");
+  const rp = w.say(ANA, "ta", "find me a match");
+  assert.equal(rp.out.intent, "connector_match_proposal", `the seeded profile drives a proposal — got ${rp.out.intent} — ${rp.out.reply}`);
+  w.say(ANA, "ta", "yes to the match");
+  const ri = w.say(BEN, "tb", "yes — introduce us");
+  assert.equal(ri.out.intent, "connector_intro", `got ${ri.out.intent}`);
+  assert.equal(introFacts(w.store, ANA).length, 1, "the intro landed on the seeded account");
+  // An intro record carrying an unknown field still reads back.
+  const rec = (w.store.accounts.get(ANA).stated_facts.keyed || []).find((f) => f.kind === "connector_intro");
+  const v = JSON.parse(rec.value); v.futureField = { anything: true }; rec.value = JSON.stringify(v);
+  const rc = w.say(ANA, "ta2", "check in on my intro");
+  assert.equal(rc.out.intent, "connector_status", `got ${rc.out.intent}`);
+  assert.ok(rc.out.reply.includes("Ben"), "the check-in reads the record despite the unknown field");
+});
+
 test("claim discipline: the connector never swallows other families, for allowlisted users either", () => {
   const w = makeWorld();
   const r1 = w.say(ANA, "t1", "My career goal is a data analyst internship for summer 2027.");

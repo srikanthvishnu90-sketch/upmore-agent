@@ -120,6 +120,13 @@
         const el = doc.createElement(tag); if (value !== undefined) el.textContent = value;
         if (parent) parent.appendChild(el); return el;
       }
+      function disclosureSignature() {
+        // Opening native details is the person's review action, not a change to the answers.
+        // Normalize only this interaction state; the remaining DOM stays part of the stamp.
+        const view = display.cloneNode(true);
+        for (const details of view.querySelectorAll('details')) details.removeAttribute('open');
+        return view.outerHTML;
+      }
       function render(card) {
         const section = node('section'); section.className = 'career-approval-card';
         section.setAttribute('aria-label', 'Review application approval');
@@ -147,10 +154,10 @@
         button = node('button', 'Approve these exact answers for ' + card.payload.items.length + (card.payload.items.length === 1 ? ' application' : ' applications'), section); button.type = 'button'; button.disabled = true;
         status = node('p', '', section); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
         button.onclick = () => tap();
-        container.replaceChildren(section); stamp = display.outerHTML;
+        container.replaceChildren(section); stamp = disclosureSignature();
       }
       function disclosed() {
-        if (!display || display.outerHTML !== stamp || display.hidden || display.getAttribute('aria-hidden') === 'true') return false;
+        if (!display || disclosureSignature() !== stamp || display.hidden || display.getAttribute('aria-hidden') === 'true') return false;
         let parent = display.parentNode;
         while (parent) {
           if (parent.hidden || (typeof parent.getAttribute === 'function' && parent.getAttribute('aria-hidden') === 'true') || parent.style?.display === 'none' || parent.style?.visibility === 'hidden') return false;

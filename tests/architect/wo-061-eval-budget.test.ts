@@ -46,8 +46,9 @@ Deno.test("WO-061/4 a run already at the cap runs nothing", async () => {
 Deno.test("WO-061/5 the workflow passes the cap, never reads a stopped run as a score, judges twice and logs every run", async () => {
   const wf = await Deno.readTextFile(".github/workflows/brain-eval.yml");
   if (!/EVAL_BUDGET_USD: "15"/.test(wf)) throw new Error("the $15 cap is not set");
-  if (!/if \(a\.stopped\)/.test(wf)) throw new Error("the verdict reads a stopped run");
-  if (!/a\.pass_rate >= 0\.95/.test(wf) || !/--set heldout/.test(wf)) throw new Error("the owner's bar (95% on the held-out set) is not the verdict");
+  if (!/a\.stopped/.test(wf) || !/judge error/.test(wf)) throw new Error("the verdict reads a stopped run or a run whose judge errored");
+  if (!/>= 0\.95/.test(wf) || !/--set heldout/.test(wf)) throw new Error("the owner's bar (95% on the held-out set) is not the verdict");
+  if (!/for p in 1 2 3/.test(wf)) throw new Error("one pass alone decides whether a fix helped (the same build scored 27 and 33 of 38)");
   if (!/Instinct/.test(wf) || !/both-pass/.test(wf)) throw new Error("one judge alone decides (Instinct is the second judge, both must pass)");
   if (!/score-log\.ts/.test(wf)) throw new Error("the run is not logged");
 });

@@ -650,3 +650,16 @@ of private content.
   step is to put each turn's tool calls (names, ok, error) in the result file, so a step-limit reply can be traced
   instead of guessed. No guessing fix before that.
 - Held, uncommitted, for the three-way verdict.
+
+### Second judge's rulings: the control and H031 v2 (KEPT)
+- Control run 39586066852 (unchanged 40eb3d03), second judge's score: combined full-38 79.8%, clean-30 78.9%. The
+  morning's 85.1/85.6 is stale. Ruling: the ratchet reference is a fresh same-night control; earlier reverts are
+  re-read against it but nothing reverted comes back without a fresh measured run; with variance about 5 points, a
+  keep needs a same-night control comparison plus consistent gains across passes.
+- H031 v2 (run 39584579483): KEEP. Full-38 79.8 ties the control; clean-30 77.8 vs 78.9, within noise; H031 3/3 vs
+  the control's 1/3. On wo/agent-slice as e41d1723. Working branch only; deploy bar unchanged (95% on both judges).
+- Re-read against the control (combined, second judge's numbers): H031 clause 78.9/77.8 (ties the control; did not
+  do the task); H027 76.3/74.4 (about 4.5 under on clean-30, within the stated variance; its path fired zero times,
+  so the gap is not its effect). Both stay reverted; neither comes back without a fresh measured run.
+- Residuals named next: H004 p3, H006 weather engagement 3/3, H009 onsite not confirmed, H025 standing. H002
+  (run 39586807128) awaits its verdict.

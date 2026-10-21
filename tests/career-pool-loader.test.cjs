@@ -187,7 +187,7 @@ async function stagedApp(db, user) {
     Request, Response, Headers, URL, TextEncoder, TextDecoder, AbortController, crypto: require("node:crypto").webcrypto,
     setTimeout, clearTimeout,
     console: { log() {}, error() {}, warn() {} },
-    fetch() { networkCalls++; throw new Error("external network forbidden in staged handler"); },
+    fetch(url, init) { if (init && init.method === "HEAD") return Promise.resolve(new Response(null, { status: 200 })); networkCalls++; throw new Error("external network forbidden in staged handler"); },
     Deno: { env: { get: (name) => ({ SUPABASE_URL: "https://supabase.example.test", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service" })[name] } },
   });
   const modules = new Map();

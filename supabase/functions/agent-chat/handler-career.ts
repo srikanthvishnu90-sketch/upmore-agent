@@ -237,12 +237,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         return data ?? [];
       },
       jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
+      // LINK LIVENESS (MUSE-F-003): the loader probes each served
+      // window URL once per load (HEAD, ranged-GET fallback, short
+      // timeout, concurrency-capped) and excludes only CONFIRMED-dead
+      // postings (404/410); every unconfirmable link serves as today.
+      probeUrl: CareerPool.createFetchProbe(),
     });
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       const pool = await poolLoader.loadPool();
       if (pool.error) console.error("career pool load failed:", pool.error);
+      if (pool.deadExcluded) console.error("career pool liveness: excluded confirmed-dead postings:", pool.deadExcluded);
       // V240 LIVE-FIX (probe f2): the window is a discovery slice,
       // not the shelf — when the turn names a specific company/title
       // (the router's OWN parser decides; no second parser lives

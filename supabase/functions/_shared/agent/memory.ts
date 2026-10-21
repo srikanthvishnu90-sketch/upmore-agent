@@ -10,6 +10,7 @@
 import type { AlertPrefs } from "../career_alerts.ts";
 import { dailyLimit } from "../career_apply.ts";
 import { type Situation, situationBlock } from "../career_situation.ts";
+import { personalSourceDenied as memorySourceDenied } from "../personal_fact_source.ts";
 
 export interface Standing { id: string; text: string; said: string; at: string }
 export interface MemoryStore {
@@ -171,13 +172,6 @@ export const BLOCK_BUDGET = 4500;
 // Match the reply guard's explicit source exclusions before assigning memory eligibility. A stale confirmed flag
 // cannot make generated/quarantined content the person's own fact; a denied account container covers its children.
 // This only excludes recorded negative provenance. Legacy rows still need the existing confirmation flags below.
-const NOT_PERSONAL_EVIDENCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
-function memorySourceDenied(value: any): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  if ([value, value.provenance].some((v) => v && typeof v === "object" && !Array.isArray(v) && (v.unproven === true || v.quarantined === true || v.rejected === true))) return true;
-  return [value.source, value.origin, value.provenance?.source, value.provenance?.origin].some((origin) =>
-    typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-")));
-}
 // Rendering is not a confirmation operation. A missing/unknown status cannot become confirmed merely because a
 // flag is absent, and a rejected row must not return as either a goal or a pending fact. Ignore malformed stored rows
 // rather than letting one row prevent the entire context block from being built.

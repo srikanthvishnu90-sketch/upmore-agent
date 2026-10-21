@@ -7,6 +7,7 @@
 //   leaks   no tool name, raw job id, uuid or JSON field name reaches the person.
 // Each finder returns what it found (for the one rewrite the loop asks for) and a fixer applies code's last resort.
 import { DEGREES, factLock, factText, norm, SCALE, TITLES, TOOLS } from "../essay_draft.ts";
+import { personalSourceDenied as sourceDenied } from "../personal_fact_source.ts";
 
 // ------------------------------------------------------------------------------------------------ sentences
 // A reply as sentence pieces with the whitespace after each, so a piece can be dropped or changed and the rest of the
@@ -47,14 +48,7 @@ function tidy(s: string): string {
 // the account's stated facts, this turn's message, their own earlier messages, and this turn's tool results. Never the
 // model's own earlier replies.
 const FACT_KINDS = new Set(["experience", "education", "skill", "project", "leadership", "award", "publication", "certification", "goal", "location", "preference", "other"]);
-const NOT_PERSONAL_EVIDENCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
 const record = (v: any) => !!v && typeof v === "object" && !Array.isArray(v);
-function sourceDenied(f: any): boolean {
-  if (!record(f)) return false;
-  if ([f, f.provenance].some((v) => record(v) && (v.unproven === true || v.quarantined === true || v.rejected === true))) return true;
-  return [f.source, f.origin, f.provenance?.source, f.provenance?.origin].some((origin) =>
-    typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-")));
-}
 function sourceFactOk(f: any, legacyToolText = false): boolean {
   if (!record(f) || sourceDenied(f)) return false;
   // Explicit confirmation survives old rows without the flag; absent/unknown status on a stored profile is not proof.

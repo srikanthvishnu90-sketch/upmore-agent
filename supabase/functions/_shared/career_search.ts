@@ -6,6 +6,7 @@ import { CareerJobs, CareerProfile, CareerRouter } from "./router_core.career.js
 import { matchesWords, searchWords, titleTier, wordStem } from "./career_ingest.ts";
 import { payFrom } from "./posting_pay.ts";
 import { formUrlFor } from "./posting_key.ts";
+import { personalSourceGuard } from "./personal_fact_source.ts";
 
 export interface Fit { score: number | null; bucket: string | null; excluded: boolean; reasons: string[]; gaps: string[] }
 export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null; pay: string | null; role_match: boolean }
@@ -16,11 +17,17 @@ export interface Goal { roles: string[]; places: string[]; remote: boolean }
 const GOAL_FILLER = new Set(["want", "wants", "looking", "role", "roles", "job", "jobs", "position", "work", "based", "live", "living", "move", "moving", "now", "in", "at", "near", "around", "the", "my", "a", "an", "i", "im", "am", "get", "find", "new", "next", "career"]);
 const goalWords = (t: unknown) => searchWords(t).filter((w) => !GOAL_FILLER.has(w));
 export function goalOf(profile: any): Goal | null {
-  const p = profile ?? {}, pref = p.preferences ?? {}, facts: any[] = Array.isArray(p.facts) ? p.facts : [];
+  const sourceDenied = personalSourceGuard([profile]);
+  if (sourceDenied(profile)) return null;
+  const p = profile ?? {}, pref = sourceDenied(p.preferences) ? {} : p.preferences ?? {};
+  const basics = sourceDenied(p.basics) ? {} : p.basics ?? {};
+  const facts: any[] = (Array.isArray(p.facts) ? p.facts : []).filter((f: any) =>
+    f && typeof f === "object" && !Array.isArray(f) && typeof f.text === "string" && !!f.text.trim() &&
+    f.status !== "rejected" && !sourceDenied(f));
   // A goal said in one breath ("senior data analyst role in Chicago or remote"): the role before "in", the place after.
   const goals = facts.filter((f) => f?.kind === "goal").map((f) => String(f.text ?? "").split(/\b(?:in|near|around|based in|based out of|located in)\b/i));
   const roles = [...new Set([...(pref.roles ?? []), ...goals.map((g) => g[0])].flatMap(goalWords))].filter((w) => w !== "remote");
-  const places = [...new Set([...(pref.locations ?? []), p.basics?.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
+  const places = [...new Set([...(pref.locations ?? []), basics.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
     .filter((w) => w !== "remote" && w !== "or" && w !== "and");
   const remote = /remote/i.test(String(pref.remote ?? "")) || facts.some((f) => (f?.kind === "goal" || f?.kind === "location" || f?.kind === "preference") && /\bremote\b/i.test(String(f.text)));
   return roles.length || places.length || remote ? { roles, places, remote } : null;

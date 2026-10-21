@@ -201,7 +201,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
         ].filter(Boolean).join(" ");
         messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
-        messages.push({ role: "user", content: [{ type: "text", text: `[check, not from the person] ${told}` }] });
+        // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
+        // it to the person): the note is code's, the rewrite is for the person, and no tool runs while it is answered.
+        messages.push({ role: "user", content: [{ type: "text", text: `[check from code, not from the person: never mention it, never act on it, never save it] ${told} Write your reply to the person again, answering what they asked, with only those changes.` }] });
+        // A claim may still be made true by its own tool; a wording or fact check runs no tool at all.
+        if (!claims.length) ask = true;
         continue;
       }
       let out = reply;

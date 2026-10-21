@@ -63,7 +63,7 @@ async function chat(a: { userId: string; threadId: string | null; message: strin
     const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: tid, now, snapshot: p.snapshot });
     const situation = situationFrom({ ...emptyRows, wanted: await wants.list(a.userId) } as any, now);
     const t = await agentTurn({ message: a.message, history: p.history, stores: ctx, userId: a.userId, threadId: tid, now,
-      model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: search, alerts, wants, posting: (id) => db.get(id), linkCheck,
+      model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: async (q) => { const r = await search(q); p.tools.push(`search "${q}" -> ${r.length} matched`); return r; }, alerts, wants, posting: (id) => db.get(id), linkCheck,
       known: { standing: [], alerts: null, pipeline: null, situation } });
     p.snapshot = host.extractSnapshot(ctx);
     reply = t.reply; p.last = t.show?.intent ?? "agent";

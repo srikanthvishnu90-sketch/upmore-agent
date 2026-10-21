@@ -650,3 +650,17 @@ export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: Sn
   diffs.push(...o.blockers);
   return { ok: diffs.length === 0, diffs };
 }
+
+// The receipt after each agent submission (WO-101, A8): one line the person reads, from the recorded outcome. A page's
+// confirmation counts only with its picture after the click (as on the card); the employer's email makes it final.
+export function agentReceiptLine(o: { company: string; url: string; state: string; confirmation_id: string | null; reason?: string; proved: boolean }): string {
+  const c = o.company || "the employer";
+  const says = o.state === "confirmed" && o.proved
+    ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.`
+    : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome"
+    ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.`
+    : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.`
+    : o.state === "not_submitted" ? `Not sent to ${c}: ${o.reason || BEFORE_CLICK}. Nothing was sent.`
+    : `Sent to ${c}, but it was not confirmed: ${o.reason || "the page did not say"}.`;
+  return `${says} The proof (answers, pictures, times) is on this computer. ${o.url}`;
+}

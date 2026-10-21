@@ -73,6 +73,7 @@ async function render() {
   const done = q.items.filter((x) => !["waiting", "open"].includes(x.state)).length;
   text($("queue-progress"), q.items.length ? `${done} of ${q.items.length} done${st.timing.avg_ms ? `; average ${(st.timing.avg_ms / 1000).toFixed(1)} s from card to confirmed` : ""}` : "");
   renderAnswerOnce(st.answerOnce);
+  renderAgent(st.agent);
 }
 
 // ------------------------------------------------------------------------------------------------ answer once (WO-054)
@@ -143,6 +144,70 @@ $("ao-save").onclick = async (e) => {
   if (!answers.length) return text($("ao-msg"), "Nothing chosen yet; skipped questions stay for their cards.");
   const r = await send({ type: "answer-once-save", answers });
   if (r && r.ok === false && r.message) text($("ao-msg"), r.message, true);
+  render();
+};
+
+// ------------------------------------------------------------------------------------------------ the agent sends (WO-101)
+// Shown only with agentSubmits on (config.js, the owner's call). Every answer per posting exactly as it will be sent,
+// what is left blank, and why any posting is left out; one tap approves the postings shown, by their hashes; "Stop
+// applying" ends it. A receipt line after each submission.
+function renderAgent(ag) {
+  $("agent-box").hidden = !ag;
+  if (!ag) return;
+  const b = ag.batch, ready = b?.ready || [], approved = new Set(b?.approved || []);
+  const pending = ready.filter((e) => !approved.has(e.hash));
+  const ol = $("agent-ready");
+  ol.textContent = "";
+  for (const e of ready) {
+    const li = document.createElement("li");
+    const head = document.createElement("b");
+    head.textContent = `${e.company}${approved.has(e.hash) ? " (approved)" : ""}`;
+    const url = document.createElement("p");
+    url.textContent = e.url;
+    const answers = document.createElement("ul");
+    for (const a of e.posting.answers) {
+      const x = document.createElement("li");
+      x.textContent = `${a.label.replace(/\s*[*✱]+\s*$/, "")}: ${a.shown}`;
+      answers.append(x);
+    }
+    li.append(head, url, answers);
+    if (e.posting.blank.length) {
+      const blank = document.createElement("p");
+      blank.textContent = `Left blank: ${e.posting.blank.join("; ")}`;
+      li.append(blank);
+    }
+    ol.append(li);
+  }
+  $("agent-approve").hidden = !pending.length;
+  $("agent-approve").dataset.hashes = JSON.stringify(pending.map((e) => e.hash));
+  $("agent-approve").textContent = `Approve these answers for ${pending.length} posting${pending.length === 1 ? "" : "s"}; Trainee sends them`;
+  const out = $("agent-out");
+  out.textContent = "";
+  for (const o of b?.out || []) {
+    const li = document.createElement("li");
+    li.textContent = `Not in the batch: ${o.company || o.url} (${o.url}). ${o.why.join(" ")}`;
+    out.append(li);
+  }
+  const rec = $("agent-receipts");
+  rec.textContent = "";
+  for (const r of ag.receipts || []) {
+    const li = document.createElement("li");
+    li.textContent = r.line;
+    rec.append(li);
+  }
+  if (!b) text($("agent-msg"), "Press Prepare to read the queue's postings and see every answer Trainee would send.");
+  else if (!$("agent-msg").textContent) text($("agent-msg"), `${ready.length} posting${ready.length === 1 ? "" : "s"} ready to approve; ${(b.out || []).length} left out (they need you first). ${ag.approved} approved and waiting to send.`);
+}
+$("agent-approve").onclick = async (e) => {
+  if (!e.isTrusted) return; // only the person's own tap approves
+  const r = await send({ type: "batch-approve", hashes: JSON.parse(e.target.dataset.hashes || "[]") });
+  text($("agent-msg"), r?.ok ? `Approved ${r.approved}. Press Start: Trainee sends each one that still matches exactly, and stops for anything else.` : r?.message || "Not approved.", !r?.ok);
+  render();
+};
+$("agent-stop").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const r = await send({ type: "batch-stop" });
+  text($("agent-msg"), r?.message || "Stopped.", !r?.ok);
   render();
 };
 

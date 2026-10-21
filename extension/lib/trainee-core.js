@@ -3723,6 +3723,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     WORKDAY_PAGE_SET: () => WORKDAY_PAGE_SET,
     WORKDAY_PERSONAL: () => WORKDAY_PERSONAL,
+    agentReceiptLine: () => agentReceiptLine,
     answerOnceQuestions: () => answerOnceQuestions,
     answerOnceRows: () => answerOnceRows,
     applyUrl: () => applyUrl,
@@ -4564,6 +4565,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ok: diffs.length === 0,
       diffs
     };
+  }
+  function agentReceiptLine(o) {
+    const c = o.company || "the employer";
+    const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${o.reason || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${o.reason || "the page did not say"}.`;
+    return `${says} The proof (answers, pictures, times) is on this computer. ${o.url}`;
   }
 
   // extension/src/dom.ts

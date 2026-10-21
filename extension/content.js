@@ -189,7 +189,13 @@
     }
     const essays = portal.family === "workday" ? [] : C.essayQuestions({ schema: form.schema, fields, maxLength });
     const formLabels = [...new Set(form.schema.map((s) => String(s.label || "")).filter(Boolean))].slice(0, 200);
-    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before,
+    // WO-101: the planner run again on the live form, for the check against the person's batch approval (background.js).
+    const batch = ctx.agentSubmits && ctx.queued && !wd && portal.family !== "workday"
+      ? C.batchPlan({ jobId, company, url: location.href, family: portal.family, schema: form.schema, challenge: !!D.fnDetectChallenge(),
+        plan: C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }),
+        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null })
+      : undefined;
+    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before, batch,
       ...(workday ? { action: workday.action, step: workday.step } : {}),
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
@@ -300,7 +306,11 @@
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
     const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+    // WO-101: with agent submits on, this posting's batch entry: every answer exactly as the fill will send it, or why it
+    // is left out of a batch (anything the person must answer or do first).
+    const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
+      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null }) : undefined;
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch });
   }
   function formReady(ms) {
     return new Promise((resolve) => {
@@ -673,6 +683,12 @@
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;
+    }
+    if (m?.type === "agent-stop") {
+      // WO-101: the person's "Stop applying": a send in progress stops at its next check before the click.
+      if (submitting && !sent) personAbort = true;
+      reply({ ok: true });
+      return false;
     }
     if (m?.type === "submit") {
       // Answered at once: the submit may move the page away, which would close a reply still waiting (WO-031 review).

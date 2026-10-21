@@ -4,7 +4,7 @@
 // when the page holds exactly what the person approved. Contract: docs/architect/work-orders/WO-101-agent-submits.md.
 // Synthetic TEST persona; no network, no model.
 import {
-  batchHash, batchMatch, batchPlan, type BatchPosting, NO_UNCHECKED, planForm, type SnapField,
+  agentReceiptLine, batchHash, batchMatch, batchPlan, type BatchPosting, NO_UNCHECKED, planForm, type SnapField,
 } from "../../extension/src/apply_core.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
@@ -123,4 +123,20 @@ Deno.test("WO-101/A3 a checkbox the planner leaves unchecked, and one it checks,
   assert(batchMatch({ approved: e.posting, now: e, card: c, openRequired: [], blockers: [] }).ok, "as the page reads them");
   const flipped = c.map((x) => x.name === "relocate" ? { ...x, value: "Yes (checked)" } : x);
   assert(!batchMatch({ approved: e.posting, now: e, card: flipped, openRequired: [], blockers: [] }).ok, "the other state blocks");
+});
+
+Deno.test("WO-101/A8 one receipt line per agent submission: the company, what the employer answered, where the proof is, the posting link", () => {
+  const base = { company: "test-co", url: URL_ };
+  const ok = agentReceiptLine({ ...base, state: "confirmed", confirmation_id: "TEST-77", proved: true });
+  assert(/^Sent to test-co\b/.test(ok) && /confirmed it on the page/.test(ok) && /TEST-77/.test(ok) && /proof/i.test(ok) && ok.endsWith(URL_), ok);
+  const waiting = agentReceiptLine({ ...base, state: "unknown_outcome", confirmation_id: null, proved: false });
+  assert(/^Sent to test-co\b/.test(waiting) && /email/.test(waiting) && !/confirmed it/.test(waiting) && waiting.endsWith(URL_), waiting);
+  const unconfirmedShot = agentReceiptLine({ ...base, state: "confirmed", confirmation_id: null, proved: false });
+  assert(!/confirmed it on the page/.test(unconfirmedShot), "a confirmation without its picture is not called confirmed");
+  const asks = agentReceiptLine({ ...base, state: "needs_user", confirmation_id: null, proved: false });
+  assert(/asks you for something/.test(asks), asks);
+  const not = agentReceiptLine({ ...base, state: "not_submitted", confirmation_id: null, reason: "the form changed: \"Email\"", proved: false });
+  assert(/^Not sent to test-co: the form changed/.test(not) && /Nothing was sent/.test(not) && not.endsWith(URL_), not);
+  const failed = agentReceiptLine({ ...base, state: "failed", confirmation_id: null, reason: "the page showed an error", proved: false });
+  assert(/^Sent to test-co, but/.test(failed) && /error/.test(failed), failed);
 });

@@ -61,6 +61,16 @@
     <p id="ao-msg" class="msg"></p>
     <ol id="ao-list"></ol>
     <button id="ao-save" class="primary" hidden>Save my answers</button>
+    <div id="agent-box" hidden>
+      <div class="row"><b>Trainee sends</b><button id="agent-stop">Stop applying</button></div>
+      <p class="small">After Prepare: every answer Trainee will send to each posting below, exactly. Approve them once and Trainee sends each one itself with the site's own Submit, only if the page holds exactly these answers; anything different waits for you. A receipt after each.</p>
+      <p id="agent-msg" class="msg"></p>
+      <ol id="agent-ready" class="small"></ol>
+      <button id="agent-approve" class="primary" hidden>Approve these answers; Trainee sends them</button>
+      <ol id="agent-out" class="small"></ol>
+      <b class="small">Receipts</b>
+      <ol id="agent-receipts" class="small"></ol>
+    </div>
   </section>
 
   <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button>

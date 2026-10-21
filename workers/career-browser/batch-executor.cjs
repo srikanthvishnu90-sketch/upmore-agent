@@ -162,8 +162,12 @@ function createBatchExecutor(deps) {
           results.push({ intentId: intent.intentId, action: "prepare", status: "completed", ...result });
         } catch (e) {
           const code = (e && e.code) || "BATCH_PREPARE_FAILED";
-          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code } });
-          results.push({ intentId: intent.intentId, action: "prepare", status: "blocked", code });
+          // BUG-QA-2026-10-21-01: the record keeps the bounded message
+          // alongside the code — a code-only record made cold DRIVER_ERRORs
+          // undiagnosable from every log the seams keep.
+          const message = String((e && e.message) || e).slice(0, 300);
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code, message } });
+          results.push({ intentId: intent.intentId, action: "prepare", status: "blocked", code, message });
         }
       } else if (binding.action === "approve") {
         try {
@@ -179,8 +183,9 @@ function createBatchExecutor(deps) {
           // Claimed once, never re-driven: an execution crash leaves
           // outcomes unknown by definition (MI-115's posture).
           const code = (e && e.code) || "BATCH_EXECUTION_UNCERTAIN";
-          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "uncertain", result: { code } });
-          results.push({ intentId: intent.intentId, action: "approve", status: "uncertain", code });
+          const message = String((e && e.message) || e).slice(0, 300);
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "uncertain", result: { code, message } });
+          results.push({ intentId: intent.intentId, action: "approve", status: "uncertain", code, message });
         }
       } else {
         await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code: "BATCH_ACTION_UNKNOWN" } });

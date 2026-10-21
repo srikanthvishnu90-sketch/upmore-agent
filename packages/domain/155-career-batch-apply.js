@@ -231,9 +231,20 @@ const CareerBatchApply = (() => {
       rt.profiles[key] = profile;
       const board = d.boardFor ? d.boardFor(posting) : null;
       if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      // BUG-QA-2026-10-21-01: a drive that THROWS (a cold board open
+      // failing DRIVER_ERROR is the observed case) stops THIS app named,
+      // with the driver's own message in the record — it never escapes
+      // prepareRun, which would lose every other app's record and leave
+      // the executor holding only a code to log.
+      let res;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      } catch (e) {
+        stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the drive threw: ${String((e && e.message) || e).slice(0, 300)}`);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
     }
 

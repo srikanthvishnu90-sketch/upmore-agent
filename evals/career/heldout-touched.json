@@ -631,6 +631,26 @@
    "run": "39586066852 (control)",
    "read": "failing ids per judge; H018 failure reasons (p2, p3); every reply scanned by code for error, step-limit and empty replies (ids only)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H026",
+    "H031",
+    "H034",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39586807128",
+   "read": "failing ids per judge; the three H002 last replies (300 chars) to check the task; H004 p3 replies (200 chars each) and judge notes, because its turn 2 is the step-limit text; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

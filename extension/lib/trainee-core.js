@@ -869,6 +869,9 @@
     const statement = o.length > 0 && o.some(ackOpt) && o.every((x) => ackOpt(x) || /^i (am not|do not|don'?t)\b.*\b(agree|acknowledge|agreement)/.test(x)) && t.length > 80;
     return (onlyAck || statement || q.type === "checkbox" && t.length > 100 && !t.includes("?")) && !/on-?site|in-?office|in office|relocat|days (a|per) week/.test(t);
   }
+  var RESIDENCE = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+  var RESIDENCE_ASKED = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+  var WORK_RIGHTS = /\bright to work\b|\bauthori[sz](ed|ation)\b|\beligib\w*\b|\bwork permit\b|\bvisa\b|\bsponsor/;
   var RULES = [
     // Files: the input decides; the label names which document.
     [
@@ -1058,9 +1061,16 @@
       /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/,
       (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)
     ],
+    // FRS QA bug 4 (Prolific): "Are you currently based in and can verify right to work from one of the following
+    // countries?" asks where the person is AND their right to work there: never the location fact alone (one half). Asked.
+    [
+      "unknown",
+      RESIDENCE,
+      (q, t) => t.split(/(?<=[.?!])\s+/).some((x) => RESIDENCE_ASKED.test(x) && WORK_RIGHTS.test(x))
+    ],
     [
       "location",
-      /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/,
+      RESIDENCE,
       (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)
     ],
     [

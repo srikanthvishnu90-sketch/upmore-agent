@@ -358,3 +358,19 @@ of private content.
   and keeps more of it; the guard's code removal then cuts the proposal but not the sentence that points at it.
 - Not yet fixed: the code removal must take the sentence that refers to removed wording with it ("Is that the wording
   you want?", "Does that work?" right after a removed proposal). Decision waits on the second judge.
+- Second judge's ruling: HOLD (three-way full-38 81.6 / 78.9 / 78.9, mean 79.8 vs 84.2; clean-30 80.0 x3). The
+  opener removal is real; redo it as one round with the follow-up below. Rule for the redo (second judge): a strip
+  must never leave a confirm-the-waiver prompt behind.
+
+### Follow-up: a code strip leaves a dangling confirm-the-waiver prompt (H018 p1, run 39554573965)
+- Why: the last-resort removal (loop.ts, `rebuild(pieces(reply), drop)`) drops only the sentences waiverSolicits
+  flags: the proposed wording and the save offer next to it. A question that points AT the removed wording ("Is that
+  the wording you want?", "Does that work?", "Want me to?") is a separate sentence with no waiver words in it, so it
+  stays; and when the model's rewrite put the refusal inside the proposal's sentence, the refusal goes with the strip.
+  What is left is a bare prompt to confirm the waiver.
+- Lines: `reply_guards.ts` waiverSolicits (flags the proposal and the save offer, never what refers to them);
+  `loop.ts` the final rebuild (no check that a refusal is still there after a strip).
+- Fix: (1) waiverSolicits also flags a short confirm question right after a flagged sentence (wording / right / work /
+  want / ok, ending "?"); (2) after any waiver strip, when the person's message asked to waive their yes and no
+  sentence of the result still says it needs their yes, code puts the refusal (STANDING_REFUSED) first. Gate test:
+  the p1 shape (proposal + "Is that the wording you want?") comes out as the refusal with no confirm prompt.

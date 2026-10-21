@@ -774,9 +774,9 @@ function readWorkdayValue(b: any, el: any): string {
 
 // Carry the browser's declared native constraints with its type. Custom Workday date/list/prompt widgets have their
 // own formats and options; their internal search/spinbutton inputs are not the question's native field contract.
-function wdNativeConstraints(control: any): Record<string, string | number> {
+function wdNativeConstraints(control: any): Record<string, string | number | null> {
   if (!["INPUT", "TEXTAREA"].includes(String(control?.tagName))) return {};
-  const out: Record<string, string | number> = {};
+  const out: Record<string, string | number | null> = { nativeValueAttribute: control.getAttribute("value") };
   for (const key of ["min", "max", "step", "pattern"]) {
     const value = control.getAttribute(key);
     if (value !== null) out[key] = String(value);

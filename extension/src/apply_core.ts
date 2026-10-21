@@ -5,7 +5,7 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
+import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch, questionFieldType, typedFieldProblem } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
@@ -748,6 +748,8 @@ const optionText = (f: FormField, v: string) => {
   const parts = v.split(/,\s*/).map(one);
   return parts.length > 1 && parts.every(Boolean) ? { value: v, shown: parts.map((x) => String(x!.label).replace(/\s+/g, " ").trim()).join(", ") } : null;
 };
+const constraintSchema = (f: FormField) => Object.fromEntries(["min", "max", "step", "nativeValueAttribute"]
+  .filter((key) => Object.hasOwn(f, key)).map((key) => [key, (f as any)[key]]));
 export function batchPlan(o: {
   jobId: string; company: string; url: string; family: Family; schema: FormField[]; plan: ReturnType<typeof planForm>;
   challenge: boolean; resume: { filename: string; sha256: string } | null; listed?: string[]; manifest?: Manifest;
@@ -779,7 +781,7 @@ export function batchPlan(o: {
         if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
         continue;
       }
-      ledger.push({ application_id: o.jobId, field_id: p.name, question_hash: sha256Hex(canonicalJson({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options })),
+      ledger.push({ application_id: o.jobId, field_id: p.name, question_hash: sha256Hex(canonicalJson({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options, ...constraintSchema(f) })),
         answer_hash: sha256Hex(canonicalJson({ value: a.value, shown: a.shown, file: a.file })), fact_refs: [j.tf.factId], source_refs: [j.tf.provenance],
         confirmation_event_id: j.tf.event, derivation_rule: j.rule });
     }
@@ -797,7 +799,7 @@ export function batchPlan(o: {
   const blank = [...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))].sort();
   ledger.sort((a, b) => (a.field_id < b.field_id ? -1 : a.field_id > b.field_id ? 1 : 0));
   const question_set_hash = sha256Hex(canonicalJson([...o.schema].sort((a, b) => (a.name < b.name ? -1 : 1))
-    .map((f) => ({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options }))));
+    .map((f) => ({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options, ...constraintSchema(f) }))));
   return { ok: true, posting: { jobId: o.jobId, company: o.company, url: o.url, answers, blank, ledger, question_set_hash,
     manifest_hash: m ? m.hash : null, quarantine_version: m ? m.version : null } };
 }
@@ -807,6 +809,8 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
   return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
 }
 function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], jobId?: string): { rule: string; tf: TrustedFact } | { problem: string } {
+  const typedProblem = typedFieldProblem(f, a.value);
+  if (typedProblem) return { problem: typedProblem };
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };

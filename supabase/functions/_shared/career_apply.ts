@@ -74,6 +74,10 @@ export interface FormSection { kind: string; row: number; part: string; anchor?:
 export interface FormField {
   name: string; label: string; required: boolean; type: string; options: { label: string; value: string }[];
   section?: FormSection; dial?: string; personal?: boolean; widget?: string;
+  min?: string; max?: string; step?: string;
+  // Present only when a native reader captured the VALUE content attribute (null proves absence).
+  // The live input.value is not a step base. Legacy/API fields omit this metadata.
+  nativeValueAttribute?: string | null;
 }
 export function greenhouseQuestions(job: any): FormField[] {
   const out: FormField[] = [];
@@ -469,7 +473,62 @@ function calendarParts(value: string, dayFirst = false): CalendarParts | null {
   } else return null;
   return calendarOk(year, month, day) ? { year, month, day } : null;
 }
-type TypedField = Pick<FormField, "type" | "label" | "options" | "section">;
+type TypedField = Pick<FormField, "type" | "label" | "options" | "section" | "min" | "max" | "step" | "nativeValueAttribute">;
+type Decimal = { units: bigint; scale: number };
+function decimal(value: unknown): Decimal | null {
+  if (typeof value !== "string" || !Number.isFinite(Number(value))) return null;
+  const m = /^(-?)(\d+(?:\.\d+)?|\.\d+)(?:[eE]([+-]?\d+))?$/.exec(value.trim());
+  if (!m) return null;
+  const exponent = Number(m[3] || 0), fraction = m[2].split(".")[1]?.length || 0;
+  if (!Number.isSafeInteger(exponent) || Math.abs(exponent) > 400 || m[2].length > 2000) return null;
+  const units = BigInt((m[1] || "") + m[2].replace(".", ""));
+  if (Number(value) === 0 && units !== 0n) return null; // underflow parses as zero, not a positive native step
+  return { units, scale: fraction - exponent };
+}
+function sameUnits(values: Decimal[]): bigint[] {
+  const scale = Math.max(0, ...values.map((v) => v.scale));
+  return values.map((v) => v.units * 10n ** BigInt(scale - v.scale));
+}
+function attributeDecimal(value: unknown): Decimal | null {
+  if (typeof value !== "string") return null;
+  // The HTML attribute parser accepts a leading plus/whitespace and stops at trailing non-numeric text.
+  const token = /^[\t\n\f\r ]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/.exec(value)?.[1];
+  return token ? decimal(token.replace(/^\+/, "").replace(/\.(?=[eE]|$)/, "")) : null;
+}
+function nativeCalendar(value: string, type: string): string | null {
+  if (!(type === "date" ? /^\d{4}-\d{2}-\d{2}$/ : /^\d{4}-\d{2}$/).test(value)) return null;
+  const p = calendarParts(value);
+  if (!p || p.month === null || (type === "date" && p.day === null)) return null;
+  if (type === "month") return String((p.year - 1970) * 12 + p.month - 1);
+  const date = new Date(0); date.setUTCFullYear(p.year, p.month - 1, p.day!); date.setUTCHours(0, 0, 0, 0);
+  return String(date.getTime() / 86400000);
+}
+// HTML min/max/step semantics, in number units, UTC days or calendar months. Never round or clamp.
+// https://html.spec.whatwg.org/multipage/input.html#the-step-attribute
+function nativeConstraintProblem(f: TypedField, value: string): string | null {
+  if (!["number", "date", "month"].includes(f.type)) return null;
+  const native = Object.hasOwn(f, "nativeValueAttribute") && (f.nativeValueAttribute === null || typeof f.nativeValueAttribute === "string");
+  if (!native && f.min === undefined && f.max === undefined && f.step === undefined) return null;
+  const convert = (s: unknown): Decimal | null => {
+    if (typeof s !== "string") return null;
+    return f.type === "number" ? attributeDecimal(s) : decimal(nativeCalendar(s, f.type) ?? "");
+  };
+  const parts = f.type === "number" ? null : calendarParts(value, /^DD/.test(dateFormat(f)));
+  const iso = parts && parts.month !== null ? `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}${f.type === "date" && parts.day !== null ? `-${String(parts.day).padStart(2, "0")}` : ""}` : value;
+  const v = convert(f.type === "number" ? value : iso);
+  if (!v) return "cannot verify this value against the native field's limits";
+  const min = convert(f.min), max = convert(f.max);
+  if (min) { const [a, b] = sameUnits([v, min]); if (a < b) return `needs a value at or above the form's minimum (${f.min})`; }
+  if (max) { const [a, b] = sameUnits([v, max]); if (a > b) return `needs a value at or below the form's maximum (${f.max})`; }
+  if (String(f.step ?? "").toLowerCase() === "any") return null;
+  // Unmarked legacy/API fields have no proven native default. Explicit step still takes its native meaning.
+  if (!native && f.step === undefined) return null;
+  let step = attributeDecimal(f.step); if (!step || step.units <= 0n) step = { units: 1n, scale: 0 };
+  const base = min ?? (native ? convert(f.nativeValueAttribute) ?? { units: 0n, scale: 0 } : null);
+  if (!base) return "needs the original native field's step base before this answer can be used";
+  const [a, b, s] = sameUnits([v, base, step]);
+  return (a - b) % s === 0n ? null : "needs a value on the form's declared step; the stated answer was not changed";
+}
 const dateFormat = (f: TypedField) => (f.section?.format || /\b(?:yyyy[-/.]mm(?:[-/.]dd)?|dd[-/.]mm[-/.]yyyy|mm[-/.]dd[-/.]yyyy|mm[-/.]yyyy|yyyy)\b/i.exec(normQuestion(f.label))?.[0] || "").toUpperCase();
 // The stored question has no section column. Preserve known date precision in its existing type, rather than guessing
 // from an ambiguous label such as "From". Options retain their original type and exact choice validation.
@@ -503,12 +562,12 @@ export function typedFieldProblem(f: TypedField, value: string): string | null {
   const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
   const yearOnly = format === "YYYY" || f.type === "year";
   const date = f.type === "date" || f.type === "month" || f.type === "year" || !!format || DATE_FORMAT.test(label) || (/\bdates?\b/.test(label) && !/up[- ]to[- ]date/.test(label));
-  if (!date) return null;
+  if (!date) return nativeConstraintProblem(f, v);
   const p = calendarParts(v, /^DD/.test(format));
   if (!p || (yearOnly ? p.month !== null : monthYear ? p.month === null || p.day !== null : p.day === null)) {
     return yearOnly ? "needs a valid four-digit year" : monthYear ? "needs a valid month and year, without adding a day" : "needs a valid calendar date including month, day and four-digit year";
   }
-  return null;
+  return nativeConstraintProblem(f, v);
 }
 // Native date/month inputs require ISO, even when the person stated an equivalent named or slash-separated date.
 // Only a fully validated, already-stated precision is reformatted. Segmented date widgets receive their declared

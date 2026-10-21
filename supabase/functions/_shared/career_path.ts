@@ -118,6 +118,48 @@ function educationFacts(facts: Fact[]): Fact[] {
 }
 function anyWord(text: string, words: string[]): string[] { return words.filter((w) => hasWord(text, w)); }
 
+// A named qualification is not necessarily one the person has: "never used Python" must not become Python
+// experience. Keep a negated list together, but let a new contrast/first-person clause state positive evidence.
+// This deliberately resolves only explicit denials, not arbitrary natural-language entailment.
+const NEGATIVE_QUALIFICATION = /\b(?:no|not|never|without|cannot|can't|don't|doesn't|haven't|hasn't|didn't|isn't|aren't|wasn't|weren't|lack|lacks|lacking)\b/i;
+function qualificationMentions(text: string, word: string): { yes: boolean; no: boolean } {
+  let yes = false, no = false;
+  const normalized = text.replace(/[’‘]/g, "'").replace(/\bnot\s+(only|just)\b/gi, "$1")
+    .replace(/\bwithout\s+(?:a|any)\s+doubt\b/gi, "certainly").replace(/\bno\s+(?:trouble|problems?|difficult(?:y|ies))\b/gi, "ease");
+  const occurrence = new RegExp(`(?<![\\w+#])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w+#])`, "i");
+  const clauses = normalized.split(/[;.!?]|\b(?:but|however|whereas)\b|\band\s+(?=(?:(?:i|we)\b|not\b|no\b|never\b))/i);
+  for (const clause of clauses) {
+    let deniedList = false;
+    for (const part of clause.split(/,/)) {
+      const at = occurrence.exec(part);
+      const inherited: boolean = deniedList && !/\b(?:i|we)\s+(?:have|use|know|hold|possess|am|can|built|work|worked|completed|manage|managed|lead|led)\b/i.test(part);
+      // A denial after the qualification must describe that qualification ("Python is not a skill I have").
+      // "I use Python without help" does not deny Python.
+      const denied: boolean = at
+        ? NEGATIVE_QUALIFICATION.test(part.slice(0, at.index)) || /^\s+(?:is|are|was|were)\s+(?:not|never|no longer)\b/i.test(part.slice(at.index + at[0].length)) || inherited
+        : NEGATIVE_QUALIFICATION.test(part) || inherited;
+      deniedList = denied;
+      if (!at) continue;
+      if (denied) no = true; else yes = true;
+    }
+  }
+  return { yes, no };
+}
+function qualificationEvidence(facts: Fact[], words: string[]) {
+  const affirmed: string[] = [], denied: string[] = [], conflicting: string[] = [];
+  for (const word of words) {
+    const mentions = facts.map((f) => qualificationMentions(f.text, word));
+    const yes = mentions.some((m) => m.yes), no = mentions.some((m) => m.no);
+    if (yes && no) conflicting.push(word);
+    else if (yes) affirmed.push(word);
+    else if (no) denied.push(word);
+  }
+  const bestFact = facts.map((fact) => ({ fact, hits: affirmed.filter((w) => qualificationMentions(fact.text, w).yes).length }))
+    .sort((a, b) => b.hits - a.hits).find((f) => f.hits > 0)?.fact ?? null;
+  const deniedFact = facts.find((f) => denied.some((w) => qualificationMentions(f.text, w).no)) ?? null;
+  return { affirmed, denied, conflicting, bestFact, deniedFact };
+}
+
 export function check(req: Requirement, facts: Fact[]): Check {
   const edu = educationFacts(facts);
   const r = (status: Status, fact: Fact | null, gap: string | null): Check => ({ requirement: req, status, fact, gap });
@@ -170,19 +212,19 @@ export function check(req: Requirement, facts: Fact[]): Check {
     }
     case "skill": {
       const need = req.count ?? 1;
-      let bestFact: Fact | null = null, found: string[] = [];
-      for (const f of facts) {
-        const hits = anyWord(f.text, req.any || []);
-        if (hits.length > found.length) { found = hits; bestFact = f; }
-      }
-      const all = [...new Set(facts.flatMap((f) => anyWord(f.text, req.any || [])))];
-      if (all.length >= need) return r("met", bestFact, null);
-      if (all.length) return r("unmet", bestFact, `your profile shows ${all.join(", ")}; they ask for ${need}`);
+      const e = qualificationEvidence(facts, req.any || []);
+      if (e.affirmed.length >= need) return r("met", e.bestFact, null);
+      if (e.conflicting.length) return r("unknown", null, `your confirmed facts conflict about ${e.conflicting.join(", ")}; clarify which is current`);
+      if (e.affirmed.length) return r("unmet", e.bestFact, `your profile shows ${e.affirmed.join(", ")}; they ask for ${need}`);
+      if (e.denied.length) return r("unmet", e.deniedFact, "your confirmed fact explicitly says you do not have this");
       return r("unknown", null, "nothing confirmed on your profile shows this");
     }
     case "experience":
     case "clearance": {
-      for (const f of facts) if (anyWord(f.text, req.any || []).length) return r("met", f, null);
+      const e = qualificationEvidence(facts, req.any || []);
+      if (e.affirmed.length) return r("met", e.bestFact, null);
+      if (e.conflicting.length) return r("unknown", null, `your confirmed facts conflict about ${e.conflicting.join(", ")}; clarify which is current`);
+      if (e.denied.length) return r("unmet", e.deniedFact, "your confirmed fact explicitly says you do not have this");
       return r("unknown", null, "nothing confirmed on your profile shows this");
     }
     default:

@@ -4015,6 +4015,31 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdaySubmitLine: () => workdaySubmitLine
   });
 
+  // supabase/functions/_shared/fact_quarantine.ts
+  function quarantinedFact(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const f = value;
+    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  }
+  function factDependencies(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+    const row = value, ids = [];
+    for (const key of [
+      "derived_from",
+      "derivedFrom"
+    ]) {
+      if (!Object.hasOwn(row, key)) continue;
+      const list = row[key];
+      if (!Array.isArray(list) || list.some((id) => typeof id !== "string" || !id.trim())) return null;
+      ids.push(...list);
+    }
+    return [
+      ...new Set(ids)
+    ];
+  }
+
   // supabase/functions/_shared/typed_profile_fields.ts
   var object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   var denied = (f) => [
@@ -4087,7 +4112,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const candidates = /* @__PURE__ */ new Map();
     for (const f of Array.isArray(profile?.facts) ? profile.facts : []) {
       const id = typeof f?.id === "string" ? f.id : "";
-      if (!object(f) || profile.user_id !== o.owner || f.user_id !== void 0 && f.user_id !== o.owner || denied(profile) || denied(f) || f.status !== "confirmed" || f.needs_confirmation !== false) {
+      if (!object(f) || profile.user_id !== o.owner || f.user_id !== void 0 && f.user_id !== o.owner || denied(profile) || denied(f) || // D-007: a bank row (its factId) or delegated provenance never projects; the projection names the row by its own id,
+      // so a bank factId it carried would otherwise be dropped before the manifest's own check reads it.
+      quarantinedFact(f) || f.status !== "confirmed" || f.needs_confirmation !== false) {
         needs.push({
           factId: id,
           reason: "An owned confirmed source is required before this can answer an application field."
@@ -4151,31 +4178,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       file,
       needs
     };
-  }
-
-  // supabase/functions/_shared/fact_quarantine.ts
-  function quarantinedFact(value) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-    const f = value;
-    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
-    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
-  }
-  function factDependencies(value) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-    const row = value, ids = [];
-    for (const key of [
-      "derived_from",
-      "derivedFrom"
-    ]) {
-      if (!Object.hasOwn(row, key)) continue;
-      const list = row[key];
-      if (!Array.isArray(list) || list.some((id) => typeof id !== "string" || !id.trim())) return null;
-      ids.push(...list);
-    }
-    return [
-      ...new Set(ids)
-    ];
   }
 
   // supabase/functions/_shared/posting_key.ts

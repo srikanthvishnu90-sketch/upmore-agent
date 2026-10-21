@@ -123,6 +123,7 @@ MIGRATIONS=(
   20261022120500_career_deploy_ledger.sql
   20261022150000_career_apply_authority.sql
   20261023090700_trainee_agent_api.sql
+  20261023091400_career_apply_states.sql
   20261023100000_career_events_apply_queued.sql
 )
 MIGRATION_MARK=(
@@ -166,6 +167,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_deploy_ledger') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
   "to_regclass('public.trainee_agent_grants') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_resolve_own')"
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

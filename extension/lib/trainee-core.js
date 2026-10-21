@@ -4527,10 +4527,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var apply_core_exports = {};
   __export(apply_core_exports, {
     BEFORE_CLICK: () => BEFORE_CLICK,
+    BROWSER_REFUSED: () => BROWSER_REFUSED,
     DRAFT_PREFIX: () => DRAFT_PREFIX,
     EVIDENCE_LIMIT: () => EVIDENCE_LIMIT,
     HOW_HEARD_CHOICES: () => HOW_HEARD_CHOICES,
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
+    INTERRUPTED: () => INTERRUPTED,
     MASKED: () => MASKED,
     NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
     OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
@@ -4554,6 +4556,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
     draftProvenance: () => draftProvenance,
+    duplicateMessage: () => duplicateMessage,
     essayQuestions: () => essayQuestions,
     evidenceRecord: () => evidenceRecord,
     formAnswersToKeep: () => formAnswersToKeep,
@@ -4567,6 +4570,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
     questionsForTrainee: () => questionsForTrainee,
+    recoveredOutcome: () => recoveredOutcome,
+    refusedMessage: () => refusedMessage,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
     shortLabel: () => shortLabel,
@@ -4577,7 +4582,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdayDraftLine: () => workdayDraftLine,
     workdayEmployer: () => workdayEmployer,
     workdaySignIn: () => workdaySignIn,
-    workdaySubmitLine: () => workdaySubmitLine
+    workdaySubmitLine: () => workdaySubmitLine,
+    workdayTenant: () => workdayTenant
   });
 
   // supabase/functions/_shared/posting_key.ts
@@ -4617,15 +4623,34 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (!p) return null;
     const u = new URL(href), seg = u.pathname.split("/").filter(Boolean);
     if (p.family === "greenhouse") {
-      const tenant = u.searchParams.get("for") || seg[0] || "", id = u.pathname.match(/\/jobs\/(\d+)/)?.[1] || u.searchParams.get("token");
-      return tenant && id && /^\d+$/.test(id) ? `greenhouse:${tenant}:${id}` : null;
+      const tenant2 = u.searchParams.get("for") || seg[0] || "", id = u.pathname.match(/\/jobs\/(\d+)/)?.[1] || u.searchParams.get("token");
+      return tenant2 && id && /^\d+$/.test(id) ? `greenhouse:${tenant2}:${id}` : null;
     }
     if (p.family === "lever" || p.family === "ashby") {
       return seg[0] && seg[1] && /^[0-9a-f-]{8,}$/i.test(seg[1]) ? `${p.family}:${seg[0]}:${seg[1].toLowerCase()}` : null;
     }
     const at = seg.findIndex((s) => /^apply$/i.test(s));
     const last = at > 0 ? seg[at - 1] : seg.filter((s) => !/^(apply|applyManually|autofillWithResume)$/i.test(s)).at(-1);
-    return last ? `workday:${u.hostname.toLowerCase()}:${last}` : null;
+    if (!last) return null;
+    const shared = !/(^|\.)myworkdayjobs\.com$/i.test(u.hostname);
+    const tenant = shared ? workdayTenant(href) : "";
+    return shared && tenant ? `workday:${u.hostname.toLowerCase()}:${tenant}:${last}` : `workday:${u.hostname.toLowerCase()}:${last}`;
+  }
+  function workdayTenant(href) {
+    let u;
+    try {
+      u = new URL(href);
+    } catch {
+      return "";
+    }
+    const h = u.hostname.toLowerCase();
+    if (/(^|\.)myworkdayjobs\.com$/.test(h)) return h.split(".")[0] === "myworkdayjobs" ? "" : h.split(".")[0];
+    if (!/(^|\.)(myworkdaysite|myworkday)\.com$/.test(h)) return "";
+    const seg = u.pathname.split("/").filter(Boolean);
+    const r = seg.findIndex((s) => /^recruiting$/i.test(s));
+    const locale = (s) => /^[a-z]{2}(-[A-Za-z]{2})?$/.test(s);
+    const t = r >= 0 ? seg[r + 1] : seg.find((s) => !locale(s));
+    return t && /^[A-Za-z0-9_.-]{1,80}$/.test(t) ? t.toLowerCase() : "";
   }
   function applyUrl(href) {
     const p = detectPortal(href);
@@ -4671,11 +4696,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var workdaySignIn = (employer) => `Sign in to ${employer}'s Workday yourself; I'll fill the application after.`;
   var WORKDAY_PERSONAL = "The disability form (Voluntary Self-Identification of Disability) is yours: Trainee never fills it. Answer it yourself on the page.";
   function workdayEmployer(href) {
-    try {
-      return new URL(href).hostname.toLowerCase().split(".")[0] || "the employer";
-    } catch {
-      return "the employer";
-    }
+    return workdayTenant(href) || "the employer";
   }
   function planForm(o) {
     const identity = o.schema.filter((f) => isIdentityField(f));
@@ -5172,7 +5193,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return out;
   }
   var NO_ANSWER_WAIT_MS = 3e4;
+  var BROWSER_REFUSED = "the browser refused the submit";
   function outcomeAfterClick(o, before = [], timedOut = false) {
+    if (o.form_present_after && o.browser_refused?.length) {
+      return {
+        state: "not_submitted",
+        reason: `${BROWSER_REFUSED}: ${o.browser_refused.slice(0, 5).join("; ")}`.slice(0, 500),
+        confirmation_id: null
+      };
+    }
     const fresh = o.form_present_after ? (o.validation_errors || []).filter((e) => !before.includes(e)) : [];
     const r = classifyOutcome({
       ...o,
@@ -5193,6 +5222,31 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return r;
   }
   var BEFORE_CLICK = "stopped before the click";
+  function refusedMessage(items) {
+    const named = items.slice(0, 3).map((i) => `${shortLabel(i.label) || "a field"}${i.message ? ` (${i.message})` : ""}`);
+    return `Not sent \u2014 fix ${named.join("; ") || "the form"}. The page itself refuses it as it is, so nothing went to the employer. Fix it on the form; the card reads it again, then approve.`;
+  }
+  function duplicateMessage(state) {
+    if (state === "driving") {
+      return "An earlier approval of this posting is still being sent or recorded (in another tab or on another computer). If nothing is happening there, approve again after 30 minutes.";
+    }
+    if (state === "failed") return "You already applied to this posting, and the employer's form answered with an error. If the page shows it was not accepted, press Try again, then approve.";
+    if (state === "needs_user") return "You already applied to this posting, and the page asked you for something. If you finished it there, press I finished it myself.";
+    if (state === "unknown_outcome") return "You already applied to this posting, or Trainee can't tell whether it went through; it is never sent twice.";
+    return "You already applied to this posting.";
+  }
+  var INTERRUPTED = "interrupted before the click";
+  function recoveredOutcome(p, why) {
+    return p.clicked_at ? {
+      state: "unknown_outcome",
+      reason: `application outcome unknown: ${why} after the click, before the employer's answer was read; not retried`,
+      confirmation_id: null
+    } : {
+      state: "not_submitted",
+      reason: `${INTERRUPTED}: ${why}`,
+      confirmation_id: null
+    };
+  }
   var MARK = {
     consent: "You agree: ",
     attestation: "Your statement: ",
@@ -5331,7 +5385,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
       return {
         status: "done",
-        message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}`
+        message: `Not finished: the page now asks for the code the employer emailed you. ${codeStop} Then press I finished it myself.`
       };
     }
     if (o.state === "confirmed" && hasAfterShot) {
@@ -5340,16 +5394,24 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.`
       };
     }
-    if (o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome") {
+    if (o.state === "confirmed" || o.state === "submitted_unconfirmed") {
       return {
         status: "done",
         message: "Sent; the employer's answer could not be captured. Check your email for their confirmation."
       };
     }
-    if (o.state === "needs_user") return {
-      status: "done",
-      message: "Sent, and the page now asks you for something (a check or a code). Finish it yourself on the page."
-    };
+    if (o.state === "unknown_outcome") {
+      return {
+        status: "done",
+        message: "Trainee can't tell whether it went through: the employer's answer could not be captured. It counts as applied and is never sent again; their confirmation email will say."
+      };
+    }
+    if (o.state === "needs_user") {
+      return {
+        status: "done",
+        message: "Not finished: the page now asks you for something (a check or a code). Finish it yourself on the page, then press I finished it myself."
+      };
+    }
     return {
       status: "done",
       message: `Not confirmed: ${o.reason}.`
@@ -5432,6 +5494,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     CODE_BOX: () => CODE_BOX,
     clearWorkdayOptions: () => clearWorkdayOptions,
     element: () => element,
+    fieldLabel: () => fieldLabel,
     fieldNameFor: () => fieldNameFor,
     fill: () => fill,
     findCodeBox: () => findCodeBox,
@@ -5836,6 +5899,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function findSubmit() {
     const els = Array.from(doc().querySelectorAll("button, input[type=submit], [role=button]")).filter((e) => visible(e) && !e.disabled && e.getAttribute("aria-disabled") !== "true" && /\bsubmit\b/i.test(String(e.innerText || e.textContent || e.value || "")) && !/\b(resume|cv)\b/i.test(String(e.innerText || e.value || "")));
     return els.find((e) => e.type === "submit") || els[0] || null;
+  }
+  function fieldLabel(el) {
+    const lab = el?.labels?.[0] ? String(el.labels[0].innerText || el.labels[0].textContent || "") : "";
+    const by = el?.getAttribute?.("aria-labelledby");
+    const named = by ? String(by).split(/\s+/).map((id) => doc().getElementById(id)?.textContent || "").join(" ") : "";
+    return String(lab || el?.getAttribute?.("aria-label") || named || el?.getAttribute?.("placeholder") || el?.name || el?.id || "a field").replace(/\s+/g, " ").trim().slice(0, 200);
   }
   function observe(urlBefore, plannedNames) {
     const d = doc();

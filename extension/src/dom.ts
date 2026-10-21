@@ -397,6 +397,16 @@ export function findSubmit(): any {
   return els.find((e) => e.type === "submit") || els[0] || null;
 }
 
+// A field as the person reads it on the page: its label, else its own accessible name, else its name (WO-091d: the field
+// the browser itself refused, named on the card).
+export function fieldLabel(el: any): string {
+  const lab = el?.labels?.[0] ? String(el.labels[0].innerText || el.labels[0].textContent || "") : "";
+  const by = el?.getAttribute?.("aria-labelledby");
+  const named = by ? String(by).split(/\s+/).map((id: string) => doc().getElementById(id)?.textContent || "").join(" ") : "";
+  return String(lab || el?.getAttribute?.("aria-label") || named || el?.getAttribute?.("placeholder") || el?.name || el?.id || "a field")
+    .replace(/\s+/g, " ").trim().slice(0, 200);
+}
+
 // What the page shows after the click (scripts/apply.ts outcome()): read by classifyOutcome, the engine's own judge.
 export function observe(urlBefore: string, plannedNames: string[]) {
   const d = doc();

@@ -54,6 +54,10 @@ async function render() {
   text($("result"), card?.status === "done" ? `${card.message}${card.ms ? ` ${(card.ms / 1000).toFixed(1)} s from card to answer.` : ""}${card.recorded === false ? " Not recorded yet; kept on this computer." : ""}` : "");
   $("card-proof").hidden = !card?.proof_id;
   $("card-proof").dataset.id = card?.proof_id || "";
+  // WO-091d (F4): the person's own edges for this posting's record, shown only where they apply.
+  const rowId = card?.proof_id || card?.row_id;
+  $("finished-myself").hidden = !(rowId && (card.result === "needs_user" || card.row_state === "needs_user"));
+  $("try-again").hidden = !(rowId && !card.released && (card.result === "failed" || card.row_state === "failed"));
   const q = st.queue;
   const ol = $("queue");
   ol.textContent = "";
@@ -384,6 +388,18 @@ $("approve").onclick = async (e) => {
   if (!r.ok) text($("status"), r.message, true);
   render();
 };
+// WO-091d (F4): the person's own two edges, each on their own tap only. "I finished it myself": the page asked for a check
+// after the click and they finished it there. "Try again": the employer's form refused it in place and they will fix it.
+for (const [id, type] of [["finished-myself", "resolve-own"], ["try-again", "release-own"]]) {
+  $(id).onclick = async (e) => {
+    if (!e.isTrusted) return;
+    $(id).disabled = true;
+    const r = await send({ type, tabId: await targetTab() });
+    $(id).disabled = false;
+    if (!r.ok) text($("status"), r.message, true);
+    render();
+  };
+}
 const qmsg = (r) => text($("q-msg"), r.ok ? (r.added !== undefined ? `${r.added} posting${r.added === 1 ? "" : "s"} added.` : "") : r.message, !r.ok);
 $("q-add").onclick = async () => {
   qmsg(await send({ type: "queue-set", text: $("links").value }));

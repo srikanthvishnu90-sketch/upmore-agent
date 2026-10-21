@@ -80,3 +80,43 @@ Deno.test("guidance: the actual career-path tool does not advertise a denied ski
     if (move.fact?.id === "SYNTHETIC-FACT") ok(move.status !== "met", "real tool promoted negated code knowledge");
   }
 });
+
+Deno.test("guidance: a coordinated affirmative predicate has its own qualification scope", () => {
+  for (const text of ["I have never used Python and use Java every day.", "I do not know Python but use Java every day."]) {
+    eq(check(req("skill", ["Java"]), [fact(text)]).status, "met", text);
+    ok(check(req("skill", ["Python"]), [fact(text)]).status !== "met", text);
+  }
+  ok(check(req("skill", ["Python", "Java"]), [fact("I have never used Python and Java.")]).status !== "met", "a bare coordinated list retains its denial");
+});
+
+Deno.test("guidance: a negative modifier on a different object does not negate the qualification", () => {
+  for (const text of ["I use no external libraries for my Java projects.", "I build Java projects without external libraries."]) {
+    eq(check(req("skill", ["Java"]), [fact(text)]).status, "met", text);
+  }
+  ok(check(req("skill", ["Java"]), [fact("I have no experience with my Java projects.")]).status !== "met", "a denied evidence noun remains negative");
+});
+
+Deno.test("guidance: contracted suffixes and neither-nor deny the qualification", () => {
+  for (const text of ["Python isn't a language I know.", "Neither Python nor Java is a language I know.", "I know neither Python nor Java."]) {
+    ok(check(req("skill", ["Python", "Java"]), [fact(text)]).status !== "met", text);
+  }
+});
+
+Deno.test("guidance: a temporal cessation does not erase completed prior experience", () => {
+  eq(check(req("experience", ["research", "real-world data"]), [fact("I haven't done research since I completed my 2024 thesis examining real-world data.")]).status, "met", "completed research survives a later cessation");
+});
+
+Deno.test("guidance: expired and explicitly ended clearances do not meet an active requirement", () => {
+  const active = { ...req("clearance", ["Full Scope Poly"]), text: "An active Full Scope Poly clearance is required" };
+  for (const text of ["My Full Scope Poly clearance expired in 2024.", "I held a Full Scope Poly clearance until 2024.", "My expired Full Scope Poly clearance was issued in 2020."]) {
+    ok(check(active, [fact(text)], NOW).status !== "met", text);
+    ok(check({ ...active, any: ["Full Scope Poly clearance"] }, [fact(text)], NOW).status !== "met", `full qualification phrase: ${text}`);
+  }
+});
+
+Deno.test("guidance: current clearance survives an unrelated expired credential", () => {
+  const active = { ...req("clearance", ["Full Scope Poly"]), text: "An active Full Scope Poly clearance is required" };
+  for (const text of ["I hold an active Full Scope Poly clearance.", "My safety training expired, but I hold an active Full Scope Poly clearance.", "I hold an active Full Scope Poly clearance valid until 2028."]) {
+    eq(check(active, [fact(text)], NOW).status, "met", text);
+  }
+});

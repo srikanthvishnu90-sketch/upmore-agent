@@ -121,13 +121,35 @@ function anyWord(text: string, words: string[]): string[] { return words.filter(
 // A named qualification is not necessarily one the person has: "never used Python" must not become Python
 // experience. Keep a negated list together, but let a new contrast/first-person clause state positive evidence.
 // This deliberately resolves only explicit denials, not arbitrary natural-language entailment.
-const NEGATIVE_QUALIFICATION = /\b(?:no|not|never|without|cannot|can't|don't|doesn't|haven't|hasn't|didn't|isn't|aren't|wasn't|weren't|lack|lacks|lacking)\b/i;
-function qualificationMentions(text: string, word: string): { yes: boolean; no: boolean } {
+const NEGATIVE_QUALIFICATION = /\b(?:no|not|never|without|neither|nor|cannot|can't|don't|doesn't|haven't|hasn't|didn't|isn't|aren't|wasn't|weren't|lack|lacks|lacking)\b/i;
+function prefixDeniesQualification(prefix: string): boolean {
+  const markers = [...prefix.matchAll(new RegExp(NEGATIVE_QUALIFICATION.source, "gi"))];
+  const last = markers.pop();
+  if (!last) return false;
+  const tail = prefix.slice(last.index! + last[0].length);
+  // A negative determiner belongs to its noun phrase. "No external libraries for my Java projects" denies
+  // libraries, whereas "no experience with my Java projects" denies the qualification itself.
+  const object = tail.split(/\b(?:for|using|with|in|on)\s+(?:my|our)\b/i);
+  if (/^(?:no|not|without)$/i.test(last[0]) && object.length > 1 &&
+    !/\b(?:experience|skills?|knowledge|proficiency|ability|practice|familiarity|clearance)\b/i.test(object[0])) return false;
+  return true;
+}
+function endedClearance(prefix: string, suffix: string, now: number): boolean {
+  // Validity belongs to the clearance phrase, not an earlier credential in the same fact.
+  if (/\b(?:expired|former|inactive|revoked|lapsed)\s+(?:[\w-]+\s+){0,3}$/i.test(prefix) ||
+    /^\s*(?:security\s+)?(?:clearance\s+)?(?:(?:has|had|is|was)\s+)?(?:expired|inactive|revoked|lapsed)\b/i.test(suffix)) return true;
+  const until = suffix.match(/^\s*(?:(?:security\s+)?clearance\b\s*)?(?:(?:was|is)\s+)?(?:valid\s+)?(?:until|through)\s+(\d{4})\b/i);
+  return !!until && Number(until[1]) < new Date(now).getUTCFullYear();
+}
+function qualificationMentions(text: string, word: string, activeOnly = false, now = Date.now()): { yes: boolean; no: boolean } {
   let yes = false, no = false;
   const normalized = text.replace(/[’‘]/g, "'").replace(/\bnot\s+(only|just)\b/gi, "$1")
     .replace(/\bwithout\s+(?:a|any)\s+doubt\b/gi, "certainly").replace(/\bno\s+(?:trouble|problems?|difficult(?:y|ies))\b/gi, "ease");
   const occurrence = new RegExp(`(?<![\\w+#])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w+#])`, "i");
-  const clauses = normalized.split(/[;.!?]|\b(?:but|however|whereas)\b|\band\s+(?=(?:(?:i|we)\b|not\b|no\b|never\b))/i);
+  // An explicit new predicate (including an elliptical "and use Java") starts fresh scope. A bare skill list
+  // ("never used Python and Java") remains in the original scope. A completed subordinate event still counts
+  // as prior experience even when the main clause says it has not happened since.
+  const clauses = normalized.split(/[;.!?]|\b(?:but|however|whereas)\b|\band\s+(?=(?:(?:i|we)\b|not\b|no\b|never\b|(?:use|know|hold|possess|build|built|work|worked|complete|completed|manage|managed|lead|led)\b))|\bsince\s+(?=(?:i|we)\s+(?:completed|built|worked|managed|led|finished)\b)/i);
   for (const clause of clauses) {
     let deniedList = false;
     for (const part of clause.split(/,/)) {
@@ -135,8 +157,11 @@ function qualificationMentions(text: string, word: string): { yes: boolean; no: 
       const inherited: boolean = deniedList && !/\b(?:i|we)\s+(?:have|use|know|hold|possess|am|can|built|work|worked|completed|manage|managed|lead|led)\b/i.test(part);
       // A denial after the qualification must describe that qualification ("Python is not a skill I have").
       // "I use Python without help" does not deny Python.
+      const prefix = at ? part.slice(0, at.index) : part;
+      const suffix = at ? part.slice(at.index + at[0].length) : "";
       const denied: boolean = at
-        ? NEGATIVE_QUALIFICATION.test(part.slice(0, at.index)) || /^\s+(?:is|are|was|were)\s+(?:not|never|no longer)\b/i.test(part.slice(at.index + at[0].length)) || inherited
+        ? prefixDeniesQualification(prefix) || /^\s+(?:(?:is|are|was|were)\s+(?:not|never|no longer)|isn't|aren't|wasn't|weren't)\b/i.test(suffix) ||
+          (activeOnly && endedClearance(prefix, suffix, now)) || inherited
         : NEGATIVE_QUALIFICATION.test(part) || inherited;
       deniedList = denied;
       if (!at) continue;
@@ -145,22 +170,22 @@ function qualificationMentions(text: string, word: string): { yes: boolean; no: 
   }
   return { yes, no };
 }
-function qualificationEvidence(facts: Fact[], words: string[]) {
+function qualificationEvidence(facts: Fact[], words: string[], activeOnly = false, now = Date.now()) {
   const affirmed: string[] = [], denied: string[] = [], conflicting: string[] = [];
   for (const word of words) {
-    const mentions = facts.map((f) => qualificationMentions(f.text, word));
+    const mentions = facts.map((f) => qualificationMentions(f.text, word, activeOnly, now));
     const yes = mentions.some((m) => m.yes), no = mentions.some((m) => m.no);
     if (yes && no) conflicting.push(word);
     else if (yes) affirmed.push(word);
     else if (no) denied.push(word);
   }
-  const bestFact = facts.map((fact) => ({ fact, hits: affirmed.filter((w) => qualificationMentions(fact.text, w).yes).length }))
+  const bestFact = facts.map((fact) => ({ fact, hits: affirmed.filter((w) => qualificationMentions(fact.text, w, activeOnly, now).yes).length }))
     .sort((a, b) => b.hits - a.hits).find((f) => f.hits > 0)?.fact ?? null;
-  const deniedFact = facts.find((f) => denied.some((w) => qualificationMentions(f.text, w).no)) ?? null;
+  const deniedFact = facts.find((f) => denied.some((w) => qualificationMentions(f.text, w, activeOnly, now).no)) ?? null;
   return { affirmed, denied, conflicting, bestFact, deniedFact };
 }
 
-export function check(req: Requirement, facts: Fact[]): Check {
+export function check(req: Requirement, facts: Fact[], now = Date.now()): Check {
   const edu = educationFacts(facts);
   const r = (status: Status, fact: Fact | null, gap: string | null): Check => ({ requirement: req, status, fact, gap });
   switch (req.kind) {
@@ -221,7 +246,8 @@ export function check(req: Requirement, facts: Fact[]): Check {
     }
     case "experience":
     case "clearance": {
-      const e = qualificationEvidence(facts, req.any || []);
+      const activeOnly = req.kind === "clearance" && /\b(?:active|current|valid)\b/i.test(req.text);
+      const e = qualificationEvidence(facts, req.any || [], activeOnly, now);
       if (e.affirmed.length) return r("met", e.bestFact, null);
       if (e.conflicting.length) return r("unknown", null, `your confirmed facts conflict about ${e.conflicting.join(", ")}; clarify which is current`);
       if (e.denied.length) return r("unmet", e.deniedFact, "your confirmed fact explicitly says you do not have this");
@@ -260,7 +286,7 @@ export function movesFor(firm: any, programs: any[], facts: Fact[], tracked: { c
   const names = new Set(programs.map((p: any) => p.name));
   const reqs: Requirement[] = (firm.requirements || []).filter((q: Requirement) => names.has(q.program));
   const byKind = (a: Check, b: Check) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || KIND_ORDER.indexOf(a.requirement.kind) - KIND_ORDER.indexOf(b.requirement.kind);
-  const checks = reqs.map((q) => check(q, facts)).sort(byKind);
+  const checks = reqs.map((q) => check(q, facts, now)).sort(byKind);
   // A program the person's own facts rule out (graduation window, degree level, year of study) is said once, by the
   // fact that rules it out; its other requirements are not moves for them.
   const GATES = ["grad_window", "degree_level", "year_of_study"];

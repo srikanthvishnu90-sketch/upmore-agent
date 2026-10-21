@@ -1,0 +1,384 @@
+{
+ "report": {
+  "wo": "WO-042",
+  "kind": "live fill, never sent",
+  "measured_at": "2026-10-21T03:36:03.408Z",
+  "label": "VERIFIED-LIVE (real employer pages from this runner; never submitted)",
+  "forms": 1,
+  "reachable": 1,
+  "carded": 1,
+  "all": {
+   "correct": 0,
+   "wrong": 0,
+   "missed": 0,
+   "unkeyed": 18,
+   "precision": null,
+   "coverage": null,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "greenhouse": {
+   "correct": 0,
+   "wrong": 0,
+   "missed": 0,
+   "unkeyed": 0,
+   "precision": null,
+   "coverage": null,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "lever": {
+   "correct": 0,
+   "wrong": 0,
+   "missed": 0,
+   "unkeyed": 18,
+   "precision": null,
+   "coverage": null,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "ashby": {
+   "correct": 0,
+   "wrong": 0,
+   "missed": 0,
+   "unkeyed": 0,
+   "precision": null,
+   "coverage": null,
+   "widgets": {
+    "should": 0,
+    "correct": 0
+   }
+  },
+  "aborted_requests": 11,
+  "aborted_hosts": [
+   "jobs.lever.co",
+   "api.hcaptcha.com",
+   "api2.hcaptcha.com",
+   "hcaptcha.com"
+  ],
+  "allowed_graphql_reads": [
+   "cloudflare-challenge-beacon"
+  ],
+  "aborted_graphql_ops": []
+ },
+ "rows": [
+  {
+   "form": "queued",
+   "family": "lever",
+   "url": "https://jobs.lever.co/tsmg/aafa93aa-c6b5-4912-bcf2-4a29ae819537/apply",
+   "http_status": 200,
+   "final_url": "https://jobs.lever.co/tsmg/aafa93aa-c6b5-4912-bcf2-4a29ae819537/apply",
+   "ms_goto_dcl": 293,
+   "ms_goto_load": 491,
+   "ms_fill_click_to_card": 1040,
+   "status": "blocked",
+   "message": "Not ready to approve yet.",
+   "timing": {
+    "card": 1792553763277,
+    "context": 1792553762341,
+    "dcl": 1792553762001,
+    "fields": 18,
+    "fill": 1792553763269,
+    "first_card": 1792553763277,
+    "nav": 1792553761713,
+    "plan": 1792553762382,
+    "prepare": 1792553762317,
+    "read": 1792553762349,
+    "script": 1792553762197,
+    "slow": {
+     "location": 674
+    },
+    "visibility_at_prepare": "visible",
+    "widgets": 0
+   },
+   "blockers": [
+    "\"Please, add a brief comment on your experience and qualifications\" is required and not answered yet.",
+    "\"By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://t...\" is required and not answered yet."
+   ],
+   "open_required": [
+    "Please, add a brief comment on your experience and qualifications",
+    "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://t..."
+   ],
+   "fields": [
+    {
+     "name": "resume",
+     "label": "Resume/CV test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "test-person-resume.pdf",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "name",
+     "label": "Full name✱",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": "Test Person",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "email",
+     "label": "Email✱",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": "test.person@example.test",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "phone",
+     "label": "Phone",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "+1 555 010 0000",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "location",
+     "label": "Current location No location found. Try entering a different locationLoading",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "Chicago, IL, USA",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "org",
+     "label": "Current company",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "Example Analytics",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "urls[LinkedIn]",
+     "label": "LinkedIn URL",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "https://www.linkedin.com/in/test-person",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "urls[Twitter]",
+     "label": "Twitter URL",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "urls[GitHub]",
+     "label": "GitHub URL",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "https://github.com/test-person",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "urls[Portfolio]",
+     "label": "Portfolio URL",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "urls[Other]",
+     "label": "Other website",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": "https://example.test",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]",
+     "label": "Please, add a brief comment on your experience and qualifications✱",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+     "label": "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https:",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
+     "label": "I would like to receive information about training opportunities and courses from TSMG Academy in ad",
+     "widget": null,
+     "required": true,
+     "want": "unkeyed",
+     "got": "No",
+     "source": "trainee",
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "eeo[gender]",
+     "label": "Gender",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "eeo[race]",
+     "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "eeo[veteran]",
+     "label": "Veteran status",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    },
+    {
+     "name": "consent[marketing]",
+     "label": "Yes, TSMG can contact me about future job opportunities for up to 10 yearsPrivacy policy",
+     "widget": null,
+     "required": false,
+     "want": "unkeyed",
+     "got": null,
+     "source": null,
+     "verdict": "unkeyed"
+    }
+   ],
+   "verdicts": {
+    "unkeyed": 18
+   },
+   "changed_since_capture": {
+    "new_fields": [
+     "Resume/CV test-person-resume.pdfATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success",
+     "Full name✱",
+     "Email✱",
+     "Phone",
+     "Current location No location found. Try entering a different locationLoading",
+     "Current company",
+     "LinkedIn URL",
+     "Twitter URL",
+     "GitHub URL",
+     "Portfolio URL",
+     "Other website",
+     "Please, add a brief comment on your experience and qualifications✱",
+     "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https:",
+     "I would like to receive information about training opportunities and courses from TSMG Academy in ad",
+     "Gender",
+     "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other ",
+     "Veteran status",
+     "Yes, TSMG can contact me about future job opportunities for up to 10 yearsPrivacy policy"
+    ],
+    "gone_fields": []
+   },
+   "place_lookups": [
+    {
+     "at": 1792553763114,
+     "host": "jobs.lever.co",
+     "path": "/searchLocations?text=Chicago",
+     "status": 200,
+     "ms": 139
+    }
+   ]
+  }
+ ],
+ "aborted": [
+  {
+   "method": "POST",
+   "host": "jobs.lever.co",
+   "path": "/parseResume"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "api2.hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  },
+  {
+   "method": "POST",
+   "host": "hcaptcha.com",
+   "path": "/checksiteconfig"
+  }
+ ]
+}

@@ -140,6 +140,23 @@ credential, arbitrary RPC selector, reusable bearer URL or browser-readable serv
 Timeout, malformed messages, channel closure and extra effect requests refuse. Exact transport framing gets a real
 process test, not a fake engine calling a test hook and declaring the production transport proved.
 
+Fact-withdrawal mechanism, distinct from career_apply_current: the parent re-reads the owner's CURRENT stored
+profile AND answered-question rows through Claude's readEngineInput before each authorization phase. A pure
+`assertCurrentApprovedSources(P,currentInput)` uses the existing trustedFacts/trustedManifest contract and matches
+every frozen source dependency (factId, owner, table, key, value, confirmation event, provenance and attestation
+permission) to current kept sources; excluded/conflicting/withdrawn dependencies deny. Include replay_sources and
+derived dependencies, not just the fields' top-level factIds. Unrelated added facts do not authorize or alter P.
+Do not rely on career_apply_current alone: its authority trigger explicitly excludes thread-profile facts.
+
+Close the read/check gap with a service-side atomic source snapshot: a single owner-scoped DB read returns the
+exact profile/question rows consumed by Claude's reader plus a canonical snapshot digest. The reader adapter
+consumes those rows, not a second independent lookup. The final lease-authorization RPC receives that digest and
+recomputes it over the same current stored rows under the account lock; a changed digest refuses and requires a
+new check, never a cached allow. The source reader/table selection remains Claude-owned; the bridge adds the
+digest fence around that same source contract, not a competing facts extractor. This interface agreement must be
+in Claude's design PASS. The regression removes a previously confirmed THREAD-PROFILE fact while leaving account
+version/epoch unchanged, then requires denial before POST. Generic account version tests cannot substitute for it.
+
 A1: Claude owns `workers/career-cloud/engine_input.ts` on `arch/engine-input`. Consume
 `readEngineInput(source,owner)` service-side on the existing self-hosted cloud worker machine; it calls pure
 `engineInput({owner,profile,rows})` and returns facts and manifest `{hash,version,kept,excluded,conflicts}`. The cloud

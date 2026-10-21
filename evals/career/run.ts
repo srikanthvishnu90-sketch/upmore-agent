@@ -13,7 +13,7 @@
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
 export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
-export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
+export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
 export interface EvalResult { total: number; passed: number; pass_rate: number; items: EvalItemResult[]; planned: number; stopped: string | null }
 
 // stop: asked before each item; a reason ends the run there (the spend cap), and the items not run are not scored.
@@ -28,7 +28,8 @@ export async function runEval(items: EvalItem[], brain: Brain, judge: Judge, sto
     catch (e) { out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `brain error: ${e instanceof Error ? e.message : String(e)}` }); continue; }
     try {
       const j = await judge(it, replies[replies.length - 1] ?? "", state);
-      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}) });
+      // The end state the judges saw is kept, so a later re-score (rejudge.ts) grades exactly what they graded.
+      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}), state: state ?? null });
     } catch (e) {
       out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `judge error: ${e instanceof Error ? e.message : String(e)}` });
     }

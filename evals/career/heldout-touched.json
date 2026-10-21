@@ -156,6 +156,28 @@
    "run": "39545335380",
    "read": "gpt-5-mini failure reasons (failed rubric lines and judge notes) only",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H012",
+    "H014",
+    "H020",
+    "H023",
+    "H025",
+    "H026",
+    "H029",
+    "H030",
+    "H031",
+    "H032",
+    "H034",
+    "H036",
+    "H037"
+   ],
+   "run": "Instinct's per-item verdicts for 39541224991, 39542849277, 39543405447 p1-p3",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

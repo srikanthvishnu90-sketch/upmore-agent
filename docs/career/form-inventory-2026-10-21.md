@@ -70,6 +70,16 @@ profile answers flagged quarantined are withheld. Guard tests prove a
 quarantined fact does NOT cover (both bank and profile shapes) and that an
 injected 167-shaped reader is used and stamped.
 
+**Update (2026-10-21, stub swap):** module 167 has landed
+(`muse/2026-10-21-trusted-fact-reader` @ 1d27bf6b) and is now vendored
+byte-identical in this tree and the DEFAULT reader, adapted to the seam
+above (167's `isQuarantined` is the single quarantine predicate on both
+paths). Default verdicts now stamp `reader_mode: "module-167"`; an
+injected reader still wins; if 167 is unresolvable, resolution fails
+closed to the same conservative stub (stamped `"stub-167-absent"`).
+Guard suite re-run against the real 167: 14/14, including the D-007
+proofs that a quarantined fact does not cover.
+
 ## Live scans (measured, 2026-10-21 ~14:07–14:15 CDT)
 
 Driver: `form-inventory/scan-driver.cjs` — the production assembly

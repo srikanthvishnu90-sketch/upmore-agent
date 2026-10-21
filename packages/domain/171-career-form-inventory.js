@@ -54,15 +54,18 @@
    D-007 quarantine discipline: facts are read ONLY through a reader
    seam shaped for module 167's trusted-fact reader
    ({ trustedProfile(profile), trustedBank(bank), mode }). Module 167
-   does not exist on this base, so the shipped default is a conservative
-   STUB: bank facts count only when status === "confirmed",
-   needs_confirmation !== true, and not quarantined (quarantined ===
-   true or status === "quarantined" are excluded and counted); profile
-   answers count only when confirmed === true and not quarantined;
-   profile keys named in profile.quarantinedKeys are withheld. Every
-   verdict stamps reader_mode so a stub-backed verdict can never be
-   mistaken for a 167-backed one. When 167 lands, inject it via
-   createInventory({ factReader }) — no call-site change. */
+   is vendored in this tree (packages/domain/167-career-trusted-facts.js)
+   and is the DEFAULT reader, adapted to this seam (its isQuarantined
+   is the single quarantine predicate: needs_confirmation, status in
+   {draft, quarantined, held, suppressed}, or quarantined === true).
+   An injected reader (createInventory({ factReader }) / the opts of
+   coverageFor) still wins. If 167 cannot be resolved, resolution
+   fails CLOSED to a conservative stub: bank facts count only when
+   status === "confirmed" and not quarantined; profile answers
+   flagged quarantined and profile keys named in
+   profile.quarantinedKeys are withheld. Every verdict stamps
+   reader_mode so a stub-backed verdict can never be mistaken for a
+   167-backed one. */
 (function (root) {
   "use strict";
   const VERSION = 1;
@@ -194,7 +197,7 @@
     };
   }
 
-  // ---------- the fact reader (module 167 seam; stub ships today) ----------
+  // ---------- the fact reader (module 167 default; stub = fail-closed fallback) ----------
   function isTrustedFact(f) {
     return !!f && f.status === "confirmed" && f.needs_confirmation !== true
       && f.quarantined !== true && f.status !== "quarantined";
@@ -230,20 +233,73 @@
       },
     };
   }
-  // Soft-probe for a future module 167 (either plausible filename); the
-  // probe is by export shape, never by name alone.
+  // Adapter: module 167's real API (trustedFacts / trustedProfile /
+  // isQuarantined over a profile's facts array) behind this module's
+  // reader seam ({ trustedBank, trustedProfile, mode }). 167's
+  // isQuarantined is the quarantine predicate on both paths; the
+  // profile path additionally honors the profile store's own hold
+  // list (profile.quarantinedKeys) and per-answer hold flags, and
+  // reports what it withheld. Confirmation itself is NOT the reader's
+  // call — fieldCoverage enforces it, mirroring 149.
+  function create167FactReader(m167) {
+    return {
+      mode: "module-167",
+      trustedBank(bank) {
+        if (!bank || !Array.isArray(bank.facts)) return { bank: bank || null, excluded_quarantined: 0, excluded_unconfirmed: 0 };
+        let q = 0;
+        const facts = bank.facts.filter((f) => {
+          if (m167.isQuarantined(f)) { q += 1; return false; }
+          return true;
+        });
+        // 167 clears everything not quarantined (a fact carrying no
+        // hold signal is cleared — the default 122 stamps), so there
+        // is no separate unconfirmed exclusion to count.
+        return { bank: Object.assign({}, bank, { facts }), excluded_quarantined: q, excluded_unconfirmed: 0 };
+      },
+      trustedProfile(profile) {
+        if (!profile) return { profile: null, withheld_keys: [] };
+        const base = m167.trustedProfile(profile); // filters profile.facts via 167
+        const withheld = Array.isArray(base.quarantinedKeys) ? base.quarantinedKeys.slice() : [];
+        const out = Object.assign({}, base);
+        for (const k of withheld) delete out[k];
+        if (base.answers && typeof base.answers === "object") {
+          const answers = {};
+          for (const [k, a] of Object.entries(base.answers)) {
+            if (m167.isQuarantined(a)) { withheld.push(`answers.${k}`); continue; }
+            answers[k] = a;
+          }
+          out.answers = answers;
+        }
+        delete out.quarantinedKeys;
+        return { profile: out, withheld_keys: withheld };
+      },
+    };
+  }
+  // Probe for module 167 (either plausible filename) by EXPORT SHAPE,
+  // never by name alone: the real module exports plain functions
+  // (isQuarantined / trustedFacts / trustedProfile); a factory-shaped
+  // reader in this seam's own shape is also accepted. Unresolvable ->
+  // null, and the caller fails closed to the stub.
   function probe167() {
     for (const name of ["./167-career-trusted-facts.js", "./167-career-fact-reader.js"]) {
       try {
         const m = require(name);
+        if (m && typeof m.isQuarantined === "function" && typeof m.trustedFacts === "function" && typeof m.trustedProfile === "function") {
+          return create167FactReader(m);
+        }
         const r = m && (typeof m.createFactReader === "function" ? m.createFactReader()
           : (typeof m.createTrustedFactReader === "function" ? m.createTrustedFactReader() : null));
         if (r && typeof r.trustedProfile === "function" && typeof r.trustedBank === "function") {
           return Object.assign({ mode: "module-167" }, r);
         }
-      } catch (e) { /* not present — the stub is the honest default */ }
+      } catch (e) { /* not resolvable — the caller fails closed to the stub */ }
     }
     return null;
+  }
+  let cachedDefaultReader = null;
+  function defaultFactReader() {
+    if (!cachedDefaultReader) cachedDefaultReader = probe167() || createStubFactReader();
+    return cachedDefaultReader;
   }
 
   // ---------- bank -> 149 profile projection (mirrors production-sources) ----------
@@ -310,7 +366,7 @@
   }
   function coverageFor(inventory, factSet, opts) {
     const o = opts || {};
-    const reader = o.factReader || createStubFactReader();
+    const reader = o.factReader || defaultFactReader();
     const fs0 = factSet || {};
     let profile = null, attestations = fs0.attestations || {};
     let excludedQuarantined = 0, excludedUnconfirmed = 0, withheldKeys = [];
@@ -381,7 +437,7 @@
 
   function createInventory(opts) {
     const o = opts || {};
-    const factReader = o.factReader || probe167() || createStubFactReader();
+    const factReader = o.factReader || defaultFactReader();
     return {
       version: VERSION,
       reader_mode: factReader.mode || "unknown",
@@ -395,7 +451,7 @@
   const api = {
     VERSION, QUESTION_KINDS,
     inventoryFromSnapshot, classifyQuestionKind, coverageFor, batchCoverageLine,
-    createStubFactReader, createInventory, profileFromBank,
+    createStubFactReader, create167FactReader, createInventory, profileFromBank,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.CareerFormInventory = api;

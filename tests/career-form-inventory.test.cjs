@@ -120,7 +120,7 @@ test("empty / malformed snapshots are empty inventories, never throws", () => {
 test("coverage: full bank covers standard+screening; attestation/essay/unknown stop named", () => {
   const inv = Inv.inventoryFromSnapshot(DEFS_GH);
   const v = Inv.coverageFor(inv, { bank: bankWith() });
-  assert.equal(v.reader_mode, "stub-167-absent");
+  assert.equal(v.reader_mode, "module-167");
   const stopIds = v.stops.map((s) => s.field_id).sort();
   assert.deepEqual(stopIds, ["certify", "dino", "essay1"]);
   const reasons = Object.fromEntries(v.stops.map((s) => [s.field_id, s.reason]));
@@ -171,7 +171,7 @@ test("D-007: a QUARANTINED eligibility fact does not cover work_authorization", 
   assert.equal(v.covered, false);
   assert.equal(v.stops[0].reason, "no_confirmed_fact");
   assert.equal(v.excluded_quarantined_facts, 1);
-  assert.equal(v.reader_mode, "stub-167-absent");
+  assert.equal(v.reader_mode, "module-167");
 });
 
 test("D-007: quarantined flag on a confirmed fact also excludes it", () => {

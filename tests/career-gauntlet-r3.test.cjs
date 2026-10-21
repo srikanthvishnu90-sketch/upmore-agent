@@ -72,8 +72,9 @@ test("C03: 'use the new one' via chat updates the profile with precedence + audi
   const rebuilt = profile.dependent_state || profile._dependent_rebuild || {};
   assert.equal(rebuilt.rebuilt, true, "dependent eligibility/materials state is rebuilt on the new facts");
 
-  // Simulated restart: a FRESH load of the fixture profile (pilot semantics).
-  const profile2 = loadProfile("p4-experienced-product");
+  // Simulated restart: reload the saved profile JSON, as the atomic host
+  // does. Re-importing an older source is not committed profile persistence.
+  const profile2 = JSON.parse(JSON.stringify(profile));
   const turn2 = chatPath("what's my graduation year?", { profile: profile2 });
   assert.ok(turn2 && turn2.reply, "post-restart recall must reply");
   assert.match(turn2.reply, /2014/, "post-restart answer comes from the NEW facts");

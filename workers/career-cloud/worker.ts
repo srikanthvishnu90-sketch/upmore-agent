@@ -15,7 +15,7 @@
 // A verification check (a captcha) at open, review or Submit is never solved or got around: the job goes back to the
 // person with its link ("finish this one yourself"), and the check counts in the telemetry, which pauses a portal or a
 // person before failures pile up under their name.
-import { factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
+import { assertApprovedPayload, factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
 
 export interface CloudJob {
   id: string;
@@ -44,6 +44,7 @@ const BY_DESIGN = new Set([
   "RESUME_CHANGED", "RESUME_NOT_IN_CLOUD", "NO_ENGINE_APPROVAL", "CONFLICTING_APPROVED_ANSWERS", "FACTS_EXPIRED", "ACCOUNT_PAUSED",
   "FACTS_ERASED", "duplicate_job", "daily_cap", "company_cooldown", "UNCONFIRMED_HIDDEN_FIELD", "UNSUPPORTED_FILE_ARTIFACT",
   "SUBMIT_DESTINATION_NOT_BOUND", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
+  "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED",
 ]);
 const BOT_CHECK = (state: string, reason: string) =>
   (state === "needs_user" && reason === "captcha") || (state === "not_submitted" && reason === "CAPTCHA_AT_SUBMIT");
@@ -117,7 +118,7 @@ export async function runCloudJob(job: CloudJob, d: {
   try {
     await Deno.chmod(dir, 0o700);
     const p = job.payload;
-    if (!/^[0-9a-f]{64}$/.test(String(p?.engine_approval))) throw Object.assign(Error("NO_ENGINE_APPROVAL"), { code: "NO_ENGINE_APPROVAL" });
+    await assertApprovedPayload(p);
     const r = await d.queue.resume(job);
     if (!r) throw Object.assign(Error("RESUME_NOT_IN_CLOUD"), { code: "RESUME_NOT_IN_CLOUD" });
     const bytes = b64bytes(r.b64);

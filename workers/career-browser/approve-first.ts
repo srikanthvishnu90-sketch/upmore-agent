@@ -14,6 +14,7 @@ import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_
 // WO-102: the submission-quality contract, the extension's own functions (never copied).
 import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../extension/src/apply_core.ts";
 import { applicationApprovalHash } from "../../scripts/apply.ts";
+import { factDependencies } from "../../supabase/functions/_shared/fact_quarantine.ts";
 
 export interface EngineResult {
   result: {
@@ -248,12 +249,23 @@ export function payloadTrust(payload: any): string[] {
   }
   for (const f of Array.isArray(payload?.fields) ? payload.fields : []) {
     const label = String(f?.label ?? f?.name ?? "");
+    const dependencies = factDependencies(f);
     if (quarantinedFact({ factId: f?.factId, provenance: f?.provenance })) why.push(`"${label}": its fact is quarantined (D-007)`);
-    else if ((Array.isArray(f?.derived_from) ? f.derived_from : []).some((x: unknown) => quarantinedFact({ factId: x }))) {
+    else if (dependencies === null) why.push(`"${label}": malformed dependency metadata`);
+    else if (dependencies.some((x: unknown) => quarantinedFact({ factId: x }))) {
       why.push(`"${label}": derived from a quarantined fact (D-007)`);
     } else if (String(f?.factId ?? "").startsWith("text-answer:") && !f?.source?.key) why.push(`"${label}": a texted answer with no question it answered`);
   }
   return why;
+}
+// Shared before-effects boundary for the desktop and cloud workers. Replaying original source values is safe only
+// after the queued printed answers, source manifest and schema have been checked against the approved identity.
+export async function assertApprovedPayload(payload: any): Promise<void> {
+  if (!/^[0-9a-f]{64}$/.test(String(payload?.engine_approval))) throw Error("NO_ENGINE_APPROVAL");
+  const untrusted = payloadTrust(payload);
+  if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
+  const expected = await engineApprovalFromPayload(payload);
+  if (expected !== null && expected !== payload.engine_approval) throw Error("APPROVED_APPLICATION_CHANGED");
 }
 // What the engine reads for the desktop prepare (WO-102): the person's facts file as it is, and their texted answers
 // beside it as their own answer rows. Never merged under the file's facts (factsWithTextAnswers lets the file silently
@@ -280,12 +292,7 @@ export async function runApproved(d: {
     let started = false;
     try {
       const p = job.payload;
-      if (!/^[0-9a-f]{64}$/.test(String(p?.engine_approval))) throw Error("NO_ENGINE_APPROVAL");
-      // WO-102: fresh at the start, before anything opens; the engine then judges every answer again by the contract.
-      const untrusted = payloadTrust(p);
-      if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
-      const engineApproval = await engineApprovalFromPayload(p);
-      if (engineApproval !== null && engineApproval !== p.engine_approval) throw Error("APPROVED_APPLICATION_CHANGED");
+      await assertApprovedPayload(p);
       const resume = await d.resumeFor(job);
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));

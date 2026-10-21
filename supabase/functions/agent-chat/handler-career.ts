@@ -30,9 +30,10 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply } from "../_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs } from "../_shared/router_core.career.js";
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
+import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
@@ -44,7 +45,10 @@ import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shar
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
-import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { supabaseWantStore } from "../_shared/career_apply_want.ts";
+import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { codePending, readSituation } from "../_shared/career_situation.ts";
+import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
@@ -55,6 +59,7 @@ import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
+import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -171,8 +176,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     }
 
     const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // WO-100: the person's situation (every task in flight, the next steps, what Trainee can do), read once per turn,
+    // before anything answers; a source that fails is named in it, never guessed. A code an employer emailed them, while
+    // waiting, is removed from this text like a labeled one.
+    const situation = await readSituation(admin, user.id, Date.now()).catch((e) => { console.error("situation:", e?.message ?? e); return null; });
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
-    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
+    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
     const { message, userContent, imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
@@ -244,14 +254,68 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try { careerBatch = normalizeCareerBatchRequest(body.career_batch); }
     catch (_) { return json(cors, { error: "invalid_career_batch", action: null, turn_key: turnKey }, 400); }
     const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask ?? (careerBatch ? { batch: careerBatch } : null));
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const persistence = createCareerPersistence(admin);
+    // POOL LOADER (Lane E, Feature Depth Program v2 — closes the gap
+    // diagnosed in the Lane D operator checklist §8): ctx.postings is
+    // the discovery pool, a per-turn host input. Until this wiring
+    // the handler never passed it, so the host defaulted the pool to
+    // [] for every user on every turn and discovery answered its
+    // honest-empty reply forever ("today it holds no roles at all")
+    // while career_kb_postings held 21,688 real postings one read
+    // away. The loader (_shared/career_pool.js) reads the KB through
+    // this request's service-role client — bounded, recency-ordered,
+    // mapped to the corpus shape 142 consumes, every posting
+    // carrying its snapshot fetched_on (the KB is an Oct 2026
+    // snapshot, not a live feed; freshness of content is the watcher
+    // lane's remainder, never implied here). The loader never
+    // throws: a failed read degrades to the empty pool and the
+    // product's designed honest-empty reply — never a crashed turn,
+    // never an invented role. The worker's postingsFor reads through
+    // the same loader, so the two pools cannot disagree.
+    const poolLoader = CareerPool.createKbPoolLoader({
+      readRows: async (spec: any) => {
+        let q: any = admin.from(spec.table).select(spec.select)
+          .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst });
+        for (const f of (spec.filters ?? [])) {
+          if (f.op === "ilike") q = q.ilike(f.column, f.value);
+          else if (f.op === "eq") q = q.eq(f.column, f.value);
+        }
+        const { data, error } = await q.limit(spec.limit);
+        if (error) throw new Error(`career_kb_postings read failed: ${error.message}`);
+        return data ?? [];
+      },
+      jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
+    });
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState }) as ReturnType<typeof host.createTurnCtx> & {
-        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown;
+      const pool = await poolLoader.loadPool();
+      if (pool.error) console.error("career pool load failed:", pool.error);
+      // V240 LIVE-FIX (probe f2): the window is a discovery slice,
+      // not the shelf — when the turn names a specific company/title
+      // (the router's OWN parser decides; no second parser lives
+      // here), supplement the window with the loader's targeted
+      // lookup so a named posting the KB holds beyond the window is
+      // findable in-turn. Merged by posting id; the supplement never
+      // throws (loader contract), and any failure here leaves the
+      // window pool standing on its own — the turn keeps its honest
+      // named stop, never a crash, never an invented role.
+      let postings: any[] = pool.postings;
+      try {
+        const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
+        if (target && target.company) {
+          const extra = await poolLoader.loadTargeted(target);
+          if (extra.postings.length) {
+            const seen = new Set(postings.map((p: any) => p.job_id));
+            postings = postings.concat(extra.postings.filter((p: any) => !seen.has(p.job_id)));
+          }
+        }
+      } catch { /* the window pool stands on its own */ }
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings }) as ReturnType<typeof host.createTurnCtx> & {
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
       };
+      // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
+      if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
@@ -277,12 +341,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const draftMeter = newMeter();
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
       const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
+        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
       // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
-      // and "yes" while it is the last word sends exactly that email once from the person's Gmail. Code's, like the card.
+      // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
+      // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
       const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
       const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
       const sendToken = careerTokenFor({
@@ -309,6 +374,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
           canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+          // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
+          sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
         } })
         : null;
       if (draftMeter.calls) {
@@ -366,18 +433,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const win = historyWindow((hist.data || []) as any[]), history = win.history;
         const postingsDb = supabasePostingsDb(admin);
         // WO-023: what is known about the person, every turn. Standing instructions are fundamental: if they cannot be
-        // read the turn fails rather than answer without them. Alerts and the pipeline say "could not be read" instead.
+        // read the turn fails rather than answer without them. Alerts say "could not be read" instead; the applications
+        // are the situation read at the top of the turn (WO-100), which names what it could not read.
         const memory = supabaseMemoryStore(admin), alertStore = supabaseAlertStore(admin), now = Date.now();
         const standing = await memory.standing(user.id);
-        const [alertRow, pipeline] = await Promise.all([
-          alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; }),
-          readPipeline(admin, user.id, now).catch((e) => { console.error("agent memory: pipeline", e?.message ?? e); return null; }),
-        ]);
+        const alertRow = await alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; });
         // WO-027: the account's timeline, written by the tools and read by recall; past the window, a summary of it written
         // in code. A timeline that cannot be read never fails the turn: the summary says so instead.
         const tz = alertRow?.tz;
         const recent = win.cut ? await events.recall(user.id, { limit: 200 }).catch((e) => { console.error("agent memory: events", e?.message ?? e); return null; }) : null;
         const summary = summaryFor(win.cut, recent, now, tz);
+        // WO-066: the person's own daily application limit (the queue's SQL holds the same bound); unread, the default.
+        const daily = await admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => r.error ? undefined : Number(r.data) || undefined, () => undefined);
         const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
           model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
@@ -386,7 +453,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
-          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
+          // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
+          // goes only on its card's tap.
+          wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
+          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
           if (costErr) console.error("agent turn cost not recorded:", costErr.message);
@@ -429,13 +499,29 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (plan) { batchIntent = plan.intent; out = { ...out, batch: plan.batch }; }
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
-      const reply = flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply;
+      // CHANNEL-DOC-1: documents the turn produced (the tailored
+      // resume PDF; the delivery handler's documents) are materialized
+      // into the owner-scoped artifact store and ride the reply as
+      // bytes-refs — the bytes never ride the reply itself. A document
+      // that fails to store is dropped from the contract and said so
+      // on the reply; it is never claimed attached.
+      let artifactsField: any[] | undefined;
+      let artifactNote = "";
+      {
+        const docs = documentsOf(out.result);
+        if (docs.length) {
+          const m = await materializeArtifacts(admin, { userId: user.id, threadId: tid, documents: docs });
+          if (m.artifacts.length) artifactsField = m.artifacts;
+          if (m.failed > 0) artifactNote = "One file from this turn couldn't be attached here — ask me to send it again and I'll rebuild it.";
+        }
+      }
+      const reply = (flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply) + (artifactNote ? `\n${artifactNote}` : "");
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const reminderLines = reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "").filter(Boolean);
       const visibleReply = [reply, ...reminderLines].join("\n");
       // The same reply as separate messages for a texting channel: the note, each part whole, then the reminders.
-      const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...reminderLines] : null;
-      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
+      const parts = out.parts ? [...(flowCtx.note ? [flowCtx.note] : []), ...out.parts, ...(artifactNote ? [artifactNote] : []), ...reminderLines] : null;
+      const response = { thread_id: tid, reply: visibleReply, action: null, capabilities: out.capabilities, turn_key: turnKey, reminders, ...(out.task ? { task: out.task } : {}), ...(out.batch ? { batch: out.batch } : {}), ...(parts ? { parts } : {}), ...(artifactsField ? { artifacts: artifactsField } : {}), meta: { career: true, intent: out.intent, result_status: out.resultStatus, contained: out.contained, ...(agentMeta || {}) } };
       const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response, taskIntent, batchIntent });
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.

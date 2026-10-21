@@ -2,7 +2,7 @@
 // career state the CareerHost persists (ctx.state is the host's turn ctx: profile, trackStore, …). Tools return data; the
 // model writes the words. No reply prose lives here.
 import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
-import type { ToolSpec, ToolCtx } from "./loop.ts";
+import { AskPerson, type ToolSpec, type ToolCtx } from "./loop.ts";
 import { searchPostings } from "../career_search.ts";
 import { startWatching, validPrefs, validZone, type AlertStore } from "../career_alert_store.ts";
 import { DEFAULT_PREFS } from "../career_alerts.ts";
@@ -27,6 +27,10 @@ import { CONTACT_QUESTION, contactFromMessage, namedIn, type PersonaStore, type 
 import { type OfferPending, offerTurn, saidIn } from "../career_offer.ts";
 import { findFirm, pathAnswer } from "../career_path.ts";
 import type { HiredResult, HiredSource } from "../career_hired.ts";
+import { queueWants, resolvePicks, screenPicks, type WantStore } from "../career_apply_want.ts";
+import { payFrom } from "../posting_pay.ts";
+import type { Limits } from "../career_apply.ts";
+import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -40,6 +44,19 @@ function confirmationRefusal(c: ToolCtx, id: string): string | null {
   if (t.added.includes(id)) return `fact ${id} was added in this turn; show it to the person and wait for their reply before confirming`;
   if (!AFFIRM.test(t.message) || DENY.test(t.message)) return "the person's message is not a plain yes; ask them to confirm the fact as written";
   return null;
+}
+// D-007: a fact about the person is saved only from what they said in this turn's message: never a guess. Most of the
+// fact's own words (3+ letters, not filler) must be in their message, and words of inference are refused outright.
+const FILLER = new Set(["the", "and", "for", "with", "has", "have", "had", "was", "are", "is", "years", "year", "wants", "want", "work", "worked", "role", "roles", "job", "jobs", "their", "they", "from", "who", "that", "this", "person", "user"]);
+const GUESSED = /\b(assum\w*|infer\w*|probabl\w*|likely|presumabl\w*|guess\w*|seems?|maybe|perhaps|implied)\b/i;
+export function factRefusal(text: string, message: string | undefined): string | null {
+  if (GUESSED.test(text)) return "not saved: a fact about the person is only what they said, never an assumption or inference";
+  if (message === undefined) return null;
+  const words = (x: string) => String(x).toLowerCase().normalize("NFKD").replace(/[^a-z0-9+#.\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3 && !FILLER.has(w));
+  const said = new Set(words(message)), mine = words(text);
+  if (!mine.length) return null;
+  const hit = mine.filter((w) => said.has(w) || [...said].some((s) => s.length >= 4 && (s.startsWith(w.slice(0, 4)) || w.startsWith(s.slice(0, 4))))).length;
+  return hit * 2 >= mine.length ? null : "not saved: the person did not say this in their message; save only what they said, in their words";
 }
 const profileOf = (c: ToolCtx) => ((c.state.profile as any) ??= CareerProfile.createProfile({}));
 const CONTACTS_ASK = "Send me a CSV of the people you want to reach (your LinkedIn connections export, or a list you have) and I'll check every address in it.";
@@ -59,9 +76,15 @@ export interface TailorTools { posting: (jobId: string) => Promise<any | null>; 
 export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
 // `interviews` and `digest` (WO-034) keep a pasted invite (for its thank-you, nudge and the digest) and the weekly digest's
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
+// `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
+// queue_applications says applying from chat is not connected here. `limits` is the person's daily application limit.
 export function careerTools(deps: {
   postings: (query: string) => Promise<any[]>; alerts?: AlertStore | null; memory?: MemoryStore | null; mail?: Pick<MailStore, "applications" | "events"> | null;
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
+  wants?: WantStore | null; limits?: Limits;
+  posting?: ((jobId: string) => Promise<any | null>) | null;
+  // WO-100: the person's situation, read once this turn (career_situation.ts); absent, the tools read this thread alone.
+  situation?: Situation | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -117,6 +140,8 @@ export function careerTools(deps: {
       description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words. It is not usable until they confirm it.",
       input_schema: obj({ kind: str("experience | education | skill | goal | location | preference | other"), text: str("The fact in the person's own words") }, ["kind", "text"]),
       run: async (i, c) => {
+        const refused = factRefusal(String(i.text ?? ""), c.turn?.message);
+        if (refused) throw new Error(refused);
         const fact = CareerProfile.addFact(profileOf(c), { kind: String(i.kind), text: String(i.text), needs_confirmation: true, status: "draft" });
         c.turn?.added.push(fact.id);
         return { fact };
@@ -137,10 +162,29 @@ export function careerTools(deps: {
       },
     },
     {
+      name: "get_situation", effect: "read",
+      description: "Read the person's situation as code built it this turn: every task in flight (applications, postings asked for in chat, open questions, drafts, interviews) with its state, what blocks it, who acts and how; the next steps in order; today's count; the last list shown; what Trainee can and cannot do right now; and what could not be read. Pass company for one employer.",
+      input_schema: obj({ company: str("One employer, if they named one") }),
+      run: async (i) => {
+        const s = deps.situation;
+        if (!s) throw new Error("their situation could not be read this turn; say so, never guess");
+        const company = i.company ? String(i.company) : null;
+        if (!company) return { ...s, text: statusText(s) };
+        const tasks = s.tasks.filter((t) => t.company && sameCompany(t.company, company));
+        return { company, tasks, next: s.next.filter((n) => tasks.some((t) => t.id === n.task_id)), unreadable: s.unreadable, text: statusText(s, company) };
+      },
+    },
+    {
       name: "list_applications", effect: "read",
-      description: "List the person's tracked job applications with company, role and current stage.",
+      description: "List every application of the person's, from every conversation: the apply queue (each one's state, what blocks it, its confirmation id or failure reason), postings asked for in chat, and the ones they told you about, with role and stage.",
       input_schema: obj(),
-      run: async (_i, c) => ({ applications: trackOf(c).rows }),
+      run: async (_i, c) => {
+        const rows = trackOf(c).rows, s = deps.situation;
+        if (!s) return { applications: rows };
+        const theirs = s.tasks.filter((t) => ["application", "apply_request", "tracked"].includes(t.kind) && !(t.kind === "tracked" && rows.some((r: any) => sameCompany(r.company, t.company))))
+          .map((t) => ({ company: t.company, role: t.title, state: t.state, stage: t.evidence.stage, blocker: t.blocker, confirmation_id: t.evidence.confirmation_id, reason: t.evidence.reason, since: t.since, source: t.source }));
+        return { applications: [...rows, ...theirs], unreadable: s.unreadable };
+      },
     },
     {
       name: "track_application", effect: "write_own",
@@ -155,12 +199,55 @@ export function careerTools(deps: {
       },
     },
     {
+      name: "queue_applications", effect: "write_own",
+      description: "Start applying: put the postings the person chose (from search_jobs, with job_id) in their own apply queue, up to their daily limit. Code checks each against the posting on file, the employer they named or were shown, the 30-day rule and their current employer. Nothing is sent: each goes only after they approve its card in the Trainee extension. Say what was queued, what was refused and why.",
+      input_schema: obj({ postings: { type: "array", description: "The postings to apply to, from search_jobs", items: obj({ url: str("The posting's link as search_jobs returned it"), job_id: str("The posting's job_id as search_jobs returned it (always pass it: an employer's own careers-page link is opened at its board's form)"), company: str("Employer"), title: str("Job title") }, ["url"]) } }, ["postings"]),
+      run: async (i, c) => {
+        if (!deps.wants) throw new Error("applying from chat is not connected here; say so, and that the person can paste posting links into the Trainee extension's queue");
+        const picks = Array.isArray(i.postings) ? i.postings.slice(0, 100) : [];
+        // WO-091b (audit F2): each pick resolved on file (employer and title from the record, never the model's label), then
+        // checked against what the person said and was shown, their applications in every thread and their confirmed facts.
+        const found = await resolvePicks(picks, deps.posting ?? (deps.tailor ? deps.tailor.posting : null));
+        const here = appsFromTracker(trackOf(c).rows);
+        let stored: Awaited<ReturnType<NonNullable<typeof deps.mail>["applications"]>> = [];
+        if (deps.mail) {
+          try { stored = await deps.mail.applications(c.userId); }
+          catch { throw new Error("their applications could not be read, so a duplicate could not be ruled out; nothing was queued. Say so and offer to try again"); }
+        }
+        const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
+        const screened = screenPicks(found.ok, { message: c.turn?.message, before: c.turn?.before, apps, facts: CareerProfile.confirmedFacts(profileOf(c)), now: c.now });
+        const r = await queueWants(deps.wants, c.userId, screened.ok, c.now, { limits: deps.limits, tz: deps.tz });
+        const refused = [...found.refused, ...screened.refused, ...r.refused];
+        await record(c, "apply_queued", `${r.queued} postings`, { queued: r.queued, refused: refused.length, companies: [...new Set(r.items.map((w) => w.company).filter(Boolean))].slice(0, 5) });
+        return { ...r, refused, note: "Nothing is sent yet. The Trainee extension prepares each posting in the person's browser and shows a card; it goes only after they approve that card. Tell them each refusal and its reason as given." };
+      },
+    },
+    {
+      name: "get_posting", effect: "read",
+      description: "Read one posting in full by its job_id from search_jobs: title, company, place, link, the pay it states (or null: then say pay is not listed) and its text with the requirements. Use it before prepping, tailoring or answering questions about a posting.",
+      input_schema: obj({ job_id: str("The job_id search_jobs returned") }, ["job_id"]),
+      run: async (i) => {
+        const get = deps.posting ?? (deps.tailor ? deps.tailor.posting : null);
+        if (!get) throw new Error("posting details are not connected here; say so, and use only what search_jobs returned");
+        const p = await get(String(i.job_id));
+        if (!p) throw new Error(`no posting ${String(i.job_id)} on file; it may have closed. Search again`);
+        const text = String(p.description ?? "").replace(/\s+/g, " ").trim();
+        return { job_id: p.job_id, company: p.company, title: p.title, location: p.location || "", url: p.url, closed: !!p.closed_at,
+          pay: p.pay ?? payFrom(text), text: text.length > 4000 ? `${text.slice(0, 4000)}… [cut]` : text };
+      },
+    },
+    {
       name: "search_jobs", effect: "read",
       description: "Search live job postings by keywords (role, skill, place). Returns real postings with their links, when they were first seen, and, when the person has confirmed facts, a fit score with reasons and gaps (ranked best fit first; a posting they are knocked out of ranks last with the reason). An empty pool is reported as source 'none'.",
       input_schema: obj({ query: str("Keywords, e.g. 'data analyst remote'"), limit: { type: "number", description: "Max results, default 10" } }),
       run: async (i, c) => {
-        const query = String(i.query ?? "");
-        const pool = await deps.postings(query);
+        // WO-068: every word must match, so a word the model added ("mid level", "python") can empty a search that has
+        // real postings. With none found, the query is shortened from the end until one matches, and the result says so.
+        const asked = String(i.query ?? "");
+        let query = asked, pool = await deps.postings(query);
+        const words = asked.split(/\s+/).filter(Boolean);
+        while (!pool.length && words.length > 1) { words.pop(); query = words.join(" "); pool = await deps.postings(query); }
+        const relaxed = query !== asked ? { relaxed_to: query, note: `nothing matched every word of "${asked}"; these match "${query}"` } : {};
         if (!pool.length) { await record(c, "search", query, { results: 0, source: "none" }); return { postings: [], total: 0, source: "none" }; }
         // C-04: the person's saved floor (and, always, closed postings and the same job on another board) before any
         // ranking; what was hidden is counted by reason so the reply can say it ("7 senior roles, 5 contract").
@@ -169,8 +256,10 @@ export function careerTools(deps: {
         const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
         const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
         const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
-        await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5) });
-        return { ...r, filtered, source: "live" };
+        // WO-100: the list in the order shown, so "the second one" resolves in any thread (the situation's last_shown).
+        await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5),
+          shown: found.slice(0, 10).map((p) => ({ job_id: String(p.job_id ?? ""), company: String(p.company ?? "").slice(0, 80), title: String(p.title ?? "").slice(0, 100) })) });
+        return { ...r, filtered, source: "live", ...relaxed };
       },
     },
     {
@@ -330,6 +419,15 @@ export function careerTools(deps: {
         const persona = name ? st.items.find((p) => p.name === name) ?? null : null;
         if (i.persona && !persona) throw new Error(`no persona named ${String(i.persona)}; saved: ${st.items.map((p) => p.name).join(", ") || "none"}`);
         const r = await tailorForPosting({ userId: c.userId, profile: profileOf(c), posting: { text, job_id, company }, persona, deps: { render: t.render, resumes: t.resumes }, now: c.now });
+        // WO-079: facts waiting for the person's yes are named, with the one question to ask (battery T09 ran out of steps
+        // trying other tools); with none, ask what to build from. A confirmation can only come from their next message.
+        if (!r.ok && r.refused === "no_confirmed_facts") {
+          const drafts = (profileOf(c).facts || []).filter((f: any) => f.needs_confirmation && ["experience", "education", "project"].includes(String(f.kind)))
+            .slice(0, 6).map((f: any) => `- ${String(f.text || f.title || "").slice(0, 160)}`);
+          throw new AskPerson(drafts.length
+            ? `not made yet: there are no confirmed experience, project or education facts on file (a resume uses confirmed facts only). Nothing was stored or sent. Drafts waiting for their yes:\n${drafts.join("\n")}\nAsk them to check these and reply yes (or correct them), then make it after that yes. Do not call another tool this turn.`
+            : `not made: there are no confirmed experience, project or education facts on file. Ask them for their work experience and education in their own words; nothing is invented. Do not call another tool this turn. Nothing was stored or sent.`);
+        }
         if (!r.ok) throw new Error(`not made: ${r.reason}. ${r.refused === "link" ? "The file stays private; no link was given." : "Nothing was stored or sent."}`);
         const { detail: _detail, ...out } = r;
         return out;
@@ -392,7 +490,12 @@ export function careerTools(deps: {
         const here = appsFromTracker(trackOf(c).rows);
         const stored = deps.mail ? await deps.mail.applications(c.userId) : [];
         const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
-        return standing(company, apps, deps.mail ? await deps.mail.events(c.userId) : []);
+        const r = standing(company, apps, deps.mail ? await deps.mail.events(c.userId) : []);
+        // WO-100: the situation's record of everything with this employer, failed, stopped and queued too, with the reason
+        // and the confirmation id (the mail view above keeps only applications that went).
+        const s = deps.situation, mine = s ? s.tasks.filter((t) => t.company && sameCompany(t.company, company)) : [];
+        if (!mine.length) return r;
+        return { ...r, found: Math.max(r.found, mine.length), text: [r.found ? r.text : "", statusText(s!, company)].filter(Boolean).join("\n"), in_flight: mine };
       },
     },
     {

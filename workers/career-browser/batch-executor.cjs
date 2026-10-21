@@ -14,9 +14,9 @@
    with every stage engine (121/132/123/149/150) exactly as the
    in-turn path composes them. The only differences from the in-turn
    composition are the ones the runtime forces: postings come from an
-   injected discovery source (production: module 121/151 feed
-   polling, the operator's wiring — the task worker's equipment-seam
-   posture), the profile/attestations are injected per user, the cap
+   injected discovery source (production: the KB-backed pool via
+   production-sources.cjs — Lane E, see the note at the end of this
+   header), the profile/attestations are injected per user, the cap
    ledger is the store's per-user ledger, and boards come from an
    injected boardForFor(userId) — in production the J9 provider over
    the synchronous HTTP transport to the board service, which vends
@@ -45,11 +45,23 @@
    The store is injected (all methods async): pending(), claim(),
    finish(), saveRun(), readRun(), ledgerFor(), saveLedger().
    createBatchRpcStore below binds it to the batch RPCs of the
-   PROPOSED migration 20261016010000_career_batch_intents_v1.sql (the
+   live migration 20261016010000_career_batch_intents_v1.sql (the
    task stack's RPC shape); tests bind the same interface to an
    in-memory store. The executor never sees a transport it did not
    be given, and it writes nothing the chat layer has not committed
-   an intent for. */
+   an intent for.
+
+   Production inputs (Lane E, 2026-10-20): the injected sources
+   this header originally left as "the operator's wiring" now exist
+   beside this file — supabase-transport.cjs (the `call` transport
+   + table reads against the live batch RPCs; the service-role key
+   lives only in this host's env) and production-sources.cjs
+   (postingsFor from the KB-backed pool through the shared
+   career_pool.js loader — the same mapping the Edge handler
+   passes into createTurnCtx; profileFor from the user's stored
+   profile record, with the named stop BATCH_PROFILE_NOT_FOUND
+   when none exists). The operator config is an assembly of those
+   two factories plus the board-service binding; see main() below. */
 const path = require("node:path");
 
 const Batch = require(path.join(__dirname, "..", "..", "packages", "domain", "155-career-batch-apply.js"));
@@ -83,13 +95,16 @@ function createBatchExecutor(deps) {
   async function buildDeps(userId, postings) {
     const pack = (await d.profileFor(userId)) || {};
     const log = await store.ledgerFor(userId);
+    // WO-094: no standing attestations ride into a drive — the card's yes
+    // attests per application (155/149). The board provider is told the
+    // stored resume record's sha256 so the board service resolves THAT file.
+    const resume = pack.profile && pack.profile.resume ? pack.profile.resume : null;
     return {
       postings: Array.isArray(postings) ? postings : [],
       profile: pack.profile || null,
       profileMaster: pack.profileMaster || null,
-      attestations: pack.attestations || {},
       log,
-      boardFor: d.boardForFor(userId),
+      boardFor: d.boardForFor(userId, { resumeSha256: resume && resume.sha256 ? resume.sha256 : null }),
       now: nowOf(),
       track: track || undefined,
     };
@@ -181,16 +196,43 @@ function createBatchExecutor(deps) {
   return { runBatchPending };
 }
 
-// The production store: the batch RPCs of the proposed migration,
-// called through an injected async caller (name, args) -> data (the
-// worker's Supabase bridge; throws on RPC/transport error, which the
-// executor surfaces as the intent's coded failure).
+// The production store: the batch RPCs of the live migration
+// 20261016010000, called through an injected async caller
+// (name, args) -> data (workers/career-browser/supabase-transport.cjs;
+// throws on RPC/transport error, which the executor surfaces as the
+// intent's coded failure — with one translation in claim, below).
 function createBatchRpcStore({ call }) {
   if (typeof call !== "function") throw coded("BATCH_RPC_NOT_WIRED", "createBatchRpcStore: an async call(name, args) transport is required");
   const leases = new Map(); // intentId -> leaseToken, held from claim to finish
   return {
     async pending() { const data = await call("career_batch_pending_v1", {}); return (data && data.intents) || []; },
-    async claim({ userId, intentId }) { const data = await call("career_batch_claim_v1", { p_user: userId, p_intent: intentId }); if (data && data.claimed && data.leaseToken) leases.set(intentId, data.leaseToken); return data && data.claimed ? data : null; },
+    async claim({ userId, intentId }) {
+      let data;
+      try {
+        data = await call("career_batch_claim_v1", { p_user: userId, p_intent: intentId });
+      } catch (e) {
+        // CLAIM-REFUSAL TRANSLATION (Lane E): the production RPC
+        // RAISES on a refusal — 'batch intent missing' / 'batch
+        // authority revoked' (the intent was claimed by another
+        // drain, expired, paused, or its authority moved between
+        // pending() and claim) — where Lane D's file-backed
+        // stand-in RESOLVES {claimed:false} for the same state.
+        // The store's contract is the stand-in's: a refusal is a
+        // null claim, which runBatchPending records as
+        // skipped_claimed and moves on. Without this translation
+        // the raise escapes the drain loop (claim is awaited
+        // outside its try/catch) and one raced intent starves
+        // every intent behind it. ONLY the RPC's two refusal
+        // messages translate — a transport or server failure
+        // still throws, so an outage can never masquerade as a
+        // skip.
+        const msg = (e && (e.pgMessage || e.message)) || "";
+        if (/batch authority revoked|batch intent missing/.test(msg)) return null;
+        throw e;
+      }
+      if (data && data.claimed && data.leaseToken) leases.set(intentId, data.leaseToken);
+      return data && data.claimed ? data : null;
+    },
     async finish({ userId, intentId, state, result }) { const data = await call("career_batch_finish_v1", { p_user: userId, p_intent: intentId, p_lease: leases.get(intentId) || null, p_state: state, p_result: result || null }); leases.delete(intentId); return data; },
     async saveRun(record) { return call("career_batch_save_run_v1", { p_user: record.userId, p_run: record }); },
     async readRun({ userId, runId }) { const data = await call("career_batch_result_v1", { p_user: userId, p_run: runId }); return (data && data.batch) || null; },
@@ -202,7 +244,19 @@ function createBatchRpcStore({ call }) {
 if (require.main === module) {
   // Operator-owned configuration only, never loaded from chat (the
   // board-service.cjs pattern): the config module exports
-  // { call, postingsFor, profileFor, boardForFor }.
+  // { call, postingsFor, profileFor, boardForFor }. The production
+  // assembly (Lane E) is an assembly, not new logic:
+  //   const { supabaseTransportFromEnv } = require("<repo>/workers/career-browser/supabase-transport.cjs");
+  //   const { createProductionSources } = require("<repo>/workers/career-browser/production-sources.cjs");
+  //   const transport = supabaseTransportFromEnv(process.env); // SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (host env only)
+  //   const sources = createProductionSources({ transport });
+  //   module.exports = { call: transport.call, postingsFor: sources.postingsFor,
+  //     profileFor: sources.profileFor, boardForFor: <the operator's
+  //     board-service binding for the §2 board-service process> };
+  // boardForFor(userId, { resumeSha256 }) receives the stored resume
+  // record's sha256 (WO-094): pass it to createWorkerBoardProvider's
+  // resumeSha256 so the board service (configured with resume-store.cjs
+  // createStoredResumeResolver) resolves that file or refuses, named.
   if (!process.argv[2] || !path.isAbsolute(process.argv[2])) throw new Error("usage: node batch-executor.cjs /absolute/operator-config.cjs");
   const cfg = require(process.argv[2]);
   const executor = createBatchExecutor({ store: createBatchRpcStore({ call: cfg.call }), postingsFor: cfg.postingsFor, profileFor: cfg.profileFor, boardForFor: cfg.boardForFor, track: cfg.track });

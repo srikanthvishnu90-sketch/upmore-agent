@@ -86,25 +86,86 @@ const CareerHost = (() => {
   // thread's own (fresher) statement; multi-value kinds union
   // without duplicates. The account is the base — a brand-new
   // thread starts from everything the user has ever stated.
-  const ACCOUNT_SINGLE_FACT_KINDS = ["year", "geography", "target_firm", "level", "tone", "school", "majors"];
+  // WO-095: the polarity kinds (sponsorship, citizenship) are single-
+  // value too — a corrected answer replaces the old one across threads,
+  // never sits beside it as a contradiction.
+  const ACCOUNT_SINGLE_FACT_KINDS = ["year", "geography", "target_firm", "level", "tone", "school", "majors", "sponsorship", "citizenship"];
   function mergeStatedFacts(accountFacts, threadFacts) {
     const out = [];
     const seen = new Set();
     const keyOf = (f) => `${f && f.kind}:${String((f && f.value) || "").toLowerCase()}`;
+    // V241 LIVE-FIX LANE 2: keyed facts (module 142's recordKeyedFact —
+    // recruiter contacts, hiring managers, interview days) are
+    // identified by kind + key (the company they belong to), never by
+    // kind + value: two contacts can share a name at different
+    // companies, and a corrected name at one company is the same fact
+    // restated. The thread's statement wins per keyed identity,
+    // exactly as it does per single-value kind.
+    const keyedIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${f.key.toLowerCase()}` : null;
+    const pushKeyed = (f, threadWins) => {
+      const id = keyedIdOf(f);
+      const i = out.findIndex((x) => keyedIdOf(x) === id);
+      if (i >= 0) { if (threadWins) out[i] = cloneJson(f); return; }
+      out.push(cloneJson(f));
+    };
     for (const f of Array.isArray(accountFacts) ? accountFacts : []) {
       if (!f || !f.kind || !f.value) continue;
-      if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) { if (!seen.has(`kind:${f.kind}`)) { out.push(cloneJson(f)); seen.add(`kind:${f.kind}`); seen.add(keyOf(f)); } }
+      if (keyedIdOf(f)) pushKeyed(f, false);
+      else if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) { if (!seen.has(`kind:${f.kind}`)) { out.push(cloneJson(f)); seen.add(`kind:${f.kind}`); seen.add(keyOf(f)); } }
       else if (!seen.has(keyOf(f))) { out.push(cloneJson(f)); seen.add(keyOf(f)); }
     }
     for (const f of Array.isArray(threadFacts) ? threadFacts : []) {
       if (!f || !f.kind || !f.value) continue;
-      if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) {
+      if (keyedIdOf(f)) pushKeyed(f, true);
+      else if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) {
         const i = out.findIndex((x) => x.kind === f.kind);
         if (i >= 0) out[i] = cloneJson(f); else out.push(cloneJson(f));
         seen.add(`kind:${f.kind}`); seen.add(keyOf(f));
       } else if (!seen.has(keyOf(f))) { out.push(cloneJson(f)); seen.add(keyOf(f)); }
     }
     return out;
+  }
+
+  // V241 LIVE-FIX LANE 2 (probe i): the deployed account validator
+  // (migration 20261016120000, career_host_commit) accepts into
+  // stated_facts.facts ONLY facts whose kind is one of
+  // STATED_FACT_SQL_KINDS, with a 1..200-char string value and a
+  // null-or-≤200-char evidence, at most 40 of them, the whole record
+  // ≤32 KB — anything else raises 'invalid stated facts' and the
+  // atomic commit rolls the WHOLE turn back (on v241 the succeeding
+  // recruiter-contact capture rode facts[] and every such statement
+  // turn died as a bare 503). The router's keyed kinds are real
+  // record facts, so the write-back SPLITS the record at this seam:
+  // SQL-shaped facts ride `facts`; every other fact rides the sibling
+  // `keyed` list, which the validator does not inspect and the commit
+  // merge (account := account || patch) stores verbatim. The seed in
+  // createTurnCtx folds `keyed` back into the one working set, so no
+  // fact is dropped or altered — only its carriage changes. This list
+  // must mirror the migration exactly; the lane-2 guard parses the
+  // migration text and fails on drift.
+  const STATED_FACT_SQL_KINDS = ["year", "majors", "geography", "target_firm", "level", "excluded_level", "school", "experience", "tone"];
+  function sqlStatedFactOk(f) {
+    return !!f && typeof f === "object" && !Array.isArray(f)
+      && STATED_FACT_SQL_KINDS.includes(f.kind)
+      && typeof f.value === "string" && f.value.length >= 1 && f.value.length <= 200
+      && (f.evidence == null || (typeof f.evidence === "string" && f.evidence.length <= 200));
+  }
+  function statedFactsRecordForCommit(facts, offer, now) {
+    const accepted = [];
+    const keyed = [];
+    for (const f of Array.isArray(facts) ? facts : []) (sqlStatedFactOk(f) && accepted.length < 40 ? accepted : keyed).push(f);
+    const record = { facts: cloneJson(accepted), keyed: cloneJson(keyed.slice(0, 40)), offer: offer || null, updated_at: new Date(now || Date.now()).toISOString() };
+    // The validator also caps the whole record at 32 KB. Evidence is
+    // provenance, never the fact itself: if a pathological record
+    // ever neared the cap, shed keyed evidence (longest first) before
+    // the cap can raise — kinds, keys and values are never touched.
+    while (JSON.stringify(record).length > 30000) {
+      let worst = -1, worstLen = 0;
+      for (let i = 0; i < record.keyed.length; i++) { const e = record.keyed[i] && record.keyed[i].evidence; if (typeof e === "string" && e.length > worstLen) { worst = i; worstLen = e.length; } }
+      if (worst < 0) break;
+      record.keyed[worst].evidence = null;
+    }
+    return record;
   }
 
   // §1b ensure-ending — copied verbatim from pilot-lib.cjs (the harness
@@ -260,8 +321,21 @@ const CareerHost = (() => {
         try {
           ctx._accountStatedFacts = cloneJson(acctFacts);
           const threadFacts = ctx.statedFacts && Array.isArray(ctx.statedFacts.facts) ? ctx.statedFacts.facts : [];
-          const merged = mergeStatedFacts(acctFacts.facts || [], threadFacts);
-          if (merged.length) ctx.statedFacts = { facts: merged, updatedAt: (ctx.statedFacts && ctx.statedFacts.updatedAt) || acctFacts.updated_at || null };
+          // V241 LIVE-FIX LANE 2: the stored record splits its facts
+          // into `facts` (the SQL-shaped list) and `keyed` (the kinds
+          // the deployed account validator cannot hold in facts[] —
+          // see statedFactsRecordForCommit). Both lists are the one
+          // record: fold them back into the single working set the
+          // router reads. A legacy record still holding keyed kinds
+          // inside `facts` folds in identically and heals into the
+          // two-list shape on its first changing turn.
+          const acctAll = [...(Array.isArray(acctFacts.facts) ? acctFacts.facts : []), ...(Array.isArray(acctFacts.keyed) ? acctFacts.keyed : [])];
+          const merged = mergeStatedFacts(acctAll, threadFacts);
+          // WO-095: the thread's lastTurn marker (what the previous turn
+          // recorded — the target of a "sorry, I meant X" correction)
+          // is thread state and survives the account seed.
+          const lastTurn = ctx.statedFacts && ctx.statedFacts.lastTurn ? ctx.statedFacts.lastTurn : null;
+          if (merged.length) ctx.statedFacts = Object.assign({ facts: merged, updatedAt: (ctx.statedFacts && ctx.statedFacts.updatedAt) || acctFacts.updated_at || null }, lastTurn ? { lastTurn } : {});
           const offer = acctFacts.offer && typeof acctFacts.offer === "object" ? acctFacts.offer : null;
           if (offer && (offer.firm || offer.amount || offer.deadline)) {
             const mirrorNeg = ctx.trackStore && ctx.trackStore._careerThread && typeof ctx.trackStore._careerThread === "object" ? ctx.trackStore._careerThread.negotiation : null;
@@ -369,9 +443,14 @@ const CareerHost = (() => {
           const offer = th && (th.firm || th.amount || th.deadline) ? { firm: th.firm || null, amount: th.amount || null, deadline: th.deadline || null, role: th.role || null } : null;
           if (facts.length || offer) {
             const before = ctx._accountStatedFacts || null;
-            const changed = !before || JSON.stringify({ facts: before.facts || [], offer: before.offer || null }) !== JSON.stringify({ facts, offer });
+            // The change test compares WORKING SETS: the account's
+            // stored record is its facts list plus its keyed list
+            // (the split is carriage, not content), so an unchanged
+            // record never churns the account row.
+            const beforeFacts = before ? [...(Array.isArray(before.facts) ? before.facts : []), ...(Array.isArray(before.keyed) ? before.keyed : [])] : [];
+            const changed = !before || JSON.stringify({ facts: beforeFacts, offer: before.offer || null }) !== JSON.stringify({ facts, offer });
             if (changed) {
-              const record = { facts: cloneJson(facts).slice(0, 40), offer, updated_at: new Date(ctx.now || Date.now()).toISOString() };
+              const record = statedFactsRecordForCommit(facts, offer, ctx.now);
               ctx._hostPatch = Object.assign({}, ctx._hostPatch || {}, { stated_facts: record });
             }
           }

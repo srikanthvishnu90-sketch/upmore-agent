@@ -2,6 +2,11 @@
 // every 5 minutes (scripts/launch/schedule-career-proactive.sql, run by the owner) with the shared secret. It plans and
 // queues alerts and reports (career_outbox, once per key); delivery is the texting channel's (WO-013). Every run is
 // recorded so a silent stop is visible.
+// WO-091c: each rail runs on its own. A rail that fails (for one person or for all) is recorded in the run row (`errors`,
+// by rail, and `error`, the first) with the counts of everything that did run; it never stops the rails after it. With
+// `quiet`, a person who is paused, opted out or erased gets nothing started on their behalf: no alerts planned, no card,
+// question or ask pushed, no mail read, no interview draft or digest queued. Outreach's claim reads the same state in
+// the database, and delivery checks it again before a queued text goes out (channel.ts deliverDue).
 import { equalSecret } from "../_shared/message_service.ts";
 import { type QuestionRow, runAlerts, runAsks, runCards, runDigest, runInterviewDrafts, runMail, runQuestions, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
 import type { AskStore, ConfirmStore } from "../_shared/career_apply_confirm.ts";
@@ -41,7 +46,9 @@ export interface ProactiveDeps {
   // WO-033: approved outreach, one send per person per run, and the replies on threads already sent. Absent: none.
   // A failure here is reported in the run's answer and never stops the alerts.
   outreach?: (now: number) => Promise<Record<string, unknown>>;
-  recordRun: (r: RunStats & { ms: number; error: string | null; at: string }) => Promise<void>;
+  // WO-091c: who among these people is paused, opted out or erased (career_quiet_users). Absent: nobody is.
+  quiet?: (userIds: string[]) => Promise<Set<string>>;
+  recordRun: (r: RunStats & { ms: number; error: string | null; at: string; errors?: Record<string, string> | null }) => Promise<void>;
   now: () => number;
 }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -52,36 +59,71 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   if (secret.length < 32) return json({ error: "not configured: CAREER_PROACTIVE_SECRET must be set, 32 characters or more" }, 503);
   if (!equalSecret(req.headers.get("x-trainee-proactive-secret") || "", secret)) return json({ error: "Unauthorized" }, 401);
   const started = d.now(), at = new Date(started).toISOString();
+  const stats: RunStats = { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 };
+  const errors: Record<string, string> = {};
+  // One rail: its result is taken; its failure is recorded with what it did for the people it reached (`partial`).
+  const step = async <T>(name: string, run: () => Promise<T>, take: (v: T) => void) => {
+    try { take(await run()); } catch (e) {
+      errors[name] = (e instanceof Error ? e.message : String(e)).slice(0, 1000);
+      console.error(`career-proactive ${name} failed:`, errors[name]);
+      const partial = (e as { partial?: T } | null)?.partial;
+      if (partial !== undefined) take(partial);
+    }
+  };
+  // The people a rail would act for, less those who are quiet. A control state that cannot be read starts nothing.
+  const awake = async <T>(rows: T[], id: (r: T) => string): Promise<T[]> => {
+    if (!d.quiet || !rows.length) return rows;
+    const quiet = await d.quiet([...new Set(rows.map(id))]);
+    return rows.filter((r) => !quiet.has(id(r)));
+  };
   const store = d.store();
-  try {
-    const stats: RunStats = await runAlerts({ store, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById });
-    if (d.finishedApplications) stats.receipts = await runReceipts({ outbox: store, now: started, finished: d.finishedApplications, events: d.events ? d.events() : null });
-    if (d.readyApplications && d.pushCard) stats.cards = await runCards({ now: started, ready: d.readyApplications, push: d.pushCard });
-    const interviews = d.briefs ? d.briefs.interviews() : null;
-    if (d.mail) {
-      const m = await runMail({ outbox: store, now: started, store: d.mail.store(), read: d.mail.read, briefs: interviews, confirm: d.mail.confirm ? d.mail.confirm() : null, model: d.mail.model ? d.mail.model() : null });
+  const alertStore = d.quiet ? { ...store, active: async () => awake(await store.active(), (r) => r.id) } : store;
+  await step("alerts", () => runAlerts({ store: alertStore, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById }), (s) => Object.assign(stats, s));
+  if (d.finishedApplications) await step("receipts", () => runReceipts({ outbox: store, now: started, finished: d.finishedApplications!, events: d.events ? d.events() : null }), (n) => { stats.receipts = n; });
+  if (d.readyApplications && d.pushCard) {
+    const ready = d.readyApplications;
+    await step("cards", () => runCards({ now: started, ready: async () => awake(await ready(), (r) => r.user_id), push: d.pushCard! }), (n) => { stats.cards = n; });
+  }
+  const interviews = d.briefs ? d.briefs.interviews() : null;
+  if (d.mail) {
+    const mail = d.mail, mailStore = mail.store();
+    const people = d.quiet ? { ...mailStore, people: async (n: number) => awake(await mailStore.people(n), (p) => p.user_id) } : mailStore;
+    await step("mail", () => runMail({ outbox: store, now: started, store: people, read: mail.read, briefs: interviews, confirm: mail.confirm ? mail.confirm() : null, model: mail.model ? mail.model() : null }), (m) => {
       if (m.model) Object.assign(stats, { mail_model: m.model, mail_model_calls: m.model_calls ?? 0, mail_model_decided: m.model_decided ?? 0, mail_model_capped: m.model_capped ?? 0 }, m.model_ask ? { mail_model_ask: m.model_ask } : {});
       stats.statuses = m.statuses;
       stats.followups = m.followups;
       stats.briefs = m.briefs;
       stats.brief_ms_max = m.brief_ms_max;
-      if (d.mail.confirm) stats.confirmations = m.confirmations;
-    }
-    if (d.briefs && interviews) {
-      stats.followups = (stats.followups ?? 0) + await runInterviewDrafts({ outbox: store, now: started, interviews, drafts: d.briefs.drafts() });
-      stats.digests = await runDigest({ outbox: store, now: started, store: d.briefs.digest() });
-    }
-    // After cards and mail: a card or an ask pushed this run keeps the thread busy, so these wait their turn.
-    if (d.asks) stats.asks = await runAsks({ now: started, store: d.asks() });
-    if (d.questions) stats.questions = await runQuestions({ now: started, open: d.questions.open, push: d.questions.push });
-    const outreach = d.outreach ? await d.outreach(started).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : null;
-    const ms = d.now() - started;
-    await d.recordRun({ ...stats, ms, error: null, at });
-    return json({ ...stats, ...(outreach ? { outreach } : {}), ms });
-  } catch (e) {
-    const error = e instanceof Error ? e.message : String(e);
-    console.error("career-proactive failed:", error);
-    try { await d.recordRun({ users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0, ms: d.now() - started, error, at }); } catch { /* the failure is already logged */ }
-    return json({ error: "alerts run failed", detail: error }, 500);
+      if (mail.confirm) stats.confirmations = m.confirmations;
+    });
   }
+  if (d.briefs && interviews) {
+    const iv = d.quiet ? { ...interviews, dated: async (a: string, b: string) => awake(await interviews.dated(a, b), (p) => p.user_id) } : interviews;
+    const digest = d.briefs.digest(), dg = d.quiet ? { ...digest, people: async (now: number) => awake(await digest.people(now), (p) => p.user_id) } : digest;
+    await step("interview_drafts", () => runInterviewDrafts({ outbox: store, now: started, interviews: iv, drafts: d.briefs!.drafts() }), (n) => { stats.followups = (stats.followups ?? 0) + n; });
+    await step("digest", () => runDigest({ outbox: store, now: started, store: dg }), (n) => { stats.digests = n; });
+  }
+  // After cards and mail: a card or an ask pushed this run keeps the thread busy, so these wait their turn.
+  if (d.asks) {
+    const asks = d.asks();
+    await step("asks", () => runAsks({ now: started, store: { pending: async () => awake(await asks.pending(), (a) => a.user_id), push: asks.push } }), (n) => { stats.asks = n; });
+  }
+  if (d.questions) {
+    const q = d.questions;
+    await step("questions", () => runQuestions({ now: started, open: async () => awake(await q.open(), (r) => r.user_id), push: q.push }), (n) => { stats.questions = n; });
+  }
+  const sent: { outreach?: Record<string, unknown> } = {};
+  if (d.outreach) await step("outreach", () => d.outreach!(started), (r) => { sent.outreach = r; });
+  if (errors.outreach) sent.outreach = { error: errors.outreach };
+  const ms = d.now() - started;
+  const failed = Object.keys(errors);
+  const error = failed.length ? errors[failed[0]] : null;
+  try {
+    await d.recordRun({ ...stats, ms, error, at, errors: failed.length ? errors : null });
+  } catch (e) {
+    console.error("career-proactive: the run was not recorded:", e instanceof Error ? e.message : String(e));
+    if (!failed.length) return json({ error: "run not recorded", detail: e instanceof Error ? e.message : String(e) }, 500);
+  }
+  const body = { ...stats, ...sent, ms, ...(failed.length ? { errors } : {}) };
+  return failed.length ? json({ error: "alerts run failed", detail: error, ...body }, 500) : json(body);
 }

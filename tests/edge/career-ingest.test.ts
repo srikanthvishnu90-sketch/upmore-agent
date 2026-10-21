@@ -1,7 +1,7 @@
 // WO-006 builder tests: the feed adapter over recorded ATS shapes, the write economy (unchanged postings are not
 // rewritten), the run's deadline and concurrency, the scheduled function's door, the shipped board list, and job search
 // ranked by fit. No network: fetch is a fake. Run: deno test -A --no-check tests/edge/career-ingest.test.ts
-import { boardFetchFeed, directoryBoards, ingestBoards, memoryPostingsDb, searchWords, type Board } from "../../supabase/functions/_shared/career_ingest.ts";
+import { boardFetchFeed, boardPay, directoryBoards, ingestBoards, memoryPostingsDb, searchWords, supabasePostingsDb, type Board } from "../../supabase/functions/_shared/career_ingest.ts";
 import { searchPostings } from "../../supabase/functions/_shared/career_search.ts";
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { handleIngest } from "../../supabase/functions/career-ingest/handler.ts";
@@ -39,7 +39,7 @@ Deno.test("WO-006/B1 Greenhouse: ids are the ATS's own (provider:board:id), the 
   eq(out[0].ats_id, "555001");
   eq(out[0].url, "https://boards.greenhouse.io/stripe/jobs/555001");
   assert(out[0].description.includes("Python & React") && !out[0].description.includes("<p>"), `decoded: ${out[0].description}`);
-  eq(calls[0].url, "https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=true");
+  eq(calls[0].url, "https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=true&pay_transparency=true", "WO-069: asked with the pay the board states");
   eq(calls[0].headers["user-agent"], "Trainee job alerts (contact: ops@example.test)");
 });
 
@@ -213,4 +213,98 @@ Deno.test("WO-006/B12 search_jobs passes the query to the store and returns fit 
   eq(asked, ["data analyst"]);
   eq([r.source, r.ranked_by, r.postings.map((p: any) => p.job_id)], ["live", "fit", ["g:a:1", "g:a:4"]]);
   assert(r.postings.every((p: any) => p.url && p.first_seen_at && !("description" in p)), "links and times, no full text (tool results stay small)");
+});
+
+// ------------------------------------------------------------------------------------------------ WO-069: the pay a board states
+// Recorded shapes with the APIs' own field names (Greenhouse pay_input_ranges with ?pay_transparency=true, Lever
+// salaryRange, Ashby compensation with ?includeCompensation=true: evals/career/live-shelf.ts read them live, CI run
+// 39462917706). Test data: the companies and figures are made up for the test.
+const GH_PAY = { jobs: [
+  { id: 7001, title: "Lifecycle Marketing Manager", location: { name: "Boston, MA" }, absolute_url: "https://boards.greenhouse.io/acme/jobs/7001", updated_at: "2026-10-18T00:00:00Z", content: "Own email campaigns.",
+    pay_input_ranges: [{ min_cents: 12000000, max_cents: 18000000, currency_type: "USD", title: "Base Pay Range For US Locations:", blurb: "", description: "<p>Base pay only.</p>" }] },
+  { id: 7002, title: "Data Engineer", location: { name: "Dublin" }, absolute_url: "https://boards.greenhouse.io/acme/jobs/7002", updated_at: "2026-10-18T00:00:00Z", content: "Pipelines.",
+    pay_input_ranges: [{ min_cents: 6823000, max_cents: 12622500, currency_type: "EUR", title: "Ireland" }, { min_cents: 0, max_cents: 0, currency_type: "USD", title: "Not stated" }] },
+  { id: 7003, title: "Support Specialist", location: { name: "Remote" }, absolute_url: "https://boards.greenhouse.io/acme/jobs/7003", updated_at: "2026-10-18T00:00:00Z", content: "Help customers.", pay_input_ranges: [] },
+] };
+const LEVER_PAY = [
+  { id: "lv-pay-1", text: "Customer Success Manager", categories: { location: "Atlanta, Georgia" }, hostedUrl: "https://jobs.lever.co/acme/lv-pay-1", createdAt: Date.parse("2026-10-18T00:00:00Z"), descriptionPlain: "Customers.", salaryRange: { min: 85000, max: 175000, currency: "USD", interval: "per-year-salary" } },
+  { id: "lv-pay-2", text: "Pharmacy Technician", categories: { location: "Mexico City" }, hostedUrl: "https://jobs.lever.co/acme/lv-pay-2", createdAt: Date.parse("2026-10-18T00:00:00Z"), descriptionPlain: "Shifts.", salaryRange: { min: 9500, max: 10700, currency: "MXN", interval: "per-month-salary" } },
+  { id: "lv-pay-3", text: "Care Navigator", categories: { location: "Remote" }, hostedUrl: "https://jobs.lever.co/acme/lv-pay-3", createdAt: Date.parse("2026-10-18T00:00:00Z"), descriptionPlain: "Calls.", salaryRange: { min: 33, max: 33, currency: "USD", interval: "per-hour-wage" } },
+  { id: "lv-pay-4", text: "Office Manager", categories: { location: "Remote" }, hostedUrl: "https://jobs.lever.co/acme/lv-pay-4", createdAt: Date.parse("2026-10-18T00:00:00Z"), descriptionPlain: "Office." },
+];
+const ASHBY_PAY = { jobs: [
+  { id: "as-pay-1", title: "Product Designer", location: "New York, NY", jobUrl: "https://jobs.ashbyhq.com/acme/as-pay-1", publishedAt: "2026-10-18T00:00:00Z", descriptionPlain: "Design.",
+    compensation: { compensationTierSummary: "$190.8K – $262.8K • Offers Equity", scrapeableCompensationSalarySummary: "$190.8K - $262.8K", compensationTiers: [], summaryComponents: [] } },
+  { id: "as-pay-2", title: "Accountant", location: "Remote", jobUrl: "https://jobs.ashbyhq.com/acme/as-pay-2", publishedAt: "2026-10-18T00:00:00Z", descriptionPlain: "Books.",
+    compensation: { compensationTierSummary: null, scrapeableCompensationSalarySummary: "$90K - $110K" } },
+  { id: "as-pay-3", title: "Recruiter", location: "Remote", jobUrl: "https://jobs.ashbyhq.com/acme/as-pay-3", publishedAt: "2026-10-18T00:00:00Z", descriptionPlain: "Hiring.", compensation: { compensationTierSummary: null, scrapeableCompensationSalarySummary: null } },
+] };
+
+Deno.test("WO-069/P1 Greenhouse: pay_input_ranges, asked for with pay_transparency=true, written from the board's own cents and currency", async () => {
+  const { f, calls } = fakeFetch(() => res(GH_PAY));
+  const out = await boardFetchFeed(f)({ company: "Acme", provider: "greenhouse", board: "acme" }) as any[];
+  eq(calls[0].url, "https://boards-api.greenhouse.io/v1/boards/acme/jobs?content=true&pay_transparency=true");
+  eq(out.map((p) => p.pay), ["$120,000–$180,000 (Base Pay Range For US Locations)", "EUR 68,230–EUR 126,225 (Ireland)", null],
+    "a range of 0 is no range; a posting with none stays null");
+});
+
+Deno.test("WO-069/P2 Lever: salaryRange {min, max, currency, interval}, its period in words", async () => {
+  const { f, calls } = fakeFetch(() => res(LEVER_PAY));
+  const out = await boardFetchFeed(f)({ company: "Acme", provider: "lever", board: "acme" }) as any[];
+  eq(calls[0].url, "https://api.lever.co/v0/postings/acme?mode=json");
+  eq(out.map((p) => p.pay), ["$85,000–$175,000 per year", "MXN 9,500–MXN 10,700 per month", "$33 per hour", null]);
+});
+
+Deno.test("WO-069/P3 Ashby: the board's own compensation summary, asked for with includeCompensation=true", async () => {
+  const { f, calls } = fakeFetch(() => res(ASHBY_PAY));
+  const out = await boardFetchFeed(f)({ company: "Acme", provider: "ashby", board: "acme" }) as any[];
+  eq(calls[0].url, "https://api.ashbyhq.com/posting-api/job-board/acme?includeCompensation=true");
+  eq(out.map((p) => p.pay), ["$190.8K – $262.8K • Offers Equity", "$90K - $110K", null]);
+});
+
+Deno.test("WO-069/P4 no structured pay is null, never a guess: SmartRecruiters, a malformed field, a reversed range; the column's 200 characters hold whole ranges", async () => {
+  const sr = await boardFetchFeed(fakeFetch(() => res({ totalFound: 1, content: [srJob(1)] })).f)({ company: "Domino's", provider: "smartrecruiters", board: "DominoS" }) as any[];
+  eq(sr[0].pay, null);
+  eq(boardPay("greenhouse", { pay_input_ranges: "lots" }), null);
+  eq(boardPay("greenhouse", { pay_input_ranges: [{ min_cents: 9000000, max_cents: 5000000, currency_type: "USD" }] }), null, "a range whose top is under its bottom");
+  eq(boardPay("greenhouse", { pay_input_ranges: [{ min_cents: 5000000, max_cents: 7000000, currency_type: "not money" }] }), null);
+  eq(boardPay("lever", { salaryRange: { min: 0, max: 0, currency: "USD", interval: "per-year-salary" } }), null);
+  eq(boardPay("lever", { salaryRange: { min: 60000, currency: "USD", interval: "per-year-salary" } }), "from $60,000 per year", "a minimum alone says so");
+  eq(boardPay("ashby", { compensation: null }), null);
+  eq(boardPay("workday", { pay: "$1" }), null);
+  const many = { pay_input_ranges: Array.from({ length: 8 }, (_, i) => ({ min_cents: (100 + i) * 100000, max_cents: (150 + i) * 100000, currency_type: "USD", title: `Zone ${i + 1} Pay Range` })) };
+  const p = boardPay("greenhouse", many)!;
+  assert(p.length <= 200 && p.startsWith("$100,000–$150,000 (Zone 1 Pay Range); $101,000") && /\(Zone \d Pay Range\)$/.test(p), p);
+});
+
+Deno.test("WO-069/P5 ingestion keeps the pay: written on the row, kept by the store, rewritten when the board changes it, and in the upsert's columns", async () => {
+  const db = memoryPostingsDb(), b: Board = { company: "Acme", provider: "greenhouse", board: "acme" };
+  await ingestBoards({ boards: [b], db, now: T0, fetchFeed: boardFetchFeed(fakeFetch(() => res(GH_PAY)).f) });
+  eq((await db.get("greenhouse:acme:7001"))!.pay, "$120,000–$180,000 (Base Pay Range For US Locations)");
+  eq((await db.get("greenhouse:acme:7003"))!.pay, null);
+  const raised = { jobs: GH_PAY.jobs.map((j) => j.id === 7003 ? { ...j, pay_input_ranges: [{ min_cents: 5500000, max_cents: 6500000, currency_type: "USD", title: "" }] } : j) };
+  const st = await ingestBoards({ boards: [b], db, now: T0 + H, fetchFeed: boardFetchFeed(fakeFetch(() => res(raised)).f) });
+  eq([st.new, st.seen], [0, 3]);
+  eq((await db.get("greenhouse:acme:7003"))!.pay, "$55,000–$65,000", "a pay the board adds later is written");
+  // The Supabase store sends the column (null when the board states none).
+  const sent: any[] = [];
+  const admin = { from: () => ({ upsert: (rows: any[]) => { sent.push(...rows); return Promise.resolve({ data: null, error: null }); } }) };
+  await supabasePostingsDb(admin).putMany([(await db.get("greenhouse:acme:7001"))!, (await db.get("greenhouse:acme:7002"))!, { ...(await db.get("greenhouse:acme:7003"))!, pay: undefined }]);
+  eq(sent.map((r) => r.pay), ["$120,000–$180,000 (Base Pay Range For US Locations)", "EUR 68,230–EUR 126,225 (Ireland)", null]);
+});
+
+Deno.test("WO-069/P6 search hits and get_posting show the board's stated pay over the text's; with none, the text's (WO-068) or null", async () => {
+  const pool = [
+    { job_id: "greenhouse:acme:7001", company: "Acme", title: "Lifecycle Marketing Manager", location: "Boston, MA", url: "https://boards.greenhouse.io/acme/jobs/7001", first_seen_at: "2026-10-19T12:00:00Z",
+      pay: "$120,000–$180,000 (Base Pay Range For US Locations)", description: "Own email campaigns. Bonus up to $10,000 per year." },
+    { job_id: "greenhouse:acme:7004", company: "Acme", title: "Marketing Analyst", location: "Remote", url: "https://boards.greenhouse.io/acme/jobs/7004", first_seen_at: "2026-10-19T11:00:00Z",
+      pay: null, description: "Marketing reports. The salary range is $70,000 - $90,000 USD." },
+    { job_id: "greenhouse:acme:7005", company: "Acme", title: "Marketing Coordinator", location: "Remote", url: "https://boards.greenhouse.io/acme/jobs/7005", first_seen_at: "2026-10-19T10:00:00Z",
+      pay: null, description: "Marketing events." },
+  ];
+  eq(searchPostings(pool, "marketing", null).postings.map((p) => p.pay), ["$120,000–$180,000 (Base Pay Range For US Locations)", "$70,000 - $90,000 USD", null]);
+  const t = careerTools({ postings: async () => pool, posting: async (id: string) => pool.find((p) => p.job_id === id) ?? null } as any).find((x) => x.name === "get_posting")!;
+  const ctx = { userId: "u1", threadId: "t1", now: T0, state: {} } as any;
+  eq(((await t.run({ job_id: "greenhouse:acme:7001" }, ctx)) as any).pay, "$120,000–$180,000 (Base Pay Range For US Locations)");
+  eq(((await t.run({ job_id: "greenhouse:acme:7005" }, ctx)) as any).pay, null);
 });

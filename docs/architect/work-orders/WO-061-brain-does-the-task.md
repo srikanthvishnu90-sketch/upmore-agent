@@ -55,7 +55,38 @@ No eval text entered the brain (WO-003/2 and WO-059/H2 still pass). The held-out
 generalize.
 
 ## Result after the change
-RESULT_PENDING
+Each run is VERIFIED-LIVE in CI (gpt-5-mini brain and judge); every number is a count of items.
+
+| Run | Prompt | Router (official) | Agent (official) | Router (held-out) | Agent (held-out) | Spend |
+|---|---|---|---|---|---|---|
+| 39454760318 | before | 5/50 (10%) | 24/50 (48%) | 9/38 (24%) | 26/38 (68%) | $0.20 |
+| 39456603956 | pass 1 | 7/50 (14%) | 36/50 (72%) | 8/38 (21%) | 29/38 (76%) | $0.23 |
+| 39458269838 | pass 2 (+ alert store) | 5/50 (10%) | 36/50 (72%) | 7/38 (18%) | 30/38 (79%) | $0.24 |
+
+**Verdict: D-008 not met under either bar.** The gap is now 62 points (+40 met), but 72% is short of both 95% (D-027) and
+80% (first written). The agent stays off.
+
+Prompt work has plateaued, so it stops here. Further passes would tune to this set: the official set is what was tuned on.
+The held-out set moved 68% → 79% and is the honest measure.
+
+What is left:
+- **Real misses:**
+  - offering to book a call with a match that does not exist;
+  - accepting "use my research resume" without saying none is on file;
+  - recording a "Rejected" application the person never named;
+  - advice that asks instead of answering (a counter offer, resume improvements).
+- **Judge strictness:**
+  - "Trainee, your career agent" not counted as an introduction;
+  - "lacks 2–4 example asks";
+  - a reply that did ask the next question graded as not asking it.
+
+  One gpt-5-mini judge is too noisy to separate 72% from 80%.
+
+Next:
+- Grade with two judges and report their agreement (C2).
+- Grow the held-out set to 100 items.
+- Fix the real misses in the tools, not the prompt: a tool that says "no such record" makes the honest answer the easy
+  one.
 
 ## Tests
 - `tests/architect/wo-061-eval-budget.test.ts`:

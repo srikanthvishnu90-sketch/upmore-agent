@@ -8,9 +8,12 @@ import { type MemoryStore, type Pipeline, personBlock, type Standing } from "../
 import { styleBlock } from "../_shared/agent/style.ts";
 import type { AlertStore } from "../_shared/career_alert_store.ts";
 import type { HiredSource } from "../_shared/career_hired.ts";
+import type { WantStore } from "../_shared/career_apply_want.ts";
+import type { Limits } from "../_shared/career_apply.ts";
 import type { MailStore } from "../_shared/career_mail_store.ts";
 import type { DigestStore, InterviewStore } from "../_shared/career_brief_store.ts";
 import type { AlertPrefs } from "../_shared/career_alerts.ts";
+import type { Situation } from "../_shared/career_situation.ts";
 import { type CareerEvent, type EventStore, SUMMARY_UNREADABLE, threadSummary } from "../_shared/agent/timeline.ts";
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
@@ -59,7 +62,9 @@ export async function agentTurn(o: {
   tz?: string;
   // WO-023: what is known about the person, put in the system prompt every turn (built in code, never by the model),
   // and where standing instructions are kept.
-  known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null };
+  // WO-100: the situation (every task in flight, the next steps, what Trainee can do), read once per turn by the handler;
+  // it is in the block and behind get_situation, list_applications and where_do_i_stand.
+  known?: { standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null };
   memory?: MemoryStore | null;
   // WO-024: applications and the status events found in the person's mail, for where_do_i_stand.
   mail?: Pick<MailStore, "applications" | "events"> | null;
@@ -79,6 +84,11 @@ export async function agentTurn(o: {
   tailor?: TailorTools | null;
   // WO-036: who a firm hired, from People Data Labs aggregates (NOT_WIRED without the owner's PDL_API_KEY).
   hired?: HiredSource | null;
+  // WO-066: the person's own apply queue (the extension takes it) and their daily application limit.
+  wants?: WantStore | null;
+  limits?: Limits;
+  // WO-068: one posting in full by job_id (get_posting); absent, the tailor's own posting reader.
+  posting?: ((jobId: string) => Promise<any | null>) | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   const notes: string[] = [];
@@ -90,7 +100,7 @@ export async function agentTurn(o: {
     system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null }),
+    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null }),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });

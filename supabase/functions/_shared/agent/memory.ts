@@ -9,6 +9,7 @@
 // oldest pipeline lines go first, and the block says how many it left out.
 import type { AlertPrefs } from "../career_alerts.ts";
 import { dailyLimit } from "../career_apply.ts";
+import { type Situation, situationBlock } from "../career_situation.ts";
 
 export interface Standing { id: string; text: string; said: string; at: string }
 export interface MemoryStore {
@@ -46,8 +47,49 @@ export function quotedFrom(message: string, quote: string): boolean {
   const q = plain(quote);
   return q.split(" ").filter(Boolean).length >= 2 && ` ${plain(message)} `.includes(` ${q} `);
 }
+// WO-091b (audit chat-brain F4, BR-084): a standing instruction goes into every later turn's system prompt as something
+// to follow, so one that waives the person's approval ("autopilot", "don't ask me", "without asking"), or asks for an act
+// Trainee never does (sharing their resume on its own, passwords or one-time codes, LinkedIn or Indeed automation), is
+// never kept (D-007). Narrow on purpose: "don't ask me about relocation again" and "ask me before weekends" are kept.
+export const STANDING_REFUSED = "Not kept: every application and message still needs your yes on its card.";
+// Waivers of the person's yes: refused however they are worded around.
+const WAIVES: RegExp[] = [
+  // "don't ask me", "stop asking me first", "no need to ask for approval": the clause ends there; "about relocation" does not.
+  /\b(don'?t|do not|never|no need to|stop|quit) (ask|asking|check with|checking with|confirm with|wait for|waiting for)( me)?( (first|before \w+|for (approval|permission|confirmation|a yes|my (ok|okay|yes|approval|permission))))?\s*($|[.,;:!]|\band\b|\bjust\b)/i,
+  /\b(skip|no|without) (the |any |my )?(approval|approvals|card|cards|confirmation|confirmations|sign[- ]?off)\b/i,
+  // "just send it", "just submit them": the clause ends there.
+  /\bjust (send|submit|apply)( it| them| those| these| everything| all)?\s*($|[,:]|\band\b)/i,
+];
+// Acts Trainee never does on a standing word, kept only when the person says never to ("never auto-apply", "don't share
+// my resume with agencies", "never ask me for my password"). "without asking" is one: "never apply without asking me" is kept.
+const ACTS: RegExp[] = [
+  /\bauto[\s-]?(pilot|apply|applying|applies|submit|submitting|submits|send|sending|sends)\b/i,
+  /\bwithout (asking|checking|confirming|approval|permission|confirmation|review|my (approval|ok|okay|yes|permission|review|sign[- ]?off|say[- ]?so))\b/i,
+  /\b(apply|applying|submit|submitting|send|sending|email|emailing|message|messaging)\b[^.;]{0,40}\b(automatically|on (my|your) own)\b/i,
+  /\b(share|send|give|forward) my (resume|cv)\b[^.;]{0,60}\bwith\b/i,
+  /\b(password|passcode|one[- ]time (code|password|passcode)|otp|verification code|2fa|two[- ]factor|login code|security code|sms code)\b/i,
+  // LinkedIn or Indeed with an act on it ("easy apply on LinkedIn", "message recruiters on LinkedIn"); "no LinkedIn postings" is a preference.
+  /\b(apply|applying|easy apply|message|messaging|dm|connect|connecting|submit|auto\w*|log ?in|sign ?in|scrape|scraping)\b[^.;]{0,60}\b(linkedin|indeed)\b|\b(linkedin|indeed)\b[^.;]{0,60}\b(apply|applying|easy apply|message|messaging|dm|connect|connecting|submit|auto\w*|log ?in|sign ?in|scrape|scraping)\b/i,
+];
+// A "never" close before the act, with no comma between ("I don't care, auto-apply" is not a never).
+const NEVER_BEFORE = /\b(never|don'?t|do not|not|no|avoid)\b(\s+[\w']+){0,4}\s*$/i;
+export function standingRefusal(...texts: string[]): string | null {
+  for (const raw of texts) {
+    for (const clause of String(raw ?? "").replace(/[’]/g, "'").split(/[.;!?\n]+/)) {
+      if (!clause.trim()) continue;
+      if (WAIVES.some((re) => re.test(clause))) return STANDING_REFUSED;
+      for (const re of ACTS) {
+        const m = re.exec(clause);
+        if (m && !NEVER_BEFORE.test(clause.slice(0, m.index))) return STANDING_REFUSED;
+      }
+    }
+  }
+  return null;
+}
 export function addStanding(items: Standing[], o: { text: string; said: string; now: number }): { ok: true; item: Standing; items: Standing[] } | { ok: false; error: string } {
   const text = String(o.text ?? "").replace(/\s+/g, " ").trim(), said = String(o.said ?? "").replace(/\s+/g, " ").trim();
+  const refused = standingRefusal(text, said);
+  if (refused) return { ok: false, error: refused };
   if (!text || text.length > STANDING_TEXT) return { ok: false, error: `say the instruction in 1 to ${STANDING_TEXT} characters` };
   if (said.length > STANDING_QUOTE) return { ok: false, error: `quote at most ${STANDING_QUOTE} characters of their message` };
   const same = items.find((x) => plain(x.text) === plain(text));
@@ -95,25 +137,7 @@ export function summarizePipeline(r: PipelineRows, now: number): Pipeline {
     needs, recent,
   };
 }
-export async function readPipeline(admin: any, userId: string, now: number): Promise<Pipeline> {
-  const must = (r: any, what: string) => { if (r.error) throw new Error(`${what}: ${r.error.message}`); return r.data; };
-  const since = new Date(now - 3 * 86400000).toISOString();
-  const [prepared, cards, jobs, account, questions] = await Promise.all([
-    admin.from("career_apply_prepared").select("state").eq("user_id", userId).in("state", ["ready", "shown"]).limit(500),
-    admin.from("career_apply_cards").select("shown_at,items").eq("user_id", userId).eq("state", "open").order("shown_at", { ascending: false }).limit(1),
-    admin.from("career_apply_jobs").select("company,url,state,reason,created_at,updated_at").eq("user_id", userId).or(`updated_at.gte.${since},state.in.(queued,driving,needs_user)`).limit(500),
-    admin.from("career_watch_kv").select("value").eq("user_id", userId).eq("key", "career:account").maybeSingle(),
-    admin.from("career_apply_questions").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("state", "open"),
-  ]);
-  if (questions.error) console.error("agent memory: open questions", questions.error.message);
-  return summarizePipeline({
-    prepared: must(prepared, "read prepared applications") ?? [],
-    openCard: (must(cards, "read the open card") ?? [])[0] ?? null,
-    jobs: must(jobs, "read the application queue") ?? [],
-    dailyLimit: must(account, "read the account")?.value?.daily_limit,
-    openQuestions: questions.error ? null : questions.count ?? 0,
-  }, now);
-}
+// WO-100: readPipeline (3 tables, 3 days, counts with no names) is replaced by career_situation.ts readSituation.
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 export function alertLine(a: { prefs: AlertPrefs; tz: string } | null): string {
@@ -138,7 +162,9 @@ const STATE: Record<string, string> = {
 };
 
 export const BLOCK_BUDGET = 4500;
-export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; budget?: number }): string {
+// WO-100: with the situation, its block (every task by name, its blocker, who acts and how; the next steps; what Trainee
+// can do) replaces the pipeline counts and is kept whole, outside this budget (it has its own).
+export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null; budget?: number }): string {
   const facts = Array.isArray(o.profile?.facts) ? o.profile.facts : [];
   const confirmed = facts.filter((f: any) => !f.needs_confirmation && f.status !== "draft");
   const drafts = facts.filter((f: any) => f.needs_confirmation || f.status === "draft");
@@ -149,13 +175,14 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
     ...(o.standing.length ? o.standing.map((s) => `- ${s.id}: ${s.text} (they said: "${s.said}", ${s.at.slice(0, 10)})`) : ["- none yet"]),
   ];
   const p = o.pipeline;
-  const pipeline = p
+  const pipeline = o.situation ? [] : p
     ? [
       `Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`,
       ...(p.questions === null ? ["Questions only they can answer: could not be read this turn; never guess."]
         : p.questions ? [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] : []),
       ...(p.needs.length ? ["Stopped until they help:", ...p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`)] : []),
-      ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`),
+      // WO-100: finished ones under their own heading (they printed under "Stopped until they help:").
+      ...(p.recent.length ? ["Finished or failed:", ...p.recent.map((r) => `- ${r.company}: ${STATE[r.state] ?? r.state} (${r.at.slice(0, 10)})`)] : []),
     ]
     : ["Applications: could not be read this turn; say so if they ask, never guess."];
   const optional = [
@@ -169,6 +196,7 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const budget = o.budget ?? BLOCK_BUDGET;
   const out = [...head, ""];
   let used = out.join("\n").length, dropped = 0;
+  if (o.situation) out.push(situationBlock(o.situation), "");
   for (const line of optional) {
     if (used + line.length + 1 > budget) { dropped++; continue; }
     out.push(line);

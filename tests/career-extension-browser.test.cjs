@@ -638,6 +638,37 @@ async function waitFor(pred, ms = 5000) {
   throw Error("timed out");
 }
 
+// WO-066: what the person asked Trainee to apply to in chat reaches the extension's queue with one press, through their own
+// session; each is then prepared here and goes only on its card's tap (the queue tests above). Taken once, never twice.
+test("queue: Trainee's picks from chat join the queue once, and are marked taken", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const ids = ["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d", "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03"];
+  const key = (u) => sw.evaluate((x) => globalThis.TraineeCore.postingKey(x), u);
+  world.state.wanted = [];
+  for (const id of ids) world.state.wanted.push({ posting_key: await key(world.urlOf(id)), url: world.urlOf(id), company: "TEST", title: "TEST", state: "waiting" });
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?picks=1");
+  await sleep(100);
+  const panel = await openPanel(await tabIdOf(page.url()));
+  try {
+    await sw.evaluate(async () => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await panel.click("#q-picks");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
+    const q = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    assert.deepEqual(q.items.map((x) => x.url), ids.map((id) => world.urlOf(id)), "both picks, in the order queued");
+    assert.ok(world.state.wanted.every((w) => w.state === "taken"), "marked taken");
+    await panel.click("#q-picks");
+    await panel.waitForFunction(() => /no postings waiting/.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
+    const q2 = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    assert.equal(q2.items.length, ids.length, "taken picks never join twice");
+  } finally {
+    await panel.close();
+    await page.close();
+    await sw.evaluate(async () => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+  }
+});
+
 test("queue: postings open one after another, each fills and waits for its tap; time from card to confirmed is measured", async (t) => {
   if (skip(t)) return;
   fresh();
@@ -1128,6 +1159,7 @@ test("queue: after a posting that stops (already applied), Skip moves on and eve
   try {
     await panel.fill("#links", ids.map((id) => world.urlOf(id)).join("\n"));
     await panel.click("#q-add");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 }); // WO-072: the same race
     await panel.click("#q-start");
     for (const id of ids) {
       const url = world.urlOf(id);
@@ -1399,6 +1431,9 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
   try {
     await panel.fill("#links", urls.join("\n"));
     await panel.click("#q-add");
+    // WO-072: as in the queue test (WO-059), the click resolves before the background has stored the queue; Prepare
+    // pressed in that moment read a short queue on a loaded CI runner. Wait for the panel's own "N postings added."
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
     const tabsBefore = await tabCount();
     const trailBefore = (await sw.evaluate(async () => (await chrome.storage.session.get("card_trail")).card_trail || [])).length;
     await panel.click("#q-prepare");

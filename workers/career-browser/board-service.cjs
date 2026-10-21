@@ -77,7 +77,12 @@ function createBoardService(config) {
   const ttlMs = typeof cfg.sessionTtlMs === "number" && cfg.sessionTtlMs > 0 ? cfg.sessionTtlMs : DEFAULT_TTL_MS;
   const maxPerUser = typeof cfg.maxSessionsPerUser === "number" && cfg.maxSessionsPerUser > 0 ? cfg.maxSessionsPerUser : DEFAULT_MAX_SESSIONS_PER_USER;
   const verdicts = cfg.familyVerdicts != null ? cfg.familyVerdicts : null;
-  const resolveResumePath = typeof cfg.resolveResumePath === "function" ? cfg.resolveResumePath : () => null;
+  // WO-094: no silent null. A configured resolver (production:
+  // resume-store.cjs createStoredResumeResolver) resolves the stored file
+  // by the sha256 the session request carries, or the session is refused
+  // under the resolver's own name. Unconfigured, a request that names a
+  // resume is refused RESUME_RESOLVER_NOT_WIRED.
+  const resolveResumePath = typeof cfg.resolveResumePath === "function" ? cfg.resolveResumePath : null;
 
   // The default factory and host gate ARE module 150 (shared, never
   // forked). Required lazily so this file loads in a bare checkout and
@@ -95,7 +100,7 @@ function createBoardService(config) {
   const sessions = new Map(); // id -> {id, userId, board, family, createdAt, lastActivityAt}
   const counters = {
     sessionsCreated: 0, callsServed: 0,
-    refused: { auth: 0, host: 0, verdict: 0, userMismatch: 0, expired: 0, sessionLimit: 0, notFound: 0 },
+    refused: { auth: 0, host: 0, verdict: 0, userMismatch: 0, expired: 0, sessionLimit: 0, notFound: 0, resume: 0 },
   };
   const respond = (status, body) => ({ status, body });
   const isExpired = (s) => now() - s.lastActivityAt > ttlMs;
@@ -137,8 +142,22 @@ function createBoardService(config) {
       counters.refused.sessionLimit += 1;
       return respond(409, { error: "SESSION_LIMIT", reason: `this user already holds ${active} live board sessions (cap ${maxPerUser})` });
     }
+    const resumeSha256 = typeof body.resumeSha256 === "string" && /^[a-f0-9]{64}$/.test(body.resumeSha256) ? body.resumeSha256 : null;
     let resumePath = null;
-    try { resumePath = resolveResumePath(userId) || null; } catch (_) { resumePath = null; }
+    if (resolveResumePath) {
+      try { resumePath = resolveResumePath(userId, { resumeSha256 }) || null; }
+      catch (e) {
+        counters.refused.resume += 1;
+        return respond(409, { error: (e && e.code) || "RESUME_FILE_MISSING", reason: String((e && e.message) || e).slice(0, 200) });
+      }
+      if (!resumePath) {
+        counters.refused.resume += 1;
+        return respond(409, { error: "RESUME_FILE_MISSING", reason: "the stored resume file could not be resolved — the session is refused rather than opened without a resume" });
+      }
+    } else if (resumeSha256) {
+      counters.refused.resume += 1;
+      return respond(409, { error: "RESUME_RESOLVER_NOT_WIRED", reason: "the request names a stored resume but this board service has no resolveResumePath configured" });
+    }
     let board;
     try { board = boardFactory({ url, userId, resumePath, atsFamily: gate.atsFamily || null }); }
     catch (e) { return respond(409, { error: (e && e.code) || "BOARD_CREATE_FAILED", reason: String((e && e.message) || e).slice(0, 200) }); }

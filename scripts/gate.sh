@@ -20,8 +20,12 @@ step() {
     cat "$out"
     printf 'STEP %s FAILED (exit %s)\n' "$label" "$status" >&2
     results+=("FAILED  $label (exit $status)")
-    # The failed tests by name, wherever they are in a long log (a CI log read from its tail may not reach them).
-    details+=("--- $label, its failed tests:" "$(grep -E '^[[:space:]]*not ok |=> [^ ]+:[0-9]+:[0-9]+|^[[:space:]]+(location|error):' "$out" | head -n 60)")
+    # The failed tests by name, wherever they are in a long log (a CI log read from its tail may not reach them), each
+    # with its whole TAP block: a multi-line error (an assertion's diff, a call log) was cut at "error: |-" (2026-10-20).
+    details+=("--- $label, its failed tests:" "$(awk '/=> [^ ]+:[0-9]+:[0-9]+/ { print; next }
+      /^[[:space:]]*not ok / { block = 1 }
+      block { print }
+      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | head -n 200)")
     details+=("--- $label, its last 20 lines:" "$(tail -n 20 "$out")")
     failed=1
   fi
@@ -55,8 +59,11 @@ shared_tests=(
   tests/no-secrets.test.cjs
   tests/export-coverage.test.cjs
   tests/trainee-go-live.test.cjs
+  tests/deploy-provenance.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
+  tests/depth-CAREER-WRITING.test.cjs
+  tests/extension-package.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -110,6 +117,7 @@ edge_tests=(
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
   tests/edge/career-ask-once.test.ts
+  tests/edge/control-state.test.ts
 )
 
 portable_test_paths() {
@@ -139,7 +147,7 @@ step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
 step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts
+step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.
 printf 'SUMMARY %s\n' "${results[@]}"

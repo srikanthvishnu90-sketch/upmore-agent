@@ -11,6 +11,7 @@
 //   payload hash on the card, within a day, under the daily limit, one per posting and one per company per 30 days
 //   (career_apply_email_reserve_as), and the send is recorded on a tracked application (source 'email').
 //   "subject: ..." or "body: ..." changes the email and shows it again; the change needs its own yes. "no" drops it.
+// The owner's switch (CAREER_EMAIL_SEND=on) off: the yes is told so, nothing is reserved or sent, the card is kept (WO-091c).
 // No career grant that may send: NOT_WIRED, with the one thing to do, and nothing is reserved. No resume Trainee can
 // attach: NOT_WIRED the same way. The model writes sentences only; code decides everything that matters.
 import { type DraftDeps, draftEssay, MIN_FACTS, whatWouldHelp } from "./essay_draft.ts";
@@ -54,6 +55,10 @@ export interface EmailDeps {
   attachment: (userId: string, sha256: string) => Promise<Resume | null>; // the exact file on the card, by its hash
   canSend: (userId: string) => Promise<boolean>; // a career grant with gmail.send
   send: (userId: string, m: OutMail) => Promise<SendResult>;
+  // WO-091c: the owner's switch. The chat passes CAREER_EMAIL_SEND === "on" (agent-chat/handler-career.ts), the same
+  // pattern as outreach's CAREER_OUTREACH_SEND; false: a yes sends nothing and reserves nothing, and the card is kept.
+  // Absent only where a test drives the turn directly.
+  sendOn?: boolean;
 }
 
 const clip = (s: unknown, n: number) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
@@ -209,6 +214,11 @@ export async function emailTurn(o: { message: string; userId: string; threadId: 
   // The yes: exactly the payload on the card, checked by its hash here and again by the database.
   const hash = await hashApplyPayload(card.payload);
   if (hash !== card.payload_hash) return done(`Not sent: ${REFUSED.changed_since_yes}.`, "changed");
+  // The owner's switch first: off, nothing is reserved and the Gmail grant is not even read. The card stays the thread's
+  // last word, so a yes once sending is on sends exactly this email.
+  if (o.deps.sendOn === false) {
+    return { reply: `Not sent: sending email from your Gmail is not switched on in Trainee yet. Nothing went to ${co}. The email is kept as drafted; you can copy it and send it yourself, or say yes again once sending is on.`, status: "SEND_OFF", waiting: true, card_id: card.id };
+  }
   if (!(await o.deps.canSend(o.userId))) {
     // The card stays this thread's last word: once Gmail is connected, a yes sends it.
     return { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED", waiting: true, card_id: card.id };

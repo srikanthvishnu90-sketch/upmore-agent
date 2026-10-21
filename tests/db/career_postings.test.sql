@@ -1,4 +1,4 @@
--- Career postings (20261019000000_career_postings.sql, WO-006): signed-in people read open postings; only the service
+-- Career postings (20261019000001_career_postings.sql, WO-006): signed-in people read open postings; only the service
 -- role writes them; the ingest state is the service role's alone; the constraints keep a posting a real, linkable job;
 -- full-text search stems ("nurse" finds "Nursing") and ranks the title first.
 begin;
@@ -17,6 +17,13 @@ select t.must_fail($$insert into public.career_postings(job_id,provider,board,co
 select t.must_fail($$insert into public.career_postings(job_id,provider,board,company,title,url,description,first_seen_at,last_seen_at) values('lever:acme:1','lever','acme','Acme','X','https://acme.test/1',repeat('word ',4001),now(),now())$$,'career_postings_description_check','a description past 20,000 characters is refused');
 select t.must_fail($$insert into public.career_postings(job_id,provider,board,company,title,url,first_seen_at,last_seen_at) values('lever:acme:1','lever','acme','Acme','X','https://acme.test/1','2026-10-19','2026-10-18')$$,'career_postings_seen_order','last seen before first seen is refused');
 select t.must_fail($$insert into public.career_postings(job_id,provider,board,company,title,url,first_seen_at,last_seen_at) values('acme-1','lever','acme','Acme','X','https://acme.test/1',now(),now())$$,'career_postings_job_id_check','a job id that is not provider:board:id is refused');
+-- WO-069 (20261022110000_career_postings_pay.sql): the pay a board states; null when it states none, at most 200 characters.
+select t.ok((select count(*)=1 from information_schema.columns where table_schema='public' and table_name='career_postings' and column_name='pay' and data_type='text' and is_nullable='YES'),'career_postings has a nullable pay column');
+select t.ok((select count(*)=2 from public.career_postings where pay is null),'a posting written without pay keeps null');
+update public.career_postings set pay='$120,000–$180,000 (Base Pay Range)' where job_id='greenhouse:stripe:101';
+select t.ok((select pay='$120,000–$180,000 (Base Pay Range)' from public.career_postings where job_id='greenhouse:stripe:101'),'the service role writes the pay a board states');
+select t.must_fail($$update public.career_postings set pay=repeat('9',201) where job_id='greenhouse:stripe:101'$$,'career_postings_pay_check','a pay past 200 characters is refused');
+update public.career_postings set pay=null where job_id='greenhouse:stripe:101';
 select t.ok((select count(*)=1 from public.career_postings where search @@ websearch_to_tsquery('english','nurse')),'"nurse" finds the Nursing posting (stemmed)');
 select t.ok((select count(*)=1 from public.career_postings where search @@ websearch_to_tsquery('english','data analyst remote')),'every word must match: "data analyst remote" finds only the remote analyst');
 select t.ok((select count(*)=1 from public.career_postings where search @@ websearch_to_tsquery('english','payments')),'the description is searched too');

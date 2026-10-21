@@ -105,17 +105,17 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
 # Idempotent: the OAuth vault cascade must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000001_career_postings.sql"
 # Idempotent: the career postings migration must apply cleanly a second time.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000000_career_postings.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019000001_career_postings.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010001_career_alerts.sql"
 # Idempotent: the career alerts migration must apply cleanly a second time.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010000_career_alerts.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019010001_career_alerts.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261019020000_channel_delivery.sql"
 # The table is part of export coverage; its account-authority RPCs run only
 # after the complete career migration ledger below has created career_watch_kv.
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
-"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000000_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000001_career_apply_jobs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020000001_career_apply_jobs.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261020010000_career_apply_own_worker.sql"
 # Idempotent: the channel delivery migration must apply cleanly a second time.
@@ -176,9 +176,19 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021000000_career_apply_extension.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021120000_career_apply_form_answers.sql"
+# WO-066: the postings the person asked Trainee to apply to, waiting for the extension (applied twice: idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022100000_career_apply_wanted.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022100000_career_apply_wanted.sql"
+# WO-069: the pay a board states for a posting, a column on career_postings (applied twice: idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
+# WO-093: the deploy ledger (RLS on, no client access, the service role reads and appends, append-only for everyone).
+# Applied twice: idempotent. Its test, career_deploy_ledger.test.sql, runs in the loop below.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -196,6 +206,9 @@ echo "  ok   ledger backfilled, only new files applied, a re-run applies nothing
 # create, so the ledger above applies it first, in production order; here it is applied twice more: idempotent.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
+# WO-092: an approval goes stale only when something it depends on changed (the ledger above applied it; applied twice more: idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022150000_career_apply_authority.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022150000_career_apply_authority.sql"
 echo "== concurrent message workers"
 python3 "$HERE/message_concurrency.py" "${PSQL[@]}"
 echo "== career_apply_jobs.test.sql (complete career authority schema)"
@@ -271,4 +284,18 @@ echo "== career_apply_extension.test.sql (the extension records an approved appl
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_extension.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_form_answers.test.sql (answers typed on the form kept once sent; source 'extension' for the gate)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_form_answers.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-091c: the control state the scheduled layer reads, and the outreach claim's expiry and pause. It redefines the claim
+# that the outreach re-run above set back, so it is applied here, last, twice (idempotent), as production ends.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120000_career_control_state.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120000_career_control_state.sql"
+echo "== career_control_state.test.sql (pause, STOP and erase are one predicate; an approval lasts 7 days; a quiet account sends nothing)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_control_state.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_apply_authority.test.sql (an ordinary chat turn never makes an approval stale; a pause or a facts change does)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_authority.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-100: the timeline takes 'apply_queued'. The outreach re-run above set the kinds back to its own list, so this is
+# applied last, twice (idempotent), as production ends.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023100000_career_events_apply_queued.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023100000_career_events_apply_queued.sql"
+echo "== career_events_apply_queued.test.sql (a posting queued from chat is on the timeline and recalled by kind)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events_apply_queued.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

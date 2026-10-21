@@ -2,14 +2,17 @@
 // waiting to be delivered. The chat's tools write preferences; the scheduled runner (career-proactive) reads them, plans
 // with career_alerts.ts, writes the outbox (one row per person and key, ever) and saves the counters. Delivery from the
 // outbox is the texting channel's job (WO-013); the simulator drains its own in-memory queue.
-// Tables: supabase/migrations/20261019010000_career_alerts.sql.
+// Tables: supabase/migrations/20261019010001_career_alerts.sql.
 import { DEFAULT_PREFS, MAX_INSTANT_PER_DAY, WEEKLY_MAX, type AlertPrefs, type PlanUser } from "./career_alerts.ts";
 import { validFloor } from "./career_floor.ts";
 
 export interface AlertRow extends PlanUser { sent_on: string | null } // sent_on: the local day instant_sent_today counts
+export type AlertCounters = Pick<AlertRow, "last_checked_at" | "instant_sent_today" | "sent_on" | "held" | "last_report_on">;
 export interface AlertStore {
   get(userId: string): Promise<AlertRow | null>;
   save(row: AlertRow): Promise<void>;
+  // WO-091c: the alerts run's own counters only, never the person's settings (prefs, tz): a stop that lands mid-run holds.
+  saveCounters?(userId: string, c: AlertCounters): Promise<void>;
   active(): Promise<AlertRow[]>; // everyone with alerts on
   // WO-037: alerts per person whose delivery time is at or after `sinceIso` (the weekly cap's count). A store without it
   // sends no alerts (the run fails closed).
@@ -73,6 +76,7 @@ export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & 
   return {
     async get(id) { return st.rows[id] ? JSON.parse(JSON.stringify(st.rows[id])) : null; },
     async save(row) { st.rows[row.id] = JSON.parse(JSON.stringify(row)); },
+    async saveCounters(id, c) { if (st.rows[id]) st.rows[id] = { ...st.rows[id], ...JSON.parse(JSON.stringify(c)) }; },
     async active() { return Object.values(st.rows).filter((r) => r.prefs.on).map((r) => JSON.parse(JSON.stringify(r))); },
     async alertsSince(since) {
       const t = Date.parse(since), out = new Map<string, number>();
@@ -104,6 +108,10 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
   return {
     async get(id) { const r = must<any>(await admin.from("career_alert_prefs").select("*").eq("user_id", id).maybeSingle(), "read alert settings"); return r ? fromDb(r) : null; },
     async save(row) { must(await admin.from("career_alert_prefs").upsert(toDb(row), { onConflict: "user_id" }), "save alert settings"); },
+    async saveCounters(id, c) {
+      must(await admin.from("career_alert_prefs").update({ last_checked_at: c.last_checked_at, instant_sent_today: c.instant_sent_today, sent_on: c.sent_on,
+        last_report_on: c.last_report_on, held: (c.held || []).slice(0, 200), updated_at: new Date().toISOString() }).eq("user_id", id), "save alert counters");
+    },
     async active() {
       const out: AlertRow[] = [];
       for (let from = 0; ; from += PAGE) {

@@ -167,7 +167,9 @@ WhatsApp's 24-hour rule is a platform rule, and it is the one place WhatsApp can
 ## 10. Outreach (networking)
 
 Merged (#55). Drafting works with no switch; sending needs `CAREER_OUTREACH_SEND=on` and the career Google sign-in with
-Gmail send. Hunter checks need `HUNTER_API_KEY`; without it, only the free checks run and the labels say so. Use a list
+Gmail send. An approval lasts 7 days; one not sent by then is dropped, and nothing goes while you are paused or opted out
+(WO-091c). Applying by email from the chat ("apply by email to Acme", then "yes") has its own switch, `CAREER_EMAIL_SEND=on`
+on agent-chat; while it is off the yes is answered "not switched on yet" and the email stays a draft. Hunter checks need `HUNTER_API_KEY`; without it, only the free checks run and the labels say so. Use a list
 you exported from your **own** account (D-018a): your LinkedIn connections export, or an Apollo CSV from your own
 Apollo account.
 

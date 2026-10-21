@@ -15,7 +15,8 @@
 // State lives in .simulator/state.json (gitignored) so a session resumes; --fresh starts over.
 import { handleInbound, memoryStore, type Brain, type Attachment, type MemoryState } from "../supabase/functions/_shared/conversation.ts";
 import { memoryChannel } from "../supabase/functions/_shared/channel.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../supabase/functions/_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerJobs } from "../supabase/functions/_shared/router_core.career.js";
+import { CareerPool } from "../supabase/functions/_shared/career_pool.js";
 import { CareerHost } from "../supabase/functions/_shared/career_host.js";
 import { agentTurn } from "../supabase/functions/agent-chat/career_brain.ts";
 import { callModel, modelConfig, newMeter } from "../supabase/functions/_shared/model_gateway.ts";
@@ -35,7 +36,7 @@ const STATE_DIR = ".simulator", STATE_FILE = `${STATE_DIR}/state.json`;
 const MIME: Record<string, string> = { txt: "text/plain", md: "text/markdown", csv: "text/csv", json: "application/json", pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", heic: "image/heic" };
 
 if (brainName !== "router" && brainName !== "agent") { console.error("--brain must be router or agent"); Deno.exit(2); }
-if (brainName === "agent" && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
+if (brainName === "agent" && !opt("--world") && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
 
 type Saved = { mem: MemoryState; now: number; as: string; alerts?: MemoryAlerts; posts?: Posting[]; optedOut?: string[] };
 let saved: Saved | null = null;
@@ -59,14 +60,44 @@ if (postingsFile) {
 }
 
 const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment });
-function turnCtx(userId: string, stores: Record<string, unknown>) {
-  return host.createTurnCtx({ userId, threadId: userId, now, snapshot: (stores.snapshot as any) ?? null });
+// The router's discovery pool, loaded per turn the way agent-chat loads it (handler-career.ts: CareerPool's KB loader,
+// then the named-company supplement), but over the simulator's postings, each given the KB row shape the loader maps.
+// Without it the router's searches always answered "the current list is empty", whatever /post or --postings held.
+const kbRow = (p: Posting) => ({ posting_key: p.job_id, title: p.title, company: p.company, location: p.location ?? "", url: p.url ?? "",
+  text_excerpt: String(p.description ?? "").slice(0, 4000), source: p.provider, posted_at: p.posted_at ?? p.first_seen_at, board: p.board,
+  fetched_on: String(p.last_seen_at ?? p.first_seen_at ?? "").slice(0, 10) || null, corpus_vintage: null });
+const pool = CareerPool.createKbPoolLoader({
+  readRows: async (spec: any) => {
+    let rows = (await jobs.open()).map(kbRow);
+    for (const f of spec.filters ?? []) {
+      const v = String(f.value).toLowerCase();
+      rows = rows.filter((r: any) => {
+        const x = String(r[f.column] ?? "").toLowerCase();
+        return f.op === "eq" ? x === v : f.op === "ilike" ? x.includes(v.replace(/^%|%$/g, "")) : true;
+      });
+    }
+    return rows.slice(0, spec.limit);
+  },
+  jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
+});
+async function routerPostings(message: string) {
+  let postings: any[] = (await pool.loadPool()).postings;
+  const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
+  if (target && target.company && typeof (pool as any).loadTargeted === "function") {
+    const extra = await (pool as any).loadTargeted(target);
+    const seen = new Set(postings.map((p: any) => p.job_id));
+    postings = postings.concat((extra.postings ?? []).filter((p: any) => !seen.has(p.job_id)));
+  }
+  return postings;
+}
+function turnCtx(userId: string, stores: Record<string, unknown>, postings?: any[]) {
+  return host.createTurnCtx({ userId, threadId: userId, now, snapshot: (stores.snapshot as any) ?? null, ...(postings ? { postings } : {}) });
 }
 function withFiles(message: string, files: { name: string; mime: string; text: string | null }[]) {
   return [message, ...files.map((f) => f.text !== null ? `[Attached file: ${f.name}]\n${f.text}` : `[Attached file: ${f.name} (${f.mime}) — this file type can't be read yet]`)].join("\n\n");
 }
 const routerBrain: Brain = async (a) => {
-  const ctx = turnCtx(a.userId, a.stores);
+  const ctx = turnCtx(a.userId, a.stores, await routerPostings(a.message));
   const out = host.runTurn(withFiles(a.message, a.attachments), ctx);
   return { reply: out.reply, stores: { snapshot: host.extractSnapshot(ctx) } };
 };
@@ -90,6 +121,42 @@ const agentBrain: Brain = async (a) => {
 const brain = brainName === "agent" ? agentBrain : routerBrain;
 
 const log = (line: string) => { console.log(line); if (transcript) Deno.writeTextFileSync(transcript, line + "\n", { append: true }); };
+// WO-100: --world evals/career/worlds/in-flight.json seeds one SYNTHETIC person with tasks in flight and runs each text
+// through agent-chat's dispatch (evals/career/world.ts). /thread B opens a new conversation. --model scripted (no key):
+// a scripted model that calls get_situation (with the employer the text names) and says its text, so the demo shows
+// exactly what the agent is given; it is labeled, never passed off as the model's own words.
+if (opt("--world")) {
+  const { openWorld, worldTurn } = await import("../evals/career/world.ts");
+  const file = JSON.parse(Deno.readTextFileSync(opt("--world")!));
+  const set = JSON.parse(Deno.readTextFileSync(new URL("../evals/career/conversations.json", import.meta.url)));
+  const scripted = opt("--model") === "scripted";
+  if (brainName === "agent" && !scripted && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY, or --model scripted."); Deno.exit(2); }
+  const w = await openWorld(file, { postings: set.postings });
+  const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+  const firms = [...new Set((file.postings ?? []).map((p: any) => String(p.company)))] as string[];
+  const scriptedModel = (message: string) => async (p: any) => {
+    const last = p.messages.at(-1);
+    const result = Array.isArray(last?.content) ? last.content.find((b: any) => b.type === "tool_result") : null;
+    if (!result) return { content: [{ type: "tool_use", id: "s1", name: "get_situation", input: { company: firms.find((f) => new RegExp(`\\b${f}\\b`, "i").test(message)) } }], stop_reason: "tool_use" };
+    let text = String(result.content); try { text = JSON.parse(text).text ?? text; } catch { /* the error text as is */ }
+    return { content: [{ type: "text", text: `[scripted model: get_situation's text]\n${text}` }], stop_reason: "end_turn" };
+  };
+  let thread = "A", now = w.now;
+  log(`Trainee text simulator · world ${opt("--world")} · brain: ${brainName}${brainName === "agent" ? scripted ? " (scripted model)" : ` (${cfg.model})` : ""} · ${new Date(now).toISOString()}`);
+  const lines = script ? Deno.readTextFileSync(script).split("\n") : null;
+  for (let i = 0; ; i++) {
+    const t = (lines ? lines[i] : prompt(">"))?.trim();
+    if (t === undefined || t === null || t === "/quit") break;
+    if (!t) continue;
+    if (t.startsWith("/thread ")) { thread = t.slice(8).trim(); log(`  (new conversation: thread ${thread})`); continue; }
+    log(`⟶ [${thread}] ${t}`);
+    const r = await worldTurn(w, { brain: brainName as "agent" | "router", threadId: thread, message: t, now, model: scripted ? scriptedModel(t) : (p: any) => callModel(cfg, p, { meter, role: "chat" }) });
+    log(`  ⟵ (${r.handler}) ${r.reply.replace(/\n/g, "\n     ")}`);
+    now += 60000;
+  }
+  if (meter.calls) log(`(model calls: ${meter.calls}, est. cost $${(meter.usd_micros / 1e6).toFixed(4)})`);
+  Deno.exit(0);
+}
 async function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as, alerts: alerts.dump(), posts: await jobs.all(), optedOut: channel.optOuts() } satisfies Saved)); }
 // The same alerts run the scheduled function does, over the simulator's postings and people; new outbox rows go to the
 // conversation store's proactive queue, which deliver() drains.
@@ -160,7 +227,8 @@ async function line(input: string): Promise<boolean> {
 
 log(`Trainee text simulator · brain: ${brainName} · you are ${as} · ${new Date(now).toISOString()}${saved ? " (resumed)" : ""}`);
 if (script) {
-  for (const l of Deno.readTextFileSync(script).split("\n")) { if (!(await line(l))) break; }
+  // A script line starting with "# " is a comment, never texted.
+  for (const l of Deno.readTextFileSync(script).split("\n")) { if (l.startsWith("# ")) continue; if (!(await line(l))) break; }
 } else {
   while (true) { const l = prompt(">"); if (l === null || !(await line(l))) break; }
 }

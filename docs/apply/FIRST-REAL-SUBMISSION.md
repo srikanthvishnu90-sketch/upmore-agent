@@ -53,7 +53,7 @@ real people without the owner's explicit word. Blocked means said same day, with
    link go in the status log (no private data in the repo: company, role, link, date, and "confirmation received" only).
 7. Cost: from this first one, every model call and minute counted.
 
-## Decisions needed from the owner
+## OPEN questions for the owner (NONE answered; nothing below is decided)
 - Who the first real user is, and their yes to apply to a named posting.
 - Person-submits mode for the first runs (recommended), or the extension's click after one tap.
 - The 47 agent-invented facts in the owner's fact bank (D-007) are deleted before his facts are used (his data: his word).
@@ -61,6 +61,14 @@ real people without the owner's explicit word. Blocked means said same day, with
   deploy/env change and his call.
 
 ## Status (newest first)
+- 2026-10-21: person-submits mode built, OFF by default (extension/config.js personSubmits: false). With it on, the
+  extension fills, shows the card and runs every check up to the click (approved hash, unchanged form, no verification
+  showing, screenshot, the start recorded so the daily cap holds), then presses nothing; the person presses the site's
+  own Submit, and that trusted press is checked against the approved card first. A changed form or a verification at the
+  press stops it; no press in 20 minutes, or leaving the page, closes the start as not sent. Real Chromium against the
+  captured forms (tests/career-extension-person-submits.test.cjs, a copy of the extension with the flag on): 4/4 pass,
+  0/4 without the change (VERIFIED, local; nothing reached a real employer). The auto-click path is unchanged and not
+  enabled or shipped by this work. Full regression suites: running (NOT_RUN until they finish). Real submissions: 0.
 - 2026-10-21: lane opened on wo/first-real-submission from trunk 9deee4e2. Mapping the real apply path in the repo
   (extension, form planner, answer bank, approval cards, receipts, confirmation-email detection) before any change.
   Real submissions made: 0 (VERIFIED: no evidence of one in the repo or from the owner).

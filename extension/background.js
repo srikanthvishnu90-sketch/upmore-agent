@@ -15,7 +15,10 @@ const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 const say = {
   signedOut: "Sign in to Upmore in the Trainee panel first. Nothing was filled.",
   handoff: "A verification check is showing on the page. Finish it yourself there, then press Approve again. Trainee never answers one.",
+  pressYourself: "Filled and checked. Read every answer on the page, then press the site's own Submit yourself. Trainee will not press it.",
+  leftWithoutPress: "You left the page without pressing Submit. Nothing was sent.",
 };
+const PERSON_REPORT_GRACE_MS = 1500;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
@@ -398,7 +401,15 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
 // One reader per click: two at once would take two pictures, and Chrome refuses a second capture within the second.
 const reading = new Set();
 async function afterNavigation(tabId) {
-  const p = (await pendings())[tabId];
+  let p = (await pendings())[tabId];
+  // Person-submits mode: the page moved while Trainee waited for the person's press. Their own press reports itself
+  // ("clicked") as it happens; give that report a moment, and if it never came, the person left without pressing:
+  // nothing was sent, and the started application is closed as stopped before the click.
+  if (p && !p.finished && !p.clicked_at && p.awaiting_person) {
+    await new Promise((r) => setTimeout(r, PERSON_REPORT_GRACE_MS));
+    p = (await pendings())[tabId];
+    if (p && !p.finished && !p.clicked_at) return void await finish(tabId, null, { reason: C.BEFORE_CLICK, message: say.leftWithoutPress });
+  }
   if (!p || p.finished || !p.clicked_at || reading.has(p.id)) return;
   reading.add(p.id);
   try {
@@ -611,7 +622,7 @@ async function handle(m, sender) {
       }
       const f = await facts(a.user_id);
       const resume = await get(L, "resume", null);
-      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null };
+      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits };
     }
     case "queued": {
       const q = await queueState();
@@ -712,6 +723,13 @@ async function handle(m, sender) {
         return { ok: false, message: why };
       }
     }
+    case "awaiting-person": {
+      // Person-submits mode: everything up to the click passed; Trainee presses nothing and waits for the person's own press.
+      const p = (await pendings())[tabId];
+      if (p) await setPending(tabId, { ...p, awaiting_person: true });
+      await setCard(tabId, { status: "awaiting_person", message: say.pressYourself });
+      return { ok: true };
+    }
     case "clicked": {
       const p = (await pendings())[tabId];
       if (p) {
@@ -720,7 +738,7 @@ async function handle(m, sender) {
         p.steps = m.steps || null;
         await setPending(tabId, p);
       }
-      await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });
+      await setCard(tabId, { status: "submitting", message: m.byPerson ? "You pressed the site's own Submit; waiting for the employer's answer." : "Sent with the site's own Submit; waiting for the employer's answer." });
       // The click may have moved the page before this message landed (CI, a fast thank-you page): its load is over and
       // onUpdated passed the tab by. A loaded page without the clicking page's mark is the page after the click.
       const tab = await chrome.tabs.get(tabId).catch(() => null);
@@ -931,7 +949,7 @@ async function handle(m, sender) {
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
   "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "awaiting-person", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

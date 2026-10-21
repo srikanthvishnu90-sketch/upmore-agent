@@ -479,6 +479,9 @@
   const changedMsg = (changed) =>
     `A value changed after you reviewed it (${changed.map(C.shortLabel).join("; ") || "the form"}). Nothing was sent. Press Fill this application to read the form again.`;
   const ABORTED = "You changed the form after approving, so it was not sent. Press Fill this application to read it again.";
+  // Person-submits mode: how long Trainee waits for the person's own press before it closes the application as not sent.
+  const PERSON_WAIT_MS = 20 * 60_000;
+  const PERSON_TIMEOUT = "You did not press Submit within 20 minutes, so nothing was sent. Press Fill this application to start again.";
 
   // Is the page still exactly the approved application? Every answer, its source, what the browser sends for it (option
   // values, checked states, the attached file's bytes), compared as the whole payload. No await: usable next to the click.
@@ -526,6 +529,8 @@
       submitting = false;
       return;
     }
+    // Person-submits mode (config personSubmits, off by default): Trainee presses nothing; the person does.
+    if (ctx?.personSubmits) return armForPerson(button, steps, planned);
     // The last look and the click, in one task: no page script and no person can act between them (WO-031 review).
     const last = stillApproved();
     const challenge = !!D.fnDetectChallenge();
@@ -539,6 +544,56 @@
     globalThis.__traineeClicked = true; // tells the background this page is the one that clicked, not the page after it
     button.click();
     send({ type: "clicked", at: Date.now(), errorsBefore, steps });
+    await watchAfterClick(errorsBefore, before, planned, last);
+  }
+
+  // Person-submits mode: everything up to the click has passed (the approved card, the unchanged form, no verification
+  // showing, the picture, the recorded start). Trainee presses nothing. The person reads the filled page and presses the
+  // site's own Submit; that trusted press is caught first, on window, before any page script, and the form must still be
+  // exactly the approved one with no verification showing, or the press is stopped and nothing is sent. No press within
+  // PERSON_WAIT_MS: nothing was sent, and the started application is closed as stopped before the click.
+  function armForPerson(button, steps, planned) {
+    const form = button.form || button.closest("form");
+    let done = false;
+    const disarm = () => {
+      done = true;
+      clearTimeout(timer);
+      removeEventListener("click", onPress, true);
+      removeEventListener("submit", onPress, true);
+    };
+    const onPress = (e) => {
+      if (done || sent || !e.isTrusted) return;
+      if (e.type === "click" ? !button.contains(e.target) : e.target !== form) return;
+      const last = stillApproved();
+      const challenge = !!D.fnDetectChallenge();
+      if (personAbort || !last.ok || challenge || !button.isConnected) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        disarm();
+        const why = personAbort ? ABORTED : challenge ? HANDOFF : last.ok ? "The page's Submit button changed. Nothing was sent." : changedMsg(last.changed);
+        stop(why, { finishPending: true, reason: C.BEFORE_CLICK, beforeClick: true });
+        return;
+      }
+      disarm();
+      const errorsBefore = D.visibleErrors(), before = location.href;
+      steps.begun = Date.now();
+      sent = true;
+      globalThis.__traineeClicked = true;
+      send({ type: "clicked", at: Date.now(), errorsBefore, steps, byPerson: true });
+      watchAfterClick(errorsBefore, before, planned, last);
+    };
+    const timer = setTimeout(() => {
+      if (done || sent) return;
+      disarm();
+      stop(PERSON_TIMEOUT, { finishPending: true, reason: C.BEFORE_CLICK, beforeClick: true });
+    }, PERSON_WAIT_MS);
+    addEventListener("click", onPress, true);
+    addEventListener("submit", onPress, true);
+    send({ type: "awaiting-person" });
+  }
+
+  // After the site's own Submit (pressed by Trainee after the one tap, or by the person in person-submits mode).
+  async function watchAfterClick(errorsBefore, before, planned, last) {
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.
     // The wait ends only when the form is gone, a new error appears, or the page asks for something; otherwise after 30
     // seconds the outcome is unknown, counted as applied, never resent.

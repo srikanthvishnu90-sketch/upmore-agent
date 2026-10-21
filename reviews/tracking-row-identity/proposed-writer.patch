@@ -1,0 +1,48 @@
+--- a/supabase/functions/_shared/agent/career_tools.ts
++++ b/supabase/functions/_shared/agent/career_tools.ts
+@@ -322,7 +322,7 @@
+     {
+       name: "track_application", effect: "write_own",
+       description: "Record an application the person made, or move an existing one to a new stage when they report news (stages: Saved, Submitted, Recruiter screen, OA/assessment, Interview rounds, Final, Offer, Rejected, Withdrawn, Accepted).",
+-      input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record"),
++      input_schema: obj({ app_id: str("Existing application app_id from list_applications; use to distinguish same-company rows"), company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record"),
+         when: str("The day or time of the next step (an interview, a call) in the person's own words from THIS message, e.g. 'Tuesday 2pm'; leave out if they did not say one") }, ["company", "stage"]),
+       run: async (i, c) => {
+         const s = trackOf(c);
+@@ -333,10 +333,32 @@
+         // ("unknown stage"); the label is one of the tracker's stages before either call.
+         const stage = trackerStage(i.stage);
+         if (!stage) throw new Error(`not recorded: "${String(i.stage ?? "")}" is not a stage; use one of: ${(CareerTrack.STAGES as string[]).join(", ")}`);
+-        const moved = CareerTrack.manualUpdate(s, String(i.company), stage, { now: c.now });
+-        const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage }, { now: c.now });
+-        if (application && when) application.next_when = when;
+-        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage), ...(when ? { when } : {}) });
++        // Review proposal: resolve identity and every refusal before changing any row.
++        const company = String(i.company), hasAppId = i.app_id !== undefined;
++        const appId = String(i.app_id ?? "").trim(), rows = CareerTrack.rowsOf(s);
++        const role = i.role === undefined ? undefined : String(i.role).trim();
++        const matchesCompany = (row: any) => !!CareerTrack.findByCompany({ rows: [row] }, company);
++        let application: any;
++        if (hasAppId) {
++          const matches = rows.filter((row: any) => row.app_id === appId);
++          if (!appId || matches.length !== 1 || !sameCompany(matches[0].company, company)) {
++            throw new AskPerson("Which application do you mean? That app_id does not identify one of your applications at that employer; choose the row from list_applications.");
++          }
++          application = matches[0];
++        } else {
++          const matches = rows.filter(matchesCompany);
++          if (matches.length > 1) throw new AskPerson("Which application at that employer do you mean? Choose its app_id from list_applications before I change anything.");
++          application = matches[0];
++        }
++        if (application) {
++          // The write whitelist is role, stage and a next-step time already checked against this turn.
++          if (role !== undefined) application.role = role;
++          CareerTrack.moveStage(application, stage, { type: "manual_update", source: "user-reported", detail: `user reported: ${stage}` }, c.now);
++        } else {
++          application = CareerTrack.addApplication(s, { company, role: role ?? "", stage }, { now: c.now });
++        }
++        if (when) application.next_when = when;
++        await record(c, "status_change", application.company, { app_id: application.app_id, role: application.role || null, stage: application.stage, ...(when ? { when: application.next_when } : {}) });
+         const said = i.when && !when ? { when_not_kept: "that day or time is not in their message this turn; ask them" } : {};
+         return { application, ...(when ? { when_kept: when } : {}), ...said };
+       },

@@ -1,0 +1,21 @@
+COMMAND ["/tmp/case2-test-tools/node_modules/.bin/deno", "test", "--no-check", "--cached-only", "--no-remote", "--deny-net", "--deny-env", "--deny-run", "--deny-write", "--allow-read=/workspace/upmore-qa-tracking-row-identity-20261021", "--no-prompt", "tests/architect/wo-002-career-tools.test.ts", "tests/architect/wo-061-tracker-stage.test.ts"]
+EXIT 0
+STDOUT
+running 8 tests from ./tests/architect/wo-002-career-tools.test.ts
+WO-002/T1 the tool set: names, effects, schemas; no external tool yet ... ok (4ms)
+WO-002/T2 a stated fact is saved as a DRAFT; only confirm makes it usable ... ok (4ms)
+WO-002/T3 confirming a fact that doesn't exist is an error, never a silent success ... ok (682µs)
+WO-002/T4 applications are tracked in the career state's trackStore and listed back ... ok (1ms)
+WO-002/T5 search_jobs is honest when there are no live postings ... ok (929µs)
+WO-002/T6 search_jobs filters live postings by the query, caps by limit, and keeps each posting's url and first-seen time ... ok (21ms)
+WO-002/T7 interview questions come from the banks; answers are scored by the existing rubric ... ok (21ms)
+WO-002/T8 only the person confirms a fact: never in the turn that added it, never without their plain yes ... ok (2ms)
+running 3 tests from ./tests/architect/wo-061-tracker-stage.test.ts
+WO-061/K1 a stage label becomes one of the tracker's stages ... ok (2ms)
+WO-061/K2 a row saved from a loose label can be updated on the next turn (the H004 path) ... ok (4ms)
+WO-061/K3 a label that is no stage is refused with the list, and nothing is saved ... ok (1ms)
+
+ok | 11 passed | 0 failed (809ms)
+
+
+STDERR

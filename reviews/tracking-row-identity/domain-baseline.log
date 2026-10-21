@@ -1,0 +1,15 @@
+COMMAND node reviews/tracking-row-identity/domain-reproduction.cjs
+EXIT 0
+STDOUT
+{
+  "invented_only": true,
+  "direct_domain_checks_passed": 9,
+  "first_company_match": "invented-app-1",
+  "requested_app_id": "invented-app-2",
+  "requested_role": "Woven Platform Engineer",
+  "actual_role": "Paper Systems Engineer",
+  "second_stage": "Submitted",
+  "unique_stage_control": "PASS"
+}
+
+STDERR

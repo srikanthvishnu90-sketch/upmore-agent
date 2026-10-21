@@ -1,0 +1,63 @@
+COMMAND ["/tmp/case2-test-tools/node_modules/.bin/deno", "test", "--no-check", "--cached-only", "--no-remote", "--deny-net", "--deny-env", "--deny-run", "--deny-write", "--allow-read=/workspace/upmore-qa-tracking-row-identity-20261021", "--no-prompt", "tests/architect/pending/qa-tracking-row-identity.test.ts"]
+EXIT 1
+STDOUT
+running 10 tests from ./tests/architect/pending/qa-tracking-row-identity.test.ts
+tracking identity CONTROL: a new application receipt is the actual stored row ... ok (6ms)
+tracking identity CONTROL: unique-company stage update preserves role and row id ... ok (2ms)
+tracking identity PENDING: schema exposes the existing row app_id selector ... FAILED (1ms)
+tracking identity PENDING: explicit existing-row role correction changes the permitted field ... FAILED (999µs)
+tracking identity PENDING: explicit app_id targets the second same-company application ... FAILED (898µs)
+tracking identity PENDING: company-only ambiguity asks before any write ... FAILED (5ms)
+tracking identity PENDING: unknown or mismatched explicit app_id cannot fall back to company ... FAILED (651µs)
+tracking identity CONTROL: extra fields cannot rewrite row identity or provenance ... ok (435µs)
+tracking identity CONTROL: stated next-step time is kept on actual row ... ok (473µs)
+tracking identity CONTROL: unstated next-step time cannot be saved ... ok (328µs)
+
+ ERRORS
+
+tracking identity PENDING: schema exposes the existing row app_id selector => ./tests/architect/pending/qa-tracking-row-identity.test.ts:50:6
+error: Error: the model must be able to select the app_id that list_applications returned
+function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
+                                                                               ^
+    at assert (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:8:80)
+    at file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:52:3
+
+tracking identity PENDING: explicit existing-row role correction changes the permitted field => ./tests/architect/pending/qa-tracking-row-identity.test.ts:55:6
+error: Error: role correction must reach the selected persisted row: got "Paper Systems Engineer", wanted "Ribbon Infrastructure Engineer"
+    at eq (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:9:101)
+    at file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:59:3
+
+tracking identity PENDING: explicit app_id targets the second same-company application => ./tests/architect/pending/qa-tracking-row-identity.test.ts:68:6
+error: Error: receipt identifies selected row: got "invented-app-1", wanted "invented-app-2"
+    at eq (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:9:101)
+    at file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:72:3
+
+tracking identity PENDING: company-only ambiguity asks before any write => ./tests/architect/pending/qa-tracking-row-identity.test.ts:78:6
+error: Error: ask the person which existing row they mean; never silently select or create a row
+function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
+                                                                               ^
+    at assert (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:8:80)
+    at refusesWithoutMutation (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:30:3)
+    at async file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:80:3
+
+tracking identity PENDING: unknown or mismatched explicit app_id cannot fall back to company => ./tests/architect/pending/qa-tracking-row-identity.test.ts:83:6
+error: Error: ask the person which existing row they mean; never silently select or create a row
+function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
+                                                                               ^
+    at assert (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:8:80)
+    at refusesWithoutMutation (file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:30:3)
+    at async file:///workspace/upmore-qa-tracking-row-identity-20261021/tests/architect/pending/qa-tracking-row-identity.test.ts:85:3
+
+ FAILURES
+
+tracking identity PENDING: schema exposes the existing row app_id selector => ./tests/architect/pending/qa-tracking-row-identity.test.ts:50:6
+tracking identity PENDING: explicit existing-row role correction changes the permitted field => ./tests/architect/pending/qa-tracking-row-identity.test.ts:55:6
+tracking identity PENDING: explicit app_id targets the second same-company application => ./tests/architect/pending/qa-tracking-row-identity.test.ts:68:6
+tracking identity PENDING: company-only ambiguity asks before any write => ./tests/architect/pending/qa-tracking-row-identity.test.ts:78:6
+tracking identity PENDING: unknown or mismatched explicit app_id cannot fall back to company => ./tests/architect/pending/qa-tracking-row-identity.test.ts:83:6
+
+FAILED | 5 passed | 5 failed (31ms)
+
+
+STDERR
+error: Test failed

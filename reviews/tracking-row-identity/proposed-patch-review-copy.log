@@ -1,0 +1,32 @@
+COMMAND ["/tmp/case2-test-tools/node_modules/.bin/deno", "test", "--no-check", "--cached-only", "--no-remote", "--deny-net", "--deny-env", "--deny-run", "--deny-write", "--allow-read=/workspace/upmore-qa-tracking-row-identity-20261021,/tmp/brain320-tracking-row-qa-20261021", "--no-prompt", "--import-map=/tmp/brain320-tracking-row-qa-20261021/review-import-map.json", "tests/architect/pending/qa-tracking-row-identity.test.ts", "tests/architect/wo-002-career-tools.test.ts", "tests/architect/wo-061-tracker-stage.test.ts"]
+EXIT 0
+STDOUT
+running 10 tests from ./tests/architect/pending/qa-tracking-row-identity.test.ts
+tracking identity CONTROL: a new application receipt is the actual stored row ... ok (4ms)
+tracking identity CONTROL: unique-company stage update preserves role and row id ... ok (835µs)
+tracking identity PENDING: schema exposes the existing row app_id selector ... ok (200µs)
+tracking identity PENDING: explicit existing-row role correction changes the permitted field ... ok (1ms)
+tracking identity PENDING: explicit app_id targets the second same-company application ... ok (416µs)
+tracking identity PENDING: company-only ambiguity asks before any write ... ok (873µs)
+tracking identity PENDING: unknown or mismatched explicit app_id cannot fall back to company ... ok (787µs)
+tracking identity CONTROL: extra fields cannot rewrite row identity or provenance ... ok (670µs)
+tracking identity CONTROL: stated next-step time is kept on actual row ... ok (12ms)
+tracking identity CONTROL: unstated next-step time cannot be saved ... ok (282µs)
+running 8 tests from ./tests/architect/wo-002-career-tools.test.ts
+WO-002/T1 the tool set: names, effects, schemas; no external tool yet ... ok (8ms)
+WO-002/T2 a stated fact is saved as a DRAFT; only confirm makes it usable ... ok (9ms)
+WO-002/T3 confirming a fact that doesn't exist is an error, never a silent success ... ok (880µs)
+WO-002/T4 applications are tracked in the career state's trackStore and listed back ... ok (1ms)
+WO-002/T5 search_jobs is honest when there are no live postings ... ok (683µs)
+WO-002/T6 search_jobs filters live postings by the query, caps by limit, and keeps each posting's url and first-seen time ... ok (22ms)
+WO-002/T7 interview questions come from the banks; answers are scored by the existing rubric ... ok (11ms)
+WO-002/T8 only the person confirms a fact: never in the turn that added it, never without their plain yes ... ok (1ms)
+running 3 tests from ./tests/architect/wo-061-tracker-stage.test.ts
+WO-061/K1 a stage label becomes one of the tracker's stages ... ok (1ms)
+WO-061/K2 a row saved from a loose label can be updated on the next turn (the H004 path) ... ok (4ms)
+WO-061/K3 a label that is no stage is refused with the list, and nothing is saved ... ok (1ms)
+
+ok | 21 passed | 0 failed (1s)
+
+
+STDERR

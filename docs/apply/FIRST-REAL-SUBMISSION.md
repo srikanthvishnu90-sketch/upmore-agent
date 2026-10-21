@@ -68,7 +68,8 @@ real people without the owner's explicit word. Blocked means said same day, with
   press stops it; no press in 20 minutes, or leaving the page, closes the start as not sent. Real Chromium against the
   captured forms (tests/career-extension-person-submits.test.cjs, a copy of the extension with the flag on): 4/4 pass,
   0/4 without the change (VERIFIED, local; nothing reached a real employer). The auto-click path is unchanged and not
-  enabled or shipped by this work. Full regression suites: running (NOT_RUN until they finish). Real submissions: 0.
+  enabled or shipped by this work. Regression with the flag off: the existing extension suite in a real Chromium 54/54, the architect suite
+  714/714 (VERIFIED, local). Real submissions: 0.
 - 2026-10-21: lane opened on wo/first-real-submission from trunk 9deee4e2. Mapping the real apply path in the repo
   (extension, form planner, answer bank, approval cards, receipts, confirmation-email detection) before any change.
   Real submissions made: 0 (VERIFIED: no evidence of one in the repo or from the owner).

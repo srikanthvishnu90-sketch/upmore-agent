@@ -68,6 +68,10 @@ Not in the Chrome Web Store. You load it unpacked, as below. It is a test build 
    "Type this yourself" (an identity number) you type on the form; it is never kept.
 4. Press **Approve and submit** once. The extension checks the form is unchanged and presses the site's own Submit. If a
    verification appears, finish it yourself on the page and press Approve again.
+   Person-submits mode (`personSubmits` in config.js, OFF by default; switching it on is the owner's call): after the
+   same checks the extension presses nothing. You read the filled page and press the site's own Submit yourself; your
+   press is checked against the card you approved first, and a changed form or a verification stops it. No press within
+   20 minutes, or leaving the page, closes the application as not sent.
 5. The panel shows the employer's answer ("Sent; the employer's page confirmed it", or what is missing; the employer's email makes it confirmed) and the seconds from
    card to answer. Press **Proof** to see what was sent and what the employer's page showed.
 

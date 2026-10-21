@@ -121,11 +121,11 @@ export function recoverJournal(raw: string) {
       if (e.usd_micros === null) unknown_charges++; else { charged_micros += e.usd_micros; open.delete(e.call_id); }
     }
   }
-  return { charged_micros, unknown_charges, unsettled_calls: open.size, reserved_micros: [...open.values()].reduce((a, n) => a + n, 0), score_valid: open.size === 0 && unknown_charges === 0 };
+  return { charged_micros, unknown_charges, unsettled_calls: open.size, reserved_micros: [...open.values()].reduce((a, n) => a + n, 0), charges_reconciled: open.size === 0 && unknown_charges === 0, score_valid: false, note: "A recovered cost journal alone does not establish a score; validate the complete result artifact." };
 }
 
 export interface Identity { source_commit: string; corpus_sha256: string; rubric_sha256: string; clock_utc: string; seed: string | number; concurrency: number; params: Record<string, unknown> }
-export interface ItemResult { id: string; category: string; development_overlap: boolean; pass: boolean | null; latency_ms: number; evaluation_latency_ms?: number; input_tokens: number; output_tokens: number; cached_tokens: number; usd_micros: number; judges: { model: string; pass: boolean; failed?: string[]; score?: number; note?: string }[]; error?: string; replies?: string[]; state?: unknown; trace?: unknown; judging_packet?: string; judging_packet_sha256?: string }
+export interface ItemResult { id: string; category: string; development_overlap: boolean; pass: boolean | null; latency_ms: number; evaluation_latency_ms?: number; input_tokens: number; output_tokens: number; cached_tokens: number; usd_micros: number; judges: { model: string; pass: boolean; failed?: string[]; score?: number; note?: string }[]; error?: string; product_failures?: string[]; replies?: string[]; state?: unknown; trace?: unknown; judging_packet?: string; judging_packet_sha256?: string }
 export interface ArmResult { model: string; identity: Identity; status: "SCORED" | "NOT_SCORED"; planned: number; items: ItemResult[]; calls: Settlement[]; ledger: ReturnType<BudgetJournal["snapshot"]> }
 export function rateSummary(items: ItemResult[]) {
   const n = items.length, passed = items.filter((i) => i.pass === true).length;
@@ -145,16 +145,17 @@ export function armSummary(arm: ArmResult) {
     const mine = calls.filter((c) => c.case_id === i.id);
     return mine.every((c) => c.category === i.category) && JUDGES.every((m) => mine.filter((c) => c.role === "judge" && c.model === m).length === 1) && mine.reduce((s, c) => s + c.usd_micros!, 0) === i.usd_micros && mine.reduce((s, c) => s + c.usage!.input_tokens, 0) === i.input_tokens && mine.reduce((s, c) => s + c.usage!.output_tokens, 0) === i.output_tokens && mine.reduce((s, c) => s + (c.usage!.cache_read_input_tokens ?? 0), 0) === i.cached_tokens;
   });
-  const valid = arm.status === "SCORED" && arm.planned === 320 && arm.items.length === arm.planned && itemIDs.size === arm.items.length && canonical(counts) === canonical(CATEGORY_COUNTS) && meterValid && arm.items.every((i) => i.pass !== null && !i.error && i.judges.length === 2 && JUDGES.every((m) => i.judges.filter((j) => j.model === m).length === 1) && i.pass === i.judges.every((j) => j.pass)) && !arm.ledger.stopped && !arm.ledger.unsettled_calls && !arm.ledger.unpriced_calls && !arm.ledger.unknown_charges;
+  const valid = arm.status === "SCORED" && arm.planned === 320 && arm.items.length === arm.planned && itemIDs.size === arm.items.length && canonical(counts) === canonical(CATEGORY_COUNTS) && meterValid && arm.items.every((i) => i.pass !== null && !i.error && i.judges.length === 2 && JUDGES.every((m) => i.judges.filter((j) => j.model === m).length === 1) && i.pass === (i.judges.every((j) => j.pass) && !(i.product_failures?.length))) && !arm.ledger.stopped && !arm.ledger.unsettled_calls && !arm.ledger.unpriced_calls && !arm.ledger.unknown_charges;
+  const costByRole = Object.fromEntries(["brain", "judge"].map((role) => [role, calls.filter((c) => c.role === role).reduce((s, c) => s + (c.usd_micros ?? 0), 0) / 1000000]));
   return { model: arm.model, status: valid ? "SCORED" : "NOT_SCORED", score_kind: "CI_INTERSECTION", final_acceptance: "NOT_RUN: independent owner-appointed third judge required", planned: arm.planned, completed: arm.items.length, full: valid ? rateSummary(arm.items) : null, clean: valid ? rateSummary(arm.items.filter((i) => !i.development_overlap)) : null,
-    categories: valid ? Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => { const rows = arm.items.filter((i) => i.category === c); return [c, { ...rateSummary(rows), ...metrics(rows) }]; })) : null, metrics: metrics(arm.items), ledger: arm.ledger };
+    categories: valid ? Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => { const rows = arm.items.filter((i) => i.category === c); return [c, { ...rateSummary(rows), ...metrics(rows) }]; })) : null, metrics: metrics(arm.items), cost_usd: { ...costByRole, total: callTotal / 1000000 }, ledger: arm.ledger };
 }
 export function compareArms(a: ArmResult, b: ArmResult) {
   insist(a.model === MODELS[0] && b.model === MODELS[1], "comparison must be mini versus GPT-5");
   insist(canonical(a.identity) === canonical(b.identity), "candidate/corpus/rubric/clock/seed/parameters differ");
   insist(armSummary(a).status === "SCORED" && armSummary(b).status === "SCORED", "stopped or incomplete arms are not scores");
   const right = new Map(b.items.map((i) => [i.id, i])); insist(right.size === b.items.length && a.items.length === b.items.length && new Set(a.items.map((i) => i.id)).size === a.items.length, "case IDs differ or repeat");
-  const paired = a.items.map((x) => { const y = right.get(x.id); insist(y && y.category === x.category && y.development_overlap === x.development_overlap, "paired case metadata differ"); return { category: x.category, delta: Number(y.pass) - Number(x.pass), latency_delta_ms: y.latency_ms - x.latency_ms }; });
+  const paired = a.items.map((x) => { const y = right.get(x.id); insist(y && y.category === x.category && y.development_overlap === x.development_overlap, "paired case metadata differ"); return { category: x.category, development_overlap: x.development_overlap, delta: Number(y.pass) - Number(x.pass), latency_delta_ms: y.latency_ms - x.latency_ms }; });
   const summarize = (rows: typeof paired) => {
     const n = rows.length; if (!n) return { n, score_delta: null, mean_latency_delta_ms: null, paired95: null, variance_across_cases: null };
     const mean = rows.reduce((s, x) => s + x.delta, 0) / n, variance = n > 1 ? rows.reduce((s, x) => s + (x.delta - mean) ** 2, 0) / (n - 1) : 0, half = 1.96 * Math.sqrt(variance / n);
@@ -162,14 +163,15 @@ export function compareArms(a: ArmResult, b: ArmResult) {
     return { n, score_delta: mean, mean_latency_delta_ms: latencyMean, latency_paired95_ms: [latencyMean - latencyHalf, latencyMean + latencyHalf], latency_variance_across_cases_ms2: latencyVariance, paired95: [Math.max(-1, mean - half), Math.min(1, mean + half)], variance_across_cases: variance,
       discordant_improved: rows.filter((x) => x.delta === 1).length, discordant_regressed: rows.filter((x) => x.delta === -1).length };
   };
-  return { identity: a.identity, mini: armSummary(a), higher: armSummary(b), paired: summarize(paired), categories: Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => [c, summarize(paired.filter((x) => x.category === c))])), uncertainty: "Approximate 95% paired intervals over this fixed corpus. Case dispersion is not repeat-run model variance; one pass per model cannot estimate run-to-run variance." };
+  return { identity: a.identity, mini: armSummary(a), higher: armSummary(b), paired: summarize(paired), paired_clean: summarize(paired.filter((x) => !x.development_overlap)), categories: Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => [c, summarize(paired.filter((x) => x.category === c))])), uncertainty: "Approximate 95% paired intervals over this fixed corpus. Case dispersion is not repeat-run model variance; one pass per model cannot estimate run-to-run variance." };
 }
 export interface IndependentVerdicts { judge_id: "Instinct"; owner_appointment_ref: string; model: string; identity: Identity; items: { id: string; judging_packet_sha256: string; pass: boolean; note: string }[] }
 export function independentSummary(arm: ArmResult, verdicts: IndependentVerdicts) {
   insist(armSummary(arm).status === "SCORED" && verdicts.judge_id === "Instinct" && verdicts.owner_appointment_ref.trim() && verdicts.model === arm.model && canonical(verdicts.identity) === canonical(arm.identity), "independent verdicts are not bound to this arm and owner-appointed judge");
   insist(verdicts.items.length === 320 && new Set(verdicts.items.map((i) => i.id)).size === 320, "independent verdict coverage incomplete");
   const combined = arm.items.map((it) => { const j = verdicts.items.find((j) => j.id === it.id); insist(j && typeof j.pass === "boolean" && it.judging_packet_sha256 && j.judging_packet_sha256 === it.judging_packet_sha256, "independent packet identity differs"); return { ...it, pass: !!it.pass && j.pass }; });
-  return { score_kind: "THREE_WAY_INTERSECTION", full: rateSummary(combined), clean: rateSummary(combined.filter((i) => !i.development_overlap)), categories: Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => [c, rateSummary(combined.filter((i) => i.category === c))])), acceptance_threshold_met: combined.filter((i) => i.pass).length / 320 >= .95 };
+  const full = rateSummary(combined), clean = rateSummary(combined.filter((i) => !i.development_overlap));
+  return { score_kind: "THREE_WAY_INTERSECTION", full, clean, categories: Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => [c, rateSummary(combined.filter((i) => i.category === c))])), clean_heldout_threshold_met: clean.rate !== null && clean.rate >= .95, full_descriptive_threshold_met: full.rate !== null && full.rate >= .95, deploy_approval: "NOT_GRANTED: live gate and owner decision remain separate" };
 }
 
 export async function modelPreflight(apiKey: string, models: string[], request: typeof fetch = fetch) {
@@ -187,7 +189,7 @@ export async function fixtureBrain(it: Case, clock: string, model: (payload: any
     import("../../supabase/functions/_shared/career_alert_store.ts"), import("../../supabase/functions/_shared/career_brief_store.ts"), import("../../supabase/functions/_shared/agent/memory.ts"), import("../../supabase/functions/_shared/career_apply_want.ts"), import("../../supabase/functions/_shared/agent/timeline.ts"), import("../../supabase/functions/_shared/career_situation.ts"),
   ]);
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
-  const fixture = copy(it.fixture ?? {}), contact = "+15550001000", userId = "u1";
+  const fixture = copy(it.fixture ?? {}), contact = "+15550001000", userId = `synthetic-${it.id}`;
   const alerts = memoryAlertStore(), { interviews, digest, dump: briefDump } = memoryBriefStores({ interviews: { [userId]: fixture.interviews ?? [] } });
   const memory = memoryStandingStore({ [userId]: fixture.standing ?? [] }), events = memoryEventStore(), baseWants = memoryWantStore();
   const seeded = fixture.wants ?? [];
@@ -201,7 +203,7 @@ export async function fixtureBrain(it: Case, clock: string, model: (payload: any
   const initial = copy(it.initial_state ?? {}), snapshots: Record<string, any> = {}, histories: Record<string, any[]> = copy(fixture.history ?? {});
   for (const [id, stores] of Object.entries(fixture.threads ?? {})) snapshots[id] = { v: 1, scope: { userId }, stores: copy(stores) };
   let account: any = { stated_facts: initial.statedFacts ? { facts: copy(initial.statedFacts.facts ?? []), keyed: [], offer: null } : {} }, accountProfile = initial.profile;
-  const baseStore = memoryStore(), store = { ...baseStore, async history(_u: string) { return copy(histories[currentThread] ?? []); }, async append(_u: string, m: any) { (histories[currentThread] ??= []).push(copy(m)); },
+  const baseStore = memoryStore({ people: [{id:userId,contact,created:now}], history:{},stores:{},queue:[],delivered:[],seq:1 }), store = { ...baseStore, async history(_u: string) { return copy(histories[currentThread] ?? []); }, async append(_u: string, m: any) { (histories[currentThread] ??= []).push(copy(m)); },
     async stores(_u: string) { return { snapshot: snapshots[currentThread] ?? { v: 1, scope: { userId }, stores: copy(initial) } }; }, async setStores(_u: string, s: any) { snapshots[currentThread] = copy(s.snapshot); } };
   const replies: string[] = [], trace: any[] = [];
   const brainImpl = async (a: any) => {
@@ -214,7 +216,7 @@ export async function fixtureBrain(it: Case, clock: string, model: (payload: any
       postings: async () => { fail("postings"); return copy(fixture.postings ?? []); }, posting: async (id) => { fail("posting"); return copy((fixture.postings ?? []).find((p: any) => p.job_id === id) ?? null); },
       known: { standing, alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation }, model: (payload) => model(payload, turn) });
     trace.push({ stopped: result.stopped, steps: result.steps, tools: result.tool_calls });
-    if (result.stopped !== "final") throw new Error(`brain stopped: ${result.stopped}`);
+    if (result.stopped === "model_error") throw new Error(`brain stopped: ${result.stopped}`);
     const snapshot = host.extractSnapshot(ctx); if (ctx._hostPatch?.stated_facts) account = { ...account, stated_facts: copy(ctx._hostPatch.stated_facts) };
     accountProfile = copy(ctx.profile ?? null);
     return { reply: result.reply, stores: { snapshot } };
@@ -234,9 +236,10 @@ export async function fixtureBrain(it: Case, clock: string, model: (payload: any
 
 export const COMPARISON_RUBRIC = JUDGE_PROMPT.replace("one reply", "one complete conversation").replace("Agent's final reply:", "Complete user/assistant transcript (grade EVERY assistant turn):") + "\nGrade the complete user/assistant transcript and full saved state. An earlier unsupported claim or incomplete answer is still a failure even when the final turn is correct. Do not infer a task completed from an acknowledgement. A refusal or blocker must name what could not be completed. Every assertion about the person must be supported by their own words or the fixture state. State/tool records outrank prose claims.\n";
 export interface Approval { owner_approval_ref: string; model: string; source_commit: string; corpus_sha256: string; cap_usd: number; new_budget_spent_usd: number; other_reserved_usd: number; ledger_snapshot_at: string; approved_over_ten?: boolean }
-export function validateApproval(a: Approval, model: string, source: string, corpusHash: string) {
+export function validateApproval(a: Approval, model: string, source: string, corpusHash: string, now = Date.now()) {
   insist(typeof a.owner_approval_ref === "string" && a.owner_approval_ref.trim().length > 0 && a.model === model && a.source_commit === source && a.corpus_sha256 === corpusHash, "owner approval is missing or not bound to this arm/candidate/corpus");
   insist(Number.isFinite(a.cap_usd) && a.cap_usd > 0 && [a.new_budget_spent_usd, a.other_reserved_usd].every((n) => Number.isFinite(n) && n >= 0) && Number.isFinite(Date.parse(a.ledger_snapshot_at)), "approval needs current shared ledger snapshot");
+  const age = now - Date.parse(a.ledger_snapshot_at); insist(age >= -300000 && age <= 1800000, "owner ledger snapshot must be no older than30minutes or more than5minutes in the future");
   insist(a.cap_usd <= 10 || a.approved_over_ten === true, "over-$10 arm requires explicit owner word");
   insist(a.new_budget_spent_usd + a.other_reserved_usd + a.cap_usd <= 35, "arm reservation exceeds new $35 working budget");
 }
@@ -262,7 +265,7 @@ export async function runArm(corpus: Corpus, identity: Identity, model: string, 
     try {
       result = await fixtureBrain(it, corpus.clock_utc, (payload, turn) => call({ case_id: it.id, category: it.category, role: "brain", model, turn }, payload));
       brainLatency = performance.now() - started;
-      const transcript = JSON.stringify({ turns: it.turns.map((user, i) => ({ user, assistant: result.replies[i] })) });
+      const transcript = JSON.stringify({ turns: it.turns.map((user, i) => ({ user, assistant: result.replies[i] })), trace: result.trace });
       insist(bytes(transcript).length <= 120000, "judge evidence exceeds explicit size limit; nothing was truncated");
       const fill: Record<string, string> = { persona: it.persona, turns: JSON.stringify(it.turns), reply: transcript, state: JSON.stringify(result.state), must: JSON.stringify(it.must), must_not: JSON.stringify(it.must_not), state_expectation: it.state ?? "(none)" };
       const prompt = COMPARISON_RUBRIC.replace(/\{(\w+)\}/g, (_, key) => fill[key] ?? "");
@@ -274,7 +277,8 @@ export async function runArm(corpus: Corpus, identity: Identity, model: string, 
       }
     } catch (e) { halt = true; error = e instanceof Error ? e.message : String(e); }
     const mine = journal.settled.filter((c) => c.case_id === it.id);
-    const item: ItemResult = { id: it.id, category: it.category, development_overlap: it.development_overlap, pass: error ? null : completeJudgment(judged), latency_ms: brainLatency || performance.now() - started, evaluation_latency_ms: performance.now() - started, input_tokens: mine.reduce((s, c) => s + (c.usage?.input_tokens ?? 0), 0), output_tokens: mine.reduce((s, c) => s + (c.usage?.output_tokens ?? 0), 0), cached_tokens: mine.reduce((s, c) => s + (c.usage?.cache_read_input_tokens ?? 0), 0), usd_micros: mine.reduce((s, c) => s + (c.usd_micros ?? 0), 0), judges: judged, ...(error ? { error } : {}), ...(result ?? {}), ...(packet ? { judging_packet: packet, judging_packet_sha256: await sha256(packet) } : {}) };
+    const product_failures = (result?.trace ?? []).filter((t: any) => ["incomplete_reply", "max_steps"].includes(t.stopped)).map((t: any) => t.stopped);
+    const item: ItemResult = { id: it.id, category: it.category, development_overlap: it.development_overlap, pass: error ? null : completeJudgment(judged) && !product_failures.length, product_failures, latency_ms: brainLatency || performance.now() - started, evaluation_latency_ms: performance.now() - started, input_tokens: mine.reduce((s, c) => s + (c.usage?.input_tokens ?? 0), 0), output_tokens: mine.reduce((s, c) => s + (c.usage?.output_tokens ?? 0), 0), cached_tokens: mine.reduce((s, c) => s + (c.usage?.cache_read_input_tokens ?? 0), 0), usd_micros: mine.reduce((s, c) => s + (c.usd_micros ?? 0), 0), judges: judged, ...(error ? { error } : {}), ...(result ?? {}), ...(packet ? { judging_packet: packet, judging_packet_sha256: await sha256(packet) } : {}) };
     append({ type: "item", item }); items.push(item);
   } };
   await Promise.all(Array.from({ length: identity.concurrency }, worker));
@@ -305,6 +309,9 @@ if (import.meta.main) {
       const git = async (...args: string[]) => { const r = await new Deno.Command("git", { args, stdout: "piped", stderr: "piped" }).output(); insist(r.success, "git provenance check failed"); return new TextDecoder().decode(r.stdout).trim(); };
       const source = await git("rev-parse", "HEAD"); insist(/^[a-f0-9]{40}$/.test(source) && !await git("status", "--porcelain"), "candidate checkout must be clean and pinned");
       validateApproval(approval, model, source, manifest.sha256);
+      // Local, same-approval-file replay guard only. The owner's shared ledger and once-only publication remain authoritative.
+      const receipt = Deno.openSync(opt("--approval-file")! + ".consumed", { write: true, createNew: true, mode: 0o600 });
+      try { receipt.writeSync(bytes(canonical({ approval, consumed_at: new Date().toISOString() }))); receipt.syncSync(); } finally { receipt.close(); }
       const identity: Identity = { source_commit: source, corpus_sha256: manifest.sha256, rubric_sha256: await sha256(COMPARISON_RUBRIC), clock_utc: corpus.clock_utc, seed: corpus.seed, concurrency: 4,
         params: { judges: [...JUDGES], reasoning_effort: "minimal", brain_max_tokens: 1200, judge_max_tokens: 700, provider_retry_count: 0, turn_advance_ms: 60000, fixture_version: "deterministic-local-stores-v1", manifest_sha256: await sha256(manifestRaw), harness_sha256: await sha256(await Deno.readTextFile(new URL(import.meta.url))), prices_sha256: await sha256(canonical(Object.fromEntries([...MODELS, ...JUDGES].map((m) => [m, PRICES[m]])))) } };
       const file = durableAppend(out + ".journal.jsonl");

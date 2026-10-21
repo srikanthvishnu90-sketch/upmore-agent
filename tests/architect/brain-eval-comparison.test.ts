@@ -108,15 +108,15 @@ Deno.test("comparison: no score transfers to independent third judge or mismatch
   const a = arm(); assert(armSummary(a).score_kind === "CI_INTERSECTION" && armSummary(a).final_acceptance.startsWith("NOT_RUN"));
   for (const i of a.items) i.judging_packet_sha256 = "a".repeat(64);
   const third = { judge_id: "Instinct" as const, owner_appointment_ref: "unit-only fixture", model: a.model, identity: a.identity, items: a.items.map((i) => ({id:i.id,judging_packet_sha256:i.judging_packet_sha256!,pass:true,note:"unit"})) };
-  assert(independentSummary(a, third).acceptance_threshold_met);
+  assert(independentSummary(a, third).clean_heldout_threshold_met);
   third.items[0].judging_packet_sha256 = "b".repeat(64); throws(() => independentSummary(a, third), "packet");
 });
 Deno.test("comparison: owner approval binds model, candidate, corpus and new-money headroom", () => {
   const a = { owner_approval_ref: "unit-only owner fixture", model:"gpt-5",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:8,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:"2026-10-21T12:00:00Z" };
-  validateApproval(a, a.model, a.source_commit, a.corpus_sha256);
-  throws(() => validateApproval(a,"gpt-5-mini",a.source_commit,a.corpus_sha256), "bound");
-  throws(() => validateApproval({...a,cap_usd:12},a.model,a.source_commit,a.corpus_sha256), "over-$10");
-  throws(() => validateApproval({...a,cap_usd:8,other_reserved_usd:30},a.model,a.source_commit,a.corpus_sha256), "$35");
+  validateApproval(a, a.model, a.source_commit, a.corpus_sha256,Date.parse(a.ledger_snapshot_at));
+  throws(() => validateApproval(a,"gpt-5-mini",a.source_commit,a.corpus_sha256,Date.parse(a.ledger_snapshot_at)), "bound");
+  throws(() => validateApproval({...a,cap_usd:12},a.model,a.source_commit,a.corpus_sha256,Date.parse(a.ledger_snapshot_at)), "over-$10");
+  throws(() => validateApproval({...a,cap_usd:8,other_reserved_usd:30},a.model,a.source_commit,a.corpus_sha256,Date.parse(a.ledger_snapshot_at)), "$35");
 });
 Deno.test("comparison: fixture passes own account facts, never the judge-only persona, into the real brain", async () => {
   const it = corpus().items[0]; it.persona = "JUDGE_ONLY_SENTINEL"; it.turns = ["What do you know about me?", "What do you know about me?"]; it.turn_contexts=[{thread_id:"old"},{thread_id:"new"}];
@@ -132,7 +132,7 @@ Deno.test("comparison: fixture executes real standing-memory writes and carries 
     if(turn===1)assert(payload.system.includes("Needs visa sponsorship"));
     return {content:[{type:"text",text:turn===0?"I saved your sponsorship instruction. What kind of role are you looking for?":"You need visa sponsorship. What kind of role are you looking for?"}],stop_reason:"end_turn"};
   });
-  assert(result.state.standing.u1.length===1 && result.state.standing.u1[0].said==="I need visa sponsorship");
+  assert(result.state.standing[`synthetic-${it.id}`].length===1 && result.state.standing[`synthetic-${it.id}`][0].said==="I need visa sponsorship");
 });
 Deno.test("comparison: judges see an earlier nonanswer even when the last reply answers correctly", async () => {
   const it = corpus().items[0]; it.turns=["What is my confirmed skill?","Please answer the skill question now."];
@@ -162,4 +162,29 @@ Deno.test("comparison: judge parse failure preserves known charge and is NOT_SCO
   const fake=(async(_url:unknown,init?:RequestInit)=>{const body=JSON.parse(String(init?.body));calls++;return Response.json({model:body.model,choices:[{message:{content:calls===1?"Your confirmed skill is SQL. Which role would you like next?":"invalid verdict"},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:10}});}) as typeof fetch;
   const result=await runArm(c,{...arm().identity,concurrency:1},"gpt-5-mini",journal,()=>{},"unit-key",fake);
   assert(calls===2 && result.status==="NOT_SCORED" && result.items[0].pass===null && result.ledger.usd_micros===90 && result.ledger.unknown_charges===0);
+});
+Deno.test("comparison: an incomplete product answer is failed while later cases still execute", async () => {
+  const a=corpus().items[0],b=corpus().items[1];a.turns=["What is my confirmed skill?"];b.turns=["What is my confirmed skill?"];
+  for(const it of [a,b])it.initial_state={profile:{id:"profile-1",basics:{},constraints:{},preferences:{},facts:[{id:"F-001",kind:"skill",text:"I use SQL",status:"confirmed",needs_confirmation:false}]}};
+  const c={...corpus(),items:[a,b]},journal=new BudgetJournal(1000000,()=>{});let brainCalls=0,judgeCalls=0;
+  const fake=(async(_url:unknown,init?:RequestInit)=>{const body=JSON.parse(String(init?.body));let content:string;
+    if(body.messages[0].content==="Grade strictly. Return only the requested JSON object."){judgeCalls++;content=JSON.stringify({pass:true,failed:[],score:5,note:"unit judge, product stop must still force failure"});}
+    else{brainCalls++;content=brainCalls<=2?"Is that right?":"Your confirmed skill is SQL. Which role would you like next?";}
+    return Response.json({model:body.model,choices:[{message:{content},finish_reason:"stop"}],usage:{prompt_tokens:100,completion_tokens:10}});
+  }) as typeof fetch;
+  const result=await runArm(c,{...arm().identity,concurrency:1},"gpt-5-mini",journal,()=>{},"unit-key",fake);
+  assert(result.items.length===2 && result.items[0].pass===false && result.items[1].pass===true && judgeCalls===4 && result.status==="SCORED");
+});
+Deno.test("comparison: passing overlap cases cannot lift sub95 clean heldout performance into acceptance", () => {
+  const a=arm();for(let n=0;n<a.items.length;n++)a.items[n].development_overlap=n<9;
+  for(const i of a.items)i.judging_packet_sha256="a".repeat(64);
+  const third={judge_id:"Instinct" as const,owner_appointment_ref:"unit-only fixture",model:a.model,identity:a.identity,items:a.items.map((i,n)=>({id:i.id,judging_packet_sha256:i.judging_packet_sha256!,pass:n<304,note:"unit"}))};
+  const r=independentSummary(a,third);assert(r.full.n===320 && r.full.passed===304 && r.full_descriptive_threshold_met);
+  assert(r.clean.n===311 && r.clean.passed===295 && !r.clean_heldout_threshold_met);
+});
+Deno.test("comparison: stale or future owner ledger snapshots fail before provider dispatch", () => {
+  const now=Date.parse("2026-10-21T17:00:00Z"), a={owner_approval_ref:"unit-only fixture",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:.139984,other_reserved_usd:0,ledger_snapshot_at:new Date(now).toISOString()};
+  validateApproval(a,a.model,a.source_commit,a.corpus_sha256,now);
+  throws(()=>validateApproval({...a,ledger_snapshot_at:new Date(now-1800001).toISOString()},a.model,a.source_commit,a.corpus_sha256,now),"no older");
+  throws(()=>validateApproval({...a,ledger_snapshot_at:new Date(now+300001).toISOString()},a.model,a.source_commit,a.corpus_sha256,now),"future");
 });

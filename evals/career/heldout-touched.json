@@ -1,0 +1,78 @@
+{
+ "note": "WO-061 (owner, 2026-10-21: \"do not read held-out item text beyond failure reasons and log every item you read in a committed touched list\"). Every held-out item the builder has seen, with the run and what was read. An item listed here is not sealed for the builder and is flagged for replacement by items the builder never sees.",
+ "set_is_not_sealed_from_the_builder": "The architect (the builder of the brain) wrote all 38 items in WO-059, and before this rule, eval summaries in this session showed it per-item results (ids, judge notes, some replies) for the 33 items under earlier_sessions, after runs 39454760318, 39456603956, 39458269838, 39535880905 and 39538248995. A held-out score on this set is therefore not a sealed-sample score. A truly sealed set needs items written by someone else (the owner or Instinct) that the builder never reads.",
+ "never_shown": [
+  "H008",
+  "H009",
+  "H016",
+  "H017",
+  "H024"
+ ],
+ "earlier_sessions": [
+  "H001",
+  "H002",
+  "H003",
+  "H004",
+  "H005",
+  "H006",
+  "H007",
+  "H010",
+  "H011",
+  "H012",
+  "H013",
+  "H014",
+  "H015",
+  "H018",
+  "H019",
+  "H020",
+  "H021",
+  "H022",
+  "H023",
+  "H025",
+  "H026",
+  "H027",
+  "H028",
+  "H029",
+  "H030",
+  "H031",
+  "H032",
+  "H033",
+  "H034",
+  "H035",
+  "H036",
+  "H037",
+  "H038"
+ ],
+ "items": [
+  {
+   "id": "H006",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: offers career help instead",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H030",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says honestly there is no match to book with",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H031",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says no research resume is on file and asks them to add it",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H032",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says there is no intro on record",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H037",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says Fieldnote Software",
+   "at": "2026-10-21"
+  }
+ ]
+}

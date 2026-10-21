@@ -1,6 +1,7 @@
-# WO-061 (owner, 2026-10-21): the chat brain's one bar is 95% or better on the held-out set (evals/career/heldout-live.json),
-# one full pass, on the build that is live. Two independent judges score each item (gpt-5-mini and gpt-4.1-mini, both
-# OpenAI; no Anthropic spend); an item passes only when both pass it. The router runs beside it on the same set as the
+# WO-061 (owner, 2026-10-21; D-030): the chat brain's one bar is 95% or better on the held-out set (evals/career/heldout-live.json),
+# one full pass, on the build that is live. Two independent judges: gpt-5-mini here (OpenAI; no Anthropic spend) and
+# Instinct, the owner-appointed second judge, who re-scores every run into evals/career/instinct/<run>.json; an item passes
+# only when both pass it (evals/career/both-pass.ts). The line this workflow logs is gpt-5-mini's alone, provisional. The router runs beside it on the same set as the
 # comparison. Every run adds one line per brain to evals/career/SCORE-LOG.md (date/time, brain commit, set size, score)
 # and commits it with the result files to ci/brain-eval. Needs the repository secret OPENAI_API_KEY; without it the run
 # prints NOT RUN and fails: a score is never faked. Spend: the runner counts every result file's recorded spend against
@@ -27,7 +28,6 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
-      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
       EVAL_BUDGET_USD: "15"
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +49,9 @@ jobs:
           deno eval '
             const a = JSON.parse(Deno.readTextFileSync("evals/career/results/heldout-agent-${{ github.run_id }}.json"));
             if (a.stopped) { console.log("WO-061: NOT A SCORE (the run stopped at the spend cap)"); Deno.exit(0); }
-            console.log(`WO-061: held-out agent ${a.passed}/${a.total} (${(a.pass_rate * 100).toFixed(1)}%), two judges, brain ${a.source_commit}: ${a.pass_rate >= 0.95 ? "AT THE BAR (95%); live only once this exact build is deployed" : "BELOW THE BAR (95%)"}`);
+            const errs = a.items.filter((x) => /^judge error/.test(x.note ?? "") || (x.judges ?? []).some((j) => /^judge error/.test(j.note ?? ""))).length;
+            if (errs) { console.log(`WO-061: NOT A SCORE (${errs} judge errors)`); Deno.exit(0); }
+            console.log(`WO-061: held-out agent ${a.passed}/${a.total} (${(a.pass_rate * 100).toFixed(1)}%) on gpt-5-mini alone, brain ${a.source_commit}: ${a.pass_rate >= 0.95 ? "gpt-5-mini alone at 95%; the score is both-pass with Instinct, on the live build" : "BELOW THE BAR (95%) on gpt-5-mini alone"}`);
           ' | tee "$RUNNER_TEMP/verdict.txt"
       - name: Commit the results to ci/brain-eval
         if: always()

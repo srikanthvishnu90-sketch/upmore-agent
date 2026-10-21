@@ -30,7 +30,7 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs } from "../_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerProfile } from "../_shared/router_core.career.js";
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
@@ -43,6 +43,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
+import { applyPickTurn } from "../_shared/career_apply_pick.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
@@ -272,16 +273,19 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // product's designed honest-empty reply — never a crashed turn,
     // never an invented role. The worker's postingsFor reads through
     // the same loader, so the two pools cannot disagree.
-    const poolLoader = CareerPool.createKbPoolLoader({
+    // WO-105: the pool is the live postings (career_postings, open only): the snapshot is never refreshed, so a link
+    // ranked from it can lead to a posting that closed weeks ago. An empty live table answers honestly empty.
+    const poolLoader = CareerPool.createLivePoolLoader({
       readRows: async (spec: any) => {
         let q: any = admin.from(spec.table).select(spec.select)
           .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst });
         for (const f of (spec.filters ?? [])) {
           if (f.op === "ilike") q = q.ilike(f.column, f.value);
           else if (f.op === "eq") q = q.eq(f.column, f.value);
+          else if (f.op === "is") q = q.is(f.column, f.value);
         }
         const { data, error } = await q.limit(spec.limit);
-        if (error) throw new Error(`career_kb_postings read failed: ${error.message}`);
+        if (error) throw new Error(`${spec.table} read failed: ${error.message}`);
         return data ?? [];
       },
       jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
@@ -400,6 +404,21 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
+      // WO-105: "apply to the second one" (or "#2", "the last one", "apply to Stripe") applies to that posting from the list
+      // this thread was last shown: still open on file, the same checks as the agent's queue, then the person's own apply
+      // queue. The extension's card stays the approval of each application. Code's, before either brain.
+      const shown = (ctx as any).discovery?.lastShown ?? null;
+      let pick: Awaited<ReturnType<typeof applyPickTurn>> = null;
+      if (shown && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)) {
+        // The past applications and the day's limit are read only when a pick is queued, not on every turn after a list.
+        const pickPostings = supabasePostingsDb(admin);
+        pick = await applyPickTurn({ message, userId: user.id, now: Date.now(), shown, deps: {
+          wants: supabaseWantStore(admin), posting: (id) => pickPostings.get(id), events,
+          apps: () => supabaseMailStore(admin).applications(user.id).catch((e: any) => { console.error("apply pick: applications", e?.message ?? e); return null; }),
+          limits: () => admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => ({ daily: r.error ? undefined : Number(r.data) || undefined }), () => ({})),
+          facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}) } })
+          .catch((e) => { console.error("apply pick:", e?.message ?? e); return { reply: "Something went wrong saving that to your apply queue; nothing was queued. Send it again.", status: "refused" as const, queued: 0, intent: "career_apply_pick" }; });
+      }
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -424,6 +443,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
       } else if (cloud) {
         out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
+      } else if (pick) {
+        out = { reply: pick.reply, intent: pick.intent, resultStatus: pick.status, contained: false, handler: "apply_pick" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

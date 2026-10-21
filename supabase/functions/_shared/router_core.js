@@ -36183,14 +36183,17 @@ const CareerRouter = (() => {
     const m = s(gd).match(/(20\d\d)/) || profileFactsText(profile).match(/graduating[^0-9]*(20\d\d)/i);
     return m ? Number(m[1]) : null;
   }
+  // WO-105: null when the profile holds no dated work history: experience is then unknown, not zero. Read as 0 it hard-
+  // excluded every senior posting and every "3+ years" posting from a person who said "3 years of SQL and Tableau" (a
+  // statement the profile does not date), including the senior role they asked for by name.
   function experienceYearsOf(profile) {
-    let months = 0;
+    let months = 0, dated = false;
     for (const f of ((profile && profile.facts) || [])) {
       if (f.kind !== "experience" || !f.start) continue;
       const a = Date.parse(`${f.start}-01T00:00:00Z`), b = f.end ? Date.parse(`${f.end}-01T00:00:00Z`) : a;
-      if (Number.isFinite(a) && Number.isFinite(b) && b >= a) months += Math.round((b - a) / 2592000000) + 1;
+      if (Number.isFinite(a) && Number.isFinite(b) && b >= a) { months += Math.round((b - a) / 2592000000) + 1; dated = true; }
     }
-    return Math.floor(months / 12);
+    return dated ? Math.floor(months / 12) : null;
   }
   // 121's hardFilters treat profile preference locations as a hard filter and
   // its graduation regex reads only the FIRST year of a range; the router owns
@@ -36239,7 +36242,9 @@ const CareerRouter = (() => {
   }
   function adaptPosting(cp) {
     if (!cp) return null;
-    if (cp.jd_text && cp.job_id && !Array.isArray(cp.requirements)) {
+    // WO-105: a pool posting with an empty description is still a pool posting (its remote flag, family and band are its
+    // own); only the older corpus shape, which has no jd_text field at all, goes through the corpus adapter below.
+    if (typeof cp.jd_text === "string" && cp.job_id && !Array.isArray(cp.requirements)) {
       return Object.assign({}, cp, { corpus_id: cp.corpus_id || cp.job_id, id: cp.corpus_id || cp.job_id });
     }
     const jd = jdTextForPosting(cp);
@@ -36272,7 +36277,7 @@ const CareerRouter = (() => {
     // production Java"), not only in 121's narrower "years of experience" form
     const yearsReq = [...allText.matchAll(/\b(\d+)\+?\s*years?\b/gi)].map((m) => Number(m[1])).filter((n) => n >= 2);
     const myYears = experienceYearsOf(profile);
-    if (yearsReq.length && myYears + 1 < Math.max(...yearsReq)) reasons.push(`experience: the posting asks ${Math.max(...yearsReq)}+ years; your profile shows about ${myYears}`);
+    if (yearsReq.length && myYears != null && myYears + 1 < Math.max(...yearsReq)) reasons.push(`experience: the posting asks ${Math.max(...yearsReq)}+ years; your profile shows about ${myYears}`);
     // graduation windows, ranges read whole ("graduating May 2026–May 2027")
     const gy = gradYearOf(profile);
     if (gy) {
@@ -36395,7 +36400,15 @@ const CareerRouter = (() => {
     const countM = t.match(/(\d+)\s*(?:roles|jobs|internships)/);
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
-    const { ranked, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    const { ranked: byFit, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    // WO-105: what the ask itself names breaks ties in fit, never overrides it: a "senior" ask ranks senior-level postings
+    // first among equal fits, and a named city ranks that city first, then remote, then elsewhere.
+    const askSenior = /\b(senior|sr\.?|lead|staff|principal)\b/.test(t);
+    const askCityM = s(text).match(/\bin\s+([A-Z][A-Za-z]+(?:\s[A-Z][A-Za-z]+){0,2}|NYC|SF|LA)\b/) || s(text).match(/\b(new york|chicago|boston|san francisco|los angeles|houston|dallas|seattle|austin|denver|atlanta|london)\b/i);
+    const askCity = askCityM ? lc(askCityM[1]) : null;
+    const seniorRank = (r) => (askSenior && !["senior", "staff", "director"].includes(r.posting && r.posting.seniority_band) ? 1 : 0);
+    const cityRank = (r) => (!askCity || askCity === "remote" ? 0 : lc(r.location).includes(askCity) ? 0 : r.remote === "remote" ? 1 : 2);
+    const ranked = byFit.map((r, i) => ({ r, i })).sort((a, b) => (b.r.score - a.r.score) || (seniorRank(a.r) - seniorRank(b.r)) || (cityRank(a.r) - cityRank(b.r)) || (a.i - b.i)).map((x) => x.r);
     // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
     // a follow-up ("remote ones too", "I meant data science", "what
     // did you find") is answered against THIS record by the delta
@@ -36416,6 +36429,14 @@ const CareerRouter = (() => {
       } });
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
+    // WO-105: the list shown, in the order shown, so "apply to the second one" is the second posting the person saw,
+    // never a re-ranked or re-searched one. Replaced by each list shown; kept with the thread's snapshot.
+    if (top.length) {
+      ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastShown: {
+        at: new Date(nowOf(ctx)).toISOString(), ask: s(text).slice(0, 200),
+        items: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location || "", url: s(r.posting && r.posting.url) })),
+      } });
+    }
     const publicFacts = {
       shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
       ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
@@ -36442,7 +36463,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "I found no roles in the current list that pass your profile's hard filters.", facts: excluded.length ? [`${excluded.length} postings were excluded, mostly for: ${excluded[0].reasons[0]}.`] : [], nextStep: "Widen the location or role and I will search again." });
       return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
     }
-    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
+    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || (top.length > 1 ? 'Say "apply to the second one" (or any number) and I will put it in your apply queue, or tell me one to tailor your resume for.' : 'Say "apply to it" and I will put it in your apply queue, or ask me to tailor your resume for it.') });
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
@@ -45739,7 +45760,10 @@ const CareerRouter = (() => {
       const dd = handleDiscoveryDelta(text, c);
       if (dd) return dd;
     }
-    if (/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t)) {
+    // WO-105: a search is asked many ways ("show me senior data analyst jobs in Chicago", "list analyst roles", "search for
+    // remote jobs"), not only "find". An ask about jobs already applied to stays the tracker's.
+    if ((/\bfind\b[^.]*\b(roles|jobs|internships|positions)\b|\bfind me roles\b/.test(t) || /^(?:(?:ok(?:ay)?|so|now|hey|please|can you|could you)[\s,]+)*(?:show|list|search|look|pull up|get|give)\b(?:\s+(?:me|us|for|up))*[^.?]*\b(roles|jobs|openings|positions)\b/.test(t))
+      && !/\b(applied|application|applications|interview|interviews)\b/.test(t)) {
       // COMPLEXITY WAVE (BUG-173): the profile gate is GONE — a
       // profile-less find runs the same discovery and returns its
       // honest result (the empty-pool answer names the empty list,

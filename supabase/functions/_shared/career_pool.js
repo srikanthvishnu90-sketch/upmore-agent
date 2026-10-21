@@ -190,7 +190,56 @@ const CareerPool = (() => {
     return { loadPool, loadTargeted };
   }
 
-  return { mapKbPosting, createKbPoolLoader, KB_POSTINGS_TABLE, KB_POSTINGS_COLUMNS, DEFAULT_LIMIT };
+  // WO-105: the live pool. career_postings is what career-ingest reads from the boards every run, with a closed_at once a
+  // board stops listing a posting; career_kb_postings is an October snapshot that is never refreshed, so a link ranked
+  // from it may lead to a posting that closed weeks ago. The chat ranks only open live postings: an empty pool answers
+  // honestly empty (a missing link beats a dead one), and the snapshot is never a fallback.
+  const LIVE_POSTINGS_TABLE = "career_postings";
+  const LIVE_POSTINGS_COLUMNS = "job_id,provider,board,company,title,location,url,description,posted_at,first_seen_at,last_seen_at";
+  function mapLivePosting(row, jobs) {
+    if (!row || typeof row !== "object") return null;
+    return mapKbPosting({
+      posting_key: row.job_id, source: row.provider, board: row.board, company: row.company, title: row.title,
+      location: row.location, url: row.url, posted_at: row.posted_at || row.first_seen_at,
+      fetched_on: s(row.last_seen_at).slice(0, 10) || null, corpus_vintage: null, text_excerpt: s(row.description).slice(0, 4000),
+    }, jobs);
+  }
+  function createLivePoolLoader(deps) {
+    const d = deps || {};
+    if (typeof d.readRows !== "function") throw new Error("career pool: a readRows(spec) function is required — the loader never invents a data source");
+    const jobs = d.jobs || null;
+    const limit = Number.isSafeInteger(d.limit) && d.limit > 0 ? d.limit : DEFAULT_LIMIT;
+    const open = { column: "closed_at", op: "is", value: null };
+    async function read(spec) {
+      let rows;
+      try { rows = await d.readRows(spec); } catch { return null; }
+      return Array.isArray(rows) ? rows : null;
+    }
+    async function loadPool() {
+      const rows = await read({ table: LIVE_POSTINGS_TABLE, select: LIVE_POSTINGS_COLUMNS, order: { column: "last_seen_at", ascending: false, nullsFirst: false }, limit, filters: [open] });
+      if (!rows) return { postings: [], fetchedOn: null, error: "LIVE_POOL_READ_FAILED" };
+      const postings = [];
+      let fetchedOn = null;
+      for (const row of rows) {
+        const p = mapLivePosting(row, jobs);
+        if (!p) continue;
+        postings.push(p);
+        if (p.fetched_on && (!fetchedOn || p.fetched_on > fetchedOn)) fetchedOn = p.fetched_on;
+      }
+      return { postings, fetchedOn, error: null };
+    }
+    async function loadTargeted(target) {
+      const company = s(target && target.company).trim();
+      if (!company) return { postings: [], error: null };
+      const rows = await read({ table: LIVE_POSTINGS_TABLE, select: LIVE_POSTINGS_COLUMNS, order: { column: "last_seen_at", ascending: false, nullsFirst: false }, limit: TARGETED_LIMIT,
+        filters: [open, { column: "company", op: "ilike", value: `%${company.replace(/[%_\\]/g, "")}%` }] });
+      if (!rows) return { postings: [], error: "LIVE_POOL_READ_FAILED" };
+      return { postings: rows.map((r) => mapLivePosting(r, jobs)).filter(Boolean), error: null };
+    }
+    return { loadPool, loadTargeted };
+  }
+
+  return { mapKbPosting, createKbPoolLoader, KB_POSTINGS_TABLE, KB_POSTINGS_COLUMNS, DEFAULT_LIMIT, mapLivePosting, createLivePoolLoader, LIVE_POSTINGS_TABLE, LIVE_POSTINGS_COLUMNS };
 })();
 
 export { CareerPool };

@@ -136,3 +136,38 @@ Deno.test("memory eligibility: actual brain prompt excludes explicitly generated
   eq(JSON.stringify(profile), before, "real brain rendering mutated the supplied fact bank");
   eq(out.stopped, "final", "scripted turn failed"); eq(calls, 1, "unexpected model retry");
 });
+
+Deno.test("memory eligibility: denied preference records cannot create search goals", () => {
+  for (const denied of [{ source: "agent" }, { origin: "AI_GENERATED" }, { provenance: { quarantined: true } }, { unproven: true }]) {
+    const profile = { preferences: { ...denied, roles: ["SYN-DENIED-PREFERENCE"], locations: ["SYN-DENIED-CITY"], remote: "SYN-DENIED-REMOTE", compFloor: "SYN-DENIED-PAY", targetCompanies: ["SYN-DENIED-COMPANY"] }, facts: [confirmedFact("SYN-OWN-SKILL", { source: "user" })] };
+    const out = block(profile);
+    ok(!out.includes("SYN-DENIED"), "denied preferences entered goal context");
+    ok(out.includes("SYN-OWN-SKILL"), "denied preferences erased an unrelated confirmed fact");
+  }
+});
+
+Deno.test("memory eligibility: a denied basics record cannot supply a remembered location", () => {
+  const profile = { basics: { source: "model", location: "SYN-DENIED-LOCATION" }, preferences: { roles: ["Data analyst"], locations: ["Boston"] }, facts: [fact("SYN-OWN-GOAL", "goal")] };
+  const out = block(profile);
+  ok(!out.includes("SYN-DENIED-LOCATION"), "generated basics supplied a personal location");
+  ok(out.includes("Places: Boston") && out.includes("Roles: Data analyst") && out.includes("SYN-OWN-GOAL (said, not confirmed yet)"), "denying basics erased independent own context");
+});
+
+Deno.test("memory eligibility: denied standing records cannot become mandatory own instructions", () => {
+  const own = { id: "SYN-OWN-STANDING", text: "No staffing agencies", said: "No staffing agencies", at: "2026-10-21T18:00:00Z" };
+  for (const denied of [...deniedOrigins.map((source) => ({ source })), { provenance: { quarantined: true } }, { unproven: true }, { rejected: true }]) {
+    const bad = { id: "SYN-DENIED-STANDING", text: "SYN-DENIED-CONSTRAINT", said: "SYN-DENIED-CONSTRAINT", at: "2026-10-21T18:00:00Z", ...denied };
+    const out = block({ facts: [confirmedFact("SYN-OWN-SKILL")] }, [own, bad]);
+    ok(!out.includes("SYN-DENIED-CONSTRAINT"), "denied standing record became an instruction");
+    ok(out.includes("No staffing agencies") && out.includes("SYN-OWN-SKILL"), "denying one instruction erased own data");
+  }
+});
+
+Deno.test("memory eligibility: own preference basics and standing records retain legacy compatibility without mutation", () => {
+  const profile = { basics: { location: "Boston", source: "user" }, preferences: { roles: ["Data analyst"], source: "user", corrected_from: { source: "agent" } }, facts: [fact("SYN-OWN-GOAL", "goal")] };
+  const standing: any[] = [{ id: "SYN-LEGACY-STANDING", text: "No staffing agencies" }, { id: "SYN-OWN-STANDING", text: "Only weekdays", said: "Only weekdays", at: "2026-10-21T18:00:00Z", source: "user", history: [{ source: "agent" }] }];
+  const before = JSON.stringify({ profile, standing }), out = block(profile, standing);
+  ok(out.includes("Places: Boston") && out.includes("Roles: Data analyst") && out.includes("SYN-OWN-GOAL (said, not confirmed yet)"), "current own goal context was suppressed");
+  ok(out.includes("No staffing agencies") && out.includes("Only weekdays"), "legacy or own standing instructions disappeared");
+  eq(JSON.stringify({ profile, standing }), before, "renderer mutated stored records");
+});

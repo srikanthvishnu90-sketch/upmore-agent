@@ -204,10 +204,11 @@ function standingLine(s: Standing): string {
 // application unconfirmed), and say so.
 export function goalLines(profile: any): string[] {
   if (memorySourceDenied(profile)) return [];
-  const p = profile ?? {}, pref = p.preferences ?? {}, out: string[] = [];
+  const p = profile ?? {}, pref = memorySourceDenied(p.preferences) ? {} : p.preferences ?? {};
+  const basics = memorySourceDenied(p.basics) ? {} : p.basics ?? {}, out: string[] = [];
   const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
   if (list(pref.roles).length) out.push(`- Roles: ${list(pref.roles).join(", ")}`);
-  if (list(pref.locations).length || p.basics?.location) out.push(`- Places: ${[...list(pref.locations), ...(p.basics?.location ? [String(p.basics.location)] : [])].join(", ")}`);
+  if (list(pref.locations).length || basics.location) out.push(`- Places: ${[...list(pref.locations), ...(basics.location ? [String(basics.location)] : [])].join(", ")}`);
   if (pref.remote) out.push(`- Remote: ${pref.remote}`);
   if (pref.compFloor) out.push(`- Pay floor: ${pref.compFloor}`);
   if (list(pref.targetCompanies).length) out.push(`- Companies they want: ${list(pref.targetCompanies).join(", ")}`);
@@ -226,7 +227,7 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const drafts = facts.filter((f: any) => !confirmedRow(f)).reverse();
   const goal = goalLines(o.profile);
   // The stored instruction remains important even when older rows lack optional quote/date metadata.
-  const standing = (Array.isArray(o.standing) ? o.standing : []).filter((s) => s && typeof s.id === "string" && typeof s.text === "string" && s.text.trim());
+  const standing = (Array.isArray(o.standing) ? o.standing : []).filter((s) => s && typeof s.id === "string" && typeof s.text === "string" && s.text.trim() && !memorySourceDenied(s));
   const head = [
     "WHAT YOU KNOW ABOUT THIS PERSON FROM THEIR ACCOUNT. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
     "What they told you earlier in this chat is known as well, even where this says none: \"none on file\" means their account has no record, never that you don't know it. Answer from what they said.",

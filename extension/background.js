@@ -499,6 +499,22 @@ async function typeEmailCode(tabId, frameId, p) {
 const PREPARE_MAX = 20, PREPARE_AT_ONCE = 4, SURVEY_WAIT_MS = 45_000;
 const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
 let preparing = false;
+// A hidden tab sent to its posting while its own blank page was still loading was left "unloaded" by Chrome for Testing
+// 156 (the gate's browser), never navigated, so Prepare reported "did not load in time" for 1 or 2 of 3 postings in about
+// 2 runs of 5 (2026-10-20). The blank page is let finish first.
+function blankLoaded(id, ms) {
+  return new Promise((resolve) => {
+    const on = (tabId, change) => tabId === id && change.status === "complete" && done();
+    const timer = setTimeout(done, ms);
+    function done() {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(on);
+      resolve();
+    }
+    chrome.tabs.onUpdated.addListener(on);
+    chrome.tabs.get(id).then((t) => t.status === "complete" && done(), done);
+  });
+}
 async function surveyOne(url) {
   // Opened blank, then sent to the posting, so its tab is known before its content script asks what it is for.
   const tab = await chrome.tabs.create({ url: "about:blank", active: false });
@@ -506,6 +522,7 @@ async function surveyOne(url) {
   const got = new Promise((r) => surveys.set(tab.id, r));
   const late = new Promise((r) => (timer = setTimeout(() => r({ ok: false, why: "the page did not load in time" }), SURVEY_WAIT_MS)));
   try {
+    await blankLoaded(tab.id, 10_000);
     await chrome.tabs.update(tab.id, { url });
     return { ...(await Promise.race([got, late])), url };
   } catch {

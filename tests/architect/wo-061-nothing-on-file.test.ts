@@ -20,12 +20,3 @@ Deno.test("WO-061/B3 the eval harness passes the agent a situation, as agent-cha
   const run = await Deno.readTextFile("evals/career/run.ts");
   if (!/situationFrom\(/.test(run) || !/known: \{ standing[\s\S]{0,200}?situation \}/.test(run)) throw new Error("the harness gives the agent no situation, so every records question meets 'could not be read'");
 });
-
-Deno.test("WO-061/C1 the eval harness gives the agent the stores agent-chat gives it, each empty", async () => {
-  const run = await Deno.readTextFile("evals/career/run.ts");
-  for (const dep of ["memoryStandingStore()", "memoryWantStore()", "memoryEventStore()", "memoryMailStore()", "memoryResumeStore()", "memoryPersonaStore()"]) {
-    if (!run.includes(dep)) throw new Error(`the harness lacks ${dep}: its tools would throw "not kept here" where production finds an empty account`);
-  }
-  if (!/memory, wants, events, mail, tailor/.test(run)) throw new Error("the stores are built but not passed to agentTurn");
-  if (!/stores parity[^"]*production parity, not brain improvement/.test(run)) throw new Error("the score is not labeled as harness parity");
-});

@@ -178,6 +178,33 @@
    "run": "Instinct's per-item verdicts for 39541224991, 39542849277, 39543405447 p1-p3",
    "read": "the second judge's failure notes, posted in chat; no item text",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H002",
+    "H005",
+    "H006",
+    "H007",
+    "H009",
+    "H011",
+    "H012",
+    "H018",
+    "H025",
+    "H026",
+    "H027",
+    "H030",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39546674445",
+   "read": "failing ids per judge; failure reasons for H030, H031, H036 only",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

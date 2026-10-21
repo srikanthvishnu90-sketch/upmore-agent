@@ -967,6 +967,68 @@
     "by": "PROBE D DRAFT-BINDING lane (Muse crew), 2026-10-19",
     "test_ref": "tests/career-probe-d-draft-binding.test.cjs"
    }
+  },
+  {
+   "key": "4357-bd39-bbe9-5771",
+   "kind": "other",
+   "suite": "battery",
+   "id": "B247-04",
+   "text": "My career goal is a data analyst internship for summer 2027.",
+   "media": null,
+   "context": [],
+   "checks": {},
+   "observed": {
+    "reply": "I found no data and machine learning roles in the current list, and I will not pad it with other kinds of roles.\nThe current list holds 595 scored roles, and none of them are data and machine learning roles. Add boards that carry data and machine learning roles, or widen the ask to a neighbouring family, and I will search again.",
+    "route": null,
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "goal statement routed to career_internship_discovery and answered with the F-006 wrong-zero list verdict; the goal was never acknowledged or recorded (battery v247 scenario 4, 2026-10-21)"
+   ],
+   "label": "battery-v247-20261021",
+   "first_seen": "2026-10-21T10:33:31Z",
+   "last_label": "battery-v247-20261021",
+   "last_seen": "2026-10-21T10:33:31Z",
+   "times": 1,
+   "triage": {
+    "verdict": "fixed",
+    "note": "Fixed on branch muse/2026-10-21-goal-frame (base c9fc28f9 = live v247): packages/domain/142-career-router.js records a first-person goal declaration verbatim as a keyed stated fact (kind 'goal') in captureStatedFacts, and handleGoalFrame claims the declaration and its recall beside the early conversation-recall claim, ahead of recommendations, the mock capture and the discovery tail. The committed account record carries the goal on stated_facts.keyed (facts unchanged); recall resolves cross-thread against the record. Live re-proof is owed on the next deploy's battery (the harness guard proves the tree; only a live run closes it on the deployed surface).",
+    "by": "GOAL FRAME lane (Muse crew), 2026-10-21",
+    "test_ref": "tests/career-goal-frame.test.cjs"
+   }
+  },
+  {
+   "key": "9e41-4756-867e-b495",
+   "kind": "other",
+   "suite": "battery",
+   "id": "B247-05",
+   "text": "what's my career goal?",
+   "media": null,
+   "context": [
+    "My career goal is a data analyst internship for summer 2027."
+   ],
+   "checks": {},
+   "observed": {
+    "reply": "I didn't catch that. Try naming the job, company, or person \u2014 or say 'find jobs' and I'll start there.",
+    "route": null,
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "recall of the goal stated one turn earlier fell to career_fallback; no goal record existed to read (battery v247 scenario 5, 2026-10-21)"
+   ],
+   "label": "battery-v247-20261021",
+   "first_seen": "2026-10-21T10:33:34Z",
+   "last_label": "battery-v247-20261021",
+   "last_seen": "2026-10-21T10:33:34Z",
+   "times": 1,
+   "triage": {
+    "verdict": "fixed",
+    "note": "Fixed on branch muse/2026-10-21-goal-frame (base c9fc28f9 = live v247): packages/domain/142-career-router.js records a first-person goal declaration verbatim as a keyed stated fact (kind 'goal') in captureStatedFacts, and handleGoalFrame claims the declaration and its recall beside the early conversation-recall claim, ahead of recommendations, the mock capture and the discovery tail. The committed account record carries the goal on stated_facts.keyed (facts unchanged); recall resolves cross-thread against the record. Live re-proof is owed on the next deploy's battery (the harness guard proves the tree; only a live run closes it on the deployed surface).",
+    "by": "GOAL FRAME lane (Muse crew), 2026-10-21",
+    "test_ref": "tests/career-goal-frame.test.cjs"
+   }
   }
  ]
 }

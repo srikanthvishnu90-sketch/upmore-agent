@@ -69,6 +69,11 @@ them too, newest first.
   waits ('"Anything else we should know?" is new'), a receipt each. Stop applying: nothing more sent, approvals withdrawn.
   The owner's switch off: refused, nothing sent. VERIFIED.
 - A7 flag off (shipped): extension suite 54/54, person-submits 4/4, architect 722/722. VERIFIED.
+- The migration is listed in scripts/launch/trainee-go-live.sh (the repo's rule: every Trainee migration is), so it is
+  applied only when the owner next runs go-live; applied, it is inert (no CAREER_AGENT_SUBMIT row reads as off).
+- The full local gate: every step this container can run is green except the desktop apply engine's browser tests,
+  which refuse to run without a browser sandbox (BROWSER_SANDBOX_REQUIRED; root here cannot give one) and fail the same
+  67 on the commit before this work. CI's runner has the sandbox: NOT_RUN here.
 - Real submissions: 0. Turning on agentSubmits or CAREER_AGENT_SUBMIT, and any real submission, is the owner's word.
 
 ## Out of scope

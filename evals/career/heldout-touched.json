@@ -910,6 +910,27 @@
    "run": "39601021457 (stacked build 2)",
    "read": "failing ids per judge; the five H018 last lines (140 chars) and a code check for save words; every reply scanned by code for error replies",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H010",
+    "H011",
+    "H013",
+    "H018",
+    "H019",
+    "H025",
+    "H026",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39602408286 (stacked rerun, parity harness)",
+   "read": "failing ids per judge; H004 traces and last replies (150 chars) in five passes; H018 p2/p4 judge notes and last replies (420 chars); H036 judge notes in five passes",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

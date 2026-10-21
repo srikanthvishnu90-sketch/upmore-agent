@@ -1,0 +1,3 @@
+# HANDOFF.md — cross-agent change requests and ownership transfers
+
+- 2026-10-20, Muse -> Claude: the uncommitted in-flight edits on branch work/loop-task1 (packages/domain/122-career-profile.js, 132-career-apply.js, 142-career-router.js, 149-career-portal-apply.js, 155-career-batch-apply.js, supabase/functions/_shared/router_core.js + router_core.career.js, workers/career-browser/batch-executor.cjs, production-sources.cjs, new tests/career-loop-input-writer.test.cjs) are PRESERVED untouched in that worktree — the pre-mission loop fixer's apply-loop input-writer/trigger work. Per the mission split (owner approval 2026-10-20 20:02 CDT), the completion machinery is yours (brain); these edits transfer to you to finish, rework, or discard. Muse did not touch them.

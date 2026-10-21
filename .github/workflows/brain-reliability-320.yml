@@ -1,4 +1,4 @@
-# INERT proposal: pin source and fill each owner approval only after the priced proposal is approved.
+# Owner-approved mini arm. Source, corpus and spend controls are pinned below.
 # Publishing this on a wo/ branch does not trigger any paid job.
 name: brain-reliability-320
 on:
@@ -16,11 +16,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 110
     env:
-      SOURCE_COMMIT: NOT_PINNED
+      SOURCE_COMMIT: 1ec88f3cca4b21200be5c4f16ba2a948a72614b0
       CORPUS_SHA256: 91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc
-      MINI_APPROVAL_REF: NOT_APPROVED
+      MINI_APPROVAL_REF: OWNER_20261021_MINI_22671697_0cb4b980_CAP5
       HIGHER_APPROVAL_REF: NOT_APPROVED
-      OWNER_POOL_REF: NOT_APPROVED
+      OWNER_POOL_REF: OWNER_20261021_DUAL_MODEL_TOTAL20_NEW_BUDGET35
       # The owner allocated $20 across both runs; the earlier $0.139984 is separate.
       COMPARISON_CAP_USD: "20"
       FIRST_ARM_RUN_ID: NOT_RUN

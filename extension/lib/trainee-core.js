@@ -4157,13 +4157,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function quarantinedFact(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return false;
     const f = value;
-    for (const id of [
-      f.factId,
-      f.id
-    ]) {
-      const m = /^F-0*(\d+)$/.exec(String(id ?? "").trim());
-      if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-    }
+    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
     return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
   }
   function factDependencies(value) {

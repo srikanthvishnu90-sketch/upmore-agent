@@ -55,12 +55,18 @@ real people without the owner's explicit word. Blocked means said same day, with
 
 ## OPEN questions for the owner (NONE answered; nothing below is decided)
 - Who the first real user is, and their yes to apply to a named posting.
-- Person-submits mode for the first runs (recommended), or the extension's click after one tap.
+- ANSWERED by the owner: the agent submits (not the person). See WO-101.
 - The 47 agent-invented facts in the owner's fact bank (D-007) are deleted before his facts are used (his data: his word).
 - Mail confirmation stays OFF for now: proof is the email the person forwards; turning CAREER_MAIL_TRACKING on is a
   deploy/env change and his call.
 
 ## Status (newest first)
+- 2026-10-21: the owner answered question 2 (his words): "the agent should be submitting them. Not me, nobody should
+  manually do it. It's your personal career agent." Target: agent-submits. Coordinator's ruling around it: batch approved
+  up front, a receipt after each, a kill switch. Work order WO-101 written (docs/architect/work-orders/WO-101-agent-submits.md);
+  the batch approval is of the exact answers, to keep CLAUDE.md's exact-payload rule (open for the owner to confirm).
+  Person-submits mode stays built and OFF; not the target. Still OPEN: the first user and posting, the 47 facts, mail
+  confirmation; every real submission needs the owner's per-action word.
 - 2026-10-21: person-submits mode built, OFF by default (extension/config.js personSubmits: false). With it on, the
   extension fills, shows the card and runs every check up to the click (approved hash, unchanged form, no verification
   showing, screenshot, the start recorded so the daily cap holds), then presses nothing; the person presses the site's

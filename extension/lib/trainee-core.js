@@ -5015,7 +5015,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdayAddRow: () => workdayAddRow,
     workdayNextButton: () => workdayNextButton,
     workdaySections: () => workdaySections,
-    workdayStep: () => workdayStep
+    workdayStep: () => workdayStep,
+    yesNoPress: () => yesNoPress
   });
   var import_page_functions = __toESM(require_page_functions());
   var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech, fnPostingLocation } = import_page_functions.default;
@@ -5076,6 +5077,20 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function yesNoButtons(el) {
     const box = el.closest && el.closest("[class*='yesno']");
     return box ? Array.from(box.querySelectorAll("button[data-option]")) : [];
+  }
+  var SELECTED_CLASS = /(^|\s)(_(active|selected|pressed|checked)_[\w-]+|active|selected|is-active|is-selected)(?=\s|$)/i;
+  function yesNoPressed(el) {
+    for (const b of yesNoButtons(el)) {
+      const a = b.getAttribute("aria-pressed");
+      const on = a !== null ? a === "true" : SELECTED_CLASS.test(String(b.getAttribute("class") || ""));
+      const o = String(b.getAttribute("data-option") || "").toLowerCase();
+      if (on && (o === "yes" || o === "no")) return o;
+    }
+    return null;
+  }
+  function yesNoPress(target) {
+    const b = target?.closest?.("button[data-option]");
+    return !!b && !!b.closest("[class*='yesno']");
   }
   function widgetValue(el) {
     const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
@@ -5289,8 +5304,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const want = yes(value);
       const buttons = yesNoButtons(el);
       if (buttons.length) {
-        const btn = buttons.find((x) => x.getAttribute("data-option") === (want ? "yes" : "no"));
-        btn?.click();
+        const opt = want ? "yes" : "no";
+        if (yesNoPressed(el) !== opt) buttons.find((x) => String(x.getAttribute("data-option")).toLowerCase() === opt)?.click();
+        await until(() => yesNoPressed(el) === opt ? opt : null, 300, 20);
+        const shown2 = yesNoPressed(el);
+        if (shown2) return shown2 === opt;
       }
       if (el.checked !== want) el.click();
       if (el.checked !== want) {
@@ -5327,7 +5345,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
       return (b.options || []).map((o) => element(o.selector)).filter((x) => x?.checked).map((x) => `checked=${x.value}`).join(",");
     }
-    if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+    if (b.inputType === "checkbox") {
+      const box = `checked=${!!el.checked};value=${el.value}`;
+      return yesNoButtons(el).length ? `${box};pressed=${yesNoPressed(el) ?? "none"}` : box;
+    }
     return "";
   }
   function readFixed() {
@@ -5360,8 +5381,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return chosen.join(", ");
     }
     if (b.inputType === "checkbox") {
-      const pressed = yesNoButtons(el).find((x) => x.getAttribute("aria-pressed") === "true");
-      if (pressed) return pressed.getAttribute("data-option") === "yes" ? "Yes" : "No";
+      const pressed = yesNoPressed(el);
+      if (pressed) return pressed === "yes" ? "Yes" : "No";
       return el.checked ? "Yes (checked)" : "";
     }
     return String(el.value ?? "");

@@ -18618,7 +18618,7 @@ const CareerRouter = (() => {
   }
   function handleGreeting(text, ctx) {
     const raw = s(text).trim();
-    const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
+    const isStart = /^\/start[.!]?$/i.test(raw);
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
     const reply = compose({

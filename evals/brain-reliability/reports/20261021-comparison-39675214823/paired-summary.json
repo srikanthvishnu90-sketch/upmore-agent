@@ -1,0 +1,15 @@
+{
+  "status": "NOT_COMPARABLE",
+  "mini_status": "SCORED",
+  "higher_status": "NOT_SCORED",
+  "mini_cost_usd": {
+    "brain": 1.960611,
+    "judge": 0.298339,
+    "total": 2.25895
+  },
+  "higher_cost_usd": {
+    "brain": 6.018685,
+    "judge": 0.225465,
+    "total": 6.24415
+  }
+}

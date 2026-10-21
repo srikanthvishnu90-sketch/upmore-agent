@@ -1,0 +1,32 @@
+{
+  "scope": "SAFE_AGGREGATE_ARITHMETIC_VERIFIED_PER_CALL_REPRICING_PENDING",
+  "checks": {
+    "summary_hash": true,
+    "paired_hash": true,
+    "role_cost_adds": true,
+    "metrics_cost_adds": true,
+    "partial_not_scored": true,
+    "unknown_preserved": true,
+    "no_comparison_score": true,
+    "paired_role_costs_match": true,
+    "known_plus_held_below_cap": true
+  },
+  "source_run": 39675214823,
+  "source_result_sha256_attestation": "e202c69abdda286bf0a38e9828cb226cef0f5d8711d1f53f4c94308f4ccfaa7f",
+  "source_zip_sha256_attestation": "581ee66c76cdb056b550b0d38317f4fe1da91c030f1956b6e078b385ac14ec6f",
+  "mini_verified_usd": "2.258950",
+  "higher_known_reported_usd": "6.244150",
+  "higher_cost_status": "UNRECONCILED: 1 unknown charge / unsettled call; per-call safe export unavailable",
+  "higher_retained_reservation_usd": "0.070743",
+  "combined_known_usd": "8.503100",
+  "combined_known_plus_retained_reservation_usd": "8.573843",
+  "approved_combined_max_usd": "10.258950",
+  "comparison": "NOT_COMPARABLE",
+  "higher_full_score": "NOT_SCORED",
+  "not_verified": [
+    "higher per-call usage repricing",
+    "private packet integrity",
+    "final cost settlement"
+  ],
+  "qa_new_paid_spend_usd": "0.000000"
+}

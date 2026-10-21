@@ -9,7 +9,11 @@ const r = JSON.parse(await Deno.readTextFile(resultFile));
 const ins = JSON.parse(await Deno.readTextFile(instinctFile));
 const err = (n?: string) => /^judge error/.test(n ?? "");
 const verdicts: Record<string, Map<string, boolean | null>> = {};
-for (const m of [r.judge_model, r.judge_model_2].filter(Boolean)) {
+// Judges that re-scored this run judge-only (rejudge.ts) count too, so every run carries the same judges.
+const dir = resultFile.replace(/[^/]*$/, ""), base = resultFile.slice(dir.length).replace(/\.json$/, "");
+const rejudged: string[] = [];
+for await (const e of Deno.readDir(dir || ".")) { const m = e.name.match(new RegExp(`^${base}-rejudge-(.+)\\.json$`)); if (m) rejudged.push(m[1]); }
+for (const m of [...new Set([r.judge_model, r.judge_model_2, ...rejudged].filter(Boolean))]) {
   let re: any = null;
   try { re = JSON.parse(await Deno.readTextFile(resultFile.replace(/\.json$/, `-rejudge-${m}.json`))); } catch { /* no re-score */ }
   const reBy = new Map<string, any>((re?.items ?? []).map((x: any) => [x.id, x]));

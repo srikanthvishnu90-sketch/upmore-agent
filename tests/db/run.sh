@@ -305,4 +305,7 @@ echo "== career_events_apply_queued.test.sql (a posting queued from chat is on t
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024090000_career_apply_agent_submit.sql"
 echo "== career_apply_agent_submit.test.sql (the owner's kill switch; the person's batch approval, its Stop, used once)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_submit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The owner's rollback of 20261024090000 (supabase/rollbacks/): up, down, down again, up again; the database ends up.
+echo "== career_apply_agent_submit_down.test.sql (the rollback: down is clean and idempotent, up applies again after it)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_submit_down.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

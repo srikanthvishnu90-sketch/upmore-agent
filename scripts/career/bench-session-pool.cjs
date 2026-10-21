@@ -66,15 +66,51 @@ const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s[Mat
 const stats = (arr) => ({ n: arr.length, medianMs: Math.round(pct(arr, 50) * 10) / 10, p90Ms: Math.round(pct(arr, 90) * 10) / 10, minMs: Math.round(Math.min(...arr) * 10) / 10, maxMs: Math.round(Math.max(...arr) * 10) / 10 });
 const load = () => ({ loadavg: os.loadavg().map((x) => Math.round(x * 100) / 100), freeMemMB: Math.round(os.freemem() / 1048576) });
 
-function chromiumRssMB() {
-  try {
-    const out = execFileSync("ps", ["-eo", "rss=,args="], { encoding: "utf8", maxBuffer: 1 << 24 });
-    let kb = 0, procs = 0;
-    for (const line of out.split("\n")) {
-      if (line.includes("chrome-linux64/chrome")) { const m = line.trim().match(/^(\d+)\s/); if (m) { kb += Number(m[1]); procs += 1; } }
-    }
-    return { rssMB: Math.round(kb / 1024), procs };
-  } catch (e) { return { rssMB: -1, procs: -1 }; }
+/* Memory of the Chromium tree THIS bench launched, measured exactly:
+   descendants of this node process only (ppid walk over /proc — the live
+   worker's Chromium is a different tree and never counted), summed as
+   PSS from smaps_rollup (shared pages counted once per tree share, so
+   levels are comparable; plain RSS sums double-count shared pages). */
+const fsSync = require("node:fs");
+function descendantPids(rootPid) {
+  const children = new Map();
+  for (const ent of fsSync.readdirSync("/proc")) {
+    if (!/^\d+$/.test(ent)) continue;
+    try {
+      const stat = fsSync.readFileSync(`/proc/${ent}/stat`, "utf8");
+      const ppid = Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]);
+      if (!children.has(ppid)) children.set(ppid, []);
+      children.get(ppid).push(Number(ent));
+    } catch (e) { /* process vanished mid-walk */ }
+  }
+  const out = [];
+  const queue = [rootPid];
+  while (queue.length) { const p = queue.shift(); for (const c of children.get(p) || []) { out.push(c); queue.push(c); } }
+  return out;
+}
+function treeCpuMs(rootPid) {
+  let ticks = 0;
+  for (const pid of descendantPids(rootPid)) {
+    try {
+      const stat = fsSync.readFileSync(`/proc/${pid}/stat`, "utf8");
+      const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      ticks += Number(fields[11]) + Number(fields[12]); // utime + stime (fields 14,15 overall)
+    } catch (e) { /* vanished */ }
+  }
+  return ticks * 10; // USER_HZ = 100 on this host -> 10 ms per tick
+}
+function treeMemoryMB(rootPid) {
+  const pids = descendantPids(rootPid);
+  let pssKb = 0, rssKb = 0, counted = 0;
+  for (const pid of pids) {
+    try {
+      const roll = fsSync.readFileSync(`/proc/${pid}/smaps_rollup`, "utf8");
+      const pss = roll.match(/^Pss:\s+(\d+) kB/m); const rss = roll.match(/^Rss:\s+(\d+) kB/m);
+      if (pss) { pssKb += Number(pss[1]); counted += 1; }
+      if (rss) rssKb += Number(rss[1]);
+    } catch (e) { /* not a memory-carrying or readable proc */ }
+  }
+  return { pssMB: Math.round(pssKb / 1024), rssMB: Math.round(rssKb / 1024), procs: pids.length, pssCounted: counted };
 }
 
 async function launchOpts() {
@@ -150,7 +186,7 @@ async function phaseMicro(url) {
 }
 
 async function phaseConc(url) {
-  const out = { loadStart: load(), baseline: chromiumRssMB(), levels: {} };
+  const out = { loadStart: load(), emptyTree: treeMemoryMB(process.pid), levels: {} };
   const b = await pw.chromium.launch(await launchOpts());
   for (const k of [1, 2, 4, 8]) {
     const leases = [];
@@ -160,11 +196,21 @@ async function phaseConc(url) {
       await driveWorkload(page, url);
       leases.push({ ctx, page });
     }
-    // Hold the sessions open and busy briefly, then sample.
-    await Promise.all(leases.map(({ page }) => page.evaluate(() => { const t = Date.now(); while (Date.now() - t < 1500) { /* busy DOM-ish wait */ break; } return window.__fills; })));
     await new Promise((r) => setTimeout(r, 500));
-    const sample = chromiumRssMB();
-    out.levels[k] = { chromium: sample, deltaVsBaselineMB: sample.rssMB - out.baseline.rssMB, perSessionDeltaMB: Math.round(((sample.rssMB - out.baseline.rssMB) / k) * 10) / 10, load: load() };
+    // Three samples, take the median PSS (robust to transient tree churn).
+    const samples = [];
+    for (let s = 0; s < 3; s++) { samples.push(treeMemoryMB(process.pid)); await new Promise((r) => setTimeout(r, 300)); }
+    samples.sort((a, z) => a.pssMB - z.pssMB);
+    // CPU: all sessions run a fixed 2 s JS busy loop concurrently; the
+    // descendant CPU-time delta over that wall window = cores consumed.
+    const cpu0 = treeCpuMs(process.pid);
+    const wall0 = Date.now();
+    await Promise.all(leases.map(({ page }) => page.evaluate(() => { const end = Date.now() + 2000; let x = 0; while (Date.now() < end) { x += Math.sqrt(x + 1); } return x; })));
+    const wallMs = Date.now() - wall0;
+    const cpuMs = treeCpuMs(process.pid) - cpu0;
+    out.levels[k] = { tree: samples[1], samplesPssMB: samples.map((s) => s.pssMB),
+      cpu: { wallMs, cpuMs, coresUsed: Math.round((cpuMs / wallMs) * 100) / 100, perSessionCores: Math.round((cpuMs / wallMs / k) * 100) / 100 },
+      load: load() };
     for (const { ctx } of leases) await ctx.close();
     await new Promise((r) => setTimeout(r, 300));
   }

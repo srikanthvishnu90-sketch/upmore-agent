@@ -3717,21 +3717,29 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
     NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
+    NO_UNCHECKED: () => NO_UNCHECKED,
     OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
     OWN_WORDS_UNREAD: () => OWN_WORDS_UNREAD,
+    QUARANTINE_VERSION: () => QUARANTINE_VERSION,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
     WORKDAY_PAGE_SET: () => WORKDAY_PAGE_SET,
     WORKDAY_PERSONAL: () => WORKDAY_PERSONAL,
+    agentReceiptLine: () => agentReceiptLine,
     answerOnceQuestions: () => answerOnceQuestions,
     answerOnceRows: () => answerOnceRows,
     applyUrl: () => applyUrl,
     approvalHash: () => approvalHash,
+    batchHash: () => batchHash,
+    batchMatch: () => batchMatch,
+    batchPlan: () => batchPlan,
     beforeSession: () => beforeSession,
     blockers: () => blockers,
+    canonicalJson: () => canonicalJson,
     cardLines: () => cardLines,
     cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
+    contractFill: () => contractFill,
     detectPortal: () => detectPortal,
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
@@ -3747,12 +3755,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     planForm: () => planForm,
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
+    quarantinedFact: () => quarantinedFact,
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
+    sha256Hex: () => sha256Hex,
     shortLabel: () => shortLabel,
     showableDraft: () => showableDraft,
     tenantOf: () => tenantOf,
+    trustedManifest: () => trustedManifest,
     workdayDraftLine: () => workdayDraftLine,
     workdayEmployer: () => workdayEmployer,
     workdaySignIn: () => workdaySignIn,
@@ -3989,12 +4000,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   };
   function formAnswersToKeep(o) {
     const q = questionsForTrainee(o);
-    const norm3 = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
+    const norm4 = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
     const out = [];
     for (const row of q.questions) {
       if (/file/.test(String(row.type))) continue;
-      const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
-      const answer = norm3(f?.value ?? "");
+      const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm4(x.label) === row.label);
+      const answer = norm4(f?.value ?? "");
       if (!f || !answer || answer === MASKED || answer.length > 2e3 || staysWithPosting(row)) continue;
       if ((row.kind === "essay" || f.source === "drafted") && !String(row.key).startsWith("job:")) continue;
       if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || row.key === "fact:how_heard" && !howHeardChannel(answer))) continue;
@@ -4159,6 +4170,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var MASKED = "[typed by you on the form; never kept by Trainee]";
   function reviewPayload(o) {
     return {
+      // WO-102: the approval binds the trusted fact manifest and the quarantine version it was made under.
+      ...o.manifest ? {
+        manifest_hash: o.manifest.hash,
+        quarantine_version: o.manifest.version
+      } : {},
       version: 1,
       source: "extension",
       user_id: o.userId,
@@ -4458,6 +4474,513 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return out;
   }
+  var QUARANTINE_VERSION = "d007-v1";
+  var POSITIVE = /^owner (stated|confirmed|typed|answered|gave|provided|picked)\b/i;
+  var RESERVED = /^(text-answer:|approved-local-resume:|essay-draft:)/;
+  function trustedManifest(o) {
+    const excluded = [], conflicts = [];
+    const kept = /* @__PURE__ */ new Map();
+    const file = o.file && typeof o.file === "object" ? o.file : null;
+    const fileOwn = !!file && file.user_id === o.owner;
+    const candidates = [];
+    for (const t of [
+      "answers",
+      "saved"
+    ]) {
+      for (const [key, a] of Object.entries(file?.[t] ?? {})) {
+        const id = String(a?.factId ?? "");
+        const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact" : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value" : !id || id.length > 200 ? "no fact id" : RESERVED.test(id) ? "an id reserved for another source (forged)" : quarantinedFact(a) ? `quarantined (D-007, ${QUARANTINE_VERSION})` : !POSITIVE.test(String(a?.provenance ?? "")) ? "no positive provenance (not stated by the owner)" : typeof a?.confirmation_event_id !== "string" || !a.confirmation_event_id.trim() ? "no confirmation event" : "";
+        if (why) excluded.push({
+          key,
+          factId: id,
+          why
+        });
+        else candidates.push({
+          t,
+          key,
+          a
+        });
+      }
+    }
+    let live = candidates;
+    for (let changed = true; changed; ) {
+      changed = false;
+      const ids = new Set(live.map((c) => String(c.a.factId)));
+      live = live.filter((c) => {
+        const from = Array.isArray(c.a.derived_from) ? c.a.derived_from.map(String) : [];
+        if (from.every((x) => ids.has(x))) return true;
+        excluded.push({
+          key: c.key,
+          factId: String(c.a.factId),
+          why: "derived from an excluded or unknown fact"
+        });
+        changed = true;
+        return false;
+      });
+    }
+    for (const c of live) {
+      kept.set(c.t + "\n" + c.key, {
+        table: c.t,
+        key: c.key,
+        value: c.a.value,
+        factId: String(c.a.factId),
+        event: String(c.a.confirmation_event_id),
+        provenance: String(c.a.provenance),
+        authorizes: c.a.authorizes === true
+      });
+    }
+    const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    for (const r of o.rows || []) {
+      if (!r || typeof r.answer !== "string" || !r.answer.trim() || typeof r.key !== "string") continue;
+      const t = r.key.startsWith("fact:") ? "answers" : /^(label|job):[0-9a-f]{16}$/.test(r.key) ? "saved" : null;
+      if (!t) continue;
+      const key = t === "answers" ? r.key.slice(5) : r.key;
+      const tf = {
+        table: t,
+        key,
+        value: r.answer,
+        factId: `text-answer:${r.id}`,
+        event: `text-answer:${r.id}`,
+        provenance: `owner answered this question (text-answer:${r.id})`,
+        authorizes: t === "saved"
+      };
+      const prior = kept.get(t + "\n" + key);
+      if (!prior) kept.set(t + "\n" + key, tf);
+      else if (n(prior.value) !== n(tf.value)) {
+        kept.delete(t + "\n" + key);
+        conflicts.push({
+          key,
+          factIds: [
+            prior.factId,
+            tf.factId
+          ]
+        });
+        excluded.push({
+          key,
+          factId: prior.factId,
+          why: `conflicts with ${tf.factId}`
+        }, {
+          key,
+          factId: tf.factId,
+          why: `conflicts with ${prior.factId}`
+        });
+      }
+    }
+    if (o.resume?.sha256) {
+      kept.set("answers\nresume", {
+        table: "answers",
+        key: "resume",
+        value: o.resume.sha256,
+        factId: "approved-local-resume:" + o.resume.sha256,
+        event: "resume:" + o.resume.sha256,
+        provenance: "owner picked this file in the panel",
+        authorizes: false
+      });
+    }
+    const answers = {}, saved = {}, byFactId = {};
+    for (const tf of kept.values()) {
+      (tf.table === "answers" ? answers : saved)[tf.key] = {
+        value: tf.value,
+        factId: tf.factId
+      };
+      byFactId[tf.factId] = tf;
+    }
+    const rows = [
+      ...kept.values()
+    ].map((x) => [
+      x.table,
+      x.key,
+      x.factId,
+      x.value,
+      x.event,
+      x.provenance,
+      x.authorizes
+    ]).sort((a, b) => String(a) < String(b) ? -1 : 1);
+    return {
+      answers,
+      saved,
+      byFactId,
+      excluded,
+      conflicts,
+      version: QUARANTINE_VERSION,
+      hash: sha256Hex(canonicalJson({
+        version: QUARANTINE_VERSION,
+        rows
+      }))
+    };
+  }
+  var ATTESTATION = /\b(certify|certif(y|ies)|attest|acknowledg\w*|i agree|agree to|consent|i understand|truthful|true and (complete|correct|accurate)|privacy (policy|notice))\b/i;
+  var PERSONAL = /\b(gender|pronoun|race|ethnic\w*|hispanic|latin[oax]?|veteran|disabilit\w*|sexual orientation|transgender|lgbt\w*)\b/i;
+  function canonicalJson(v) {
+    if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
+    if (Array.isArray(v)) return "[" + v.map(canonicalJson).join(",") + "]";
+    return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonicalJson(v[k])).join(",") + "}";
+  }
+  function sha256Hex(text) {
+    const K = [
+      1116352408,
+      1899447441,
+      3049323471,
+      3921009573,
+      961987163,
+      1508970993,
+      2453635748,
+      2870763221,
+      3624381080,
+      310598401,
+      607225278,
+      1426881987,
+      1925078388,
+      2162078206,
+      2614888103,
+      3248222580,
+      3835390401,
+      4022224774,
+      264347078,
+      604807628,
+      770255983,
+      1249150122,
+      1555081692,
+      1996064986,
+      2554220882,
+      2821834349,
+      2952996808,
+      3210313671,
+      3336571891,
+      3584528711,
+      113926993,
+      338241895,
+      666307205,
+      773529912,
+      1294757372,
+      1396182291,
+      1695183700,
+      1986661051,
+      2177026350,
+      2456956037,
+      2730485921,
+      2820302411,
+      3259730800,
+      3345764771,
+      3516065817,
+      3600352804,
+      4094571909,
+      275423344,
+      430227734,
+      506948616,
+      659060556,
+      883997877,
+      958139571,
+      1322822218,
+      1537002063,
+      1747873779,
+      1955562222,
+      2024104815,
+      2227730452,
+      2361852424,
+      2428436474,
+      2756734187,
+      3204031479,
+      3329325298
+    ];
+    const bytes2 = new TextEncoder().encode(text);
+    const len = bytes2.length, total = len + 9 + 63 >> 6 << 6;
+    const m = new Uint8Array(total);
+    m.set(bytes2);
+    m[len] = 128;
+    const bits = len * 8;
+    const dv = new DataView(m.buffer);
+    dv.setUint32(total - 4, bits >>> 0);
+    dv.setUint32(total - 8, Math.floor(bits / 4294967296));
+    const h = [
+      1779033703,
+      3144134277,
+      1013904242,
+      2773480762,
+      1359893119,
+      2600822924,
+      528734635,
+      1541459225
+    ];
+    const w = new Uint32Array(64);
+    const r = (x, n) => x >>> n | x << 32 - n;
+    for (let i = 0; i < total; i += 64) {
+      for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+      for (let t = 16; t < 64; t++) {
+        const s0 = r(w[t - 15], 7) ^ r(w[t - 15], 18) ^ w[t - 15] >>> 3, s1 = r(w[t - 2], 17) ^ r(w[t - 2], 19) ^ w[t - 2] >>> 10;
+        w[t] = w[t - 16] + s0 + w[t - 7] + s1 >>> 0;
+      }
+      let [a, b, c, d, e, f, g, hh] = h;
+      for (let t = 0; t < 64; t++) {
+        const t1 = hh + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + (e & f ^ ~e & g) + K[t] + w[t] >>> 0;
+        const t2 = (r(a, 2) ^ r(a, 13) ^ r(a, 22)) + (a & b ^ a & c ^ b & c) >>> 0;
+        hh = g, g = f, f = e, e = d + t1 >>> 0, d = c, c = b, b = a, a = t1 + t2 >>> 0;
+      }
+      h[0] = h[0] + a >>> 0, h[1] = h[1] + b >>> 0, h[2] = h[2] + c >>> 0, h[3] = h[3] + d >>> 0;
+      h[4] = h[4] + e >>> 0, h[5] = h[5] + f >>> 0, h[6] = h[6] + g >>> 0, h[7] = h[7] + hh >>> 0;
+    }
+    return h.map((x) => x.toString(16).padStart(8, "0")).join("");
+  }
+  var NO_UNCHECKED = "No (left unchecked)";
+  var YES2 = /^(true|yes|y|on|checked)\b/i;
+  var kindOf2 = (f, listed) => /file/.test(f.type) ? "file" : listed.has(f.name) || f.widget ? "listed" : f.type === "checkbox" && f.options.length < 2 ? "checkbox" : f.type === "checkbox" || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+  var optionText = (f, v) => {
+    const one = (x) => f.options.find((o2) => o2.value === x) ?? f.options.find((o2) => o2.label === x);
+    const o = one(v);
+    if (o) return {
+      value: o.value,
+      shown: String(o.label).replace(/\s+/g, " ").trim()
+    };
+    const parts = v.split(/,\s*/).map(one);
+    return parts.length > 1 && parts.every(Boolean) ? {
+      value: v,
+      shown: parts.map((x) => String(x.label).replace(/\s+/g, " ").trim()).join(", ")
+    } : null;
+  };
+  function batchPlan(o) {
+    const listed = new Set(o.listed ?? []);
+    const m = o.manifest ?? null;
+    const why = [];
+    if (!o.schema.length) why.push("No application form was read on this posting.");
+    if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
+    if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
+    for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
+    for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
+    for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
+    const answers = [], ledger = [];
+    for (const p of o.plan.fill) {
+      const f = o.schema.find((x) => x.name === p.name);
+      if (!f) continue;
+      const kind = kindOf2(f, listed);
+      if (kind === "file" && !o.resume) {
+        why.push(`"${p.label}" needs your resume file in Trainee first.`);
+        continue;
+      }
+      const a = answerOf(f, p, kind, o.resume);
+      if (m) {
+        const j = judge(f, a, m);
+        if ("problem" in j) {
+          if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
+          continue;
+        }
+        ledger.push({
+          application_id: o.jobId,
+          field_id: p.name,
+          question_hash: sha256Hex(canonicalJson({
+            name: f.name,
+            label: f.label,
+            type: f.type,
+            required: f.required,
+            options: f.options
+          })),
+          answer_hash: sha256Hex(canonicalJson({
+            value: a.value,
+            shown: a.shown,
+            file: a.file
+          })),
+          fact_refs: [
+            j.tf.factId
+          ],
+          source_refs: [
+            j.tf.provenance
+          ],
+          confirmation_event_id: j.tf.event,
+          derivation_rule: j.rule
+        });
+      }
+      answers.push(a);
+    }
+    const said = new Set(why.join("\n").match(/"[^"]+"/g) ?? []);
+    for (const f of o.schema) {
+      if (!f.required || answers.some((a) => a.name === f.name) || fileAlternative(f, o.schema) || isIdentityField(f) || f.personal) continue;
+      if (!said.has(`"${f.label}"`) && !why.some((w) => w.startsWith(`"${f.label}"`))) why.push(`"${f.label}" needs your answer first.`);
+    }
+    if (why.length) return {
+      ok: false,
+      why
+    };
+    answers.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    const sent = new Set(answers.map((a) => a.name));
+    const blank = [
+      ...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))
+    ].sort();
+    ledger.sort((a, b) => a.field_id < b.field_id ? -1 : a.field_id > b.field_id ? 1 : 0);
+    const question_set_hash = sha256Hex(canonicalJson([
+      ...o.schema
+    ].sort((a, b) => a.name < b.name ? -1 : 1).map((f) => ({
+      name: f.name,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      options: f.options
+    }))));
+    return {
+      ok: true,
+      posting: {
+        jobId: o.jobId,
+        company: o.company,
+        url: o.url,
+        answers,
+        blank,
+        ledger,
+        question_set_hash,
+        manifest_hash: m ? m.hash : null,
+        quarantine_version: m ? m.version : null
+      }
+    };
+  }
+  function answerOf(f, p, kind, resume) {
+    const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+    const shown2 = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? opt.shown : p.value;
+    return {
+      name: p.name,
+      label: p.label,
+      value: opt ? opt.value : p.value,
+      shown: shown2,
+      kind,
+      factId: p.factId,
+      file: kind === "file" ? resume?.sha256 ?? null : null
+    };
+  }
+  function judge(f, a, m) {
+    const tf = m.byFactId[a.factId];
+    if (!tf) return {
+      problem: "its answer is not from a fact you gave"
+    };
+    if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return {
+      problem: "it is an attestation or a personal choice, so it takes your own answer to it"
+    };
+    const rule = derivation(a.kind, a, tf);
+    return rule ? {
+      rule,
+      tf
+    } : {
+      problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")`
+    };
+  }
+  function contractFill(o) {
+    const listed = new Set(o.listed ?? []);
+    const fill2 = [], asks = [], dropped = [];
+    for (const p of o.plan.fill) {
+      const f = o.schema.find((x) => x.name === p.name);
+      if (!f) continue;
+      const kind = kindOf2(f, listed);
+      if (kind === "file" && !o.resume) {
+        fill2.push(p);
+        continue;
+      }
+      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest);
+      if (!("problem" in j)) fill2.push(p);
+      else if (f.required) {
+        const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+        asks.push({
+          label: f.label,
+          type: String(f.type || "input_text"),
+          options: opts2.length <= 60 ? opts2.map((x) => String(x.label)) : [],
+          why: j.problem
+        });
+      } else dropped.push(f.label);
+    }
+    return {
+      fill: fill2,
+      asks,
+      dropped
+    };
+  }
+  function derivation(kind, a, tf) {
+    const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+    const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
+    if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
+    if (kind === "checkbox") return yn && yn === "yes" === YES2.test(a.value) ? "checkbox-yes-no" : null;
+    if (kind === "select" || kind === "choice") {
+      if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
+      return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
+    }
+    return n(a.value) === n(tf.value) ? "verbatim" : null;
+  }
+  var batchHash = (p) => hashApplyPayload({
+    version: 1,
+    kind: "agent-batch",
+    ...p
+  });
+  var norm2 = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  function batchMatch(o) {
+    const diffs = [];
+    if (!o.now.ok) diffs.push(...o.now.why);
+    else {
+      if (o.now.posting.manifest_hash !== o.approved.manifest_hash) diffs.push("The facts behind your answers changed since you approved (a fact was added, changed or withdrawn).");
+      if (o.now.posting.quarantine_version !== o.approved.quarantine_version) diffs.push("The quarantine rules changed since you approved.");
+      if (o.now.posting.question_set_hash !== o.approved.question_set_hash) diffs.push("The form's questions changed since you approved.");
+      if (canonicalJson(o.now.posting.ledger ?? []) !== canonicalJson(o.approved.ledger ?? [])) diffs.push("The sources behind your answers changed since you approved.");
+      const at = new Map(o.now.posting.answers.map((a) => [
+        a.name,
+        a
+      ]));
+      for (const a of o.approved.answers) {
+        const n = at.get(a.name);
+        if (!n) diffs.push(`"${a.label}": Trainee would no longer answer it.`);
+        else if (n.value !== a.value || n.shown !== a.shown || n.label !== a.label || n.factId !== a.factId || n.file !== a.file) {
+          diffs.push(`"${a.label}": Trainee would now answer "${n.shown}", not the approved "${a.shown}".`);
+        }
+      }
+      for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
+      const labels = (p) => /* @__PURE__ */ new Set([
+        ...p.blank,
+        ...p.answers.map((a) => a.label)
+      ]);
+      const was = labels(o.approved), is = labels(o.now.posting);
+      const added = [
+        ...is
+      ].filter((l) => !was.has(l)), gone = [
+        ...was
+      ].filter((l) => !is.has(l));
+      if (added.length || gone.length) {
+        diffs.push(`The form's fields changed since the batch was approved: ${[
+          ...added.map((l) => `"${l}" is new`),
+          ...gone.map((l) => `"${l}" is gone`)
+        ].join("; ")}.`);
+      }
+    }
+    const want = new Map(o.approved.answers.map((a) => [
+      a.name,
+      a
+    ]));
+    for (const c of o.card) {
+      const a = want.get(c.name);
+      if (c.source !== "trainee") {
+        diffs.push(`"${c.label}" was ${c.source === "page" || c.source === "fixed" ? "set by the page" : "typed on the page"}, not approved in the batch.`);
+        continue;
+      }
+      if (!a) {
+        diffs.push(`"${c.label}" is on the form but not in the approved answers.`);
+        continue;
+      }
+      const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",") : a.kind === "select" ? c.detail === `value=${a.value}` : true;
+      const word = norm2(a.shown).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? norm2(a.shown);
+      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" && norm2(c.value).includes(word) : norm2(c.value) === norm2(a.shown);
+      if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
+        diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
+      }
+    }
+    for (const a of o.approved.answers) if (!o.card.some((c) => c.name === a.name)) diffs.push(`"${a.label}" was not filled.`);
+    for (const l of o.openRequired) diffs.push(`"${l}" is required and not answered yet.`);
+    diffs.push(...o.blockers);
+    return {
+      ok: diffs.length === 0,
+      diffs
+    };
+  }
+  function agentReceiptLine(o) {
+    const c = o.company || "the employer";
+    const why = (o.reason || "").replace(/[.\s]+$/, "");
+    const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
+    return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
+  }
+  function quarantinedFact(f) {
+    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  }
 
   // extension/src/dom.ts
   var dom_exports = {};
@@ -4492,14 +5015,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdayAddRow: () => workdayAddRow,
     workdayNextButton: () => workdayNextButton,
     workdaySections: () => workdaySections,
-    workdayStep: () => workdayStep
+    workdayStep: () => workdayStep,
+    yesNoPress: () => yesNoPress
   });
   var import_page_functions = __toESM(require_page_functions());
   var { fnDiscoverFields, fnDetectChallenge, fnCaptchaTech, fnPostingLocation } = import_page_functions.default;
   var W = globalThis;
   var doc = () => W.document;
   var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  var norm2 = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']+/g, " ").replace(/\s+/g, " ").trim();
+  var norm3 = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']+/g, " ").replace(/\s+/g, " ").trim();
   var visible = (el) => !!el && el.getClientRects().length > 0 && W.getComputedStyle(el).visibility !== "hidden";
   function readForm() {
     if (workdayAccountPage()) return {
@@ -4554,6 +5078,20 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const box = el.closest && el.closest("[class*='yesno']");
     return box ? Array.from(box.querySelectorAll("button[data-option]")) : [];
   }
+  var SELECTED_CLASS = /(^|\s)(_(active|selected|pressed|checked)_[\w-]+|active|selected|is-active|is-selected)(?=\s|$)/i;
+  function yesNoPressed(el) {
+    for (const b of yesNoButtons(el)) {
+      const a = b.getAttribute("aria-pressed");
+      const on = a !== null ? a === "true" : SELECTED_CLASS.test(String(b.getAttribute("class") || ""));
+      const o = String(b.getAttribute("data-option") || "").toLowerCase();
+      if (on && (o === "yes" || o === "no")) return o;
+    }
+    return null;
+  }
+  function yesNoPress(target) {
+    const b = target?.closest?.("button[data-option]");
+    return !!b && !!b.closest("[class*='yesno']");
+  }
   function widgetValue(el) {
     const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
     const sv = root && root.querySelector("[class*='select__single-value'], [class*='-singleValue']");
@@ -4567,7 +5105,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return c;
   }
   var optionEls = () => Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")).filter(visible);
-  var optionText = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
+  var optionText2 = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
   async function until(fn, ms, every = 40) {
     const end = Date.now() + ms;
     for (; ; ) {
@@ -4620,7 +5158,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   async function driveWidget(el, wanted, choose) {
     const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
     const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
-    const pick2 = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    const pick2 = choose ?? ((labels) => labels.find((l) => norm3(l) === norm3(wanted)) ?? null);
     if (toggle) press(toggle);
     else typeKeys(el, placeQuery(wanted));
     let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 2e3);
@@ -4640,9 +5178,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       closeMenu(el);
       return false;
     }
-    let label = pick2(opts2.map(optionText));
+    let label = pick2(opts2.map(optionText2));
     if (!label && toggle && opts2.length >= 50) {
-      const before = opts2.map(optionText).join("\n");
+      const before = opts2.map(optionText2).join("\n");
       const menu = () => {
         const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
         const box = id ? doc().getElementById(id) : null;
@@ -4659,13 +5197,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       fire(el, "input");
       opts2 = await until(() => {
         const now = optionEls();
-        if (now.length && now.map(optionText).join("\n") !== before) return now;
+        if (now.length && now.map(optionText2).join("\n") !== before) return now;
         if (own?.querySelector("[class*='menu-notice--no-options']") && Date.now() - typedAt > 1e3) return [];
         return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
       }, 2400);
-      label = opts2?.length ? pick2(opts2.map(optionText)) : null;
+      label = opts2?.length ? pick2(opts2.map(optionText2)) : null;
     }
-    const hit = label ? (opts2 || []).find((o) => optionText(o) === label) : null;
+    const hit = label ? (opts2 || []).find((o) => optionText2(o) === label) : null;
     if (!hit) {
       if (!toggle) {
         setNative(el, "");
@@ -4693,7 +5231,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const opts3 = Array.from((box ?? doc()).querySelectorAll("[role='option']")).filter(visible);
       return opts3.length ? opts3 : null;
     };
-    const pick2 = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    const pick2 = choose ?? ((labels) => labels.find((l) => norm3(l) === norm3(wanted)) ?? null);
     const city = placeQuery(wanted);
     const keys = !!el.classList?.contains("location-input");
     const type = () => {
@@ -4713,8 +5251,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     await until(() => doc().readyState === "complete" ? true : null, 5e3);
     type();
     const opts2 = await until(listed, 8e3);
-    const label = opts2 ? pick2(opts2.map(optionText)) : null;
-    const hit = label ? opts2.find((o) => optionText(o) === label) : null;
+    const label = opts2 ? pick2(opts2.map(optionText2)) : null;
+    const hit = label ? opts2.find((o) => optionText2(o) === label) : null;
     if (!hit) {
       setNative(el, "");
       fire(el, "input");
@@ -4745,14 +5283,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return !!el.files?.length;
     }
     if (b.inputType === "select") {
-      const opt = Array.from(el.options).find((o) => o.value === value) || Array.from(el.options).find((o) => norm2(o.textContent) === norm2(value));
+      const opt = Array.from(el.options).find((o) => o.value === value) || Array.from(el.options).find((o) => norm3(o.textContent) === norm3(value));
       if (!opt) return false;
       setNative(el, opt.value);
       fire(el, "input", "change");
       return true;
     }
     if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
-      const opt = (b.options || []).find((o) => o.value === value) || (b.options || []).find((o) => norm2(o.label) === norm2(value));
+      const opt = (b.options || []).find((o) => o.value === value) || (b.options || []).find((o) => norm3(o.label) === norm3(value));
       const oel = opt && element(opt.selector);
       if (!oel) return false;
       if (!oel.checked) oel.click();
@@ -4766,8 +5304,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const want = yes(value);
       const buttons = yesNoButtons(el);
       if (buttons.length) {
-        const btn = buttons.find((x) => x.getAttribute("data-option") === (want ? "yes" : "no"));
-        btn?.click();
+        const opt = want ? "yes" : "no";
+        if (yesNoPressed(el) !== opt) buttons.find((x) => String(x.getAttribute("data-option")).toLowerCase() === opt)?.click();
+        await until(() => yesNoPressed(el) === opt ? opt : null, 300, 20);
+        const shown2 = yesNoPressed(el);
+        if (shown2) return shown2 === opt;
       }
       if (el.checked !== want) el.click();
       if (el.checked !== want) {
@@ -4804,7 +5345,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
       return (b.options || []).map((o) => element(o.selector)).filter((x) => x?.checked).map((x) => `checked=${x.value}`).join(",");
     }
-    if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+    if (b.inputType === "checkbox") {
+      const box = `checked=${!!el.checked};value=${el.value}`;
+      return yesNoButtons(el).length ? `${box};pressed=${yesNoPressed(el) ?? "none"}` : box;
+    }
     return "";
   }
   function readFixed() {
@@ -4837,8 +5381,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return chosen.join(", ");
     }
     if (b.inputType === "checkbox") {
-      const pressed = yesNoButtons(el).find((x) => x.getAttribute("aria-pressed") === "true");
-      if (pressed) return pressed.getAttribute("data-option") === "yes" ? "Yes" : "No";
+      const pressed = yesNoPressed(el);
+      if (pressed) return pressed === "yes" ? "Yes" : "No";
       return el.checked ? "Yes (checked)" : "";
     }
     return String(el.value ?? "");

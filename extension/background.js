@@ -15,7 +15,13 @@ const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 const say = {
   signedOut: "Sign in to Upmore in the Trainee panel first. Nothing was filled.",
   handoff: "A verification check is showing on the page. Finish it yourself there, then press Approve again. Trainee never answers one.",
+  pressYourself: "Filled and checked. Read every answer on the page, then press the site's own Submit yourself. Trainee will not press it.",
+  leftWithoutPress: "You left the page without pressing Submit. Nothing was sent.",
+  agentOff: "Trainee sending is off in this build. Nothing is sent without your tap on each card.",
+  agentSending: "Every answer is exactly what you approved in your batch. Sending with the site's own Submit...",
+  agentDiffers: "Not sent: this page differs from what you approved in your batch, so it waits for you.",
 };
+const PERSON_REPORT_GRACE_MS = 1500;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
@@ -134,30 +140,33 @@ async function selectOwn(path) {
 // The person's confirmed facts: what they answered Trainee by text (career_apply_answers_own; a fact for every employer,
 // or one wording, or one posting) plus, if they chose, the same confirmed-facts file the desktop runner reads (only
 // entries marked confirmed, only theirs). Read fresh for each form, so an answer texted a minute ago fills now.
+// WO-102: only what the trusted fact manifest keeps (TraineeCore.trustedManifest): a positive allowlist of the facts the
+// person gave, the D-007 quarantine applied, conflicts excluded so they are asked again. Its hash and quarantine version
+// are bound into every approval and checked again, fresh, at the start of every application ("begin").
 async function facts(userId) {
-  const imported = await get(S, "imported_facts", { answers: {}, saved: {} });
+  const file = await get(S, "imported_file", null);
   let rows = [];
   try {
     rows = (await rpc("career_apply_answers_own", {})) || [];
   } catch (e) {
     if (e.message === "SIGNED_OUT") throw e;
   }
-  const merged = C.factsWithTextAnswers(imported, rows);
   const resume = await get(L, "resume", null);
-  if (resume) merged.answers.resume = { value: resume.sha256, factId: "approved-local-resume:" + resume.sha256 };
+  const m = C.trustedManifest({ owner: userId, file, rows, resume: resume ? { sha256: resume.sha256 } : null });
   // WO-054: the stored rows of answers the person gave in the panel before the session, for the card's mark.
   const beforeKeys = new Set(await get(S, "answered_before", []));
-  return { answers: merged.answers, saved: merged.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id) };
+  return { answers: m.answers, saved: m.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id),
+    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
 }
-function confirmedOnly(input, owner) {
-  const out = {};
-  for (const [k, a] of Object.entries(input || {})) {
-    if (a?.user_id && a.user_id !== owner) continue;
-    if (a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 && a.factId.length <= 200) {
-      out[k] = { value: a.value, factId: a.factId };
-    }
+// The facts behind an application's answers must all still be in the person's manifest now (WO-102: revalidated at the
+// boundary): the trusted fact behind each answer Trainee filled, and the facts behind each drafted answer.
+function factsStillGiven(payload, manifest) {
+  const gone = [];
+  for (const f of payload?.fields || []) {
+    const ids = f.source === "trainee" ? [f.factId] : f.source === "drafted" ? C.draftFactIds(f.factId) : [];
+    if (ids.some((id) => !id || !manifest.byFactId[id])) gone.push(f.label);
   }
-  return out;
+  return gone;
 }
 
 // ------------------------------------------------------------------------------------------------ cards, queue, evidence
@@ -352,6 +361,11 @@ async function finish(tabId, observation, extra = {}) {
   // A stop before the click leaves the posting open for another try; anything after the click moves the queue on. The queue
   // is final before the card says done, so the panel never shows a done card beside an open queue item.
   if (observation) await queueAfter(tabId, proved ? "confirmed" : outcome.state, evidence.ms_card_to_done, p.id);
+  else if (p.agent) await queueAfter(tabId, "needs_you", null);
+  if (p.agent) {
+    const reason = observation ? outcome.reason : oneLine(extra.message, C.BEFORE_CLICK).replace(/\s*Nothing was sent\.?$/, "");
+    await agentReceipt({ company: p.payload.company, url: p.payload.url, state: outcome.state, confirmation_id: outcome.confirmation_id, reason, proved, proofId: p.id });
+  }
   const view = observation ? C.cardOutcome(outcome, !!shotAfter, extra.codeStop || null) : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
   return await withCards(tabId, "finish:" + outcome.state, (prev) => ({
     ...(prev || {}), tabId, updated_at: Date.now(), status: view.status, message: view.message, result: outcome.state, proved,
@@ -398,7 +412,15 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
 // One reader per click: two at once would take two pictures, and Chrome refuses a second capture within the second.
 const reading = new Set();
 async function afterNavigation(tabId) {
-  const p = (await pendings())[tabId];
+  let p = (await pendings())[tabId];
+  // Person-submits mode: the page moved while Trainee waited for the person's press. Their own press reports itself
+  // ("clicked") as it happens; give that report a moment, and if it never came, the person left without pressing:
+  // nothing was sent, and the started application is closed as stopped before the click.
+  if (p && !p.finished && !p.clicked_at && p.awaiting_person) {
+    await new Promise((r) => setTimeout(r, PERSON_REPORT_GRACE_MS));
+    p = (await pendings())[tabId];
+    if (p && !p.finished && !p.clicked_at) return void await finish(tabId, null, { reason: C.BEFORE_CLICK, message: say.leftWithoutPress });
+  }
   if (!p || p.finished || !p.clicked_at || reading.has(p.id)) return;
   reading.add(p.id);
   try {
@@ -564,6 +586,7 @@ async function prepareQueue() {
   for (const x of merged.left) left[x.why] = (left[x.why] || 0) + 1;
   await put(S, "answer_once", { ...base, status: "ready", read, postings: ok.length, questions: merged.questions, left, open: ok.reduce((n, r) => n + r.needs.length, 0),
     failed: results.filter((r) => !r.ok).map((r) => ({ url: r.url, why: String(r.why || "not read") })) });
+  if ((await config()).agentSubmits) await put(S, "agent_batch", await agentBatch(results));
   return { ok: true, questions: merged.questions.length };
 }
 // The person's own answers from the panel, stored the way an answer given on a form is (WO-042): the question is recorded
@@ -593,6 +616,110 @@ async function saveAnswerOnce(picks) {
   return { ok: !failed, saved: saved.length, refused: r.refused, message: failed ? "Some answers could not be saved; those questions stay for their cards." : "" };
 }
 
+// ------------------------------------------------------------------------------------------------ the agent sends (WO-101)
+// With agentSubmits on (config.js; the owner's call) the person approves a batch up front, of the exact answers per
+// posting, read ahead by Prepare (content.js survey() -> TraineeCore.batchPlan). When the queue reaches an approved
+// posting, the card the page builds is checked against that approval (TraineeCore.batchMatch): only an exact match is
+// approved, by code, and then the one-tap send path runs unchanged (the unchanged-form check next to the click, the
+// picture, the recorded start, the site's own Submit). The start is the owner-switched agent start
+// (career_apply_extension_begin_agent_own: CAREER_AGENT_SUBMIT must be 'on', the approval live and unused). A posting
+// that differs waits for the person and the queue goes on; a receipt line after each; "Stop applying" ends it all.
+const AGENT_SETTLE_MS = 2500; // a card that differs gets this long to settle (a late widget, a file still hashing)
+const agentWait = new Map(); // tabId -> timer
+const agentApproved = async () => await get(S, "agent_approved", {});
+async function agentBatch(results) {
+  const ready = [], out = [];
+  for (const r of results) {
+    const b = r.batch;
+    if (r.ok && b?.ok && b.posting && Array.isArray(b.posting.answers)) {
+      ready.push({ url: r.url, company: String(b.posting.company), jobId: String(b.posting.jobId), posting: b.posting, hash: await C.batchHash(b.posting) });
+    } else {
+      out.push({ url: r.url, company: String(r.company || ""), why: r.ok ? (Array.isArray(b?.why) ? b.why.slice(0, 20).map(String) : ["not read"]) : [String(r.why || "not read")] });
+    }
+  }
+  return { status: "ready", at: Date.now(), ready, out, approved: [] };
+}
+async function agentReceipt(o) {
+  const list = await get(L, "agent_receipts", []);
+  list.unshift({ at: Date.now(), company: o.company, url: o.url, state: o.state, proof_id: o.proofId || null, line: C.agentReceiptLine(o) });
+  await put(L, "agent_receipts", list.slice(0, 300));
+}
+async function agentConsider(tabId, card) {
+  if (!(await config()).agentSubmits || !card.batch) return;
+  const q = await queueState();
+  if (!q.running || q.tabId !== tabId) return;
+  const a = (await agentApproved())[card.jobId];
+  if (!a) return;
+  const r = C.batchMatch({ approved: a.posting, now: card.batch, card: card.payload?.fields || [], openRequired: card.openRequired || [], blockers: card.blockers || [] });
+  if (!r.ok) {
+    await withCards(tabId, "agent-differs", (prev) => (prev && prev.hash === card.hash ? { ...prev, agent_diffs: r.diffs.slice(0, 20) } : null));
+    if (!agentWait.has(tabId)) agentWait.set(tabId, setTimeout(() => agentGiveUp(tabId, card.jobId).catch(() => {}), AGENT_SETTLE_MS));
+    return;
+  }
+  clearTimeout(agentWait.get(tabId));
+  agentWait.delete(tabId);
+  // WO-102 rehearsal: the same fill and the same exact-match check as a send, then a report and the next posting.
+  // Nothing is started or clicked: no "submit" message exists on this path, and "begin" refuses while rehearsing.
+  if ((await get(S, "agent_mode", "send")) === "rehearse") {
+    await agentRehearsal(card, a, r, true);
+    await setCard(tabId, { status: "rehearsed", message: "Rehearsed: every answer on the page is exactly what you approved, each from a fact you gave. Nothing was sent." });
+    await queueAfter(tabId, "rehearsed", null);
+    return;
+  }
+  let taken = false;
+  await withCards(tabId, "agent-approve", (prev) => {
+    if (!prev || prev.hash !== card.hash || prev.status !== "ready" || prev.approved) return null;
+    taken = true;
+    return { ...prev, approved: true, approved_hash: card.hash, approved_at: Date.now(), approved_by: "agent", batch_hash: a.hash, agent_diffs: [],
+      status: "submitting", message: say.agentSending, updated_at: Date.now() };
+  });
+  if (!taken) return;
+  chrome.tabs.sendMessage(tabId, { type: "submit", hash: card.hash }).catch(async () => {
+    if ((await pendings())[tabId]) return;
+    await agentStopped(tabId, card, "The page could not be reached, so nothing was sent.");
+  });
+}
+// The posting's card still differs after the settle: it waits for the person, with what differs, and the queue goes on.
+async function agentGiveUp(tabId, jobId) {
+  agentWait.delete(tabId);
+  const card = (await cards())[tabId];
+  if (!card || card.jobId !== jobId || card.approved || card.begun || !card.agent_diffs?.length) return;
+  if ((await get(S, "agent_mode", "send")) === "rehearse") {
+    const a = (await agentApproved())[jobId];
+    if (a) await agentRehearsal(card, a, { ok: false, diffs: card.agent_diffs }, false);
+    await setCard(tabId, { status: "needs_you", message: `Rehearsal: this page differs from what you approved. ${card.agent_diffs.slice(0, 5).join(" ")} Nothing was sent.` });
+    await queueAfter(tabId, "needs_you", null);
+    return;
+  }
+  await agentStopped(tabId, card, `${say.agentDiffers} ${card.agent_diffs.slice(0, 5).join(" ")}`);
+}
+// WO-102: what a rehearsal found for one posting: the approved ledger, the final form as read back (values and what the
+// browser sends, file bytes included), and the contract's three numbers: supported answers, quarantined dependencies,
+// unanswered required questions.
+async function agentRehearsal(card, a, r, matched) {
+  const ledger = a.posting.ledger || [];
+  const names = new Set(ledger.map((l) => l.field_id));
+  const readback = (card.payload?.fields || []).filter((f) => names.has(f.name)).map((f) => ({ name: f.name, label: f.label, value: f.value, source: f.source, factId: f.factId, detail: f.detail }));
+  const supported = ledger.filter((l) => l.fact_refs.length && l.confirmation_event_id && l.derivation_rule).length;
+  const rec = {
+    at: Date.now(), company: card.company, url: card.url, jobId: card.jobId, batch_hash: a.hash, matched, diffs: (r.diffs || []).slice(0, 20),
+    answers: a.posting.answers.length, supported_pct: a.posting.answers.length ? Math.round((100 * supported) / a.posting.answers.length) : 0,
+    quarantined_dependencies: ledger.reduce((n, l) => n + l.fact_refs.filter((id) => C.quarantinedFact({ factId: id })).length, 0),
+    unanswered_required: (card.openRequired || []).length, ledger, readback,
+    manifest_hash: a.posting.manifest_hash, quarantine_version: a.posting.quarantine_version, question_set_hash: a.posting.question_set_hash,
+  };
+  const list = await get(L, "agent_rehearsals", []);
+  list.unshift(rec);
+  await put(L, "agent_rehearsals", list.slice(0, 200));
+}
+// An agent send that stopped before its start was recorded: the card says why, a receipt line, the queue goes on.
+async function agentStopped(tabId, card, message) {
+  await setCard(tabId, { status: "needs_you", message, approved: false, beforeClick: true });
+  await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, proof: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
+  const q = await queueState();
+  if (q.running && q.tabId === tabId) await queueAfter(tabId, "needs_you", null);
+}
+
 // ------------------------------------------------------------------------------------------------ messages
 async function handle(m, sender) {
   const tabId = sender.tab?.id ?? m.tabId;
@@ -611,7 +738,8 @@ async function handle(m, sender) {
       }
       const f = await facts(a.user_id);
       const resume = await get(L, "resume", null);
-      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null };
+      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits,
+        agentSubmits: !!(await config()).agentSubmits };
     }
     case "queued": {
       const q = await queueState();
@@ -629,6 +757,7 @@ async function handle(m, sender) {
         prev && prev.status === "submitting" ? prev
           : { ...m.card, tabId, approved: false, status: m.card.status || (m.card.blockers?.length ? "blocked" : "ready"), updated_at: Date.now() });
       if (m.card?.signIn) await setWorkdayNext(tabId, true);
+      if (card && !card.approved && ["ready", "blocked"].includes(card.status)) agentConsider(tabId, card).catch(() => {});
       return { ok: true, card };
     }
     case "draft": {
@@ -654,7 +783,8 @@ async function handle(m, sender) {
       const done = surveys.get(tabId);
       if (!done) return { ok: false };
       surveys.delete(tabId);
-      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [] });
+      done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [],
+        batch: m.batch && typeof m.batch === "object" ? m.batch : null });
       return { ok: true };
     }
     case "questions": {
@@ -688,8 +818,43 @@ async function handle(m, sender) {
       // The content script may only start the one application the person approved, by its hash.
       // A Workday step's draft approval (WO-048) never submits: only a card that submits starts an application.
       if (!card || !card.approved || card.approved_hash !== m.hash || card.hash !== m.hash || card.action === "draft") return { ok: false, message: "This application was not approved as it is now. Nothing was sent." };
+      // WO-101: a card code approved from the person's batch starts only while that approval is still here (Stop applying
+      // removes it) and through the owner-switched agent start, which uses the approval once.
+      const agent = card.approved_by === "agent";
+      // WO-102: a rehearsal never starts an application, whatever asks.
+      if ((await get(S, "agent_mode", "send")) === "rehearse") return { ok: false, message: "Rehearsal: nothing is sent." };
+      if (agent) {
+        const a = (await agentApproved())[card.jobId];
+        if (!(await config()).agentSubmits || !a || a.hash !== card.batch_hash) {
+          await agentStopped(tabId, card, "Stopped: your batch approval for this posting was withdrawn. Nothing was sent.");
+          return { ok: false, message: "withdrawn" };
+        }
+      }
+      // WO-102: revalidated here, at the boundary every path passes before its click, from the facts as they are now: each
+      // fact behind an answer is still one the person gave, the approval was made under this fact manifest and this
+      // quarantine version. Anything changed, withdrawn or unverifiable stops it; nothing was sent.
+      const sess = await session();
+      const now = sess ? (await facts(sess.user_id)).manifest : null;
+      const gone = now ? factsStillGiven(m.payload, now) : ["(signed out)"];
+      const approvedUnder = agent ? (await agentApproved())[card.jobId]?.posting : null;
+      const stale = !now || gone.length || (m.payload?.manifest_hash !== undefined && m.payload.manifest_hash !== now.hash)
+        || (m.payload?.quarantine_version !== undefined && m.payload.quarantine_version !== now.version)
+        || (agent && (!approvedUnder || approvedUnder.manifest_hash !== now.hash || approvedUnder.quarantine_version !== now.version));
+      if (stale) {
+        const why = `The facts behind this application changed since it was approved${gone.length ? ` (${gone.slice(0, 5).map((l) => `"${l}"`).join(", ")})` : ""}. Nothing was sent.`;
+        if (agent) await agentStopped(tabId, card, why);
+        else await setCard(tabId, { status: "stopped", message: why, approved: false }, "refused");
+        return { ok: false, message: why };
+      }
       try {
-        const row = await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
+        const row = agent
+          ? await rpc("career_apply_extension_begin_agent_own", { p_payload: m.payload, p_approval: m.hash, p_batch_hash: card.batch_hash })
+          : await rpc("career_apply_extension_begin_own", { p_payload: m.payload, p_approval: m.hash });
+        if (agent) {
+          const ap = await agentApproved();
+          delete ap[card.jobId];
+          await put(S, "agent_approved", ap);
+        }
         // The drafts behind each drafted answer, as Trainee wrote them, for the proof (edited or used as drafted).
         const items = await draftsFor(tabId, card.jobId), drafts = {};
         for (const f of m.payload.fields || []) {
@@ -700,6 +865,7 @@ async function handle(m, sender) {
           id: row.id, lease: row.lease, hash: m.hash, payload: m.payload, url_before: m.urlBefore, planned_names: m.plannedNames, drafts,
           form_answers: m.formAnswers?.answers?.length ? m.formAnswers : null,
           card_shown_at: card.shown_at, approved_at: card.approved_at, screenshot_sha256: m.screenshot?.sha256 || null, screenshot: m.screenshot?.dataUrl || null,
+          agent, batch_hash: agent ? card.batch_hash : null,
         });
         await setCard(tabId, { begun: true });
         return { ok: true };
@@ -707,10 +873,23 @@ async function handle(m, sender) {
         const why = /daily_cap/.test(e.message) ? "You reached today's application limit." : /company_cooldown/.test(e.message)
           ? "You applied to this company in the last 30 days." : /duplicate_job/.test(e.message) ? "You already applied to this posting."
           : e.message === "SIGNED_OUT" ? say.signedOut : /stale|current/.test(e.message) ? "Your account changed since this card was made; review it again."
+          : /agent submit is off/.test(e.message) ? "Trainee sending is switched off for your account."
+          : /no live batch approval/.test(e.message) ? "Your batch approval for this posting is no longer live (withdrawn, used, or over a day old)."
           : "Trainee could not record this application, so it was not sent.";
+        if (agent) {
+          await agentStopped(tabId, card, why + " Nothing was sent.");
+          return { ok: false, message: why };
+        }
         await setCard(tabId, { status: "stopped", message: why + " Nothing was sent.", approved: false }, "refused");
         return { ok: false, message: why };
       }
+    }
+    case "awaiting-person": {
+      // Person-submits mode: everything up to the click passed; Trainee presses nothing and waits for the person's own press.
+      const p = (await pendings())[tabId];
+      if (p) await setPending(tabId, { ...p, awaiting_person: true });
+      await setCard(tabId, { status: "awaiting_person", message: say.pressYourself });
+      return { ok: true };
     }
     case "clicked": {
       const p = (await pendings())[tabId];
@@ -720,7 +899,7 @@ async function handle(m, sender) {
         p.steps = m.steps || null;
         await setPending(tabId, p);
       }
-      await setCard(tabId, { status: "submitting", message: "Sent with the site's own Submit; waiting for the employer's answer." });
+      await setCard(tabId, { status: "submitting", message: m.byPerson ? "You pressed the site's own Submit; waiting for the employer's answer." : "Sent with the site's own Submit; waiting for the employer's answer." });
       // The click may have moved the page before this message landed (CI, a fast thank-you page): its load is over and
       // onUpdated passed the tab by. A loaded page without the clicking page's mark is the page after the click.
       const tab = await chrome.tabs.get(tabId).catch(() => null);
@@ -739,7 +918,9 @@ async function handle(m, sender) {
     case "outcome":
       return { ok: true, card: await finish(tabId, m.observation, { ...m, codeStop: m.codeStop || null }) };
     case "stopped": {
+      const card = (await cards())[tabId];
       if (m.finishPending) await finish(tabId, null, { reason: C.BEFORE_CLICK, message: m.message });
+      else if (card?.approved_by === "agent" && card.approved && !card.begun) await agentStopped(tabId, card, oneLine(m.message, "Stopped before the click. Nothing was sent."));
       else await setCard(tabId, { status: "stopped", message: m.message, approved: false, beforeClick: !!m.beforeClick });
       return { ok: true };
     }
@@ -761,8 +942,13 @@ async function handle(m, sender) {
         signedIn: !!a, email: a?.email || "", resume: resume ? { name: resume.name, sha256: resume.sha256 } : null,
         card, drafts: card ? await draftsFor(m.tabId, card.jobId) : {}, queue: await queueState(),
         timing: { n: timing.length, avg_ms: timing.length ? Math.round(timing.reduce((x, y) => x + y, 0) / timing.length) : null },
-        importedFacts: Object.keys((await get(S, "imported_facts", { answers: {} })).answers).length,
+        importedFacts: Object.keys((await get(S, "imported_file", { answers: {} })).answers || {}).length,
         answerOnce: await get(S, "answer_once", null),
+        agent: (await config()).agentSubmits
+          ? { batch: await get(S, "agent_batch", null), approved: Object.keys(await agentApproved()).length, receipts: (await get(L, "agent_receipts", [])).slice(0, 20),
+            mode: await get(S, "agent_mode", "send"), rehearsals: (await get(L, "agent_rehearsals", [])).slice(0, 20).map((x) => ({ company: x.company, url: x.url, matched: x.matched,
+              answers: x.answers, supported_pct: x.supported_pct, quarantined_dependencies: x.quarantined_dependencies, unanswered_required: x.unanswered_required, diffs: x.diffs })) }
+          : null,
       };
     }
     case "signin-app":
@@ -770,7 +956,7 @@ async function handle(m, sender) {
     case "signin-magic":
       return await magicLink(m.email);
     case "signout":
-      await S.remove(["auth", "imported_facts"]);
+      await S.remove(["auth", "imported_file"]);
       return { ok: true };
     case "set-resume": {
       const bytes = b64ToBytes(m.base64);
@@ -783,9 +969,12 @@ async function handle(m, sender) {
       if (!a) return { ok: false, message: say.signedOut };
       try {
         const j = JSON.parse(m.json);
-        if (j.user_id && j.user_id !== a.user_id) return { ok: false, message: "That facts file belongs to another account." };
-        await put(S, "imported_facts", { answers: confirmedOnly(j.answers, a.user_id), saved: confirmedOnly(j.saved, a.user_id) });
-        return { ok: true };
+        if (j.user_id !== a.user_id) return { ok: false, message: "That facts file does not name your account, so none of it is used." };
+        // Kept as given; what may be used is decided each time by the trusted fact manifest (WO-102).
+        await put(S, "imported_file", { user_id: j.user_id, answers: j.answers || {}, saved: j.saved || {} });
+        const mf = C.trustedManifest({ owner: a.user_id, file: j, rows: [], resume: null });
+        const quarantined = mf.excluded.filter((x) => /quarantined/.test(x.why)).length;
+        return { ok: true, kept: Object.keys(mf.answers).length + Object.keys(mf.saved).length, excluded: mf.excluded.length, quarantined };
       } catch {
         return { ok: false, message: "That file is not a confirmed-facts file." };
       }
@@ -915,6 +1104,61 @@ async function handle(m, sender) {
     }
     case "answer-once-save":
       return await saveAnswerOnce(m.answers);
+    case "batch-approve": {
+      // WO-101: the person's one tap on the batch, bound to the entries the panel showed them (their hashes).
+      if (!(await config()).agentSubmits) return { ok: false, message: say.agentOff };
+      const st = await get(S, "agent_batch", null);
+      const want = new Set(Array.isArray(m.hashes) ? m.hashes.map(String) : []);
+      const pick = (st?.ready || []).filter((e) => want.has(e.hash));
+      if (!pick.length || pick.length !== want.size) return { ok: false, message: "This batch changed; read it again before approving." };
+      try {
+        await rpc("career_apply_batch_approve_own", { p_items: pick.map((e) => ({ entry: { version: 1, kind: "agent-batch", ...e.posting }, hash: e.hash })) });
+      } catch (e) {
+        return { ok: false, message: e.message === "SIGNED_OUT" ? say.signedOut : "Your approval could not be recorded, so Trainee will not send these." };
+      }
+      const ap = await agentApproved();
+      for (const e of pick) ap[e.jobId] = { hash: e.hash, posting: e.posting, url: e.url, approved_at: Date.now() };
+      await put(S, "agent_approved", ap);
+      await put(S, "agent_mode", "send");
+      await put(S, "agent_batch", { ...st, approved: [...new Set([...(st.approved || []), ...pick.map((e) => e.hash)])] });
+      return { ok: true, approved: pick.length };
+    }
+    case "batch-rehearse": {
+      // WO-102: the protected no-submit rehearsal of a batch: approved on this computer only (nothing recorded on the
+      // account), filled and checked exactly as a send would be, never started or clicked; a report per posting.
+      if (!(await config()).agentSubmits) return { ok: false, message: say.agentOff };
+      const st = await get(S, "agent_batch", null);
+      const want = new Set(Array.isArray(m.hashes) ? m.hashes.map(String) : []);
+      const pick = (st?.ready || []).filter((e) => want.has(e.hash));
+      if (!pick.length || pick.length !== want.size) return { ok: false, message: "This batch changed; read it again before rehearsing." };
+      const ap = {};
+      for (const e of pick) ap[e.jobId] = { hash: e.hash, posting: e.posting, url: e.url, approved_at: Date.now(), rehearsal: true };
+      await put(S, "agent_approved", ap);
+      await put(S, "agent_mode", "rehearse");
+      const q = await queueState();
+      for (const it of q.items) if (it.state === "rehearsed" || it.state === "needs_you") it.state = "waiting";
+      await put(S, "queue", q);
+      return await handle({ type: "queue-start", tabId: m.tabId }, {});
+    }
+    case "batch-stop": {
+      // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
+      // send in progress stops at its next check before the click.
+      const q = await queueState();
+      q.running = false;
+      await put(S, "queue", q);
+      await S.remove(["agent_approved", "agent_mode"]);
+      for (const t of agentWait.values()) clearTimeout(t);
+      agentWait.clear();
+      if (q.tabId !== null) chrome.tabs.sendMessage(q.tabId, { type: "agent-stop" }).catch(() => {});
+      let withdrawn = true;
+      try {
+        await rpc("career_apply_batch_revoke_own", {});
+      } catch {
+        withdrawn = false;
+      }
+      return { ok: true, message: withdrawn ? "Stopped. Nothing more is sent, and your batch approval is withdrawn."
+        : "Stopped on this computer: nothing more is sent from here. Your approval could not be withdrawn on your account just now; press Stop applying again once you are online." };
+    }
     case "answer-once-skip": {
       const st = await get(S, "answer_once", null);
       if (!st) return { ok: false };
@@ -930,8 +1174,8 @@ async function handle(m, sender) {
 // reports comes only from a content script in a tab.
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
-  "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
+  "answer-once-prepare", "answer-once-save", "answer-once-skip", "batch-approve", "batch-rehearse", "batch-stop"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "awaiting-person", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

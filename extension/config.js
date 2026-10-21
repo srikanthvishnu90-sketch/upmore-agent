@@ -7,4 +7,13 @@ globalThis.TRAINEE_DEFAULTS = {
   anonKey:
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yd25nbnR3bW5hcXJxaHVwdmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzk1MDksImV4cCI6MjEwNTYxNTUwOX0.BZKqFIUdjLU_eLuTQecxsHdhIQu1GprTbZmkAPO6p88",
   appUrl: "https://upmore-topaz.vercel.app",
+  // Person-submits mode (first real submissions, plan v2): when true, the extension fills the form, shows the card and
+  // runs every check up to the click, then presses nothing: the person reads the filled page and presses the site's own
+  // Submit. Off by default; switching it on is the owner's call. Fixed here, never by storage (a page can write storage).
+  personSubmits: false,
+  // Agent submits (WO-101): the person approves a batch up front, of the exact answers per posting, and Trainee sends each
+  // posting itself with the site's own Submit only when the page holds exactly what they approved; a receipt after each;
+  // "Stop applying" stops it. The owner's own switch (CAREER_AGENT_SUBMIT) must also be on in the database. Off by
+  // default; switching it on is the owner's call. Fixed here, never by storage.
+  agentSubmits: false,
 };

@@ -15780,7 +15780,13 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      const factIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${lc(f.key)}` : (f && FACT_SINGLE_KINDS.has(f.kind) ? `kind:${f.kind}` : null);
+      for (const f of mirrored.facts) {
+        if (!f) continue;
+        const id = factIdOf(f);
+        if (id) { if (!primary.facts.some((x) => x && factIdOf(x) === id)) primary.facts.push(f); }
+        else if (!primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      }
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
@@ -18805,6 +18811,8 @@ const CareerRouter = (() => {
     if (pmStop) return pmStop;
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    const goalTurn = handleGoalFrame(text, c);
+    if (goalTurn) return goalTurn;
     const resumeIngest = handleResumePasteIngest(text, c);
     if (resumeIngest) return resumeIngest;
     const resumeConfirm = handleResumeIngestConfirm(text, c);
@@ -19782,6 +19790,9 @@ const CareerRouter = (() => {
       if ((m = u.match(new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+roles?\\s+in\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)`, "i"))) && asserted(m.index)) {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
       }
+      if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
+        pushKeyed("goal", "career", m[1], m[0]);
+      }
     }
     for (const cl of gatedFactClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
@@ -19929,7 +19940,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen" }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);
@@ -19946,6 +19957,21 @@ const CareerRouter = (() => {
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],
     };
+  }
+  function handleGoalFrame(text, ctx) {
+    const t = lc(text);
+    const goal = statedFactsOf(ctx).find((f) => f.kind === "goal");
+    if (/\bwhat'?s\s+my\s+(?:career\s+)?goal\b/.test(t) || /\bwhat\s+is\s+my\s+(?:career\s+)?goal\b/.test(t)) {
+      if (!goal) return null;
+      const reply = compose({ headline: `Your career goal, in your words: ${goal.value}.`, facts: ["That is the goal on your record — stated by you, stored verbatim, and the target your searches, drafts, and prep are aimed at."], nextStep: "Want the search run against it, or the goal restated first?" });
+      return { intent: "career_goal_recall", reply, resultStatus: "answered", sends: 0, stated_facts: statedFactsOf(ctx) };
+    }
+    if (/\?/.test(s(text))) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t)) return null;
+    if (!goal) return null;
+    const all = statedFactsOf(ctx);
+    const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
+    return { intent: "career_goal_record", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;

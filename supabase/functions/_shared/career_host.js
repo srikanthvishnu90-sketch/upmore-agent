@@ -81,10 +81,14 @@ const CareerHost = (() => {
   // written only from the user's own assertions (the router's
   // capture discipline is the only producer) and read back here at
   // turn start, so a fact stated in one thread is on the record in
-  // every later thread. Merge rule mirrors module 142's
-  // FACT_SINGLE_KINDS: single-value kinds are replaced by the
-  // thread's own (fresher) statement; multi-value kinds union
-  // without duplicates. The account is the base — a brand-new
+  // every later thread. ROUND 2 (judge blocker, PR #151): the
+  // ACCOUNT record is authoritative per identity — keyed facts
+  // (kind+key) and single-value kinds alike. A thread's copy is a
+  // cache frozen at that thread's last turn: it contributes only
+  // identities the account does not hold at all, and never
+  // replaces a value the account holds (an interleaved thread may
+  // have committed a newer value since the cache was written).
+  // Multi-value kinds union without duplicates. A brand-new
   // thread starts from everything the user has ever stated.
   // WO-095: the polarity kinds (sponsorship, citizenship) are single-
   // value too — a corrected answer replaces the old one across threads,
@@ -99,8 +103,9 @@ const CareerHost = (() => {
     // identified by kind + key (the company they belong to), never by
     // kind + value: two contacts can share a name at different
     // companies, and a corrected name at one company is the same fact
-    // restated. The thread's statement wins per keyed identity,
-    // exactly as it does per single-value kind.
+    // restated. Identity is kind+key in BOTH passes; which pass wins
+    // is decided by the callers below (account first, thread
+    // append-only — see the ROUND 2 note on the thread pass).
     const keyedIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${f.key.toLowerCase()}` : null;
     const pushKeyed = (f, threadWins) => {
       const id = keyedIdOf(f);
@@ -116,11 +121,23 @@ const CareerHost = (() => {
     }
     for (const f of Array.isArray(threadFacts) ? threadFacts : []) {
       if (!f || !f.kind || !f.value) continue;
-      if (keyedIdOf(f)) pushKeyed(f, true);
+      // ROUND 2 (judge blocker, PR #151): the thread pass is
+      // append-only per identity. The thread record is a CACHE of
+      // the account as of that thread's last turn — when another
+      // thread has since committed a newer value for the same
+      // identity, the cached copy is stale and must not win (the
+      // judge's sequence: a goal stated in an old thread, replaced
+      // in a new one, the old thread's recall answered the stale
+      // goal AND the turn's write-back committed it over the
+      // account). The account is authoritative per identity; the
+      // thread contributes only identities the account lacks
+      // entirely (a fact whose commit was rolled back or shed over
+      // the record cap must not be lost). A thread's own NEW
+      // statement still wins — through in-turn capture + commit,
+      // never through seed precedence.
+      if (keyedIdOf(f)) pushKeyed(f, false);
       else if (ACCOUNT_SINGLE_FACT_KINDS.includes(f.kind)) {
-        const i = out.findIndex((x) => x.kind === f.kind);
-        if (i >= 0) out[i] = cloneJson(f); else out.push(cloneJson(f));
-        seen.add(`kind:${f.kind}`); seen.add(keyOf(f));
+        if (!out.some((x) => x.kind === f.kind)) { out.push(cloneJson(f)); seen.add(`kind:${f.kind}`); seen.add(keyOf(f)); }
       } else if (!seen.has(keyOf(f))) { out.push(cloneJson(f)); seen.add(keyOf(f)); }
     }
     return out;
@@ -311,9 +328,11 @@ const CareerHost = (() => {
         ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {});
       }
       // DEPTH LANE A (MI-013): seed the account's stated facts into
-      // the turn. The thread's own record (restored above from its
-      // snapshot) wins per single-value kind; the account supplies
-      // everything the thread has not restated. The offer record
+      // the turn. ROUND 2 (PR #151): the account record is
+      // authoritative per identity; the thread's own record
+      // (restored above from its snapshot) is a cache that
+      // contributes only identities the account does not hold.
+      // The offer record
       // seeds the negotiation thread only when the thread does not
       // already carry one (its own mirror record included).
       const acctFacts = o.account && o.account.stated_facts && typeof o.account.stated_facts === "object" ? o.account.stated_facts : null;

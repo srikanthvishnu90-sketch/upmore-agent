@@ -188,7 +188,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -298,4 +298,20 @@ echo "== career_apply_authority.test.sql (an ordinary chat turn never makes an a
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023100000_career_events_apply_queued.sql"
 echo "== career_events_apply_queued.test.sql (a posting queued from chat is on the timeline and recalled by kind)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_events_apply_queued.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-101: the agent submits only a batch the person approved, and only while the owner's CAREER_AGENT_SUBMIT is 'on'.
+# It needs career_cloud_settings (20261021080000, applied above after the loop), so it is applied here, last, twice
+# (idempotent). The export check skips its table here, as it skips the cloud tables (listed tables not yet created).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024090000_career_apply_agent_submit.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024090000_career_apply_agent_submit.sql"
+echo "== career_apply_agent_submit.test.sql (the owner's kill switch; the person's batch approval, its Stop, used once)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_submit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The owner's rollback of 20261024090000 (supabase/rollbacks/): up, down, down again, up again; the database ends up.
+echo "== career_apply_agent_submit_down.test.sql (the rollback: down is clean and idempotent, up applies again after it)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_submit_down.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-102 at the agent's start: 20261024100000 redefines the agent start over 20261024090000 (re-applied by the rollback
+# test above), so it is applied here, last, twice (idempotent), and its test runs after it.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024100000_career_apply_agent_contract.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024100000_career_apply_agent_contract.sql"
+echo "== career_apply_agent_contract.test.sql (the agent starts only an approved entry that keeps the WO-102 contract; each refusal its own)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_contract.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

@@ -11,6 +11,8 @@ import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 import { createRequire } from "node:module";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
+// WO-102: the submission-quality contract, the extension's own functions (never copied).
+import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../extension/src/apply_core.ts";
 
 export interface EngineResult {
   result: {
@@ -83,7 +85,9 @@ export async function prepare(o: {
     return { ready: false as const, result: run?.result ?? { state: "not_submitted", reason: "ENGINE_NO_RESULT" } };
   }
   const ev = run.evidence;
-  const fields = ev.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId }));
+  // WO-102: each answer goes with the source the engine's contract judged it by (the event that confirmed it, its
+  // provenance, whether it may attest, and where a texted answer was kept), so the approved run is judged again on it.
+  const fields = ev.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId, ...sourceOf(ev.sources?.[f.factId]) }));
   const payload = {
     version: 1,
     user_id: ev.payload.user_id,
@@ -98,6 +102,7 @@ export async function prepare(o: {
     privacy_epoch: o.account.epoch,
     account_version: o.account.version,
     expires_at: new Date(o.now + (o.ttlHours ?? 24) * 3600_000).toISOString(),
+    ...(ev.trust?.quarantine_version ? { quarantine_version: String(ev.trust.quarantine_version), manifest_hash: String(ev.trust.manifest_hash ?? "") } : {}),
     ...(o.resumeTag?.tailored
       ? { resume_tailored: true, ...(o.resumeTag.persona ? { resume_persona: o.resumeTag.persona } : {}) }
       : {}),
@@ -133,18 +138,66 @@ export async function prepare(o: {
 const MARK: Record<string, string> = { consent: "You agree: ", attestation: "Your statement: ", screen: "About this job: " };
 
 // The approved answers as the engine's confirmed facts: each under its question, with its fact id, so the engine maps
-// the same question to the same answer and the approval hash comes out the same.
+// the same question to the same answer and the approval hash comes out the same. WO-102: each carries the source it was
+// approved on (provenance, confirmation event, whether it may attest), and the engine judges them again by the same
+// contract (scripts/apply.ts trustedFacts): an answer prepared without a source (before WO-102), or one whose source the
+// contract no longer keeps, is asked again and nothing is sent. A texted answer goes back as his answer row under the key
+// it was kept by (a file fact may never carry a text-answer id); the picked resume is the file passed, by its hash.
 export function factsFromPayload(payload: any) {
-  const saved: Record<string, { value: unknown; factId: string; confirmed: true }> = {};
+  const saved: Record<string, any> = {};
+  const text_answers: TextAnswer[] = [];
   for (const f of payload.fields) {
     if (f.value && typeof f.value === "object") continue; // the resume is passed as a file, checked by its hash
+    const id = String(f.factId ?? "");
+    if (id.startsWith("approved-local-resume:")) continue; // the engine adds the picked file itself, by its bytes' hash
+    if (id.startsWith("text-answer:") && f.source?.key) {
+      text_answers.push({ id: id.slice("text-answer:".length), key: f.source.table === "answers" ? `fact:${f.source.key}` : String(f.source.key), kind: "", answer: String(f.value) });
+      continue;
+    }
     const key = normLabel(f.label);
     if (Object.hasOwn(saved, key) && saved[key].value !== f.value) {
       throw Error("CONFLICTING_APPROVED_ANSWERS: " + f.label);
     }
-    saved[key] = { value: f.value, factId: f.factId, confirmed: true };
+    saved[key] = {
+      value: f.value, factId: f.factId, confirmed: true,
+      ...(f.provenance ? { provenance: String(f.provenance) } : {}),
+      ...(f.confirmation_event_id ? { confirmation_event_id: String(f.confirmation_event_id) } : {}),
+      ...(f.authorizes === true ? { authorizes: true } : {}),
+      ...(f.user_id ? { user_id: String(f.user_id) } : {}),
+    };
   }
-  return { user_id: payload.user_id, answers: {}, saved };
+  return { user_id: payload.user_id, answers: {}, saved, ...(text_answers.length ? { text_answers } : {}) };
+}
+// The source an answer was approved on, from the engine's manifest entry (evidence.sources), for the payload.
+function sourceOf(tf: any) {
+  if (!tf || typeof tf !== "object") return {};
+  return {
+    provenance: String(tf.provenance ?? ""), confirmation_event_id: String(tf.event ?? ""), ...(tf.authorizes === true ? { authorizes: true } : {}),
+    ...(String(tf.factId ?? "").startsWith("text-answer:") ? { source: { table: tf.table, key: tf.key } } : {}),
+  };
+}
+// WO-102, before an approved run starts: what in this payload the contract can never send, whatever the engine finds.
+// An answer from a quarantined fact (D-007: F-027..F-079, the answer-all delegation) or derived from one, a texted answer
+// with no key it was kept by, or an approval judged under other quarantine rules. Empty: the engine judges the rest.
+export function payloadTrust(payload: any): string[] {
+  const why: string[] = [];
+  if (payload?.quarantine_version !== undefined && payload.quarantine_version !== QUARANTINE_VERSION) {
+    why.push(`approved under the quarantine rules ${String(payload.quarantine_version)}, not ${QUARANTINE_VERSION}`);
+  }
+  for (const f of Array.isArray(payload?.fields) ? payload.fields : []) {
+    const label = String(f?.label ?? f?.name ?? "");
+    if (quarantinedFact({ factId: f?.factId, provenance: f?.provenance })) why.push(`"${label}": its fact is quarantined (D-007)`);
+    else if ((Array.isArray(f?.derived_from) ? f.derived_from : []).some((x: unknown) => quarantinedFact({ factId: x }))) {
+      why.push(`"${label}": derived from a quarantined fact (D-007)`);
+    } else if (String(f?.factId ?? "").startsWith("text-answer:") && !f?.source?.key) why.push(`"${label}": a texted answer with no question it answered`);
+  }
+  return why;
+}
+// What the engine reads for the desktop prepare (WO-102): the person's facts file as it is, and their texted answers
+// beside it as their own answer rows. Never merged under the file's facts (factsWithTextAnswers lets the file silently
+// win over a texted answer that disagrees); the engine's contract keeps the agreeing ones and asks again on a conflict.
+export function engineFacts(facts: any, rows: TextAnswer[]) {
+  return { ...(facts && typeof facts === "object" ? facts : {}), text_answers: (rows || []).filter((r) => r && typeof r.key === "string") };
 }
 
 // Ask once and the service-key check live in ask-once.ts, shared with the browser extension (WO-031).
@@ -166,6 +219,9 @@ export async function runApproved(d: {
     try {
       const p = job.payload;
       if (!/^[0-9a-f]{64}$/.test(String(p?.engine_approval))) throw Error("NO_ENGINE_APPROVAL");
+      // WO-102: fresh at the start, before anything opens; the engine then judges every answer again by the contract.
+      const untrusted = payloadTrust(p);
+      if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
       const resume = await d.resumeFor(job);
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));
@@ -576,12 +632,15 @@ if (import.meta.main) {
       console.error("Your account is paused; nothing was prepared.");
       Deno.exit(2);
     }
-    // Ask once: what the person already answered by text goes in as their confirmed facts, in a file only they can read,
-    // removed when the batch ends.
+    // Ask once: what the person already answered by text goes in beside their facts file as their own answers, in a file
+    // only they can read, removed when the batch ends. WO-102: the engine's contract keeps what agrees and asks again
+    // where a texted answer and the file disagree (engineFacts; never factsWithTextAnswers, where the file silently won).
     const texted = await client.rpc("career_apply_answers_own");
     if (texted.error) console.log(`Your texted answers could not be read (${texted.error.message}); preparing without them.`);
     const rows: TextAnswer[] = texted.error ? [] : texted.data ?? [];
-    const merged = factsWithTextAnswers(JSON.parse(await Deno.readTextFile(facts)), rows);
+    const merged = engineFacts(JSON.parse(await Deno.readTextFile(facts)), rows);
+    // The facts the contract keeps decide how far a new question's answer may travel (questionsToStore's haveFact).
+    const trusted = trustedManifest({ owner: merged.user_id, file: merged, rows, resume: null }).answers;
     const factsDir = await Deno.makeTempDir({ prefix: "trainee-facts-" });
     const factsPath = `${factsDir}/facts.json`;
     await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
@@ -601,7 +660,7 @@ if (import.meta.main) {
         if (!r.ready) {
           const q = (r.result as any).fields?.length ? `: ${(r.result as any).fields.join("; ")}` : "";
           console.log(`NOT READY ${url} (${r.result.reason ?? r.result.state})${q}`);
-          const ask = r.result.reason === "needs_answers" ? questionsToStore(r.result, { facts: merged.answers, answered }) : null;
+          const ask = r.result.reason === "needs_answers" ? questionsToStore(r.result, { facts: trusted, answered }) : null;
           if (ask?.questions.length) {
             const put = await client.rpc("career_apply_questions_put_own", { p_job_id: ask.posting, p_questions: ask.questions });
             if (put.error) console.log(`  questions not stored (${put.error.message})`);

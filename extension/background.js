@@ -352,7 +352,7 @@ async function finish(tabId, observation, extra = {}) {
   // A stop before the click leaves the posting open for another try; anything after the click moves the queue on. The queue
   // is final before the card says done, so the panel never shows a done card beside an open queue item.
   if (observation) await queueAfter(tabId, proved ? "confirmed" : outcome.state, evidence.ms_card_to_done, p.id);
-  const view = observation ? C.cardOutcome(outcome, !!shotAfter) : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
+  const view = observation ? C.cardOutcome(outcome, !!shotAfter, extra.codeStop || null) : { status: "stopped", message: extra.message || "Stopped before the click. Nothing was sent." };
   return await withCards(tabId, "finish:" + outcome.state, (prev) => ({
     ...(prev || {}), tabId, updated_at: Date.now(), status: view.status, message: view.message, result: outcome.state, proved,
     ms: evidence.ms_card_to_done, recorded, proof_id: p.id, approved: false,
@@ -411,11 +411,83 @@ async function readAndFinish(tabId, p) {
   await new Promise((r) => setTimeout(r, 600));
   try {
     const { observation, shotAfter } = await readAfterNavigation(tabId, p);
-    if (observation) await finish(tabId, observation, { shotAfter });
+    // WO-096: the submit moved to a page asking for the code the employer emailed. Once per application, the code is read
+    // from the person's own Gmail and filled there (never pressed, D-029); the page is read again when the person's
+    // Submit loads the next page, or in two minutes.
+    if (observation?.email_code_prompt && !observation.captcha && !p.code_tried) {
+      const r = await typeEmailCode(tabId, 0, p);
+      if (r.typed) {
+        setTimeout(() => afterNavigation(tabId), 120_000);
+        return;
+      }
+      await finish(tabId, observation, { shotAfter, codeStop: r.stop });
+      return;
+    }
+    if (observation) await finish(tabId, observation, { shotAfter, codeStop: p.code_stop || null });
   } catch {
     // The page after the click could not be read: unknown, counted as applied, never resent.
     await finish(tabId, { url_before: p.url_before, url_after: "", form_present_after: true, required_empty_after: 0, validation_errors: [], captcha: false, email_code_prompt: false, page_text: "" }, { timedOut: true });
   }
+}
+
+// ------------------------------------------------------------------------------------------------ the emailed code (WO-096)
+// After the approved click, the employer's page asks for a code it emailed the person. Once per application: the
+// career-email-code function reads it from the person's own Gmail (gmail.readonly, their Google consent) for this
+// application's queue row, which must be theirs, being sent now, under this lease; the wait is the shared one (about
+// three minutes, TraineeCore.pollForCode). The code goes from that answer straight into the page's code box in the frame
+// that asked (TraineeCore.dom.typeCode) and is not kept: not in the pending record, the card, the proof or a log.
+const TYPE_IT = "Type the code the employer emailed you on the page yourself.";
+async function typeEmailCode(tabId, frameId, p) {
+  if (!p || !p.clicked_at || p.finished || p.code_tried) return { typed: false, stop: TYPE_IT };
+  p.code_tried = true;
+  await setPending(tabId, p);
+  const a = await session();
+  if (!a) return { typed: false, stop: say.signedOut };
+  const cfg = await config();
+  const ats = C.detectPortal(p.payload?.url || "")?.family;
+  let code = null, stop = TYPE_IT;
+  const got = await C.pollForCode(async () => {
+    try {
+      const r = await fetch(cfg.supabaseUrl + "/functions/v1/career-email-code", {
+        method: "POST",
+        headers: { apikey: cfg.anonKey, authorization: "Bearer " + a.access_token, "content-type": "application/json" },
+        body: JSON.stringify({ apply_id: p.id, lease: p.lease, since_ms: p.clicked_at, ...(["greenhouse", "lever", "ashby", "workday"].includes(ats) ? { ats } : {}) }),
+      });
+      if (r.status === 401 || r.status === 403) return { status: "refused" };
+      const j = await r.json().catch(() => null);
+      return j && typeof j.status === "string" ? j : { status: "not_yet" };
+    } catch {
+      return { status: "not_yet" };
+    }
+  }, { now: Date.now });
+  if (got.status === "found" && typeof got.code === "string" && got.code) code = got.code;
+  else if (got.stop) stop = got.stop;
+  got.code = null;
+  if (!code) {
+    p.code_stop = stop;
+    await setPending(tabId, p);
+    return { typed: false, stop };
+  }
+  try {
+    await chrome.scripting.executeScript({ target: { tabId, frameIds: [frameId || 0] }, files: ["lib/trainee-core.js"] });
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [frameId || 0] }, args: [code],
+      func: (c) => globalThis.TraineeCore.dom.typeCode(c),
+    });
+    code = null;
+    if (res?.result === true) {
+      // D-029 rule 5: filled, never pressed. The person presses Submit; the card says so until the employer answers.
+      const name = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday" }[ats] || "the employer";
+      p.code_stop = `Filled the code ${name} emailed you. Press Submit to finish.`;
+      await setPending(tabId, p);
+      await setCard(tabId, { status: "submitting", message: p.code_stop });
+      return { typed: true, stop: p.code_stop };
+    }
+  } catch { /* the page went away: the person types it */ }
+  code = null;
+  p.code_stop = "The page's code box could not be found. " + TYPE_IT;
+  await setPending(tabId, p);
+  return { typed: false, stop: p.code_stop };
 }
 
 // ------------------------------------------------------------------------------------------------ answer once (WO-054)
@@ -641,8 +713,14 @@ async function handle(m, sender) {
       }
       return { ok: true };
     }
+    case "email-code": {
+      // WO-096: the page that clicked now asks for the emailed code (Greenhouse's code box on the same form).
+      const p = (await pendings())[tabId];
+      const r = await typeEmailCode(tabId, sender.frameId || 0, p);
+      return { ok: true, typed: r.typed, stop: r.stop };
+    }
     case "outcome":
-      return { ok: true, card: await finish(tabId, m.observation, m) };
+      return { ok: true, card: await finish(tabId, m.observation, { ...m, codeStop: m.codeStop || null }) };
     case "stopped": {
       if (m.finishPending) await finish(tabId, null, { reason: C.BEFORE_CLICK, message: m.message });
       else await setCard(tabId, { status: "stopped", message: m.message, approved: false, beforeClick: !!m.beforeClick });
@@ -836,7 +914,7 @@ async function handle(m, sender) {
 const PANEL_ONLY = new Set(["status", "signin-app", "signin-magic", "signout", "set-resume", "import-facts", "prepare", "approve", "essay-draft", "essay-use",
   "queue-set", "queue-from-tabs", "queue-from-matches", "queue-from-trainee", "queue-start", "queue-skip", "queue-stop", "queue-clear", "proof", "clear-proof",
   "answer-once-prepare", "answer-once-save", "answer-once-skip"]);
-const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
+const TAB_ONLY = new Set(["context", "queued", "card", "questions", "screenshot", "begin", "clicked", "email-code", "outcome", "stopped", "draft", "draft-clicked", "survey"]);
 // The sender's URL is set by Chrome: a content script's is the employer page's, the panel's is panel.html (in the side
 // panel it has no tab; opened as its own window it has one, so the URL decides, not the tab).
 const fromPanel = (sender) => typeof sender.url === "string" && sender.url.startsWith(chrome.runtime.getURL("panel.html"));

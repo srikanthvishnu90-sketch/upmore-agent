@@ -48,6 +48,6 @@ Deno.test("WO-061/5 the workflow passes the cap, never reads a stopped run as a 
   if (!/EVAL_BUDGET_USD: "15"/.test(wf)) throw new Error("the $15 cap is not set");
   if (!/if \(a\.stopped\)/.test(wf)) throw new Error("the verdict reads a stopped run");
   if (!/a\.pass_rate >= 0\.95/.test(wf) || !/--set heldout/.test(wf)) throw new Error("the owner's bar (95% on the held-out set) is not the verdict");
-  if (!/EVAL_JUDGE_MODEL_2: \S+/.test(wf)) throw new Error("one judge alone decides");
+  if (!/Instinct/.test(wf) || !/both-pass/.test(wf)) throw new Error("one judge alone decides (Instinct is the second judge, both must pass)");
   if (!/score-log\.ts/.test(wf)) throw new Error("the run is not logged");
 });

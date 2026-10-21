@@ -324,8 +324,7 @@ for t in career_apply_questions.test.sql career_apply_questions_ai_policy.test.s
   echo "== $t (after 20261024110000)"
   "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 done
-echo "db tests passed"
-
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.
 echo "== career_apply_message_cards.test.sql (exact shown payload, authenticated single-use tap)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_message_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "db tests passed"

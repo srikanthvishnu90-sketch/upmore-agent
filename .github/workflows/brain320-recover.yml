@@ -1,0 +1,85 @@
+name: brain320-recover-existing-mini
+on:
+  push:
+    branches: [ci/brain320-recover-20261021]
+    paths: [.github/workflows/brain320-recover.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1ec88f3cca4b21200be5c4f16ba2a948a72614b0
+          fetch-depth: 1
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: "v2.9.6"}
+      - name: Verify exact existing artifact identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          req=urllib.request.Request('https://api.github.com/repos/srikanthvishnu90-sketch/upmore-agent/actions/artifacts/12379695085',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(req) as r: a=json.load(r)
+          assert a['id']==12379695085 and a['name']=='brain320-39666739440-1'
+          assert a['workflow_run']['id']==39666739440 and not a['expired']
+          assert a['digest']=='sha256:43d90f6772d8e87aeef97c3d8474a6b4d79bc2d1ff5d37776619f0831d692f28'
+          print('EXISTING_ARTIFACT_ID_AND_ZIP_DIGEST_VERIFIED')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: brain320-39666739440-1
+          run-id: 39666739440
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/recovery
+      - name: Bootstrap pinned local reporter imports only
+        run: deno check evals/brain-reliability/run-comparison.ts
+      - name: Recover existing aggregates and safe per-call ledger without provider access
+        run: |
+          cat > "$RUNNER_TEMP/recover-report.ts" <<'TS'
+          const source = '1ec88f3cca4b21200be5c4f16ba2a948a72614b0';
+          const corpusHash = '91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc';
+          const base = new URL('file://' + Deno.args[2] + '/');
+          const {armSummary,recoverJournal,canonical,sha256,verifyJudgingPackets,COMPARISON_RUBRIC,MODELS,JUDGES} = await import(new URL('evals/brain-reliability/run-comparison.ts',base).href);
+          const {costMicros,PRICES} = await import(new URL('supabase/functions/_shared/model_gateway.ts',base).href);
+          const insist = (v: unknown, message: string) => { if (!v) throw new Error(message); };
+          const parse = (raw: string) => { try { return JSON.parse(raw); } catch { throw new Error('Invalid private artifact JSON'); } };
+          const resultRaw = await Deno.readTextFile(Deno.args[0]);
+          const journalRaw = await Deno.readTextFile(Deno.args[1]);
+          const arm = parse(resultRaw), events = journalRaw.trimEnd().split('\n').map(parse);
+          const summary = armSummary(arm), recovered = recoverJournal(journalRaw);
+          insist(arm.model==='gpt-5-mini' && summary.status==='SCORED','Mini result is not complete and reconciled');
+          insist(arm.identity.source_commit===source && arm.identity.corpus_sha256===corpusHash,'Result source/corpus differs');
+          insist(summary.full?.n===320 && summary.clean?.n===311 && arm.calls.filter((c:any)=>c.role==='judge').length===640,'Expected 320/311/640 inventory differs');
+          const headers = events.filter((e:any)=>e.type==='arm'), completes = events.filter((e:any)=>e.type==='complete');
+          insist(headers.length===1 && events[0]===headers[0] && completes.length===1 && events.at(-1)===completes[0],'Journal envelope differs');
+          const header=headers[0];
+          insist(header.model===arm.model && canonical(header.identity)===canonical(arm.identity),'Journal/result identity differs');
+          insist(header.approval.model===arm.model && header.approval.source_commit===source && header.approval.corpus_sha256===corpusHash && header.approval.cap_usd===5 && header.approval.comparison_spent_usd===0,'Journal approval binding differs');
+          insist(canonical(completes[0].summary)===canonical(summary),'Journal/result summary differs');
+          insist(recovered.charges_reconciled && recovered.charged_micros===arm.ledger.usd_micros && arm.ledger.usd_micros<=5000000,'Journal/result charge reconciliation failed');
+          insist(await sha256(await Deno.readFile(new URL('evals/brain-reliability/scenarios320.json',base)))===corpusHash,'Pinned corpus byte digest differs');
+          const params=arm.identity.params;
+          insist(params.harness_sha256===await sha256(await Deno.readFile(new URL('evals/brain-reliability/run-comparison.ts',base))) && params.manifest_sha256===await sha256(await Deno.readFile(new URL('evals/brain-reliability/manifest320.json',base))) && arm.identity.rubric_sha256===await sha256(COMPARISON_RUBRIC),'Pinned harness/manifest/rubric digest differs');
+          insist(params.prices_sha256===await sha256(canonical(Object.fromEntries([...MODELS,...JUDGES].map((m:string)=>[m,PRICES[m]])))),'Pinned pricing digest differs');
+          await verifyJudgingPackets(arm);
+          const reserved=events.filter((e:any)=>e.type==='reserved'), settlements=events.filter((e:any)=>e.type==='settlement'), items=events.filter((e:any)=>e.type==='item');
+          insist(reserved.length===arm.calls.length && settlements.length===arm.calls.length && items.length===320,'Journal event inventory differs');
+          const byCall=new Map(settlements.map((e:any)=>[e.call_id,e])), byItem=new Map(items.map((e:any)=>[e.item.id,e.item]));
+          insist(byCall.size===arm.calls.length && byItem.size===320,'Duplicate journal bindings');
+          for (const c of arm.calls) {
+            const e:any=byCall.get(c.call_id); insist(e,'Result call missing in journal');
+            const {type,...settled}=e; insist(type==='settlement' && canonical(settled)===canonical(c),'Journal/result settlement differs');
+            const r=reserved.find((r:any)=>r.call_id===c.call_id); insist(r && ['case_id','category','role','model','turn','reserve_micros'].every(k=>r[k]===c[k]),'Reservation/settlement metadata differs');
+            insist(costMicros(c.model,c.usage)===c.usd_micros,'Pinned per-call pricing differs');
+          }
+          for (const item of arm.items) insist(canonical(byItem.get(item.id))===canonical(item),'Journal/result item differs');
+          console.log('BRAIN320_RECOVERY_SUMMARY '+JSON.stringify({evidence_run_id:39666739440,artifact_id:12379695085,artifact_zip_sha256:'43d90f6772d8e87aeef97c3d8474a6b4d79bc2d1ff5d37776619f0831d692f28',result_sha256:await sha256(resultRaw),...summary,recovered_journal:recovered}));
+          for (const c of arm.calls) console.log('BRAIN320_CALL_LEDGER '+JSON.stringify({call_id:c.call_id,model:c.model,role:c.role,usage:c.usage,usd_micros:c.usd_micros}));
+          TS
+          deno run --cached-only --no-remote --allow-read="$GITHUB_WORKSPACE,$RUNNER_TEMP/recovery" --deny-net --deny-env --deny-write --deny-run --no-prompt \
+            "$RUNNER_TEMP/recover-report.ts" "$RUNNER_TEMP/recovery/brain320-result.json" "$RUNNER_TEMP/recovery/brain320-result.journal.jsonl" "$GITHUB_WORKSPACE"

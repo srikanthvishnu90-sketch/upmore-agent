@@ -32,7 +32,7 @@ Deno.test("WO-077/1 the battery's case: a read, then 'Kept for good' — the mod
   const r = await run(m);
   eq(r.reply, 'Kept for good: "don\'t apply to anything".');
   assert(r.tool_calls.some((t) => t.name === "remember_instruction" && t.ok), "the save happened after the check");
-  const told = JSON.stringify(m.seen[2].messages.at(-1));
+  const told = JSON.stringify(m.seen[2].system); // WO-061: the review rides in the retry's system prompt, never the conversation
   assert(/no tool that (saves|does that) (ran|succeeded)/i.test(told), `the model is told why: ${told}`);
 });
 

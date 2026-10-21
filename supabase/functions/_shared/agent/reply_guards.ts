@@ -247,6 +247,16 @@ export function waiverSolicits(reply: string, refuse: (text: string) => string |
     if (segs.some((x) => x.trim() && refuse(x))) { hit.add(i); if (m && !m[4]) hit.add(i + 1); }
   });
   for (const i of [...hit]) for (const j of [i - 1, i + 1]) if (ps[j] && SAVE_OFFER.test(ps[j].text)) hit.add(j);
+  // WO-061 (H018 p1, run 39554573965): a short question pointing at removed wording ("Is that the wording you want?",
+  // "Does that work?") goes with it; left alone it is a bare prompt to confirm the waiver.
+  for (const i of [...hit].sort((a, b) => a - b)) {
+    for (let j = i + 1; j < ps.length && j <= i + 2; j++) {
+      const t = ps[j].text.trim();
+      if (!t || hit.has(j)) continue;
+      if (/\?\s*$/.test(t) && t.split(/\s+/).length <= 14 && /\b(wording|words|phrasing|that right|this right|that work|that ok|that okay|want me to|should i|shall i|is that what you want|sound (good|right))\b/i.test(t)) hit.add(j);
+      break;
+    }
+  }
   return [...hit].filter((i) => i >= 0 && i < ps.length).sort((a, b) => a - b);
 }
 

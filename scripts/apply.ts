@@ -1,5 +1,6 @@
-// Terminal apply path. Candidate answers must be explicit confirmed records:
-// {user_id, answers:{email:{value,factId,confirmed:true}}, saved:{normalized_label:...}}.
+// Terminal apply path. Candidate answers must be facts the owner gave, as the second judge's contract (WO-102) keeps
+// them: {user_id, answers:{email:{value,factId,confirmed:true,provenance:"owner stated ...",confirmation_event_id}},
+// saved:{normalized_label:...}, text_answers:[{id,key,kind,answer}]} (extension/src/apply_core.ts trustedManifest).
 // Default: dry-run. Real submission requires --submit and the exact word yes.
 import fs from "node:fs";
 import path from "node:path";
@@ -28,6 +29,9 @@ import {
   redactCode,
 } from "../supabase/functions/_shared/career_email_code.ts";
 import { CODE_MAX_WAIT_MS, pollForCode } from "../supabase/functions/_shared/career_email_code_poll.ts";
+// WO-102: the submission-quality contract, the extension's own functions (never copied): which facts may be sent at all
+// (trustedManifest), and which planned answers they stand behind (contractFill).
+import { contractFill, type Manifest, trustedManifest } from "../extension/src/apply_core.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
@@ -166,17 +170,55 @@ function posting(u: URL) {
     tenant,
   };
 }
-function confirmed(input: any, owner: string) {
-  const out: any = Object.create(null);
-  for (const [key, a] of Object.entries(input || {}) as any) {
-    if (a?.user_id && a.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
-    if (
-      a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 &&
-      a.factId.length <= 200
-    ) out[key] = { value: a.value, factId: a.factId };
+// WO-102 (every path): the facts this run may send, by the extension's positive allowlist (trustedManifest): confirmed,
+// the owner's own, a positive provenance ("owner stated ..."), the event that confirmed it, not quarantined (D-007:
+// F-027..F-079 and the answer-all delegation), no id reserved for another source, not derived from anything excluded.
+// A confirmed:true label alone is not enough. His texted answers (text_answers, career_apply_answers_own rows) are his;
+// one that disagrees with the file excludes both, so the question is asked again. Another person's fact or answer stops.
+export function trustedFacts(facts: any, artifact: { sha256: string }): Manifest {
+  const owner = facts?.user_id;
+  for (const t of ["answers", "saved"]) {
+    for (const a of Object.values(facts?.[t] || {}) as any[]) if (a?.user_id && a.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
   }
-  return out;
+  const rows = Array.isArray(facts?.text_answers) ? facts.text_answers : [];
+  for (const r of rows) if (r?.user_id && r.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
+  return trustedManifest({ owner, file: facts, rows, resume: { sha256: artifact.sha256 } });
 }
+// One step's plan: the planner on the trusted facts only, then the contract on what it would send (contractFill): an
+// answer it cannot stand behind on a required question is asked (nothing is sent), on an optional one left empty; an
+// attestation or a personal choice goes only on the owner's own answer to it.
+export function planApplication(o: {
+  manifest: Manifest; userId: string; jobId: string; employer: string; location?: string; schema: any[];
+  artifact: { filename: string; sha256: string }; now: number;
+}): { ready: true; fields: any[]; dropped: string[] } | { ready: false; needs: { label: string; why?: string }[] } {
+  const p = planBatch({
+    userId: o.userId,
+    postings: [{ job_id: o.jobId, company: o.employer, title: "", fields: o.schema, location: o.location }],
+    answers: o.manifest.answers,
+    saved: o.manifest.saved,
+    log: [],
+    now: o.now,
+  });
+  if (!p.ready.length) return { ready: false, needs: p.needs.map((n: any) => ({ label: n.label })) };
+  const c = contractFill({
+    schema: o.schema, manifest: o.manifest, resume: o.artifact,
+    plan: { fill: p.ready[0].fields, needs: [], identity: [], ambiguous: [] },
+  });
+  if (c.asks.length) return { ready: false, needs: c.asks.map((a) => ({ label: a.label, why: a.why })) };
+  return { ready: true, fields: c.fill, dropped: c.dropped };
+}
+// What the approval binds beside the answers (WO-102): each answer's fact, the event that confirmed it, its provenance,
+// whether it may attest, and the quarantine rules it was judged under. Any change is another application.
+export function approvalSources(fields: { name: string; factId: string }[], m: Manifest) {
+  return fields.map((f) => {
+    const tf = m.byFactId[f.factId];
+    if (!tf) throw fail("UNTRUSTED_ANSWER: " + f.name);
+    return { name: f.name, factId: f.factId, event: tf.event, provenance: tf.provenance, authorizes: tf.authorizes, quarantine_version: m.version };
+  }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+const trustRecord = (m: Manifest) => ({
+  quarantine_version: m.version, manifest_hash: m.hash, excluded: m.excluded.slice(0, 200), conflicts: m.conflicts.slice(0, 200),
+});
 async function answer() {
   const b = new Uint8Array(128);
   let s = "";
@@ -316,9 +358,7 @@ export async function runApply(args: string[]) {
     };
   }
   const artifact = { filename: path.basename(o.resume), sha256: sha(fs.readFileSync(o.resume)) },
-    answers = confirmed(facts.answers, facts.user_id),
-    saved = confirmed(facts.saved, facts.user_id);
-  answers.resume = { value: artifact.sha256, factId: "approved-local-resume:" + artifact.sha256 };
+    manifest = trustedFacts(facts, artifact);
   const evidenceDir = o["evidence-dir"] || fs.mkdtempSync(path.join(stateDir, "evidence-"));
   privateDir(evidenceDir);
   if (fs.readdirSync(evidenceDir).length) throw fail("EVIDENCE_DIRECTORY_NOT_EMPTY");
@@ -759,15 +799,18 @@ export async function runApply(args: string[]) {
       // WO-053: where the job is, as its page shows it (the extension reads it the same way); WO-055: it goes with the
       // questions too, so an answer about a job abroad is kept as that posting's.
       const location = String(await page.evaluate(fnPostingLocation).catch(() => ""));
-      const p = planBatch({
+      // WO-102: planned on the trusted facts only, and every answer judged by the contract before anything is filled.
+      const p = planApplication({
+        manifest,
         userId: facts.user_id,
-        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema, location }],
-        answers,
-        saved,
-        log: [],
+        jobId: target.key,
+        employer: target.employer,
+        location,
+        schema: current.schema,
+        artifact,
         now: Date.now(),
       });
-      if (!p.ready.length) {
+      if (!p.ready) {
         for (const n of p.needs) console.log("Required confirmed answer: " + JSON.stringify(n.label));
         // Each question as the form asks it (its type and the employer's own options), so it can be asked once by text and
         // answered in the form's own terms; `fields` keeps the labels for older readers. A list longer than 60 (every
@@ -780,9 +823,13 @@ export async function runApply(args: string[]) {
         // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
         // them before it ever drafts a written answer for this posting.
         const ai_policy = aiPolicyStatements(current.schema.map((f: any) => f.label));
-        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, location, fields: p.needs.map((n: any) => n.label), questions, ...(ai_policy.length ? { ai_policy } : {}) });
+        // WO-102: why the contract turned an answer back into a question, and which facts it left out (ids and reasons,
+        // never values).
+        const contract = p.needs.filter((n) => n.why).map((n) => ({ label: n.label, why: n.why }));
+        evidence.trust = trustRecord(manifest);
+        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, location, fields: p.needs.map((n: any) => n.label), questions, ...(contract.length ? { contract } : {}), ...(ai_policy.length ? { ai_policy } : {}) });
       }
-      const fields = p.ready[0].fields, before = await hashApplyPayload(current.schema);
+      const fields = p.fields, before = await hashApplyPayload(current.schema);
       for (const f of fields) {
         populated = true;
         const b = current.bindings[f.name];
@@ -871,7 +918,13 @@ export async function runApply(args: string[]) {
         resume: artifact.sha256,
         schema_hash: before,
         page_field_names: Object.keys(pageFields || {}).sort(),
+        // WO-102: the facts behind the answers (fact, event, provenance) and the quarantine rules they were judged under.
+        sources: approvalSources(evidence.fields, manifest),
       });
+      // The source of each answer, so an approved run can be checked against the contract again (approve-first's
+      // factsFromPayload carries these into the run's facts), and what the contract left out (never values).
+      evidence.sources = Object.fromEntries(evidence.fields.map((f: any) => [f.factId, manifest.byFactId[f.factId]]));
+      evidence.trust = trustRecord(manifest);
       evidence.approval_hash = approvalHash;
       evidence.payload_hash = payloadHash;
       evidence.final_url = page.url();

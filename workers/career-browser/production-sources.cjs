@@ -57,8 +57,35 @@ const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "fun
 const CareerJobs = require(path.join(__dirname, "..", "..", "packages", "domain", "121-career-jobs.js"));
 const Portal = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
 
+// WO-102: the second judge's submission-quality contract, the extension's own functions (extension/src/apply_core.ts
+// trustedManifest, bundled unchanged into extension/lib/trainee-core.js, which extension/build.ts --check keeps fresh).
+// Loaded for its functions only; never copied.
+require(path.join(__dirname, "..", "..", "extension", "lib", "trainee-core.js"));
+const Contract = globalThis.TraineeCore;
+
 const coded = (code, message) => Object.assign(new Error(message || code), { code });
 const clone = (v) => JSON.parse(JSON.stringify(v));
+
+// WO-102 (every path): the master's facts and basics as the contract keeps them, by the same positive allowlist as every
+// other submission path (trustedManifest): confirmed, the owner's own, a positive provenance ("owner stated ..."), the
+// event that confirmed it, not quarantined (D-007: F-027..F-079 and the answer-all delegation), no id reserved for another
+// source, not derived from anything excluded. A status "confirmed" label alone is not enough. The basics (name, email,
+// phone, location) are kept only when the block itself carries the owner's own confirmation.
+function trustedMaster(m, owner) {
+  const facts = Array.isArray(m.facts) ? m.facts : [];
+  const b = m.basics || {};
+  const entry = (f, id, value) => ({
+    value: String(value ?? ""), factId: String(id ?? ""), confirmed: f.status === "confirmed" || (f.status === undefined && f.confirmed === true),
+    ...(f.needs_confirmation === true || f.status === "draft" ? { confirmed: false } : {}),
+    ...(f.user_id ? { user_id: f.user_id } : {}), provenance: f.provenance, confirmation_event_id: f.confirmation_event_id,
+    ...(Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {}),
+  });
+  const answers = {};
+  facts.forEach((f, i) => { if (f && typeof f === "object") answers["fact:" + i] = entry(f, f.id, f.value ?? f.title ?? f.name ?? f.text); });
+  answers.basics = entry({ ...b, status: b.status ?? "confirmed" }, b.id || "basics", b.name || b.email || "basics");
+  const kept = Contract.trustedManifest({ owner, file: { user_id: owner, answers }, rows: [], resume: null }).answers;
+  return { facts: facts.filter((_f, i) => !!kept["fact:" + i]), basics: kept.basics ? b : {} };
+}
 
 // The 149-shaped profile from the 122 master (WO-094, loop input).
 // Identity: 142's batchPortalProfile rule (identity fields from the
@@ -73,10 +100,12 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 // a stored note or answer could ride without a confirmed fact), and a
 // cover note comes only from a note drafted onto this application's
 // payload (155 coverNoteFor), never from the master.
-function portalProfileFromMaster(master, now) {
+function portalProfileFromMaster(master, now, owner) {
   const m = master || {};
-  const b = m.basics || {};
-  const basicsConfirmed = !(b.needs_confirmation === true || b.status === "draft");
+  // WO-102: only what the contract keeps reaches the profile (trustedMaster); no standing defaults (no fact behind them).
+  const t = trustedMaster(m, owner);
+  const b = t.basics;
+  const basicsConfirmed = Object.keys(b).length > 0;
   const id = (v) => (basicsConfirmed && v ? v : null);
   const p = {
     name: id(b.name || b.full_name || m.name),
@@ -85,7 +114,7 @@ function portalProfileFromMaster(master, now) {
     location: id(b.location),
     answers: {},
   };
-  const derived = Portal.deriveAnswers({ basics: basicsConfirmed ? b : {}, facts: Array.isArray(m.facts) ? m.facts : [], defaults: m.defaults || {} }, now != null ? now : Date.now());
+  const derived = Portal.deriveAnswers({ basics: b, facts: t.facts, defaults: {} }, now != null ? now : Date.now());
   p.answers = clone(derived.answers);
   for (const [k, v] of Object.entries(derived.profileFields)) if (p[k] == null) p[k] = clone(v);
   const r = m.resume || b.resume || null;
@@ -139,7 +168,7 @@ function createProductionSources(deps) {
     // never read — the approval card is the attestation act, per
     // application, bound into that application's payload hash.
     return {
-      profile: portalProfileFromMaster(master, nowOf()),
+      profile: portalProfileFromMaster(master, nowOf(), userId),
       profileMaster: master,
       attestations: {},
     };

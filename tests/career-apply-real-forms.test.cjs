@@ -47,7 +47,7 @@ before(async () => {
         last_name: "Tester",
         full_name: "Synthetic Tester",
         email: "synthetic@example.test",
-      }).map(([k, value], i) => [k, { value, factId: "TEST-FACT-" + i, confirmed: true }]),
+      }).map(([k, value], i) => [k, { value, factId: "TEST-FACT-" + i, confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-FACT-" + i }]),
     ),
     saved: {},
   };

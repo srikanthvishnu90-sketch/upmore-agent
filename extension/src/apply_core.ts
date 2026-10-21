@@ -205,7 +205,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
         left.push({ jobId: p.jobId, label: r.label, why: "agreement" });
         continue;
       }
-      const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [], perPosting: String(r.key).startsWith("job:") };
+      const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [] as PanelQuestion["postings"], perPosting: String(r.key).startsWith("job:") };
       g.postings.push({ jobId: p.jobId, company: p.company, label: r.label, type: r.type, options: r.options, misfit: !!r.misfit });
       by.set(r.key, g);
     }

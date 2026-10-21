@@ -67,8 +67,8 @@ const jobs = [];
 for (const s of specs) {
   const facts = dir + "/facts-" + s.user + ".json";
   await Deno.writeTextFile(facts, JSON.stringify({ user_id: "TEST-" + s.user, answers: {
-    first_name: { value: "TEST " + s.user, factId: "TEST-" + s.user + "-1", confirmed: true },
-    email: { value: s.user.toLowerCase() + "@example.test", factId: "TEST-" + s.user + "-2", confirmed: true } }, saved: {} }));
+    first_name: { value: "TEST " + s.user, factId: "TEST-" + s.user + "-1", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-" + s.user + "-1" },
+    email: { value: s.user.toLowerCase() + "@example.test", factId: "TEST-" + s.user + "-2", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-" + s.user + "-2" } }, saved: {} }));
   const p = await prepare({ url: s.url, factsPath: facts, resumePath: resume, account: { epoch: 1, version: 1 }, now: Date.now(), runEngine: engine });
   if (!p.ready) throw Error("not prepared: " + JSON.stringify(p.result));
   if (s.tamper) p.payload.fields[0].value = "TEST changed after approval";

@@ -278,6 +278,12 @@ test("S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in
     path.join(__dirname, "..", "..", "your_files", "review", "honest-yield-copy.md"),
   ];
   for (const f of surfaces) {
+    // The honest-yield copy lives OUTSIDE the repo (owner's workspace, by the
+    // privacy rule) — scan it when present, skip when absent, the same idiom
+    // as the answer-map suite's real-bank load. The in-repo surfaces are
+    // always present and always scanned; a missing in-repo surface still
+    // throws here, as it should.
+    if (!fs.existsSync(f) && f.includes("your_files")) continue;
     const text = fs.readFileSync(f, "utf8");
     for (const re of banned) assert.ok(!re.test(text), `${path.basename(f)} must not contain the banned claim ${re}`);
   }

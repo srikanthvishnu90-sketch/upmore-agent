@@ -417,6 +417,31 @@ $("q-start").onclick = async () => (qmsg(await send({ type: "queue-start", tabId
 $("q-skip").onclick = async () => (qmsg(await send({ type: "queue-skip" })), render());
 $("q-stop").onclick = async () => (qmsg(await send({ type: "queue-stop" })), render());
 $("q-clear").onclick = async () => (qmsg(await send({ type: "queue-clear" })), render());
+// FRS stated facts: Read shows what Trainee read from the text, each with the words it came from, and what it could not
+// read; only the person's own Confirm tap makes the checked ones facts (extension/src/stated_facts.ts).
+$("stated-read").onclick = async () => {
+  const r = await send({ type: "import-text", text: $("stated-text").value });
+  $("stated-list").replaceChildren();
+  $("stated-confirm").disabled = !r.ok || !r.facts.length;
+  if (!r.ok) return text($("stated-msg"), r.message, true);
+  $("stated-confirm").dataset.id = r.id;
+  r.facts.forEach((f, i) => {
+    const li = document.createElement("li"), box = document.createElement("input");
+    Object.assign(box, { type: "checkbox", checked: true });
+    box.dataset.i = String(i);
+    li.append(box, ` ${f.label}: ${f.field === "work_history" ? f.span : f.value} (from "${f.span}")`);
+    $("stated-list").append(li);
+  });
+  text($("stated-msg"), r.leftover.length ? `Not read, so not used: ${r.leftover.join(" | ")}` : "", r.leftover.length > 0);
+};
+$("stated-confirm").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const keep = [...$("stated-list").querySelectorAll("input:checked")].map((x) => Number(x.dataset.i));
+  const r = await send({ type: "confirm-stated", id: $("stated-confirm").dataset.id, keep });
+  text($("stated-msg"), r.ok ? `${r.kept} fact${r.kept === 1 ? "" : "s"} confirmed as yours.` : r.message, !r.ok);
+  if (r.ok) ($("stated-list").replaceChildren(), ($("stated-confirm").disabled = true), ($("stated-text").value = ""));
+  render();
+};
 
 // 50-in-30: while several lanes send, storage changes many times a second, and each render asks the worker for the whole
 // status (the batch, every posting's answers, among it). One render per RENDER_EVERY_MS is enough to read.

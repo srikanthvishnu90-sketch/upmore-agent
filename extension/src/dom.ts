@@ -65,6 +65,25 @@ function yesNoButtons(el: any): any[] {
   const box = el.closest && el.closest("[class*='yesno']");
   return box ? Array.from(box.querySelectorAll("button[data-option]")) : [];
 }
+// The button the page shows pressed, "yes" or "no" (null: none). A "No" leaves the hidden box unchecked, exactly like a
+// question nobody answered, so the pressed button is the only place the page shows it. Ashby renders aria-pressed on
+// both buttons ("false" in every capture until pressed) and keeps an empty slot in the option's class for its
+// selected-state class; a selected-state class is read only where a page renders no aria-pressed at all.
+const SELECTED_CLASS = /(^|\s)(_(active|selected|pressed|checked)_[\w-]+|active|selected|is-active|is-selected)(?=\s|$)/i;
+function yesNoPressed(el: any): "yes" | "no" | null {
+  for (const b of yesNoButtons(el)) {
+    const a = b.getAttribute("aria-pressed");
+    const on = a !== null ? a === "true" : SELECTED_CLASS.test(String(b.getAttribute("class") || ""));
+    const o = String(b.getAttribute("data-option") || "").toLowerCase();
+    if (on && (o === "yes" || o === "no")) return o;
+  }
+  return null;
+}
+// A person's press on a yes/no button (content.js: the card refreshes on it; the hidden box gets no input or change).
+export function yesNoPress(target: any): boolean {
+  const b = target?.closest?.("button[data-option]");
+  return !!b && !!b.closest("[class*='yesno']");
+}
 
 // A react-select widget's chosen value, as the page renders it (the engine's fnWidgetValue).
 function widgetValue(el: any): string | null {
@@ -281,8 +300,14 @@ export async function fill(b: any, value: string, resume: Resume | null, choose?
     const want = yes(value);
     const buttons = yesNoButtons(el);
     if (buttons.length) {
-      const btn = buttons.find((x: any) => x.getAttribute("data-option") === (want ? "yes" : "no"));
-      btn?.click();
+      // The answer is the button. One already pressed is left alone (a second press may undo it); the page's own render
+      // of a press may come a tick later (React), and once it shows a pressed button that is what was taken. A page that
+      // never shows one (no page script: the TEST world's stripped captures) falls through to the box, as before.
+      const opt = want ? "yes" : "no";
+      if (yesNoPressed(el) !== opt) buttons.find((x: any) => String(x.getAttribute("data-option")).toLowerCase() === opt)?.click();
+      await until(() => (yesNoPressed(el) === opt ? opt : null), 300, 20);
+      const shown = yesNoPressed(el);
+      if (shown) return shown === opt;
     }
     if (el.checked !== want) el.click();
     if (el.checked !== want) {
@@ -324,7 +349,11 @@ export function readDetail(b: any): string {
   if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
     return (b.options || []).map((o: any) => element(o.selector)).filter((x: any) => x?.checked).map((x: any) => `checked=${x.value}`).join(",");
   }
-  if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+  if (b.inputType === "checkbox") {
+    // A yes/no question's answer is its pressed button: a "No" and an unanswered question have the same unchecked box.
+    const box = `checked=${!!el.checked};value=${el.value}`;
+    return yesNoButtons(el).length ? `${box};pressed=${yesNoPressed(el) ?? "none"}` : box;
+  }
   return "";
 }
 // Read-only fields the page set: sent with the form, so shown on the card and bound to the approval.
@@ -357,8 +386,8 @@ export function readValue(b: any): string {
     return chosen.join(", ");
   }
   if (b.inputType === "checkbox") {
-    const pressed = yesNoButtons(el).find((x: any) => x.getAttribute("aria-pressed") === "true");
-    if (pressed) return pressed.getAttribute("data-option") === "yes" ? "Yes" : "No";
+    const pressed = yesNoPressed(el);
+    if (pressed) return pressed === "yes" ? "Yes" : "No";
     return el.checked ? "Yes (checked)" : "";
   }
   return String(el.value ?? "");

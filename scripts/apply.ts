@@ -13,6 +13,7 @@ import {
   classifyOutcome,
   normLabel,
   planBatch,
+  questionFieldType,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
@@ -213,8 +214,18 @@ export function approvalSources(fields: { name: string; factId: string }[], m: M
   return fields.map((f) => {
     const tf = m.byFactId[f.factId];
     if (!tf) throw fail("UNTRUSTED_ANSWER: " + f.name);
-    return { name: f.name, factId: f.factId, event: tf.event, provenance: tf.provenance, authorizes: tf.authorizes, quarantine_version: m.version };
+    return { name: f.name, factId: f.factId, event: tf.event, provenance: tf.provenance, authorizes: tf.authorizes, quarantine_version: m.version,
+      table: tf.table, key: tf.key, value: tf.value };
   }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+export async function applicationApprovalHash(o: {
+  userId: string; posting: string; destination: string; fields: any[]; resumeSha256: string; schemaHash: string;
+  pageFieldNames: string[]; manifest: Manifest;
+}) {
+  return await hashApplyPayload({ user_id: o.userId, posting: o.posting, destination: o.destination,
+    fields: o.fields.map((f) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })), resume: o.resumeSha256,
+    schema_hash: o.schemaHash, page_field_names: o.pageFieldNames, manifest_hash: o.manifest.hash,
+    sources: approvalSources(o.fields, o.manifest) });
 }
 const trustRecord = (m: Manifest) => ({
   quarantine_version: m.version, manifest_hash: m.hash, excluded: m.excluded.slice(0, 200), conflicts: m.conflicts.slice(0, 200),
@@ -818,7 +829,7 @@ export async function runApply(args: string[]) {
         const questions = p.needs.map((n: any) => {
           const f = current.schema.find((x: any) => x.label === n.label) || {};
           const all = f.options || [];
-          return { label: n.label, type: String(f.type || "input_text"), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
+          return { label: n.label, type: questionFieldType(f), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
         });
         // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
         // them before it ever drafts a written answer for this posting.
@@ -910,20 +921,21 @@ export async function runApply(args: string[]) {
       // What the person approves: their answers, the resume, the form's questions, where it goes, and the names of the
       // employer's own hidden fields (their values can change with every page load; each is still checked against the
       // consent rule and kept in the evidence). The same application on a fresh load gives the same hash.
-      const approvalHash = await hashApplyPayload({
-        user_id: facts.user_id,
+      const approvalHash = await applicationApprovalHash({
+        userId: facts.user_id,
         posting: target.key,
         destination: evidence.payload.destination,
-        fields: evidence.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })),
-        resume: artifact.sha256,
-        schema_hash: before,
-        page_field_names: Object.keys(pageFields || {}).sort(),
+        fields: evidence.fields,
+        resumeSha256: artifact.sha256,
+        schemaHash: before,
+        pageFieldNames: Object.keys(pageFields || {}).sort(),
         // WO-102: the facts behind the answers (fact, event, provenance) and the quarantine rules they were judged under.
-        sources: approvalSources(evidence.fields, manifest),
+        manifest,
       });
       // The source of each answer, so an approved run can be checked against the contract again (approve-first's
       // factsFromPayload carries these into the run's facts), and what the contract left out (never values).
       evidence.sources = Object.fromEntries(evidence.fields.map((f: any) => [f.factId, manifest.byFactId[f.factId]]));
+      evidence.replay_sources = Object.values(manifest.byFactId);
       evidence.trust = trustRecord(manifest);
       evidence.approval_hash = approvalHash;
       evidence.payload_hash = payloadHash;

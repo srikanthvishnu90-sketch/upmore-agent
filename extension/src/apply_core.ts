@@ -5,12 +5,13 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -89,7 +90,7 @@ export function planForm(o: {
   const questions = needs.map((n) => {
     const f = fields.find((x) => x.label === n.label) || ({} as FormField);
     const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-    return { label: n.label, type: String(f.type || "input_text"), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
+    return { label: n.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
   });
   return {
     fill, needs: questions, identity: identity.map((f) => ({ name: f.name, label: f.label, required: f.required })),
@@ -582,10 +583,18 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
   const excluded: Manifest["excluded"] = [], conflicts: Manifest["conflicts"] = [];
   const kept = new Map<string, TrustedFact>(); // table + key -> fact
   const file = o.file && typeof o.file === "object" ? o.file : null;
+  let projectedAnswers: Record<string, unknown> = {};
+  // Raw profile facts supply shape only. The existing allowlist below still decides source authority,
+  // quarantine, derivation and conflicts; projection cannot create a confirmation event.
+  if (Array.isArray(file?.facts)) {
+    const projected = typedProfileFile({ owner: o.owner, profile: file });
+    projectedAnswers = projected.file.answers;
+    excluded.push(...projected.needs.map((n) => ({ key: "profile", factId: n.factId, why: n.reason })));
+  }
   const fileOwn = !!file && file.user_id === o.owner;
   const candidates: { t: "answers" | "saved"; key: string; a: any }[] = [];
   for (const t of ["answers", "saved"] as const) {
-    for (const [key, a] of Object.entries((file?.[t] ?? {}) as Record<string, any>)) {
+    for (const [key, a] of [...Object.entries((file?.[t] ?? {}) as Record<string, any>), ...Object.entries(t === "answers" ? projectedAnswers : {})] as [string, any][]) {
       const id = String(a?.factId ?? "");
       const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact"
         : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value"
@@ -597,7 +606,16 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
     }
   }
   // Derived facts stand only on kept facts: drop, until nothing changes, any whose sources are not all kept.
-  let live = candidates;
+  const grouped = new Map<string, typeof candidates>();
+  for (const c of candidates) { const key = c.t + "\n" + c.key; grouped.set(key, [...grouped.get(key) ?? [], c]); }
+  const conflicting = new Set<string>();
+  for (const [key, rows] of grouped) {
+    if (new Set(rows.map((c) => c.a.value.trim().replace(/\s+/g, " ").toLowerCase())).size <= 1) continue;
+    conflicting.add(key);
+    conflicts.push({ key: rows[0].key, factIds: rows.map((c) => String(c.a.factId)) });
+    for (const c of rows) excluded.push({ key: c.key, factId: String(c.a.factId), why: "conflicts with another confirmed source for this field" });
+  }
+  let live = candidates.filter((c) => !conflicting.has(c.t + "\n" + c.key));
   for (let changed = true; changed;) {
     changed = false;
     const ids = new Set(live.map((c) => String(c.a.factId)));
@@ -610,6 +628,7 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
     });
   }
   for (const c of live) {
+    if (kept.has(c.t + "\n" + c.key)) continue; // agreeing raw projection does not replace the original canonical source
     kept.set(c.t + "\n" + c.key, { table: c.t, key: c.key, value: c.a.value, factId: String(c.a.factId), event: String(c.a.confirmation_event_id),
       provenance: String(c.a.provenance), authorizes: c.a.authorizes === true });
   }
@@ -748,7 +767,7 @@ export function batchPlan(o: {
     if (m) {
       // WO-102: every answer stands on a trusted fact, by a rule that keeps its meaning; an attestation or a personal
       // choice only on his own answer to that question. Otherwise a required question is asked; an optional one is left empty.
-      const j = judge(f, a, m);
+      const j = judge(f, a, m, o.schema);
       if ("problem" in j) {
         if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
         continue;
@@ -780,12 +799,28 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
   const shown = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
   return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
 }
-function judge(f: FormField, a: BatchAnswer, m: Manifest): { rule: string; tf: TrustedFact } | { problem: string } {
+function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[]): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = derivation(a.kind, a, tf);
+  const rule = (f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
+    (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
+}
+// Re-derive a work row from the original, trusted JSON through the same planner and actual row/anchor schema.
+// A substring somewhere in the history, an answer cached under a label, or another property's value is not proof.
+function workRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest, schema: FormField[]): string | null {
+  if (tf.table !== "answers" || tf.key !== "work_history" || m.answers.work_history?.factId !== tf.factId ||
+    m.answers.work_history?.value !== tf.value || !f.section || f.section.row < 1) return null;
+  const fields = schema.filter((x) => x.section?.kind === "work");
+  if (new Set(fields.map((x) => x.name)).size !== fields.length) return null;
+  const plan = planBatch({ userId: "contract-rederive", postings: [{ job_id: "contract-rederive", company: "", title: "", fields: fields.map((x) => ({ ...x, required: false })) }],
+    answers: { work_history: { value: tf.value, factId: tf.factId } }, saved: {}, log: [], now: 0 });
+  const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+  if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+  const expected = answerOf(f, p, a.kind, null);
+  if (f.options.length && !optionText(f, p.value)) return null;
+  return expected.value === a.value && expected.shown === a.shown ? `work-history-row:${f.section.row}:${f.section.part}` : null;
 }
 // WO-102, in every path before anything is filled: the planner's answers that the contract allows, and the questions it
 // turns back to the person (required ones are asked; optional ones are left empty).
@@ -800,11 +835,11 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
       fill.push(p);
       continue;
     }
-    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest);
+    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema);
     if (!("problem" in j)) fill.push(p);
     else if (f.required) {
       const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-      asks.push({ label: f.label, type: String(f.type || "input_text"), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem });
+      asks.push({ label: f.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem });
     } else dropped.push(f.label);
   }
   return { fill, asks, dropped };

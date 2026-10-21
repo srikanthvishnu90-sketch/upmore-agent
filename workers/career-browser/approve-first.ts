@@ -13,6 +13,7 @@ import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 // WO-102: the submission-quality contract, the extension's own functions (never copied).
 import { QUARANTINE_VERSION, quarantinedFact, trustedManifest } from "../../extension/src/apply_core.ts";
+import { applicationApprovalHash } from "../../scripts/apply.ts";
 
 export interface EngineResult {
   result: {
@@ -99,10 +100,12 @@ export async function prepare(o: {
     resume_sha256: ev.payload.resume.sha256,
     page_field_names: Object.keys(ev.payload.page_fields || {}).sort(),
     engine_approval: ev.approval_hash,
+    ...(typeof ev.payload.schema_hash === "string" ? { schema_hash: ev.payload.schema_hash } : {}),
     privacy_epoch: o.account.epoch,
     account_version: o.account.version,
     expires_at: new Date(o.now + (o.ttlHours ?? 24) * 3600_000).toISOString(),
     ...(ev.trust?.quarantine_version ? { quarantine_version: String(ev.trust.quarantine_version), manifest_hash: String(ev.trust.manifest_hash ?? "") } : {}),
+    ...(ev.trust?.manifest_hash ? { replay_sources: Array.isArray(ev.replay_sources) ? ev.replay_sources : Object.values(ev.sources ?? {}) } : {}),
     ...(o.resumeTag?.tailored
       ? { resume_tailored: true, ...(o.resumeTag.persona ? { resume_persona: o.resumeTag.persona } : {}) }
       : {}),
@@ -144,12 +147,54 @@ const MARK: Record<string, string> = { consent: "You agree: ", attestation: "You
 // contract no longer keeps, is asked again and nothing is sent. A texted answer goes back as his answer row under the key
 // it was kept by (a file fact may never carry a text-answer id); the picked resume is the file passed, by its hash.
 export function factsFromPayload(payload: any) {
-  const saved: Record<string, any> = {};
+  const answers: Record<string, any> = {}, saved: Record<string, any> = {};
   const text_answers: TextAnswer[] = [];
-  for (const f of payload.fields) {
+  const bindings = new Map<string, string>(), metadata = new Map<string, string>(), ids = new Map<string, string>();
+  const originalSources = (Array.isArray(payload.replay_sources) ? payload.replay_sources : []).map((s: any) => ({
+    label: `source ${s?.key ?? ""}`, factId: s?.factId, ...sourceOf(s),
+  }));
+  for (const f of [...payload.fields, ...originalSources]) {
     if (f.value && typeof f.value === "object") continue; // the resume is passed as a file, checked by its hash
     const id = String(f.factId ?? "");
-    if (id.startsWith("approved-local-resume:")) continue; // the engine adds the picked file itself, by its bytes' hash
+    if (id === `approved-local-resume:${payload.resume_sha256}` && f.source?.key === "resume" &&
+      f.source?.table === "answers" && f.source?.value === payload.resume_sha256) continue;
+    // A row's employer/title is derived from one structured work_history fact. Rebuild that original fact,
+    // not four unrelated answers indexed by repeated labels. The engine replans it against the live schema
+    // and checks engine_approval (including schema/options, fields and source events) before submission.
+    const source = f.source;
+    if (source && Object.hasOwn(source, "value")) {
+      if (!["answers", "saved"].includes(source.table) || typeof source.key !== "string" || !source.key ||
+        typeof source.value !== "string" || !source.value || !id) throw Error("INVALID_APPROVED_SOURCE: " + f.label);
+      const coordinate = JSON.stringify([source.table, source.key]);
+      const binding = JSON.stringify([id, source.value]);
+      const evidence = JSON.stringify([f.provenance ?? null, f.confirmation_event_id ?? null, f.authorizes === true]);
+      if ((bindings.has(coordinate) && bindings.get(coordinate) !== binding) || (ids.has(id) && ids.get(id) !== coordinate)) {
+        throw Error("CONFLICTING_APPROVED_SOURCE: " + f.label);
+      }
+      if (bindings.has(coordinate)) {
+        if (metadata.get(coordinate) !== evidence) {
+          // Inconsistent authority cannot be repaired from the snapshot. Keep it untrusted so the canonical
+          // contract asks again (and manifest revalidation stops a bound run before effects).
+          (source.table === "answers" ? answers : saved)[source.key] = { value: source.value, factId: id, confirmed: true,
+            provenance: "", confirmation_event_id: "", ...(f.user_id ? { user_id: f.user_id } : {}) };
+          for (let i = text_answers.length - 1; i >= 0; i--) if (`text-answer:${text_answers[i].id}` === id) text_answers.splice(i, 1);
+        }
+        continue;
+      }
+      bindings.set(coordinate, binding); metadata.set(coordinate, evidence); ids.set(id, coordinate);
+      if (id.startsWith("text-answer:") && f.confirmation_event_id === id && f.provenance === `owner answered this question (${id})`) {
+        text_answers.push({ id: id.slice("text-answer:".length), key: source.table === "answers" ? `fact:${source.key}` : source.key, kind: "", answer: source.value });
+      } else {
+        (source.table === "answers" ? answers : saved)[source.key] = {
+          value: source.value, factId: f.factId, confirmed: true,
+          ...(f.provenance ? { provenance: String(f.provenance) } : {}),
+          ...(f.confirmation_event_id ? { confirmation_event_id: String(f.confirmation_event_id) } : {}),
+          ...(f.authorizes === true ? { authorizes: true } : {}),
+          ...(f.user_id ? { user_id: String(f.user_id) } : {}),
+        };
+      }
+      continue;
+    }
     if (id.startsWith("text-answer:") && f.source?.key) {
       text_answers.push({ id: id.slice("text-answer:".length), key: f.source.table === "answers" ? `fact:${f.source.key}` : String(f.source.key), kind: "", answer: String(f.value) });
       continue;
@@ -166,15 +211,32 @@ export function factsFromPayload(payload: any) {
       ...(f.user_id ? { user_id: String(f.user_id) } : {}),
     };
   }
-  return { user_id: payload.user_id, answers: {}, saved, ...(text_answers.length ? { text_answers } : {}) };
+  return { user_id: payload.user_id, answers, saved, ...(text_answers.length ? { text_answers } : {}) };
 }
 // The source an answer was approved on, from the engine's manifest entry (evidence.sources), for the payload.
 function sourceOf(tf: any) {
   if (!tf || typeof tf !== "object") return {};
   return {
     provenance: String(tf.provenance ?? ""), confirmation_event_id: String(tf.event ?? ""), ...(tf.authorizes === true ? { authorizes: true } : {}),
-    ...(String(tf.factId ?? "").startsWith("text-answer:") ? { source: { table: tf.table, key: tf.key } } : {}),
+    source: { table: tf.table, key: tf.key, value: tf.value },
   };
+}
+// The engine's canonical approval identity (scripts/apply.ts): validate the queued field/source/schema binding
+// before reconstructing facts. Otherwise a changed payload could silently re-create an older approved answer.
+export async function engineApprovalFromPayload(payload: any): Promise<string | null> {
+  if (payload.schema_hash === undefined) {
+    const modern = payload.manifest_hash !== undefined || payload.quarantine_version !== undefined || payload.replay_sources !== undefined ||
+      (Array.isArray(payload.fields) && payload.fields.some((f: any) => f?.source && Object.hasOwn(f.source, "value")));
+    if (modern) throw Error("INVALID_APPROVED_SCHEMA");
+    return null; // genuinely legacy approvals are still re-judged by the engine
+  }
+  if (!/^[a-f0-9]{64}$/.test(String(payload.schema_hash))) throw Error("INVALID_APPROVED_SCHEMA");
+  const facts = factsFromPayload(payload);
+  const manifest = trustedManifest({ owner: payload.user_id, file: facts, rows: facts.text_answers ?? [], resume: { sha256: payload.resume_sha256 } });
+  if (manifest.hash !== payload.manifest_hash) throw Error("APPROVED_MANIFEST_CHANGED");
+  return await applicationApprovalHash({ userId: payload.user_id, posting: payload.job_id, destination: payload.destination,
+    fields: payload.fields, resumeSha256: payload.resume_sha256, schemaHash: payload.schema_hash,
+    pageFieldNames: payload.page_field_names, manifest });
 }
 // WO-102, before an approved run starts: what in this payload the contract can never send, whatever the engine finds.
 // An answer from a quarantined fact (D-007: F-027..F-079, the answer-all delegation) or derived from one, a texted answer
@@ -222,6 +284,8 @@ export async function runApproved(d: {
       // WO-102: fresh at the start, before anything opens; the engine then judges every answer again by the contract.
       const untrusted = payloadTrust(p);
       if (untrusted.length) throw Error("CONTRACT_REFUSED: " + untrusted.join("; "));
+      const engineApproval = await engineApprovalFromPayload(p);
+      if (engineApproval !== null && engineApproval !== p.engine_approval) throw Error("APPROVED_APPLICATION_CHANGED");
       const resume = await d.resumeFor(job);
       if (resume.sha256 !== p.resume_sha256) throw Error("RESUME_CHANGED");
       const factsPath = await d.writeFacts(job, factsFromPayload(p));

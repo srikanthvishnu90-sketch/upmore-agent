@@ -35,7 +35,7 @@
 const CareerProfile = (() => {
   // WO-106: "goal" and "location" are kinds the agent saves (its add_profile_fact offers them); without them every stated
   // goal and place was kept as "other" and could not be found again.
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "other"];
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "eligibility", "profile", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;
@@ -60,6 +60,8 @@ const CareerProfile = (() => {
       connections: [],
       _seq: 0,
     };
+    // Preserve an explicitly supplied owner for the source-bound application adapter; never infer one.
+    if (typeof s.user_id === "string") p.user_id = s.user_id;
     for (const f of s.facts || []) addFact(p, f, { keepId: true });
     for (const c of s.connections || []) p.connections.push(Object.assign({}, c));
     return p;

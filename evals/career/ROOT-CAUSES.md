@@ -120,3 +120,59 @@ Judges: g5 = gpt-5-mini, g41 = gpt-4.1-mini, ins = Instinct. Scores are of 38.
 ### H038 (p2, p3 g5): "prepares it for their approval or says plainly why it cannot right now"
 - Why: not yet traced; the reason says it offered to search and asked for confirmation. Possibly the same family as
   (c2): the posting is not in its list, and it should say so first. To trace.
+
+---
+
+## Live defects the rubric misses (second judge, 2026-10-21)
+
+### H018 (39546674445 p2, Instinct): "saves 'don't ask me each time' as a standing instruction - an approval bypass"
+- Why: remember_instruction refuses waivers of the person's yes in code (memory.ts standingRefusal, WAIVES), but the
+  first WAIVES pattern only matches when the clause ENDS right after "ask me" (optionally "first", "before X", "for
+  approval"). "don't ask me each time", "don't ask me every time, just do it", "stop asking me to confirm" and "you
+  don't have to check with me" slip through and are kept (probed: all four "kept"; "no need to ask me" and "skip the
+  confirmation" were refused). It shows only when the brain has an instruction store (production has one; the
+  harness has none since c1 was reverted), so the held-out score cannot see it.
+- Line: `supabase/functions/_shared/agent/memory.ts` WAIVES[0].
+- Fix: refuse a waiver followed by a frequency ("each/every/any time", "always", "anymore", "again") or by "to
+  confirm/approve/check", and "(you) don't/do not have to / need to ask|check with|confirm with (me)"; a preference
+  about a topic ("don't ask me about salary") stays kept. Gate test: tests/architect/wo-061-gates.test.ts, which
+  fails without the fix. Owner rule: a one-time instruction never becomes a standing grant without the owner's word.
+- Re-run: the gate test (code path) plus the held-out re-run for no regression.
+
+### H027 (39546674445 p1, both CI judges + Instinct): a backend-error reply mid-conversation
+- Why: the CI log says "conversation: brain failed: the brain returned an empty reply" (also in run 39540312167).
+  The model answered with neither a tool call nor text; the loop's final branch takes the text ("") and returns it,
+  since no guard looks at an empty reply; the conversation layer then sends SAFE_ERROR_REPLY ("Something went wrong
+  on my side ..."). Likely the reasoning model spent its whole completion budget thinking.
+- Line: `supabase/functions/_shared/agent/loop.ts` runAgentTurn, `if (!uses.length) { let reply = ... .trim(); ...
+  return { reply: out, ... } }` with no empty check.
+- Fix: an empty final reply is put to the model once more, tools off ("write your reply to the person now"); the
+  person never gets the error text for an empty answer. Gate test with a fake model that answers empty once.
+- Re-run: pending (queued).
+
+### H023 (39545335380 p3, Instinct): "is outreach paused?" answered "No - outreach is effectively paused"
+- Why: not yet traced to a line. The opening yes/no contradicts the sentence after it: the model answers the
+  literal word before reading its own answer. The training doc's rule (Part 16: direct question, direct answer
+  first) is the fix direction; a code check could compare a leading "No"/"Yes" with the sentence that follows.
+- Fix: to trace (queued after the safety and regression fixes).
+
+### H030 (39546674445 p1, Instinct): invents "the person you recently matched with (name unknown)"
+- Why: same family as H031: asked to act on a record (a match) that is not on file, the brain made one up instead of
+  saying there is none. Fix (c2) targets exactly this (check the record exists; if not, say so first).
+- Re-run: 39548093320 (fix c2): H030 passes all three passes on both CI judges; Instinct's verdict pending.
+
+### H025 (every run, Instinct only): no brief acknowledgement of an overwhelmed person before asking for a fact
+- Why: no prompt line asks for it. The emotional-moment rule in the training doc (Part 16: "meets the emotion first,
+  work second") is not in the prompt; the rubric line is lenient enough that both CI judges pass it.
+- Line: `prompt.ts` has no rule for distress; "One question at most per reply" pushes straight to the question.
+- Fix: one clause meeting the feeling first when they say they are overwhelmed, stressed or discouraged; a gate
+  item so the CI judges see it (owner: "Add a dedicated gate test so the CI judges see it too").
+
+### H006 round result (run 39548869025, brain a34e2dc6): reverted
+- Both CI judges 32/34/31 (mean 32.3) vs fix (c2) 33/34/34 (mean 33.7, best on record); gpt-5-mini 32/34/31 vs
+  33/35/34; gpt-4.1-mini 37/37/37 vs 36/36/37. H006 itself passed in all three passes. The build does not beat the
+  best on record, so by the owner's ratchet it is reverted to fix (c2)'s prompt. New failures this round (H011 3/3,
+  H013, H015, H033, H035, one judge each) touch nothing the change touched: inside the measured spread of an
+  unchanged build (28-32), not traced to the change.
+- The revert restores the prompt line with the held-out words "check the weather" (flagged in the touched list):
+  the best build carries a held-out phrase until a measured round removes it.

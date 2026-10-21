@@ -6,11 +6,11 @@
 
    POSITION IN THE STACK:
      - INPUT is trusted facts ONLY, read through the shared trusted-fact
-       reader contract (module 167, D-007 quarantine). 167 is a lane in
-       flight and has NOT landed on this base: this module ships a stub
-       implementing the documented contract (READER_CONTRACT below) and
-       accepts the real reader by injection (deps.reader) at integration
-       time. model.reader.stub says which one ran — never silently.
+       reader (module 167, D-007 quarantine), vendored in this tree at
+       1d27bf6b and adapted to this module's contract shape below
+       (READER_CONTRACT); the real reader can also be injected
+       (deps.reader). model.provenance.reader says which one ran —
+       never silently (stub: false now that 167 has landed).
      - Fact shapes consumed (both are standing shapes in this repo):
        (a) fact-bank facts (module 122): { id, kind, title, text,
            bullets, status, needs_confirmation, source, data? } — the
@@ -54,18 +54,23 @@ const CareerProfileStructure = (() => {
   const VERSION = 1;
   const MODEL_KIND = "career_canonical_profile";
 
-  // ================= module 167 reader contract (STUB) =================
+  // ================= module 167 reader contract (REAL, adapted) =========
   // CONTRACT v1 — shared trusted-fact reader (D-007 quarantine bypass fix):
   //   readTrustedFacts(facts) -> { trusted: [fact...],
   //     quarantined: [{ fact, reason }] }
-  //   A fact is QUARANTINED (excluded, with reason) when:
+  //   The hold signals are module 167's own (CareerTrustedFacts,
+  //   vendored in this tree at 1d27bf6b): its isQuarantined predicate
+  //   decides, and this adapter only names the reason in this module's
+  //   vocabulary and keeps the one rule 167 does not carry — the
+  //   placeholder scan, which is 169's own contract term:
   //     QUARANTINED_FLAG        fact.quarantined === true, or
   //                             fact.trust === "quarantined", or
   //                             fact.status === "quarantined"
-  //     UNCONFIRMED_DRAFT       fact.needs_confirmation === true, or
-  //                             fact.status === "draft" (122's drafts:
-  //                             resume/LinkedIn ingest arrives draft and
-  //                             may only be read after confirmation)
+  //     UNCONFIRMED_DRAFT       167 holds it: needs_confirmation, or
+  //                             status draft | held | suppressed (122's
+  //                             drafts: resume/LinkedIn ingest arrives
+  //                             draft and may only be read after
+  //                             confirmation)
   //     UNRESOLVED_PLACEHOLDER  a placeholder-shaped value ("[28]")
   //                             ANYWHERE in the record (checked over the
   //                             serialized record, so a placeholder
@@ -74,22 +79,30 @@ const CareerProfileStructure = (() => {
   //                             fact, wherever it sits.
   //   Host stated facts carry no status (assertion-only by
   //   construction) and pass unless explicitly quarantined.
-  // When 167 lands, integration injects it as deps.reader and this stub
-  // is bypassed; until then the stub IS the enforcement and the model
-  // records reader.stub: true.
+  // If 167 cannot be resolved the adapter fails CLOSED (every fact
+  // quarantined as UNCONFIRMED_DRAFT) — never a stub read.
   const READER_CONTRACT = Object.freeze({
     module: 167, version: 1, fn: "readTrustedFacts",
     reasons: ["QUARANTINED_FLAG", "UNCONFIRMED_DRAFT", "UNRESOLVED_PLACEHOLDER"],
   });
   const PLACEHOLDER_RE = /\[\d+\]/;
   const isPlaceholder = (v) => typeof v === "string" && PLACEHOLDER_RE.test(v);
-  function stubReadTrustedFacts(facts) {
+  let _trustedMod;
+  function trustedFactsModule() {
+    if (_trustedMod !== undefined) return _trustedMod;
+    _trustedMod = null;
+    if (typeof CareerTrustedFacts !== "undefined") _trustedMod = CareerTrustedFacts;
+    else if (typeof require !== "undefined") { try { _trustedMod = require("./167-career-trusted-facts.js"); } catch { _trustedMod = null; } }
+    return _trustedMod;
+  }
+  function readTrustedFacts(facts) {
+    const T = trustedFactsModule();
     const trusted = []; const quarantined = [];
     for (const f of Array.isArray(facts) ? facts : []) {
       if (!f || typeof f !== "object") continue;
       let reason = null;
       if (f.quarantined === true || f.trust === "quarantined" || f.status === "quarantined") reason = "QUARANTINED_FLAG";
-      else if (f.needs_confirmation === true || f.status === "draft") reason = "UNCONFIRMED_DRAFT";
+      else if (!T || T.isQuarantined(f)) reason = "UNCONFIRMED_DRAFT";
       else if (PLACEHOLDER_RE.test(JSON.stringify(f))) reason = "UNRESOLVED_PLACEHOLDER";
       if (reason) quarantined.push({ fact: f, reason });
       else trusted.push(f);
@@ -273,7 +286,7 @@ const CareerProfileStructure = (() => {
 
     // ---- the quarantine gate: ONLY the reader's trusted output is read
     // below. Quarantined records are reported (id + reason), never read.
-    const reader = typeof d.reader === "function" ? d.reader : stubReadTrustedFacts;
+    const reader = typeof d.reader === "function" ? d.reader : readTrustedFacts;
     const read = reader(stream.slice()) || {};
     const trusted = Array.isArray(read.trusted) ? read.trusted : [];
     const quarantined = (Array.isArray(read.quarantined) ? read.quarantined : [])
@@ -522,7 +535,7 @@ const CareerProfileStructure = (() => {
       provenance: {
         consumed_fact_ids: consumed,
         quarantined,
-        reader: { module: 167, contract: READER_CONTRACT.version, stub: typeof d.reader !== "function" },
+        reader: { module: 167, contract: READER_CONTRACT.version, stub: false, source: typeof d.reader === "function" ? "injected" : "module167" },
       },
     };
     return model;
@@ -613,7 +626,7 @@ const CareerProfileStructure = (() => {
   return {
     buildProfile, toBoardProfile, toMatchProfile,
     canonicalDegree, canonicalGpa, normSpan, normPoint, pointText,
-    stubReadTrustedFacts, READER_CONTRACT, RULES, VERSION, MODEL_KIND,
+    readTrustedFacts, READER_CONTRACT, RULES, VERSION, MODEL_KIND,
   };
 })();
 

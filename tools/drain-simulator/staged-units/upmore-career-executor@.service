@@ -1,0 +1,33 @@
+# STAGED — DO NOT INSTALL YET. See docs/career/worker-drain-parallelism.md
+# (activation gates). Template instance of the career batch executor.
+# Instance %i is pinned to board-service instance %i through its own
+# operator config (/home/hatch/worker-config/executor-config-%i.cjs —
+# a copy of executor-config.cjs; WORKER_BOARD_URL below selects the
+# paired board port 8480 + %i — "848%i" renders 8481, 8482, ... for
+# instances 1-9). Sessions never cross instances: each
+# executor only ever addresses the board service that vended them.
+# Claim safety across instances comes from the claim RPC itself
+# (lease + claim-once; a raced claim resolves as skipped_claimed in
+# batch-executor.cjs's store). Same-user ledger fencing (spec S-2 in
+# the design note) must land before K > 1 goes live.
+[Unit]
+Description=Upmore career batch executor instance %i (oneshot drain, timer-driven)
+After=network-online.target upmore-career-board@%i.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/hatch/workspace/upmore-v2-candidate
+EnvironmentFile=/home/hatch/worker-config/executor.env
+Environment=http_proxy=http://hatch-egress-proxy:3128
+Environment=https_proxy=http://hatch-egress-proxy:3128
+Environment=HTTP_PROXY=http://hatch-egress-proxy:3128
+Environment=HTTPS_PROXY=http://hatch-egress-proxy:3128
+Environment=NODE_USE_ENV_PROXY=1
+Environment=NODE_EXTRA_CA_CERTS=/run/hatch/egress-tls/ca-bundle.pem
+Environment=SSL_CERT_FILE=/run/hatch/egress-tls/ca-bundle.pem
+Environment=NO_PROXY=127.0.0.1,localhost
+Environment=no_proxy=127.0.0.1,localhost
+Environment=EXECUTOR_INSTANCE=%i
+Environment=WORKER_BOARD_URL=http://127.0.0.1:848%i
+ExecStart=/usr/bin/node workers/career-browser/batch-executor.cjs /home/hatch/worker-config/executor-config-%i.cjs

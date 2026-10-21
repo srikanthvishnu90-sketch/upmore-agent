@@ -1,0 +1,15 @@
+# STAGED — REPLACES the live upmore-career-executor.timer at
+# activation. Only change vs the live timer: the trigger unit is the
+# fan-out target instead of the single executor service. Cadence is
+# unchanged (OnBootSec=30s, OnUnitActiveSec=60s). See
+# docs/career/worker-drain-parallelism.md (activation gates).
+[Unit]
+Description=Run the Upmore career batch executors every 60s (parallel fan-out)
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+Unit=upmore-career-executors.target
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,32 @@
+# STAGED — DO NOT INSTALL YET. See docs/career/worker-drain-parallelism.md
+# (activation gates). Template instance of the career board service:
+# instance %i serves on the port named in its OWN operator config
+# (/home/hatch/worker-config/board-config-%i.cjs — a copy of
+# board-config.cjs with port = 8480 + %i, the same shared secret and
+# the same familyVerdicts). One board service per executor instance:
+# a board service's request handler is synchronous end to end
+# (board-service.cjs:16-19,239-262), so a single shared service
+# serializes every drive call no matter how many executors call it.
+[Unit]
+Description=Upmore career board service instance %i (production factory)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+WorkingDirectory=/home/hatch/workspace/upmore-v2-candidate
+Environment=http_proxy=http://hatch-egress-proxy:3128
+Environment=https_proxy=http://hatch-egress-proxy:3128
+Environment=HTTP_PROXY=http://hatch-egress-proxy:3128
+Environment=HTTPS_PROXY=http://hatch-egress-proxy:3128
+Environment=NODE_USE_ENV_PROXY=1
+Environment=NODE_EXTRA_CA_CERTS=/run/hatch/egress-tls/ca-bundle.pem
+Environment=SSL_CERT_FILE=/run/hatch/egress-tls/ca-bundle.pem
+Environment=NO_PROXY=127.0.0.1,localhost
+Environment=no_proxy=127.0.0.1,localhost
+Environment=UPMORE_CHROMIUM_SANDBOX=off
+ExecStart=/usr/bin/node workers/career-browser/board-service.cjs /home/hatch/worker-config/board-config-%i.cjs
+
+[Install]
+WantedBy=multi-user.target

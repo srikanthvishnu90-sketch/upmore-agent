@@ -1,0 +1,16 @@
+# STAGED — DO NOT INSTALL YET. See docs/career/worker-drain-parallelism.md
+# (activation gates). Fan-out target: one timer tick starts every
+# executor instance at once; each instance claims distinct intents
+# (or distinct shards, once spec S-1 lands) and drains concurrently.
+# K = 2 matches this host's measured shape (2 vCPU — the drain
+# simulator's processor-sharing model saturates at 2). Raise K only
+# by adding Wants lines AND with the throughput lane's per-session
+# CPU/RSS numbers in hand.
+[Unit]
+Description=Start all Upmore career executor instances (parallel drain fan-out)
+After=network-online.target
+Wants=upmore-career-executor@1.service
+Wants=upmore-career-executor@2.service
+
+[Install]
+WantedBy=multi-user.target

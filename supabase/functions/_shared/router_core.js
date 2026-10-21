@@ -28525,7 +28525,7 @@ const CareerApply = (() => {
       const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
       if (seen.has(key)) continue; seen.add(key);
       const fit = i.fit != null ? i.fit : null;
-      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null, url: i.url || null });
     }
     const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };
@@ -44054,6 +44054,46 @@ const CareerRouter = (() => {
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
     c.batchApplyState = BatchApply.serializeRun(run);
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+  }
+
+  // ---------- LOOP TASK 1: the natural-language batch status ----------
+  // The apply reply itself invites the user to "ask me for the batch
+  // status", and the only readback that existed was the STRUCTURED
+  // career_batch request — a plain chat surface (Telegram, web) sends
+  // words, and both recorded wordings ("what's the batch status",
+  // "where is my batch" — Telegram baseline, 2026-10-20 19:23 CDT)
+  // fell to the generic fallback while the worker's run record sat
+  // readable one layer down. This route resolves the user's own
+  // batch — the host's fresh worker-written record
+  // (ctx.batchRunRecord) first, the thread's standing run state
+  // second — and speaks it through 155's own speaker: the same words,
+  // the same run object, on every surface.
+  function handleBatchStatus(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    const t = lc(text);
+    if (!/\bbatch\b/.test(t)) return null;
+    if (!/\b(status|where|progress|standing|update|happened|doing|stand|check)\b/.test(t) && !/^(where|what|how)\b/.test(t)) return null;
+    const rec = c.batchRunRecord && typeof c.batchRunRecord === "object" ? c.batchRunRecord : null;
+    const recRun = rec && rec.run ? BatchApply.restoreRun(rec.run) : null;
+    if (recRun) {
+      return { intent: "career_batch_apply", resultStatus: recRun.status, batchRun: BatchApply.summarizeRun(recRun), card: recRun.card || null, sends: 0,
+        reply: BatchApply.speakSummary(recRun).join("\n") };
+    }
+    const standing = c.batchApplyState || null;
+    if (standing && standing.id) {
+      const run = BatchApply.restoreRun(standing);
+      if (run) {
+        if (run.status === "queued_prepare") {
+          return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), sends: 0,
+            reply: `Your batch of ${run.requested} ${run.familyText} roles is with the browser worker being prepared — nothing has been filled or submitted yet. Ask me again shortly and I'll read back exactly where it stands.` };
+        }
+        return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card || null, sends: 0,
+          reply: BatchApply.speakSummary(run).join("\n") };
+      }
+    }
+    return { intent: "career_batch_apply", resultStatus: "awaiting_user", sends: 0,
+      reply: `You don't have a batch in flight right now — no application batch has been queued on this account that I can read back. Say "apply to N <role> roles" and I'll start one.` };
   }
 
   function dispatchChat(text, ctx) {

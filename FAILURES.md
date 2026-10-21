@@ -29,6 +29,7 @@ Priority: P0
 Root cause: PINNED (surface) — the discovery replies built by 142-career-router's handleDiscovery carry no URLs because roleSentence and the structured payload omit the posting's url field, and batch claim replies name only a count/family or one company — zero roles. Fix: surface the selected roles with their links in the discovery/batch replies (rides the writer/surfacing work); verified by a measured re-run (battery) after deploy.
 Fix:
 Verified by:
+Addendum: Escalated by owner 2026-10-21 00:30 CDT: unverifiable output is FAILED output — lists must carry links; the links ask dead-parsing (no handler routes it) is part of this entry's root cause. Closing this entry is the surface priority round.
 
 [ID: MUSE-F-002] [Status: OPEN]
 Found: 2026-10-20 19:23 CDT, Muse (tester drive, live Telegram)
@@ -138,3 +139,39 @@ Priority: P1 (wrong links are the "wrong is worse than empty" class on the slice
 Root cause: PINNED — career_pool.js loadPool reads each row's url verbatim and no load/serve path validates that the URL is a posting for its source; the junk entered at shelf ingest and nothing downstream filters it.
 Fix: a load-side URL-shape guard in career_pool.js — drop postings whose URL is an API endpoint or aggregator thread for their source, counted in an excluded counter alongside deadExcluded, guard-tested against the audit's actual junk rows (surface lane, one round, NOT yet started — owner tempo rule 2026-10-21: one root-cause fix per lane per round, verified by a measured re-run, no bundling; the note precedes the fix).
 Verified by: unfilled — CI (guard + sweep delta) first, then the battery's link scenarios after deploy.
+
+[ID: MUSE-F-011] [Status: OPEN]
+Found: 2026-10-21 00:30 CDT, owner live test on v246 (both entry paths, before and after resume confirm).
+Area: brain (tailor leg; rendering surface Muse's)
+Input: tailor a resume — (a) by role name, (b) by pasted posting.
+Expected: a tailored resume artifact or an honest stop naming the missing input.
+Actual: "Something went wrong on my end" — on both paths; no artifact, no tailoring.
+Evidence: owner's live run 2026-10-21; channel_artifacts has 0 rows ever (standing record).
+Priority: P0 (slice step 4 machinery)
+Root cause: PARTIALLY PINNED — the synchronous confirm→tailor→render leg throws only in the Deno edge runtime (never in node tests); v246's guard (9143889e) catches it and degrades to that bubble, so the product survives but tailoring never completes. The EXACT throwing statement is NOT YET PINNED — diagnosis in flight (live repro + agent-chat function-log capture, Muse lane 2026-10-21).
+Fix: unfilled until the exception is captured; then the smallest change at the throwing statement + a fail-first replay.
+Verified by: unfilled.
+
+[ID: MUSE-F-012] [Status: OPEN]
+Found: 2026-10-21 00:30 CDT, owner live test.
+Area: brain/shared
+Input: a confirmed synthetic test resume (15 facts) sits on the test profile.
+Expected: a way to remove it (test-data reset; generally: a user can delete their stored resume/profile).
+Actual: no delete path exists — no chat intent, no handler, nothing.
+Evidence: owner's run; module 122's store has writers and no deleter (standing code record).
+Priority: P1
+Root cause: PINNED at the capability level — the profile store was built write-only: ingest/confirm paths exist, but no delete intent is routed in dispatch and no delete function exists in the store.
+Fix: a general delete path — "delete my resume/profile" intent → explicit confirmation (approval law) → facts + artifacts for that user deleted, verified by read-back showing empty; built for any user, used first for the test-data reset.
+Verified by: unfilled.
+
+[ID: MUSE-F-013] [Status: OPEN]
+Found: 2026-10-21 00:30 CDT, owner live test.
+Area: surface
+Input: a served role list on the live bot.
+Expected: every role renders with its location (or an honest "location not listed").
+Actual: one role renders with an EMPTY location — blank, no fallback text.
+Evidence: owner's live run (role not named in the report).
+Priority: P2
+Root cause: NOT YET PINNED — either the shelf row's location is empty and the renderer passes the blank through, or the render drops a present location; diagnosis = inspect the served window's rows for empty locations + read the list-render path. Diagnosis owed before any fix.
+Fix: unfilled until pinned.
+Verified by: unfilled.

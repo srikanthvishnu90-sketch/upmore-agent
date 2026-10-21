@@ -1,7 +1,7 @@
 // Future runs only. No provider call occurs on import, and no private journal field is published.
 import { journalProgress } from "./progress.ts";
 import { type Append, type Approval, type ArmResult, type Identity,
-  BudgetJournal, COMPARISON_RUBRIC, JUDGES, MODELS, armSummary, canonical, modelPreflight, runArm, sha256, validateApproval, validateCorpus, verifyFirstArm } from "./run-comparison.ts";
+  BudgetJournal, durableAppend, COMPARISON_RUBRIC, JUDGES, MODELS, armSummary, canonical, modelPreflight, runArm, sha256, validateApproval, validateCorpus, verifyFirstArm } from "./run-comparison.ts";
 import { PRICES } from "../../supabase/functions/_shared/model_gateway.ts";
 
 const VERSION = "brain-eval-live-meter-v1";
@@ -172,7 +172,7 @@ export class LiveCostMeter {
   }
 }
 
-// New orchestration entry point for a FUTURE, separately approved run. Existing paid workflows do not import it.
+// The orchestration entry point for every approved paid arm (the CLI below; the paid workflow calls it).
 // Callers still persist the full result privately; only PublicMeter is passed to the publisher.
 export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: string; approvalFile: string; binding: MeterBinding;
   append: Append; publisher: Publisher; apiKey: string; firstArmRaw?: string; request?: typeof fetch; now?: () => number }): Promise<ArmResult> {
@@ -217,4 +217,43 @@ export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: 
     const arm = await runArm(corpus, identity, binding.model, journal, durableObserved, apiKey, meter.wrapRequest(args.request));
     durableObserved({ type: "complete", summary: armSummary(arm) }); await meter.flush(true); return arm;
   } finally { clearInterval(tick); }
+}
+
+// The paid CLI (the only one): one owner-approved arm, its journal durable on disk, its public cost snapshot published to the
+// run's branch before every provider dispatch. Any refusal before the arm starts exits 2 with nothing dispatched; a
+// publication failure mid-run exits 3 with further dispatch blocked (the journal keeps every reservation for the ledger).
+if (import.meta.main) {
+  const opt = (key: string) => { const at = Deno.args.indexOf(key); return at >= 0 ? Deno.args[at + 1] : undefined; };
+  const stop = (why: string): never => { console.error("NOT RUN: " + why); Deno.exit(2); };
+  if (!Deno.args.includes("--run-approved")) stop("explicit --run-approved required");
+  const corpusPath = opt("--corpus") ?? stop("--corpus required"), manifestPath = opt("--manifest") ?? stop("--manifest required");
+  const approvalFile = opt("--approval-file") ?? stop("--approval-file required"), out = opt("--out") ?? stop("--out required");
+  const model = opt("--model") ?? stop("--model required");
+  if (model !== "gpt-5-mini" && model !== "gpt-5") stop("unsupported brain model");
+  const repository = Deno.env.get("GITHUB_REPOSITORY") ?? stop("GITHUB_REPOSITORY required (where the cost snapshot is published)");
+  const runId = Deno.env.get("GITHUB_RUN_ID") ?? stop("GITHUB_RUN_ID required");
+  const token = Deno.env.get("GITHUB_TOKEN") ?? stop("GITHUB_TOKEN required: no cost publication, no provider dispatch");
+  const corpusRaw = await Deno.readTextFile(corpusPath), manifestRaw = await Deno.readTextFile(manifestPath);
+  const approval = JSON.parse(await Deno.readTextFile(approvalFile)) as Approval;
+  const head = await new Deno.Command("git", { args: ["rev-parse", "HEAD"], stdout: "piped", stderr: "piped" }).output();
+  if (!head.success) stop("git provenance check failed");
+  const binding: MeterBinding = { repository, run_id: runId, source_commit: new TextDecoder().decode(head.stdout).trim(),
+    corpus_sha256: JSON.parse(manifestRaw).sha256, model: model as MeterBinding["model"], cap_usd: approval.cap_usd, comparison_spent_usd: approval.comparison_spent_usd };
+  let publisher: Publisher;
+  try { publisher = githubMeterPublisher(binding, token); } catch { stop("the meter binding or publication token is invalid"); }
+  const firstArmRaw = model === "gpt-5" ? await Deno.readTextFile(approval.first_arm_evidence!.result_path) : undefined;
+  const file = durableAppend(out + ".journal.jsonl");
+  try {
+    const arm = await runLiveMeteredArm({ corpusRaw, manifestRaw, approvalFile, binding, append: file.append, publisher: publisher!,
+      apiKey: Deno.env.get("OPENAI_API_KEY") ?? "", firstArmRaw });
+    const data = new TextEncoder().encode(JSON.stringify(arm)), result = Deno.openSync(out + ".json", { write: true, createNew: true, mode: 0o600 });
+    try { let at = 0; while (at < data.length) at += result.writeSync(data.subarray(at)); result.syncSync(); } finally { result.close(); }
+    const summary = armSummary(arm);
+    console.log(JSON.stringify({ ...summary, result_sha256: await sha256(new TextDecoder().decode(data)), metered: VERSION }, null, 2));
+    if (summary.status !== "SCORED") Deno.exitCode = 2;
+  } catch (e) {
+    const why = String((e as Error)?.message ?? e);
+    console.error(why.startsWith("LIVE_METER_UNAVAILABLE") ? why : "NOT SCORED: " + why.slice(0, 300));
+    Deno.exitCode = why.startsWith("LIVE_METER_UNAVAILABLE") ? 3 : 2;
+  } finally { file.close(); }
 }

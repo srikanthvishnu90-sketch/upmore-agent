@@ -1,0 +1,3108 @@
+{
+  "started_at": "2026-10-21T19:11:44.767Z",
+  "user": "b2625909-d67f-41b2-8270-983d212c6052",
+  "scans": [
+    {
+      "company": "gusto",
+      "title": "AI/IT Controls Engineer, Enterprise Applications",
+      "url": "https://job-boards.greenhouse.io/gusto/jobs/7905578",
+      "family": "greenhouse",
+      "outcome": "scan_error",
+      "code": "WORKER_UNREACHABLE",
+      "message": "the career worker board service could not be reached (fetch failed)",
+      "ms": 10590
+    },
+    {
+      "company": "natera",
+      "title": "Senior Product Manager, Provider and RWD Health Systems Applications",
+      "url": "https://job-boards.greenhouse.io/natera/jobs/6222763004",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 2,
+        "required_count": 0,
+        "fields": [
+          {
+            "field_id": "keyword_filter",
+            "label": "Search",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "department_filter",
+            "label": "Department",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          }
+        ]
+      },
+      "readback": {
+        "keys": 0,
+        "non_empty_values": 0
+      },
+      "verdict": {
+        "version": 1,
+        "covered": true,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 2,
+        "required_count": 0,
+        "covered_count": 0,
+        "stops": [],
+        "optional_uncovered": [
+          {
+            "field_id": "keyword_filter",
+            "label": "Search",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "department_filter",
+            "label": "Department",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": []
+      },
+      "ms": 12281
+    },
+    {
+      "company": "affirm",
+      "title": "Manager, Software Engineering (Marketing and Privacy Engineering)",
+      "url": "https://job-boards.greenhouse.io/affirm/jobs/8009657003",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 19,
+        "required_count": 10,
+        "fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "email",
+            "question_key": null
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "country",
+            "question_key": null
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "phone",
+            "question_key": null
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "resume",
+            "question_key": null
+          },
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949664003",
+            "label": "LinkedIn Profile",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "linkedin",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949665003",
+            "label": "Current Company",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "current_company",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949666003",
+            "label": "Preferred Name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "preferred_name",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949667003",
+            "label": "Name Pronunciation",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949668003",
+            "label": "Pronouns",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "pronouns"
+          },
+          {
+            "field_id": "question_32949669003",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work for Affirm in Canada?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "sponsorship"
+          },
+          {
+            "field_id": "question_32949670003",
+            "label": "Which U.S. State or Canadian Province do you reside in?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949671003",
+            "label": "How did you first learn about Affirm as an employer?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949672003",
+            "label": "GitHub",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "github",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949673003",
+            "label": "Twitter",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949674003",
+            "label": "Portfolio",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "website",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32949675003",
+            "label": "Other Links",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "essay",
+            "source_kind": "free_text",
+            "profile_key": null,
+            "question_key": "other_links"
+          },
+          {
+            "field_id": "question_32949676003",
+            "label": "Have you previously been employed at Affirm for any length of time?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          }
+        ]
+      },
+      "readback": {
+        "keys": 1,
+        "non_empty_values": 0
+      },
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 19,
+        "required_count": 10,
+        "covered_count": 10,
+        "stops": [
+          {
+            "field_id": "question_32949670003",
+            "label": "Which U.S. State or Canadian Province do you reside in?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949671003",
+            "label": "How did you first learn about Affirm as an employer?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949676003",
+            "label": "Have you previously been employed at Affirm for any length of time?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949665003",
+            "label": "Current Company",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949672003",
+            "label": "GitHub",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949673003",
+            "label": "Twitter",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949674003",
+            "label": "Portfolio",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949675003",
+            "label": "Other Links",
+            "question_kind": "essay",
+            "source_kind": "free_text",
+            "reason": "needs_user_draft_confirmation"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_32949664003",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949666003",
+            "label": "Preferred Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949667003",
+            "label": "Name Pronunciation",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949668003",
+            "label": "Pronouns",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "question_32949669003",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work for Affirm in Canada?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          }
+        ]
+      },
+      "ms": 14949
+    },
+    {
+      "company": "anthropic",
+      "title": "Staff Forward Deployed Engineer",
+      "url": "https://job-boards.greenhouse.io/anthropic/jobs/5449229008",
+      "family": "greenhouse",
+      "outcome": "scan_error",
+      "code": "WORKER_UNREACHABLE",
+      "message": "the career worker board service could not be reached (fetch failed)",
+      "ms": 24427
+    },
+    {
+      "company": "alphasense",
+      "title": "Sales Development Manager",
+      "url": "https://job-boards.greenhouse.io/alphasense/jobs/8753276002",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 20,
+        "required_count": 12,
+        "fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "preferred_name",
+            "question_key": null
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "email",
+            "question_key": null
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "country",
+            "question_key": null
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "phone",
+            "question_key": null
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "location",
+            "question_key": null
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "resume",
+            "question_key": null
+          },
+          {
+            "field_id": "question_38003390002",
+            "label": "LinkedIn Profile",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "linkedin",
+            "question_key": null
+          },
+          {
+            "field_id": "question_38003391002",
+            "label": "The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_38003392002",
+            "label": "Are you currently eligible to work in the United States of America?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_38003393002",
+            "label": "Do you now or in the future require Visa sponsorship to continue working in the United States?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "sponsorship"
+          },
+          {
+            "field_id": "question_38003394002",
+            "label": "Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_38003395002",
+            "label": "This role is based in New York City and requires working in the office three days per week. Are you currently located in the NYC metro area, or are you willing to relocate at your own expense?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "located_in_us"
+          },
+          {
+            "field_id": "question_38846477002",
+            "label": "I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data.",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "4003490002",
+            "label": "How would you describe your gender identity? (mark all that apply)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "how_would_you_describe_your_gend"
+          },
+          {
+            "field_id": "4003489002",
+            "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "how_would_you_describe_your_raci"
+          },
+          {
+            "field_id": "4003488002",
+            "label": "How would you describe your sexual orientation? (mark all that apply)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "how_would_you_describe_your_sexu"
+          },
+          {
+            "field_id": "4003487002",
+            "label": "Do you identify as transgender?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "do_you_identify_as_transgender"
+          },
+          {
+            "field_id": "4003486002",
+            "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, or other) that substantially limits one or more of your major life activities, including mobility, communication (seeing, hearing, speaking), and learning?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "do_you_have_a_disability_or_chro"
+          },
+          {
+            "field_id": "4003485002",
+            "label": "Are you a veteran or active member of the United States Armed Forces?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "are_you_a_veteran_or_active_memb"
+          }
+        ]
+      },
+      "readback": {
+        "keys": 1,
+        "non_empty_values": 0
+      },
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 20,
+        "required_count": 12,
+        "covered_count": 16,
+        "stops": [
+          {
+            "field_id": "question_38003391002",
+            "label": "The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38003392002",
+            "label": "Are you currently eligible to work in the United States of America?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38003394002",
+            "label": "Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38846477002",
+            "label": "I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_38003390002",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_38003393002",
+            "label": "Do you now or in the future require Visa sponsorship to continue working in the United States?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "question_38003395002",
+            "label": "This role is based in New York City and requires working in the office three days per week. Are you currently located in the NYC metro area, or are you willing to relocate at your own expense?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "4003490002",
+            "label": "How would you describe your gender identity? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003489002",
+            "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003488002",
+            "label": "How would you describe your sexual orientation? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003487002",
+            "label": "Do you identify as transgender?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003486002",
+            "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, or other) that substantially limits one or more of your major life activities, including mobility, communication (seeing, hearing, speaking), and learning?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003485002",
+            "label": "Are you a veteran or active member of the United States Armed Forces?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ]
+      },
+      "ms": 18860
+    },
+    {
+      "company": "cultureamp",
+      "title": "Senior Customer Success Manager (Enterprise-at-scale)",
+      "url": "https://job-boards.greenhouse.io/cultureamp/jobs/8263267",
+      "family": "greenhouse",
+      "outcome": "scan_error",
+      "code": "WORKER_UNREACHABLE",
+      "message": "the career worker board service could not be reached (fetch failed)",
+      "ms": 19173
+    },
+    {
+      "company": "twitch",
+      "title": "Software Engineer I",
+      "url": "https://job-boards.greenhouse.io/twitch/jobs/8887222002",
+      "family": "greenhouse",
+      "outcome": "scan_error",
+      "code": "WORKER_UNREACHABLE",
+      "message": "the career worker board service could not be reached (fetch failed)",
+      "ms": 24854
+    },
+    {
+      "company": "rocketlab",
+      "title": "Test Engineering Intern Spring 2027",
+      "url": "https://job-boards.greenhouse.io/rocketlab/jobs/8003533003",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 29,
+        "required_count": 20,
+        "fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "email",
+            "question_key": null
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "country",
+            "question_key": null
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "phone",
+            "question_key": null
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "resume",
+            "question_key": null
+          },
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900538003",
+            "label": "Undergraduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a graduate GPA",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "education",
+            "source_kind": "standard",
+            "profile_key": "education_graduation_year",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900539003",
+            "label": "Graduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a doctorate GPA",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "education",
+            "source_kind": "standard",
+            "profile_key": "education_graduation_year",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900540003",
+            "label": "Select your anticipated bachelor's degree graduation date",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "education",
+            "source_kind": "standard",
+            "profile_key": "education_graduation_year",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900541003",
+            "label": "Select your anticipated master's degree graduation date",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "education",
+            "source_kind": "standard",
+            "profile_key": "education_graduation_year",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900542003",
+            "label": "Do you meet all the essential qualifications that are listed under the \"You'll Bring These Qualifications\" section?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900543003",
+            "label": "Outside of university coursework, what amount of software engineering experience do you have? This can include research/ laboratory work, and/or personal/team project experience.",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "education",
+            "source_kind": "standard",
+            "profile_key": "education_school",
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900544003",
+            "label": "Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900545003",
+            "label": "Other Engineering Organization Involvement:",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900546003",
+            "label": "Preferred Internship/Co-Op Start Date",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900547003",
+            "label": "Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "are_you_a_participant_of_the_following_scholarsh",
+            "label": "Are you a participant of the following scholarship, fellowships, or initiatives we support?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900549003",
+            "label": "How did you hear about this opportunity?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900550003",
+            "label": "Other: How did you hear about this opportunity?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900551003",
+            "label": "Have you previously interviewed at Rocket Lab?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900552003",
+            "label": "Are you willing to work onsite?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900553003",
+            "label": "Citizenship Status",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900554003",
+            "label": "If Citizenship Status Other, please explain:",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "active_security_clearance_s",
+            "label": "Active Security Clearance(s)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900556003",
+            "label": "Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_32900557003",
+            "label": "Please specify",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "gender",
+            "label": "Gender",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "gender"
+          },
+          {
+            "field_id": "hispanic_ethnicity",
+            "label": "Are you Hispanic/Latino?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "are_you_hispanic_latino"
+          },
+          {
+            "field_id": "veteran_status",
+            "label": "Veteran Status",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "veteran_status"
+          }
+        ]
+      },
+      "readback": {
+        "keys": 3,
+        "non_empty_values": 0
+      },
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 29,
+        "required_count": 20,
+        "covered_count": 13,
+        "stops": [
+          {
+            "field_id": "question_32900542003",
+            "label": "Do you meet all the essential qualifications that are listed under the \"You'll Bring These Qualifications\" section?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900544003",
+            "label": "Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900546003",
+            "label": "Preferred Internship/Co-Op Start Date",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900547003",
+            "label": "Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "are_you_a_participant_of_the_following_scholarsh",
+            "label": "Are you a participant of the following scholarship, fellowships, or initiatives we support?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900549003",
+            "label": "How did you hear about this opportunity?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900551003",
+            "label": "Have you previously interviewed at Rocket Lab?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900552003",
+            "label": "Are you willing to work onsite?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900553003",
+            "label": "Citizenship Status",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "active_security_clearance_s",
+            "label": "Active Security Clearance(s)",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900556003",
+            "label": "Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900545003",
+            "label": "Other Engineering Organization Involvement:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900550003",
+            "label": "Other: How did you hear about this opportunity?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900554003",
+            "label": "If Citizenship Status Other, please explain:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900557003",
+            "label": "Please specify",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_32900538003",
+            "label": "Undergraduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a graduate GPA",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900539003",
+            "label": "Graduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a doctorate GPA",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900540003",
+            "label": "Select your anticipated bachelor's degree graduation date",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900541003",
+            "label": "Select your anticipated master's degree graduation date",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900543003",
+            "label": "Outside of university coursework, what amount of software engineering experience do you have? This can include research/ laboratory work, and/or personal/team project experience.",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "gender",
+            "label": "Gender",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "hispanic_ethnicity",
+            "label": "Are you Hispanic/Latino?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "veteran_status",
+            "label": "Veteran Status",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ]
+      },
+      "ms": 9776
+    },
+    {
+      "company": "cloudflare",
+      "title": "Software Engineer - Egress (Go/Rust)",
+      "url": "https://boards.greenhouse.io/cloudflare/jobs/8195746?gh_jid=8195746",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 12,
+        "required_count": 6,
+        "fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "email",
+            "question_key": null
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "country",
+            "question_key": null
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "phone",
+            "question_key": null
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "resume",
+            "question_key": null
+          },
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69128882",
+            "label": "Legal Name (if different than above)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69128883",
+            "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "linkedin",
+            "question_key": null
+          },
+          {
+            "field_id": "question_69128884",
+            "label": "How did you hear about this job?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69128885",
+            "label": "Do you currently live or are you willing to relocate to the job’s location?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "location",
+            "question_key": null
+          },
+          {
+            "field_id": "question_69128886",
+            "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "sponsorship"
+          },
+          {
+            "field_id": "question_69128887",
+            "label": "Acknowledge/Confirm",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "attestation",
+            "profile_key": null,
+            "question_key": "acknowledge_confirm"
+          }
+        ]
+      },
+      "readback": {
+        "keys": 2,
+        "non_empty_values": 1
+      },
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 12,
+        "required_count": 6,
+        "covered_count": 8,
+        "stops": [
+          {
+            "field_id": "question_69128884",
+            "label": "How did you hear about this job?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69128887",
+            "label": "Acknowledge/Confirm",
+            "question_kind": "unknown",
+            "source_kind": "attestation",
+            "reason": "attestation_requires_explicit_confirmation"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69128882",
+            "label": "Legal Name (if different than above)",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_69128883",
+            "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69128885",
+            "label": "Do you currently live or are you willing to relocate to the job’s location?",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69128886",
+            "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          }
+        ]
+      },
+      "ms": 13470
+    },
+    {
+      "company": "reddit",
+      "title": "Strategic Finance Senior Manager",
+      "url": "https://job-boards.greenhouse.io/reddit/jobs/8244067",
+      "family": "greenhouse",
+      "outcome": "scanned",
+      "inventory": {
+        "version": 1,
+        "source_shape": "defs",
+        "captcha": null,
+        "field_count": 22,
+        "required_count": 18,
+        "fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "name",
+            "question_key": null
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "preferred_name",
+            "question_key": null
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "email",
+            "question_key": null
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "country",
+            "question_key": null
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "phone",
+            "question_key": null
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "location",
+            "question_key": null
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "resume",
+            "question_key": null
+          },
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69546075",
+            "label": "LinkedIn Profile",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": false,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "profile_key": "linkedin",
+            "question_key": null
+          },
+          {
+            "field_id": "question_69546076",
+            "label": "How did you hear about this job?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69546077",
+            "label": "Please provide the name of your current (or most recent) company",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69546078",
+            "label": "Are you currently authorized to work in the U.S.?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "work_authorization"
+          },
+          {
+            "field_id": "question_69546079",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work at Reddit?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "profile_key": null,
+            "question_key": "sponsorship"
+          },
+          {
+            "field_id": "question_69546080",
+            "label": "By selecting \"I agree,\" I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69584576",
+            "label": "Do you have strong experience building financial models and forecasting?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "question_69584577",
+            "label": "Do you have in-house corporate finance or strategy experience?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "profile_key": null,
+            "question_key": null
+          },
+          {
+            "field_id": "430",
+            "label": "What gender identity do you most closely identify with?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "what_gender_identity_do_you_most"
+          },
+          {
+            "field_id": "431",
+            "label": "Are you a person of transgender experience?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "are_you_a_person_of_transgender_"
+          },
+          {
+            "field_id": "432",
+            "label": "What sexual orientation do you most closely identify with?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "what_sexual_orientation_do_you_m"
+          },
+          {
+            "field_id": "433",
+            "label": "Do you live with a disability (as outlined by the ADA)?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "do_you_live_with_a_disability_as"
+          },
+          {
+            "field_id": "434",
+            "label": "Are you a veteran/have you served in the military?",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "are_you_a_veteran_have_you_serve"
+          },
+          {
+            "field_id": "436",
+            "label": "Please select up to 2 ethnicities that you most closely identify with.",
+            "control": "unknown",
+            "control_source": "unavailable",
+            "required": true,
+            "options": null,
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "profile_key": null,
+            "question_key": "please_select_up_to_2_ethnicitie"
+          }
+        ]
+      },
+      "readback": {
+        "keys": 1,
+        "non_empty_values": 0
+      },
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 22,
+        "required_count": 18,
+        "covered_count": 16,
+        "stops": [
+          {
+            "field_id": "question_69546076",
+            "label": "How did you hear about this job?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69546077",
+            "label": "Please provide the name of your current (or most recent) company",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69546080",
+            "label": "By selecting \"I agree,\" I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69584576",
+            "label": "Do you have strong experience building financial models and forecasting?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69584577",
+            "label": "Do you have in-house corporate finance or strategy experience?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_69546075",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69546078",
+            "label": "Are you currently authorized to work in the U.S.?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "question_69546079",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work at Reddit?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "430",
+            "label": "What gender identity do you most closely identify with?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "431",
+            "label": "Are you a person of transgender experience?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "432",
+            "label": "What sexual orientation do you most closely identify with?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "433",
+            "label": "Do you live with a disability (as outlined by the ADA)?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "434",
+            "label": "Are you a veteran/have you served in the military?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "436",
+            "label": "Please select up to 2 ethnicities that you most closely identify with.",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ]
+      },
+      "ms": 10330
+    }
+  ],
+  "card_items": [
+    {
+      "company": "natera",
+      "title": "Senior Product Manager, Provider and RWD Health Systems Applications",
+      "verdict": {
+        "version": 1,
+        "covered": true,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 2,
+        "required_count": 0,
+        "covered_count": 0,
+        "stops": [],
+        "optional_uncovered": [
+          {
+            "field_id": "keyword_filter",
+            "label": "Search",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "department_filter",
+            "label": "Department",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [],
+        "vacuous": true
+      }
+    },
+    {
+      "company": "affirm",
+      "title": "Manager, Software Engineering (Marketing and Privacy Engineering)",
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 19,
+        "required_count": 10,
+        "covered_count": 10,
+        "stops": [
+          {
+            "field_id": "question_32949670003",
+            "label": "Which U.S. State or Canadian Province do you reside in?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949671003",
+            "label": "How did you first learn about Affirm as an employer?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949676003",
+            "label": "Have you previously been employed at Affirm for any length of time?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949665003",
+            "label": "Current Company",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949672003",
+            "label": "GitHub",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949673003",
+            "label": "Twitter",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32949674003",
+            "label": "Portfolio",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "reason": "no_confirmed_fact"
+          },
+          {
+            "field_id": "question_32949675003",
+            "label": "Other Links",
+            "question_kind": "essay",
+            "source_kind": "free_text",
+            "reason": "needs_user_draft_confirmation"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_32949664003",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949666003",
+            "label": "Preferred Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949667003",
+            "label": "Name Pronunciation",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32949668003",
+            "label": "Pronouns",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "question_32949669003",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work for Affirm in Canada?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          }
+        ],
+        "vacuous": false
+      }
+    },
+    {
+      "company": "alphasense",
+      "title": "Sales Development Manager",
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 20,
+        "required_count": 12,
+        "covered_count": 16,
+        "stops": [
+          {
+            "field_id": "question_38003391002",
+            "label": "The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38003392002",
+            "label": "Are you currently eligible to work in the United States of America?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38003394002",
+            "label": "Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_38846477002",
+            "label": "I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_38003390002",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_38003393002",
+            "label": "Do you now or in the future require Visa sponsorship to continue working in the United States?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "question_38003395002",
+            "label": "This role is based in New York City and requires working in the office three days per week. Are you currently located in the NYC metro area, or are you willing to relocate at your own expense?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "4003490002",
+            "label": "How would you describe your gender identity? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003489002",
+            "label": "How would you describe your racial/ethnic background? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003488002",
+            "label": "How would you describe your sexual orientation? (mark all that apply)",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003487002",
+            "label": "Do you identify as transgender?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003486002",
+            "label": "Do you have a disability or chronic condition (physical, visual, auditory, cognitive, mental, emotional, or other) that substantially limits one or more of your major life activities, including mobility, communication (seeing, hearing, speaking), and learning?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "4003485002",
+            "label": "Are you a veteran or active member of the United States Armed Forces?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ],
+        "vacuous": false
+      }
+    },
+    {
+      "company": "rocketlab",
+      "title": "Test Engineering Intern Spring 2027",
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 29,
+        "required_count": 20,
+        "covered_count": 13,
+        "stops": [
+          {
+            "field_id": "question_32900542003",
+            "label": "Do you meet all the essential qualifications that are listed under the \"You'll Bring These Qualifications\" section?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900544003",
+            "label": "Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900546003",
+            "label": "Preferred Internship/Co-Op Start Date",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900547003",
+            "label": "Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "are_you_a_participant_of_the_following_scholarsh",
+            "label": "Are you a participant of the following scholarship, fellowships, or initiatives we support?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900549003",
+            "label": "How did you hear about this opportunity?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900551003",
+            "label": "Have you previously interviewed at Rocket Lab?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900552003",
+            "label": "Are you willing to work onsite?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900553003",
+            "label": "Citizenship Status",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "active_security_clearance_s",
+            "label": "Active Security Clearance(s)",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900556003",
+            "label": "Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900545003",
+            "label": "Other Engineering Organization Involvement:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900550003",
+            "label": "Other: How did you hear about this opportunity?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900554003",
+            "label": "If Citizenship Status Other, please explain:",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_32900557003",
+            "label": "Please specify",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_32900538003",
+            "label": "Undergraduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a graduate GPA",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900539003",
+            "label": "Graduate GPA: Please convert your GPA to a 4.0 scale. Select \"Not Applicable\" if you do not have a doctorate GPA",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900540003",
+            "label": "Select your anticipated bachelor's degree graduation date",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900541003",
+            "label": "Select your anticipated master's degree graduation date",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_32900543003",
+            "label": "Outside of university coursework, what amount of software engineering experience do you have? This can include research/ laboratory work, and/or personal/team project experience.",
+            "question_kind": "education",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "gender",
+            "label": "Gender",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "hispanic_ethnicity",
+            "label": "Are you Hispanic/Latino?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "veteran_status",
+            "label": "Veteran Status",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ],
+        "vacuous": false
+      }
+    },
+    {
+      "company": "cloudflare",
+      "title": "Software Engineer - Egress (Go/Rust)",
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 12,
+        "required_count": 6,
+        "covered_count": 8,
+        "stops": [
+          {
+            "field_id": "question_69128884",
+            "label": "How did you hear about this job?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69128887",
+            "label": "Acknowledge/Confirm",
+            "question_kind": "unknown",
+            "source_kind": "attestation",
+            "reason": "attestation_requires_explicit_confirmation"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69128882",
+            "label": "Legal Name (if different than above)",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_69128883",
+            "label": "Would you like to include your LinkedIn profile, personal website or blog?",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69128885",
+            "label": "Do you currently live or are you willing to relocate to the job’s location?",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69128886",
+            "label": "Do you now or will you in the future require immigration sponsorship to work at Cloudflare?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          }
+        ],
+        "vacuous": false
+      }
+    },
+    {
+      "company": "reddit",
+      "title": "Strategic Finance Senior Manager",
+      "verdict": {
+        "version": 1,
+        "covered": false,
+        "reader_mode": "stub-167-absent",
+        "excluded_quarantined_facts": 0,
+        "excluded_unconfirmed_facts": 0,
+        "withheld_profile_keys": [],
+        "field_count": 22,
+        "required_count": 18,
+        "covered_count": 16,
+        "stops": [
+          {
+            "field_id": "question_69546076",
+            "label": "How did you hear about this job?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69546077",
+            "label": "Please provide the name of your current (or most recent) company",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69546080",
+            "label": "By selecting \"I agree,\" I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69584576",
+            "label": "Do you have strong experience building financial models and forecasting?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          },
+          {
+            "field_id": "question_69584577",
+            "label": "Do you have in-house corporate finance or strategy experience?",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "optional_uncovered": [
+          {
+            "field_id": "cover_letter",
+            "label": "Attach",
+            "question_kind": "unknown",
+            "source_kind": "unknown",
+            "reason": "unknown_field_category"
+          }
+        ],
+        "covered_fields": [
+          {
+            "field_id": "full_name",
+            "label": "Full name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "preferred_name",
+            "label": "Preferred First Name",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "email",
+            "label": "Email",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "country",
+            "label": "Country",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "phone",
+            "label": "Phone",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "candidate_location",
+            "label": "Location (City)",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "resume",
+            "label": "Attach",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile_resume"
+          },
+          {
+            "field_id": "question_69546075",
+            "label": "LinkedIn Profile",
+            "question_kind": "identity",
+            "source_kind": "standard",
+            "covered_by": "profile"
+          },
+          {
+            "field_id": "question_69546078",
+            "label": "Are you currently authorized to work in the U.S.?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "question_69546079",
+            "label": "Do you now, or will you in the future, require immigration sponsorship to work at Reddit?",
+            "question_kind": "identity",
+            "source_kind": "screening",
+            "covered_by": "confirmed_answer"
+          },
+          {
+            "field_id": "430",
+            "label": "What gender identity do you most closely identify with?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "431",
+            "label": "Are you a person of transgender experience?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "432",
+            "label": "What sexual orientation do you most closely identify with?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "433",
+            "label": "Do you live with a disability (as outlined by the ADA)?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "434",
+            "label": "Are you a veteran/have you served in the military?",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          },
+          {
+            "field_id": "436",
+            "label": "Please select up to 2 ethnicities that you most closely identify with.",
+            "question_kind": "eeo",
+            "source_kind": "eeo",
+            "covered_by": "eeo_default_decline"
+          }
+        ],
+        "vacuous": false
+      }
+    }
+  ],
+  "card_line": "Coverage: 1 of 6 fully covered; 5 stop on uncovered required questions — affirm — Manager, Software Engineering (Marketing and Privacy Engineering) stops on: Which U.S. State or Canadian Province do you reside in?; How did you first learn about Affirm as an employer?; Have you previously been employed at Affirm for any length of time? · alphasense — Sales Development Manager stops on: The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?; Are you currently eligible to work in the United States of America?; Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?; I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data. · rocketlab — Test Engineering Intern Spring 2027 stops on: Do you meet all the essential qualifications that are listed under the \"You'll Bring These Qualifications\" section?; Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:; Preferred Internship/Co-Op Start Date; Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.; Are you a participant of the following scholarship, fellowships, or initiatives we support?; How did you hear about this opportunity?; Have you previously interviewed at Rocket Lab?; Are you willing to work onsite?; Citizenship Status; Active Security Clearance(s); Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements · cloudflare — Software Engineer - Egress (Go/Rust) stops on: How did you hear about this job?; Acknowledge/Confirm · reddit — Strategic Finance Senior Manager stops on: How did you hear about this job?; Please provide the name of your current (or most recent) company; By selecting \"I agree,\" I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.; Do you have strong experience building financial models and forecasting?; Do you have in-house corporate finance or strategy experience? — note: natera — Senior Product Manager, Provider and RWD Health Systems Applications showed no required questions (the application form may not have been reached; that \"covered\" is vacuous)",
+  "finished_at": "2026-10-21T19:15:02.561Z"
+}

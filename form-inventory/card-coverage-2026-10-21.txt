@@ -1,0 +1,64 @@
+BATCH CARD — COVERAGE LINE (computed from pre-drive scans, not hoped)
+Scan run: 2026-10-21T19:11:44.767Z -> 2026-10-21T19:15:02.561Z
+Profile: TEST user b2625909-d67f-41b2-8270-983d212c6052 (TEST-marked display name, 20 confirmed Class-1 facts, module 149 derivation) via production profileFor, action=prepare (attestations empty pre-approval, by construction).
+Reader mode: stub-167-absent (module 167 does not exist on this base; conservative confirmed-only reader).
+
+Coverage: 1 of 6 fully covered; 5 stop on uncovered required questions — affirm — Manager, Software Engineering (Marketing and Privacy Engineering) stops on: Which U.S. State or Canadian Province do you reside in?; How did you first learn about Affirm as an employer?; Have you previously been employed at Affirm for any length of time? · alphasense — Sales Development Manager stops on: The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?; Are you currently eligible to work in the United States of America?; Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?; I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data. · rocketlab — Test Engineering Intern Spring 2027 stops on: Do you meet all the essential qualifications that are listed under the "You'll Bring These Qualifications" section?; Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:; Preferred Internship/Co-Op Start Date; Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.; Are you a participant of the following scholarship, fellowships, or initiatives we support?; How did you hear about this opportunity?; Have you previously interviewed at Rocket Lab?; Are you willing to work onsite?; Citizenship Status; Active Security Clearance(s); Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements · cloudflare — Software Engineer - Egress (Go/Rust) stops on: How did you hear about this job?; Acknowledge/Confirm · reddit — Strategic Finance Senior Manager stops on: How did you hear about this job?; Please provide the name of your current (or most recent) company; By selecting "I agree," I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.; Do you have strong experience building financial models and forecasting?; Do you have in-house corporate finance or strategy experience? — note: natera — Senior Product Manager, Provider and RWD Health Systems Applications showed no required questions (the application form may not have been reached; that "covered" is vacuous)
+
+Per-posting verdicts:
+- natera — Senior Product Manager, Provider and RWD Health Systems Applications: FULLY COVERED (VACUOUS — no required questions observed; form may not have been reached) (0/2 fields covered, 0 required; stops: 0, optional uncovered: 2)
+    optional-uncovered [unknown_field_category] Search
+    optional-uncovered [unknown_field_category] Department
+- affirm — Manager, Software Engineering (Marketing and Privacy Engineering): NOT COVERED (10/19 fields covered, 10 required; stops: 3, optional uncovered: 6)
+    STOP [unknown_field_category] Which U.S. State or Canadian Province do you reside in?
+    STOP [unknown_field_category] How did you first learn about Affirm as an employer?
+    STOP [unknown_field_category] Have you previously been employed at Affirm for any length of time?
+    optional-uncovered [unknown_field_category] Attach
+    optional-uncovered [no_confirmed_fact] Current Company
+    optional-uncovered [no_confirmed_fact] GitHub
+    optional-uncovered [unknown_field_category] Twitter
+    optional-uncovered [no_confirmed_fact] Portfolio
+    optional-uncovered [needs_user_draft_confirmation] Other Links
+- alphasense — Sales Development Manager: NOT COVERED (16/20 fields covered, 12 required; stops: 4, optional uncovered: 0)
+    STOP [unknown_field_category] The base salary range for this role is $102,000 to $127,000, with a variable component bringing total OTE to approximately $177,000 to $190,500. Are you comfortable with this compensation range?
+    STOP [unknown_field_category] Are you currently eligible to work in the United States of America?
+    STOP [unknown_field_category] Have you previously been employed by AlphaSense or any of its entities; or by an agency representing AlphaSense?
+    STOP [unknown_field_category] I confirm I have read, understood and accept the AlphaSense Candidate Privacy Notice and I consent to AlphaSense processing my personal data.
+- rocketlab — Test Engineering Intern Spring 2027: NOT COVERED (13/29 fields covered, 20 required; stops: 11, optional uncovered: 5)
+    STOP [unknown_field_category] Do you meet all the essential qualifications that are listed under the "You'll Bring These Qualifications" section?
+    STOP [unknown_field_category] Engineering Organization Involvement: Indicate if you are an active participant in any of the following engineering student groups or competitions listed below:
+    STOP [unknown_field_category] Preferred Internship/Co-Op Start Date
+    STOP [unknown_field_category] Preferred Internship/Co-Op Duration: Confirm the number of consecutive weeks you are available to work full-time and in-person.
+    STOP [unknown_field_category] Are you a participant of the following scholarship, fellowships, or initiatives we support?
+    STOP [unknown_field_category] How did you hear about this opportunity?
+    STOP [unknown_field_category] Have you previously interviewed at Rocket Lab?
+    STOP [unknown_field_category] Are you willing to work onsite?
+    STOP [unknown_field_category] Citizenship Status
+    STOP [unknown_field_category] Active Security Clearance(s)
+    STOP [unknown_field_category] Any offer of employment with Rocket Lab is contingent on a successful criminal background check, drug screen, and professional reference check. Please indicate below if you can meet these hiring requirements
+    optional-uncovered [unknown_field_category] Attach
+    optional-uncovered [unknown_field_category] Other Engineering Organization Involvement:
+    optional-uncovered [unknown_field_category] Other: How did you hear about this opportunity?
+    optional-uncovered [unknown_field_category] If Citizenship Status Other, please explain:
+    optional-uncovered [unknown_field_category] Please specify
+- cloudflare — Software Engineer - Egress (Go/Rust): NOT COVERED (8/12 fields covered, 6 required; stops: 2, optional uncovered: 2)
+    STOP [unknown_field_category] How did you hear about this job?
+    STOP [attestation_requires_explicit_confirmation] Acknowledge/Confirm
+    optional-uncovered [unknown_field_category] Attach
+    optional-uncovered [unknown_field_category] Legal Name (if different than above)
+- reddit — Strategic Finance Senior Manager: NOT COVERED (16/22 fields covered, 18 required; stops: 5, optional uncovered: 1)
+    STOP [unknown_field_category] How did you hear about this job?
+    STOP [unknown_field_category] Please provide the name of your current (or most recent) company
+    STOP [unknown_field_category] By selecting "I agree," I understand that the information I have provided as part of this job application will be processed in accordance with Reddit's Candidate Privacy Policy.
+    STOP [unknown_field_category] Do you have strong experience building financial models and forecasting?
+    STOP [unknown_field_category] Do you have in-house corporate finance or strategy experience?
+    optional-uncovered [unknown_field_category] Attach
+
+Attempted but not scanned (recorded, never retried into existence):
+- gusto — AI/IT Controls Engineer, Enterprise Applications: scan_error (WORKER_UNREACHABLE)
+- anthropic — Staff Forward Deployed Engineer: scan_error (WORKER_UNREACHABLE)
+- cultureamp — Senior Customer Success Manager (Enterprise-at-scale): scan_error (WORKER_UNREACHABLE)
+- twitch — Software Engineer I: scan_error (WORKER_UNREACHABLE)
+
+No-fill proof: every scanned posting’s post-scan answers() readback carried 0 non-empty values; scan calls were open/form/answers/close only.
+Lever: NOT SCANNED — session creation refused FAMILY_NOT_DRIVEABLE (board-config verdicts = greenhouse only today); probe record in runs/lever-probe-2026-10-21.json.

@@ -1,0 +1,7 @@
+{
+  "probed_at": "2026-10-21T19:2xZ",
+  "url": "https://jobs.lever.co/palantir/2ad0ab10-34c3-410d-883b-8052864a95cd",
+  "via": "board service :8471, provider-direct (bridge swallows the code to null at the composition layer)",
+  "refusal_code": "FAMILY_NOT_DRIVEABLE",
+  "cause": "/home/hatch/worker-config/board-config.cjs familyVerdicts = { greenhouse: true } only (verified 2026-10-21); Lever enablement is O5’s separate tonight milestone"
+}

@@ -155,16 +155,8 @@ async function facts(userId) {
   const beforeKeys = new Set(await get(S, "answered_before", []));
   return { answers: merged.answers, saved: merged.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id) };
 }
-function confirmedOnly(input, owner) {
-  const out = {};
-  for (const [k, a] of Object.entries(input || {})) {
-    if (a?.user_id && a.user_id !== owner) continue;
-    if (a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 && a.factId.length <= 200) {
-      out[k] = { value: a.value, factId: a.factId };
-    }
-  }
-  return out;
-}
+// D-007: the import is TraineeCore.confirmedFacts: only the person's own confirmed facts, the quarantined ones left out.
+const confirmedOnly = (input, owner) => C.confirmedFacts(input, owner);
 
 // ------------------------------------------------------------------------------------------------ cards, queue, evidence
 const cards = async () => await get(S, "cards", {});
@@ -913,8 +905,9 @@ async function handle(m, sender) {
       try {
         const j = JSON.parse(m.json);
         if (j.user_id && j.user_id !== a.user_id) return { ok: false, message: "That facts file belongs to another account." };
-        await put(S, "imported_facts", { answers: confirmedOnly(j.answers, a.user_id), saved: confirmedOnly(j.saved, a.user_id) });
-        return { ok: true };
+        const answers = confirmedOnly(j.answers, a.user_id), saved = confirmedOnly(j.saved, a.user_id);
+        await put(S, "imported_facts", { answers: answers.kept, saved: saved.kept, quarantined: answers.quarantined + saved.quarantined });
+        return { ok: true, quarantined: answers.quarantined + saved.quarantined };
       } catch {
         return { ok: false, message: "That file is not a confirmed-facts file." };
       }

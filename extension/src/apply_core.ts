@@ -684,3 +684,27 @@ export function agentReceiptLine(o: { company: string; url: string; state: strin
     : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
   return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
 }
+
+// D-007: the 47 agent-invented "confirmed" facts (F-027..F-079, entered from the owner's answer-all delegation of
+// 2026-10-17) never reach a real application. They are not deleted (the owner's bank is his); every import leaves them
+// out, by id and by that provenance, and counts them so the panel can say so.
+export function quarantinedFact(f: { factId?: unknown; provenance?: unknown }): boolean {
+  const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
+  if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+  return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+}
+// A confirmed-facts file, as the person imports it: only their own, confirmed, well-formed facts, none quarantined.
+export function confirmedFacts(input: Record<string, any>, owner: string) {
+  const kept: Record<string, Answer> = {};
+  let quarantined = 0;
+  for (const [k, a] of Object.entries(input || {})) {
+    if (a?.user_id && a.user_id !== owner) continue;
+    if (!(a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 && a.factId.length <= 200)) continue;
+    if (quarantinedFact(a)) {
+      quarantined++;
+      continue;
+    }
+    kept[k] = { value: a.value, factId: a.factId };
+  }
+  return { kept, quarantined };
+}

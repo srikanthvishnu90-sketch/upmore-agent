@@ -3737,6 +3737,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     cardOutcome: () => cardOutcome,
     changedFields: () => changedFields,
     chooseWidgetOption: () => chooseWidgetOption,
+    confirmedFacts: () => confirmedFacts,
     detectPortal: () => detectPortal,
     draftFactId: () => draftFactId,
     draftFactIds: () => draftFactIds,
@@ -3752,6 +3753,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     planForm: () => planForm,
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
+    quarantinedFact: () => quarantinedFact,
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
@@ -4601,6 +4603,31 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const why = (o.reason || "").replace(/[.\s]+$/, "");
     const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
     return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
+  }
+  function quarantinedFact(f) {
+    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  }
+  function confirmedFacts(input, owner) {
+    const kept = {};
+    let quarantined = 0;
+    for (const [k, a] of Object.entries(input || {})) {
+      if (a?.user_id && a.user_id !== owner) continue;
+      if (!(a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 && a.factId.length <= 200)) continue;
+      if (quarantinedFact(a)) {
+        quarantined++;
+        continue;
+      }
+      kept[k] = {
+        value: a.value,
+        factId: a.factId
+      };
+    }
+    return {
+      kept,
+      quarantined
+    };
   }
 
   // extension/src/dom.ts

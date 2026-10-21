@@ -368,7 +368,7 @@ $("facts").onchange = async (e) => {
   const f = e.target.files[0];
   if (!f) return;
   const r = await send({ type: "import-facts", json: await f.text() });
-  text($("status"), r.ok ? "Your confirmed facts are loaded for this browser session." : r.message, !r.ok);
+  text($("status"), r.ok ? `Your confirmed facts are loaded for this browser session.${r.quarantined ? ` ${r.quarantined} facts Trainee wrote for you (not stated by you) were left out and are never used (D-007).` : ""}` : r.message, !r.ok);
   render();
 };
 $("fill").onclick = async () => {

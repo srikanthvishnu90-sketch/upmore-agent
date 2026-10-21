@@ -3367,6 +3367,469 @@
         "employer_fields": []
       }
     },
+    "expired-queued": {
+      "payload": {
+        "version": 1,
+        "user_id": "00000000-0000-4000-8000-00000000cb01",
+        "job_id": "lever:veeva:synthetic-expired-queued",
+        "company": "Synthetic expired-queued",
+        "url": "https://jobs.lever.co/veeva/synthetic-expired-queued/apply",
+        "fields": [
+          {
+            "name": "name",
+            "label": "Full name",
+            "value": "Synthetic Person",
+            "factId": "TEST-NAME",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-NAME",
+            "source": {
+              "table": "answers",
+              "key": "full_name",
+              "value": "Synthetic Person"
+            }
+          },
+          {
+            "name": "email",
+            "label": "Email",
+            "value": "synthetic@example.test",
+            "factId": "TEST-EMAIL",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-EMAIL",
+            "source": {
+              "table": "answers",
+              "key": "email",
+              "value": "synthetic@example.test"
+            }
+          },
+          {
+            "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+            "label": "Do you now, or in the future require sponsorship?",
+            "value": "No",
+            "factId": "TEST-SPONS",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-SPONS",
+            "source": {
+              "table": "answers",
+              "key": "sponsorship",
+              "value": "No"
+            }
+          },
+          {
+            "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+            "label": "Do you have the unrestricted right to work in the United States?",
+            "value": "Yes",
+            "factId": "TEST-AUTH",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-AUTH",
+            "source": {
+              "table": "answers",
+              "key": "work_authorization",
+              "value": "Yes"
+            }
+          },
+          {
+            "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+            "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
+            "value": "Yes",
+            "factId": "TEST-ACK",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-ACK",
+            "authorizes": true,
+            "source": {
+              "table": "saved",
+              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
+              "value": "Yes"
+            }
+          },
+          {
+            "name": "resume",
+            "label": "Resume/CV",
+            "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "provenance": "owner picked this file in the panel",
+            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "source": {
+              "table": "answers",
+              "key": "resume",
+              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
+            }
+          }
+        ],
+        "destination": "https://jobs.lever.co/veeva/synthetic-expired-queued/apply",
+        "resume_sha256": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+        "page_field_names": [],
+        "engine_approval": "400bfa987681eb0113403182827319c2a1443cddd644fecebad3b14c201123c9",
+        "schema_hash": "e4de7f9e02152523c4278016e4645ac9a6e51bc84f7ca8d534acfccd4f9947a3",
+        "privacy_epoch": 1,
+        "account_version": 1,
+        "expires_at": "1970-01-02T00:00:00.000Z",
+        "quarantine_version": "d007-v1",
+        "manifest_hash": "5a190ca03aa3c6c4fc414e4fcbd555848ef77e6f4ee076aa26f5c57f9e05f313",
+        "replay_sources": [
+          {
+            "table": "answers",
+            "key": "full_name",
+            "value": "Synthetic Person",
+            "factId": "TEST-NAME",
+            "event": "evt-TEST-NAME",
+            "provenance": "owner stated synthetic fixture",
+            "authorizes": false
+          },
+          {
+            "table": "answers",
+            "key": "email",
+            "value": "synthetic@example.test",
+            "factId": "TEST-EMAIL",
+            "event": "evt-TEST-EMAIL",
+            "provenance": "owner stated synthetic fixture",
+            "authorizes": false
+          },
+          {
+            "table": "answers",
+            "key": "sponsorship",
+            "value": "No",
+            "factId": "TEST-SPONS",
+            "event": "evt-TEST-SPONS",
+            "provenance": "owner stated synthetic fixture",
+            "authorizes": false
+          },
+          {
+            "table": "answers",
+            "key": "work_authorization",
+            "value": "Yes",
+            "factId": "TEST-AUTH",
+            "event": "evt-TEST-AUTH",
+            "provenance": "owner stated synthetic fixture",
+            "authorizes": false
+          },
+          {
+            "table": "saved",
+            "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
+            "value": "Yes",
+            "factId": "TEST-ACK",
+            "event": "evt-TEST-ACK",
+            "provenance": "owner stated synthetic fixture",
+            "authorizes": true
+          },
+          {
+            "table": "answers",
+            "key": "resume",
+            "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "event": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "provenance": "owner picked this file in the panel",
+            "authorizes": false
+          }
+        ],
+        "approved_snapshot": {
+          "schema": [
+            {
+              "name": "name",
+              "label": "Full name",
+              "type": "text",
+              "required": true,
+              "options": []
+            },
+            {
+              "name": "email",
+              "label": "Email",
+              "type": "email",
+              "required": true,
+              "options": []
+            },
+            {
+              "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+              "label": "Do you now, or in the future require sponsorship?",
+              "type": "select",
+              "required": true,
+              "options": [
+                {
+                  "label": "Yes",
+                  "value": "Yes"
+                },
+                {
+                  "label": "No",
+                  "value": "No"
+                }
+              ]
+            },
+            {
+              "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+              "label": "Do you have the unrestricted right to work in the United States?",
+              "type": "select",
+              "required": true,
+              "options": [
+                {
+                  "label": "Yes",
+                  "value": "Yes"
+                },
+                {
+                  "label": "No",
+                  "value": "No"
+                }
+              ]
+            },
+            {
+              "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+              "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
+              "type": "checkbox",
+              "required": true,
+              "options": []
+            },
+            {
+              "name": "resume",
+              "label": "Resume/CV",
+              "type": "file",
+              "required": true,
+              "options": []
+            }
+          ],
+          "original": {
+            "version": 1,
+            "user_id": "00000000-0000-4000-8000-00000000cb01",
+            "job_id": "lever:veeva:synthetic-expired-queued",
+            "company": "Synthetic expired-queued",
+            "url": "https://jobs.lever.co/veeva/synthetic-expired-queued/apply",
+            "fields": [
+              {
+                "name": "name",
+                "label": "Full name",
+                "value": "Synthetic Person",
+                "factId": "TEST-NAME",
+                "provenance": "owner stated synthetic fixture",
+                "confirmation_event_id": "evt-TEST-NAME",
+                "source": {
+                  "table": "answers",
+                  "key": "full_name",
+                  "value": "Synthetic Person"
+                }
+              },
+              {
+                "name": "email",
+                "label": "Email",
+                "value": "synthetic@example.test",
+                "factId": "TEST-EMAIL",
+                "provenance": "owner stated synthetic fixture",
+                "confirmation_event_id": "evt-TEST-EMAIL",
+                "source": {
+                  "table": "answers",
+                  "key": "email",
+                  "value": "synthetic@example.test"
+                }
+              },
+              {
+                "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+                "label": "Do you now, or in the future require sponsorship?",
+                "value": "No",
+                "factId": "TEST-SPONS",
+                "provenance": "owner stated synthetic fixture",
+                "confirmation_event_id": "evt-TEST-SPONS",
+                "source": {
+                  "table": "answers",
+                  "key": "sponsorship",
+                  "value": "No"
+                }
+              },
+              {
+                "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+                "label": "Do you have the unrestricted right to work in the United States?",
+                "value": "Yes",
+                "factId": "TEST-AUTH",
+                "provenance": "owner stated synthetic fixture",
+                "confirmation_event_id": "evt-TEST-AUTH",
+                "source": {
+                  "table": "answers",
+                  "key": "work_authorization",
+                  "value": "Yes"
+                }
+              },
+              {
+                "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+                "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
+                "value": "Yes",
+                "factId": "TEST-ACK",
+                "provenance": "owner stated synthetic fixture",
+                "confirmation_event_id": "evt-TEST-ACK",
+                "authorizes": true,
+                "source": {
+                  "table": "saved",
+                  "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
+                  "value": "Yes"
+                }
+              },
+              {
+                "name": "resume",
+                "label": "Resume/CV",
+                "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "provenance": "owner picked this file in the panel",
+                "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "source": {
+                  "table": "answers",
+                  "key": "resume",
+                  "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
+                }
+              }
+            ],
+            "destination": "https://jobs.lever.co/veeva/synthetic-expired-queued/apply",
+            "resume_sha256": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "page_field_names": [],
+            "engine_approval": "400bfa987681eb0113403182827319c2a1443cddd644fecebad3b14c201123c9",
+            "schema_hash": "e4de7f9e02152523c4278016e4645ac9a6e51bc84f7ca8d534acfccd4f9947a3",
+            "privacy_epoch": 1,
+            "account_version": 1,
+            "expires_at": "1970-01-02T00:00:00.000Z",
+            "quarantine_version": "d007-v1",
+            "manifest_hash": "5a190ca03aa3c6c4fc414e4fcbd555848ef77e6f4ee076aa26f5c57f9e05f313",
+            "replay_sources": [
+              {
+                "table": "answers",
+                "key": "full_name",
+                "value": "Synthetic Person",
+                "factId": "TEST-NAME",
+                "event": "evt-TEST-NAME",
+                "provenance": "owner stated synthetic fixture",
+                "authorizes": false
+              },
+              {
+                "table": "answers",
+                "key": "email",
+                "value": "synthetic@example.test",
+                "factId": "TEST-EMAIL",
+                "event": "evt-TEST-EMAIL",
+                "provenance": "owner stated synthetic fixture",
+                "authorizes": false
+              },
+              {
+                "table": "answers",
+                "key": "sponsorship",
+                "value": "No",
+                "factId": "TEST-SPONS",
+                "event": "evt-TEST-SPONS",
+                "provenance": "owner stated synthetic fixture",
+                "authorizes": false
+              },
+              {
+                "table": "answers",
+                "key": "work_authorization",
+                "value": "Yes",
+                "factId": "TEST-AUTH",
+                "event": "evt-TEST-AUTH",
+                "provenance": "owner stated synthetic fixture",
+                "authorizes": false
+              },
+              {
+                "table": "saved",
+                "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
+                "value": "Yes",
+                "factId": "TEST-ACK",
+                "event": "evt-TEST-ACK",
+                "provenance": "owner stated synthetic fixture",
+                "authorizes": true
+              },
+              {
+                "table": "answers",
+                "key": "resume",
+                "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "event": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+                "provenance": "owner picked this file in the panel",
+                "authorizes": false
+              }
+            ]
+          }
+        }
+      },
+      "hash": "b913d6323caba7d0e4cb13fcb589847d76d49336897bfdb56b702af3d3a10375",
+      "readback": {
+        "answers": [
+          {
+            "name": "name",
+            "label": "Full name",
+            "value": "Synthetic Person",
+            "factId": "TEST-NAME",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-NAME",
+            "source": {
+              "table": "answers",
+              "key": "full_name",
+              "value": "Synthetic Person"
+            }
+          },
+          {
+            "name": "email",
+            "label": "Email",
+            "value": "synthetic@example.test",
+            "factId": "TEST-EMAIL",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-EMAIL",
+            "source": {
+              "table": "answers",
+              "key": "email",
+              "value": "synthetic@example.test"
+            }
+          },
+          {
+            "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+            "label": "Do you now, or in the future require sponsorship?",
+            "value": "No",
+            "factId": "TEST-SPONS",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-SPONS",
+            "source": {
+              "table": "answers",
+              "key": "sponsorship",
+              "value": "No"
+            }
+          },
+          {
+            "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+            "label": "Do you have the unrestricted right to work in the United States?",
+            "value": "Yes",
+            "factId": "TEST-AUTH",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-AUTH",
+            "source": {
+              "table": "answers",
+              "key": "work_authorization",
+              "value": "Yes"
+            }
+          },
+          {
+            "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+            "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
+            "value": "Yes",
+            "factId": "TEST-ACK",
+            "provenance": "owner stated synthetic fixture",
+            "confirmation_event_id": "evt-TEST-ACK",
+            "authorizes": true,
+            "source": {
+              "table": "saved",
+              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
+              "value": "Yes"
+            }
+          },
+          {
+            "name": "resume",
+            "label": "Resume/CV",
+            "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "provenance": "owner picked this file in the panel",
+            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+            "source": {
+              "table": "answers",
+              "key": "resume",
+              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
+            }
+          }
+        ],
+        "resume_name": "synthetic.pdf",
+        "resume_sha256": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
+        "destination": "https://jobs.lever.co/veeva/synthetic-expired-queued/apply",
+        "blank": [],
+        "employer_fields": []
+      }
+    },
     "renewal": {
       "payload": {
         "version": 1,

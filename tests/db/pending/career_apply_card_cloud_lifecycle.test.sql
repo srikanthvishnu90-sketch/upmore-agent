@@ -72,7 +72,7 @@ do $$ declare item jsonb;p jsonb;begin
  item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
  perform t.must_fail(format('select career_apply_message_cloud_card_show_as(%L,%L,%L::jsonb)',
   '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item)),
-  'quarantin|contract|manifest','bank_factId_F033_refused');
+  'quarantin|D-007|d007','bank_factId_F033_refused');
 end $$;
 -- Actual raw id:F033 -> engine_input normalization is Claude-owned and NOT_RUN; see fixture evidence.
 -- This positive proves only that a full canonical P without bank factId F033 is structurally admitted.
@@ -112,6 +112,56 @@ reset role;
 select t.ok((select count(*)=1 and bool_and(b.approval_id=o.approval_id and a.expires_at=o.expires_at and a.approved_at=o.approved_at)
  from cc_original o join career_message_approval_private.cloud_bound_jobs b on b.job_row_id=o.job_row_id
  join career_message_approval_private.cloud_bound_approvals a on a.approval_id=b.approval_id),'original_approval_id_and_deadline_unchanged');
+
+-- Short owned permissions exercise REAL clock expiry, never fake p_now as authority.
+-- Construct/refingerprint BEFORE show; no private marker/approval deadline is edited after tap.
+select career_apply_cloud_optin_as('00000000-0000-4000-8000-00000000cb01',true,'Synthetic expiry terms');
+insert into career_apply_cloud_gate_waivers(user_id,portal,max_sends,expires_at,note)
+ values('00000000-0000-4000-8000-00000000cb01','lever',5,clock_timestamp()+interval '1 hour','Synthetic expiry waiver');
+insert into career_cloud_settings(key,value) values('CAREER_CLOUD_APPLY','on'),('CAREER_AGENT_SUBMIT','on')
+ on conflict(key) do update set value=excluded.value;
+do $$ declare tag text;item jsonb;p jsonb;deadline jsonb;card jsonb;receipt jsonb;begin
+ for tag in select unnest(array['expired']) loop
+  item:=pg_temp.cc_full_item(tag);deadline:=to_jsonb((clock_timestamp()+interval '2 seconds')::text);
+  p:=jsonb_set(jsonb_set(item->'payload','{expires_at}',deadline),'{approved_snapshot,original,expires_at}',deadline);
+  item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+  card:=career_apply_message_cloud_card_show_as('00000000-0000-4000-8000-00000000cb01',
+   '00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item));
+  insert into cc_state values(tag||'-card',card);
+ end loop;
+end $$;
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+insert into cc_state values('expiry-driving-receipt',career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='expired-card'),(select v->>'hash' from cc_state where k='expired-card')));
+reset role;
+-- created_at defaults to transaction now(): UUID tie order must not be assumed.
+create temp table cc_all_claimed as select * from career_apply_cloud_claim_at(6,clock_timestamp());
+select t.ok((select count(*)=2 and bool_and(job_id in ('lever:veeva:synthetic-renewal','lever:veeva:synthetic-expired')) from cc_all_claimed),
+ 'expiry_fixture_real_claim: both known live bindings claimed, no UUID-order assumption');
+create temp table cc_short_claim as select * from cc_all_claimed where job_id='lever:veeva:synthetic-expired';
+-- Create the unattempted expiry case AFTER claiming earlier live bindings.
+do $$ declare item jsonb;p jsonb;deadline jsonb;card jsonb;begin
+ item:=pg_temp.cc_full_item('expired-queued');deadline:=to_jsonb((clock_timestamp()+interval '2 seconds')::text);
+ p:=jsonb_set(jsonb_set(item->'payload','{expires_at}',deadline),'{approved_snapshot,original,expires_at}',deadline);
+ item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+ card:=career_apply_message_cloud_card_show_as('00000000-0000-4000-8000-00000000cb01',
+  '00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item));
+ perform career_apply_message_card_approve_own((card->>'id')::uuid,card->>'hash');
+end $$;
+-- Wait to the measured P deadline; this is time-expiry evidence, not concurrency/race evidence.
+select pg_sleep(greatest(0,extract(epoch from (max((payload->>'expires_at')::timestamptz)-clock_timestamp())))+0.02)
+ from career_apply_jobs where job_id in ('lever:veeva:synthetic-expired','lever:veeva:synthetic-expired-queued');
+select t.ok(not exists(select 1 from career_apply_cloud_claim_at(6,clock_timestamp()) where job_id='lever:veeva:synthetic-expired-queued'),
+ 'expired_at_claim: unattempted short permission never becomes driving');
+select t.ok((select state='queued' and attempts=0 from career_apply_jobs where job_id='lever:veeva:synthetic-expired-queued'),
+ 'expired_at_claim_no_attempt');
+grant select on cc_short_claim to service_role;
+set role service_role;
+select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_short_claim),
+ (select lease_token from cc_short_claim),(select payload_hash from cc_short_claim))$$,'expired|stale','expired_at_effect_refused');
+select t.ok((career_apply_cloud_finish((select id from cc_short_claim),(select lease_token from cc_short_claim),
+ 'not_submitted','{"reason":"permission_expired"}','not_sent',null)).state='not_submitted','expired_terminal_receipt_recordable');
+reset role;
 
 -- Ordinary account grant is intentionally separate from TEST eligibility. Proposed columns must match reviewed migration.
 delete from career_message_approval_private.test_users where user_id='00000000-0000-4000-8000-00000000cb01';

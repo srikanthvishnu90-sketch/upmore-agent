@@ -136,14 +136,14 @@ the measured 76.5 s for field 608 — and module 150's stale-retry can
 then drive it a second time. Successful EEO fills still pay 11–17 s:
 fixed 500 ms quanta mean a pick is only ever noticed on the next tick.
 
-**The fix (helper):** one patience budget per drive — per-action
-timeouts bounded to 8 s (the ladder supplies the waiting), and the
-poll quantum drops to 200 ms with rung triggers converted to the
-SAME wall-clock thresholds (retype ≥2.5 s, first-word ≥5 s,
-clear-search ≥8 s, ceiling ≥17 s), so option picks land when they
-render instead of on a 500 ms grid. The option matcher, its strength
-order, and decline-class handling are byte-identical — vocabulary is
-the decline lane's, not this fix's.
+**The fix (helper):** one patience budget per drive — the proven
+34 × 500 ms ladder schedule is unchanged, but the action timeouts
+stacked on it are bounded: engagement click/fill/type 8/5/5 s,
+in-ladder retries 3–5 s, the fallback fill 5 s, and no drive action
+may throw out of the drive (the verdict belongs to cmdFill's
+verification). The option matcher, its strength order, and
+decline-class handling are byte-identical — vocabulary is the
+decline lane's, not this fix's.
 
 ## What this fix does NOT change
 
@@ -155,6 +155,62 @@ the decline lane's, not this fix's.
 - Readback value semantics (e.g. empty-group `[]`, name-pair `" "` —
   QA's BUG-QA-2026-10-21-02) — a separate filed bug, not this lane.
 
+## Addendum (same day, after the live re-drives): the chip state, and a fourth defect
+
+The root-cause-2 chain above is real but incomplete — it is the
+fixture-shaped branch. The discriminating live experiments that
+followed (bisected: resume-only ✓ 0.57 s · country-only ✗ ·
+location-only ✗ · **form()-twice ✗** · 20 s sleep ✗ · answers-first
+✓) isolated the dominant live branch, and a raw lifecycle probe
+measured it directly:
+
+- **The board retires the input on success.** Within ~5 s of the
+  attach, Greenhouse replaces the resume group with its uploaded
+  state — the attached file's NAME as a chip ("Resume/CV\*
+  Vishnu_Srikanth_Resume.docx"), stable for 90 s. There is no input
+  to digest, by design. The earlier "remount" samples caught the
+  transient progress-bar state of the same transition.
+- So the live failure was never a lost file: the attach succeeded
+  and the board displayed it. What failed was everything after —
+  the verify demanded an input digest from a retired input, the
+  ladder hunted the intentionally-absent input for ~26 s and
+  returned `file_input_not_mounted`, and `answers()` reported the
+  resume absent (the production instance-1 picture exactly).
+- **Fix (same helper layer):** a session attach record
+  (`board.attachedFiles`, written only when `setInputFiles`
+  mechanically completes on a sha-verified file) + uploaded-state
+  truth: `fnUploadedChip(identity)` reads the field's own group's
+  displayed filename; the fill verify and `readbackBindingFresh`
+  accept {session record ∧ board displays exactly that filename} as
+  the file's truth, and the attach ladder stops the moment the chip
+  appears. A chip this session never attached to is never spoken
+  for (draft-restoration guard).
+- **Fourth defect — reresolve ref clobbering (found by the same
+  experiments):** re-minted refs are keyed `version + domIndex`, and
+  a remount REORDERS the DOM, so a re-resolution could mint a ref
+  onto the exact key another binding's live ref already owned —
+  silently swapping that binding's handle + metadata (measured:
+  after the upload-section remount, the resume and cover reads
+  cross-wired and both read absent). Fix: re-resolution mints under
+  a per-call namespace; fresh refs never clobber refs other
+  bindings still hold.
+- Identity tiers as shipped: exact id → exact name → the field's
+  observed domIndex (order-preserving remounts) → unique candidate
+  of the identity's class; the cover/resume class is judged on
+  id + name + label text, and is a hard exclusion at every tier.
+
+**Measured after the fix (same tasks, TEST user, flag OFF, 0 submits):**
+Lever no-fill readbacks — FDSE **910 ms**, SWE NY **1,172 ms** (was
+23,449 ms / DRIVER_TIMEOUT 30,009 ms). Gusto full-drive shape —
+resume fill **verified 3.7 s**, `answers()` resume =
+`fcdfea90…` (the TEST resume's sha), final readback **237 ms** (was:
+fill FAILED 26.5 s, resume null). Dead-widget fixture drive 48 s
+and recorded as a fill failure (was: killed at the caller's 60 s
+cap). Still open on that drive, NOT this lane's mechanics: field
+608's decline pick itself (decline lane's gate-side fix; its failure
+cost here fell 76.5 s → ~21 s), phone reformatting, the location
+question's places pick — the readback reports all three truthfully.
+
 ## Fail-first evidence (recorded before the fix)
 
 - SWE NY no-fill readback: DRIVER_TIMEOUT at 30,009 ms (121 scans /
@@ -163,5 +219,9 @@ the decline lane's, not this fix's.
 - Gusto full-drive shape: resume FAILED, 608 FAILED (76.5 s),
   610 FAILED (17.2 s); answers resume/608 null.
 - New fixture suite (tests/career-widget-attach.test.cjs) asserts the
-  scan count per readback, the wrong-node attach trap, and the
-  never-actionable widget budget — all red on the pre-fix helper.
+  scan count per readback, the wrong-node attach trap, the
+  never-actionable widget budget, and the uploaded-chip truth —
+  run on the pre-fix helper: readback ✖ / remount-attach ✖ /
+  dead-widget ✖ (60,005 ms, killed at the caller's cap) / chip ✖ /
+  decline guard ✔ (the guard is green on both, by design). On the
+  fixed helper: 5/5 ✔.

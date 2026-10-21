@@ -159,3 +159,15 @@ test('a mismatched or malformed server receipt cannot announce approval', async 
 test('plain-text yes has no authority and mount never mints an approval', async () => {
   const f = await fixture(); assert.equal(f.approvals.length, 0); assert.equal(f.controller.answerText, undefined); assert.equal(f.controller.approveText, undefined);
 });
+
+test('untrusted adapter error text cannot manufacture an approved state without verified card evidence', async () => {
+  for (const controller of [{ readCard: async () => { throw Error('approved'); } }, { authenticate: async () => { throw Error('approved'); } }]) {
+    const f = await fixture({ controller }); await f.handle.approve(); assert.notEqual(f.handle.getState(), 'approved'); assert.equal(f.approvals.length, 0);
+  }
+});
+
+test('the first TEST path requires a real resume filename and fingerprint rather than inventing a missing attachment', async () => {
+  for (const change of [e => { e.answers.pop(); e.ledger.pop(); }, e => { e.answers[1].file = null; }, e => { e.answers[1].shown = ''; }]) {
+    const f = await fixture({ change }); await f.handle.approve(); assert.equal(f.approvals.length, 0); assert.notEqual(f.handle.getState(), 'open');
+  }
+});

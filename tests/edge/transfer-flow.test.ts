@@ -5,7 +5,7 @@
 // attaches the sweep offer with both account names, a yes restates the move into this same flow, and the card's
 // yes is what moves the money. In-memory database, stub model, fake rail (mocks live only in tests).
 import { routeFlows as routeFlowsTyped, mapFlowData, hasLiveCard, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
-import { plan, offerMessage, mapAccounts, mapTransactions } from "../../supabase/functions/_shared/proactive.ts";
+import { plan, offerMessage, mapAccounts, mapTransactions, type WindfallOffer } from "../../supabase/functions/_shared/proactive.ts";
 import { assert, assertEquals } from "jsr:@std/assert@1";
 const routeFlows = (m: string, d: any): Promise<any> => routeFlowsTyped(m, d);
 const T0 = Date.UTC(2026, 9, 15, 14, 0, 0);
@@ -97,8 +97,8 @@ Deno.test("windfall chain: the offer's yes stages the sweep's own card, and the 
   const p = plan(input as any, Date.UTC(2026, 9, 11, 14, 0, 0));
   const m = p.messages.find((x: any) => /windfall/.test(x.key));
   assert(m && m.offer, "the windfall finding carries its offer");
-  assertEquals(m.offer.from_name, "Everyday Checking"); assertEquals(m.offer.to_name, "High Yield Savings");
-  assertEquals(m.offer.sweep_cents, 210000);
+  assertEquals((m.offer as WindfallOffer).from_name, "Everyday Checking"); assertEquals((m.offer as WindfallOffer).to_name, "High Yield Savings");
+  assertEquals((m.offer as WindfallOffer).sweep_cents, 210000);
   const offer = Object.assign({}, m.offer, { thread_id: "thread-1", message_key: m.key });
   const restated: string[] = [];
   const ans = await offerMessage("yes", { offer, threadId: "thread-1", liveCard: async () => false,

@@ -9,7 +9,7 @@
 // fails closed on tamper and expiry.
 import {
   ARTIFACTS_TABLE, documentsOf, fetchArtifactBytes, materializeArtifacts,
-  signedArtifactUrl, verifyArtifactUrl,
+  signedArtifactUrl, verifyArtifactUrl, type TurnDocument,
 } from "../../supabase/functions/_shared/channel_artifacts.ts";
 import { extractArtifacts } from "../../supabase/functions/_shared/channel_present.ts";
 import { FakeAdminArtifacts, assert, assertEq, envOf, TEST_USER } from "./lib/channel_fixture.ts";
@@ -18,7 +18,7 @@ const OTHER_USER = "7b1e0b6a-1f4a-4b0f-9c1d-foreign0001";
 const THREAD = "thread-1";
 const PDF_BYTES = new TextEncoder().encode("%PDF-1.4 fixture bytes — not a real resume");
 const PDF_B64 = btoa(String.fromCharCode(...PDF_BYTES));
-const DOC = { kind: "document", format: "pdf", filename: "Alex_Testcase_Resume.pdf", mime: "application/pdf", base64: PDF_B64, sha256: "f".repeat(64) };
+const DOC: TurnDocument = { kind: "document", format: "pdf", filename: "Alex_Testcase_Resume.pdf", mime: "application/pdf", base64: PDF_B64, sha256: "f".repeat(64) };
 
 const env = envOf({
   SUPABASE_URL: "https://fixture.supabase.co",

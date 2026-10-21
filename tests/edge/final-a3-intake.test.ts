@@ -65,7 +65,7 @@ Deno.test("A3 intake: mapTransactions passes a non-USD row through with its real
     tx("2026-10-11", -1000, "CAFE PARIS", "alt3", { currency: "EUR", usd_amount_cents: 10.5 })]);
   assertEquals((alt.find((t: any) => t.id.endsWith("alt1")) as any).amount_usd_cents, -1080);
   assertEquals((alt.find((t: any) => t.id.endsWith("alt2")) as any).usd_cents, -1080);
-  assertEquals("usd_amount_cents" in alt.find((t: any) => t.id.endsWith("alt3")), false, "a non-integer USD figure is not carried, and no conversion is invented");
+  assertEquals("usd_amount_cents" in (alt.find((t: any) => t.id.endsWith("alt3")) as any), false, "a non-integer USD figure is not carried, and no conversion is invented");
   // No filter was weakened: superseded rows, non-integer amounts and rows with no posted date stay out, in any currency.
   const dropped = mapTransactions([
     tx("2026-10-11", -4500, "HOTEL LUTETIA PARIS", "bad1", { currency: "EUR", presence: "superseded" }),
@@ -80,6 +80,8 @@ Deno.test("A3 intake: numbersRows (the chat-side shape) no longer re-stamps a fo
   const nr = numbersRows(mapAccounts(accounts()), mapped);
   const eur = nr.transactions.find((t: any) => String(t.provider_transaction_id).endsWith("intl1"));
   const gbp = nr.transactions.find((t: any) => String(t.provider_transaction_id).endsWith("intl2"));
+  assert(eur, "the EUR row survives intake mapping");
+  assert(gbp, "the GBP row survives intake mapping");
   assertEquals(eur.currency, "EUR");
   assertEquals(eur.usd_amount_cents, -4860);
   assertEquals(gbp.currency, "GBP");

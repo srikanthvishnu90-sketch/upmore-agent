@@ -41,8 +41,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
         with: { deno-version: v2.x }
-      - name: Edge function tests (typed, with no permissions, the way the evidence recorder runs them), including the live-failure replays
-        run: deno test tests/edge/
+      - name: Edge function tests (typed, read-only permissions, the way the evidence recorder runs them), including the live-failure replays
+        run: deno test --allow-read tests/edge/
       - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)
         run: deno run -A evals/agent/run.ts --check
       - name: Testing agent self-test (12 planted defects, each must turn its check red)

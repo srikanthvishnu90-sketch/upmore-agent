@@ -4,7 +4,7 @@
 // it; the card's yes executes it on the sandbox rail. A no moves nothing and restates the risk. When savings
 // cannot cover a move, no offer is attached and the warning stands on its own.
 import { routeFlows as routeFlowsTyped, mapFlowData, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
-import { plan, offerMessage, mapAccounts, mapTransactions } from "../../supabase/functions/_shared/proactive.ts";
+import { plan, offerMessage, mapAccounts, mapTransactions, type PreventiveOffer } from "../../supabase/functions/_shared/proactive.ts";
 import { assert, assertEquals } from "jsr:@std/assert@1";
 const routeFlows = (m: string, d: any): Promise<any> => routeFlowsTyped(m, d);
 const NOW = Date.UTC(2026, 9, 15, 14, 0, 0); // Thu 2026-10-15
@@ -50,9 +50,10 @@ Deno.test("the warning names the exact preventive transfer and carries it as an 
   assert(/Reply YES and I'll put up that move\./.test(m.text), m.text);
   assert(m.offer, "the offer is attached");
   assertEquals(m.offer.kind, "preventive_transfer");
-  assertEquals(m.offer.amount_cents, 60000, "the smallest move that keeps checking above the $200 buffer at the -$400 low point");
-  assertEquals(m.offer.from_account_id, "sav-1"); assertEquals(m.offer.to_account_id, "chk-1");
-  assertEquals(m.offer.first_below_on, "2026-11-02"); assertEquals(m.offer.land_by, "2026-11-01");
+  const offer = m.offer as PreventiveOffer; // the kind assertion above is the runtime proof; this is its type-level twin
+  assertEquals(offer.amount_cents, 60000, "the smallest move that keeps checking above the $200 buffer at the -$400 low point");
+  assertEquals(offer.from_account_id, "sav-1"); assertEquals(offer.to_account_id, "chk-1");
+  assertEquals(offer.first_below_on, "2026-11-02"); assertEquals(offer.land_by, "2026-11-01");
 });
 
 Deno.test("the warning's yes stages the move's own card, and the card's yes executes it on the rail", async () => {
@@ -81,7 +82,7 @@ Deno.test("when the total-cash alert itself fires, the same offer rides on it â€
   assert(/Moving \$300\.00 from High Yield Savings to Everyday Checking by Nov 1 keeps it above the line\./.test(m.text), m.text);
   assert(m.offer, "the offer is attached");
   assertEquals(m.offer.kind, "preventive_transfer");
-  assertEquals(m.offer.amount_cents, 30000, "savings covers $300 of the $600 needed; the offer names what can actually move");
+  assertEquals((m.offer as PreventiveOffer).amount_cents, 30000, "savings covers $300 of the $600 needed; the offer names what can actually move");
 });
 
 Deno.test("a no moves nothing and restates the risk; with nothing in savings no move is offered", async () => {

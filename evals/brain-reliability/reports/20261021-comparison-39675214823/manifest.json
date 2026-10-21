@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "created_at": "2026-10-21T21:19:50.923421+00:00",
-  "status": "PARTIAL_SAFE_EXPORT: higher per-call and reservation ledger pending supported extraction",
+  "status": "VERIFIED_KNOWN_COSTS_AND_RETAINED_RESERVATION; final cost UNRECONCILED; score NOT_COMPARABLE",
   "repository": "srikanthvishnu90-sketch/upmore-agent",
   "branch": "wo/paired-safe-ledger-20261021",
   "base_commit": "2267169728be49f814ffda9ca3e11f9065a0c15a",
@@ -55,6 +55,46 @@
       "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/higher-aggregate-verdict.json",
       "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-aggregate-verdict.json",
       "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-aggregate-verdict.json"
+    },
+    {
+      "path": "higher-ledger-summary.json",
+      "sha256": "a0f8141cc99f1c00183da52110a6cc54f63e197f5078de505a93ef263663bfd3",
+      "size_bytes": 2246,
+      "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/higher-ledger-summary.json",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-ledger-summary.json",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-ledger-summary.json"
+    },
+    {
+      "path": "higher-call-ledger.jsonl",
+      "sha256": "b3e3263724e3f1a57f516e85811db69a38edb71ca5ac562cd18c1720b845e9f7",
+      "size_bytes": 358884,
+      "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/higher-call-ledger.jsonl",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-call-ledger.jsonl",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-call-ledger.jsonl"
+    },
+    {
+      "path": "higher-reservation-events.jsonl",
+      "sha256": "5cf77eafeb6ad3dacf4b8ef8093a009885b455575fa60f1c48c8ba039fbbd6c2",
+      "size_bytes": 560328,
+      "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/higher-reservation-events.jsonl",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-reservation-events.jsonl",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-reservation-events.jsonl"
+    },
+    {
+      "path": "combined-call-ledger.jsonl",
+      "sha256": "fddf826f7a3cb436a23c609a7bafcce26d9f7bf051f242abbd150feba0e6e5a8",
+      "size_bytes": 819643,
+      "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/combined-call-ledger.jsonl",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/combined-call-ledger.jsonl",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/combined-call-ledger.jsonl"
+    },
+    {
+      "path": "higher-per-call-cost-verdict.json",
+      "sha256": "2a291e7341851a2f86155b6536847407f2d65f85b2f70c4eff992530ccb43313",
+      "size_bytes": 8469,
+      "repository_path": "evals/brain-reliability/reports/20261021-comparison-39675214823/higher-per-call-cost-verdict.json",
+      "github_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-per-call-cost-verdict.json",
+      "raw_url": "https://raw.githubusercontent.com/srikanthvishnu90-sketch/upmore-agent/refs/heads/wo/paired-safe-ledger-20261021/evals/brain-reliability/reports/20261021-comparison-39675214823/higher-per-call-cost-verdict.json"
     }
   ],
   "cost": {
@@ -75,7 +115,13 @@
     "prior_separate_included": false,
     "note": "Known metered usage is not a reconciled final total or provider invoice reconciliation. Unknown charges are not inferred as zero.",
     "higher_known_plus_retained_reservation_usd_micros": 6314893,
-    "combined_known_plus_retained_reservation_usd_micros": 8573843
+    "combined_known_plus_retained_reservation_usd_micros": 8573843,
+    "mini_call_count": 2181,
+    "higher_call_count": 1439,
+    "combined_call_count": 3620,
+    "combined_known_call_count": 3619,
+    "combined_unknown_call_count": 1,
+    "as_of": "2026-10-21T21:12:44Z: higher workflow artifact upload; same evidence exported without new provider calls on run 39682530609"
   },
   "alerts": {
     "higher_six_usd_threshold": "OBSERVED_EXCEEDED_AFTER_COMPLETION",
@@ -113,20 +159,46 @@
     "higher_private_artifact_zip_sha256_attestation": "581ee66c76cdb056b550b0d38317f4fe1da91c030f1956b6e078b385ac14ec6f",
     "higher_private_result_sha256_attestation": "e202c69abdda286bf0a38e9828cb226cef0f5d8711d1f53f4c94308f4ccfaa7f",
     "higher_safe_export_source": "Strictly allowlisted JSON aggregate blocks from completed workflow ledger and comparison steps. No private diagnostic file or case payload was exposed.",
-    "digest_limits": "Private artifact and result digests are source attestations; safe exports alone do not independently prove private score-packet integrity."
+    "digest_limits": "Private artifact and result digests are source attestations; safe exports alone do not independently prove private score-packet integrity.",
+    "higher_free_export": {
+      "run_id": 39682530609,
+      "job_id": 119508330978,
+      "commit": "b9650d5a673575eba7af28caa6c6dff0a7b4229a",
+      "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39682530609",
+      "conclusion": "SUCCESS",
+      "source_checkout": "Only pinned model_gateway.ts and model_calls.ts; no frozen scenario file checkout/read.",
+      "pricing_module_sha256": "c8d255e1dab2e99af360c9e30defbaeeda7b102ba562ba263a7886e203408020",
+      "journal_sha256_attestation": "279cb2894461bb41c8343fc45e6035bca02a38a9f40d7f7a7fcb4c6c055b3cae",
+      "archive_identity": "Pinned GitHub artifact metadata and published digest verified before Actions artifact download; pinned result bytes verified before projection.",
+      "runtime_permissions": "Deno network, environment, writes and process execution denied.",
+      "paid_calls": 0,
+      "model_runs": 0,
+      "workflow_path": ".github/workflows/brain320-higher-ledger-recover.yml",
+      "workflow_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/b9650d5a673575eba7af28caa6c6dff0a7b4229a/.github/workflows/brain320-higher-ledger-recover.yml",
+      "pricing_module_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/blob/1ec88f3cca4b21200be5c4f16ba2a948a72614b0/supabase/functions/_shared/model_gateway.ts"
+    }
   },
   "verification": {
     "mini_cost": "Existing independent QA verdict is 10/10 PASS; exact payload bytes reused.",
-    "higher_cost": "Independent QA verified safe aggregate arithmetic and status, 9/9 checks PASS; per-call repricing and final cost settlement remain pending.",
+    "higher_cost": "Independent QA repriced all 1,438 higher known calls and all 2,181 mini calls; 25/25 ledger checks, 16/16 synthetic verifier controls and 4/4 independently fetched payload hashes PASS. Unknown cost remains null and its reservation remains held.",
     "pending": [
-      "higher safe per-call ledger",
-      "higher safe reservation/settlement events",
-      "combined safe ledger keyed by evidence_run_id and call_id",
-      "independent higher and combined cost verdict"
-    ]
+      "provider settlement of one unknown higher call; final higher and combined cost remain UNRECONCILED"
+    ],
+    "higher_and_combined_verdict": {
+      "path": "higher-per-call-cost-verdict.json",
+      "sha256": "2a291e7341851a2f86155b6536847407f2d65f85b2f70c4eff992530ccb43313",
+      "status": "VERIFIED_KNOWN_COSTS_AND_RETAINED_RESERVATION",
+      "real_ledger_checks": 25,
+      "real_ledger_checks_passed": 25,
+      "synthetic_verifier_controls_passed": 16,
+      "independent_payload_hashes_passed": 4,
+      "provider_calls": 0,
+      "final_cost": "UNRECONCILED"
+    },
+    "limits": "Private ZIP/result/journal digests are safe-export attestations. No provider invoice reconciliation or independent private score-packet proof is claimed. Optional QA verifier source files referenced by the unchanged verdict are QA-owned working files; this bundle supplies exact safe data, immutable pricing-source reference and SHA-bound verdict."
   },
   "privacy": {
-    "contents": "Aggregate metrics and statuses, safe mini token/cost ledger, hashes, run references and explicit unresolved cost limits.",
+    "contents": "Aggregate metrics and statuses, exact safe token/cost call ledgers, safe reservation/settlement events, hashes, run references and explicit unresolved-cost limits.",
     "excluded": [
       "case IDs",
       "prompts",
@@ -145,5 +217,16 @@
     "resumes": 0,
     "merge": false,
     "deploy": false
-  }
+  },
+  "ledger_schema": {
+    "combined_identity": [
+      "evidence_run_id",
+      "call_id"
+    ],
+    "mini_rows": "Original verified safe mini numeric values preserved, with evidence_run_id added. Original safe mini export omits reservation/status fields.",
+    "higher_rows": "Exact safe model, role, numeric ordinal, status, reservation, token usage and cost projection. Unknown cost and usage remain null.",
+    "events": "Higher reserved/settlement events in original journal order; all case identifiers and private item payloads omitted.",
+    "reconciliation_limit": "The safe ledger preserves one unknown charge and its retained reservation; it cannot establish a final settled total."
+  },
+  "updated_at": "2026-10-21T22:02:50.976056+00:00"
 }

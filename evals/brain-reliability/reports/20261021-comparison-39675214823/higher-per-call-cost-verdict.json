@@ -1,0 +1,305 @@
+{
+  "status": "VERIFIED_KNOWN_COSTS_AND_RETAINED_RESERVATION",
+  "final_cost": "UNRECONCILED",
+  "source_commit": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+  "export": {
+    "run_id": 39682530609,
+    "job_id": 119508330978,
+    "commit": "b9650d5a673575eba7af28caa6c6dff0a7b4229a",
+    "api_metadata_independently_verified": "completed/success; exact head commit",
+    "safe_log_payload_hashes_independently_verified": true
+  },
+  "checks": [
+    {
+      "name": "exact_sha256_higher",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_events",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_combined",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_summary",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_paired",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_mini",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_miniSummary",
+      "pass": true
+    },
+    {
+      "name": "exact_sha256_source",
+      "pass": true
+    },
+    {
+      "name": "higher_all_1438_known_calls_reprice_exactly",
+      "pass": true
+    },
+    {
+      "name": "higher_unknown_call_preserved_null",
+      "pass": true
+    },
+    {
+      "name": "mini_all_2181_calls_reprice_exactly",
+      "pass": true
+    },
+    {
+      "name": "all_2878_events_replay_with_exact_call_binding",
+      "pass": true
+    },
+    {
+      "name": "every_dispatch_fits_higher_cap",
+      "pass": true
+    },
+    {
+      "name": "unknown_reservation_remains_held",
+      "pass": true
+    },
+    {
+      "name": "higher_roles_models_match_export",
+      "pass": true
+    },
+    {
+      "name": "higher_ledger_and_summary_match_replay",
+      "pass": true
+    },
+    {
+      "name": "mini_ledger_closed",
+      "pass": true
+    },
+    {
+      "name": "combined_preserves_each_original_row_exactly",
+      "pass": true
+    },
+    {
+      "name": "compound_run_call_identity_unique",
+      "pass": true
+    },
+    {
+      "name": "combined_known_cost_exact",
+      "pass": true
+    },
+    {
+      "name": "combined_known_plus_retained_and_max_exposure",
+      "pass": true
+    },
+    {
+      "name": "not_scored_and_not_comparable_retained",
+      "pass": true
+    },
+    {
+      "name": "final_unknown_not_converted_to_reconciled",
+      "pass": true
+    },
+    {
+      "name": "source_and_original_digest_attestations_pinned",
+      "pass": true
+    },
+    {
+      "name": "recovery_makes_no_paid_calls",
+      "pass": true
+    }
+  ],
+  "passed": 25,
+  "total_checks": 25,
+  "higher": {
+    "errors": [],
+    "total": 6244150,
+    "settled_calls": 1438,
+    "unknown_calls": 1,
+    "unique_calls": 1439,
+    "roles": {
+      "brain": {
+        "calls": 933,
+        "known_usd_micros": 6018685,
+        "unknown_calls": 1
+      },
+      "judge": {
+        "calls": 506,
+        "known_usd_micros": 225465,
+        "unknown_calls": 0
+      }
+    },
+    "models": {
+      "gpt-5": {
+        "calls": 933,
+        "known_usd_micros": 6018685,
+        "unknown_calls": 1
+      },
+      "gpt-5-mini": {
+        "calls": 253,
+        "known_usd_micros": 102524,
+        "unknown_calls": 0
+      },
+      "gpt-4.1-mini": {
+        "calls": 253,
+        "known_usd_micros": 122941,
+        "unknown_calls": 0
+      }
+    }
+  },
+  "mini": {
+    "errors": [],
+    "rows": 2181,
+    "unique_calls": 2181,
+    "total_micros": 2258950,
+    "roles": {
+      "brain": {
+        "calls": 1541,
+        "micros": 1960611
+      },
+      "judge": {
+        "calls": 640,
+        "micros": 298339
+      }
+    },
+    "models": {
+      "gpt-5-mini": {
+        "calls": 1861,
+        "micros": 2095975
+      },
+      "gpt-4.1-mini": {
+        "calls": 320,
+        "micros": 162975
+      }
+    }
+  },
+  "reservation_replay": {
+    "errors": [],
+    "charged": 6244150,
+    "held": 70743,
+    "unknown": 1,
+    "open": 1,
+    "reservations": 1439,
+    "settlements": 1439,
+    "max_exposure": 6502500,
+    "halted": true
+  },
+  "money_usd_micros": {
+    "mini_known": 2258950,
+    "higher_known": 6244150,
+    "combined_known": 8503100,
+    "retained_unknown_reservation": 70743,
+    "combined_known_plus_retained": 8573843,
+    "combined_approval_max_exposure": 10258950,
+    "higher_cap": 8000000,
+    "comparison_cap": 20000000
+  },
+  "calls": {
+    "mini": 2181,
+    "higher": 1439,
+    "higher_settled": 1438,
+    "higher_unknown": 1,
+    "combined": 3620,
+    "combined_known": 3619
+  },
+  "evidence": {
+    "higher": {
+      "path": "/tmp/brain320-higher-39675214823-safe-call-ledger.jsonl",
+      "sha256": "b3e3263724e3f1a57f516e85811db69a38edb71ca5ac562cd18c1720b845e9f7",
+      "bytes": 358884
+    },
+    "events": {
+      "path": "/tmp/brain320-higher-39675214823-safe-reservation-events.jsonl",
+      "sha256": "5cf77eafeb6ad3dacf4b8ef8093a009885b455575fa60f1c48c8ba039fbbd6c2",
+      "bytes": 560328
+    },
+    "combined": {
+      "path": "/tmp/brain320-comparison-39675214823-safe-combined-ledger.jsonl",
+      "sha256": "fddf826f7a3cb436a23c609a7bafcce26d9f7bf051f242abbd150feba0e6e5a8",
+      "bytes": 819643
+    },
+    "summary": {
+      "path": "/tmp/brain320-higher-39675214823-recovered-safe-summary.json",
+      "sha256": "a0f8141cc99f1c00183da52110a6cc54f63e197f5078de505a93ef263663bfd3",
+      "bytes": 2246
+    },
+    "paired": {
+      "path": "/tmp/brain320-higher-39675214823-recovered-safe-paired.json",
+      "sha256": "cb960ed5d1047208e39bee6161f3742a97faa3cd16f1d388c7961b0b5b992c2f",
+      "bytes": 281
+    },
+    "mini": {
+      "path": "/tmp/brain320-mini-39666739440-safe-ledger.jsonl",
+      "sha256": "ec324bd2c90198bc3bad26f0936d948612a65022e00f92eac2f4a47e4e4c582f",
+      "bytes": 395329
+    },
+    "miniSummary": {
+      "path": "/tmp/brain320-mini-39666739440-recovered-summary.json",
+      "sha256": "e647f4a331b9565f263f216a68b7c4ef9b08aba24079c3a529a26bf24140490d",
+      "bytes": 6974
+    },
+    "source": {
+      "path": "/workspace/upmore-brain-live-candidate-20261021/supabase/functions/_shared/model_gateway.ts",
+      "sha256": "c8d255e1dab2e99af360c9e30defbaeeda7b102ba562ba263a7886e203408020",
+      "bytes": 17784
+    }
+  },
+  "limitations": [
+    "Known call costs reproduce the pinned price-table estimate; no provider invoice reconciliation was performed.",
+    "One higher brain call has null usage/null cost, so final cost remains UNRECONCILED; its70743micro reservation remains held.",
+    "Raw ZIP/result/journal hashes are safe-export attestations; private scenario/prompt/transcript/judge packets were not opened or independently verified.",
+    "Higher arm completed257/320 and is NOT_SCORED; model comparison remains NOT_COMPARABLE."
+  ],
+  "new_spend_usd_micros": 0,
+  "provider_calls": 0,
+  "verifier_sources": [
+    {
+      "path": "/tmp/family-qa-handoffs-20261021/known-cost-verify.ts",
+      "sha256": "9db4be35231319aca5756b1c28e9ce12fad5ab610a5af3dbaeb2afbae84f8eab"
+    },
+    {
+      "path": "/tmp/family-qa-handoffs-20261021/known-cost-verify.test.ts",
+      "sha256": "a4ec78a9511335f1d04d951f48539f132db2a3990170ddd89d5fed0a76342535"
+    },
+    {
+      "path": "/tmp/family-qa-handoffs-20261021/higher-cost-final-verify.ts",
+      "sha256": "59d18b892f5699f07fa5333174a591e490d9bfba69318e9ce002e4769d1909d2"
+    },
+    {
+      "path": "/tmp/family-qa-handoffs-20261021/higher-cost-final-verify.test.ts",
+      "sha256": "7bb57008152e96593ab5fe7295f68bac1d16ec1d1dee9d9b6b1aca136fafc775"
+    }
+  ],
+  "synthetic_verifier_controls": {
+    "passed": 16,
+    "failed": 0,
+    "typecheck": "PASS",
+    "provider_calls": 0,
+    "network": "DENIED"
+  },
+  "independent_export_log_evidence": {
+    "github_run_id": 39682530609,
+    "github_job_id": 119508330978,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "head_sha": "b9650d5a673575eba7af28caa6c6dff0a7b4229a",
+    "safe_prefix_row_counts": {
+      "summary": 1,
+      "paired": 1,
+      "calls": 1439,
+      "events": 2878
+    },
+    "raw_logs_not_disclosed": true,
+    "discarded_workflow_source_marker_literals": 4,
+    "malformed_json_payloads": 0,
+    "safe_log_payload_sha256": {
+      "summary": "a0f8141cc99f1c00183da52110a6cc54f63e197f5078de505a93ef263663bfd3",
+      "paired": "cb960ed5d1047208e39bee6161f3742a97faa3cd16f1d388c7961b0b5b992c2f",
+      "calls": "b3e3263724e3f1a57f516e85811db69a38edb71ca5ac562cd18c1720b845e9f7",
+      "events": "5cf77eafeb6ad3dacf4b8ef8093a009885b455575fa60f1c48c8ba039fbbd6c2"
+    },
+    "all_four_exported_files_match_independently_fetched_safe_log_payloads": true
+  }
+}

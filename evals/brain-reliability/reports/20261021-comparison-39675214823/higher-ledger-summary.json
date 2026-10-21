@@ -1,0 +1,82 @@
+{
+  "evidence_run_id": 39675214823,
+  "artifact_id": 12383020538,
+  "artifact_zip_sha256_attestation": "581ee66c76cdb056b550b0d38317f4fe1da91c030f1956b6e078b385ac14ec6f",
+  "result_sha256_attestation": "e202c69abdda286bf0a38e9828cb226cef0f5d8711d1f53f4c94308f4ccfaa7f",
+  "journal_sha256_attestation": "279cb2894461bb41c8343fc45e6035bca02a38a9f40d7f7a7fcb4c6c055b3cae",
+  "source_commit": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+  "pricing_module_sha256": "c8d255e1dab2e99af360c9e30defbaeeda7b102ba562ba263a7886e203408020",
+  "call_count": 1439,
+  "reservation_count": 1439,
+  "settlement_count": 1439,
+  "roles": {
+    "brain": {
+      "calls": 933,
+      "known_usd_micros": 6018685,
+      "unknown_calls": 1
+    },
+    "judge": {
+      "calls": 506,
+      "known_usd_micros": 225465,
+      "unknown_calls": 0
+    }
+  },
+  "models": {
+    "gpt-5": {
+      "calls": 933,
+      "known_usd_micros": 6018685,
+      "unknown_calls": 1
+    },
+    "gpt-5-mini": {
+      "calls": 253,
+      "known_usd_micros": 102524,
+      "unknown_calls": 0
+    },
+    "gpt-4.1-mini": {
+      "calls": 253,
+      "known_usd_micros": 122941,
+      "unknown_calls": 0
+    }
+  },
+  "model": "gpt-5",
+  "status": "NOT_SCORED",
+  "score_kind": "CI_INTERSECTION",
+  "final_acceptance": "NOT_RUN: independent owner-appointed third judge required",
+  "planned": 320,
+  "completed": 257,
+  "full": null,
+  "clean": null,
+  "categories": null,
+  "metrics": {
+    "n": 257,
+    "input_tokens": 4196886,
+    "output_tokens": 126095,
+    "cached_tokens": 3795328,
+    "usd_micros": 6244150,
+    "latency_ms": {
+      "mean": 8259.359075688717,
+      "p50": 6911.092172999983,
+      "p95": 17905.355781000006
+    }
+  },
+  "cost_usd": {
+    "brain": 6.018685,
+    "judge": 0.225465,
+    "total": 6.24415
+  },
+  "ledger": {
+    "usd_micros": 6244150,
+    "unsettled_calls": 1,
+    "reserved_micros": 70743,
+    "unknown_charges": 1,
+    "unpriced_calls": 0,
+    "stopped": true
+  },
+  "final_cost": "UNRECONCILED",
+  "known_combined_usd_micros": 8503100,
+  "retained_reservation_usd_micros": 70743,
+  "combined_max_exposure_usd_micros": 10258950,
+  "packet_integrity": "PRIVATE_DIGEST_ATTESTATION_ONLY; no private case packets inspected",
+  "paid_calls": 0,
+  "model_runs": 0
+}

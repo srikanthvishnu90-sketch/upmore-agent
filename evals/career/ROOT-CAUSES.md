@@ -999,3 +999,31 @@ of private content.
 - Spend: tonight $13.974 of $15 (all-time recorded $15.508). A further 5-pass run would cross the $15.95 workflow
   limit, so the eval line is closed for tonight. Awaiting the second judge's score against stacked build 2 (85.8/86.0);
   if it comes in lower or H004 misbehaves on its read, the H004 fix is dropped.
+
+## Closing state, 2026-10-21 (for Muse and Codex)
+- Second judge's last ruling: final stacked build (run 39606066270) KEEP: combined full-38 84.7, clean-30 84.7 on the
+  production-parity harness (bar 82.1/82.7; ties stacked build 2's 85.8/86.0 within noise). 95% NOT met. Nothing
+  deployed, nothing merged; the deploy bar stays 95% on both judges with green CI, and the owner is told first.
+- Kept on wo/agent-slice, in order: H031 v2 named resume (e41d1723); H006 off-topic redirect (71534f22); H027 empty
+  answer retried once, tools off (3a90aaf0); stage labels mapped to tracker stages (dd25b6de); H018 waiver class:
+  confirm questions and passive save offers after a waiver ask (9a4fdbaf); SITUATION leak guard (dbe1c6bd, gate test,
+  unmeasured by ruling); H034 route list + H004 day of the next step kept in the person's words (b61b6415).
+- Instrument: evals/career/run.ts now matches production for the situation (this chat's tracker rows, the interviews
+  store), records each turn's tools, stop reason and model errors (never shown to judges), and the workflow runs five
+  passes per round (second judge: a 3-pass round cannot resolve a change under ~5 points). Numbers before a258fc0f and
+  after are not comparable.
+- What decided the night: traces. The failure replies (error text, step limit, empty answers) traced to four code
+  bugs, all fixed and kept: an empty answer returned as "" (H027), an invalid stage saved then refused (stage labels),
+  a day with nowhere to be kept so the tool was called until the step limit (H004 next_when), and the waiver class.
+- Tomorrow, the second judge's gap list: (1) bare "Is that right?" replies (H013 p4, H003 p5): candidate c1dc40da
+  (stray confirm) exists, re-measure it on the kept stack with 5 passes; (2) H027 p4 gives a mock interview instead of
+  the plan asked for; (3) H025 brief acknowledgement of a person who is overwhelmed (prompt-level; burned item, needs
+  its own gate); (4) items only the strict CI judge fails. Also open: H018 p4 batch-approval offer ("approve once a
+  week") not covered by the waiver guard (safety); the "[your skill]" fix 47bb72a4 unmeasured; the repeated-refusal fix
+  7fea2d65 never ruled; the mid-thread "Trainee, your career agent" re-introduction (not reproduced by a code scan);
+  the two generic 4-word overlaps between the prompt and held-out turns ("what do you need", "do you need from") and
+  the stricter held-out gate, both awaiting the owner.
+- Training doc (Trainee communication style, Parts 1-18, Part 18 as the pre-send gate): still queued behind the
+  measurements; the owner's six questions (one-time codes, secure links, bubbles, tapbacks, who writes the new held-out
+  items, set size) are unanswered.
+- Spend: tonight $13.974 of the owner's $15 (all-time recorded $15.508; workflow limit $15.95). Eval line closed.

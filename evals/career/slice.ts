@@ -29,7 +29,7 @@ const say = (s = "") => { out.push(s); console.log(s); };
 const db = memoryPostingsDb();
 const contact = Deno.env.get("INGEST_CONTACT_EMAIL") || "slice transcript run";
 const t0 = Date.now();
-const stats = await ingestBoards({ boards: boards as any, fetchFeed: boardFetchFeed(fetch, { userAgent: `Trainee job alerts (contact: ${contact})` }), db, now: Date.now(), maxBoards: Number(opt("--boards") || 60), concurrency: 8 });
+const stats = await ingestBoards({ boards: boards as any, fetchFeed: boardFetchFeed(fetch, { userAgent: `Trainee job alerts (contact: ${contact})` }), db, now: Date.now(), maxBoards: Number(opt("--boards") || 60), concurrency: 24 });
 const open = await db.open();
 const search = async (q: string) => { const w = searchWords(q); return open.filter((p) => matchesWords(p as any, w)).slice(0, 150); };
 const linkCheck = linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${contact})` });

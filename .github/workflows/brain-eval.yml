@@ -48,7 +48,7 @@ jobs:
           deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-agent.txt"
       - name: Slice transcripts on the agent brain (WO-106; real model, today's boards, every link fetched)
         if: always()
-        run: deno run -A evals/career/slice.ts --out "evals/career/results/slice-${{ github.run_id }}.md" | tail -5
+        run: deno run -A evals/career/slice.ts --boards 600 --out "evals/career/results/slice-${{ github.run_id }}.md" | tail -5
       - name: Playwright's Chromium for the extension (the one-application fill below)
         if: always()
         run: |

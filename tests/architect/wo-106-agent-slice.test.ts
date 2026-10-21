@@ -265,3 +265,24 @@ Deno.test("WO-106/F2.3 a move changes the city in the goal and keeps the role (r
   try { await t.correct_profile_fact.run({ id: fact.id, text: "Staff engineer role in Denver" }, ctxFor("I moved to Denver last month", state)); } catch (e) { refused = String(e); }
   assert(/not saved/.test(refused), `words neither said nor in the corrected fact are refused: ${refused}`);
 });
+
+Deno.test("WO-106/F3.3 a goal said in one breath splits into role and place; a posting is a role_match only when its title is the role", () => {
+  const p: any = { facts: [{ id: "F-1", kind: "goal", text: "Senior data analyst role in Chicago or remote", needs_confirmation: true }], preferences: {} };
+  const g = goalOf(p)!;
+  assert(g.roles.join() === "senior,data,analyst" && g.places.includes("chicago") && g.remote, JSON.stringify(g));
+  const pool = [post("greenhouse:a:1", "Senior Data Analyst", "Chicago, IL"), post("greenhouse:b:2", "Credit Risk Analyst Commercial Underwriter", "Chicago, IL")];
+  const r = searchPostings(pool, "analyst", p);
+  const m = Object.fromEntries(r.postings.map((x) => [x.job_id, x.role_match]));
+  assert(m["greenhouse:a:1"] === true && m["greenhouse:b:2"] === false, JSON.stringify(m));
+});
+
+Deno.test("WO-106/B4 a pay figure no tool returned and the person never said is put to the model, then removed (eval E038 invented $65k-$95k)", async () => {
+  const { runAgentTurn } = await import("../../supabase/functions/_shared/agent/loop.ts");
+  const { unsourcedMoney } = await import("../../supabase/functions/_shared/agent/reply_guards.ts");
+  assert(unsourcedMoney("Postings list about $65k-$95k. Ask for it.", ["how much should a junior analyst make"]).length === 1, "unsourced");
+  assert(unsourcedMoney("Your $85k offer is low.", ["I got an offer for 85k"]).length === 0, "their own figure");
+  assert(unsourcedMoney("It pays $120,000.", ['{"pay":"$120,000 per year"}']).length === 0, "a tool's figure");
+  const model = async () => ({ content: [{ type: "text", text: "Postings list about $65k to $95k for that. I don't have verified pay data beyond postings." }] }) as any;
+  const r = await runAgentTurn({ system: "s", history: [], message: "how much should a junior analyst make", tools: careerTools({ postings: async () => [] }), model, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(!/\$65k/.test(r.reply) && /don't have verified pay/.test(r.reply), r.reply);
+});

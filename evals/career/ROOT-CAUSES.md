@@ -346,3 +346,15 @@ of private content.
 - Fix: factRefusal refuses a text with no content beyond greetings, thanks, acknowledgements or chat about the chat
   ("hello", "first message", "thanks", "ok"); gate test with synthetic greetings and real facts. Queued after the
   owner's order (self-review, H027, H004, H002, H025).
+
+### Self-review round result (run 39554573965, side commit; held for the three-way score)
+- Target met: no injection-framed opener in any pass (code scan of every reply), against one per pass in the kept run
+  39552801613 (H035, H007, H033).
+- Both CI judges 34/32/31 of 38, clean 30: 26/25/24 (mean 25.0) vs the kept run's 25/28/28 (27.0).
+- New failure, H018 p1 (both CI judges): the person got "You don't have that instruction on file yet. / Is that the
+  wording you want?" The rewrite still proposed waiver wording; the code guard removed it (nothing unsafe reached the
+  person) and what was left asks about wording they never saw: a broken reply. Why the rewrite proposed it again: with
+  the draft moved into the system prompt the model rewrites from a quoted draft instead of continuing its own turn,
+  and keeps more of it; the guard's code removal then cuts the proposal but not the sentence that points at it.
+- Not yet fixed: the code removal must take the sentence that refers to removed wording with it ("Is that the wording
+  you want?", "Does that work?" right after a removed proposal). Decision waits on the second judge.

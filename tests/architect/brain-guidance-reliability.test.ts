@@ -157,3 +157,10 @@ Deno.test("guidance: clearance validity uses the turn clock across domain and to
     eq(r.moves.find((m: any) => m.requirement.id === "palantir-r4")?.status, expected, `tool clock ${year}`);
   }
 });
+
+Deno.test("guidance: prospective and external active-clearance phrases do not prove possession", () => {
+  for (const text of ["I am awaiting an active Orion clearance.", "I am applying for an active Orion clearance.", "I hope to obtain an active Orion clearance.", "This role requires an active Orion clearance."]) {
+    eq(check(activeClearance, [fact(text)], NOW).status, "unknown", text);
+  }
+  eq(check(activeClearance, [fact("I am applying for a new role but I hold a current Orion clearance.")], NOW).status, "met", "the existing clearance is independent of the application");
+});

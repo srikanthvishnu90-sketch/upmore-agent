@@ -149,6 +149,10 @@ function validityDate(text: string, now: number): Validity {
   return latest < now ? "ended" : earliest >= now ? "current" : "unknown";
 }
 function clearanceValidity(prefix: string, suffix: string, now: number): Validity {
+  // "Active" can qualify a future credential or an employer's requirement. Preserve its governing predicate
+  // across "for" before considering the clearance noun phrase; neither is evidence that the person holds it.
+  const predicatePrefix = prefix.split(/\b(?:before|after|since|while|when|because|although|despite|during|about|from|and)\b/i).pop()!;
+  if (/\b(?:await(?:ing)?|appl(?:y|ying|ied)|hop(?:e|ing)|intend(?:ing)?|plan(?:ning)?|seek(?:ing)?|pursu(?:e|ing)|want|wish|expect(?:ing)?|eligible|eligibility|require(?:d|s)?|requirement)\b/i.test(predicatePrefix)) return "unknown";
   // Relative/prepositional scope separates another credential's expiry from this clearance's noun phrase.
   const ownPrefix = prefix.split(/\b(?:before|after|since|while|when|because|although|despite|for|during|about|from|and)\b/i).pop()!;
   const ownSuffix = suffix.replace(/^\s*(?:security\s+)?clearance\b\s*/i, "").trim();

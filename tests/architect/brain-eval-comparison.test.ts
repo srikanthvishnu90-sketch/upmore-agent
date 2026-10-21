@@ -258,6 +258,20 @@ Deno.test("comparison: mini over central estimate requires explicit owner rechec
   const proof=await verifyFirstArm({...a,mini_over_estimate_recheck_ref:"unit-only explicit owner message"},first.identity,raw);
   assert(proof.exact_metered_usd===2.17664 && proof.comparison_remaining_usd===17.82336);
 });
+Deno.test("comparison: an estimate recheck cannot approve a first arm above the mini hard cap", async () => {
+  const first = arm(); let next = 0;
+  first.calls = first.items.flatMap((i) => {
+    i.input_tokens = 20; i.output_tokens = 8500; i.usd_micros = 17005;
+    return Array.from({ length: 7 }, (_, n) => ({ ...meta, call_id: ++next, case_id: i.id, category: i.category,
+      model: n < 6 ? "gpt-5-mini" : "gpt-4.1-mini", role: n < 5 ? "brain" as const : "judge" as const,
+      reserve_micros: 10000, latency_ms: 1, usage: { input_tokens: n < 5 ? 4 : 0, output_tokens: n < 5 ? 1700 : 0 },
+      usd_micros: n < 5 ? 3401 : 0, status: "settled" as const }));
+  });
+  first.ledger.usd_micros = first.items.reduce((n, i) => n + i.usd_micros, 0);
+  assert(armSummary(first).status === "SCORED", "fixture must isolate the mini-cap proof check");
+  const { raw, a } = await higherApproval(first);
+  await rejects(() => verifyFirstArm({ ...a, mini_over_estimate_recheck_ref: "unit-only owner estimate recheck" }, first.identity, raw), "mini hard cap");
+});
 Deno.test("comparison: owner-allocated pool accepts unknown global balances without inventing zeros", () => {
   const a={owner_approval_ref:"unit-only approval",owner_allocated_pool_ref:"unit-only allocated $20",model:"gpt-5-mini",source_commit:"a".repeat(40),corpus_sha256:"b".repeat(64),cap_usd:5,new_budget_spent_usd:null,other_reserved_usd:null,ledger_snapshot_at:null,comparison_cap_usd:20,comparison_spent_usd:0};
   validateApproval(a,a.model,a.source_commit,a.corpus_sha256);

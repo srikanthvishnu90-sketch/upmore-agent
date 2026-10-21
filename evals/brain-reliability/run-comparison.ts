@@ -288,6 +288,7 @@ export async function verifyFirstArm(a: Approval, identity: Identity, rawResult:
   await verifyJudgingPackets(first);
   const spent = first.ledger.usd_micros;
   insist(spent === usdMicros(a.comparison_spent_usd), "comparison spent amount differs from verified mini metered cost");
+  insist(spent <= 5000000, "first arm exceeded the owner's $5 mini hard cap");
   insist(spent <= 2143269 || presentRef(a.mini_over_estimate_recheck_ref), "mini exceeded $2.143269; explicit owner re-check is required before higher arm");
   insist(spent + usdMicros(a.cap_usd) <= 20000000, "verified mini cost plus higher cap exceeds $20");
   return { model: first.model, source_commit: first.identity.source_commit, corpus_sha256: first.identity.corpus_sha256, sha256: a.first_arm_evidence.sha256, exact_metered_usd: spent / 1000000, comparison_remaining_usd: (20000000 - spent) / 1000000, over_estimate_recheck_ref: a.mini_over_estimate_recheck_ref ?? null };

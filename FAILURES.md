@@ -175,3 +175,15 @@ Priority: P2
 Root cause: NOT YET PINNED — either the shelf row's location is empty and the renderer passes the blank through, or the render drops a present location; diagnosis = inspect the served window's rows for empty locations + read the list-render path. Diagnosis owed before any fix.
 Fix: unfilled until pinned.
 Verified by: unfilled.
+
+[ID: MUSE-F-014] [Status: OPEN]
+Found: 2026-10-21 00:48 CDT, owner-relayed from Codex's synthetic repro (NO live data involved; synthetic only).
+Area: brain/shared
+Input: (Codex's repro, as relayed verbatim by the owner): "in an isolated synthetic test, correcting profile A changed profile B's graduation year from 2031 to 2028 during B's recall."
+Expected: one profile's writes never touch another profile — PR #90's cross-user-leak fix is present in the shipped bundle.
+Actual: profile B's stored fact changed as a side effect of profile A's correction; the v246 bundle (commit 8410e9cb) does not contain PR #90's fix.
+Evidence: Codex's synthetic repro (exact repro text/record to be attached verbatim when located in the repo record — do not paraphrase it into this entry; the owner's relay above is quoted exactly). This is also the mission's Task 0 verdict: LIVE-LEAKING (synthetic-proven against the deployed bundle's code; whether any real user's data was ever affected is UNKNOWN and not claimed).
+Priority: P0 — cross-profile contamination, the worst class we have; joins MUSE-F-011 at the top of the list.
+Root cause: PARTIALLY PINNED — the deployed bundle was staged from a tree that lacks PR #90's user-scoping fix, so the profile write/read path in the shipped code can cross profiles; the exact missing change set and the exact unscoped statement in the bundle are being pinned now (Muse cross-check lane: PR #90's diff vs the 8410e9cb bundle, 2026-10-21).
+Fix: land PR #90's fix on the build line (not a re-implementation), then verify by re-running Codex's EXACT repro against the fixed bundle and showing profile B unchanged (graduation year still 2031 after A's correction); deployment follows the standing gate and is tracked separately from the code fix.
+Verified by: unfilled.

@@ -59,6 +59,7 @@ shared_tests=(
   tests/no-secrets.test.cjs
   tests/export-coverage.test.cjs
   tests/trainee-go-live.test.cjs
+  tests/deploy-provenance.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
   tests/depth-CAREER-WRITING.test.cjs

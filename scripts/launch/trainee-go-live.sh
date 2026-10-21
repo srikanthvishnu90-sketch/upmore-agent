@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 # Trainee go-live: one command from the OWNER's own shell, never an agent's (AGENTS.md: agents never deploy, apply
-# migrations to a live project or create credentials). From the repo, on the exact commit to ship:
-#   bash scripts/launch/trainee-go-live.sh [--dry-run] [--skip-migrations] [--skip-deploy] [--only-smoke]
-#                                          [--brain agent|router] [--allow-send] [--no-wait]
+# migrations to a live project or create credentials). From the repo, checked out at the exact commit to ship:
+#   bash scripts/launch/trainee-go-live.sh --sha <40-character commit> [--label <who>] [--dry-run] [--skip-migrations]
+#                                          [--skip-deploy] [--only-smoke] [--brain agent|router] [--allow-send] [--no-wait]
+#   bash scripts/launch/trainee-go-live.sh --verify <40-character commit>     (reads only; exit 1 on any mismatch)
+# WO-093 provenance: a run that changes anything ships exactly the commit named by --sha. It refuses a dirty tree, a HEAD
+# that is not that sha, and a stale router bundle (build-router-core.py --check and --career-only --check), then stages
+# only `git archive <sha>` into a fresh temp dir, works from there (never from this checkout), prints the provenance
+# manifest (the sha, every function's entry and bundle sha256, the migrations, the time, the tool versions; saved under
+# ~/trainee-provenance/), and writes public.career_deploy_ledger: one row per migration mark read live, one per function
+# deployed. --verify <sha> compares that ledger and every live MIGRATION_MARK to the manifest of <sha>, listing each
+# mismatch. --label names who deployed in the ledger (default: owner; no secret, no personal data).
 # Read from the environment, or asked on a hidden prompt (read -s: never shown, never written to a file or the log):
 #   SUPABASE_PROJECT_REF, SUPABASE_DB_URL        the live project and its database (Settings > Database > URI)
 #   CAREER_INGEST_SECRET, CAREER_PROACTIVE_SECRET, TRAINEE_DELIVER_SECRET, TRAINEE_INBOUND_SECRET
@@ -18,15 +26,18 @@
 #   WHATSAPP_VERIFY_TOKEN (Enter generates one when a token is given), WHATSAPP_TEMPLATE_UPDATES (the approved template's
 #   name), WHATSAPP_TEMPLATE_LANGUAGE (default en_US), WHATSAPP_DAILY_TEMPLATES (default 250)
 # Steps, each a numbered STEP line ending OK or FAILED; the run stops at the first failure:
-#   1 preflight   tools, inputs, a clean tree at an exact commit, deno check of the five entry points
+#   1 preflight   tools, inputs, a clean tree at HEAD = --sha, the commit staged from git archive, the router bundle
+#                 checks and deno check of the entry points there, the provenance manifest printed
 #   2 migrations  every Trainee migration in order, each once (the ledger or the live schema says it is there), each
 #                 in one transaction; the earlier career migrations are only checked (plain `create table`, so not safe
-#                 to replay), and one missing live stops the run before anything is deployed on top of it
+#                 to replay), and one missing live stops the run before anything is deployed on top of it; then every
+#                 mark is read again and any missing one fails the run (a ledger row never stands in for the schema)
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret)
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
+#                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
@@ -36,7 +47,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""
+REPO="$(pwd)"
+DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""
+DEPLOY_LABEL="${TRAINEE_DEPLOY_LABEL:-owner}"
 while (( $# )); do
   case "$1" in
     --dry-run) DRY=1 ;;
@@ -47,12 +60,24 @@ while (( $# )); do
     --brain=*) BRAIN="${1#--brain=}" ;;
     --allow-send) ALLOW_SEND=1 ;;
     --no-wait) NOWAIT=1 ;;
-    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
+    --sha) shift; WANT_SHA="${1:-}" ;;
+    --sha=*) WANT_SHA="${1#--sha=}" ;;
+    --verify) shift; VERIFY="${1:-}"; VERIFY_MODE=1 ;;
+    --verify=*) VERIFY="${1#--verify=}"; VERIFY_MODE=1 ;;
+    --label) shift; DEPLOY_LABEL="${1:-}" ;;
+    --label=*) DEPLOY_LABEL="${1#--label=}" ;;
+    -h|--help) sed -n '2,/^set -euo pipefail$/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "unknown option: $1 (see --help)"; exit 64 ;;
   esac
   shift
 done
 [[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == router ]] || { echo "--brain takes agent or router"; exit 64; }
+SHA40_RE='^[0-9a-f]{40}$'; LABEL_RE='^[A-Za-z0-9 ._@:+-]{1,100}$'
+[[ "$DEPLOY_LABEL" =~ $LABEL_RE ]] || { echo "--label: 1 to 100 of A-Z a-z 0-9 space . _ @ : + -"; exit 64; }
+if [[ -n "$VERIFY_MODE" ]]; then
+  [[ "$VERIFY" =~ $SHA40_RE ]] || { echo "--verify takes the full 40-character commit (lowercase hex)"; exit 64; }
+  [[ -z "$WANT_SHA$SKIP_MIG$SKIP_DEPLOY$ONLY_SMOKE$BRAIN$ALLOW_SEND" ]] || { echo "--verify reads only: it takes no other option but --dry-run"; exit 64; }
+fi
 
 # Every migration from the Trainee set on, in order, each with its proof on the live schema: one object it creates (a
 # file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
@@ -94,6 +119,7 @@ MIGRATIONS=(
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
   20261022120000_career_control_state.sql
+  20261022120500_career_deploy_ledger.sql
   20261022150000_career_apply_authority.sql
 )
 MIGRATION_MARK=(
@@ -133,6 +159,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_wanted') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
   "exists (select 1 from pg_proc where proname = 'career_quiet_users')"
+  "to_regclass('public.career_deploy_ledger') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -149,12 +176,18 @@ SCHED_VARS=(CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET 
 CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
+# Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}")
+# WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
+STAGE_PATHS=(supabase scripts packages corpus)
+PROV="$REPO/scripts/launch/deploy-provenance.cjs"
 
-CUR=""; REPORTED=""; ENVF=""; STAGE=""
+CUR=""; REPORTED=""; ENVF=""; STAGE=""; WORK=""
 cleanup() {
   local rc=$?
   [[ -n "$ENVF" ]] && rm -f "$ENVF"
   [[ -n "$STAGE" ]] && rm -rf "$STAGE"
+  [[ -n "$WORK" ]] && { cd / && rm -rf "$WORK"; }
   if (( rc != 0 )) && [[ -n "$CUR" && -z "$REPORTED" ]]; then echo "STEP $CUR: FAILED (exit $rc)"; fi
 }
 trap cleanup EXIT
@@ -209,6 +242,89 @@ sha256() { if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -
 env_safe() { case "$1" in *[[:space:]]*|*\'*|*\"*|*\#*|*\\*) return 1 ;; esac; [[ -n "$1" ]]; }
 SECRET_RE='^[A-Za-z0-9._~-]{32,}$'; REF_RE='^[a-z]{20}$'; DB_RE='^postgres(ql)?://'; DB_PASS_RE='^[a-z]+://[^:/@]+:([^@]+)@'
 
+# The live database: one value read with sql_to; a failed read stops the run (the error passes through mask).
+P=()
+db_init() { export PGOPTIONS="${PGOPTIONS:-} -c client_min_messages=warning"; P=(psql "${SUPABASE_DB_URL:-}" -X -q -v ON_ERROR_STOP=1); }
+sql_to() { # sql_to VAR "query": one value read from the live database
+  local out
+  if ! out="$("${P[@]}" -tAc "$2" 2>&1 </dev/null)"; then printf '%s\n' "$out" | mask; fail "a read of the live database failed"; fi
+  printf -v "$1" '%s' "$out"
+}
+
+# --- WO-093 provenance ------------------------------------------------------------------------------------------------
+# stage_commit <sha>: a fresh temp dir holding only `git archive <sha>` (STAGE_PATHS); nothing comes from this checkout.
+SRC=""; MANIFEST=""; MANIFEST_SHA256=""; SHIP_SHA=""
+stage_commit() {
+  local out
+  WORK="$(mktemp -d "${TMPDIR:-/tmp}/trainee-go-live-stage.XXXXXX")"; SRC="$WORK/src"; mkdir -p "$SRC"
+  echo "  > git archive $1 -- ${STAGE_PATHS[*]} | tar -x into a fresh temp dir ($WORK)"
+  if ! out="$( (git archive --format=tar "$1" -- "${STAGE_PATHS[@]}" | tar -x -C "$SRC") 2>&1)"; then
+    printf '%s\n' "$out"; fail "git archive $1 could not be staged"
+  fi
+  [[ -f "$SRC/supabase/config.toml" && -d "$SRC/supabase/functions" ]] || fail "the staged commit $1 has no supabase/ tree"
+}
+# kind<TAB>file<TAB>mark per migration, in apply order (the earlier ones are only checked, never applied).
+migration_list() {
+  local i
+  for i in "${!EARLIER[@]}"; do printf 'earlier\t%s\t%s\n' "${EARLIER[$i]}" "${EARLIER_MARK[$i]}"; done
+  for i in "${!MIGRATIONS[@]}"; do printf 'trainee\t%s\t%s\n' "${MIGRATIONS[$i]}" "${MIGRATION_MARK[$i]}"; done
+}
+# make_manifest <sha>: the provenance manifest of the staged commit, printed, with its tsv views for the ledger.
+make_manifest() {
+  local fns
+  migration_list >"$WORK/migrations.tsv"
+  fns="$(IFS=,; echo "${DEPLOY_FNS[*]}")"
+  if ! node "$PROV" manifest --stage "$SRC" --sha "$1" --functions "$fns" --migrations "$WORK/migrations.tsv" --out "$WORK/manifest.json" \
+    ${VERIFY_MODE:+--allow-absent} >"$WORK/manifest.out" 2>&1; then
+    cat "$WORK/manifest.out"; fail "the provenance manifest of $1 could not be computed"
+  fi
+  node "$PROV" tsv --manifest "$WORK/manifest.json" functions >"$WORK/functions.tsv"
+  node "$PROV" tsv --manifest "$WORK/manifest.json" migrations >"$WORK/manifest-migrations.tsv"
+  MANIFEST="$WORK/manifest.json"; MANIFEST_SHA256="$(sha256 "$MANIFEST")"
+  echo "  PROVENANCE MANIFEST $1 (sha256 $MANIFEST_SHA256):"
+  sed 's/^/    /' "$MANIFEST"
+  echo "  bundles:"; sed 's/^/    /' "$WORK/functions.tsv"
+}
+# Every mark read on the live schema; any one missing fails the run, each named (a ledger row never stands in for it).
+check_all_marks() {
+  local i n=0 live m missing=()
+  for i in "${!EARLIER[@]}"; do
+    sql_to live "select (${EARLIER_MARK[$i]})"; n=$((n + 1)); [[ "$live" == t ]] || missing+=("${EARLIER[$i]}: ${EARLIER_MARK[$i]}")
+  done
+  for i in "${!MIGRATIONS[@]}"; do
+    sql_to live "select (${MIGRATION_MARK[$i]})"; n=$((n + 1)); [[ "$live" == t ]] || missing+=("${MIGRATIONS[$i]}: ${MIGRATION_MARK[$i]}")
+  done
+  if (( ${#missing[@]} )); then
+    for m in "${missing[@]}"; do echo "  MISSING on the live schema: $m"; done
+    fail "${#missing[@]} of $n migration marks are missing on the live project (each listed above); nothing is deployed on a schema without them"
+  fi
+  echo "  marks: all $n read true on the live project"
+}
+# One ledger row per migration whose mark was just read true, for this sha.
+ledger_migrations() {
+  local vals="" f sum rest
+  while IFS=$'\t' read -r f sum rest; do
+    vals+="${vals:+,}('$SHIP_SHA','migration','$f','$sum','$MANIFEST_SHA256','$DEPLOY_LABEL')"
+  done <"$WORK/manifest-migrations.tsv"
+  [[ -n "$vals" ]] || fail "the manifest lists no migration"
+  if ! "${P[@]}" -c "insert into public.career_deploy_ledger(sha,kind,migration_file,bundle_sha256,manifest_sha256,deployed_by_label) values $vals" 2>&1 | mask; then
+    fail "the migration rows of public.career_deploy_ledger were not written"
+  fi
+  echo "  ledger: $(wc -l <"$WORK/manifest-migrations.tsv" | tr -d ' ') migration rows for $SHIP_SHA"
+}
+# ledger_function <fn>: its row right after its deploy (the bundle sha256 from the manifest, the platform's version now).
+ledger_function() {
+  local fn="$1" sum ver
+  sum="$(awk -F'\t' -v f="$fn" '$1 == f { print $2 }' "$WORK/functions.tsv")"
+  [[ "$sum" =~ ^[0-9a-f]{64}$ ]] || fail "$fn has no bundle sha256 in the manifest"
+  ver="$(supabase functions list --project-ref "$REF" 2>/dev/null | node "$PROV" platform-versions 2>/dev/null | awk -F'\t' -v f="$fn" '$1 == f { print $2 }')" || ver=""
+  [[ "$ver" =~ ^[1-9][0-9]*$ ]] || ver=""
+  if ! "${P[@]}" -c "insert into public.career_deploy_ledger(sha,kind,function_name,bundle_sha256,platform_version,manifest_sha256,deployed_by_label) values ('$SHIP_SHA','function','$fn','$sum',${ver:-null},'$MANIFEST_SHA256','$DEPLOY_LABEL')" 2>&1 | mask; then
+    fail "$fn was deployed but its row in public.career_deploy_ledger was not written"
+  fi
+  echo "  ledger: $fn at $SHIP_SHA, bundle $sum, platform version ${ver:-not read}"
+}
+
 if [[ -z "$DRY" ]]; then
   LOG="${TRAINEE_GO_LIVE_LOG:-$HOME/trainee-go-live-$(date -u +%Y%m%dT%H%M%SZ).log}"
   exec > >(tee -a "$LOG") 2>&1
@@ -216,9 +332,60 @@ if [[ -z "$DRY" ]]; then
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
+# --verify <sha>: reads only. The manifest of <sha> (staged from git archive, as a deploy would), the latest ledger row
+# per function and per migration, and every mark on the live schema; one line per check, exit 1 on any mismatch.
+if [[ -n "$VERIFY_MODE" ]]; then
+  step "verify $VERIFY"
+  for t in git node psql tar; do
+    command -v "$t" >/dev/null && continue
+    if [[ -n "$DRY" ]]; then echo "  tool $t: missing here (the real run needs it)"; else fail "missing: $t"; fi
+  done
+  ask SUPABASE_DB_URL "Database connection string (Supabase > Project Settings > Database > URI)" hidden required
+  [[ -z "${SUPABASE_DB_URL:-}" || "$SUPABASE_DB_URL" =~ $DB_RE ]] || fail "SUPABASE_DB_URL is not a postgres:// connection string"
+  [[ -n "${SUPABASE_DB_URL:-}" || -n "$DRY" ]] || fail "SUPABASE_DB_URL is empty"
+  ask SUPABASE_PROJECT_REF "Supabase project ref (Enter to skip the platform version check)" hidden
+  REF="${SUPABASE_PROJECT_REF:-}"
+  [[ -z "$REF" || "$REF" =~ $REF_RE ]] || fail "SUPABASE_PROJECT_REF is not a project ref (20 lowercase letters)"
+  git cat-file -e "$VERIFY^{commit}" 2>/dev/null || fail "$VERIFY is not a commit in this clone (git fetch origin, then re-run)"
+  stage_commit "$VERIFY"; make_manifest "$VERIFY"
+  if [[ -n "$DRY" ]]; then
+    echo "DRY: psql *** -tA: the latest public.career_deploy_ledger row per function and per migration file"
+    echo "DRY: psql *** -tA: every migration mark in the manifest, on the live schema"
+    echo "DRY: supabase functions list --project-ref ${REF:-<ref>} (the platform's versions; skipped without a ref)"
+    echo "DRY: node scripts/launch/deploy-provenance.cjs compare: exit 1 on any mismatch"
+    ok; exit 0
+  fi
+  db_init
+  sql_to has "select to_regclass('public.career_deploy_ledger') is not null"
+  : >"$WORK/ledger-functions.txt"; : >"$WORK/ledger-migrations.txt"; : >"$WORK/marks.txt"
+  if [[ "$has" == t ]]; then
+    sql_to rows "select distinct on (function_name) function_name || '|' || sha || '|' || bundle_sha256 || '|' || to_char(deployed_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') || '|' || coalesce(platform_version::text, '') from public.career_deploy_ledger where kind = 'function' order by function_name, deployed_at desc, id desc"
+    printf '%s\n' "$rows" >"$WORK/ledger-functions.txt"
+    sql_to rows "select distinct on (migration_file) migration_file || '|' || sha || '|' || bundle_sha256 || '|' || to_char(deployed_at at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') from public.career_deploy_ledger where kind = 'migration' order by migration_file, deployed_at desc, id desc"
+    printf '%s\n' "$rows" >"$WORK/ledger-migrations.txt"
+  else
+    echo "  public.career_deploy_ledger is not on the live project: no deploy is recorded"
+  fi
+  while IFS=$'\t' read -r f sum mark; do
+    sql_to live "select ($mark)"; printf '%s|%s\n' "$f" "$live" >>"$WORK/marks.txt"
+  done <"$WORK/manifest-migrations.tsv"
+  PLATFORM_ARGS=()
+  if [[ -n "$REF" ]] && supabase functions list --project-ref "$REF" 2>/dev/null | node "$PROV" platform-versions >"$WORK/platform.tsv" 2>/dev/null; then
+    PLATFORM_ARGS=(--platform "$WORK/platform.tsv")
+  fi
+  set +e
+  node "$PROV" compare --manifest "$MANIFEST" --ledger-functions "$WORK/ledger-functions.txt" --ledger-migrations "$WORK/ledger-migrations.txt" \
+    --marks "$WORK/marks.txt" ${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"} 2>&1 | mask
+  code=${PIPESTATUS[0]}
+  set -e
+  (( code == 0 )) || fail "the live project does not match $VERIFY (each mismatch is listed above)"
+  ok
+  exit 0
+fi
+
 step "1/6 preflight"
-SHA="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"; echo "commit $SHA"
-if [[ -n "$ONLY_SMOKE" ]]; then TOOLS=(node); else TOOLS=(supabase psql node deno git); fi
+HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo unknown)"; SHA="${HEAD_SHA:0:8}"; echo "commit $HEAD_SHA"
+if [[ -n "$ONLY_SMOKE" ]]; then TOOLS=(node); else TOOLS=(supabase psql node deno git python3 tar); fi
 for t in "${TOOLS[@]}"; do
   command -v "$t" >/dev/null && continue
   if [[ -n "$DRY" ]]; then echo "  tool $t: missing here (the real run needs it)"; else fail "missing: $t (brew install supabase/tap/supabase libpq node deno)"; fi
@@ -235,6 +402,17 @@ elif [[ -z "$ONLY_SMOKE" && -z "$DRY" ]]; then fail "SUPABASE_DB_URL is empty"; 
 if [[ -n "$DRY" ]]; then echo "  tree: $([[ -z "$(git status --porcelain 2>/dev/null)" ]] && echo clean || echo 'has changes (a real run stops on that)')"
 elif [[ -z "$ONLY_SMOKE" ]]; then
   [[ -z "$(git status --porcelain)" ]] || fail "the tree has uncommitted changes; go-live ships an exact commit (commit or stash first)"
+fi
+# WO-093: a run that changes anything ships exactly the commit the owner names, and HEAD must be that commit.
+if [[ -z "$ONLY_SMOKE" ]]; then
+  if [[ -z "$WANT_SHA" ]]; then
+    if [[ -n "$DRY" ]]; then echo "  --sha: not given (a real run stops here: it ships only the exact commit named by --sha)"
+    else fail "--sha <40-character commit> is required: go-live ships exactly the commit you name (git rev-parse HEAD prints it)"; fi
+  else
+    [[ "$WANT_SHA" =~ $SHA40_RE ]] || fail "--sha must be the full 40-character commit in lowercase hex (got ${#WANT_SHA} characters)"
+    [[ "$HEAD_SHA" == "$WANT_SHA" ]] || fail "HEAD is $HEAD_SHA, not the --sha $WANT_SHA: check out that exact commit (git checkout --detach $WANT_SHA) and re-run"
+    SHIP_SHA="$WANT_SHA"; echo "  --sha: HEAD is $SHIP_SHA"
+  fi
 fi
 
 GENERATED=()
@@ -301,6 +479,32 @@ if [[ -n "$ALLOW_SEND" ]]; then
   ask TRAINEE_SMOKE_CONTACT "Your own phone number for the HELP text (--allow-send texts it)" hidden required
   [[ -n "${TRAINEE_SMOKE_CONTACT:-}" || -n "$DRY" ]] || fail "--allow-send needs TRAINEE_SMOKE_CONTACT, the number the HELP reply goes to"
 fi
+# WO-093: stage the commit from git archive into a fresh temp dir and work from there for the rest of the run; refuse a
+# stale router bundle; print the provenance manifest. (These local steps run in --dry-run too when --sha is given.)
+if [[ -z "$ONLY_SMOKE" ]]; then
+  if [[ -n "$SHIP_SHA" ]]; then
+    stage_commit "$SHIP_SHA"
+    for c in "" "--career-only "; do
+      echo "  > python3 scripts/build-router-core.py ${c}--check (in the staged commit)"
+      if ! out="$(cd "$SRC" && python3 scripts/build-router-core.py $c--check 2>&1)"; then
+        printf '%s\n' "$out" | mask
+        fail "the router bundle at $SHIP_SHA is stale (python3 scripts/build-router-core.py ${c}--check): rebuild it, commit, and name the new commit"
+      fi
+      printf '    %s\n' "$out"
+    done
+    make_manifest "$SHIP_SHA"
+    if [[ -z "$DRY" ]]; then
+      mkdir -p "$HOME/trainee-provenance"
+      KEPT="$HOME/trainee-provenance/manifest-$SHIP_SHA-$(date -u +%Y%m%dT%H%M%SZ).json"
+      cp "$MANIFEST" "$KEPT"; echo "  manifest kept: $KEPT"
+    fi
+    cd "$SRC"
+  else
+    echo "DRY: git archive <--sha> -- ${STAGE_PATHS[*]} | tar -x into a fresh temp dir; the rest of the run works there"
+    echo "DRY: python3 scripts/build-router-core.py --check and --career-only --check in the staged commit (stale stops the run)"
+    echo "DRY: node scripts/launch/deploy-provenance.cjs manifest: the provenance manifest printed and kept in ~/trainee-provenance/"
+  fi
+fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
@@ -313,13 +517,7 @@ ok
 if [[ -n "$ONLY_SMOKE" || -n "$SKIP_MIG" ]]; then skipped "2/6 migrations" "$([[ -n "$ONLY_SMOKE" ]] && echo --only-smoke || echo --skip-migrations)"
 else
   step "2/6 migrations"
-  export PGOPTIONS="${PGOPTIONS:-} -c client_min_messages=warning"
-  P=(psql "${SUPABASE_DB_URL:-}" -X -q -v ON_ERROR_STOP=1)
-  sql_to() { # sql_to VAR "query": one value read from the live database
-    local out
-    if ! out="$("${P[@]}" -tAc "$2" 2>&1)"; then printf '%s\n' "$out" | mask; fail "a read of the live database failed"; fi
-    printf -v "$1" '%s' "$out"
-  }
+  db_init
   if [[ -n "$DRY" ]]; then
     echo "DRY: psql *** -tA: read the ledger public.upmore_migration_ledger (missing or empty: left alone, apply-rails-and-seed.sh --pending backfills it)"
     for i in "${!EARLIER[@]}"; do echo "DRY: psql *** -tA: check ${EARLIER[$i]} is on the live project (ledger or: ${EARLIER_MARK[$i]}); missing stops the run, never applied here"; done
@@ -354,6 +552,15 @@ else
       sql_to live "select (${MIGRATION_MARK[$i]})"; [[ "$live" == t ]] || fail "$f ran but its objects are not there"
       echo "  $f: applied, sha256 $sum"
     done
+  fi
+  # WO-093: every mark again, after the applies (a migration the ledger calls applied may never have landed), then the
+  # deploy ledger's migration rows for this sha.
+  if [[ -n "$DRY" ]]; then
+    echo "DRY: psql *** -tA: every migration mark (${#EARLIER[@]} earlier + ${#MIGRATIONS[@]}) read again on the live schema; any missing one fails the run, each named"
+    echo "DRY: psql *** -c: insert into public.career_deploy_ledger one migration row per mark (sha, file, sha256, manifest sha256, --label)"
+  else
+    check_all_marks
+    ledger_migrations
   fi
   ok
 fi
@@ -415,11 +622,18 @@ else
   # The live agent-chat is the career-only artifact (owner, 2026-10-15): the import graph of index-career.ts, staged with
   # it as agent-chat/index.ts. Deploying agent-chat from the repo tree would ship the shelved finance entry instead.
   RB="$HOME/trainee-rollback/agent-chat-$(date -u +%Y%m%dT%H%M%SZ)"
+  # WO-093: with step 2 skipped, the marks are still read before anything is deployed on top of the schema.
+  if [[ -n "$SKIP_MIG" ]]; then
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -tA: every migration mark read on the live schema first (--skip-migrations applies none; a missing one stops the deploy)"
+    else db_init; check_all_marks; ledger_migrations; fi
+  fi
   if [[ -n "$DRY" ]]; then
     echo "DRY: supabase functions download agent-chat --project-ref $REF (into $HOME/trainee-rollback/agent-chat-<UTC>; best effort, the rollback copy)"
     echo "DRY: node scripts/career/stage-career.cjs <stage>/supabase/functions (index-career.ts staged as agent-chat/index.ts)"
     echo "DRY: (cd <stage> && supabase functions deploy agent-chat --project-ref $REF) (verify_jwt = true)"
+    echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, agent-chat, its bundle sha256 from the manifest, the platform version, --label)"
   else
+    db_init
     mkdir -p "$RB"
     if (cd "$RB" && supabase functions download agent-chat --project-ref "$REF" 2>&1 | mask); then echo "  rollback copy of the live agent-chat: $RB"
     else echo "  WARN: could not download the live agent-chat; the rollback is re-deploying the previous commit (docs/launch/TRAINEE-GO-LIVE.md)"; fi
@@ -428,10 +642,13 @@ else
     printf '[functions.agent-chat]\nverify_jwt = true\n' >"$STAGE/supabase/config.toml"
     echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF)"
     (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
+    ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
   done
   ok
 fi
@@ -476,6 +693,7 @@ fi
 ok
 
 echo
+[[ -n "$SHIP_SHA" ]] && echo "provenance: shipped $SHIP_SHA (manifest sha256 $MANIFEST_SHA256); check it any time: bash scripts/launch/trainee-go-live.sh --verify $SHIP_SHA"
 echo "done on $SHA. LoopMessage webhook: $BASE/functions/v1/trainee-inbound?secret=<TRAINEE_INBOUND_SECRET>"
 echo "Telegram webhook (setWebhook with secret_token=<TELEGRAM_WEBHOOK_SECRET>): $BASE/functions/v1/trainee-telegram"
 echo "WhatsApp callback URL (verify token <WHATSAPP_VERIFY_TOKEN>, subscribe to messages): $BASE/functions/v1/trainee-whatsapp"

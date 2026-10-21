@@ -157,13 +157,20 @@ function resultText(v: unknown): string {
 // clarification questions, short factual answers and a phrase the person explicitly asked to copy remain valid.
 const CLOSING_ONLY = /^(?:is (?:that|this) (?:right|correct|accurate|okay|ok)|does (?:that|this) (?:help|work|make sense|sound (?:right|good))|(?:would|will) (?:that|this) work|are we (?:aligned|on the same page)|tell me if (?:that|this|anything) (?:is |sounds )?(?:off|wrong|right)|let me know if (?:that|this) (?:helps|works|sounds (?:right|good)))$/i;
 const ACK_ONLY = /^(?:ok(?:ay)?|got it|understood|noted|sure|thanks|thank you|will do|done|all set|sounds good)$/i;
+// A bare acknowledgement is enough for a purely social turn, not an arbitrary work request. Using a list of request
+// verbs let imperative requests outside that list (for example prepare/find) silently pass without work or a question.
+const SOCIAL_MESSAGE = /^(?:hi|hello|hey(?: there)?|thanks(?: a lot)?|thank you(?: very much)?|ok(?:ay)?|got it|understood|noted|sure|yes|yep|no|nope|cool|great|nice|perfect|sounds good|done)[.!?\s]*$/i;
+// Pre-tool progress is not the completed work. In particular, keeping an earlier promise to write a plan must not
+// suppress repair when the last text is only a closing question. A colon or another substantive sentence can carry
+// actual content, and is left alone; this does not attempt to grade the semantic quality of a plan.
+const PROGRESS_ONLY = /^(?:let me|i(?:'ll| will| am going to|'m going to))\s+(?:(?:just|first|now)\s+)?(?:check|look|search|find|read|review|save|record|prepare|draft|write|create|build|make|put together|work on|gather|think)\b[^:\n]*$/i;
 const ANSWER_REQUEST = /\?|\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
 function missingAnswerBody(reply: string, message: string, receiptOnly = false): boolean {
   if (!/[\p{L}\p{N}]/u.test(reply)) return true;
   const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
   if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
-  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (ANSWER_REQUEST.test(message) && ACK_ONLY.test(s)) || (receiptOnly && claimsIn(s).length > 0));
+  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }
 const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement or closing confirmation is not an answer. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 

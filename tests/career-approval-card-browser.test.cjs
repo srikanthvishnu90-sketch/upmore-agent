@@ -9,24 +9,26 @@ const SOURCE=fs.readFileSync(path.resolve(__dirname,'../src/career-approval-card
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222';
 const THREAD='33333333-3333-4333-8333-333333333333',CARD='44444444-4444-4444-8444-444444444444';
 const DAY=86400000,NOW=Date.parse('2026-10-21T21:00:00.000Z'),SHA='a'.repeat(64);
+const RESUME_FACT='approved-local-resume:'+SHA;
 let browser;
 before(async()=>{
   browser=await chromium.launch({headless:true,chromiumSandbox:true,
     ...(process.env.UPMORE_CHROMIUM_PATH?{executablePath:process.env.UPMORE_CHROMIUM_PATH}:{}),timeout:60000});
 });
 after(async()=>{if(browser)await browser.close();});
-async function envelope(answer='I enjoy careful work.'){
+async function envelope(answer='I enjoy careful work.',attachment={}){
+  const fileFact=attachment.factId || RESUME_FACT;
   const entry={version:1,kind:'agent-batch',jobId:'synthetic-job',company:'Invented Browser Workshop',url:'https://example.test/jobs/synthetic',
     answers:[{name:'motivation',label:'Why this role?',value:answer,shown:answer,kind:'text',factId:'F-001',file:null},
-      {name:'resume',label:'Resume/CV',value:'wire-resume.pdf',shown:'Synthetic Zoë Resume.pdf',kind:'file',factId:'F-002',file:SHA}],
+      {name:'resume',label:attachment.label || 'Resume/CV',value:'wire-resume.pdf',shown:attachment.shown || 'Synthetic Zoë Resume.pdf',kind:'file',factId:fileFact,file:SHA}],
     blank:['Optional website'],ledger:[
       {application_id:'synthetic-job',field_id:'motivation',question_hash:SHA,answer_hash:SHA,fact_refs:['F-001'],source_refs:['own synthetic statement'],confirmation_event_id:'synthetic-confirmation-1',derivation_rule:'verbatim'},
-      {application_id:'synthetic-job',field_id:'resume',question_hash:SHA,answer_hash:SHA,fact_refs:['F-002'],source_refs:['own synthetic upload'],confirmation_event_id:'synthetic-confirmation-2',derivation_rule:'attachment'}],
+      {application_id:'synthetic-job',field_id:'resume',question_hash:SHA,answer_hash:SHA,fact_refs:[fileFact],source_refs:['own synthetic upload'],confirmation_event_id:'synthetic-confirmation-2',derivation_rule:'attachment'}],
     question_set_hash:SHA,manifest_hash:SHA,quarantine_version:'d007-v1'};
   const payload={version:1,kind:'career-message-approval',card_id:CARD,user_id:OWNER,thread_id:THREAD,issued_at:NOW,expires_at:NOW+DAY,items:[{entry,hash:await Cards.hash(entry,webcrypto)}]};
   return {id:CARD,payload,hash:await Cards.hash(payload,webcrypto),state:'open'};
 }
-async function fixture(t,{answer,mode='normal'}={}){
+async function fixture(t,{answer,mode='normal',attachment}={}){
   const page=await browser.newPage();t.after(()=>page.close());
   const unexpected=[];
   await page.route('**/*',route=>{
@@ -35,7 +37,7 @@ async function fixture(t,{answer,mode='normal'}={}){
   });
   await page.goto('https://messages.approval.test/');
   await page.addScriptTag({content:SOURCE});
-  const card=await envelope(answer);
+  const card=await envelope(answer,attachment);
   await page.evaluate(async({card,mode,owner,thread,now,day})=>{
     window.stored=card;window.actor=owner;window.conversation=thread;window.clock=now+10;window.current=true;window.approvals=[];window.trustedClicks=[];
     window.controller=TraineeApprovalCards.createController({testUserId:owner,identity:()=>window.actor,thread:()=>window.conversation,now:()=>window.clock,
@@ -186,5 +188,12 @@ test('stylesheet-zero-area answers block a native tap even when getClientRects r
   assert.equal(rect.n,1);assert.equal(rect.width,0);assert.equal(rect.height,0);assert.equal(await button.isVisible(),true);
   await button.click();await page.waitForFunction(()=>window.handle.getState()!=='checking');
   assert.deepEqual(await page.evaluate(()=>window.trustedClicks),[true]);
+  assert.equal(await page.evaluate(()=>window.approvals.length),0);
+});
+
+test('a cover-letter-only attachment cannot impersonate a resume through its filename or form field name',async t=>{
+  const {page,button}=await fixture(t,{attachment:{factId:'cover-letter:'+SHA,label:'Cover letter',shown:'resume.pdf'}});
+  assert.equal(await page.evaluate(()=>window.handle.getState()),'resume_missing');
+  assert.equal(await button.count(),0);
   assert.equal(await page.evaluate(()=>window.approvals.length),0);
 });

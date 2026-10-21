@@ -13,6 +13,7 @@ import { howHeardChannel } from "../../supabase/functions/_shared/answer_options
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
 import { rowAnswerKey, rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
+import { quarantinedFact as sharedQuarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -961,8 +962,6 @@ export function agentReceiptLine(o: { company: string; url: string; state: strin
 // D-007: the 47 agent-invented "confirmed" facts (F-027..F-079, entered from the owner's answer-all delegation of
 // 2026-10-17) never reach a real application. They are not deleted (the owner's bank is his); every import leaves them
 // out, by id and by that provenance, and counts them so the panel can say so.
-export function quarantinedFact(f: { factId?: unknown; provenance?: unknown }): boolean {
-  const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
-  if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-  return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+export function quarantinedFact(value: unknown): boolean {
+  return sharedQuarantinedFact(value);
 }

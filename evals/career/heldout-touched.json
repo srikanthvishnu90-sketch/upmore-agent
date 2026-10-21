@@ -975,6 +975,26 @@
    "run": "39604511712",
    "read": "failing ids per judge; the five H034 last replies (260 chars)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H013",
+    "H023",
+    "H026",
+    "H027",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39606066270 (final stacked build)",
+   "read": "failing ids per judge; H004 traces (track_application calls per turn, how each turn stopped) and last replies (120 chars) in five passes; H034 judge marks",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

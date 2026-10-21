@@ -988,3 +988,14 @@ of private content.
 - Second judge's call: the last round of the night is the final stacked build (kept stack + H034 + the H004 code fix
   8a6a983e). If it comes in below stacked build 2 (85.8/86.0) or H004 misbehaves, the H004 fix is dropped. Stay under
   $15. Add SITUATION to the leak guard now, no measurement.
+
+### FINAL STACKED BUILD (run 39606066270): kept stack + H034 + H004 code fix (parity harness); eval line closed
+- Both CI judges 34/37/34/33/32 of 38 (gpt-5-mini 35/37/35/33/32, gpt-4.1-mini 36/37/37/37/36); clean 30:
+  26/29/27/25/25 (mean 26.4) vs the same-harness reference (stacked rerun 39602408286) 24.4; H034 alone was 26.0.
+  Cost $0.5854. Zero error, step-limit or empty replies; no pass stopped by the limit.
+- H004: both CI judges 5/5 ("Your interview is on Friday."); every pass makes exactly one track_application call per
+  turn (the loop of 3-5 calls is gone). H034 4/5. Still failing on the CI judges: H002 3/5, H027 2/5 (one judge),
+  H038 2/5 (one judge), H003 2/5, H033 2/5, H013 2/5, H007 2/5.
+- Spend: tonight $13.974 of $15 (all-time recorded $15.508). A further 5-pass run would cross the $15.95 workflow
+  limit, so the eval line is closed for tonight. Awaiting the second judge's score against stacked build 2 (85.8/86.0);
+  if it comes in lower or H004 misbehaves on its read, the H004 fix is dropped.

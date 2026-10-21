@@ -71,6 +71,32 @@ test("no duplicates by posting identity, and window-sufficient asks never touch 
   assert.equal(a.stats.boardsRead, 0);
 });
 
+test("employer-site wrapper URLs never count as eligible (the §6.3 host gate is part of eligibility)", async () => {
+  const wrapper = row("deepboard", "Software Engineering Intern Wrapper", 30);
+  wrapper.url = "https://deepboard.example.com/careers/job?gh_jid=123"; // employer-site wrapper shape
+  const shelf = SHELF.concat([wrapper]);
+  const readRows = (spec) => {
+    let rows = shelf.slice();
+    if (spec.filters && spec.filters.board) rows = rows.filter((r) => r.board === spec.filters.board.eq);
+    rows.sort((a, b) => String(b.posted_at).localeCompare(String(a.posted_at)));
+    return Promise.resolve(rows.slice(0, spec.limit || rows.length));
+  };
+  const feed = createQueueFeed({ readRows, jobs: Jobs, boardsFor: async () => ["deepboard"], windowLimit: WINDOW });
+  const { stats } = await feed.postingsForTargeted("u1", "software engineering intern roles", 7);
+  // 6 greenhouse.io interns on deepboard + 1 wrapper: asking for 7
+  // must come up short by exactly the wrapper if the gate is applied.
+  assert.equal(stats.targetedEligible, 6);
+});
+
+test("driveable-eligible postings ride ahead of refused ones in the returned pool order", async () => {
+  const feed = createQueueFeed({ readRows: fakeReadRows, jobs: Jobs, boardsFor: async () => ["deepboard"], windowLimit: WINDOW });
+  const { postings } = await feed.postingsForTargeted("u1", "software engineering intern roles", 5);
+  const fams = Jobs.askRoleFamilies("software engineering intern roles");
+  const firstFiveEligible = postings.filter((p) => fams.includes(p.role_family) && p.seniority_band === "intern").slice(0, 5);
+  assert.equal(firstFiveEligible.length, 5);
+  for (const p of firstFiveEligible) assert.match(p.url, /greenhouse\.io/, "a selected posting must be driver-reachable");
+});
+
 test("a failed window read stops named, never silently empty", async () => {
   const feed = createQueueFeed({ readRows: async () => { throw new Error("db down"); }, jobs: Jobs, boardsFor: async () => [] });
   await assert.rejects(

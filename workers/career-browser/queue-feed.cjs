@@ -19,7 +19,9 @@
    SHARED career_pool mapper and classified by module 121's own
    classifiers — the same family/band rule module 155 applies — so
    the feed can only ever ADD eligible postings; 155's screening
-   runs unchanged on what it returns.
+   runs unchanged on what it returns. Eligibility includes §6.3
+   driveability through module 150's hostAllowed — a posting the
+   driver would refuse at session creation never enters the queue.
 
    Contract: createQueueFeed({ readRows, jobs, boardsFor }) ->
    { postingsForTargeted(userId, familyText, count, opts) }.
@@ -36,6 +38,7 @@
    silently-empty pool. */
 const path = require("node:path");
 const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "functions", "_shared", "career_pool.js"));
+const PortalBrowser = require(path.join(__dirname, "..", "..", "packages", "domain", "150-career-portal-browser.js"));
 
 const coded = (code, message) => Object.assign(new Error(message || code), { code });
 const lc = (v) => String(v == null ? "" : v).trim().toLowerCase();
@@ -55,6 +58,16 @@ function createQueueFeed(deps) {
     if (atsFamily && p.source !== atsFamily) return false;
     if (!fams.includes(p.role_family)) return false;
     if (wantIntern && p.seniority_band !== "intern") return false;
+    // §6.3 driveability: a posting whose stored URL sits on an
+    // employer-site wrapper (databricks.com/...?gh_jid=) is refused
+    // at session creation — measured 29 of the shelf's 91
+    // SWE-intern-greenhouse postings. It must not enter a queue:
+    // eligibility means the driver may open it, not merely that it
+    // classifies. Module 150's own gate is the judge, never a copy.
+    if (typeof PortalBrowser.hostAllowed === "function") {
+      const gate = PortalBrowser.hostAllowed(p.url || "");
+      if (!gate || !gate.allowed) return false;
+    }
     return true;
   }
 
@@ -79,6 +92,8 @@ function createQueueFeed(deps) {
     // offer (155 keeps the whole shelf in that case too).
     if (fams.length && have < want) {
       const boards = await d.boardsFor(atsFamily);
+      const driveable = [];
+      const rest = [];
       for (const board of boards || []) {
         if (have >= want) break;
         const rows = await d.readRows({
@@ -96,10 +111,16 @@ function createQueueFeed(deps) {
           const k = keyOf(p);
           if (seen.has(k)) continue;
           seen.add(k);
-          postings.push(p);
-          if (eligible(p, fams, wantIntern, atsFamily)) { have += 1; stats.targetedEligible += 1; }
+          // ORDER IS THE CONTRACT: 155 selects its first N eligible
+          // in pool order and its own screen does not apply the
+          // §6.3 gate — so driveable-eligible postings ride ahead
+          // of the rest of the scan, or the queue fills with
+          // postings that die at session creation (measured).
+          if (eligible(p, fams, wantIntern, atsFamily)) { have += 1; stats.targetedEligible += 1; driveable.push(p); }
+          else rest.push(p);
         }
       }
+      postings.push(...driveable, ...rest);
     }
     stats.ms = Date.now() - t0;
     return { postings, stats };

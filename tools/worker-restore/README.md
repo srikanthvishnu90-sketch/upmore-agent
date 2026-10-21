@@ -50,18 +50,25 @@ Required — any gap makes the verdict DEGRADED:
   service resolves a stub Chromium with no binary — one of the three
   stacked causes that killed drives on 2026-10-21)
 - relay port 8474 listening · board port 8471 listening
-- the four gate probes: no-secret -> 401 · wrong-secret -> 401 ·
+- the five gate probes: no-secret -> 401 · wrong-secret -> 401 ·
   correct-secret + example.com -> 403 DRIVER_HOST_REFUSED ·
-  correct-secret + Lever -> 403 FAMILY_NOT_DRIVEABLE
+  correct-secret + Ashby -> 403 FAMILY_NOT_DRIVEABLE ·
+  correct-secret + Lever -> create 201 + close 200
 
 Posture (reported, never blocks HEALTHY): the smoke unit file. It is
 stopped by design when present; a full restore rewrites the file and
 NEVER starts it.
 
-The probes are side-effect-free by construction: board-service's
-createSession checks the host gate and the family verdict BEFORE the
-session factory runs, so both correct-secret probes are refused with
-no session created.
+The refusal probes are side-effect-free by construction:
+board-service's createSession checks auth, the host gate and the
+family verdict BEFORE the session factory runs, so the correct-secret
+refusal probes (example.com, Ashby) are refused with no session
+created. The Lever probe is the deliberate exception: tonight's live
+board-config enables Lever, so the probe proves the enabled family
+end to end — it creates one session and closes it in the same probe,
+leaving nothing behind. (The pre-2026-10-21 probe expected Lever to
+be refused 403 from the greenhouse-only era; on tonight's config that
+expectation made every verify read DEGRADED on a healthy host.)
 
 ## Restore (--execute; watchdog/operator only)
 
@@ -89,7 +96,7 @@ kept firing across both replacements that day. Design:
 
 - A Muse cron job every ~5 minutes runs
   `tools/worker-restore/restore-worker.sh --dry-run` (cheap: file
-  checks + 4 refused probes, < 2 s).
+  checks + 5 probes — 4 refusals + 1 create-and-close, seconds).
 - Exit 0 (healthy) -> silent. Exit 2 (degraded) on **two consecutive**
   runs (one transient systemctl hiccup must not trigger a restore) ->
   run `--execute` once, then deliver the restore's log record + probe

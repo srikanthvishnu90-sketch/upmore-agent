@@ -19,9 +19,12 @@
 #                        Only ever run by the watchdog/operator, never
 #                        by the TP-INFRA lane that authored it.
 #
-# The gate probes are side-effect-free: both board probes are refused
-# by the board service's own gates BEFORE any session is created
-# (host gate -> family verdict -> only then the factory).
+# The gate probes mirror tonight's live board-config: the refusal
+# probes are refused by the board service's own gates BEFORE any
+# session is created (auth -> host gate -> family verdict -> only
+# then the factory). The one exception is deliberate: the Lever probe
+# proves the enabled family end to end (create 201) and closes its
+# own session in the same probe (close 200), leaving nothing behind.
 # The worker secret is read transiently from board-config.cjs into a
 # shell variable for the probes; it is never printed or logged.
 #
@@ -105,7 +108,7 @@ unit_file upmore-career-board-smoke.service || POSTURE_GAPS+=("smoke unit file a
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && exec 3>&- 3<&-; }
 port_open 8474 || REQUIRED_GAPS+=("egress relay port 8474 not listening")
 
-# ---------- gate probes (read-only; refused before any session exists) ----------
+# ---------- gate probes (refusals before any session exists; the Lever probe creates + closes its own) ----------
 PROBES='"skipped":"board port closed"'
 probe() { # $1=name $2=secret-header-value-or-empty $3=url -> echoes "code body"
   local hdr=()
@@ -123,15 +126,32 @@ if port_open 8471; then
     R1="$(probe nosecret "" "https://example.com/x")"; C1="${R1##*$'\n'}"
     R2="$(probe wrong "wrong-secret-restore-probe" "https://example.com/x")"; C2="${R2##*$'\n'}"
     R3="$(probe host "$SECRET" "https://example.com/x")"; C3="${R3##*$'\n'}"
-    R4="$(probe lever "$SECRET" "https://jobs.lever.co/probe/00000000-0000-0000-0000-000000000000")"; C4="${R4##*$'\n'}"
+    R4="$(probe ashby "$SECRET" "https://jobs.ashbyhq.com/probe/00000000-0000-0000-0000-000000000000")"; C4="${R4##*$'\n'}"
+    # Probe 5 (Lever) CREATES: tonight's live board-config deliberately
+    # enables Lever (board-config lane, 2026-10-21), so a create must
+    # return 201 — the pre-2026-10-21 expectation (403
+    # FAMILY_NOT_DRIVEABLE, greenhouse-only era) made every verify read
+    # DEGRADED on a healthy host. The probe closes its own session
+    # immediately, so the restore-probe user holds zero live sessions
+    # between runs and the probe leaves nothing behind.
+    R5="$(probe lever "$SECRET" "https://jobs.lever.co/probe/00000000-0000-0000-0000-000000000000")"; C5="${R5##*$'\n'}"
+    SID5="$(printf '%s' "$R5" | grep -o '"sessionId":"[a-f0-9]*"' | head -1 | cut -d'"' -f4)"
+    C5CLOSE=""
+    if [ "$C5" = "201" ] && [ -n "$SID5" ]; then
+      C5CLOSE="$(curl -s --max-time 10 -X POST "http://127.0.0.1:8471/board-sessions/$SID5/close" \
+        -H 'content-type: application/json' -H "x-upmore-board-secret: $SECRET" \
+        -d '{"userId":"restore-probe"}' -o /dev/null -w '%{http_code}')"
+    fi
     unset SECRET
+    [ -n "$C5CLOSE" ] || C5CLOSE=0
     P_OK=1
     [ "$C1" = "401" ] || { P_OK=0; REQUIRED_GAPS+=("probe no-secret expected 401 got $C1"); }
     [ "$C2" = "401" ] || { P_OK=0; REQUIRED_GAPS+=("probe wrong-secret expected 401 got $C2"); }
     { [ "$C3" = "403" ] && printf '%s' "$R3" | grep -q DRIVER_HOST_REFUSED; } || { P_OK=0; REQUIRED_GAPS+=("probe example.com expected 403 DRIVER_HOST_REFUSED got $C3"); }
-    { [ "$C4" = "403" ] && printf '%s' "$R4" | grep -q FAMILY_NOT_DRIVEABLE; } || { P_OK=0; REQUIRED_GAPS+=("probe lever expected 403 FAMILY_NOT_DRIVEABLE got $C4"); }
-    PROBES="\"noSecret\":$C1,\"wrongSecret\":$C2,\"exampleCom\":$C3,\"lever\":$C4"
-    [ "$P_OK" = "1" ] && say "gate probes green: no-secret 401 · wrong-secret 401 · example.com 403 DRIVER_HOST_REFUSED · lever 403 FAMILY_NOT_DRIVEABLE"
+    { [ "$C4" = "403" ] && printf '%s' "$R4" | grep -q FAMILY_NOT_DRIVEABLE; } || { P_OK=0; REQUIRED_GAPS+=("probe ashby expected 403 FAMILY_NOT_DRIVEABLE got $C4"); }
+    { [ "$C5" = "201" ] && [ "$C5CLOSE" = "200" ]; } || { P_OK=0; REQUIRED_GAPS+=("probe lever expected create 201 + close 200 got create $C5 close $C5CLOSE"); }
+    PROBES="\"noSecret\":$C1,\"wrongSecret\":$C2,\"exampleCom\":$C3,\"ashby\":$C4,\"leverCreate\":$C5,\"leverClose\":$C5CLOSE"
+    [ "$P_OK" = "1" ] && say "gate probes green: no-secret 401 · wrong-secret 401 · example.com 403 DRIVER_HOST_REFUSED · ashby 403 FAMILY_NOT_DRIVEABLE · lever create 201 + close 200"
   fi
 else
   REQUIRED_GAPS+=("board port 8471 not listening")

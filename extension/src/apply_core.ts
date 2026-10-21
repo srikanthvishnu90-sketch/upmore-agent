@@ -12,6 +12,7 @@ import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
+import { rowAnswerKey, rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -67,7 +68,9 @@ export function planForm(o: {
   // field under the label; planBatch answers the pair with the approved file (fileAlternative).
   const count = new Map<string, number>();
   for (const f of o.schema) if (!fileAlternative(f, o.schema)) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
-  const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
+  const rowKeys = o.schema.map((f) => rowAnswerKey(f, o.jobId));
+  const ambiguous = o.schema.filter((f, i) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1 &&
+    !(rowKeys[i] && rowKeys.filter((key) => key === rowKeys[i]).length === 1));
   // WO-048: a form only the person fills (the disability self-identification) is neither planned nor asked by text.
   const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
   // WO-053: the posting's own location as its page shows it, for the questions that depend on where the job is.
@@ -84,15 +87,16 @@ export function planForm(o: {
   const strict = planBatch({ userId: o.userId, postings: posting(fields), answers: o.answers, saved: o.saved, log: [], now: o.now });
   const planned = new Set(fill.map((f) => f.name));
   const needs = basicOnly
-    ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({ label: f.label }))
-    : strict.needs.map((n) => ({ label: n.label }));
+    ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({ label: f.label, field_name: f.name }))
+    : strict.needs.map((n) => ({ label: n.label, field_name: (n as { field_name?: string }).field_name }));
   // Each open question as the form asks it, the engine's shape, so it is asked once by text in the form's own terms.
   const questions = needs.map((n) => {
-    const f = fields.find((x) => x.label === n.label) || ({} as FormField);
+    const f = fields.find((x) => n.field_name ? x.name === n.field_name : x.label === n.label) || ({} as FormField);
     const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-    return { label: n.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
+    return { label: rowQuestionLabel(f) || n.label, type: rowQuestionType(f, o.jobId, questionFieldType(f)), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
   });
   return {
+    ...(o.jobId ? { jobId: o.jobId } : {}),
     fill, needs: questions, identity: identity.map((f) => ({ name: f.name, label: f.label, required: f.required })),
     ambiguous: ambiguous.map((f) => ({ name: f.name, label: f.label, required: f.required })),
   };
@@ -767,7 +771,7 @@ export function batchPlan(o: {
     if (m) {
       // WO-102: every answer stands on a trusted fact, by a rule that keeps its meaning; an attestation or a personal
       // choice only on his own answer to that question. Otherwise a required question is asked; an optional one is left empty.
-      const j = judge(f, a, m, o.schema);
+      const j = judge(f, a, m, o.schema, o.jobId);
       if ("problem" in j) {
         if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
         continue;
@@ -799,13 +803,23 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
   const shown = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
   return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
 }
-function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[]): { rule: string; tf: TrustedFact } | { problem: string } {
+function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], jobId?: string): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = (f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
+  const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
     (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
+}
+function savedRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest, jobId?: string): string | null {
+  const key = rowAnswerKey(f, jobId);
+  if (!key || tf.table !== "saved" || tf.key !== key || m.saved[key]?.factId !== tf.factId || m.saved[key]?.value !== tf.value) return null;
+  const plan = planBatch({ userId: "contract-row-answer", postings: [{ job_id: jobId!, company: "", title: "", fields: [f] }],
+    answers: {}, saved: { [key]: { value: tf.value, factId: tf.factId } }, log: [], now: 0 });
+  const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+  if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+  const expected = answerOf(f, p, a.kind, null);
+  return expected.value === a.value && expected.shown === a.shown ? "row-answer-exact" : null;
 }
 // Re-derive a work row from the original, trusted JSON through the same planner and actual row/anchor schema.
 // A substring somewhere in the history, an answer cached under a label, or another property's value is not proof.
@@ -824,9 +838,10 @@ function workRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest,
 }
 // WO-102, in every path before anything is filled: the planner's answers that the contract allows, and the questions it
 // turns back to the person (required ones are asked; optional ones are left empty).
-export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof planForm>; manifest: Manifest; listed?: string[]; resume: { filename: string; sha256: string } | null }) {
+export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof planForm>; manifest: Manifest; listed?: string[]; resume: { filename: string; sha256: string } | null; jobId?: string }) {
   const listed = new Set(o.listed ?? []);
-  const fill: PlannedField[] = [], asks: { label: string; type: string; options: string[]; why: string }[] = [], dropped: string[] = [];
+  const askedNames = new Set<string>();
+  const fill: PlannedField[] = [], asks: { label: string; type: string; options: string[]; why: string; field_name?: string }[] = [], dropped: string[] = [];
   for (const p of o.plan.fill) {
     const f = o.schema.find((x) => x.name === p.name);
     if (!f) continue;
@@ -835,12 +850,21 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
       fill.push(p);
       continue;
     }
-    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema);
+    const jobId = o.jobId ?? o.plan.jobId;
+    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema, jobId);
     if (!("problem" in j)) fill.push(p);
     else if (f.required) {
+      askedNames.add(f.name);
       const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-      asks.push({ label: f.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem });
+      asks.push({ label: rowQuestionLabel(f), type: rowQuestionType(f, jobId, questionFieldType(f)), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem,
+        ...(f.section ? { field_name: f.name } : {}) });
     } else dropped.push(f.label);
+  }
+  for (const f of o.schema) {
+    if (!f.section || !f.required || f.personal || isIdentityField(f) || fill.some((p) => p.name === f.name) || askedNames.has(f.name)) continue;
+    const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+    asks.push({ label: rowQuestionLabel(f), type: rowQuestionType(f, o.jobId ?? o.plan.jobId, questionFieldType(f)),
+      options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: "this row has no matching confirmed answer", field_name: f.name });
   }
   return { fill, asks, dropped };
 }

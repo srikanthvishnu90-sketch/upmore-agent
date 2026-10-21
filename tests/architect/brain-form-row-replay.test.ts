@@ -4,6 +4,7 @@ import { planBatch } from '../../supabase/functions/_shared/career_apply.ts';
 import { hashApplyPayload } from '../../supabase/functions/_shared/career_apply_store.ts';
 import { applicationApprovalHash, approvalSources, planApplication, trustedFacts } from '../../scripts/apply.ts';
 import { contractFill, planForm, trustedManifest } from '../../extension/src/apply_core.ts';
+import { decodeRowQuestionType } from '../../supabase/functions/_shared/row_answer.ts';
 const OWNER='SYNTHETIC-row-owner', JOB='workday:synthetic.test:R1';
 const ARTIFACT={filename:'synthetic.pdf',sha256:'b'.repeat(64)};
 const SOURCE={value:JSON.stringify([{employer:'Synthetic Analytics',title:'Analyst',start:'2023',end:'present'},{employer:'Synthetic Retail',title:'Associate',start:'2020',end:'2022'}]),factId:'TEST-row-history',confirmed:true,provenance:'owner stated these synthetic work entries',confirmation_event_id:'evt-synthetic-work'};
@@ -102,9 +103,9 @@ Deno.test('row source binding: missing modern schema cannot downgrade to the leg
 Deno.test('calendar producers: actual open questions preserve section month/year precision',()=>{
  for(const[format,type]of[['MM/YYYY','month'],['YYYY','year']]){
   const schema=[{name:'work-1--start',label:'From',type:'date',required:true,options:[],section:{kind:'work',row:1,part:'start',anchor:'',format}}];
-  const p=planForm({userId:OWNER,jobId:JOB,company:'Synthetic hiring',family:'workday',workdayFlow:true,schema,answers:{},saved:{},now:0});assert(p.needs[0]?.type===type,'planner lost '+format+' precision');
+  const p=planForm({userId:OWNER,jobId:JOB,company:'Synthetic hiring',family:'workday',workdayFlow:true,schema,answers:{},saved:{},now:0});assert(decodeRowQuestionType(p.needs[0]?.type)?.type===type,'planner lost '+format+' precision');
   const manifest=trustedFacts({user_id:OWNER,answers:{work_history:SOURCE},saved:{}},ARTIFACT);
-  const c=contractFill({schema,manifest,resume:ARTIFACT,plan:{fill:[{name:schema[0].name,label:'From',value:'unsupported',factId:SOURCE.factId}],needs:[],identity:[],ambiguous:[]}});assert(c.asks[0]?.type===type,'contract question lost '+format+' precision');
+  const c=contractFill({schema,manifest,resume:ARTIFACT,jobId:JOB,plan:{fill:[{name:schema[0].name,label:'From',value:'unsupported',factId:SOURCE.factId}],needs:[],identity:[],ambiguous:[]}});assert(decodeRowQuestionType(c.asks[0]?.type)?.type===type,'contract question lost '+format+' precision');
  }
 });
 Deno.test('calendar contract: a fully stated personal native date/month may use equivalent ISO without adding precision',()=>{

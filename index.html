@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-bUooedHkOg7+P5vEjwBeTA9Stog1i4xdxVgDjRsw5EA=' 'sha256-QgvrfNfEL6stEqL3MfPw3AZ7sU1JNrNBsWQxYDxgpdo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-wHq5N4JlpxPFlb5eQM65nL7Uw5UETsKKJY5hFHhm9jc=' 'sha256-QgvrfNfEL6stEqL3MfPw3AZ7sU1JNrNBsWQxYDxgpdo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -2272,7 +2272,12 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
       insist(text(answer.name) && text(answer.label) && typeof answer.value === 'string' && typeof answer.shown === 'string' && text(answer.factId));
       insist(!names.has(answer.name)); names.add(answer.name);
       insist(['text', 'select', 'choice', 'checkbox', 'file', 'listed'].includes(answer.kind));
-      if (answer.kind === 'file') { insist(SHA.test(answer.file) && text(answer.shown)); files++; }
+      if (answer.kind === 'file') {
+        insist(SHA.test(answer.file) && text(answer.shown));
+        // The canonical producer names its approved local resume this way. This distinguishes attachments;
+        // it does not replace the manifest/event checks enforced by the submission contract.
+        if (answer.factId === 'approved-local-resume:' + answer.file) files++;
+      }
       else insist(answer.file === null);
     }
     // This first TEST delivery is explicitly resume-bound. Fileless cards are not enabled.
@@ -2359,7 +2364,7 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
             const field = node('section', undefined, application);
             node('h5', answer.label + ' [' + answer.name + ']', field);
             const shown = node('pre', answer.shown, field); shown.style.whiteSpace = 'pre-wrap'; shown.style.overflowWrap = 'anywhere';
-            if (answer.kind === 'file') node('p', 'Resume SHA-256: ' + answer.file, field);
+            if (answer.kind === 'file') node('p', (answer.factId === 'approved-local-resume:' + answer.file ? 'Resume' : 'File') + ' SHA-256: ' + answer.file, field);
             if (answer.value !== answer.shown) { node('p', 'Exact value sent:', field); const value = node('pre', answer.value, field); value.style.whiteSpace = 'pre-wrap'; value.style.overflowWrap = 'anywhere'; }
           }
           node('p', entry.blank.length ? 'Left blank: ' + entry.blank.join('; ') : 'No listed fields are left blank.', application);

@@ -748,7 +748,7 @@ export function batchPlan(o: {
     if (m) {
       // WO-102: every answer stands on a trusted fact, by a rule that keeps its meaning; an attestation or a personal
       // choice only on his own answer to that question. Otherwise a required question is asked; an optional one is left empty.
-      const j = judge(f, a, m);
+      const j = judge(f, a, m, o.schema);
       if ("problem" in j) {
         if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
         continue;
@@ -780,12 +780,27 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
   const shown = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
   return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
 }
-function judge(f: FormField, a: BatchAnswer, m: Manifest): { rule: string; tf: TrustedFact } | { problem: string } {
+function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[]): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = derivation(a.kind, a, tf);
+  const rule = f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
+}
+// Re-derive a work row from the original, trusted JSON through the same planner and actual row/anchor schema.
+// A substring somewhere in the history, an answer cached under a label, or another property's value is not proof.
+function workRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest, schema: FormField[]): string | null {
+  if (tf.table !== "answers" || tf.key !== "work_history" || m.answers.work_history?.factId !== tf.factId ||
+    m.answers.work_history?.value !== tf.value || !f.section || f.section.row < 1) return null;
+  const fields = schema.filter((x) => x.section?.kind === "work");
+  if (new Set(fields.map((x) => x.name)).size !== fields.length) return null;
+  const plan = planBatch({ userId: "contract-rederive", postings: [{ job_id: "contract-rederive", company: "", title: "", fields: fields.map((x) => ({ ...x, required: false })) }],
+    answers: { work_history: { value: tf.value, factId: tf.factId } }, saved: {}, log: [], now: 0 });
+  const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+  if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+  const expected = answerOf(f, p, a.kind, null);
+  if (f.options.length && !optionText(f, p.value)) return null;
+  return expected.value === a.value && expected.shown === a.shown ? `work-history-row:${f.section.row}:${f.section.part}` : null;
 }
 // WO-102, in every path before anything is filled: the planner's answers that the contract allows, and the questions it
 // turns back to the person (required ones are asked; optional ones are left empty).
@@ -800,7 +815,7 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
       fill.push(p);
       continue;
     }
-    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest);
+    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema);
     if (!("problem" in j)) fill.push(p);
     else if (f.required) {
       const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));

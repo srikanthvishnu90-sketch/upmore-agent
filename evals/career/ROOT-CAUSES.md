@@ -374,3 +374,38 @@ of private content.
   want / ok, ending "?"); (2) after any waiver strip, when the person's message asked to waive their yes and no
   sentence of the result still says it needs their yes, code puts the refusal (STANDING_REFUSED) first. Gate test:
   the p1 shape (proposal + "Is that the wording you want?") comes out as the refusal with no confirm prompt.
+
+### New defects from run 39554573965 (second judge), notes before any fix (each to be confirmed against its reply)
+- H001 "prints the intro paragraph twice". Likely cause: loop.ts `earlier[]` (WO-106): text the model wrote beside a
+  tool call is put before the final reply when that reply is under 160 characters and does not CONTAIN the earlier
+  text verbatim. When the final reply restates the intro in other words, both go out. Line: loop.ts
+  `const said = earlier.filter((e) => e.length >= 60 && !reply.includes(e)); if (said.length && reply.length < 160)`.
+  Fix direction: skip earlier text that shares most of its words with the final reply.
+- H011 "invents figures, then scores 'your' answer on them". Likely cause: asked to rewrite their answer, the model
+  adds metrics (the prompt's practice rule asks for situation-action-result, which invites numbers), then scores its
+  own rewrite as theirs. The untraced-fact guard brackets facts about the person only when they match its word lists,
+  not numbers inside a rewrite. Fix direction: a rewrite uses only what they said, numbers left as [placeholders]; the
+  score is for THEIR answer, never the rewrite.
+- H002 "garbled sentence missing a verb". Likely cause: a code strip (stripLeaks / bracketUntraced / rebuild) cut
+  part of a sentence; or the "Saved: X. Is that right?" rule (H002's standing note) produced a fragment. To confirm
+  from the reply before a fix.
+
+### Self-review + strip follow-up, one round (run 39556113702, side commit f0696b83; held for the three-way score)
+- Both CI judges 34/36/33 of 38; clean 30: 26/28/26 (mean 26.7) vs the kept run's 27.0. Code scan of every reply:
+  no injection-framed opener in any pass; H018 passes both CI judges in all three passes, no guard flag, no dangling
+  confirm prompt, and the refusal is in every H018 reply. Decision: the second judge's three-way score.
+
+### H004 round (owner's order: first). Note (written at fix (c2), run 39548093320) confirmed by every run since:
+- Evidence: second judge, 39551229537 p3 ("recorded 'moved to Friday', then answered 'Nothing for Northwind Ledger'
+  to 'which day is it again?'"), 39552801613 p1+p3, 39556113702 p3 ("says nothing is on file and asks to record it
+  as Friday"). The person TELLS a fact about their own interview; fix (c2)'s rule ("Before you act on, save or
+  confirm anything that names one of their records ... check that the record exists ... If it does not ... say 'You
+  don't have [that record] on file yet.'") fires on it, because an interview is one of the record kinds the
+  situation tracks and none is on file. So the brain answers "not on file" instead of recording what they said and,
+  asked again, answers from the (empty) account instead of from the chat.
+- Line: `prompt.ts`, the fix (c2) rule (lines 47-51 at 40eb3d03).
+- Fix: scope it: the rule is for records Trainee keeps or made, never for a fact the person is telling now (a day, a
+  stage, an offer, a change): that is recorded as they said it and confirmed in their words, and a later question
+  about it is answered from what they said (fix (a)'s rule), never with "not on file". Prompt only.
+- Verification: the measured re-run (H004 across three passes and three judges); no score item is tuned (no held-out
+  wording in the line: WO-003/2).

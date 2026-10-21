@@ -11,7 +11,7 @@
 //      draft the model cut off mid-sentence is never shown.
 //   4. The model is called only through the injected `model` (the gateway's callModel in the handler, a stub in tests); a
 //      failure says so and leaves the question open. Nothing here throws out of the turn.
-import { CareerWriting } from "./router_core.career.js";
+import { CareerProfile, CareerWriting } from "./router_core.career.js";
 import { type AiPolicy, readAiPolicy } from "./ai_policy.ts";
 
 export type ModelFn = (payload: any) => Promise<any>;
@@ -33,12 +33,12 @@ export const HARD_CHARS = 2000; // what one answer may hold (career_apply_questi
 export const MIN_FACTS = 2;
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Facts: confirmed only (memory.ts and 122's rule: needs_confirmation or status "draft" is not theirs yet), and never a
-// skill with no evidence (122 flags it unproven; it supports no written line).
+// Facts: confirmed only (memory.ts and 122's rule: needs_confirmation or status "draft" is not theirs yet), never a
+// skill with no evidence (122 flags it unproven; it supports no written line), and never a D-007 quarantined fact (122).
 const unproven = (f: any) => f.unproven === true || (f.kind === "skill" && f.unproven !== false && !(Array.isArray(f.evidence) && f.evidence.length));
 export function confirmedFacts(facts: unknown[]): any[] {
   return (Array.isArray(facts) ? facts : []).filter((f: any) =>
-    f && typeof f === "object" && !f.needs_confirmation && (!f.status || f.status === "confirmed") && !unproven(f)
+    f && typeof f === "object" && !f.needs_confirmation && (!f.status || f.status === "confirmed") && !unproven(f) && !CareerProfile.quarantinedFact(f)
   );
 }
 const SKIP_KEYS = new Set(["id", "kind", "status", "source", "needs_confirmation", "unproven", "fact_id"]);

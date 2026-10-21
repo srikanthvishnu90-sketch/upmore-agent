@@ -1215,7 +1215,16 @@ const CareerProfile = (() => {
     f.needs_confirmation = false; f.status = "confirmed";
     return f;
   }
-  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation); }
+  const QUARANTINE_VERSION = "d007-v1";
+  const DELEGATED = /owner-delegated|answer-all|delegated[- _]answers|mi-038/i;
+  function quarantinedFact(f) {
+    if (!f || typeof f !== "object") return false;
+    if (f.quarantine || f.quarantined) return true;
+    if (["provenance", "source", "origin"].some((k) => DELEGATED.test(String(f[k] == null ? "" : f[k])))) return true;
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    return !!m && Number(m[1]) >= 27 && Number(m[1]) <= 79;
+  }
+  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation && !quarantinedFact(f)); }
   function unprovenSkills(profile) { refreshSkillFlags(profile); return (profile.facts || []).filter((f) => f.kind === "skill" && f.unproven); }
   function skillEvidence(profile, skillName) {
     const name = String(skillName || "").toLowerCase();
@@ -1465,7 +1474,7 @@ const CareerProfile = (() => {
     return receipt;
   }
 
-  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
+  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, quarantinedFact, QUARANTINE_VERSION, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
 

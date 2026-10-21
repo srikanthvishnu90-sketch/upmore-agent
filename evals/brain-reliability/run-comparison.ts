@@ -56,6 +56,12 @@ export async function validateCorpus(raw: string, manifest: Manifest): Promise<C
 }
 
 export interface Usage { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }
+const count = (n: unknown): n is number => typeof n === "number" && Number.isSafeInteger(n) && n >= 0;
+function validUsage(usage: unknown): usage is Usage {
+  if (!usage || typeof usage !== "object" || Array.isArray(usage)) return false;
+  const u = usage as Usage;
+  return [u.input_tokens, u.output_tokens, u.cache_read_input_tokens ?? 0, u.cache_creation_input_tokens ?? 0].every(count);
+}
 export interface CallMeta { case_id: string; category: string; role: "brain" | "judge"; model: string; turn: number }
 export interface Settlement extends CallMeta { call_id: number; latency_ms: number; usage: Usage | null; usd_micros: number | null; status: "settled" | "unknown"; reserve_micros: number }
 export type Append = (event: Record<string, unknown>) => void;
@@ -75,7 +81,7 @@ export class BudgetJournal {
   }
   settle(call_id: number, meta: CallMeta, usage: Usage | null, latency_ms: number): Settlement {
     const reserve_micros = this.open.get(call_id); insist(reserve_micros !== undefined, "unknown or duplicate settlement");
-    const valid = usage && [usage.input_tokens, usage.output_tokens, usage.cache_read_input_tokens ?? 0, usage.cache_creation_input_tokens ?? 0].every((n) => Number.isSafeInteger(n) && n >= 0);
+    const valid = validUsage(usage);
     const usd_micros = valid ? costMicros(meta.model, usage) : null;
     const s: Settlement = { ...meta, call_id, reserve_micros, latency_ms, usage: valid ? copy(usage) : null, usd_micros, status: usd_micros === null ? "unknown" : "settled" };
     this.append({ type: "settlement", ...s }); this.settled.push(s);
@@ -141,11 +147,13 @@ export function armSummary(arm: ArmResult) {
   const counts: Record<string, number> = {}; for (const i of arm.items) counts[i.category] = (counts[i.category] || 0) + 1;
   const calls = arm.calls ?? [], callTotal = calls.reduce((s, c) => s + (c.usd_micros ?? 0), 0);
   const callIDs = new Set(calls.map((c) => c.call_id)), itemIDs = new Set(arm.items.map((i) => i.id));
-  const meterValid = callIDs.size === calls.length && calls.every((c) => itemIDs.has(c.case_id) && c.status === "settled" && c.usage && costMicros(c.model, c.usage) === c.usd_micros && c.reserve_micros >= c.usd_micros! && (c.role === "brain" ? c.model === arm.model : JUDGES.includes(c.model as any))) && callTotal === arm.ledger.usd_micros && callTotal === arm.items.reduce((s, i) => s + i.usd_micros, 0) && arm.items.every((i) => {
+  // Artifact validation repeats the journal's domain checks: matching arithmetic cannot make negative/fractional
+  // token counts, an unknown role or a missing meter field into provider usage evidence.
+  const meterValid = callIDs.size === calls.length && calls.every((c) => count(c.call_id) && c.call_id > 0 && count(c.turn) && count(c.reserve_micros) && c.reserve_micros > 0 && count(c.usd_micros) && Number.isFinite(c.latency_ms) && c.latency_ms >= 0 && ["brain", "judge"].includes(c.role) && itemIDs.has(c.case_id) && c.status === "settled" && validUsage(c.usage) && costMicros(c.model, c.usage) === c.usd_micros && c.reserve_micros >= c.usd_micros && (c.role === "brain" ? c.model === arm.model : JUDGES.includes(c.model as any))) && callTotal === arm.ledger.usd_micros && callTotal === arm.items.reduce((s, i) => s + i.usd_micros, 0) && arm.items.every((i) => {
     const mine = calls.filter((c) => c.case_id === i.id);
     return mine.every((c) => c.category === i.category) && JUDGES.every((m) => mine.filter((c) => c.role === "judge" && c.model === m).length === 1) && mine.reduce((s, c) => s + c.usd_micros!, 0) === i.usd_micros && mine.reduce((s, c) => s + c.usage!.input_tokens, 0) === i.input_tokens && mine.reduce((s, c) => s + c.usage!.output_tokens, 0) === i.output_tokens && mine.reduce((s, c) => s + (c.usage!.cache_read_input_tokens ?? 0), 0) === i.cached_tokens;
   });
-  const valid = arm.status === "SCORED" && arm.planned === 320 && arm.items.length === arm.planned && itemIDs.size === arm.items.length && canonical(counts) === canonical(CATEGORY_COUNTS) && meterValid && arm.items.every((i) => i.pass !== null && !i.error && i.judges.length === 2 && JUDGES.every((m) => i.judges.filter((j) => j.model === m).length === 1) && i.pass === (i.judges.every((j) => j.pass) && !(i.product_failures?.length))) && !arm.ledger.stopped && !arm.ledger.unsettled_calls && !arm.ledger.unpriced_calls && !arm.ledger.unknown_charges;
+  const valid = MODELS.includes(arm.model as any) && arm.status === "SCORED" && arm.planned === 320 && arm.items.length === arm.planned && itemIDs.size === arm.items.length && canonical(counts) === canonical(CATEGORY_COUNTS) && meterValid && arm.items.every((i) => [i.input_tokens, i.output_tokens, i.cached_tokens, i.usd_micros].every(count) && Number.isFinite(i.latency_ms) && i.latency_ms >= 0 && typeof i.development_overlap === "boolean" && typeof i.pass === "boolean" && !i.error && i.judges.length === 2 && i.judges.every((j) => typeof j.pass === "boolean") && JUDGES.every((m) => i.judges.filter((j) => j.model === m).length === 1) && i.pass === (i.judges.every((j) => j.pass) && !(i.product_failures?.length))) && arm.ledger.stopped === false && arm.ledger.unsettled_calls === 0 && arm.ledger.reserved_micros === 0 && arm.ledger.unpriced_calls === 0 && arm.ledger.unknown_charges === 0;
   const costByRole = Object.fromEntries(["brain", "judge"].map((role) => [role, calls.filter((c) => c.role === role).reduce((s, c) => s + (c.usd_micros ?? 0), 0) / 1000000]));
   return { model: arm.model, status: valid ? "SCORED" : "NOT_SCORED", score_kind: "CI_INTERSECTION", final_acceptance: "NOT_RUN: independent owner-appointed third judge required", planned: arm.planned, completed: arm.items.length, full: valid ? rateSummary(arm.items) : null, clean: valid ? rateSummary(arm.items.filter((i) => !i.development_overlap)) : null,
     categories: valid ? Object.fromEntries(Object.keys(CATEGORY_COUNTS).map((c) => { const rows = arm.items.filter((i) => i.category === c); return [c, { ...rateSummary(rows), ...metrics(rows) }]; })) : null, metrics: metrics(arm.items), cost_usd: { ...costByRole, total: callTotal / 1000000 }, ledger: arm.ledger };
@@ -277,11 +285,18 @@ export async function verifyFirstArm(a: Approval, identity: Identity, rawResult:
   const first = JSON.parse(rawResult) as ArmResult;
   insist(first.model === "gpt-5-mini" && armSummary(first).status === "SCORED", "first arm must be a complete, reconciled mini result");
   insist(canonical(first.identity) === canonical(identity), "first-arm candidate/corpus/rubric/clock/parameters differ");
+  await verifyJudgingPackets(first);
   const spent = first.ledger.usd_micros;
   insist(spent === usdMicros(a.comparison_spent_usd), "comparison spent amount differs from verified mini metered cost");
   insist(spent <= 2143269 || presentRef(a.mini_over_estimate_recheck_ref), "mini exceeded $2.143269; explicit owner re-check is required before higher arm");
   insist(spent + usdMicros(a.cap_usd) <= 20000000, "verified mini cost plus higher cap exceeds $20");
   return { model: first.model, source_commit: first.identity.source_commit, corpus_sha256: first.identity.corpus_sha256, sha256: a.first_arm_evidence.sha256, exact_metered_usd: spent / 1000000, comparison_remaining_usd: (20000000 - spent) / 1000000, over_estimate_recheck_ref: a.mini_over_estimate_recheck_ref ?? null };
+}
+export async function verifyJudgingPackets(arm: ArmResult) {
+  await Promise.all(arm.items.map(async (it) => {
+    insist(typeof it.judging_packet === "string" && it.judging_packet.length > 0 && typeof it.judging_packet_sha256 === "string" && /^[a-f0-9]{64}$/.test(it.judging_packet_sha256), "judging packet evidence is missing");
+    insist(await sha256(it.judging_packet) === it.judging_packet_sha256, "judging packet bytes differ from their digest");
+  }));
 }
 export async function runArm(corpus: Corpus, identity: Identity, model: string, journal: BudgetJournal, append: Append, apiKey: string, request: typeof fetch = fetch): Promise<ArmResult> {
   insist(MODELS.includes(model as any) && identity.concurrency >= 1 && identity.concurrency <= 4, "unsupported arm/concurrency");
@@ -336,7 +351,9 @@ export function corpusInventory(c: Corpus, rawBytes: number) {
 if (import.meta.main) {
   const opt = (key: string) => { const at = Deno.args.indexOf(key); return at >= 0 ? Deno.args[at + 1] : undefined; };
   if (opt("--compare-mini") && opt("--compare-higher")) {
-    console.log(JSON.stringify(compareArms(JSON.parse(await Deno.readTextFile(opt("--compare-mini")!)), JSON.parse(await Deno.readTextFile(opt("--compare-higher")!))), null, 2));
+    const mini = JSON.parse(await Deno.readTextFile(opt("--compare-mini")!)), higher = JSON.parse(await Deno.readTextFile(opt("--compare-higher")!));
+    await Promise.all([verifyJudgingPackets(mini), verifyJudgingPackets(higher)]);
+    console.log(JSON.stringify(compareArms(mini, higher), null, 2));
   } else {
     const corpusPath = opt("--corpus"), manifestPath = opt("--manifest");
     insist(corpusPath && manifestPath, "NOT RUN: --corpus and --manifest required");

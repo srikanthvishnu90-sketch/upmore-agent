@@ -104,6 +104,16 @@ Deno.test("comparison: duplicate result IDs, wrong categories and ledger mismatc
   const call = arm(); call.calls[0].usd_micros = call.calls[0].usd_micros! + 1; assert(armSummary(call).status === "NOT_SCORED");
   const usage = arm(); usage.items[0].input_tokens++; assert(armSummary(usage).status === "NOT_SCORED");
 });
+Deno.test("comparison: self-consistent negative or fractional token artifacts are not metered evidence", () => {
+  for (const input of [-4, .5]) {
+    const bad = arm(), call = bad.calls[0], item = bad.items[0], previous = call.usd_micros!;
+    call.usage!.input_tokens = input; call.usd_micros = costMicros(call.model, call.usage)!;
+    item.input_tokens = input; item.usd_micros += call.usd_micros - previous;
+    bad.ledger.usd_micros += call.usd_micros - previous;
+    assert(armSummary(bad).status === "NOT_SCORED", "arithmetic consistency promoted invalid provider usage to a score");
+  }
+  assert(armSummary(arm()).status === "SCORED", "valid integer metering must remain accepted");
+});
 Deno.test("comparison: no score transfers to independent third judge or mismatched judging packet", () => {
   const a = arm(); assert(armSummary(a).score_kind === "CI_INTERSECTION" && armSummary(a).final_acceptance.startsWith("NOT_RUN"));
   for (const i of a.items) i.judging_packet_sha256 = "a".repeat(64);
@@ -196,6 +206,10 @@ Deno.test("comparison: mini allocation and total comparison cap cannot exceed th
   throws(()=>validateApproval({...a,comparison_spent_usd:16},a.model,a.source_commit,a.corpus_sha256,now),"$20");
 });
 async function higherApproval(first:ArmResult) {
+  for (const it of first.items) {
+    it.judging_packet ??= `Original synthetic judging packet for ${it.id}`;
+    it.judging_packet_sha256 ??= await sha256(it.judging_packet);
+  }
   const raw=JSON.stringify(first),spent=first.ledger.usd_micros/1000000;
   return {raw,a:{owner_approval_ref:"unit-only owner allocation",owner_allocated_pool_ref:"unit-only approved $20 pool",model:"gpt-5",source_commit:first.identity.source_commit,corpus_sha256:first.identity.corpus_sha256,
     cap_usd:Math.round((20-spent)*1000000)/1000000,approved_over_ten:true,new_budget_spent_usd:null,other_reserved_usd:null,ledger_snapshot_at:null,comparison_cap_usd:20,comparison_spent_usd:spent,
@@ -219,6 +233,17 @@ Deno.test("comparison: higher rejects missing, tampered, incomplete or different
   await rejects(()=>verifyFirstArm(missing.a,incomplete.identity,missing.raw),"complete, reconciled");
   const wrong=arm("gpt-5"),bad=await higherApproval(wrong);
   await rejects(()=>verifyFirstArm(bad.a,wrong.identity,bad.raw),"mini result");
+});
+Deno.test("comparison: higher verifies embedded judging packet bytes rather than trusting hash labels", async () => {
+  const first = arm();
+  first.items[0].judging_packet = "Original synthetic judging packet";
+  first.items[0].judging_packet_sha256 = await sha256("A different synthetic judging packet");
+  const altered = await higherApproval(first);
+  await rejects(() => verifyFirstArm(altered.a, first.identity, altered.raw), "packet");
+  const missing = arm(), complete = await higherApproval(missing);
+  delete missing.items[0].judging_packet;
+  const raw = JSON.stringify(missing), digest = await sha256(raw);
+  await rejects(() => verifyFirstArm({ ...complete.a, first_arm_evidence: { ...complete.a.first_arm_evidence, sha256: digest } }, missing.identity, raw), "packet");
 });
 Deno.test("comparison: mini over central estimate requires explicit owner recheck without changing candidate", async () => {
   const first=arm();let callId=0;

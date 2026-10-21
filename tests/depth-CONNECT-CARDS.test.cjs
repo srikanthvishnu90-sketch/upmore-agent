@@ -115,9 +115,9 @@ test("[S14] a connect link for a provider without a card is not drawn as one", (
   assert.equal(CC.parse(`${APP}/connect/fidelity`), null);
 });
 
-test("[S15] the card's strip says \"Connect <the company's name> to Upmore\" and the domain the link goes to", () => {
-  assert.equal(CC.title("alpaca"), "Connect Alpaca to Upmore");
-  assert.equal(CC.title("gmail"), "Connect Gmail to Upmore");
+test("[S15] the card's strip says \"Connect <the company's name> to Trainee\" and the domain the link goes to", () => {
+  assert.equal(CC.title("alpaca"), "Connect Alpaca to Trainee");
+  assert.equal(CC.title("gmail"), "Connect Gmail to Trainee");
   assert.equal(CC.host(CC.url("alpaca")), "upmore-srikanthvishnu90-sketchs-projects.vercel.app");
   assert.equal(CC.host("not a link"), "");
   for (const p of Object.keys(CC.PROVIDERS)) assert.ok(read(`connect/${p}.html`).includes(`<meta property="og:title" content="${CC.title(p)}">`), p);

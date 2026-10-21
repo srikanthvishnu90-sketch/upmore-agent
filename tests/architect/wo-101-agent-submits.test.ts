@@ -137,6 +137,45 @@ Deno.test("WO-101/A8 one receipt line per agent submission: the company, what th
   assert(/asks you for something/.test(asks), asks);
   const not = agentReceiptLine({ ...base, state: "not_submitted", confirmation_id: null, reason: "the form changed: \"Email\"", proved: false });
   assert(/^Not sent to test-co: the form changed/.test(not) && /Nothing was sent/.test(not) && not.endsWith(URL_), not);
+  const before = agentReceiptLine({ ...base, state: "not_submitted", confirmation_id: null, reason: "the form changed: \"Email\" is new.", proved: false, proof: false });
+  assert(!/proof/i.test(before) && !/\.\./.test(before) && before.endsWith(URL_), `no proof is claimed where none was kept: ${before}`);
   const failed = agentReceiptLine({ ...base, state: "failed", confirmation_id: null, reason: "the page showed an error", proved: false });
   assert(/^Sent to test-co, but/.test(failed) && /error/.test(failed), failed);
+});
+
+Deno.test("WO-101/A1 options are shown as the page shows them: a checkbox group and a radio by their option text", () => {
+  const schema = [...SCHEMA,
+    f("pronouns", "Pronouns", "checkbox", false, [{ label: "He/him", value: "he" }, { label: "They/them", value: "they" }]),
+    f("sms", "Yes - I consent to receiving text messages", "multi_value_single_select", false, [{ label: "Yes - I consent", value: "given" }, { label: "No - I do not consent to receiving text messages", value: "notGiven" }])];
+  const plan = { fill: [{ name: "pronouns", label: "Pronouns", value: "they", factId: "TEST-p" }, { name: "sms", label: schema[7].label, value: "notGiven", factId: "TEST-s" }], needs: [], identity: [], ambiguous: [] };
+  const e = batchPlan({ jobId: "j", company: "c", url: URL_, family: "ashby", schema, plan, challenge: false, resume: RESUME });
+  assert(e.ok, JSON.stringify(e));
+  const p = e.posting.answers.find((a) => a.name === "pronouns")!, s = e.posting.answers.find((a) => a.name === "sms")!;
+  eq([p.kind, p.shown], ["choice", "They/them"], "a checkbox group is a choice, shown by its option text");
+  eq([s.shown, s.value], ["No - I do not consent to receiving text messages", "notGiven"], "a radio or select: its option text shown, its value sent");
+});
+
+Deno.test("WO-101/A3 a field whose options exist only on the page (a place search, a dropdown widget): the approved answer is put on the employer's own entry by Trainee", () => {
+  const schema = [...SCHEMA, f("loc", "Current location", "input_text")];
+  const answers = { ...ANSWERS, location: { value: "Chicago, IL", factId: "TEST-loc" } };
+  const plan = planForm({ userId: "TEST", jobId: "lever:test-co:1111-2222", company: "test-co", family: "lever", schema, answers, saved: {}, now: NOW });
+  const mk = () => batchPlan({ jobId: "lever:test-co:1111-2222", company: "test-co", url: URL_, family: "lever", schema, plan, challenge: false, resume: RESUME, listed: ["loc"] });
+  const e = mk();
+  assert(e.ok, JSON.stringify(e));
+  const loc = e.posting.answers.find((a) => a.name === "loc")!;
+  eq([loc.kind, loc.shown], ["listed", "Chicago, IL"], "shown as the person's answer; the employer's own entry is picked on the page");
+  const page = card(e.posting).map((x) => x.name === "loc" ? { ...x, value: "Chicago, Illinois, United States" } : x);
+  assert(batchMatch({ approved: e.posting, now: mk(), card: page, openRequired: [], blockers: [] }).ok, "Trainee's own pick of the employer's entry matches");
+  assert(!batchMatch({ approved: e.posting, now: mk(), card: page.map((x) => x.name === "loc" ? { ...x, source: "page" as const } : x), openRequired: [], blockers: [] }).ok, "an entry the page set blocks");
+  assert(!batchMatch({ approved: e.posting, now: mk(), card: page.map((x) => x.name === "loc" ? { ...x, factId: "TEST-other" } : x), openRequired: [], blockers: [] }).ok, "another fact behind it blocks");
+  const moved = planForm({ userId: "TEST", jobId: "lever:test-co:1111-2222", company: "test-co", family: "lever", schema, answers: { ...answers, location: { value: "Austin, TX", factId: "TEST-loc" } }, saved: {}, now: NOW });
+  const now2 = batchPlan({ jobId: "lever:test-co:1111-2222", company: "test-co", url: URL_, family: "lever", schema, plan: moved, challenge: false, resume: RESUME, listed: ["loc"] });
+  assert(!batchMatch({ approved: e.posting, now: now2, card: page, openRequired: [], blockers: [] }).ok, "the planner's answer itself must be the approved one");
+});
+
+Deno.test("WO-101/A3 a form whose fields changed since the approval names what changed", () => {
+  const p = approved();
+  const grown = entry({ schema: [...SCHEMA, f("extra", "Anything else we should know?", "input_text", false)] });
+  const r = batchMatch({ approved: p, now: grown, card: card(p), openRequired: [], blockers: [] });
+  assert(!r.ok && r.diffs.some((d) => /fields changed/.test(d) && /"Anything else we should know\?" is new/.test(d)), JSON.stringify(r.diffs));
 });

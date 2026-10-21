@@ -564,20 +564,31 @@ export function draftProvenance(fields: { name: string; value: string; source: s
 // user's approval of the exact payload"). One posting's entry is every answer the planner will send, as the browser sends
 // it (`value`) and as the page will show it (`shown`: a select's option text, the resume's file name), with the fact
 // behind it, and every field left blank. A posting with anything the person must answer or do first is not in a batch.
+// A field whose options exist only on the page (a place search, a dropdown widget: `listed`, read by the content script)
+// shows the person's answer; on the page Trainee puts it on the employer's own entry for it (chooseWidgetOption, WO-042).
 // The checkbox state the page reads for a box Trainee leaves unchecked (content.js shows it so the card says so).
 export const NO_UNCHECKED = "No (left unchecked)";
-export type BatchKind = "text" | "select" | "choice" | "checkbox" | "file";
+export type BatchKind = "text" | "select" | "choice" | "checkbox" | "file" | "listed";
 export interface BatchAnswer { name: string; label: string; value: string; shown: string; kind: BatchKind; factId: string; file: string | null }
 export interface BatchPosting { jobId: string; company: string; url: string; answers: BatchAnswer[]; blank: string[] }
 export type BatchPlan = { ok: true; posting: BatchPosting } | { ok: false; why: string[] };
 const YES = /^(true|yes|y|on|checked)\b/i;
-const kindOf = (f: FormField): BatchKind =>
-  /file/.test(f.type) ? "file" : f.type === "checkbox" ? "checkbox"
-  : f.widget || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+// A checkbox with more than one option is a group (the reader's checkbox_group), read back as its checked options' texts.
+const kindOf = (f: FormField, listed: Set<string>): BatchKind =>
+  /file/.test(f.type) ? "file" : listed.has(f.name) || f.widget ? "listed" : f.type === "checkbox" && f.options.length < 2 ? "checkbox"
+  : f.type === "checkbox" || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+const optionText = (f: FormField, v: string) => {
+  const one = (x: string) => f.options.find((o) => o.value === x) ?? f.options.find((o) => o.label === x);
+  const o = one(v);
+  if (o) return { value: o.value, shown: String(o.label).replace(/\s+/g, " ").trim() };
+  const parts = v.split(/,\s*/).map(one);
+  return parts.length > 1 && parts.every(Boolean) ? { value: v, shown: parts.map((x) => String(x!.label).replace(/\s+/g, " ").trim()).join(", ") } : null;
+};
 export function batchPlan(o: {
   jobId: string; company: string; url: string; family: Family; schema: FormField[]; plan: ReturnType<typeof planForm>;
-  challenge: boolean; resume: { filename: string; sha256: string } | null;
+  challenge: boolean; resume: { filename: string; sha256: string } | null; listed?: string[];
 }): BatchPlan {
+  const listed = new Set(o.listed ?? []);
   const why: string[] = [];
   if (!o.schema.length) why.push("No application form was read on this posting.");
   if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
@@ -589,14 +600,13 @@ export function batchPlan(o: {
   for (const p of o.plan.fill) {
     const f = o.schema.find((x) => x.name === p.name);
     if (!f) continue;
-    const kind = kindOf(f);
+    const kind = kindOf(f, listed);
     if (kind === "file" && !o.resume) {
       why.push(`"${p.label}" needs your resume file in Trainee first.`);
       continue;
     }
-    const opt = kind === "select" ? f.options.find((x) => x.value === p.value) ?? f.options.find((x) => x.label === p.value) : undefined;
-    const shown = kind === "file" ? o.resume!.filename : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED)
-      : opt ? String(opt.label).replace(/\s+/g, " ").trim() : p.value;
+    const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+    const shown = kind === "file" ? o.resume!.filename : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
     answers.push({ name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? o.resume!.sha256 : null });
   }
   if (why.length) return { ok: false, why };
@@ -626,7 +636,12 @@ export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: Sn
       }
     }
     for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
-    if (JSON.stringify(o.now.posting.blank) !== JSON.stringify(o.approved.blank)) diffs.push("The form's fields changed since the batch was approved.");
+    const labels = (p: BatchPosting) => new Set([...p.blank, ...p.answers.map((a) => a.label)]);
+    const was = labels(o.approved), is = labels(o.now.posting);
+    const added = [...is].filter((l) => !was.has(l)), gone = [...was].filter((l) => !is.has(l));
+    if (added.length || gone.length) {
+      diffs.push(`The form's fields changed since the batch was approved: ${[...added.map((l) => `"${l}" is new`), ...gone.map((l) => `"${l}" is gone`)].join("; ")}.`);
+    }
   }
   const want = new Map(o.approved.answers.map((a) => [a.name, a]));
   for (const c of o.card) {
@@ -641,7 +656,10 @@ export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: Sn
     }
     const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",")
       : a.kind === "select" ? c.detail === `value=${a.value}` : true;
-    if (c.label !== a.label || c.factId !== a.factId || norm(c.value) !== norm(a.shown) || !detailOk) {
+    // A listed field's page text is the employer's own entry Trainee picked for the approved answer (the planner's answer
+    // itself is checked above against the approval); any other field's must be the approved text.
+    const valueOk = a.kind === "listed" ? norm(c.value) !== "" : norm(c.value) === norm(a.shown);
+    if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
       diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
     }
   }
@@ -653,14 +671,16 @@ export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: Sn
 
 // The receipt after each agent submission (WO-101, A8): one line the person reads, from the recorded outcome. A page's
 // confirmation counts only with its picture after the click (as on the card); the employer's email makes it final.
-export function agentReceiptLine(o: { company: string; url: string; state: string; confirmation_id: string | null; reason?: string; proved: boolean }): string {
+// `proof` false: stopped before anything was recorded, so no proof was kept and none is claimed.
+export function agentReceiptLine(o: { company: string; url: string; state: string; confirmation_id: string | null; reason?: string; proved: boolean; proof?: boolean }): string {
   const c = o.company || "the employer";
+  const why = (o.reason || "").replace(/[.\s]+$/, "");
   const says = o.state === "confirmed" && o.proved
     ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.`
     : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome"
     ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.`
     : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.`
-    : o.state === "not_submitted" ? `Not sent to ${c}: ${o.reason || BEFORE_CLICK}. Nothing was sent.`
-    : `Sent to ${c}, but it was not confirmed: ${o.reason || "the page did not say"}.`;
-  return `${says} The proof (answers, pictures, times) is on this computer. ${o.url}`;
+    : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.`
+    : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
+  return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
 }

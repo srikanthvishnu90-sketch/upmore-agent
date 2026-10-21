@@ -4465,8 +4465,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   var NO_UNCHECKED = "No (left unchecked)";
   var YES2 = /^(true|yes|y|on|checked)\b/i;
-  var kindOf2 = (f) => /file/.test(f.type) ? "file" : f.type === "checkbox" ? "checkbox" : f.widget || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+  var kindOf2 = (f, listed) => /file/.test(f.type) ? "file" : listed.has(f.name) || f.widget ? "listed" : f.type === "checkbox" && f.options.length < 2 ? "checkbox" : f.type === "checkbox" || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+  var optionText = (f, v) => {
+    const one = (x) => f.options.find((o2) => o2.value === x) ?? f.options.find((o2) => o2.label === x);
+    const o = one(v);
+    if (o) return {
+      value: o.value,
+      shown: String(o.label).replace(/\s+/g, " ").trim()
+    };
+    const parts = v.split(/,\s*/).map(one);
+    return parts.length > 1 && parts.every(Boolean) ? {
+      value: v,
+      shown: parts.map((x) => String(x.label).replace(/\s+/g, " ").trim()).join(", ")
+    } : null;
+  };
   function batchPlan(o) {
+    const listed = new Set(o.listed ?? []);
     const why = [];
     if (!o.schema.length) why.push("No application form was read on this posting.");
     if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
@@ -4478,13 +4492,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     for (const p of o.plan.fill) {
       const f = o.schema.find((x) => x.name === p.name);
       if (!f) continue;
-      const kind = kindOf2(f);
+      const kind = kindOf2(f, listed);
       if (kind === "file" && !o.resume) {
         why.push(`"${p.label}" needs your resume file in Trainee first.`);
         continue;
       }
-      const opt = kind === "select" ? f.options.find((x) => x.value === p.value) ?? f.options.find((x) => x.label === p.value) : void 0;
-      const shown2 = kind === "file" ? o.resume.filename : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? String(opt.label).replace(/\s+/g, " ").trim() : p.value;
+      const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+      const shown2 = kind === "file" ? o.resume.filename : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? opt.shown : p.value;
       answers.push({
         name: p.name,
         label: p.label,
@@ -4537,7 +4551,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         }
       }
       for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
-      if (JSON.stringify(o.now.posting.blank) !== JSON.stringify(o.approved.blank)) diffs.push("The form's fields changed since the batch was approved.");
+      const labels = (p) => /* @__PURE__ */ new Set([
+        ...p.blank,
+        ...p.answers.map((a) => a.label)
+      ]);
+      const was = labels(o.approved), is = labels(o.now.posting);
+      const added = [
+        ...is
+      ].filter((l) => !was.has(l)), gone = [
+        ...was
+      ].filter((l) => !is.has(l));
+      if (added.length || gone.length) {
+        diffs.push(`The form's fields changed since the batch was approved: ${[
+          ...added.map((l) => `"${l}" is new`),
+          ...gone.map((l) => `"${l}" is gone`)
+        ].join("; ")}.`);
+      }
     }
     const want = new Map(o.approved.answers.map((a) => [
       a.name,
@@ -4554,7 +4583,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         continue;
       }
       const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",") : a.kind === "select" ? c.detail === `value=${a.value}` : true;
-      if (c.label !== a.label || c.factId !== a.factId || norm2(c.value) !== norm2(a.shown) || !detailOk) {
+      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" : norm2(c.value) === norm2(a.shown);
+      if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
         diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
       }
     }
@@ -4568,8 +4598,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   function agentReceiptLine(o) {
     const c = o.company || "the employer";
-    const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${o.reason || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${o.reason || "the page did not say"}.`;
-    return `${says} The proof (answers, pictures, times) is on this computer. ${o.url}`;
+    const why = (o.reason || "").replace(/[.\s]+$/, "");
+    const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
+    return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
   }
 
   // extension/src/dom.ts
@@ -4680,7 +4711,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return c;
   }
   var optionEls = () => Array.from(doc().querySelectorAll("[class*='select__option'], [role='option']")).filter(visible);
-  var optionText = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
+  var optionText2 = (o) => String(o.textContent || "").replace(/\s+/g, " ").trim();
   async function until(fn, ms, every = 40) {
     const end = Date.now() + ms;
     for (; ; ) {
@@ -4753,9 +4784,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       closeMenu(el);
       return false;
     }
-    let label = pick2(opts2.map(optionText));
+    let label = pick2(opts2.map(optionText2));
     if (!label && toggle && opts2.length >= 50) {
-      const before = opts2.map(optionText).join("\n");
+      const before = opts2.map(optionText2).join("\n");
       const menu = () => {
         const id = el.getAttribute("aria-controls") || el.getAttribute("aria-owns");
         const box = id ? doc().getElementById(id) : null;
@@ -4772,13 +4803,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       fire(el, "input");
       opts2 = await until(() => {
         const now = optionEls();
-        if (now.length && now.map(optionText).join("\n") !== before) return now;
+        if (now.length && now.map(optionText2).join("\n") !== before) return now;
         if (own?.querySelector("[class*='menu-notice--no-options']") && Date.now() - typedAt > 1e3) return [];
         return now.length && Date.now() - typedAt > 600 && !own?.querySelector("[class*='menu-notice--loading']") ? now : null;
       }, 2400);
-      label = opts2?.length ? pick2(opts2.map(optionText)) : null;
+      label = opts2?.length ? pick2(opts2.map(optionText2)) : null;
     }
-    const hit = label ? (opts2 || []).find((o) => optionText(o) === label) : null;
+    const hit = label ? (opts2 || []).find((o) => optionText2(o) === label) : null;
     if (!hit) {
       if (!toggle) {
         setNative(el, "");
@@ -4826,8 +4857,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     await until(() => doc().readyState === "complete" ? true : null, 5e3);
     type();
     const opts2 = await until(listed, 8e3);
-    const label = opts2 ? pick2(opts2.map(optionText)) : null;
-    const hit = label ? opts2.find((o) => optionText(o) === label) : null;
+    const label = opts2 ? pick2(opts2.map(optionText2)) : null;
+    const hit = label ? opts2.find((o) => optionText2(o) === label) : null;
     if (!hit) {
       setNative(el, "");
       fire(el, "input");

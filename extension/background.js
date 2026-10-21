@@ -678,7 +678,7 @@ async function agentGiveUp(tabId, jobId) {
 // An agent send that stopped before its start was recorded: the card says why, a receipt line, the queue goes on.
 async function agentStopped(tabId, card, message) {
   await setCard(tabId, { status: "needs_you", message, approved: false, beforeClick: true });
-  await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
+  await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, proof: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
   const q = await queueState();
   if (q.running && q.tabId === tabId) await queueAfter(tabId, "needs_you", null);
 }

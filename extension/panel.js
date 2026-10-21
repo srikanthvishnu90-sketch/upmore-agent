@@ -167,7 +167,7 @@ function renderAgent(ag) {
     const answers = document.createElement("ul");
     for (const a of e.posting.answers) {
       const x = document.createElement("li");
-      x.textContent = `${a.label.replace(/\s*[*✱]+\s*$/, "")}: ${a.shown}`;
+      x.textContent = `${a.label.replace(/\s*[*✱]+\s*$/, "")}: ${a.shown}${a.kind === "listed" ? " (Trainee picks the employer's own entry for this from their list; the receipt's proof shows which)" : ""}`;
       answers.append(x);
     }
     li.append(head, url, answers);

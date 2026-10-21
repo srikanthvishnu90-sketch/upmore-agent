@@ -316,6 +316,12 @@ async function startWorld(o = {}) {
     essayReply: null,
     touched: [], // WO-054: what the "watch" variant saw done to a page
     serviceKeySession: false,
+    // WO-101: the owner's CAREER_AGENT_SUBMIT (anything but "on" is off) and the person's batch approvals, as
+    // 20261024090000_career_apply_agent_submit.sql keeps them: {job_id, batch_hash, entry, at, revoked, used}.
+    agentSubmit: "off",
+    batchApprovals: [],
+    agentBegins: [],
+    changed: {},
   };
   // WO-042: one captured form served as many distinct postings (another tenant and job id on the same host), so a session
   // of 60 is 60 postings at 60 companies, as the queue's rules (one posting once, one company per 30 days) see it.
@@ -418,27 +424,41 @@ async function startWorld(o = {}) {
         }
         return json(res, 200, n);
       }
-      case "career_apply_extension_begin_own": {
-        const p = args.p_payload || {};
-        state.begins.push(args);
-        const h = sha(canonical(p));
-        if (p.user_id !== userId) return json(res, 400, { message: "not your application" });
-        if (p.source !== "extension" || args.p_approval !== h) return json(res, 400, { message: "invalid or stale application approval" });
-        if (p.privacy_epoch !== state.account.epoch || p.account_version !== state.account.version || Date.parse(p.expires_at) < Date.now()) {
-          return json(res, 400, { message: "invalid or stale application approval" });
+      // WO-101, as 20261024090000: each entry stored under the database's own hash of it; Stop applying revokes every
+      // approval not yet used; the agent's start needs the owner's switch on and a live, unused approval of the posting.
+      case "career_apply_batch_approve_own": {
+        const items = Array.isArray(args.p_items) ? args.p_items : [];
+        if (!items.length || items.length > 100) return json(res, 400, { message: "invalid batch" });
+        for (const it of items) {
+          const e = it.entry || {};
+          if (e.kind !== "agent-batch" || e.version !== 1 || !/^https:\/\//.test(e.url || "") || !e.jobId || !Array.isArray(e.answers)) return json(res, 400, { message: "invalid batch entry" });
+          if (it.hash !== sha(canonical(e))) return json(res, 400, { message: "invalid or stale batch approval" });
         }
-        // The SQL's rule: only a row stopped before the click may be replaced; any other row for the posting is final.
-        const retriable = (j) => j.state === "not_submitted" && j.evidence?.reason === "stopped before the click";
-        if (state.jobs.some((j) => j.job_id === p.job_id && !retriable(j))) return json(res, 400, { message: "duplicate_job" });
-        const live = state.jobs.filter((j) => !["not_submitted", "failed"].includes(j.state));
-        if (state.beginDelayMs) await new Promise((r) => setTimeout(r, state.beginDelayMs));
-        if (live.some((j) => j.job_id === p.job_id)) return json(res, 400, { message: "duplicate_job" });
-        if (live.some((j) => j.company === p.company && Date.now() - j.at < 30 * 86400000)) return json(res, 400, { message: "company_cooldown" });
-        if (live.filter((j) => Date.now() - j.at < 86400000).length >= state.dailyLimit) return json(res, 400, { message: "daily_cap" });
-        state.jobs = state.jobs.filter((j) => j.job_id !== p.job_id);
-        const row = { id: crypto.randomUUID(), lease: crypto.randomUUID(), job_id: p.job_id, company: p.company, payload: p, payload_hash: h, state: "driving", at: Date.now() };
-        state.jobs.push(row);
-        return json(res, 200, { id: row.id, lease: row.lease, payload_hash: h });
+        for (const it of items) {
+          for (const a of state.batchApprovals) if (a.job_id === it.entry.jobId && !a.revoked && !a.used) a.revoked = true;
+          state.batchApprovals.push({ job_id: it.entry.jobId, batch_hash: it.hash, entry: it.entry, at: Date.now(), revoked: false, used: false });
+        }
+        return json(res, 200, items.length);
+      }
+      case "career_apply_batch_revoke_own": {
+        let n = 0;
+        for (const a of state.batchApprovals) if (!a.revoked && !a.used) (a.revoked = true), n++;
+        return json(res, 200, n);
+      }
+      case "career_apply_extension_begin_agent_own": {
+        state.agentBegins.push(args);
+        if (state.agentSubmit !== "on") return json(res, 400, { message: "agent submit is off" });
+        const a = state.batchApprovals.find((x) => x.job_id === args.p_payload?.job_id && x.batch_hash === args.p_batch_hash && !x.revoked && !x.used && Date.now() - x.at < 86400000);
+        if (!a) return json(res, 400, { message: "no live batch approval for this posting" });
+        state.begins.push(args);
+        const r = await begin(args);
+        if (r.status === 200) a.used = true;
+        return json(res, r.status, r.body);
+      }
+      case "career_apply_extension_begin_own": {
+        state.begins.push(args);
+        const r = await begin(args);
+        return json(res, r.status, r.body);
       }
       case "career_apply_finish_own": {
         const j = state.jobs.find((x) => x.id === args.p_id && x.lease === args.p_lease);
@@ -452,6 +472,29 @@ async function startWorld(o = {}) {
       default:
         return json(res, 404, { message: "no such function" });
     }
+  }
+
+  // The one-tap start (career_apply_extension_begin_own); the agent's start ends in it too.
+  async function begin(args) {
+    const p = args.p_payload || {};
+    const h = sha(canonical(p));
+    if (p.user_id !== userId) return { status: 400, body: { message: "not your application" } };
+    if (p.source !== "extension" || args.p_approval !== h) return { status: 400, body: { message: "invalid or stale application approval" } };
+    if (p.privacy_epoch !== state.account.epoch || p.account_version !== state.account.version || Date.parse(p.expires_at) < Date.now()) {
+      return { status: 400, body: { message: "invalid or stale application approval" } };
+    }
+    // The SQL's rule: only a row stopped before the click may be replaced; any other row for the posting is final.
+    const retriable = (j) => j.state === "not_submitted" && j.evidence?.reason === "stopped before the click";
+    if (state.jobs.some((j) => j.job_id === p.job_id && !retriable(j))) return { status: 400, body: { message: "duplicate_job" } };
+    const live = state.jobs.filter((j) => !["not_submitted", "failed"].includes(j.state));
+    if (state.beginDelayMs) await new Promise((r) => setTimeout(r, state.beginDelayMs));
+    if (live.some((j) => j.job_id === p.job_id)) return { status: 400, body: { message: "duplicate_job" } };
+    if (live.some((j) => j.company === p.company && Date.now() - j.at < 30 * 86400000)) return { status: 400, body: { message: "company_cooldown" } };
+    if (live.filter((j) => Date.now() - j.at < 86400000).length >= state.dailyLimit) return { status: 400, body: { message: "daily_cap" } };
+    state.jobs = state.jobs.filter((j) => j.job_id !== p.job_id);
+    const row = { id: crypto.randomUUID(), lease: crypto.randomUUID(), job_id: p.job_id, company: p.company, payload: p, payload_hash: h, state: "driving", at: Date.now() };
+    state.jobs.push(row);
+    return { status: 200, body: { id: row.id, lease: row.lease, payload_hash: h } };
   }
 
   const server = https.createServer({ key: fs.readFileSync(path.join(dir, "key.pem")), cert: fs.readFileSync(path.join(dir, "cert.pem")) }, async (req, res) => {
@@ -507,7 +550,9 @@ async function startWorld(o = {}) {
       const form = findForm(u);
       if (form && req.method === "GET") {
         const html = strip(fs.readFileSync(path.join(FORMS, form.html), "utf8"));
-        const extra = variant(u.searchParams.get("trainee_test")) + employerScript(form, u.searchParams.get("trainee_test") || "") + placeScript(form);
+        // WO-101: a TEST employer that changes its form after the person approved it (state.changed: form id -> variants).
+        const named = [u.searchParams.get("trainee_test"), state.changed[form.id]].filter(Boolean).join(",");
+        const extra = variant(named) + employerScript(form, named) + placeScript(form);
         const page = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, extra + "</body>") : html + extra;
         return res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(page);
       }

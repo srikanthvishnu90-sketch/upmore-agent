@@ -145,6 +145,12 @@
     ...fields.filter((f) => f.masked).map((f) => f.selector),
     ...form.schema.filter((s) => C.isIdentityField(s)).map((s) => form.bindings[s.name]?.selector),
   ].filter(Boolean);
+  // WO-101: the fields whose options exist only on the page (a dropdown widget, a place search): the planner's answer is
+  // put on the employer's own entry for it when the list opens.
+  const listedNames = (f) => f.schema.filter((s) => {
+    const b = f.bindings[s.name];
+    return b && (b.widget || D.isPlaceSearch(D.element(b.selector)));
+  }).map((s) => s.name);
   function openRequired(fields) {
     const have = new Set(fields.map((f) => f.name));
     return form.schema.filter((s) => s.required && !have.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
@@ -193,7 +199,7 @@
     const batch = ctx.agentSubmits && ctx.queued && !wd && portal.family !== "workday"
       ? C.batchPlan({ jobId, company, url: location.href, family: portal.family, schema: form.schema, challenge: !!D.fnDetectChallenge(),
         plan: C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }),
-        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null })
+        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null, listed: listedNames(form) })
       : undefined;
     await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before, batch,
       ...(workday ? { action: workday.action, step: workday.step } : {}),
@@ -309,7 +315,7 @@
     // WO-101: with agent submits on, this posting's batch entry: every answer exactly as the fill will send it, or why it
     // is left out of a batch (anything the person must answer or do first).
     const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
-      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null }) : undefined;
+      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f) }) : undefined;
     return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch });
   }
   function formReady(ms) {

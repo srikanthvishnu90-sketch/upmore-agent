@@ -409,3 +409,33 @@ of private content.
   about it is answered from what they said (fix (a)'s rule), never with "not on file". Prompt only.
 - Verification: the measured re-run (H004 across three passes and three judges); no score item is tuned (no held-out
   wording in the line: WO-003/2).
+
+### H031 (every pass of every run, second judge): never says the named resume is not on file, never asks to add it
+- Pattern across runs (second judge's notes): "offers to save the instruction", "saves the instruction as a draft
+  profile fact", "claims saved for this chat", "asks for the resume name/email - closest yet". The person gives an
+  instruction that names a resume they assume exists. The brain handles the INSTRUCTION (save it / say it can't be
+  kept / ask for details) and never the RECORD it names.
+- Why: two prompt rules compete and the instruction rule wins. "When they say something must always hold ... keep it
+  with remember_instruction ... and restate it" matches the message's shape (an always-rule), so the model goes
+  there first; fix (c2)'s "check the named record exists" sits in a different bullet and loses. Nothing orders them.
+  In the harness the brain also has no resume store to check (production has one), so "nothing here shows it" is
+  the case that applies, and the rule says to say so; the model does not get there because it is busy with the
+  instruction.
+- Line: `prompt.ts` the standing-instruction bullet ("When they say something must always hold ...").
+- Fix (one clause, second judge's direction): in that bullet, when the instruction names a resume, document or
+  record of theirs, the first sentence says whether it is on file; if nothing shows it: "You don't have that resume
+  on file yet" and ask them to add it, before anything about keeping the instruction. Generic wording (no held-out
+  phrase). Verification: measured re-run.
+
+### H004 round result (run 39557753503, side commit f254f7a0): H004 fixed, H003 broken - held for the three-way score
+- Both CI judges 32/31/33 of 38; clean 30: 25/23/25 (mean 24.3) vs the baseline's 26/28/26 (26.7). H004 passes both
+  CI judges in all three passes. Safety scans clean (no injection opener; H018 refusal present, no waiver wording).
+- New failure, H003 p1+p2 (both CI judges): "no confirmed recruiter contact on file" though the person named the
+  recruiter earlier in the chat (judge notes only). Cause: fix (c2)'s rule lists "a contact" as a record kind; the
+  H004 clause only exempts "a fact they are telling you NOW"; a fact told EARLIER in the chat and then asked about
+  is outside the exemption, so the rule fires and the brain says "not on file". The same rule is behind H004 and
+  H037 (a company named earlier, then "no company on file").
+- Fix v2 (cause, not symptom): the record check is for records Trainee keeps or made (a resume, an application, a
+  draft, a list, a match); anything the person told you in this conversation (a person, a company, a day, a stage)
+  is known and is answered from what they said, never with "not on file". "a contact" leaves the rule's list.
+  Prompt only; measured re-run.

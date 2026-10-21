@@ -26,6 +26,7 @@ class Element {
   removeAttribute(k) { delete this.attributes[k]; }
   querySelectorAll(tag) { return this.children.flatMap(child => [child, ...child.querySelectorAll(tag)]).filter(child => tag === '*' || child.tagName === tag.toUpperCase()); }
   contains(node) { return this === node || this.children.some(child => child.contains(node)); }
+  getClientRects() { return [{ width: 100, height: 20 }]; }
   cloneNode(deep) { const node = new Element(this.tagName); node.attributes = { ...this.attributes }; node.style = { ...this.style }; node.hidden = this.hidden; node._text = this._text; if (deep) node.append(...this.children.map(child => child.cloneNode(true))); return node; }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
   set textContent(value) { this.children.forEach(node => { node.parentNode = null; }); this.children = []; this._text = String(value); }
@@ -210,4 +211,13 @@ test('an admitted fixture tap still refuses a detached card and computed CSS hid
   } finally { document.defaultView.getComputedStyle = original; }
   const nested = await fixture(), ancestor = new Element('main'); ancestor.append(nested.container); ancestor.style.opacity = '0';
   await tap(nested.handle); assert.equal(nested.approvals.length, 0);
+});
+
+test('an admitted fixture tap refuses zero-area answer geometry and zero-area containing disclosure', async () => {
+  for (const target of ['answer', 'ancestor']) {
+    const f = await fixture();
+    const node = target === 'answer' ? descendants(f.handle.disclosure).find(node => node.tagName === 'PRE') : f.container;
+    node.getClientRects = () => [{ width: 0, height: 0 }];
+    await tap(f.handle); assert.equal(f.approvals.length, 0);
+  }
 });

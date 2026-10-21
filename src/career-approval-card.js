@@ -171,7 +171,12 @@
             let css;
             try { css = view.getComputedStyle(node); } catch (_) { return false; }
             if (!css || css.display === 'none' || ['hidden', 'collapse'].includes(css.visibility) || css.contentVisibility === 'hidden' || Number(css.opacity) === 0) return false;
-            if (typeof node.getClientRects === 'function' && css.display !== 'contents' && node.getClientRects().length === 0) return false;
+            if (css.display !== 'contents' && node.textContent.length > 0) {
+              if (typeof node.getClientRects !== 'function') return false;
+              let rects;
+              try { rects = Array.from(node.getClientRects()); } catch (_) { return false; }
+              if (!rects.some(rect => Number.isFinite(rect.width) && Number.isFinite(rect.height) && rect.width > 0 && rect.height > 0)) return false;
+            }
             node = node.parentNode;
           }
         }

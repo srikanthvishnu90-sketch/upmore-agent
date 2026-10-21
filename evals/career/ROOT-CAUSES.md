@@ -925,3 +925,16 @@ of private content.
   on an item this change does not touch).
 - Left: H004 3/5 (one judge; turn 3 "not on file": harness parity gap held for the owner), H010 3/5 (one judge),
   H038 4/5 (one judge), H003, H026, H033, H034, H036, H037 once each.
+
+### Harness production parity applied (second judge's ruling: allowed), commits a258fc0f and 284fe817
+- a258fc0f (the held 2a914d15, re-applied on the current head): the situation reads this chat's own trackStore rows as
+  saved after the last turn (production: readSituation -> agent_flow_state state->career->trackStore->rows), rendered
+  by the same situationFrom; nothing added, nothing seeded. Checked in code: a row recorded by track_application in
+  turn 1 is a "tracked" task (stage Interview rounds) in turn 2's situation.
+- 284fe817 (condition 3): the brain gets an interviews store (production: supabaseInterviewStore) and the situation
+  reads its upcoming rows with production's columns and filter (from a day before now). The store holds only what the
+  brain's own tools saved: in production and here, an interview row exists only after brief_from_invite reads an
+  invite the person pasted, so a day said in words ("it's Friday") is still kept nowhere; that is a brain gap, not a
+  harness one.
+- The instrument changed: numbers before and after are not comparable. The stacked rerun is the same brain as stacked
+  build 2 (run 39601021457), so the difference between the two is the harness alone.

@@ -12,6 +12,16 @@ only, launcher `scripts/career/alerts-scheduler-launch.py`).
 15 of 330 logged cycles crashed with the error message "Reminder
 storage could not be confirmed" — the message of the error coded
 `reminder_storage_unavailable`, thrown at `alerts-host.mjs:141`.
+Precision note (verified by direct search 2026-10-21): the cycle log
+records ONLY the message — the literal string
+`reminder_storage_unavailable` appears **0 times** in
+`cycles.jsonl` and 0 times in the systemd journal, and no log record
+carries a `code` field at all (a crashed record is exactly
+`{type, at, status:"crashed", error:"Reminder storage could not be
+confirmed"}`). The pairing of message to code rests on the throw
+site: `alerts-host.mjs:141` is the only place in the repo that throws
+this message, and it attaches the code there; the logger simply
+never serializes it.
 Occurrences: 2026-10-17 ×3, 2026-10-19 ×1, 2026-10-20 ×8 (five of them
 in one 90-minute evening cluster, 20:45–22:15Z), 2026-10-21 ×3 (last
 at 14:02:45Z). Cycles since then (17:00Z, 17:45Z, 18:00Z) completed;
@@ -52,8 +62,19 @@ the host needs (`career_watch_read/write`, `career_watch_cycle_commit`,
 `career_reminder_outbox`) exist — and all of them come from migration
 20261015020000, which predates the closure and was already live. The
 closure's 21 files contain no change to the fence protocol or the
-reminder RPCs (its only touch of this table is file 20's unrelated
-BEFORE trigger `career_account_authority` on `career_watch_kv`). The
+reminder RPCs. Direct preserved-SQL-artifact proof: the closure
+run's own pre-apply prod catalog snapshot
+(`~/workspace/closure-run/catalog/`, taken 2026-10-21 16:40–16:47
+UTC, before its apply log) already lists all nine RPC names in
+`functions.json` and both tables' columns in `columns.json` — they
+were live in prod before the closure applied a single statement,
+and none of the 21 applied files (list verified from its apply log)
+creates or replaces any of them. For accuracy, the closure does
+touch the table in other ways — file 20's BEFORE trigger
+`career_account_authority` and file 17's AFTER trigger
+`career_apply_cloud_on_erase` on `career_watch_kv`, several files
+reading the `career:account` row, file 16 writing card-state keys —
+but none of it touches the fence check or the reminder RPCs. The
 post-closure cycles passed because no concurrent write landed inside
 their windows — the collision condition is unchanged and the failure
 will recur the next time a cycle overlaps a chat write for the user.

@@ -230,7 +230,7 @@ const CareerApply = (() => {
       const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
       if (seen.has(key)) continue; seen.add(key);
       const fit = i.fit != null ? i.fit : null;
-      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null, url: i.url || null });
     }
     const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };

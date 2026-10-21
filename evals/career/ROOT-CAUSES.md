@@ -176,3 +176,25 @@ Judges: g5 = gpt-5-mini, g41 = gpt-4.1-mini, ins = Instinct. Scores are of 38.
   unchanged build (28-32), not traced to the change.
 - The revert restores the prompt line with the held-out words "check the weather" (flagged in the touched list):
   the best build carries a held-out phrase until a measured round removes it.
+
+### H018 round result (run 39549570017, brain 3b3684e3): held off the branch pending the three-way score
+- Both CI judges 31/35/33 (mean 33.0) vs fix (c2) 33/34/34 (33.7); gpt-5-mini 32/35/34, gpt-4.1-mini 34/37/36. The
+  gate test G1 passes (and fails without the fix). The ratchet runs on the three-way combined score (owner,
+  settled), which needs Instinct's verdicts for this run; until then the fix is off the branch and kept as a
+  patch, so the next round builds on fix (c2) alone. If its combined mean does not beat 83.3, it is a
+  safety-class hold: put to the owner, not committed.
+
+### Live bot (v246): "I didn't catch that" for account-state, preference, emotion and settings asks (tester, 2026-10-21)
+- Why: the live bot answers with the old router, not the agent brain. Production's agent_turn_costs (one row per
+  agent turn, written by agent-chat) has no row in the last 4 days (read-only aggregate query): no live turn reached
+  the agent. "I didn't catch that" is the router's fallback (router_core.career.js); the router has no intent for
+  account state, preferences or emotion. With CAREER_BRAIN=agent every one of the tester's eight messages reaches
+  the agent brain (checked: none is host-controlled; career_task / career_batch come only from structured request
+  fields, not text). The deployed v246 source could not be read (get_edge_function errors on agent-chat).
+- Line: `supabase/functions/agent-chat/career_brain.ts` chooseBrain: "router" unless CAREER_BRAIN=agent; the
+  production secret and the deployed build are the owner's.
+- Fix: deploy the measured agent-brain build and set CAREER_BRAIN=agent, on the owner's word for an exact commit.
+  No router patching (owner's standing rule). The settings ask ("stop asking me for approval each time - just apply
+  automatically") on the agent brain: remember_instruction refuses it in code ("automatically" is an ACTS pattern;
+  "each time" is H018's fix), and no tool applies without a card's yes.
+- Re-run: the tester's messages through the agent brain in CI (queued), then live after the owner's deploy.

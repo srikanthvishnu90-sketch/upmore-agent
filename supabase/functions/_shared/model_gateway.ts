@@ -86,14 +86,17 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
   return body;
 }
 
-// OpenAI chat completion -> Anthropic message. A malformed tool call is a provider failure, never a guess.
+// OpenAI chat completion -> Anthropic message. Malformed completed tool calls fail; truncated calls are discarded.
 export function fromOpenAI(body: any): any {
   const choice = body && Array.isArray(body.choices) ? body.choices[0] : null;
   if (!choice || !choice.message) throw new ModelUnavailableError(502, "bad_response", "OpenAI returned no message");
   const msg = choice.message, content: any[] = [];
+  const truncated = choice.finish_reason === "length";
   const text = typeof msg.content === "string" ? msg.content : msg.refusal ? String(msg.refusal) : "";
   if (text) content.push({ type: "text", text });
-  for (const c of msg.tool_calls || []) {
+  // Truncation can cut JSON arguments mid-value. None of that response's calls are executable, including calls
+  // that happen to parse before the cut: retain its usage and let the caller handle max_tokens without decoding them.
+  for (const c of truncated ? [] : msg.tool_calls || []) {
     if (!c || c.type !== "function" || !c.function) continue;
     let input: any;
     try { input = JSON.parse(c.function.arguments || "{}"); } catch (_) { throw new ModelUnavailableError(502, "bad_tool_call", `OpenAI returned unreadable arguments for ${c.function.name}`); }
@@ -101,7 +104,7 @@ export function fromOpenAI(body: any): any {
   }
   const used = content.some(b => b.type === "tool_use");
   // A parsed call does not override the provider saying the generation was cut off; the loop must repair without effects.
-  const stop_reason = choice.finish_reason === "length" ? "max_tokens" : used ? "tool_use" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
+  const stop_reason = truncated ? "max_tokens" : used ? "tool_use" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
   const u = body.usage || {};
   const cached = Number(u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || 0;
   const usage = { input_tokens: Math.max(0, (Number(u.prompt_tokens) || 0) - cached), output_tokens: Number(u.completion_tokens) || 0, cache_read_input_tokens: cached, cache_creation_input_tokens: 0 };

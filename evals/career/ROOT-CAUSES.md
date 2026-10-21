@@ -374,3 +374,18 @@ of private content.
   want / ok, ending "?"); (2) after any waiver strip, when the person's message asked to waive their yes and no
   sentence of the result still says it needs their yes, code puts the refusal (STANDING_REFUSED) first. Gate test:
   the p1 shape (proposal + "Is that the wording you want?") comes out as the refusal with no confirm prompt.
+
+### New defects from run 39554573965 (second judge), notes before any fix (each to be confirmed against its reply)
+- H001 "prints the intro paragraph twice". Likely cause: loop.ts `earlier[]` (WO-106): text the model wrote beside a
+  tool call is put before the final reply when that reply is under 160 characters and does not CONTAIN the earlier
+  text verbatim. When the final reply restates the intro in other words, both go out. Line: loop.ts
+  `const said = earlier.filter((e) => e.length >= 60 && !reply.includes(e)); if (said.length && reply.length < 160)`.
+  Fix direction: skip earlier text that shares most of its words with the final reply.
+- H011 "invents figures, then scores 'your' answer on them". Likely cause: asked to rewrite their answer, the model
+  adds metrics (the prompt's practice rule asks for situation-action-result, which invites numbers), then scores its
+  own rewrite as theirs. The untraced-fact guard brackets facts about the person only when they match its word lists,
+  not numbers inside a rewrite. Fix direction: a rewrite uses only what they said, numbers left as [placeholders]; the
+  score is for THEIR answer, never the rewrite.
+- H002 "garbled sentence missing a verb". Likely cause: a code strip (stripLeaks / bracketUntraced / rebuild) cut
+  part of a sentence; or the "Saved: X. Is that right?" rule (H002's standing note) produced a fragment. To confirm
+  from the reply before a fix.

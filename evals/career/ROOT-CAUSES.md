@@ -738,3 +738,17 @@ of private content.
   The H009 round (39592260931, launched before this ruling) is a 3-pass run: read for its mechanism only, not a keep.
 - Next measurements, in order: a 5-pass control of the kept brain (the same-night reference for 5-pass rounds), then
   the H006 rewrite (5 passes), then the instability causes.
+
+## H006 (owner's ruling: one measured prompt round): an off-topic ask gets the off-topic help, not career help
+- What fails (judge notes, 3/3 on the second judge; CI: control p2+p3, H031 v2 p1-p3, H002 round p3): the reply says
+  it cannot do it, then offers sources or tips for the off-topic thing; once (H031 v2 p1) it gave made-up specifics.
+- Line: prompt.ts:68-69 "...or check the weather: say so, and offer the closest thing you can do for their search."
+  "The closest thing" is read as the closest thing to what they asked, so the model offers the off-topic help. The line
+  also carried a held-out phrase ("check the weather"), flagged earlier.
+- Fix (prompt, per the owner's ruling): "Asked for anything outside the job search, say in one short line you don't do
+  that, give none of it (no sources, tips or guesses for it), and turn to their search: offer one concrete next step
+  for it from what you know." No held-out phrase: a code check finds no 3-word phrase shared with any held-out turn,
+  must or must_not line (the old wording shared "check the weather" and "share their resume").
+- Finding beside it, not in this round: the kept prompt still shares two generic 4-word phrases with held-out turns
+  ("what do you need", "do you need from"); WO-059/H2 only catches whole turns. A stricter gate (no shared phrase of
+  4+ words with 2+ content words) would fail today on those two; proposed to the owner, not added.

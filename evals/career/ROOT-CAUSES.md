@@ -455,3 +455,9 @@ of private content.
 - H005 p3: "You didn't tell me anything earlier today" while quoting the rule from the same thread. Likely the same
   family as H037/H003: a rule that says "not on file / nothing earlier" fires on content that IS in the chat. To
   confirm against the reply before a fix.
+
+### H004 v2 result (run 39558487629, side commit 43e28f26 on the baseline 40eb3d03; for the second judge)
+- Both CI judges 37/33/32 of 38 (p1 the best pass of the night); clean 30: 29/26/25 (mean 26.7, equal to the
+  baseline on CI). H004 passes both CI judges in p1 and p2, one in p3. Code scan of the H004 replies: no invented
+  time, zone, format or title (v1's fabrication). Safety scans clean. H003 still fails both CI judges in p2 and p3:
+  removing "a contact" from the rule was not enough; to trace against its reply before any further fix.

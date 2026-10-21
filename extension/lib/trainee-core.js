@@ -80,7 +80,7 @@
       }
       function fnDiscoverFields2(includeHidden) {
         const esc = (s) => window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/"/g, '\\"');
-        const clean = (t) => (t || "").replace(/\s+/g, " ").trim().slice(0, 300);
+        const clean2 = (t) => (t || "").replace(/\s+/g, " ").trim().slice(0, 300);
         const labelText = (node) => {
           const clone = node.cloneNode(true);
           for (const control of clone.querySelectorAll("input,select,textarea,button")) control.remove();
@@ -125,14 +125,14 @@
               }
             }
           }
-          if (!t || /^(attach|upload|browse|choose( a)? file|select( a)? file|add file)$/i.test(clean(t))) {
+          if (!t || /^(attach|upload|browse|choose( a)? file|select( a)? file|add file)$/i.test(clean2(t))) {
             const g = el.closest("[role=group][aria-labelledby]");
             const lab = g && document.getElementById(g.getAttribute("aria-labelledby"));
             if (lab && labelText(lab).trim()) t = labelText(lab);
           }
-          return clean(t);
+          return clean2(t);
         }
-        const weakLabelFor = (el) => clean(el.getAttribute("placeholder") || "");
+        const weakLabelFor = (el) => clean2(el.getAttribute("placeholder") || "");
         function optionLabel(x) {
           const id = x.getAttribute && x.getAttribute("for");
           const t = id ? document.getElementById(id) : x.querySelector && x.querySelector("input");
@@ -174,7 +174,7 @@
           if (typeof el.className === "string" && /requiredInput/.test(el.className)) return;
           const visible2 = type === "file" ? true : el.offsetParent !== null || el.getClientRects().length > 0;
           if (!visible2 && !includeHidden) return;
-          const gl = clean(groupLabelFor(el));
+          const gl = clean2(groupLabelFor(el));
           const member = type === "radio" || type === "checkbox";
           const label = labelFor(el) || !member && type !== "search" && gl || weakLabelFor(el);
           const f = {
@@ -184,7 +184,7 @@
             disabled: !!el.disabled,
             readOnly: !!el.readOnly,
             valid: !el.validity || el.validity.valid,
-            validationMessage: clean(el.validationMessage || ""),
+            validationMessage: clean2(el.validationMessage || ""),
             inputType: type,
             name: el.getAttribute("name") || "",
             id: el.id || "",
@@ -204,7 +204,7 @@
           if (el.tagName === "SELECT") {
             f.options = Array.from(el.options).map((o) => ({
               value: o.value,
-              label: clean(o.textContent)
+              label: clean2(o.textContent)
             }));
           }
           out.push(f);
@@ -212,13 +212,13 @@
         return out;
       }
       function fnPostingLocation2() {
-        const clean = (s) => String(s || "").replace(/\s+/g, " ").trim();
-        const text = (el) => el ? clean(el.textContent) : "";
+        const clean2 = (s) => String(s || "").replace(/\s+/g, " ").trim();
+        const text = (el) => el ? clean2(el.textContent) : "";
         let t = text(document.querySelector(".job__location")) || text(document.querySelector("#header .location, .app-title + .location"));
         if (!t) t = text(document.querySelector(".posting-categories .location, .posting-category.location"));
         if (!t) {
           for (const h of document.querySelectorAll(".ashby-job-posting-left-pane h2")) {
-            if (/^location$/i.test(clean(h.textContent))) {
+            if (/^location$/i.test(clean2(h.textContent))) {
               t = text(h.nextElementSibling);
               break;
             }
@@ -243,7 +243,7 @@
                   a.addressLocality,
                   a.addressRegion,
                   country
-                ].map(clean).filter(Boolean).join(", ");
+                ].map(clean2).filter(Boolean).join(", ");
                 if (one) places.push(one);
               }
               if (!places.length && /TELECOMMUTE/i.test(String(item.jobLocationType || ""))) places.push("Remote");
@@ -3012,7 +3012,73 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var ASKS_DATA = /\b(name|e-?mail|phone|number|date|address|url|link|website|zip|postal|street)\b/;
   var ASKED_YES_NO = /^(are|do|does|have|has|will|would|can|could|is|did|were|was|may|should|shall)\b|\byes\s*(\/|or)\s*no\b|\(y\/n\)/;
   var DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
-  var DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
+  function calendarOk(year, month, day) {
+    if (!Number.isInteger(year) || year < 1 || year > 9999 || month !== null && (month < 1 || month > 12)) return false;
+    if (day === null) return true;
+    if (month === null || !Number.isInteger(day) || day < 1) return false;
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    return day <= [
+      31,
+      leap ? 29 : 28,
+      31,
+      30,
+      31,
+      30,
+      31,
+      31,
+      30,
+      31,
+      30,
+      31
+    ][month - 1];
+  }
+  function calendarParts(value, dayFirst = false) {
+    let year, month = null, day = null;
+    let m;
+    if (m = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/.exec(value)) [year, month, day] = [
+      Number(m[1]),
+      m[2] ? Number(m[2]) : null,
+      m[3] ? Number(m[3]) : null
+    ];
+    else if (m = /^(\d{1,2})[\/.-](\d{4})$/.exec(value)) [year, month] = [
+      Number(m[2]),
+      Number(m[1])
+    ];
+    else if (m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(value)) [year, month, day] = [
+      Number(m[3]),
+      Number(m[dayFirst ? 2 : 1]),
+      Number(m[dayFirst ? 1 : 2])
+    ];
+    else if (m = /^([a-z]+)\.?\s+(?:(\d{1,2}),?\s+)?(\d{4})$/i.exec(value)) {
+      const index = MONTHS.findIndex((s) => s.toLowerCase() === m[1].toLowerCase() || s.slice(0, 3).toLowerCase() === m[1].toLowerCase());
+      if (index < 0) return null;
+      [year, month, day] = [
+        Number(m[3]),
+        index + 1,
+        m[2] ? Number(m[2]) : null
+      ];
+    } else return null;
+    return calendarOk(year, month, day) ? {
+      year,
+      month,
+      day
+    } : null;
+  }
+  function typedFieldProblem(f, value) {
+    if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return null;
+    const v = String(value).trim(), label = norm(f.label);
+    if (f.type === "number" && (!/^-?\d+(?:\.\d+)?$/.test(v) || !Number.isFinite(Number(v)))) return "needs a finite number, written as digits";
+    const format = (f.section?.format || /\b(?:yyyy[-/.]mm(?:[-/.]dd)?|dd[-/.]mm[-/.]yyyy|mm[-/.]dd[-/.]yyyy|mm[-/.]yyyy|yyyy)\b/i.exec(label)?.[0] || "").toUpperCase();
+    const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
+    const yearOnly = format === "YYYY";
+    const date = f.type === "date" || f.type === "month" || !!format || DATE_FORMAT.test(label) || /\bdates?\b/.test(label) && !/up[- ]to[- ]date/.test(label);
+    if (!date) return null;
+    const p = calendarParts(v, /^DD/.test(format));
+    if (!p || (yearOnly ? p.month !== null : monthYear ? p.month === null || p.day !== null : p.day === null)) {
+      return yearOnly ? "needs a valid four-digit year" : monthYear ? "needs a valid month and year, without adding a day" : "needs a valid calendar date including month, day and four-digit year";
+    }
+    return null;
+  }
   var YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
   var YES_NO_LIKE = /^(yes|no|y|n|true|false|i (agree|accept|acknowledge|consent|understand)\b.*|i am (not )?currently employed)$/i;
   var COMPOUND = /\bif (so|yes|not|no|applicable|you (are|were|have|do|did|answered|selected))\b[^?]{0,80}\b(list|provide|describe|explain|specify|enter|state|indicate|give|share|tell|include)\b|\bplease (list|provide|describe|explain|specify|share|confirm your)\b|,? or (would|are|do|will|have|can|could) you\b/;
@@ -3022,14 +3088,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const q = (asked.length ? asked[asked.length - 1] : t.split(/(?<=[.!:])\s+/).pop() ?? t).trim();
     return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
   }
-  function fitsField(f, value) {
+  function fitsField(f, value, ownAnswer = false) {
+    if (typedFieldProblem(f, value)) return false;
+    if (ownAnswer) return true;
     if (f.options.length || f.widget || f.type === "checkbox" || /file/.test(f.type)) return true;
     const t = norm(f.label), v = String(value).trim();
     if (YES_NO_VALUE.test(v) && ASKS_DATA.test(t) && !ASKED_YES_NO.test(t)) return false;
     if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
     if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
-    if ((f.type === "date" || DATE_FORMAT.test(t) || /\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t)) && !DATE_VALUE.test(v)) return false;
-    if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
     if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
     return true;
   }
@@ -3196,8 +3262,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         /\d{4}/.exec(v)[0]
       ];
     }
-    if (m !== null && (Number(m) < 1 || Number(m) > 12)) return null;
-    if (d !== null && (Number(d) < 1 || Number(d) > 31)) return null;
+    if (!y || !calendarOk(Number(y), m === null ? null : Number(m), d === null ? null : Number(d))) return null;
     const mm = m && m.padStart(2, "0"), dd = d && d.padStart(2, "0");
     const f = format.toUpperCase();
     if (f === "YYYY") return y;
@@ -3332,7 +3397,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         if (f.personal) continue;
         if (f.section || rowPartName(f)) {
           const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-          if (s) {
+          if (s && fitsField(f, s.value)) {
             filled.push({
               name: f.name,
               label: f.label,
@@ -3395,7 +3460,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
         }
         if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
-        if (value !== null && value !== "" && (a === own || fitsField(f, value))) {
+        if (value !== null && value !== "" && fitsField(f, value, a === own)) {
           filled.push({
             name: f.name,
             label: f.label,
@@ -3769,6 +3834,116 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     workdaySignIn: () => workdaySignIn,
     workdaySubmitLine: () => workdaySubmitLine
   });
+
+  // supabase/functions/_shared/typed_profile_fields.ts
+  var object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  var denied = (f) => [
+    f,
+    f?.provenance
+  ].some((v) => object(v) && (v.unproven === true || v.quarantined === true || v.rejected === true)) || [
+    f?.source,
+    f?.origin
+  ].some((v) => typeof v === "string" && /^(agent|assistant|model|llm|generated|(?:agent|assistant|model|ai)[ _-]generated)$/i.test(v.trim()));
+  var clean = (v) => typeof v === "string" ? v.trim().replace(/[.!]+$/, "").trim() : "";
+  var US2 = /^(?:the )?(?:US|U\.S\.?|USA|United States(?: of America)?)$/i;
+  var countryValue = (s) => /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(s) && !/\b(?:not|unknown|maybe|perhaps|or|unsure)\b/i.test(s) ? s : null;
+  var phoneValue = (s) => /^\+?[\d ()-]+$/.test(s) && s.replace(/\D/g, "").length >= 7 && s.replace(/\D/g, "").length <= 15 ? s : null;
+  function fieldOf(f) {
+    const t = clean(f.text), name = clean(f.name || f.title);
+    let m;
+    if (f.kind === "profile" && /^country$/i.test(name) || (m = t.match(/^my country(?: of residence)? is (.+)$/i))) {
+      const value = countryValue(clean(f.kind === "profile" && /^country$/i.test(name) ? f.value : m[1]));
+      return value ? {
+        key: "country",
+        value
+      } : null;
+    }
+    if (f.kind === "profile" && /^(?:mobile )?phone(?: number)?$/i.test(name) || (m = t.match(/^my (?:mobile )?phone(?: number)? is (.+)$/i))) {
+      const value = phoneValue(clean(f.kind === "profile" && /^(?:mobile )?phone(?: number)?$/i.test(name) ? f.value : m[1]));
+      return value ? {
+        key: "phone",
+        value
+      } : null;
+    }
+    if (f.kind === "eligibility" && /^work authori[sz]ation(?: \(US\))?$/i.test(name)) {
+      const value = clean(f.value);
+      return US2.test(clean(f.country)) && /^(Yes|No)$/i.test(value) ? {
+        key: "work_authorization",
+        value: /^yes$/i.test(value) ? "Yes" : "No"
+      } : null;
+    }
+    m = t.match(/^I am (not )?authori[sz]ed to work in (.+)$/i);
+    return m && US2.test(m[2]) ? {
+      key: "work_authorization",
+      value: m[1] ? "No" : "Yes"
+    } : null;
+  }
+  function typedProfileFile(o) {
+    const file = {
+      user_id: o.owner,
+      answers: {},
+      saved: {}
+    }, needs = [];
+    const profile = o.profile;
+    const candidates = /* @__PURE__ */ new Map();
+    for (const f of Array.isArray(profile?.facts) ? profile.facts : []) {
+      const id = typeof f?.id === "string" ? f.id : "";
+      if (!object(f) || profile.user_id !== o.owner || f.user_id !== void 0 && f.user_id !== o.owner || denied(profile) || denied(f) || f.status !== "confirmed" || f.needs_confirmation !== false) {
+        needs.push({
+          factId: id,
+          reason: "An owned confirmed source is required before this can answer an application field."
+        });
+        continue;
+      }
+      if (typeof f.provenance !== "string" || !f.provenance.trim() || typeof f.confirmation_event_id !== "string" || !f.confirmation_event_id.trim()) {
+        needs.push({
+          factId: id,
+          reason: "The original positive provenance and confirmation event are required; projection cannot create them."
+        });
+        continue;
+      }
+      const field = fieldOf(f);
+      if (!field) {
+        needs.push({
+          factId: id,
+          reason: "No unambiguous supported field value and country context were stated."
+        });
+        continue;
+      }
+      if (FACT_SCHEMA.facts[field.key].type !== "text") throw new Error("typed profile field schema changed");
+      const rows = candidates.get(field.key) ?? [];
+      rows.push({
+        fact: f,
+        value: field.value
+      });
+      candidates.set(field.key, rows);
+    }
+    for (const [key, rows] of candidates) {
+      if (new Set(rows.map((r) => r.value.toLowerCase())).size !== 1) {
+        for (const r of rows) needs.push({
+          factId: r.fact.id,
+          reason: `Conflicting ${key} values need the owner's correction.`
+        });
+        continue;
+      }
+      const { fact: f, value } = rows[0];
+      file.answers[key] = {
+        value,
+        factId: f.id,
+        confirmed: true,
+        user_id: o.owner,
+        provenance: f.provenance,
+        confirmation_event_id: f.confirmation_event_id,
+        ...Array.isArray(f.derived_from) ? {
+          derived_from: f.derived_from.slice()
+        } : {}
+      };
+    }
+    return {
+      file,
+      needs
+    };
+  }
 
   // supabase/functions/_shared/posting_key.ts
   var GREENHOUSE = /^(job-boards|boards)(\.eu)?\.greenhouse\.io$/;
@@ -4480,7 +4655,19 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   function trustedManifest(o) {
     const excluded = [], conflicts = [];
     const kept = /* @__PURE__ */ new Map();
-    const file = o.file && typeof o.file === "object" ? o.file : null;
+    let file = o.file && typeof o.file === "object" ? o.file : null;
+    if (Array.isArray(file?.facts)) {
+      const projected = typedProfileFile({
+        owner: o.owner,
+        profile: file
+      });
+      file = projected.file;
+      excluded.push(...projected.needs.map((n2) => ({
+        key: "profile",
+        factId: n2.factId,
+        why: n2.reason
+      })));
+    }
     const fileOwn = !!file && file.user_id === o.owner;
     const candidates = [];
     for (const t of [
@@ -4758,7 +4945,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       const a = answerOf(f, p, kind, o.resume);
       if (m) {
-        const j = judge(f, a, m);
+        const j = judge(f, a, m, o.schema);
         if ("problem" in j) {
           if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
           continue;
@@ -4842,7 +5029,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       file: kind === "file" ? resume?.sha256 ?? null : null
     };
   }
-  function judge(f, a, m) {
+  function judge(f, a, m, schema) {
     const tf = m.byFactId[a.factId];
     if (!tf) return {
       problem: "its answer is not from a fact you gave"
@@ -4850,13 +5037,46 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
-    const rule = derivation(a.kind, a, tf);
+    const rule = f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf);
     return rule ? {
       rule,
       tf
     } : {
       problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")`
     };
+  }
+  function workRowRule(f, a, tf, m, schema) {
+    if (tf.table !== "answers" || tf.key !== "work_history" || m.answers.work_history?.factId !== tf.factId || m.answers.work_history?.value !== tf.value || !f.section || f.section.row < 1) return null;
+    const fields = schema.filter((x) => x.section?.kind === "work");
+    if (new Set(fields.map((x) => x.name)).size !== fields.length) return null;
+    const plan = planBatch({
+      userId: "contract-rederive",
+      postings: [
+        {
+          job_id: "contract-rederive",
+          company: "",
+          title: "",
+          fields: fields.map((x) => ({
+            ...x,
+            required: false
+          }))
+        }
+      ],
+      answers: {
+        work_history: {
+          value: tf.value,
+          factId: tf.factId
+        }
+      },
+      saved: {},
+      log: [],
+      now: 0
+    });
+    const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+    if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+    const expected = answerOf(f, p, a.kind, null);
+    if (f.options.length && !optionText(f, p.value)) return null;
+    return expected.value === a.value && expected.shown === a.shown ? `work-history-row:${f.section.row}:${f.section.part}` : null;
   }
   function contractFill(o) {
     const listed = new Set(o.listed ?? []);
@@ -4869,7 +5089,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         fill2.push(p);
         continue;
       }
-      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest);
+      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema);
       if (!("problem" in j)) fill2.push(p);
       else if (f.required) {
         const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
@@ -5096,7 +5316,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
     const sv = root && root.querySelector("[class*='select__single-value'], [class*='-singleValue']");
     const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-    return t || null;
+    if (t) return t;
+    const labels = Array.from(root?.querySelectorAll("[class*='select__multi-value__label']") ?? []).map((label) => String(label.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+    return labels.length ? labels.join(", ") : null;
   }
   var lastChoice = null;
   function takeWidgetChoice() {
@@ -5157,6 +5379,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   async function driveWidget(el, wanted, choose) {
     const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+    if (control?.querySelector("[class*='select__multi-value__label']")) {
+      lastChoice = null;
+      return widgetValue(el) === String(wanted).replace(/\s+/g, " ").trim();
+    }
     const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
     const pick2 = choose ?? ((labels) => labels.find((l) => norm3(l) === norm3(wanted)) ?? null);
     if (toggle) press(toggle);

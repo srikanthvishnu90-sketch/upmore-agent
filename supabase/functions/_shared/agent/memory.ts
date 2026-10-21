@@ -176,6 +176,17 @@ const factRows = (profile: any): any[] => (Array.isArray(profile?.facts) ? profi
   typeof f.text === "string" && !!f.text.trim() && f.status !== "rejected"
 );
 const confirmedRow = (f: any) => f.status === "confirmed" && f.needs_confirmation === false;
+// A stored value is one row's data, never another prompt heading. Preserve its words while making embedded line and
+// control separators explicit; otherwise a draft can print a second "Confirmed facts" heading inside its own text.
+const memoryLine = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (c) =>
+  c === "\n" ? "\\n" : c === "\r" ? "\\r" : c === "\t" ? "\\t" : `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`
+);
+function standingLine(s: Standing): string {
+  const provenance: string[] = [];
+  if (typeof s.said === "string" && s.said.trim()) provenance.push(`they said: "${s.said}"`);
+  if (typeof s.at === "string" && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(s.at) && Number.isFinite(Date.parse(s.at))) provenance.push(s.at.slice(0, 10));
+  return memoryLine(`- ${s.id}: ${s.text}${provenance.length ? ` (${provenance.join(", ")})` : ""}`);
+}
 // WO-100: with the situation, its block (every task by name, its blocker, who acts and how; the next steps; what Trainee
 // can do) replaces the pipeline counts and is kept whole, outside this budget (it has its own).
 // WO-106 (F2, live 2026-10-21: the bot could not say back the goal it had saved): what they want, from their account, every
@@ -194,7 +205,7 @@ export function goalLines(profile: any): string[] {
     const draft = !confirmedRow(f);
     out.push(`- ${f.id} [${f.kind}] ${f.text}${draft ? " (said, not confirmed yet)" : ""}`);
   }
-  return out;
+  return out.map(memoryLine);
 }
 
 export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { prefs: AlertPrefs; tz: string } | null; pipeline: Pipeline | null; situation?: Situation | null; budget?: number }): string {
@@ -203,12 +214,14 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   const confirmed = facts.filter(confirmedRow).reverse();
   const drafts = facts.filter((f: any) => !confirmedRow(f)).reverse();
   const goal = goalLines(o.profile);
+  // The stored instruction remains important even when older rows lack optional quote/date metadata.
+  const standing = (Array.isArray(o.standing) ? o.standing : []).filter((s) => s && typeof s.id === "string" && typeof s.text === "string" && s.text.trim());
   const head = [
     "WHAT YOU KNOW ABOUT THIS PERSON FROM THEIR ACCOUNT. Upmore keeps this from their account, not from this chat. Use it; never contradict it; never add to it.",
     "What they told you earlier in this chat is known as well, even where this says none: \"none on file\" means their account has no record, never that you don't know it. Answer from what they said.",
     "",
     "Standing instructions (they said these must always hold; follow every one, mention it when it shapes an answer, never ask for it again):",
-    ...(o.standing.length ? o.standing.map((s) => `- ${s.id}: ${s.text} (they said: "${s.said}", ${s.at.slice(0, 10)})`) : ["- none yet"]),
+    ...(standing.length ? standing.map(standingLine) : ["- none yet"]),
     "",
     "Their goal (what they want; answer \"what's my goal\" from this, and search for it unless they ask for something else):",
     ...(goal.length ? goal : ["- none on file yet"]),
@@ -238,7 +251,8 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   for (const section of optional) {
     const kept: string[] = [];
     let size = section.heading ? section.heading.length + 1 : 0;
-    for (const line of section.lines) {
+    for (const raw of section.lines) {
+      const line = memoryLine(raw);
       if (used + size + line.length + 1 > budget) { dropped++; continue; }
       kept.push(line);
       size += line.length + 1;

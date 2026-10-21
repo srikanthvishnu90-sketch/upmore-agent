@@ -887,3 +887,9 @@ of private content.
   of the stacked build: the number for the 95% target.
 - Defects for the fix list: mid-thread replies re-introduce "Trainee, your career agent..." (lost-thread feel); a
   literal "[your skill]" placeholder reached the person in an H036 reply (bracket placeholders: grep the prompts).
+
+### Repeated-refusal round (run 39598175332, side commit on e41d1723 + H006, 5 passes): mechanism holds; score ties; held
+- Both CI judges 36/31/33/31/33 of 38 (gpt-5-mini 36/31/33/32/34, gpt-4.1-mini 38/35/36/37/37); clean 30:
+  28/23/26/24/26 (mean 25.4) vs the control's 25.6. Cost $0.4546. Zero third identical refusals and zero step-limit
+  or error replies in five passes. H002 passes both CI judges 2/5 (its other causes: the bare confirm question and
+  the plain-yes demand). Built before the H027 and stage fixes were kept; not part of the stack being measured.

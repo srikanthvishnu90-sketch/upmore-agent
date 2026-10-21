@@ -109,11 +109,33 @@ create temp table mc_payload as select jsonb_build_object('version',1,'source','
  'company','Synthetic card employer','url',pg_temp.mc_entry()->>'url','family','lever',
  'fields',jsonb_build_array(
   jsonb_build_object('name','name','label','Full name','value','TEST Person','source','trainee','factId','TEST-NAME','detail',''),
-  jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','source','trainee','factId','approved-local-resume:'||repeat('a',64),'detail','')),
+  -- Actual dom.readDetail wire format: one fingerprint, integer byte size, and MIME (not an empty detail).
+  jsonb_build_object('name','resume','label','Resume/CV','value','synthetic.pdf','source','trainee','factId','approved-local-resume:'||repeat('a',64),'detail',repeat('a',64)||':1234:application/pdf')),
  'resume_name','synthetic.pdf','resume_sha256',repeat('a',64),'privacy_epoch',2,'account_version',3,
  'expires_at',(clock_timestamp()+interval '2 hours')::text) p;
 grant select on mc_payload to authenticated;
 select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+-- Exercise the unchanged actual consumer, not a validator stub. Every refusal must roll back both its early queue
+-- insert and the used_at write which precede attachment of agent_batch_hash in the canonical consumer.
+create function pg_temp.mc_refuses(p jsonb, why text) returns void language plpgsql as $$
+begin
+ perform t.must_fail(format('select career_apply_extension_begin_agent_own(%L::jsonb,%L,%L)',p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_entry())),
+  'message approval boundary',why);
+ perform t.ok((select count(*)=0 from career_apply_jobs),'refusal leaves zero queued/driving jobs: '||why);
+ perform t.ok((select count(*)=1 and bool_and(used_at is null) from career_apply_batch_approvals),'refusal leaves approval unused: '||why);
+end $$;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,0,value}','"CHANGED AFTER REVIEW"'),'changed answer') from mc_payload;
+select pg_temp.mc_refuses(p||jsonb_build_object('resume_sha256',repeat('b',64)),'changed resume hash') from mc_payload;
+select pg_temp.mc_refuses(p||'{"url":"https://jobs.lever.co/other/employer/apply"}'::jsonb,'changed destination') from mc_payload;
+select pg_temp.mc_refuses(p||'{"company":"Different company"}'::jsonb,'changed company') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,0,label}','"Different question"'),'changed field label') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,0,detail}','"value=hidden"'),'hidden text wire detail') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('b',64)||':1234:application/pdf')),'changed attached bytes') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('a',64)||':1234:application/pdf,'||repeat('a',64)||':1234:application/pdf')),'multiple files') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('a',64)||':not-a-size:application/pdf')),'malformed attachment size') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,detail}',to_jsonb(repeat('a',64)||':1234:not-a-mime')),'malformed attachment MIME') from mc_payload;
+select pg_temp.mc_refuses(p||'{"resume_name":"different.pdf"}'::jsonb,'changed prepared resume name') from mc_payload;
+select pg_temp.mc_refuses(jsonb_set(p,'{fields,1,value}','"different.pdf"'),'changed attached filename') from mc_payload;
 insert into mc_state select 'consumer',career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_entry())) from mc_payload;
 select t.ok((select (v->>'id') is not null and (v->>'lease') is not null from mc_state where k='consumer'),'the actual consumer accepts the exact card-authorized payload');
 select t.ok((select count(*)=1 and bool_and(used_at is not null) from career_apply_batch_approvals),'the actual consumer marks the card-minted authorization used');
@@ -121,6 +143,99 @@ select t.must_fail($$select career_apply_extension_begin_agent_own(p,pg_temp.mc_
 select t.must_fail($$select career_apply_message_card_approve_own((select (v->>'id')::uuid from mc_state where k='card'),(select v->>'hash' from mc_state where k='card'))$$,'already used','card cannot remint after its authorization was consumed');
 reset role;
 select t.ok((select count(*)=1 from career_apply_jobs),'the actual consumer created exactly one application record');
+
+-- Hash, payload and destination cannot be detached after the original atomic association.
+select t.must_fail($$update career_apply_jobs set agent_batch_hash=null$$,'message approval boundary','association cannot be stripped');
+select t.must_fail($$update career_apply_jobs set url='https://jobs.lever.co/other/apply'$$,'message approval boundary','queue destination column cannot change');
+select t.must_fail($$update career_apply_jobs set payload=jsonb_set(payload,'{fields,0,value}','"Changed"'),payload_hash=pg_temp.mc_hash(jsonb_set(payload,'{fields,0,value}','"Changed"')),approval_hash=pg_temp.mc_hash(jsonb_set(payload,'{fields,0,value}','"Changed"'))$$,'message approval boundary','future payload rewrite cannot replace answers');
+select t.must_fail($$set role service_role; delete from career_message_approval_private.bound_approvals$$,'permission denied','service client cannot delete the durable Messages marker');
+reset role;
+
+savepoint lifecycle_controls;
+create function pg_temp.mc_variant_entry(job text) returns jsonb language sql as $$
+ select pg_temp.mc_entry(job)||jsonb_build_object('company','Synthetic employer '||job)
+$$;
+-- Deleting the visible card must never remove the submission boundary. The original approval body stays in
+-- the canonical approval table; private binding stores only its ID/hash/deadline, not another copy of answers.
+insert into mc_state values('deleted-card',career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_variant_entry('lever:synthetic:deleted-card'))));
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+insert into mc_state values('deleted-receipt',career_apply_message_card_approve_own((select (v->>'id')::uuid from mc_state where k='deleted-card'),(select v->>'hash' from mc_state where k='deleted-card')));
+reset role;
+delete from agent_messages where id=(select (v->>'message_id')::bigint from mc_state where k='deleted-card');
+select t.ok(not exists(select 1 from career_apply_message_cards where id=(select (v->>'id')::uuid from mc_state where k='deleted-card')),'message deletion cascades the displayed card');
+create temp table mc_deleted_payload as select p||jsonb_build_object('job_id','lever:synthetic:deleted-card','company',pg_temp.mc_variant_entry('lever:synthetic:deleted-card')->>'company','url',pg_temp.mc_entry('lever:synthetic:deleted-card')->>'url') p from mc_payload;
+grant select on mc_deleted_payload to authenticated;
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+select t.must_fail($$select career_apply_extension_begin_agent_own(jsonb_set(p,'{fields,0,value}','"Changed after deletion"'),pg_temp.mc_hash(jsonb_set(p,'{fields,0,value}','"Changed after deletion"')),pg_temp.mc_hash(pg_temp.mc_variant_entry('lever:synthetic:deleted-card'))) from mc_deleted_payload$$,'message approval boundary','deleted message retains exact-answer boundary');
+reset role;
+select t.ok((select count(*)=1 from career_apply_jobs) and (select used_at is null from career_apply_batch_approvals where job_id='lever:synthetic:deleted-card'),'deleted-card refusal leaves zero extra jobs and approval unused');
+update career_message_approval_private.test_users set enabled=false where user_id='00000000-0000-4000-8000-000000001171';
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+select t.must_fail($$select career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_variant_entry('lever:synthetic:deleted-card'))) from mc_deleted_payload$$,'message approval boundary','TEST disabled between tap and actual start');
+reset role;
+update career_message_approval_private.test_users set enabled=true where user_id='00000000-0000-4000-8000-000000001171';
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+insert into mc_state select 'deleted-consumer',career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(pg_temp.mc_variant_entry('lever:synthetic:deleted-card'))) from mc_deleted_payload;
+reset role;
+select t.ok((select count(*)=2 from career_apply_jobs),'unchanged payload after deletion exercises its one approval normally');
+-- A new same-entry card must never extend the old queued job's permission through a latest-hash lookup.
+update career_apply_jobs set state='queued' where job_id='lever:synthetic:deleted-card';
+update career_apply_batch_approvals set revoked_at=clock_timestamp() where job_id='lever:synthetic:deleted-card';
+select t.must_fail($$update career_apply_jobs set state='driving' where job_id='lever:synthetic:deleted-card'$$,'message approval boundary','explicit withdrawal blocks queued-to-driving transition');
+update career_apply_batch_approvals set revoked_at=null where job_id='lever:synthetic:deleted-card';
+update career_message_approval_private.bound_approvals set approved_at=now()-interval '25 hours',expires_at=now()-interval '1 hour' where job_id='lever:synthetic:deleted-card';
+insert into mc_state values('renewal-card',career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(pg_temp.mc_variant_entry('lever:synthetic:deleted-card'))));
+select t.as_user('00000000-0000-4000-8000-000000001171');set role authenticated;
+insert into mc_state values('renewal-receipt',career_apply_message_card_approve_own((select (v->>'id')::uuid from mc_state where k='renewal-card'),(select v->>'hash' from mc_state where k='renewal-card')));
+reset role;
+select t.must_fail($$update career_apply_jobs set state='driving' where job_id='lever:synthetic:deleted-card'$$,'permission expired','same-hash renewal does not renew the original queued job');
+update career_message_approval_private.test_users set enabled=false where user_id='00000000-0000-4000-8000-000000001171';
+update career_apply_jobs set state='unknown_outcome',evidence='{"note":"synthetic already-started outcome unknown"}' where job_id='lever:synthetic:deleted-card';
+select t.ok((select state='unknown_outcome' from career_apply_jobs where job_id='lever:synthetic:deleted-card'),'expired/disabled already-started work can retain truthful terminal evidence');
+rollback to lifecycle_controls;
+
+savepoint field_wire_controls;
+update career_watch_kv set value=jsonb_set(value,'{daily_limit}','"100"') where user_id='00000000-0000-4000-8000-000000001171' and key='career:account';
+-- The real DOM's exact wire formats: select value=raw, choice checked=raw in order, and unambiguous native boxes.
+-- Listed widgets have no sufficiently precise approved raw mapping; they are intentionally unsupported here.
+create function pg_temp.mc_wire(kind text, raw text, shown text, actual text, detail text, supported boolean) returns void language plpgsql as $$
+declare e jsonb; p jsonb; c jsonb; r jsonb; bad jsonb; jobs bigint; job text:='lever:synthetic:wire-'||kind||'-'||substr(pg_temp.mc_hash(to_jsonb(detail)),1,8);
+begin
+ e:=jsonb_set(pg_temp.mc_entry(job),'{answers,0}',(pg_temp.mc_entry(job)->'answers'->0)||jsonb_build_object('kind',kind,'value',raw,'shown',shown))||jsonb_build_object('company','Synthetic wire employer '||job);
+ select q.p||jsonb_build_object('job_id',job,'company',e->>'company','url',e->>'url') into p from mc_payload q;
+ p:=jsonb_set(p,'{fields,0}',(p->'fields'->0)||jsonb_build_object('value',actual,'detail',detail));
+ if kind='listed' or (kind='text' and raw is distinct from shown) then
+  perform t.must_fail(format('select career_apply_message_card_show_as(%L::uuid,%L::uuid,%L::jsonb)',
+   '00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(e)),
+   'unsupported message approval mapping',kind||' unsupported mapping refused before showing a card');
+  perform t.ok(not exists(select 1 from career_apply_batch_approvals where job_id=job),kind||' unsupported card mints zero approvals');
+  return;
+ end if;
+ c:=career_apply_message_card_show_as('00000000-0000-4000-8000-000000001171','00000000-0000-4000-8000-00000000117a',pg_temp.mc_items(e));
+ perform career_apply_message_card_approve_own((c->>'id')::uuid,c->>'hash');
+ select count(*) into jobs from career_apply_jobs;
+ bad:=jsonb_set(p,'{fields,0,detail}',to_jsonb(detail||'tampered'));
+ perform t.must_fail(format('select career_apply_extension_begin_agent_own(%L::jsonb,%L,%L)',bad,pg_temp.mc_hash(bad),pg_temp.mc_hash(e)),'message approval boundary',kind||' raw wire mutation');
+ perform t.ok((select count(*)=jobs from career_apply_jobs) and (select used_at is null from career_apply_batch_approvals where job_id=job),kind||' mutation leaves queue unchanged and approval unused');
+ if supported then
+  r:=career_apply_extension_begin_agent_own(p,pg_temp.mc_hash(p),pg_temp.mc_hash(e));
+  perform t.ok(r->>'id' is not null,kind||' exact DOM wire accepted');
+ else
+  perform t.must_fail(format('select career_apply_extension_begin_agent_own(%L::jsonb,%L,%L)',p,pg_temp.mc_hash(p),pg_temp.mc_hash(e)),'message approval boundary',kind||' ambiguous mapping fails closed');
+  perform t.ok((select count(*)=jobs from career_apply_jobs) and (select used_at is null from career_apply_batch_approvals where job_id=job),kind||' unsupported mapping cannot consume approval');
+ end if;
+end $$;
+select t.as_user('00000000-0000-4000-8000-000000001171');
+select pg_temp.mc_wire('select','US','United States','United States','value=US',true);
+select pg_temp.mc_wire('choice','US, CA','United States, Canada','United States, Canada','checked=US,checked=CA',true);
+select pg_temp.mc_wire('checkbox','yes','Yes (checked)','Yes (checked)','checked=true;value=on',true);
+select pg_temp.mc_wire('checkbox','yes','Yes (checked)','Yes','checked=true;value=on;pressed=yes',true);
+select pg_temp.mc_wire('checkbox','no','No (left unchecked)','No','checked=false;value=on;pressed=no',true);
+select pg_temp.mc_wire('checkbox','no','No (left unchecked)','','checked=false;value=on',false);
+select pg_temp.mc_wire('checkbox','yes','Yes (checked)','Yes (checked)','checked=true;value=custom',false);
+select pg_temp.mc_wire('listed','US','United States','United States','value=US',false);
+select pg_temp.mc_wire('text','HIDDEN','Visible','Visible','',false);
+rollback to field_wire_controls;
 
 -- A separately approved Messages entry is refused by the consumer once its authorization reaches 24 hours.
 set role service_role;

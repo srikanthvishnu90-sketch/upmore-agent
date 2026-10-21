@@ -49,11 +49,14 @@ function tidy(s: string): string {
 const FACT_KINDS = new Set(["experience", "education", "skill", "project", "leadership", "award", "publication", "certification", "goal", "location", "preference", "other"]);
 const NOT_PERSONAL_EVIDENCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
 const record = (v: any) => !!v && typeof v === "object" && !Array.isArray(v);
+function sourceDenied(f: any): boolean {
+  if (!record(f)) return false;
+  if ([f, f.provenance].some((v) => record(v) && (v.unproven === true || v.quarantined === true || v.rejected === true))) return true;
+  return [f.source, f.origin, f.provenance?.source, f.provenance?.origin].some((origin) =>
+    typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-")));
+}
 function sourceFactOk(f: any, legacyToolText = false): boolean {
-  if (!record(f) || f.quarantined === true || f.rejected === true) return false;
-  for (const origin of [f.source, f.origin, f.provenance?.source, f.provenance?.origin]) {
-    if (typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-"))) return false;
-  }
+  if (!record(f) || sourceDenied(f)) return false;
   // Explicit confirmation survives old rows without the flag; absent/unknown status on a stored profile is not proof.
   // Opaque, unlabelled tool facts retain their existing conversational contract. This is not submit authorization.
   return (f.status === "confirmed" || (legacyToolText && f.status === undefined)) &&
@@ -66,15 +69,23 @@ function currentFact(f: any): Record<string, unknown> {
   // Audit, corrected_from, evidence ids and model notes describe how a row got here, not additional current facts.
   return out;
 }
-const SOURCE_AUDIT_KEYS = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected"]);
+const SOURCE_AUDIT_KEYS = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected", "requirement", "requirements"]);
+const pathMove = (v: any) => record(v) && record(v.requirement) && Object.hasOwn(v, "fact") && ["met", "unmet", "unknown"].includes(v.status);
 function sourceResult(v: any, factContext = false, depth = 0): any {
   if (depth > 20) return undefined;
   if (Array.isArray(v)) return v.map((x) => sourceResult(x, factContext, depth + 1)).filter((x) => x !== undefined);
   if (!record(v)) return v;
+  // A child's own status cannot erase an enclosing record's explicit untrusted provenance.
+  if (sourceDenied(v)) return undefined;
   // An employer's requirements describe a job, not this person's experience. Posting display still reads raw results.
   if ((typeof v.job_id === "string" || typeof v.posting_id === "string") && typeof v.title === "string" &&
     (typeof v.description === "string" || typeof v.url === "string")) return undefined;
-  if (factContext || Object.hasOwn(v, "needs_confirmation") || FACT_KINDS.has(v.kind)) return sourceFactOk(v, true) ? currentFact(v) : undefined;
+  // career_path_answer mixes cited personal facts with external requirements and prose rendered from those
+  // requirements. Keep only each move's actual personal evidence; its messages are not an independent fact source.
+  if (Array.isArray(v.moves) && v.moves.some(pathMove)) return sourceResult(v.moves.filter(pathMove), false, depth + 1);
+  if (pathMove(v)) return record(v.fact) ? sourceResult(v.fact, true, depth + 1) : undefined;
+  if (factContext || Object.hasOwn(v, "needs_confirmation") || FACT_KINDS.has(v.kind) ||
+    (typeof v.text === "string" && Object.hasOwn(v, "status"))) return sourceFactOk(v, true) ? currentFact(v) : undefined;
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(v)) {
     if (SOURCE_AUDIT_KEYS.has(key)) continue;
@@ -93,13 +104,13 @@ function resultSource(text: string): string {
 }
 export function factSources(o: { state: Record<string, unknown>; message: string; history: any[]; results: string[] }): string[] {
   const profile: any = o.state?.profile;
-  const facts = (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) => sourceFactOk(f));
+  const facts = (Array.isArray(profile?.facts) && !sourceDenied(profile) ? profile.facts : []).filter((f: any) => sourceFactOk(f));
   const sf: any = o.state?.statedFacts;
   const stated = Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : [];
   const userSaid = (Array.isArray(o.history) ? o.history : []).filter((m: any) => m && m.role === "user").map((m: any) =>
     typeof m.content === "string" ? m.content : Array.isArray(m.content) ? m.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : ""
   );
-  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...o.results.map(resultSource)].filter(Boolean);
+  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => !sourceDenied(sf) && sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...o.results.map(resultSource)].filter(Boolean);
 }
 
 // ------------------------------------------------------------------------------------------------ the fact lock on a reply

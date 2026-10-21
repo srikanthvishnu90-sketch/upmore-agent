@@ -418,7 +418,17 @@ $("q-skip").onclick = async () => (qmsg(await send({ type: "queue-skip" })), ren
 $("q-stop").onclick = async () => (qmsg(await send({ type: "queue-stop" })), render());
 $("q-clear").onclick = async () => (qmsg(await send({ type: "queue-clear" })), render());
 
-chrome.storage.onChanged.addListener(() => render());
+// 50-in-30: while several lanes send, storage changes many times a second, and each render asks the worker for the whole
+// status (the batch, every posting's answers, among it). One render per RENDER_EVERY_MS is enough to read.
+const RENDER_EVERY_MS = 250;
+let renderTimer = null;
+chrome.storage.onChanged.addListener(() => {
+  if (renderTimer) return;
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    render();
+  }, RENDER_EVERY_MS);
+});
 chrome.tabs.onActivated?.addListener(() => render());
 chrome.tabs.onUpdated?.addListener((id) => id === tabId && render());
 render();

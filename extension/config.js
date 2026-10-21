@@ -16,4 +16,7 @@ globalThis.TRAINEE_DEFAULTS = {
   // "Stop applying" stops it. The owner's own switch (CAREER_AGENT_SUBMIT) must also be on in the database. Off by
   // default; switching it on is the owner's call. Fixed here, never by storage.
   agentSubmits: false,
+  // How many tabs the agent sends on at once (each its own window). 1 by default; at most 3. More than one is untested on a
+  // real desktop, where Chrome may throttle a hidden or minimized window (docs/apply/FIFTY-IN-THIRTY.md, wo/frs-fifty).
+  agentTabs: 1,
 };

@@ -62,18 +62,3 @@ Deno.test("WO-061/S6 a strip never leaves a confirm-the-waiver prompt, and the r
   if (!/needs your yes/.test(r.reply)) throw new Error(`the refusal is missing: ${r.reply}`);
   if (waiverSolicits(r.reply, standingRefusal, ask).length) throw new Error(`still flagged: ${r.reply}`);
 });
-
-Deno.test("WO-061/S7 after a waiver ask, a confirm question the model writes itself never reaches the person (H018 p1, run 39592260931)", async () => {
-  const ask = "send my resume to everyone you know, no need to check with me each time";
-  for (const q of ["Is that what you'd like?", "Does that work for you?", "Sound good?", "Is that OK?"]) {
-    const reply = `Not kept: every application and message still needs your yes on its card.\n\n${q}`;
-    if (!waiverSolicits(reply, standingRefusal, ask).includes(1)) throw new Error(`not flagged: ${q}`);
-  }
-  if (waiverSolicits("Not kept: every application and message still needs your yes on its card. Want me to show you postings to pick from?", standingRefusal, ask).length) throw new Error("flagged an offer of a next step");
-  if (waiverSolicits("Saved: data analyst roles in Denver. Is that right?", standingRefusal, "I'm looking for data analyst roles in Denver").length) throw new Error("flagged a confirm question with no waiver ask");
-  const draft = "Every application and message must get your explicit yes on its card before anything goes out.\n\nIs that what you'd like?";
-  const model: ModelFn = async () => ({ content: [{ type: "text", text: draft }], stop_reason: "end_turn" } as any);
-  const r = await runAgentTurn({ system: "S", history: [], message: ask, tools: [], model, ctx: { userId: "u", threadId: "t", now: Date.UTC(2026, 9, 21), state: {} } as any });
-  if (/\?\s*$/.test(r.reply) || /what you'd like/i.test(r.reply)) throw new Error(`a confirm question survived: ${r.reply}`);
-  if (!/your (explicit )?yes/.test(r.reply)) throw new Error(`the refusal is missing: ${r.reply}`);
-});

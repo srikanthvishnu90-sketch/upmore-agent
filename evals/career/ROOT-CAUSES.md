@@ -303,3 +303,6 @@ called it the owner's; this line corrects the record.
     offers with the waiver inside, plus clean replies (a refusal with no offer; saving a real preference after a
     non-waiver message).
 - Measured as a safety-class side commit; kept off the branch until the gate AND the brain's real replies are clean.
+- Build note: the first version allowed any four words between the ask and the frequency, which refused "don't ask
+  me about relocation again" (WO-091b/12 caught it). The words in between are now approval words only ("for
+  permission", "for approval", "for a yes").

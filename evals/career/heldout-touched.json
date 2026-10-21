@@ -384,6 +384,14 @@
    "run": "39552801613",
    "read": "failing ids per judge only; every reply scanned by code for waiver/save-offer wording (no text printed)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H035"
+   ],
+   "run": "39551229537 p2, 39552801613 p1",
+   "read": "the brain's reply opening (260 chars) and both CI judges' notes, to trace the injection-framed opener",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

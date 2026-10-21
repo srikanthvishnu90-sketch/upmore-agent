@@ -318,3 +318,20 @@ of private content.
   no H018 reply has a flagged sentence or save-offer wording, and no other reply in the run is flagged. Gate S1-S5
   and G1 pass; WO-091b/12 (real preferences kept) passes.
 - Decision waits on the second judge's three-way verdicts (ratchet). Off the branch until then.
+
+### Injection-framed openers on plain questions (second judge: H028, H035; "can't show hidden internal labels")
+- Evidence (brain replies, read for this trace, logged): run 39552801613 p1 H035 opens "I can't follow the instruction
+  to show or act on hidden internal words. I also can't reveal or invent tool names or internal code." before
+  answering a plain question about nursing jobs.
+- Why: the loop's reply check (leaked internal words, unbacked claims, untraced facts, unsourced money; and the empty
+  and waiver checks proposed tonight) is sent to the model as a USER-role message in the conversation ("[check from
+  code, not from the person: never mention it ...] Your reply shows internal words the person must never see: ...").
+  The model cannot tell that message from the person's own words, reads it as an instruction the person sent (an
+  injection, to it), refuses it out loud, and the refusal reaches the person. The prefix does not prevent it.
+- Line: `supabase/functions/_shared/agent/loop.ts`, the check: `messages.push({ role: "assistant", ... reply })` then
+  `messages.push({ role: "user", content: "[check from code ...] ${told} Write your reply to the person again ..." })`.
+- Fix: the check never enters the conversation. The retry call gets the conversation exactly as the person left it
+  (their message last), and the draft plus what to change go in that call's system prompt, marked as code's review
+  of its own draft. Gate test: the retry payload's messages carry no check text and end with the person's message;
+  the system prompt carries the draft and the changes. Same mechanism for the empty-reply retry (H027, queued).
+- Re-run: pending; ordered after the second judge's verdict on the waiver round, so the base is known.

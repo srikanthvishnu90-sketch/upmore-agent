@@ -776,3 +776,17 @@ of private content.
   action in it) is flagged by waiverSolicits, so the loop's existing review and strip handle it. Gate tests on the
   guard and the loop. Not this round: the duplicated refusal (code prepends STANDING_REFUSED because its check does
   not count "your explicit yes" as a refusal: loop.ts, the "WO-061 (H018 p1)" line).
+
+## H004 instability (second judge's target): a harness parity gap first, then a missing place for the day
+- Traces (12 passes over four traced runs; H004 fails 4): turn 1 records the employer with track_application; turn 2
+  (the person corrects the day) has no tool that can keep a day: track_application has no date, brief_from_invite
+  needs pasted invite text, add_profile_fact refuses words from an earlier message; turn 3 ("when is it?") calls
+  get_situation, which shows nothing for the employer, and the reply says it is "not on file" instead of the day.
+- Harness parity gap (evals/career/run.ts): production's readSituation reads every thread's tracker rows
+  (career_situation.ts: agent_flow_state -> state.career.trackStore.rows); the harness passes threads: [], so a row
+  recorded earlier in the same chat is never in the situation. In production, turn 3 would see the row. Prepared as a
+  harness-only commit 2a914d15, off-branch: it changes the instrument, so it waits for the owner's
+  ruling and, if applied, a new control.
+- Brain cause behind it (after the parity fix): no place to keep the day of a next step. Candidate code fix:
+  track_application takes the day/time of the next step as the person said it, checked against their message words
+  (D-007), kept on the row and shown by the situation. One round, after the parity ruling.

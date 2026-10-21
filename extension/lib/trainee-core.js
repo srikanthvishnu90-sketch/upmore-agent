@@ -3717,6 +3717,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     IDENTITY_EXTRA: () => IDENTITY_EXTRA,
     MASKED: () => MASKED,
     NO_ANSWER_WAIT_MS: () => NO_ANSWER_WAIT_MS,
+    NO_UNCHECKED: () => NO_UNCHECKED,
     OWN_WORDS_BANNED: () => OWN_WORDS_BANNED,
     OWN_WORDS_UNREAD: () => OWN_WORDS_UNREAD,
     WORKDAY_NOTICE: () => WORKDAY_NOTICE,
@@ -3726,6 +3727,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     answerOnceRows: () => answerOnceRows,
     applyUrl: () => applyUrl,
     approvalHash: () => approvalHash,
+    batchHash: () => batchHash,
+    batchMatch: () => batchMatch,
+    batchPlan: () => batchPlan,
     beforeSession: () => beforeSession,
     blockers: () => blockers,
     cardLines: () => cardLines,
@@ -3989,12 +3993,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   };
   function formAnswersToKeep(o) {
     const q = questionsForTrainee(o);
-    const norm3 = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
+    const norm4 = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
     const out = [];
     for (const row of q.questions) {
       if (/file/.test(String(row.type))) continue;
-      const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm3(x.label) === row.label);
-      const answer = norm3(f?.value ?? "");
+      const f = o.fields.find((x) => (x.source === "you" || x.source === "drafted") && !x.name.startsWith("fixed:") && norm4(x.label) === row.label);
+      const answer = norm4(f?.value ?? "");
       if (!f || !answer || answer === MASKED || answer.length > 2e3 || staysWithPosting(row)) continue;
       if ((row.kind === "essay" || f.source === "drafted") && !String(row.key).startsWith("job:")) continue;
       if (!String(row.key).startsWith("job:") && (namesEmployer(answer, o.company) || row.key === "fact:how_heard" && !howHeardChannel(answer))) continue;
@@ -4458,6 +4462,109 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return out;
   }
+  var NO_UNCHECKED = "No (left unchecked)";
+  var YES2 = /^(true|yes|y|on|checked)\b/i;
+  var kindOf2 = (f) => /file/.test(f.type) ? "file" : f.type === "checkbox" ? "checkbox" : f.widget || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+  function batchPlan(o) {
+    const why = [];
+    if (!o.schema.length) why.push("No application form was read on this posting.");
+    if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
+    if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
+    for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
+    for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
+    for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
+    const answers = [];
+    for (const p of o.plan.fill) {
+      const f = o.schema.find((x) => x.name === p.name);
+      if (!f) continue;
+      const kind = kindOf2(f);
+      if (kind === "file" && !o.resume) {
+        why.push(`"${p.label}" needs your resume file in Trainee first.`);
+        continue;
+      }
+      const opt = kind === "select" ? f.options.find((x) => x.value === p.value) ?? f.options.find((x) => x.label === p.value) : void 0;
+      const shown2 = kind === "file" ? o.resume.filename : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? String(opt.label).replace(/\s+/g, " ").trim() : p.value;
+      answers.push({
+        name: p.name,
+        label: p.label,
+        value: opt ? opt.value : p.value,
+        shown: shown2,
+        kind,
+        factId: p.factId,
+        file: kind === "file" ? o.resume.sha256 : null
+      });
+    }
+    if (why.length) return {
+      ok: false,
+      why
+    };
+    answers.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    const sent = new Set(answers.map((a) => a.name));
+    const blank = [
+      ...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))
+    ].sort();
+    return {
+      ok: true,
+      posting: {
+        jobId: o.jobId,
+        company: o.company,
+        url: o.url,
+        answers,
+        blank
+      }
+    };
+  }
+  var batchHash = (p) => hashApplyPayload({
+    version: 1,
+    kind: "agent-batch",
+    ...p
+  });
+  var norm2 = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  function batchMatch(o) {
+    const diffs = [];
+    if (!o.now.ok) diffs.push(...o.now.why);
+    else {
+      const at = new Map(o.now.posting.answers.map((a) => [
+        a.name,
+        a
+      ]));
+      for (const a of o.approved.answers) {
+        const n = at.get(a.name);
+        if (!n) diffs.push(`"${a.label}": Trainee would no longer answer it.`);
+        else if (n.value !== a.value || n.shown !== a.shown || n.label !== a.label || n.factId !== a.factId || n.file !== a.file) {
+          diffs.push(`"${a.label}": Trainee would now answer "${n.shown}", not the approved "${a.shown}".`);
+        }
+      }
+      for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
+      if (JSON.stringify(o.now.posting.blank) !== JSON.stringify(o.approved.blank)) diffs.push("The form's fields changed since the batch was approved.");
+    }
+    const want = new Map(o.approved.answers.map((a) => [
+      a.name,
+      a
+    ]));
+    for (const c of o.card) {
+      const a = want.get(c.name);
+      if (c.source !== "trainee") {
+        diffs.push(`"${c.label}" was ${c.source === "page" || c.source === "fixed" ? "set by the page" : "typed on the page"}, not approved in the batch.`);
+        continue;
+      }
+      if (!a) {
+        diffs.push(`"${c.label}" is on the form but not in the approved answers.`);
+        continue;
+      }
+      const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",") : a.kind === "select" ? c.detail === `value=${a.value}` : true;
+      if (c.label !== a.label || c.factId !== a.factId || norm2(c.value) !== norm2(a.shown) || !detailOk) {
+        diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
+      }
+    }
+    for (const a of o.approved.answers) if (!o.card.some((c) => c.name === a.name)) diffs.push(`"${a.label}" was not filled.`);
+    for (const l of o.openRequired) diffs.push(`"${l}" is required and not answered yet.`);
+    diffs.push(...o.blockers);
+    return {
+      ok: diffs.length === 0,
+      diffs
+    };
+  }
 
   // extension/src/dom.ts
   var dom_exports = {};
@@ -4499,7 +4606,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var W = globalThis;
   var doc = () => W.document;
   var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  var norm2 = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']+/g, " ").replace(/\s+/g, " ").trim();
+  var norm3 = (s) => String(s ?? "").toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9']+/g, " ").replace(/\s+/g, " ").trim();
   var visible = (el) => !!el && el.getClientRects().length > 0 && W.getComputedStyle(el).visibility !== "hidden";
   function readForm() {
     if (workdayAccountPage()) return {
@@ -4620,7 +4727,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   async function driveWidget(el, wanted, choose) {
     const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
     const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
-    const pick2 = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    const pick2 = choose ?? ((labels) => labels.find((l) => norm3(l) === norm3(wanted)) ?? null);
     if (toggle) press(toggle);
     else typeKeys(el, placeQuery(wanted));
     let opts2 = await until(() => optionEls().length ? optionEls() : null, toggle ? 1500 : 2e3);
@@ -4693,7 +4800,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const opts3 = Array.from((box ?? doc()).querySelectorAll("[role='option']")).filter(visible);
       return opts3.length ? opts3 : null;
     };
-    const pick2 = choose ?? ((labels) => labels.find((l) => norm2(l) === norm2(wanted)) ?? null);
+    const pick2 = choose ?? ((labels) => labels.find((l) => norm3(l) === norm3(wanted)) ?? null);
     const city = placeQuery(wanted);
     const keys = !!el.classList?.contains("location-input");
     const type = () => {
@@ -4745,14 +4852,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return !!el.files?.length;
     }
     if (b.inputType === "select") {
-      const opt = Array.from(el.options).find((o) => o.value === value) || Array.from(el.options).find((o) => norm2(o.textContent) === norm2(value));
+      const opt = Array.from(el.options).find((o) => o.value === value) || Array.from(el.options).find((o) => norm3(o.textContent) === norm3(value));
       if (!opt) return false;
       setNative(el, opt.value);
       fire(el, "input", "change");
       return true;
     }
     if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
-      const opt = (b.options || []).find((o) => o.value === value) || (b.options || []).find((o) => norm2(o.label) === norm2(value));
+      const opt = (b.options || []).find((o) => o.value === value) || (b.options || []).find((o) => norm3(o.label) === norm3(value));
       const oel = opt && element(opt.selector);
       if (!oel) return false;
       if (!oel.checked) oel.click();

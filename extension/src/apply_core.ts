@@ -558,3 +558,95 @@ export function draftProvenance(fields: { name: string; value: string; source: s
   }
   return out;
 }
+
+// ------------------------------------------------------------------------------------------------ agent batch (WO-101)
+// The agent submits; the person approves a batch up front, of the exact answers (CLAUDE.md: "external effects need the
+// user's approval of the exact payload"). One posting's entry is every answer the planner will send, as the browser sends
+// it (`value`) and as the page will show it (`shown`: a select's option text, the resume's file name), with the fact
+// behind it, and every field left blank. A posting with anything the person must answer or do first is not in a batch.
+// The checkbox state the page reads for a box Trainee leaves unchecked (content.js shows it so the card says so).
+export const NO_UNCHECKED = "No (left unchecked)";
+export type BatchKind = "text" | "select" | "choice" | "checkbox" | "file";
+export interface BatchAnswer { name: string; label: string; value: string; shown: string; kind: BatchKind; factId: string; file: string | null }
+export interface BatchPosting { jobId: string; company: string; url: string; answers: BatchAnswer[]; blank: string[] }
+export type BatchPlan = { ok: true; posting: BatchPosting } | { ok: false; why: string[] };
+const YES = /^(true|yes|y|on|checked)\b/i;
+const kindOf = (f: FormField): BatchKind =>
+  /file/.test(f.type) ? "file" : f.type === "checkbox" ? "checkbox"
+  : f.widget || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+export function batchPlan(o: {
+  jobId: string; company: string; url: string; family: Family; schema: FormField[]; plan: ReturnType<typeof planForm>;
+  challenge: boolean; resume: { filename: string; sha256: string } | null;
+}): BatchPlan {
+  const why: string[] = [];
+  if (!o.schema.length) why.push("No application form was read on this posting.");
+  if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
+  if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
+  for (const n of o.plan.needs) why.push(`"${n.label}" needs your answer first.`);
+  for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
+  for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
+  const answers: BatchAnswer[] = [];
+  for (const p of o.plan.fill) {
+    const f = o.schema.find((x) => x.name === p.name);
+    if (!f) continue;
+    const kind = kindOf(f);
+    if (kind === "file" && !o.resume) {
+      why.push(`"${p.label}" needs your resume file in Trainee first.`);
+      continue;
+    }
+    const opt = kind === "select" ? f.options.find((x) => x.value === p.value) ?? f.options.find((x) => x.label === p.value) : undefined;
+    const shown = kind === "file" ? o.resume!.filename : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED)
+      : opt ? String(opt.label).replace(/\s+/g, " ").trim() : p.value;
+    answers.push({ name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? o.resume!.sha256 : null });
+  }
+  if (why.length) return { ok: false, why };
+  answers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const sent = new Set(answers.map((a) => a.name));
+  const blank = [...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))].sort();
+  return { ok: true, posting: { jobId: o.jobId, company: o.company, url: o.url, answers, blank } };
+}
+// What the batch approval is bound to: the same canonical SHA-256 as the one-tap approval (hashApplyPayload).
+export const batchHash = (p: BatchPosting) => hashApplyPayload({ version: 1, kind: "agent-batch", ...p });
+
+// At the send: code approves the card itself only when the page holds exactly what the person approved for this posting.
+// The planner, run again on the live form, must give the same entry; every answer on the card must be Trainee's own, with
+// the approved fact, value and label (a select by its option value, a file by its bytes' hash); nothing more, nothing
+// missing, nothing open, no blocker. Anything else stops this posting for the person, with what differs.
+const norm = (s: string) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: SnapField[]; openRequired: string[]; blockers: string[] }): { ok: boolean; diffs: string[] } {
+  const diffs: string[] = [];
+  if (!o.now.ok) diffs.push(...o.now.why);
+  else {
+    const at = new Map(o.now.posting.answers.map((a) => [a.name, a]));
+    for (const a of o.approved.answers) {
+      const n = at.get(a.name);
+      if (!n) diffs.push(`"${a.label}": Trainee would no longer answer it.`);
+      else if (n.value !== a.value || n.shown !== a.shown || n.label !== a.label || n.factId !== a.factId || n.file !== a.file) {
+        diffs.push(`"${a.label}": Trainee would now answer "${n.shown}", not the approved "${a.shown}".`);
+      }
+    }
+    for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
+    if (JSON.stringify(o.now.posting.blank) !== JSON.stringify(o.approved.blank)) diffs.push("The form's fields changed since the batch was approved.");
+  }
+  const want = new Map(o.approved.answers.map((a) => [a.name, a]));
+  for (const c of o.card) {
+    const a = want.get(c.name);
+    if (c.source !== "trainee") {
+      diffs.push(`"${c.label}" was ${c.source === "page" || c.source === "fixed" ? "set by the page" : "typed on the page"}, not approved in the batch.`);
+      continue;
+    }
+    if (!a) {
+      diffs.push(`"${c.label}" is on the form but not in the approved answers.`);
+      continue;
+    }
+    const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",")
+      : a.kind === "select" ? c.detail === `value=${a.value}` : true;
+    if (c.label !== a.label || c.factId !== a.factId || norm(c.value) !== norm(a.shown) || !detailOk) {
+      diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
+    }
+  }
+  for (const a of o.approved.answers) if (!o.card.some((c) => c.name === a.name)) diffs.push(`"${a.label}" was not filled.`);
+  for (const l of o.openRequired) diffs.push(`"${l}" is required and not answered yet.`);
+  diffs.push(...o.blockers);
+  return { ok: diffs.length === 0, diffs };
+}

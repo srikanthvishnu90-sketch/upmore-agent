@@ -4,11 +4,21 @@ on:
     branches: [wo/lane-b-card-browser-20261021, wo/lane-b-approval-card-20261021]
     paths:
       - src/career-approval-card.js
+      - src/upmore-app-template.html
+      - src/build-app.py
+      - src/chat-request-controller.js
+      - index.html
+      - tests/career-approval-messages-integration.test.cjs
       - tests/career-approval-card-browser.test.cjs
       - .github/workflows/lane-b-approval-card.yml
   pull_request:
     paths:
       - src/career-approval-card.js
+      - src/upmore-app-template.html
+      - src/build-app.py
+      - src/chat-request-controller.js
+      - index.html
+      - tests/career-approval-messages-integration.test.cjs
       - tests/career-approval-card-browser.test.cjs
       - .github/workflows/lane-b-approval-card.yml
 permissions:

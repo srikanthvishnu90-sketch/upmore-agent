@@ -167,3 +167,12 @@ Judges: g5 = gpt-5-mini, g41 = gpt-4.1-mini, ins = Instinct. Scores are of 38.
 - Line: `prompt.ts` has no rule for distress; "One question at most per reply" pushes straight to the question.
 - Fix: one clause meeting the feeling first when they say they are overwhelmed, stressed or discouraged; a gate
   item so the CI judges see it (owner: "Add a dedicated gate test so the CI judges see it too").
+
+### H006 round result (run 39548869025, brain a34e2dc6): reverted
+- Both CI judges 32/34/31 (mean 32.3) vs fix (c2) 33/34/34 (mean 33.7, best on record); gpt-5-mini 32/34/31 vs
+  33/35/34; gpt-4.1-mini 37/37/37 vs 36/36/37. H006 itself passed in all three passes. The build does not beat the
+  best on record, so by the owner's ratchet it is reverted to fix (c2)'s prompt. New failures this round (H011 3/3,
+  H013, H015, H033, H035, one judge each) touch nothing the change touched: inside the measured spread of an
+  unchanged build (28-32), not traced to the change.
+- The revert restores the prompt line with the held-out words "check the weather" (flagged in the touched list):
+  the best build carries a held-out phrase until a measured round removes it.

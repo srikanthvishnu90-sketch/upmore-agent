@@ -196,12 +196,12 @@ test("R2 U12 (integrated, staging turn entry): no leg is silent; legs no route a
   assert.equal(oracle.pass, true, JSON.stringify(oracle.failures));
 });
 
-test("R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 141 sets the global pause anyway and says the exact counts are unverified, never a no-op (the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs)", () => {
+test("R2 C37 spot-check (integrated): the stop turn receives an honest bubble — R-A4 update (SC-300 kill-switch fix): with no queue state in ctx, 142 sets the global pause anyway and says the exact counts are unverified, never a no-op (the kill switch moved from 141 to the router; the real halt with queue state is R3's own test; the pause/count contract is tests/career-killswitch-ra4.test.cjs)", () => {
   const profile = L.gauntletProfile("p1-early-career-swe");
   const s = L.H.session("C37R2", "r2-c37");
   const turn = L.chatTurn(s, "stop everything. don't contact anyone", { profile });
-  assert.equal(turn.handler, "141-career-doorstep.handleChat");
-  assert.deepEqual(turn.delivered, ["Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it."]);
+  assert.equal(turn.handler, "142-career-router.handleChat");
+  assert.deepEqual(turn.delivered, ["Stopped everything I can reach: the global pause is now set for your account, which blocks every send path this product controls. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — the moment the queue records load, I reconcile them and report the exact counts here; you do not need to ask again.", "Tell me what you'd like to do next."]);
   assert.equal(turn.result.global_pause_set, true);
   assert.equal(turn.result.counts_verified, false);
   assert.equal(turn.result.resultStatus, "completed");

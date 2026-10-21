@@ -82,6 +82,18 @@ function sqlValidatePatch(patch) {
   return null;
 }
 
+if (!vm.SourceTextModule) {
+  // Self-respawn idiom (as in career-extension-sync / career-named-role-capture):
+  // the staged-handler suites below need vm.SourceTextModule, so without the
+  // flag this file runs itself once with it and reports the child's verdict.
+  test("v242 live-gaps suites (respawned with VM modules)", () => {
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT; // the nested runner must report its own exit status
+    const run = spawnSync(process.execPath, ["--experimental-vm-modules", "--test", __filename], { encoding: "utf8", env });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+  });
+} else {
+
 test("drift pin: the guard's SQL transcription, the host's kind list, and the migration text agree", () => {
   const migration = fs.readFileSync(path.join(ROOT, "supabase/migrations/20261016120000_career_account_stated_facts.sql"), "utf8");
   const m = migration.match(/f->>'kind' not in \(([^)]*)\)/);
@@ -372,3 +384,5 @@ test("control: confirm with no tailor target — the plain Confirmed reply (the 
     assert.equal(prof.facts.filter((f) => f && f.source === "resume-ingest" && !f.needs_confirmation).length, 15, "15 facts confirmed");
   } finally { app.close(); }
 });
+
+} // end vm.SourceTextModule else (respawn wrapper above)

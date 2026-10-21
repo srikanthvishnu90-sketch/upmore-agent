@@ -54,6 +54,7 @@ Deno.test("the briefing watch set in chat brings the morning briefing on a tradi
   assert(keys.includes("market:brief:2026-10-12"));
   assert(keys.includes("halt:msft-halt"));
   const brief = p.messages.find((x: any) => x.key === "market:brief:2026-10-12");
+  assert(brief, "the market brief is planned");
   assertMatch(brief.text, /\$47,868\.50 in stocks/);
   assertEquals(brief.capability_id, "C17");
 });

@@ -151,7 +151,7 @@ async function serveArtifact(req: Request, deps: ChannelDeps): Promise<Response>
   const got = await fetchArtifactBytes(deps.createAdmin(), { userId: v.userId, ref: v.ref });
   if (!got) return json({ error: "not found" }, 404);
   const safeName = got.filename.replace(/["\r\n]/g, "_");
-  return new Response(got.bytes, {
+  return new Response(got.bytes as Uint8Array<ArrayBuffer>, {
     status: 200,
     headers: {
       "Content-Type": got.mime,

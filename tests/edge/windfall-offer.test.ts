@@ -5,7 +5,7 @@
 // nothing moved and restates the move — never claim a sweep that did not happen. The end-to-end chain (offer
 // yes -> card -> card yes -> balances) is proven in tests/edge/transfer-flow.test.ts.
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { plan, offerMessage, mapAccounts, mapTransactions } from "../../supabase/functions/_shared/proactive.ts";
+import { plan, offerMessage, mapAccounts, mapTransactions, type WindfallOffer } from "../../supabase/functions/_shared/proactive.ts";
 
 const NOW = Date.UTC(2026, 9, 11, 14, 0, 0); // Sun 2026-10-11 10:00 a.m. New York
 const accounts = () => [
@@ -20,7 +20,7 @@ function storedOffer() {
   const p = plan(windfallInput(), NOW);
   const m = p.messages.find((x: any) => /windfall/.test(x.key));
   assert(m && m.offer, JSON.stringify(p.messages.map((x: any) => [x.key, x.text])));
-  return Object.assign({}, m.offer, { thread_id: "thread-1", message_key: m.key });
+  return Object.assign({}, m.offer, { thread_id: "thread-1", message_key: m.key }) as WindfallOffer & { thread_id: string; message_key: string };
 }
 const deps = (offer: any, cleared: { n: number }) => ({
   offer, threadId: "thread-1",

@@ -1,7 +1,7 @@
 {
- "green": true,
+ "green": false,
  "score": {
-  "pass": 92,
+  "pass": 91,
   "total": 92
  },
  "results": [
@@ -303,7 +303,10 @@
    "family": "flow",
    "id": "F:ALRT-012",
    "title": "ALRT-012: scheduler: one unrequested note a day, four a week (AgentLoop budget)",
-   "status": "PASS"
+   "status": "FAIL",
+   "expected": "the path answers as the map says",
+   "actual": "[{\"key\":\"save:fee_refund:overdraft:chk-1:f1\",\"reason\":\"daily_budget\"},{\"key\":\"save:price_increase:NETFLIX.COM\",\"reason\":\"daily_budget\"}]",
+   "path": "evals/agent/run.ts flow()"
   },
   {
    "family": "flow",

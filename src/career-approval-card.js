@@ -14,7 +14,8 @@
   const exact = (value, keys) => record(value) && Object.keys(value).sort().join('|') === keys.slice().sort().join('|');
   const text = value => typeof value === 'string' && value.trim().length > 0;
   const integer = value => Number.isSafeInteger(value) && value >= 0;
-  const insist = (ok, reason = 'invalid') => { if (!ok) throw Error(reason); };
+  class CardError extends Error { constructor(code) { super(code); this.code = code; } }
+  const insist = (ok, reason = 'invalid') => { if (!ok) throw new CardError(reason); };
   const utf8Compare = (a, b) => {
     const x = encoder.encode(a), y = encoder.encode(b);
     for (let i = 0; i < Math.min(x.length, y.length); i++) if (x[i] !== y[i]) return x[i] - y[i];
@@ -191,7 +192,7 @@
           if (dispatched) {
             finished.set(cardId, 'unknown');
             outcome('unknown');
-          } else outcome(REASONS[error?.message] ? error.message : 'unavailable');
+          } else outcome(error instanceof CardError && REASONS[error.code] ? error.code : 'unavailable');
         } finally { pending.delete(cardId); }
       }
       try {
@@ -209,7 +210,7 @@
         if (doc && container && typeof container.replaceChildren === 'function') {
           const message = node('p', ''); message.setAttribute('role', 'status'); status = message; container.replaceChildren(message);
         }
-        outcome(REASONS[error?.message] ? error.message : 'unavailable');
+        outcome(error instanceof CardError && REASONS[error.code] ? error.code : 'unavailable');
       }
       return handle;
     }

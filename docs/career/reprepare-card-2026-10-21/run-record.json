@@ -1,0 +1,330 @@
+{
+  "scenario": "supersession",
+  "user": "b2625909-d67f-41b2-8270-983d212c6052",
+  "job": "lever:palantir:forward-deployed-software-engineer-intern",
+  "steps": [
+    {
+      "step": "initial_prepare",
+      "ok": true,
+      "cardId": "card-2bc908ea7076",
+      "payloadSha256": "c7ed926d2071bb3e84b6dc0fc7f8a8dc9b0dd86561bba0e7c5ad5f1cc5390cef",
+      "cardSha256": "2985ac874e77e485191e3e6097049644a60c0820066f06bd8c58b0ee59e47064"
+    },
+    {
+      "step": "cloud_ask",
+      "questionId": "caq_0001",
+      "key": "start_date",
+      "state": "open"
+    },
+    {
+      "step": "tick_while_open",
+      "actions": [
+        {
+          "jobId": "lever:palantir:forward-deployed-software-engineer-intern",
+          "action": "waiting_open_questions",
+          "open": [
+            "caq_0001"
+          ]
+        }
+      ]
+    },
+    {
+      "step": "answer_as",
+      "ok": true,
+      "provenance": {
+        "source": "owner_reply",
+        "question_id": "caq_0001",
+        "asked_at": 1792609200000,
+        "answered_at": 1792609260000
+      }
+    },
+    {
+      "step": "tick_after_answer",
+      "actions": [
+        {
+          "jobId": "lever:palantir:forward-deployed-software-engineer-intern",
+          "action": "reprepared",
+          "cardId": "card-ae5d19f9eabb"
+        }
+      ]
+    },
+    {
+      "step": "tick_duplicate",
+      "actions": [
+        {
+          "jobId": "lever:palantir:forward-deployed-software-engineer-intern",
+          "action": "already_current"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "oldHash": {
+      "ok": false,
+      "code": "CARD_SUPERSEDED",
+      "supersededCardId": "card-2bc908ea7076",
+      "supersededBy": "card-ae5d19f9eabb",
+      "currentCardId": "card-ae5d19f9eabb",
+      "reason": "the payload changed after this card was issued; only the newest card can be approved"
+    },
+    "newHash": {
+      "ok": true,
+      "cardId": "card-ae5d19f9eabb",
+      "payloadSha256": "68c131927346aa59d1fa459dab148a1e2d6eb08c0872321ebf0cdba229b25d9f"
+    }
+  },
+  "jobLedger": {
+    "jobId": "lever:palantir:forward-deployed-software-engineer-intern",
+    "status": "carded",
+    "openQuestions": [],
+    "failedAsks": [],
+    "lastPreparedFingerprint": "ee364800d017007004a8b6ea8a8deaf92a40d2e4455f7a2d1fa658b6432ff830",
+    "failedFingerprint": null,
+    "inFlightFingerprint": null,
+    "prepareCount": 2,
+    "currentCardId": "card-ae5d19f9eabb",
+    "lastRun": {
+      "id": "batch-b93a652e37e0",
+      "userId": "b2625909-d67f-41b2-8270-983d212c6052",
+      "familyText": "software engineering intern",
+      "requested": 1,
+      "status": "awaiting_approval",
+      "createdAt": 1792609260000,
+      "found": 1,
+      "duplicatesRemoved": 0,
+      "screenedOut": [],
+      "eligible": 1,
+      "selected": [
+        "lever:palantir:forward-deployed-software-engineer-intern"
+      ],
+      "deferred": [],
+      "postings": {
+        "lever:palantir:forward-deployed-software-engineer-intern": {
+          "id": "JOB-RP-A",
+          "job_id": "JOB-RP-A",
+          "canonicalKey": "lever:palantir:forward-deployed-software-engineer-intern",
+          "company": "Palantir",
+          "title": "Forward Deployed Software Engineer, Internship",
+          "role": "Forward Deployed Software Engineer, Internship",
+          "url": "https://jobs.lever.co/palantir/2ad0ab10-34c3-410d-883b-8052864a95cd",
+          "status": "open",
+          "atsFamily": "lever",
+          "location": "New York, NY",
+          "jd_text": "Intern role. JavaScript, data, testing, agile team.",
+          "sources": [
+            null
+          ],
+          "source_urls": [
+            "https://jobs.lever.co/palantir/2ad0ab10-34c3-410d-883b-8052864a95cd"
+          ]
+        }
+      },
+      "apps": {
+        "lever:palantir:forward-deployed-software-engineer-intern": {
+          "postingKey": "lever:palantir:forward-deployed-software-engineer-intern",
+          "company": "Palantir",
+          "role": "Forward Deployed Software Engineer, Internship",
+          "url": "https://jobs.lever.co/palantir/2ad0ab10-34c3-410d-883b-8052864a95cd",
+          "stage": "doorstep",
+          "stop": null,
+          "payloadSha256": "68c131927346aa59d1fa459dab148a1e2d6eb08c0872321ebf0cdba229b25d9f",
+          "confirmationId": null,
+          "tailored": {
+            "ran": true,
+            "version": {
+              "versionId": "resume-v2",
+              "jobId": null,
+              "company": null,
+              "date": null,
+              "family": "general",
+              "diff": {
+                "added": [
+                  {
+                    "text": "",
+                    "factIds": [
+                      "TP-002"
+                    ],
+                    "evidenceFactIds": [
+                      "TP-002"
+                    ],
+                    "reason": "added — supported by fact TP-002"
+                  },
+                  {
+                    "text": "Founder, Sporv AI (2025–present)",
+                    "factIds": [
+                      "TP-002"
+                    ],
+                    "evidenceFactIds": [
+                      "TP-002"
+                    ],
+                    "reason": "added — supported by fact TP-002"
+                  },
+                  {
+                    "text": "",
+                    "factIds": [
+                      "TP-001"
+                    ],
+                    "evidenceFactIds": [
+                      "TP-001"
+                    ],
+                    "reason": "added — supported by fact TP-001"
+                  },
+                  {
+                    "text": "DePaul University Driehaus, CS + Finance, 2025–2029",
+                    "factIds": [
+                      "TP-001"
+                    ],
+                    "evidenceFactIds": [
+                      "TP-001"
+                    ],
+                    "reason": "added — supported by fact TP-001"
+                  }
+                ],
+                "moved": [],
+                "removed": [],
+                "summary": "4 added, 0 removed, 0 moved (4 content changes)"
+              },
+              "outcome": null,
+              "gaps": [
+                {
+                  "requirement": "JavaScript",
+                  "kind": "skill",
+                  "tier": "must-have",
+                  "gapClass": "required",
+                  "reasonClass": "no-evidence",
+                  "reason": "posting requires JavaScript; no proven fact on your record evidences it",
+                  "evidence": null
+                },
+                {
+                  "requirement": "Agile",
+                  "kind": "skill",
+                  "tier": "must-have",
+                  "gapClass": "required",
+                  "reasonClass": "no-evidence",
+                  "reason": "posting requires Agile; no proven fact on your record evidences it",
+                  "evidence": null
+                }
+              ],
+              "requiredGaps": [
+                {
+                  "requirement": "JavaScript",
+                  "kind": "skill",
+                  "tier": "must-have",
+                  "gapClass": "required",
+                  "reasonClass": "no-evidence",
+                  "reason": "posting requires JavaScript; no proven fact on your record evidences it",
+                  "evidence": null
+                },
+                {
+                  "requirement": "Agile",
+                  "kind": "skill",
+                  "tier": "must-have",
+                  "gapClass": "required",
+                  "reasonClass": "no-evidence",
+                  "reason": "posting requires Agile; no proven fact on your record evidences it",
+                  "evidence": null
+                }
+              ],
+              "preferredGaps": [],
+              "artifacts": {
+                "pdf": {
+                  "filename": "TEST_Srikanth_Resume.pdf",
+                  "sha256": "d3218cc4c0ec0f46d0e7c00c2c50e760ecaa0ec9dd139f505f8684c3a7917b6d",
+                  "bytes": 1093
+                },
+                "docx": {
+                  "filename": "TEST_Srikanth_Resume.docx",
+                  "sha256": "e8b9b5b3976059e4936328d327e87aa0371da84d891eb1ef94d62f3a50e3381b",
+                  "bytes": 1901
+                },
+                "parseCheck": "PASS"
+              }
+            },
+            "gaps": 2
+          }
+        }
+      },
+      "approvals": {},
+      "approvalRef": null,
+      "card": {
+        "type": "batch_approval",
+        "title": "Apply to 1 software engineering intern roles?",
+        "items": [
+          {
+            "company": "Palantir",
+            "role": "Forward Deployed Software Engineer, Internship",
+            "fit": null,
+            "fit_label": "no fit score yet",
+            "resumeVersion": null
+          }
+        ],
+        "count": 1,
+        "summary": "Palantir — Forward Deployed Software Engineer, Internship: no fit score yet",
+        "note": "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit."
+      },
+      "cardSha256": "f9dd71bd285dfe1050fa6d143b739c993b43ec77684797f4a7cdc25e9d1f3b82",
+      "events": [
+        {
+          "seq": 1,
+          "type": "discovered",
+          "found": 1,
+          "familyText": "software engineering intern"
+        },
+        {
+          "seq": 2,
+          "type": "screened",
+          "eligible": 1,
+          "screenedOut": 0
+        },
+        {
+          "seq": 3,
+          "type": "doorstep",
+          "postingKey": "lever:palantir:forward-deployed-software-engineer-intern",
+          "company": "Palantir"
+        },
+        {
+          "seq": 4,
+          "type": "prepared",
+          "doorstep": 1,
+          "status": "awaiting_approval"
+        }
+      ],
+      "summary": {
+        "runId": "batch-b93a652e37e0",
+        "familyText": "software engineering intern",
+        "requested": 1,
+        "status": "awaiting_approval",
+        "approvalRef": null,
+        "found": 1,
+        "duplicatesRemoved": 0,
+        "screenedOut": [],
+        "eligible": 1,
+        "selected": 1,
+        "doorstep": 1,
+        "submitted": 0,
+        "confirmations": [],
+        "stops": [],
+        "deferred": []
+      }
+    },
+    "failures": [],
+    "events": [
+      {
+        "seq": 1,
+        "at": 1792609200000,
+        "type": "card_issued",
+        "cardId": "card-2bc908ea7076",
+        "payloadSha256": "c7ed926d2071bb3e84b6dc0fc7f8a8dc9b0dd86561bba0e7c5ad5f1cc5390cef",
+        "supersedes": null
+      },
+      {
+        "seq": 2,
+        "at": 1792609260000,
+        "type": "card_issued",
+        "cardId": "card-ae5d19f9eabb",
+        "payloadSha256": "68c131927346aa59d1fa459dab148a1e2d6eb08c0872321ebf0cdba229b25d9f",
+        "supersedes": "card-2bc908ea7076"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+RE-PREPARED APPLICATION — NEW APPROVAL CARD
+===============================================
+Job: Forward Deployed Software Engineer, Internship at Palantir (lever:palantir:forward-deployed-software-engineer-intern)
+Card: card-ae5d19f9eabb — SUPERSEDES card-2bc908ea7076
+Superseded payload hash: c7ed926d2071bb3e84b6dc0fc7f8a8dc9b0dd86561bba0e7c5ad5f1cc5390cef
+The earlier card's approval does NOT carry over: approval is bound to the exact payload.
+Payload hash: 68c131927346aa59d1fa459dab148a1e2d6eb08c0872321ebf0cdba229b25d9f
+Card set hash: f9dd71bd285dfe1050fa6d143b739c993b43ec77684797f4a7cdc25e9d1f3b82
+Posture: flag OFF — approval drives DOORSTEPS ONLY. Nothing submits.
+
+ANSWERS THIS APPLICATION WILL SEND (per answer, as tagged):
+[REAL] name: TEST — Vishnu Srikanth
+[REAL] email: srikanthvishnu90@gmail.com
+[REAL] phone: +1 2246029341
+[REAL] location: Chicago, IL
+[REAL] school: DePaul University (Driehaus College of Business)
+[REAL] graduation year: 2029
+[REAL] work authorized: Yes
+[REAL] sponsorship required: No (owner-stated 2:10 PM)
+[REAL] years of experience: 3 (owner-stated 2:10 PM)
+[REAL] resume file: Vishnu_Srikanth_Resume.docx (his real resume)
+[TEST-INVENTED] cover note / "why this company": TEST SAMPLE — SYNTHETIC TEXT, NOT A REAL STATEMENT
+[TEST-INVENTED] EEO: Decline to self-identify (product default)
+[REAL] Earliest start date: June 1, 2027 (owner reply — question start_date (caq_0001), answered 2026-10-21T19:01:00.000Z)
+
+STOPS NAMED (still unanswered — never invented, never filled):
+- Graduation MONTH (year only is known)
+- Date of birth / age-18+ attestation facts
+- The [28] placeholder item
+- Security clearance specifics
+- Relocation specifics
+- certify_true attestation — this card's approval is the attestation step, per batch

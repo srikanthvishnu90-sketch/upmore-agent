@@ -153,11 +153,28 @@
         const raw = node('pre', canonical(card.payload), details); raw.style.whiteSpace = 'pre-wrap'; raw.style.overflowWrap = 'anywhere';
         button = node('button', 'Approve these exact answers for ' + card.payload.items.length + (card.payload.items.length === 1 ? ' application' : ' applications'), section); button.type = 'button'; button.disabled = true;
         status = node('p', '', section); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-        button.onclick = () => tap();
+        button.onclick = event => tap(event);
         container.replaceChildren(section); stamp = disclosureSignature();
       }
       function disclosed() {
         if (!display || disclosureSignature() !== stamp || display.hidden || display.getAttribute('aria-hidden') === 'true') return false;
+        if (container.isConnected !== true || display.isConnected !== true || button?.isConnected !== true) return false;
+        const view = doc.defaultView;
+        if (!view || typeof view.getComputedStyle !== 'function') return false;
+        const details = display.querySelectorAll('details')[0];
+        // The optional raw-JSON inspection can be closed. Every primary answer and fingerprint must be visible.
+        const targets = [display, ...display.querySelectorAll('*')].filter(node => !details || !details.contains(node));
+        for (const target of targets) {
+          let node = target;
+          while (node && typeof node.tagName === 'string') {
+            if (node.hidden || node.getAttribute?.('aria-hidden') === 'true') return false;
+            let css;
+            try { css = view.getComputedStyle(node); } catch (_) { return false; }
+            if (!css || css.display === 'none' || ['hidden', 'collapse'].includes(css.visibility) || css.contentVisibility === 'hidden' || Number(css.opacity) === 0) return false;
+            if (typeof node.getClientRects === 'function' && css.display !== 'contents' && node.getClientRects().length === 0) return false;
+            node = node.parentNode;
+          }
+        }
         let parent = display.parentNode;
         while (parent) {
           if (parent.hidden || (typeof parent.getAttribute === 'function' && parent.getAttribute('aria-hidden') === 'true') || parent.style?.display === 'none' || parent.style?.visibility === 'hidden') return false;
@@ -166,8 +183,15 @@
         }
         return false;
       }
-      async function tap() {
+      function ownerTap(event) {
+        const NativeEvent = doc.defaultView?.Event;
+        if (!event || typeof NativeEvent !== 'function' || !(event instanceof NativeEvent) || event.type !== 'click' || event.isTrusted !== true || event.currentTarget !== button || !button?.contains(event.target)) return false;
+        // Native brand validation rejects objects forged with Event.prototype and an isTrusted property.
+        try { return NativeEvent.prototype.composedPath.call(event).includes(button); } catch (_) { return false; }
+      }
+      async function tap(event) {
         if (state !== 'open' || pending.has(cardId) || finished.has(cardId)) return;
+        if (!ownerTap(event)) return;
         if (!allowed()) { outcome('stale'); return; }
         if (now() >= snapshot.payload.expires_at) { outcome('expired'); return; }
         if (!disclosed()) { outcome('changed'); return; }

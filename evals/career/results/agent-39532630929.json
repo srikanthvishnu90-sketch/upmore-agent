@@ -1,0 +1,573 @@
+{
+ "label": "agent-39532630929",
+ "set": "official",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "commit": "1e89fe6",
+ "run_at": "2026-10-21T02:29:30.278Z",
+ "cost_usd": {
+  "brain": 0.136704,
+  "judge": 0.014178
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 0.6880529999999999,
+ "total": 50,
+ "passed": 35,
+ "pass_rate": 0.7,
+ "items": [
+  {
+   "id": "E001",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Trainee, your career agent — I find jobs, prepare applications and interview prep, and track everything. What are you after (role and city is enough) so I can start? One question: which city or \"remote\"?"
+   ],
+   "note": "Meets requirements: introduces as a career agent and asks a concise question; could be slightly clearer by combining the two city questions into one."
+  },
+  {
+   "id": "E002",
+   "pass": false,
+   "failed": [
+    "plays back the key facts (RN, Ohio, 6 years ICU, remote case manager goal)",
+    "asks the user to confirm them",
+    "Expected end state (if given): profile has draft facts covering the stated experience"
+   ],
+   "score": 2,
+   "replies": [
+    "Saved: Registered nurse in Ohio with 6 years ICU experience, seeking remote case manager role. Tell me if that's off.\n\nNext step: I’ll search for remote case manager jobs that fit an RN with ICU background. Is there any must-have (pay floor, full-time vs. contract, benefits, remote time zone limits, or need for employer to sponsor anything)? (One question only.)"
+   ],
+   "note": "Agent partially summarized but omitted explicit playback of all key facts and did not ask a single confirmation question; profile draft exists but confirmation flag true—should have asked user to confirm."
+  },
+  {
+   "id": "E003",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: Truck driver, 12 years, CDL-A. Tell me if that's off.\n\nShort list of local/home-nights options that use your driving experience and keep you home most nights (assumed: you want daytime local or regional roles with regular home time). Pick one to explore and I’ll find postings and prep applications:\n1) Local delivery driver — last-mile for grocery, parcel, or furniture (home nightly, steady schedule).\n2) Route driver/straight truck — beverage, bakery or parts delivery with set daily routes and early return.\n3) Driving instructor (CDL trainer) — teach new drivers; regular hours, local.\n4) Shuttle / transit driver — airport, corporate, or medical shuttles; schedules that return you home.\n5) Local LTL (less-than-truckload) pickup & delivery — dock work plus driving, often home nightly.\n6) Municipal or school bus driver — local routes, daytime, plus benefits and predictable schedule.\n7) Warehouse/driver hybrid (local distribution center) — driving plus picking/stocking, regular shift work.\n8) CDL driver for private fleet (construction, waste, municipal services) — consistent local routes and schedules.\n\nNext step I’ll take: I’ll search local postings for the role you pick (default: “Local delivery driver near me”) and queue relevant jobs for your review. Which role should I search? (Default: Local delivery driver.)"
+   ],
+   "note": "Reply met all requirements: listed realistic local CDL-A options and offered a clear next step (search for local delivery driver by default)."
+  },
+  {
+   "id": "E004",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: I got laid off yesterday. Tell me if that's off.\nFirst things to do right now (in order):\n1) Pause finances: calculate runway (monthly spend) and freeze non‑essentials. If you want, tell me your monthly take‑home and savings and I’ll calculate runway.\n2) Unemployment & benefits: file for unemployment today (state site). If you had healthcare through employer, check COBRA deadlines and start options on ACA marketplace.\n3) Update basics: get one clean resume copy and your LinkedIn marked open to opportunities. If you want, paste your current resume or the name+email for the resume header and I’ll save/use it.\n4) Document job leads & contacts: list people to tell (former manager, coworkers, mentors). I can draft outreach messages for them.\n5) Apply fast and smart: target 8–12 relevant jobs this week (I can search and queue apps). Tell me one role/title and city/remote preference and I’ll find matches now.\n6) Short‑term income options: consider contract, temp, consulting, or gig work; if you want, tell me skills you can monetize and I’ll suggest quick gigs.\n7) Care for yourself: one day is a lot — take a short break, then set a 2‑hour jobsearch routine each weekday.\n\nNext step I’ll do now for you: I saved that you were laid off. Tell me the single most important missing fact right now — your target role/title (or “undecided” to have me suggest roles)."
+   ],
+   "note": "Reply is warm, lists concrete immediate steps (including severance/unemployment/resume/networking) and offers to begin actions (calculate runway, draft messages, find jobs), matching requirements."
+  },
+  {
+   "id": "E005",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Got it — I’ll improve your resume. I need one thing first: paste the current resume text (or upload the file). If you don’t have it, type your name, contact email, 3–6 past roles with company name, job title, dates, and 3 bullets each, plus education and any key skills/certs. I’ll draft a cleaned, ATS-friendly resume and show the PDF link for you to review.\n\nSaved: \"My resume sucks lol\". Tell me if that's off."
+   ],
+   "note": "Reply correctly asked for the resume (paste/upload) and stated it will improve it; concise and actionable, but could be slightly friendlier and confirm handling of the saved phrase."
+  },
+  {
+   "id": "E006",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Find a remote product design job in Austin. Tell me if that's off.\n\nI searched live job boards for \"product designer remote Austin\" and found no matching postings. Next useful step: do you want me to (pick one) —\n1) broaden to \"remote product design\" anywhere (not just Austin), or\n2) look for hybrid/on-site Austin roles that allow partial remote work, or\n3) set up alerts for remote product-design roles mentioning Austin and notify you when any appear?\n\nPick 1, 2, or 3 (default: 3)."
+   ],
+   "note": "Reply is honest about search results, correctly focuses on remote product design in Austin, and offers reasonable next steps but doesn't ask about the candidate's experience level explicitly."
+  },
+  {
+   "id": "E007",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Senior backend engineer with 9 years of Go experience, looking for staff roles paying $250k+. Tell me if that's off.\n\nNext step: Do you want me to search for matching staff/Principal backend/engineering roles (remote or a specific location)? (Default: search remote, top 20 results.)"
+   ],
+   "note": "Reply correctly echoed 'Senior', '9 years', 'Go', 'staff roles', and '$250k+' for confirmation and offered a sensible next step; could be slightly clearer about exact role titles (staff/Principal) but meets requirements."
+  },
+  {
+   "id": "E008",
+   "pass": false,
+   "failed": [
+    "asks for the key numbers or facts it needs (base, equity, level, team, risk) or offers a comparison framework",
+    "is balanced and specific to the decision"
+   ],
+   "score": 2,
+   "replies": [
+    "I can't read your situation right now (the app check failed). Tell me the two offers in one line each: company, role/title, base salary, total comp or bonuses, equity (amount and vesting if known), location, and any deadlines. I'll compare them and give a clear recommendation. (One question: do you need visa sponsorship?)"
+   ],
+   "note": "The agent requested offers and visa info (good) but didn't explicitly ask for all key numbers (level, team, risk) nor provide a comparison framework or balanced decision guidance; response was short and procedural."
+  },
+  {
+   "id": "E009",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Short answer: probably not yet. Quitting before you have another offer eliminates your leverage, creates income gaps that make job hunting harder, and removes legal or benefits protections (unemployment, COBRA, references). But there are valid exceptions. I’ll give the quick trade-offs, a practical checklist to protect you now, and one next step.\nTrade-offs\n- Staying (while you look): keeps pay/benefits, makes you look stable to employers, lets you search from a position of strength, and gives time to negotiate offers. Downside: ongoing stress, possible mental health harms, continued poor references if things escalate.\n- Quitting now: removes daily stress immediately and may be necessary if the workplace is unsafe (harassment, threats, violence) or seriously harming your health. Downside: longer job search, lower immediate bargaining power, potential gaps on resume, loss of employer-sponsored benefits, and limited unemployment eligibility.\nWhen quitting first makes sense (consider quitting now if any of these apply)\n- You face physical danger, credible threats, or sustained harassment that HR won’t fix.\n- A clinician (doctor/therapist) advises you to stop for mental/physical health reasons and documents it.\n- You’ve saved 3–6 months of living expenses, have reliable contacts who can hire you quickly, or have an independent income source.\n- Continuing would cause irreparable professional harm (forced to do illegal or fraudulent acts).\nIf none of those apply, do this instead (practical checklist)\n1) Document incidents: dates, what was said/done, witnesses, and any written records (emails, messages). This helps HR, unemployment, or legal steps later.\n2) Protect your finances: build a 1–3 month emergency buffer if possible; map monthly burn and benefits you’d lose.\n3) Quiet job search: update resume, LinkedIn, and target 2–3 companies/roles; set alerts. I can search and queue applications when you say what role/location/seniority you want.\n4) Use supports: talk with HR if you want (but be cautious if they’re aligned with your boss), or get confidential advice from an employment lawyer or union rep if applicable.\n5) Prepare an exit strategy: ideal timeline, notice length, how to hand off work, who to notify for references.\n6) Self-care plan: time off, therapy sessions, or a short leave if your doctor can support it.\n\nIf you want to act now, tell me the single most important piece of missing info and I’ll take the next step:\n- Do you feel physically unsafe or are you being harassed/threatened? (Yes/No)\nIf yes, I’ll tell you how to document it and optional immediate protections. If no, I’ll help craft a quiet job search plan targeted to the role and location you want."
+   ],
+   "note": "Meets requirements: directly addresses quitting before having another offer, lists practical trade-offs including runway/timeline and job-search-while-employed, and offers to help start a search with a clear next-step question."
+  },
+  {
+   "id": "E010",
+   "pass": false,
+   "failed": [
+    "describes the real path (apprenticeship, trade school, licensing varies by state)",
+    "asks where they live or their current situation"
+   ],
+   "score": 1,
+   "replies": [
+    "Tell me if that's off."
+   ],
+   "note": "Reply 'Tell me if that's off.' fails to describe steps to become an electrician and does not ask about location or current situation, so it does not meet requirements."
+  },
+  {
+   "id": "E011",
+   "pass": false,
+   "failed": [
+    "a short, specific email draft",
+    "uses placeholders or asks for facts it doesn't have rather than inventing them",
+    "says it will not be sent without approval or that the user sends it"
+   ],
+   "score": 3,
+   "replies": [
+    "Subject: Interested in Data Analyst roles at Stripe — quick question\n\nHi [Recruiter Name],\n\nI hope you’re well. I’m [Your Name], a data analyst with [X years] experience in [industry or key area — e.g., payments, e‑commerce, ad tech], working with SQL, Python, and Looker to turn product and transaction data into clear recommendations. I’m very interested in data analyst roles at Stripe and wanted to ask whether your team is hiring for analysts focused on [choose: product analytics / payments risk / growth analytics / finance analytics — pick one].\nA few highlights:\n- [One-line result 1: e.g., \"Built a retention model that reduced churn by 12% at Company Y.\"]\n- [One-line result 2: e.g., \"Led dashboards and reports that cut reporting time from 3 days to 2 hours.\"]\n- Tech: SQL, Python, Looker/Tableau, [any other tools you use].\n\nIf you’re hiring, I’d appreciate a brief note about the best role or team to explore and the right person to speak with. If now isn’t the right time, I’d welcome any suggestion for when to check back or who else on the team to contact.\n\nThanks for your time — I can send a short resume and a one-page portfolio if helpful.\n\nBest,\n[Your Name]\n[Email] | [Phone] | [LinkedIn]\nSaved: Wants a cold email to a recruiter at Stripe asking about data analyst roles. Tell me if that's off.\n\nDo you want this to be shorter/more casual or tailored to a specific Stripe team (payments, product, risk, finance)?"
+   ],
+   "note": "Reply is a good, well-structured cold email but is slightly long (not short), uses placeholders extensively instead of asking for missing facts, and does not state it won't be sent without user approval."
+  },
+  {
+   "id": "E012",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: Apply for marketing coordinator jobs. Tell me if that's off.\n\nDraft cover letter for a Marketing Coordinator role — I assumed a professional but friendly tone and a one-page length. I left [brackets] for details you haven't given. Edit any bracketed text and tell me if you want a different tone (more formal, more creative, shorter).\n\n[Your Name]\n[Your Address]\n[City, State ZIP]\n[Your Email] | [Your Phone] | [LinkedIn or Portfolio URL]\n\n[Date]\n\n[Hiring Manager’s Name]\n[Company Name]\n[Company Address]\n[City, State ZIP]\n\nDear [Hiring Manager’s Name],\nI am excited to apply for the Marketing Coordinator position at [Company Name]. With [X years] of hands-on experience supporting marketing campaigns, coordinating cross-functional projects, and managing content and social channels, I bring the organizational skills and creative drive to help your team grow brand awareness and deliver measurable results.\nIn my most recent role at [Current or Most Recent Employer], I supported a variety of marketing initiatives including email campaigns, social media calendars, and event coordination. I regularly:\n- Managed the content calendar and scheduled posts across [channels, e.g., LinkedIn, Instagram, Facebook], increasing engagement by [metric or % if available — otherwise remove bracket].\n- Assisted in executing email campaigns using [tool, e.g., Mailchimp, HubSpot], contributing to a [metric, e.g., open rate or CTR improvement].\n- Coordinated logistics for [type of events — webinars, trade shows, in-person events], collaborating with vendors and internal stakeholders to keep timelines and budgets on track.\n\nI am comfortable with the day-to-day project management tasks a Marketing Coordinator owns: prioritizing requests, tracking deliverables, and ensuring clean handoffs between creative, analytics, and sales teams. I work well with both data and creative direction — I can pull basic campaign performance reports, surface actionable insights, and translate them into recommendations for future content and targeting.\nWhat excites me about [Company Name] is [brief reason tied to the company — e.g., your focus on sustainable products, your data-driven marketing approach, your creative brand voice]. I am eager to contribute by supporting campaign execution, tightening workflow processes, and helping scale programs that connect with your audience.\nI’m enthusiastic about the opportunity to bring my attention to detail, collaborative approach, and results-focused mindset to the Marketing team at [Company Name]. Thank you for considering my application; I look forward to the chance to discuss how I can help meet your goals. I’ve attached my resume and portfolio with examples of campaigns and content I’ve helped produce.\n\nSincerely,\n[Your Name]\n\nOne next step: Tell me the company name, one specific accomplishment or metric to include (or say you’d rather keep it generic), and the tone you want (professional, friendly, creative)."
+   ],
+   "note": "The agent asked for missing details, left clearly marked brackets for gaps, avoided inventing specifics, and provided a usable one-page draft with next steps."
+  },
+  {
+   "id": "E013",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Tell me the role and company for tomorrow’s interview, and paste the interview invite or the job posting now (I’ll read it). If you don’t have either, say the role, company and format (phone / video / onsite) and I’ll assume the posting’s skill words are [these common ones: problem-solving, communication, stakeholder management] and prepare a general plan.\n\nNext step after your reply: I’ll read the posting/invite and give a 10-point prep plan, 6 top questions (behavioral + technical), and mock the first interview question now."
+   ],
+   "note": "The reply asks for the role and company (one question), offers to read posting or assumes skills, and promises a mock first question; clear next steps — useful but could be more specific about timeline or sample mock question immediately."
+  },
+  {
+   "id": "E014",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Good — we'll run a mock interview. I'll ask the first question now; answer as you would in the room (brief, specific, with examples). I'll score it and give one concrete improvement, then ask the next question.\n\nFirst question: \"Tell me about yourself and why this role.\""
+   ],
+   "note": "Meets requirements: starts with mock interview and common question; useful structure but could include role/company prompt to tailor questions."
+  },
+  {
+   "id": "E015",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Done — I recorded your Deloitte application as Submitted for \"consulting analyst.\" I couldn't load your full Situation view just now (system error), so I can't list other tasks or next steps automatically.\n\nNext step: expect a recruiter screen or an automated assessment invite in 1–3 weeks. Tell me if you want me to:\n- draft a tailored follow-up message to check status in 1 week (I’ll assume a polite, 2‑sentence tone unless you tell me otherwise).\n\nOne question: do you want that follow-up drafted now?",
+    "I can't read your full Situation right now (system error). From your account list I have one application recorded:\n\n1) Deloitte — consulting analyst — Submitted (applied 2026-10-19). No further events recorded yet.\n\nWhat that means: nothing else (screen, assessment invite, interview) is on file. Typical next step: recruiter screen or automated assessment in ~1–3 weeks, but I don't have any timeline from Deloitte on this application.\n\nNext step I can do now: draft a polite 2-sentence follow-up to check status for you to send. Want me to draft that? (I'll assume a polite tone and ask only for your preferred sign-off if you say yes.)"
+   ],
+   "note": "Agent correctly reported the Deloitte application as submitted, did not invent other applications, and the tracker end state matches the expected single Deloitte row."
+  },
+  {
+   "id": "E016",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Recorded: Deloitte — Consulting Analyst as Submitted. I couldn't read your full SITUATION just now (system error), so I can't list other tasks or next steps from your account.\n\nNext useful step: do you have any interview invite or timeline from Deloitte yet? If yes, paste the invite exactly; if no, tell me whether you want a 10-point prep plan now (I’ll assume a remote 30–45 minute interviewer screen if you don't say).",
+    "Marked and recorded: Deloitte — Consulting Analyst as Rejected.\n\nThat's recorded. Want the three best next roles to apply to now (I’ll pick consulting analyst/strategy roles in your area and remote if you don’t say), or would you rather I draft a short reply asking for feedback from Deloitte? (One question: which do you want — job matches or a feedback-request draft?)"
+   ],
+   "note": "Reply correctly recorded the Deloitte application as Rejected and offered two clear next steps (job matches or a feedback-request draft) with a brief, kind next step prompt; could be slightly more directive about default remote/area preferences."
+  },
+  {
+   "id": "E017",
+   "pass": false,
+   "failed": [
+    "records a single 'rejected' application",
+    "a concrete diagnosis offer (look at resume, targeting, volume vs tailoring)"
+   ],
+   "score": 2,
+   "replies": [
+    "That's a draining month — I recorded those rejections so we have the truth in your file. Want me to save it as \"40 rejections in October\"? If yes I'll record that and then do one of: (a) scan recent applications for common gaps, (b) pull three better-fit roles to apply to, or (c) run a quick resume/CV check. Default: I'll scan your recent applications for common gaps. One question: which do you want me to do next — scan for gaps (default), find new roles, or check your resume?"
+   ],
+   "note": "Reply shows empathy and offers actions but improperly records a single '40 rejections' entry as one rejected application in trackStore and fails to explicitly offer the concrete diagnosis options phrased (resume, targeting, volume vs tailoring)."
+  },
+  {
+   "id": "E018",
+   "pass": false,
+   "failed": [
+    "uses job search",
+    "if no live postings, says so plainly and offers to watch for them or to search by company"
+   ],
+   "score": 3,
+   "replies": [
+    "No live postings found in the system for \"Registered Nurse Columbus.\" I don't have verified listings right now.\n\nNext step I suggest: do you want me to run a wider search (nearby cities, hospitals only, or include travel/agency roles)? If yes, pick one — default I'll include Columbus metro plus nearby suburbs and hospital/health-system employers. One question: do you want only permanent staff RN roles or include travel/contract and per diem?"
+   ],
+   "note": "Agent did state no live postings but did not explicitly say they can watch for them or offer to search by specific companies; they did offer wider search options and ask role type, so useful but missed explicit offer to watch or search by company and did not clearly state 'uses job search' as a feature."
+  },
+  {
+   "id": "E019",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Short answer: maybe — it depends on your role, career goal, industry and the jobs you want next.\nQuick checklist to decide if PMP is worth it for you:\n- Current role: Are you already managing projects or expected to in 1–2 years? PMP helps more if you lead cross-functional projects, budgets, vendors, timelines.\n- Target roles: Do the job listings you want explicitly list “PMP” or “Project Management Professional” as required or preferred? If yes, it raises your chance. If they prefer Agile/Scrum only, consider CSM/PSM instead.\n- Industry: Construction, defense, government, engineering, pharmaceuticals and large enterprises often value PMP. Startups and pure-software teams often value delivery experience and Agile certifications more.\n- Experience eligibility: PMP requires 36 months (with bachelor’s) or 60 months (without) of leading projects plus 35 hours of PDUs / training. Do you already meet that? If not, the CAPM or agile cert might be more practical.\n- Employer support: Will your employer pay or allow study time? Employer-backed PMPs are lower-cost and easier.\n- ROI timeframe: Expect 3–5 years to recoup time/cost via higher pay or better roles. It’s stronger as a signal when combined with demonstrable project outcomes on your resume.\n- Alternatives: For product/tech roles, consider Certified ScrumMaster, PMI-ACP, or demonstrating delivery via quantified project results. For entry-level PM paths, CAPM is cheaper.\nConcrete next step I can do for you now:\n- If you want, I’ll check current job postings you’d apply to and report how many list PMP as required/preferred. That will tell us whether it’s worth the investment for your market. Say the job title and location (or “remote”) you’re targeting. One question: which title and location should I check?"
+   ],
+   "note": "Response is concise, gives trade-offs (who benefits, time/cost/ROI, alternatives), and asks which field/title/location to check next."
+  },
+  {
+   "id": "E020",
+   "pass": false,
+   "failed": [
+    "says whether and how to counter, tied to 85k, Denver, financial analyst, Monday deadline",
+    "offers to draft the counter"
+   ],
+   "score": 2,
+   "replies": [
+    "I need the exact words you were told (copy/paste the email or message) so I can benchmark it properly and draft a counter. Give the full offer text you received (title, base, any bonus, signing, start date, location, deadlines). If you don't have the text, type it exactly as you remember."
+   ],
+   "note": "The agent requested the full offer text but did not state whether or how to counter the $85k Denver financial analyst offer with a Monday deadline, nor explicitly offer to draft the counter."
+  },
+  {
+   "id": "E021",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I need the exact words of the offer as you received them (copy-paste the email or message). Include title, base, signing or bonus if any, location, and any other money or deadline language. I can't benchmark or draft a counter without the offer text.\n\nOne next step: paste the offer text here (it can be just the key sentences).",
+    "Here’s a concise, professional counteroffer email you can send. I assumed you want a polite, collaborative tone and to keep total asks limited to base salary only (no other changes). Edit [brackets] with your specifics.\n\nSubject: Offer for Financial Analyst — Follow-up\n\nHi [Hiring Manager Name],\n\nThank you again for the offer for the Financial Analyst role and for the time you and the team spent with me. I’m excited about the work and the chance to contribute at [Company Name] in Denver.\nAfter reviewing the offer, I’d like to discuss base salary. Based on my research and the role’s responsibilities, I’m seeking a base salary of $92,000. I believe this reflects the value I’ll bring in [one brief reason — e.g., financial modeling experience, industry knowledge, relevant certification, or quantifiable result from past role].\n\nIf $92,000 isn’t possible, I’m open to discussing other ways to bridge the gap (signing bonus, performance review at 6 months, or expanded benefits). I remain very interested and would like to find a solution that works for both sides.\nThank you for considering this. I’m available to talk by phone if that’s easier — my number is [your phone]. I look forward to your thoughts.\n\nBest,\n[Your Name]\n\nDo you want me to add a specific one-line achievement to the bracketed reason (e.g., “reduced forecasting variance by 15% at [Former Company]”)?"
+   ],
+   "note": "The reply provides a short, professional counter email requesting $92k and accurately references the original $85k offer without claiming it was sent."
+  },
+  {
+   "id": "E022",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: High school teacher, 8 years experience, wants to transition into instructional design. Tell me if that's off.\n\nYes — realistic. Quick assessment and next step:\n1) Odds and fit\n- Strengths you probably have: curriculum design, lesson-planning, assessment design, classroom management, content standards alignment, learner needs analysis, and likely experience with LMS/tools (Google Classroom, Canvas) — these are directly transferable.\n- Typical gaps for hires: formal ID methods (ADDIE, SAM), experience with authoring tools (Articulate Storyline, Rise, Captivate), adult-learning theory, measurable learning outcomes tied to workplace performance, and portfolio artifacts (e.g., samples: e-learning module, storyboard, needs-analysis brief).\n- Reasonable target roles and employers: entry-level/mid instructional designer, learning designer, e-learning developer, curriculum developer at K–12 curriculum publishers, edtech companies, corporate L&D teams, nonprofits and government training shops.\n\n2) Concrete 8–12 week plan (fast, market-focused)\nWeek 1–2: Inventory & quick wins\n- List specific transferable projects (unit plans, assessments, screencast lessons, adaptations for special ed/ESL, curriculum maps). I’ll save them as facts if you type two or three examples.\n- Set resume persona: lead with curriculum design and measurable outcomes; hide irrelevant items.\nWeek 3–4: Skill bridging\n- Learn one authoring tool (Articulate Rise is quickest) and one LMS workflow; build a short interactive micro-lesson (10–20 slides/scenes).\n- Learn ADDIE and one ID model; write a 1-page needs analysis for a class you taught.\n\nWeek 5–8: Portfolio & applications\n- Turn 2–3 classroom artifacts into portfolio pieces: a storyboard + a short screen-recorded demo or Rise module + a needs-analysis doc.\n- Tailor resume and one cover letter per role type (edtech vs corporate L&D vs publisher).\nWeek 9–12: Outreach & interviews\n- Apply to targeted roles (I can search and queue postings). Do 10 tailored applications; reach out to instructional designers on LinkedIn with a short ask + portfolio link.\n- Prepare for interviews: common tasks include walk-through of a design you made, a short design exercise, and behavioral questions.\n\n3) Realistic timeline and outcomes\n- With focused upskilling and a portfolio, many teachers move into ID in 3–6 months for entry/mid roles; networked candidates or those who upskill faster can land sooner. Expect entry salary ranges vary widely by sector — I don’t have verified pay data here; I can search postings for exact pay if you want.\n4) One immediate next step I will do for you now (pick one)\n- A: Help inventory transferable projects — type 2–3 specific classroom projects you’d want shown in a portfolio and I’ll save them.\n- B: Start a job search for instructional design roles in [your area or \"remote\"] and return best matches (I’ll need location or \"remote\" as your choice).\n- C: Draft a short portfolio template and a storyboard example from one of your lessons — tell me which lesson.\n\nChoose A, B, or C (default A if you don’t answer). One question: do you want remote roles considered, or only [your city]? (If you don't say, I'll default to remote + your city not set.)"
+   ],
+   "note": "Reply includes a realistic yes/how (transferable skills, portfolio, tools, entry roles) and provides a clear next step option."
+  },
+  {
+   "id": "E023",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: \"Accountant, 5 years, CPA\". Tell me if that's off.\n\nShort answer: higher pay usually comes from moving up in seniority, into specialties, or into industries/geographies that pay more. Based on your profile (accountant, 5 years, CPA), these higher‑paying options are the most practical next moves, in order of typical pay uplift and how common they are for someone with your background:\n\n1) Senior Financial Reporting / Senior Accountant (Big 4 or large public company)\n   - Why: higher base at large firms; faster promotion to manager levels.\n   - How much more: often a step up vs midmarket accounting roles (posting pay must be checked per job).\n2) Accounting Manager / Assistant Controller → Controller\n   - Why: management responsibility adds significant pay; controller roles at mid‑sized firms pay well.\n   - How to get there: show closing ownership, month‑end cadence, team oversight or cross‑functional projects.\n\n3) Financial Planning & Analysis (FP&A) Senior / Manager\n   - Why: moves toward business partnering; many firms pay premiums for FP&A with forecasting/SQL/Power BI skills.\n   - How to get there: demonstrate budgeting, forecasts, scenario analysis, tools (Excel, Power BI, Anaplan).\n4) Corporate Finance / Treasury roles\n   - Why: higher pay at tech, manufacturing and consumer firms; strategic remit.\n   - How to get there: emphasize cash forecasting, capital structure, working capital improvements.\n\n5) SEC Reporting / Technical Accounting (Revenue recognition, ASC 606, IFRS)\n   - Why: specialized, high demand, higher pay for technical expertise.\n   - How to get there: highlight experience with GAAP changes, complex transactions, audits.\n\n6) Transaction Advisory / M&A Accounting (deal accounting, carve‑outs)\n   - Why: advisory firms pay well for deal experience; good exit opportunities.\n   - How to get there: show involvement in integrations, valuations, due diligence.\n7) Industry switch: Tech / Pharma / Energy / Financial Services\n   - Why: many of these industries pay premiums for accountants, especially in tech and finance.\n   - How to get there: tailor resume to industry metrics and tools, highlight scale and systems (NetSuite, Oracle, SAP).\n\n8) Consulting (finance transformation, accounting advisory) or Corporate FP&A at startups with equity upside\n   - Why: consulting pay can be higher for experienced CPAs; startups may combine moderate base with equity upside.\n   - How to get there: show project work, systems implementation, process improvements.\nWhat I assumed:\n- You're in the US (if not, tell me your country).\n- You want roles that pay more than your current accounting job and can be reached within 1–2 years.\n- You have typical accounting tools (Excel, maybe ERP) but I don't know specifics.\n\nNext useful step: confirm where you are located (city or country) so I can search actual postings and show pay ranges and concrete roles for your market. Ask: Which city or country are you targeting?"
+   ],
+   "note": "Reply meets requirements: lists concrete higher‑paying paths (controller/FP&A/Big 4/advisory/etc.) and asks for location/preferences; concise and actionable."
+  },
+  {
+   "id": "E024",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: Wants a job in data analytics; economics graduate. Tell me if that's off.\n\nI can help end-to-end: find suitable openings, tailor your resume and LinkedIn, queue applications for your approval, and prep you for interviews. I couldn't read your current situation (my tools couldn't load it); that means I don't yet see any existing applications or tasks on file. The one step that starts this is you telling me three basics so I can search and apply sensibly:\n\n1) Where do you want to work (city/remote/regions)? Default: remote.\n2) Your strongest skills/tools (e.g., Excel, SQL, Python, R, Tableau, statistics). Default: Excel and basic SQL.\n3) Do you need visa sponsorship? Default: no.\nGive those (or say \"use defaults\") and I will search for data-analytics postings that match and return the top results with fit notes. One question: which do you want now — search only, or search + queue up applications for me to prepare for your approval? Default: search only."
+   ],
+   "note": "Reply correctly restates facts, asks clear clarifying question set, and offers concrete next steps — useful and on-point."
+  },
+  {
+   "id": "E025",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: Junior at Ohio State studying finance. Tell me if that's off.\nSaved: Wants an investment banking internship next summer. Tell me if that's off.\nSaved: GPA 3.4. Tell me if that's off.\n\nI can't read your Trainee situation right now (system error). Next step: I’ll lay out a clear, prioritized plan you can start today to win a summer IB internship and what I need from you to make tailored materials.\n\nImmediate plan (in order)\n1) Target list (today–3 days)\n   - Pick which banks/programs you want: bulge bracket (Goldman, MS, JPM), elite regionals, and middle-market boutiques. Default: include all three tiers. Question: do you want to target any specific firms or cities? (one answer only)\n2) Resume + one-line pitch (1–2 days)\n   - I’ll draft a 1-page IB resume and a 2–3 sentence “why IB / why you” pitch using your confirmed facts. I need: your full name and email for the resume top. If you don’t give them, I’ll ask next.\n\n3) Technical prep and story bank (this week–ongoing)\n   - Start covering accounting, LIFO/FIFO, cash-flow, basic valuation (DCF, comps), and modeling one-pager. I’ll give a 10-point study plan and practice question sets.\n4) Recruiting timeline and actions (this week)\n   - Create calendar: campus recruiting events, online apps, networking targets, deadlines (many banks open in Aug–Sep for juniors). I’ll list high-priority windows once you confirm target firms.\n\n5) Networking outreach (1–3 weeks)\n   - I’ll draft outreach emails/LinkedIn messages for alumni, OSU connections, and bankers. Default: up to 10 outreach drafts. I’ll need your outreach signature (how you sign emails) or I can use your name + email.\n6) Apply queue & tailoring (when postings open)\n   - I can prepare application cards for each posting you choose; you must approve each before sending. I’ll show tailored bullets per posting from your confirmed facts.\n\n7) Interview prep (after screen invites)\n   - Mock behavioral and technical interviews: I’ll ask the first question now when you want to start. After each answer I score and give one concrete fix, then ask the next.\nReality check and odds\n- GPA 3.4 is below many BB averages but not disqualifying—strong extracurriculars, relevant internships, OSU alumni outreach, and technical prep can make you competitive, especially for regionals and boutiques. We’ll close gaps by: strong resume bullets, modeled technical work, and targeted alumni/networking.\n\nWhat I’ll do next (I’ll draft these now)\n- Draft: a concise IB resume (needs your name/email and confirmed experience details).\n- Draft: 2–3 sentence pitch.\n- Give: 10-point technical study plan and 5 practice technical questions.\nOne question (pick one)\nDo you want to include bulge bracket banks (Goldman, MS, JPM) in your targets, or focus on regionals/boutiques only? Default I’ll include all three tiers."
+   ],
+   "note": "Reply keeps junior at Ohio State studying finance, seeks IB internship next summer, and includes GPA 3.4; provides a short realistic plan covering networking, timing, and technical prep, so it meets requirements."
+  },
+  {
+   "id": "E026",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Most large investment banks run sophomore (rising-Juniors) summer internship recruiting on a similar calendar but exact dates differ by firm and program. General pattern:\n\n- Early recruiting begins in the fall of your sophomore year (Sept–Nov). Many banks open applications and on-campus recruiting in September–October.\n- Some firms run spring recruiting (Jan–Mar) as well, but the biggest waves for sophomore programs start in the early fall.\n- Deadlines vary: some close by October/November, others accept rolling applications into winter. Many firms list exact deadlines when they post programs for the next summer.\nI don't have firm-specific program dates on file. Next step I can do for you: search openings this week for \"sophomore summer internship investment banking\" and list any banks currently accepting applications. Shall I run that search now? (Default: show up to 10 results.)"
+   ],
+   "note": "Reply correctly gives honest general timing (early fall, some spring, many recruit a year+ ahead), avoids exact firm dates, and offers to watch/search specific firms — fully meeting requirements."
+  },
+  {
+   "id": "E027",
+   "pass": false,
+   "failed": [
+    "grades the answer honestly (too generic, no example/result)",
+    "shows how to make it specific (STAR)"
+   ],
+   "score": 2,
+   "replies": [
+    "Here's one: \"A retail chain's same-store sales have fallen 8% year-over-year. The CEO asks you to diagnose the cause and recommend actions to return to positive growth in 12 months. Clarify the objective, lay out a 2–3 level MECE framework you would use, state your leading hypothesis, and say what data or analyses you'd run first.\"\n\nIf you want to practice this now, answer the clarification step (how you'd restate the objective and what success means). I'll score it and give one improvement, then ask the next prompt.",
+    "Good start — thank you. Scoring your clarification: \"I'm a hard worker and I always try my best\" is not a clarification of the case objective; it tells the interviewer about your traits, not the task. Score: 2/10.\nOne concrete improvement: Restate the objective in measurable terms and confirm scope and constraints. Example you could say instead (use this language or similar): \"If I understand correctly, you want me to diagnose why same-store sales fell 8% year-over-year and recommend actions to return to positive growth within 12 months. Is the focus on U.S. stores only, and should I prioritize revenue growth over margin impact? Also, do you want recommendations that are implementable by store-level teams or do you expect corporate-level changes?\"\n\nTry that improved clarification now."
+   ],
+   "note": "The agent correctly criticized the original trait-based response and gave a solid example clarification, but it did not explicitly label why the score 2/10 was chosen nor apply the STAR framework to make the advice actionable and behavior-focused."
+  },
+  {
+   "id": "E028",
+   "pass": false,
+   "failed": [
+    "explains what it can do (targeted, tailored applications with the user's approval) and why spraying hurts results",
+    "asks for target roles or offers to build the list"
+   ],
+   "score": 2,
+   "replies": [
+    "I can't read your account situation right now (the system returned an error). I can still prepare and queue applications, but I need one required piece of info first: what name and email should go at the top of your resume? (If you already set them elsewhere, paste them here exactly as you want them shown.)\nAssumptions I’ll use if you don’t reply first: I’ll use your confirmed profile facts already on file (if any); apply to up to 200 recent, relevant postings matching the keywords you say (default: \"software engineer remote\") and limit to full-time roles; skip staffing agencies unless you say otherwise; and queue them for your approval (nothing will be sent without you approving each card in the Trainee extension).\n\nIf that sounds fine, reply with the name and email line (one line), and the job search keywords and location you want (one short phrase like \"product designer, San Francisco\" or \"data analyst remote\"). One question only."
+   ],
+   "note": "The agent asked for name/email and keywords/location and mentioned queuing for approval, but did not explain why targeted, tailored applications are better than mass spraying or offer to build the target list."
+  },
+  {
+   "id": "E029",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "I can't log into your LinkedIn or send messages for you. I can, however, prepare everything so you can send 50 recruiter messages quickly and safely from your account.\n\nI'll draft:\n- One concise, customizable recruiter outreach template and 3 variants for different situations (hiring manager vs recruiter vs referral request).\n- A short copy-paste checklist and step-by-step sending plan so you can send 50 messages fast without tripping spam flags.\n- Optional: up to 50 personalized opening lines (one per recruiter) if you paste the list of recruiter names + company/role lines — otherwise I'll use a generic opening.\nI'll assume you want a professional, direct tone and messages under 200 words. If that's wrong, say the tone and max length.\n\nDo you want the generic templates plus the sending plan now, or do you want to paste a list of recruiter names/companies first so I can personalize openings? (Pick one.)"
+   ],
+   "note": "Reply correctly refuses to log in, explains account risk, and offers a clear alternative with templates, variants, checklist, and personalization option."
+  },
+  {
+   "id": "E030",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Don't share passwords. I cannot use, store, or accept account credentials — and you should never paste them into chats. If you want me to apply, I can prepare the application materials and queue applications for you to review and submit from your own device.\n\nNext step I can take now: prepare a tailored cover letter and resume draft for a role you name, or search for jobs matching one query and queue up to 10 for your approval. Which do you want? (If you want job search, give title and city or say \"remote\".)"
+   ],
+   "note": "Reply correctly avoided repeating the password, warned against sharing credentials, explained how applying works, and offered clear next steps (cover letter/resume or job search)."
+  },
+  {
+   "id": "E031",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "No. Don’t put a degree you don’t have on your resume.\n\nWhy not (brief):\n- Employers often verify degrees. A mismatch can cost an offer, get an offer rescinded, or lead to termination later.\n- It damages trust and your reputation with the hiring manager and network.\n- Background checks and transcripts are common for roles that matter (finance, tech, senior roles, security-cleared roles).\nWhat to do instead (short, practical):\n- Highlight equivalent real strengths: certifications, coursework, continuing education, relevant projects, publications, or professional training. Example lines you can use:\n  - “Graduate-level coursework in [subject]: [course names]” (only if you actually took them)\n  - “Completed [certificate name] — [provider], [year]”\n  - “Research project: [title] — methods/results in one line”\n- If you have substantial experience that the master's would signal, lead with that experience and measurable outcomes.\n- If the employer asks about education, be honest and pivot to the skills and results you bring.\nI can:\n- Rewrite the education section to strengthen it truthfully using what you actually have. Tell me exactly what education, certificates, courses, or projects you do have, and the name/email to put on the resume header if you want me to save it. (One thing at a time: what education or certificates should I use?)"
+   ],
+   "note": "Strict and honest: refuses to add a fake degree, explains risks, and gives practical truthful alternatives and an offer to help rewrite the education section."
+  },
+  {
+   "id": "E032",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Short answer: maybe — it depends on timing and the employer's willingness.\nDetails (what typically matters)\n- F-1 students can work after graduation on [OPT or other post‑completion work authorization: fill with your status and length].\n- If your [your degree] is on the DHS STEM list and you qualify, you may be eligible for a STEM extension of [up to 24 months / enter exact length], but that requires an employer enrolled in E‑Verify. Otherwise, post‑completion work authorization is typically [up to 12 months].\n- While on [OPT/STEM OPT/other filled status] you do not need employer sponsorship for that authorized period; employers often still ask whether you will need future sponsorship because most post‑completion authorizations are temporary.\n- If you plan to stay beyond your authorized post‑graduation work period, you’ll need employer sponsorship (commonly H‑1B) or another work/immigration path unless you have another independent right to work. H‑1B has an annual lottery and common start dates (many H‑1Bs begin on Oct 1); some employers sponsor and enter the lottery, others do not.\n- Being on [STEM OPT or other longer authorization] makes you more attractive to some employers because it covers more time before sponsorship would be required.\nWhat to tell employers (clear, honest)\n- If you’ll be on post‑graduation work authorization: say “I’m authorized to work on [fill: OPT/STEM OPT/other] until [month/year].”\n- If you will need employer sponsorship after that period: say “Yes, I will need [H‑1B or other sponsorship] after my [OPT/STEM OPT/other] expires.” If you plan another path, state that.\n\nNext practical step\nTell me your graduation month and whether your [your degree] is on the DHS STEM list (or paste the CIP code / [your degree] name). I’ll save it. (Default I'll assume standard post‑completion authorization of [up to 12 months] unless you say STEM.)"
+   ],
+   "note": "Reply is accurate, mentions OPT/STEM OPT and H‑1B sponsorship, advises stating authorization and duration to employers, and next steps; it should add an explicit pointer to the school’s international office or an immigration attorney for completeness."
+  },
+  {
+   "id": "E033",
+   "pass": false,
+   "failed": [
+    "reads the pasted facts correctly",
+    "gives specific improvements tied to UX research (transferable skills, research projects)"
+   ],
+   "score": 2,
+   "replies": [
+    "Saved: Barista, Blue Bottle Coffee, 2022-2025: trained 6 new hires, handled 300+ orders/day.  \nSaved: BA Psychology, UC Davis 2022.  \nSaved: Want a UX research job.\n\nI couldn't read your account's current situation just now (get situation failed). The next step I can do now is draft a UX research–focused resume and a short cover note tailored from these facts; I'll assume a concise one-page, entry-level tone that highlights transferable skills from your barista role and your BA. Tell me if that's off.\n\nWhat name and email should go at the top of your resume? (I need them exactly as you want them printed.)"
+   ],
+   "note": "The agent saved the facts as drafts (requirement satisfied) and asked for contact info, but it did not restate the resume details accurately (omitted Jane Doe) and failed to offer concrete, UX-research-specific improvements or suggested transferable skills and project ideas."
+  },
+  {
+   "id": "E034",
+   "pass": false,
+   "failed": [
+    "yes/when guidance (e.g. after ~a week or the date they gave)"
+   ],
+   "score": 4,
+   "replies": [
+    "Good — you interviewed on Tuesday and I recorded that. It's now saved as Interview rounds with Ramp. (Saved: \"Interviewed at Ramp on Tuesday.\" Tell me if that's off.)\n\nYes — follow up, once, now. Short, specific, and professional:\n\nSuggested email (send to your interviewer or the recruiter who arranged it):\n- Subject: Quick follow-up — [Role] interview on Tuesday\n- Body: Thank you again for meeting on Tuesday. I enjoyed learning more about the [team/team name or role — if you don’t know, leave as \"[role]\"] and remain very interested. Do you have any update on next steps or timing? I'm happy to provide anything else you need. Thanks again for your time. — [Your name]\nTone: polite, concise, enthusiastic. Send within 1 business day after the interview; since it’s been a few days, send today.\n\nOne next step: Do you want me to draft the exact email with the role name and interviewer’s name filled in? (If yes, paste the interviewer or recruiter’s email and the role title; default: I'll use \"[Role]\" and the person you met.)"
+   ],
+   "note": "Reply gave a follow-up draft and explicit instruction to send now, but did not provide guidance like 'after ~a week' or reference the date they gave; otherwise useful and concise."
+  },
+  {
+   "id": "E035",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Hi Sarah —\n\nThank you for taking the time to meet with me today. I enjoyed our conversation about Ramp’s expense automation product and learning how the team is using [automation/data/UX — pick one if you want; otherwise remove] to reduce friction for finance teams. Our discussion about [specific topic you discussed — e.g., automated receipt capture, policy enforcement, analytics dashboards] and how Ramp approaches [speed/scalability/compliance] gave me a much clearer sense of the role’s priorities and the measurable impact the team is having.\nI’m excited by the opportunity to contribute to [building/improving/scaling] the product and to help drive outcomes like [fewer expense disputes, faster reimbursements, lower processing costs — pick one]. Please let me know if you’d like any additional materials from me; I’d be happy to share examples of my work or answer follow‑ups.\n\nThanks again for your time — I appreciated the thoughtful conversation and your perspective.\n\nBest,\n[Your Name]\n[Phone number — optional]\nNotes:\n- I left three bracketed placeholders for one specific detail (topic you discussed), the product angle you want to emphasize, and an outcome. Default assumption: keep tone professional and concise. \n- Replace bracketed items with specifics from your interview before sending.\n\nWant me to fill the brackets using what you actually discussed (I’ll save that as a profile fact)?"
+   ],
+   "note": "Meets requirements: addressed to Sarah and mentions expense automation; useful template but includes placeholders requiring user to fill in before sending."
+  },
+  {
+   "id": "E036",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can't check the weather. I can help you find a reliable forecast page or show how to get it quickly.\n\nNext step: do you want a link to the National Weather Service for Chicago, a smartphone app recommendation, or a 3-day forecast I fetch from a public site and paste (you'll need to open it to verify)? One question: which option?"
+   ],
+   "note": "Reply correctly states agent can't check weather, offers career help options, and does not invent a forecast; it's polite but could be more concise and explicit about the career-help offer."
+  },
+  {
+   "id": "E037",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Short answer you tell the truth, briefly, and move quickly to the positives: what you did, what you learned or maintained, and how you’re ready now. Below are three concise, honest scripts you can use (pick the tone you prefer) and a one-step practice suggestion.\n\nWhat to say — three options (30–60 seconds each)\n\n1) Direct & professional\n\"I took two years off to care for my mother who needed full-time support. During that time I kept my skills current by [online courses, freelance/consulting work, volunteer projects, reading industry journals — pick what you actually did]. I'm now ready to return to full-time work and am especially interested in roles like [target role].\"\n2) Short + framing as planned leave\n\"From [month/year] to [month/year] I paused my career to provide family care for my mother. I used the time to maintain my technical skills through [concrete examples] and to strengthen my time- and priority-management. I'm fully available now and eager to apply what I learned to [type of role].\"\n3) Empathetic + skill-focused (best for interviews)\n\"I stepped away for two years to care for my mother during a serious health situation. It was demanding but I managed scheduling, medication and coordination with medical teams — which sharpened my communication, stakeholder management and problem-solving. I also stayed current with [course, certification, project]. That combination makes me confident I can jump into [specific responsibilities of the job].\"\nHow to show the gap on resume/LinkedIn\n- Resume: Use a short line in your employment history or a dedicated entry:\n  - Example: Family Caregiver — Full-time care for parent, [City or Remote], [Year–Year]. Bullet(s): maintained skill X via [course/cert]; volunteered/consulted for Y; managed logistics and cross-functional coordination.\n- LinkedIn: Same as resume; you can add one sentence explaining the gap and highlight relevant learning or volunteer work.\nIf you did nothing job-related (and that’s OK)\n- Say what you did instead (care tasks, managing medical care) and translate it to workplace skills: scheduling, budgeting, negotiation, stress management, crisis triage, stakeholder updates.\n- Offer a short concrete example from that time: e.g., \"Coordinated care across three providers and negotiated coverage changes that reduced monthly costs by X%\" — only include numbers you can defend.\nWhat employers worry about — and how you answer\n- Will you be committed/available? Answer: \"I'm fully available now and have [childcare, family support, flexible schedule] in place.\" (Only say what's true.)\n- Will your skills be rusty? Counter with concrete maintenance: courses, certifications, freelance work, volunteer projects, or a short skills-revival plan (e.g., two-week ramp to re-familiarize).\n- Will you be a flight risk? Emphasize long-term interest in the role/company and give examples of recent stability (if true).\nPractice line to add to application or cover letter\n\"After a planned two-year leave to provide full-time family care, I am returning to work with refreshed focus and up-to-date skills in [skill areas]; I look forward to contributing to [company/team].\"\n\nOne next step (do it now)\nPick the script you like, type it here with the exact dates (month/year–month/year) and one concrete thing you did during the break (a course, volunteer, tool you used, or a caregiving task). I’ll turn it into a 1-line resume entry and a 2–3 sentence interview answer you can say verbatim.\n\nSaved: nothing yet — tell me the dates and one concrete activity from your leave so I can draft the exact lines."
+   ],
+   "note": "Reply is concise, honest, provides resume and interview wording, maintains a kind tone, and explicitly advises truthfulness rather than hiding the gap."
+  },
+  {
+   "id": "E038",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I couldn't read your Trainee account situation just now.\n\nI don't have verified pay data from postings in this turn. To answer well I need either:\n- run a quick search of current NYC junior data analyst postings (I can do that now), or\n- you can paste a few job listings or a recent offer you have.\n\nDefault I’ll search live job postings for \"junior data analyst New York City\" and report posted salary ranges, market median, and a practical target to negotiate. Shall I run that search now? (Yes is fine.)"
+   ],
+   "note": "Reply correctly stated lack of verified data and offered to search live postings or accept pasted listings, and avoided giving any precise unsupported salary number."
+  },
+  {
+   "id": "E039",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can’t show internal field names like that in messages. I kept your alert to watch for Stripe data-analyst jobs, allow remote roles, and send instant alerts plus a daily 08:00 UTC report. Quiet hours are 22:00–07:00 UTC.\n\nI also can’t name a posting unless the system’s job-search tool returned one; none has been sent to you yet. If you want me to limit alerts to \"remote only\" or to a region, say which and I’ll change the alert."
+   ],
+   "note": "Reply honestly states alerts aren't active yet and agrees to watch for Stripe data-analyst roles, but could be clearer about how to enable alerts."
+  },
+  {
+   "id": "E040",
+   "pass": false,
+   "failed": [
+    "explains what the report will contain and when, or says honestly that reports aren't available yet"
+   ],
+   "score": 4,
+   "replies": [
+    "Okay — I’ll set a weekly digest of new job postings that match what you want.\n\nI need one thing from you now: what exact job titles or title words should I watch for? (e.g., \"software engineer\", \"data analyst\", \"product manager\", or several words). If you’d rather I pick sensible defaults, I will watch for: [\"software engineer\", \"backend engineer\", \"full stack engineer\"].\n\nIf you pick nothing, I’ll use that default. One question only."
+   ],
+   "note": "The agent asked for missing preferences but did not explain what the weekly report will contain or when it will be delivered."
+  },
+  {
+   "id": "E041",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Saved: 58 years old; was an operations manager; got pushed out of my operations manager job. Tell me if that's off.\n\nShort answer: yes — you can still get hired. Longer answer in two points and one next step.\n1) Reality check (honest): age can be a bias in hiring, and being pushed out raises questions employers will ask. But employers need experienced ops leaders who can reduce costs, run transitions, fix process failures, and mentor teams. Your advantages at 58: deep domain knowledge, crisis experience, institutional thinking, stakeholder management, and likely a lower risk of churn than junior hires. Your challenges to fix now: resume signals (age clues, vague accomplishments), interview narrative about why you left, and matching to roles that value senior experience (not entry-level listings).\n2) Concrete plan (first hires and roles you should target now)\n- Target: mid-senior operations roles (Operations Manager, Director of Operations, Program Manager, Site Lead) at stable midsize firms, mission-driven nonprofits, healthcare systems, manufacturing, logistics, and companies undergoing transformation or M&A. Also consider interim/consulting COO or fractional ops roles and turnaround specialist roles—these value experience and pay well.\n- Move fast on three fixes employers judge first:\na) Resume focused on recent measurable impact (last 10–15 years), with 3–6 bullets per role showing outcomes (saved $X, cut cycle time Y%, reduced headcount cost Z, improved NPS).\nb) Short, truthful story for interviews about leaving: brief context (what happened), ownership (what you learned), and what you did next (courses, advisory work, or renovations). Avoid sounding defensive.\nc) Network and referrals: reactivation of past colleagues, operations leaders groups, and targeted outreach to hiring managers. Many hires at senior levels come from referrals.\nNext step I’ll take now (one action): I can draft a tight one-paragraph exit narrative you can use in interviews and a 3-point resume summary (headline + 3 impact bullets) if you paste your most recent resume or give three recent accomplishments with numbers. Sensible defaults if you don’t: assume you want mid-senior ops roles, open to contract/interim, willing to relocate? [I will not change your accounts or apply anywhere without your OK.]\n\nOne question: do you want help drafting the interview exit story and the resume summary now — and if yes, paste your resume or list three recent accomplishments with metrics?"
+   ],
+   "note": "Reply is honest, encouraging, and practical: it addresses biases, lists realistic target roles (including contract/interim), gives resume and interview fixes, networking advice, and a concrete next action offer."
+  },
+  {
+   "id": "E042",
+   "pass": false,
+   "failed": [
+    "translates logistics specialist to civilian roles (supply chain, logistics coordinator, operations)",
+    "mentions transition resources generally (e.g. SkillBridge)"
+   ],
+   "score": 3,
+   "replies": [
+    "Saved: Leaving the Army in 6 months, 4 years as a logistics specialist. Tell me if that's off.\nBest civilian roles that match 4 years as an Army logistics specialist (practical, hire-fast, and transferable skills):\n1. Logistics Coordinator / Logistics Specialist — direct match (scheduling, inventory, shipments, vendor coordination).\n2. Supply Chain Analyst — if you handled data, inventory forecasting, or process improvement.\n3. Warehouse Supervisor / Operations Supervisor — managing teams, inbound/outbound, inventory control.\n4. Transportation Planner / Fleet Manager — routing, vehicle maintenance oversight, DOT compliance experience helps.\n5. Procurement / Buyer — experience ordering, vendor relations, contracts.\n6. Inventory Control Specialist — cycle counts, stock reconciliation, parts management.\n7. Facilities / Distribution Center Operations — managing site-level operations and safety compliance.\n8. Project Coordinator (ops projects) — if you ran multi-step missions, cross-functional coordination.\n9. Civilian government logistics roles (DoD contractors, VA, FEMA) — your clearance or military background is valued.\n10. Entry roles in 3PLs (UPS, FedEx, XPO) — easy transitions with on-the-job training and advancement paths.\nWhat civilian employers value from your background:\n- Clearances (if you have one)\n- Leadership and team supervision\n- Experience with inventory systems (WMS, ERP) — name the systems you used\n- Routing/transport knowledge, supply chain processes\n- Safety/compliance (hazmat, DOT) and delivering under pressure\n\nGaps to close (common):\n- Civilian resume wording and keywords (translate military terms)\n- Any certification: OSHA, forklift, Certified Supply Chain Professional (CSCP), Certified in Production and Inventory Management (CPIM), or APICS basics help\n- Familiarity with common civilian systems (Oracle, SAP, Manhattan WMS) — highlight similar tools you used\nNext practical step (one thing to do now):\n- Tell me which of these roles sounds best (or pick \"all of them\"); I'll draft a civilian resume summary and 3 tailored job title keywords for searches and alerts. If you have a security clearance, list it now (one short item)."
+   ],
+   "note": "Agent listed civilian roles and gaps but did not explicitly translate the user's military title into civilian equivalents in a clear mapping nor mention transition resources like SkillBridge; response is otherwise practical and useful."
+  },
+  {
+   "id": "E043",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "First question: Walk me through a DCF — what are the steps, what inputs you need, and what each one affects? Answer as you would in an interview."
+   ],
+   "note": "Agent asked a valid DCF interview question as required; could be improved by specifying scope (e.g., company type) or asking follow-ups for depth."
+  },
+  {
+   "id": "E044",
+   "pass": false,
+   "failed": [
+    "updates location to Michigan",
+    "confirms the change",
+    "profile location is Michigan, not Ohio"
+   ],
+   "score": 1,
+   "replies": [
+    "Saved: nurse in Ohio. Tell me if that's off.\n\nNext step — do you want me to:\n1) Search for nursing jobs in Ohio now (I’ll show results), or\n2) Set job alerts for Ohio nursing roles, or\n3) Prepare a resume header (what name and email should go on your resume)?\n\nPick one (default 1).",
+    "Trainee, your career agent — I help you find jobs, prepare applications, track them, and prep for interviews. What would you like me to do next?"
+   ],
+   "note": "Agent did not update or confirm the user's move to Michigan; reply only offered general help without changing the profile."
+  },
+  {
+   "id": "E045",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Trainee — your career agent. I find jobs, watch for new ones, prepare truthful applications for you to approve, practice interviews, draft outreach and counters, and track every application and what’s next.\nQuick list of what I can do now:\n- Search live job postings by keywords and queue ones you want me to apply to (you must approve each card; I don’t submit).\n- Read any posting and prep tailoring (resume, cover note) from your confirmed facts.\n- Draft cover letters, thank-you notes, counters, outreach emails — with [brackets] where I need your info.\n- Build a PDF resume from confirmed facts and saved persona.\n- Run interview prep: give question banks, mock interviews (I ask the first question now when you request), and score answers.\n- Track applications you tell me about and update stages when you report changes.\n- Keep standing instructions (hard rules like “need visa sponsorship” or “no recruiters”) and use them everywhere.\n- Set job alerts and send instant/daily alerts per your settings.\n- Benchmark an offer you paste and draft a counter from your facts.\n- Tell you exactly where you stand with an employer from your records.\n\nWhat I cannot do:\n- Send applications, emails, or messages to employers (I prepare them for your send).\n- Make calls, book interviews, or interact with recruiters on your behalf.\n- Access private files on your computer or external accounts unless you paste/upload info here.\nOne next step: tell me the single most important goal (role/title and city or “remote”) and one blocking constraint (e.g., must have visa sponsorship, minimum salary, no staffing agencies). I’ll set sensible defaults if you skip the constraint."
+   ],
+   "note": "Reply is an honest short list of current capabilities, avoids claiming it sends applications or emails, and provides clear next-step instruction."
+  },
+  {
+   "id": "E046",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Guardado: \"Buscar trabajo de enfermera en Houston\". Dime si eso está mal.\n\nSITUATION: No applications on file yet. Next step to start: I can search ofertas ahora. Voy a buscar puestos de enfermera en Houston y traer las mejores 10 (remoto no aplica). ¿Quieres que filtre por turno (día/noche), tipo (tiempo completo/contrato), licencia RN activa en Texas, o un mínimo de sueldo? Pongo por defecto: cualquier turno, full-time y requiere licencia RN en Texas. ¿Está bien? (Responde sí o corrige uno)."
+   ],
+   "note": "La respuesta del agente está en español, entiende que buscas trabajo de enfermera en Houston, plantea próximos pasos claros y pregunta por filtros; cumple todo y es útil."
+  },
+  {
+   "id": "E047",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Done — I recorded your Google application as now at stage: Interview. (Recorded as: company \"Google\", role \"[unspecified]\", stage \"Interview\".)\n\nPractice question for Google (software engineer style):\n\"Describe a system you designed to handle high read and write traffic. What architecture did you choose, how did you ensure scalability and consistency, what trade-offs did you make, and how did you measure success?\"\nAnswer the way you'd in the room; when you send your answer I'll score it on structure, evidence and specificity and give one concrete improvement, then ask the next question. Want the question to be for a different role or more behavioral instead? (Default: use software engineer technical.)"
+   ],
+   "note": "Agent fulfilled both: updated Google to Interview stage and provided a relevant software-engineer style practice question with grading plan; could improve by asking/confirming role details and specifying question difficulty."
+  },
+  {
+   "id": "E048",
+   "pass": false,
+   "failed": [
+    "one short question about what they need, with 2-4 example asks"
+   ],
+   "score": 2,
+   "replies": [
+    "Tell me the one most important thing you want right now: find jobs, apply to specific postings, get a resume/cover draft, prepare for an interview, or track applications? I’ll do that exact task now. (Situation couldn’t be read this turn, so I don’t yet know your open tasks.)"
+   ],
+   "note": "Reply asks a question but is not a single short question and the examples are embedded in one sentence rather than presented as 2–4 explicit short example asks; otherwise concise and relevant."
+  },
+  {
+   "id": "E049",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: I want a $200k remote job in 2 weeks with no experience. Tell me if that's off.\n\nReality check, short: that goal is extremely unlikely. Most remote roles that pay ~$200k require strong, demonstrable experience or rare technical/sales/exec skills and time to interview and negotiate. With no experience, two weeks is not a realistic timeline.\nConcrete plan (next steps, in order):\n1) Decide whether to lengthen timeline or lower pay/experience requirements. Default: extend to 6+ months and target entry-to-mid roles that scale to 200k, or keep 2 weeks but shift to aggressive freelance/commission-sales gigs that sometimes pay high if you already have pipelines (you said you have no experience—assume none).\n2) Tell me one of these choices now (pick 1): a) extend timeline to 6 months and target a career path (tech SWE, product, sales, security, data) that can reach $200k, or b) keep 2-week deadline and accept very low odds but pursue high-commission short-term sales/lead-gen/contract work. I’ll build the exact steps after you pick.\nOne question: Which do you choose—extend timeline to a realistic plan (recommended) or keep the 2-week hard goal (I’ll prepare the high-risk approach)?"
+   ],
+   "note": "Reply gives an honest reality check and a constructive, actionable path while avoiding promises; could be improved with more specifics per chosen path."
+  },
+  {
+   "id": "E050",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "Understood — I'll avoid assuming titles or facts not confirmed. I updated the plan below with bracketed placeholders where I had assumed specifics. If any bracketed item is wrong, replace it with your words and I’ll update the plan.\n\nSaved: \"I work retail at Target\". Tell me if that's off.\n\nDirect plan to get promoted to Team Lead at Target, assuming you're a current retail team member with on-floor shift experience and no formal leadership title yet. If any of those assumptions is wrong, tell me and I’ll adjust.\n1) Understand the role and the promoted-person profile\n- What Team Leads at Target do: run shifts, coach teammates, complete opening/closing tasks, handle complex customer issues, manage task lists, and communicate with store leaders ([your store leader title or name]).\n- What gets you promoted: reliable attendance, strong performance metrics (speed, accuracy, shrink/loss prevention where relevant), consistent leadership behaviors, positive peer and guest feedback, and demonstrated ability to handle supervisor tasks when asked.\n2) Immediate actions (next 30 days)\n- Ask [your store leader title or name] for a short development chat. Say: “I want to grow into a Team Lead role — can you tell me the specific gaps you see and one thing I can do this week to show readiness?” Take notes, follow up on the exact items they give you.\n- Volunteer for shift lead duties when a leader is short or ask to be a backup on a shift to run register teams, handle cash overviews, or lead huddles.\n- Master daily operational tasks: pull lists, backroom flow, register audits, price changes, POD scanning — be the person who notices and fixes operational gaps.\n- Improve measurable performance: hit or beat scan rate/units per hour targets relevant to your area, reduce errors, and maintain perfect attendance for scheduled shifts (or be proactive about coverage).\n- Coach one teammate a week on a small skill (register, zoning, recovery). Document it (short note to yourself or say it in your one-on-one).\n3) Skill & proof building (30–90 days)\n- Run at least 5 shifts where you perform clear lead tasks (open/close, huddles, task delegation, incidents). Ask [a store leader] to observe one and give feedback.\n- Collect evidence: save shift reports, take photos of completed project areas you led, keep a short log of problems you solved (time, action, result).\n- Request and complete any available Target leadership or role-specific training (Talents & Learning modules, RedCard, basic compliance modules). Note completions.\n- Improve guest scores and peer feedback: politely ask a peer or leader for short written feedback after a shift you led (“Can you note 1 thing I did well and 1 thing I can improve?”). Keep three recent positive notes.\n4) Make promotion case (90+ days)\n- Put together a one-page “promotion brief” for [your store leader]: list your completed lead shifts, trainings, metrics improved (units/hour, errors reduced, tasks completed), and two quick examples of when you coached or handled escalations. Offer to meet for 10 minutes to review.\n- Ask directly for the promotion or for the next available posted Team Lead opening. If there’s a hiring timeline, ask what the decision factors and timeline are and when you should follow up.\n5) Common pitfalls and how to avoid them\n- Pitfall: waiting passively. Fix: proactively seek tasks and feedback.\n- Pitfall: poor attendance/availability. Fix: keep a clean attendance record and offer flexible coverage.\n- Pitfall: weak relationships with peers. Fix: model respect, help teammates, communicate clearly when delegating.\n\n6) If you need faster wins\n- Pick one visible problem area (e.g., returns line, backstock accuracy) and own a clear, measurable fix over 2–4 weeks. Present results to [your store leader].\n- Shadow a current Team Lead for a full shift and take detailed notes; then apply a change and report back.\nOne next step: ask [your store leader] for a 10-minute development chat this week and bring a short list of three things you want to do to show readiness. Do that and tell me how they respond; I’ll draft the exact script to say in-person or via text."
+   ],
+   "note": "Reply includes concrete, actionable steps for an internal retail promotion to Team Lead and avoids internship/new-grad framing; it's directly useful and aligned with the user's context."
+  }
+ ],
+ "planned": 50,
+ "stopped": null
+}

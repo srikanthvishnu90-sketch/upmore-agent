@@ -6,6 +6,7 @@ const send = (m) => chrome.runtime.sendMessage(m);
 const params = new URLSearchParams(location.search);
 let tabId = params.has("tab") ? Number(params.get("tab")) : null;
 let last = null;
+let factImport = null, factImportSeq = 0;
 
 async function targetTab() {
   if (params.has("tab")) return tabId;
@@ -26,6 +27,7 @@ async function render() {
   await targetTab();
   const st = await send({ type: "status", tabId });
   if (mine !== renderSeq) return;
+  if (factImport && (!st.signedIn || st.email !== factImport.account)) clearFactImport();
   last = st;
   $("signin").hidden = st.signedIn;
   $("setup").hidden = !st.signedIn;
@@ -34,7 +36,7 @@ async function render() {
   $("signout").hidden = !st.signedIn;
   text($("who"), st.signedIn ? st.email : "");
   text($("resume-name"), st.resume ? st.resume.name : "none yet");
-  text($("facts-count"), st.importedFacts ? `${st.importedFacts} confirmed facts imported for this browser session.` : "");
+  text($("facts-count"), st.importedFacts ? `${st.importedFacts} imported answers available for this browser session.` : "");
   const card = st.card;
   const list = $("card");
   list.textContent = "";
@@ -382,12 +384,120 @@ $("resume").onchange = async (e) => {
   render();
 };
 $("facts").onchange = async (e) => {
+  // Selecting a file only shows local draft data. The confirmation that writes an answer requires its own trusted tap.
   const f = e.target.files[0];
   if (!f) return;
-  const r = await send({ type: "import-facts", json: await f.text() });
-  text($("status"), r.ok ? `${r.kept} of your facts can be used for this browser session.${r.excluded ? ` ${r.excluded} are not used: not stated by you, not confirmed, or derived from those${r.quarantined ? ` (${r.quarantined} of them Trainee wrote for you, D-007)` : ""}. What they would answer is asked instead.` : ""}` : r.message, !r.ok);
-  render();
+  const mine = ++factImportSeq, account = last?.signedIn ? last.email : null;
+  factImport = null;
+  $("fact-import-list").textContent = "";
+  $("fact-import-review").hidden = true;
+  text($("fact-import-msg"), "Reading the file for review. Nothing is imported yet.");
+  try {
+    if (!account) throw Error("Sign in before reviewing your answers.");
+    const parsed = parseFactImport(await f.text());
+    if (mine !== factImportSeq || !last?.signedIn || last.email !== account) return;
+    factImport = { ...parsed, account, file: f.name, confirmed: new Set(), busy: false };
+    renderFactImport();
+    text($("fact-import-msg"), `${parsed.items.length} draft answer${parsed.items.length === 1 ? "" : "s"} ready to review. Nothing is imported yet.`);
+  } catch (error) {
+    if (mine === factImportSeq) text($("fact-import-msg"), error instanceof SyntaxError ? "That file is not valid JSON. Nothing was imported." : error.message || "That file could not be read. Nothing was imported.", true);
+  } finally { e.target.value = ""; }
 };
+// This is the existing session-only confirmed-facts file contract, not a raw resume/profile import API. Its original
+// confirmed flags are file data, never the person's review. Only an explicit click on the row below supplies that yes.
+function parseFactImport(raw) {
+  const doc = JSON.parse(raw), record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  if (!record(doc) || (!Object.hasOwn(doc, "answers") && !Object.hasOwn(doc, "saved"))) throw Error("Choose an answers/saved facts JSON file. Raw profiles and resumes are not supported here. Nothing was imported.");
+  const owners = new Set(), items = [];
+  const owner = (v) => {
+    if (v === undefined || v === null || v === "") return;
+    if (typeof v !== "string") throw Error("The file's account owner is invalid. Nothing was imported.");
+    owners.add(v);
+  };
+  owner(doc.user_id);
+  for (const group of ["answers", "saved"]) {
+    const values = doc[group] === undefined ? {} : doc[group];
+    if (!record(values)) throw Error("Each answers/saved section must contain named answers. Nothing was imported.");
+    for (const [key, a] of Object.entries(values)) {
+      if (["__proto__", "constructor", "prototype"].includes(key) || !record(a) || typeof a.value !== "string" || !a.value.trim() || typeof a.factId !== "string" || !a.factId.trim() || a.factId.length > 200) throw Error("Every answer needs text and a valid file fact reference. Nothing was imported.");
+      owner(a.user_id);
+      items.push({ group, key, value: a.value, factId: a.factId, ...(a.user_id ? { user_id: a.user_id } : {}) });
+    }
+  }
+  if (owners.size > 1) throw Error("That file contains answers from different accounts. Nothing was imported.");
+  if (!items.length) throw Error("That file has no answers to review. Nothing was imported.");
+  return { owner: [...owners][0], items };
+}
+function clearFactImport() {
+  factImportSeq++;
+  factImport = null;
+  $("fact-import-list").textContent = "";
+  $("fact-import-review").hidden = true;
+  $("facts").disabled = false;
+  $("fact-import-cancel").disabled = false;
+  text($("fact-import-msg"), "");
+}
+function renderFactImport() {
+  const preview = factImport, list = $("fact-import-list");
+  list.textContent = "";
+  $("fact-import-review").hidden = !preview;
+  $("facts").disabled = !!preview?.busy;
+  $("fact-import-cancel").disabled = !!preview?.busy;
+  if (!preview) return;
+  text($("fact-import-file"), preview.file);
+  preview.items.forEach((item, index) => {
+    const li = document.createElement("li"), label = document.createElement("b"), value = document.createElement("p"), reference = document.createElement("p");
+    const confirmed = preview.confirmed.has(index);
+    li.dataset.state = confirmed ? "confirmed" : "draft";
+    label.textContent = `${item.group === "saved" ? "Saved answer" : "Answer"}: ${item.key}`;
+    value.className = "fact-import-value";
+    value.textContent = item.value;
+    reference.className = "small";
+    reference.textContent = `File reference: ${item.factId}`;
+    li.append(label, value, reference);
+    if (confirmed) {
+      const done = document.createElement("span");
+      done.dataset.importState = "confirmed";
+      done.textContent = "Confirmed for this browser session.";
+      li.append(done);
+    } else {
+      const button = document.createElement("button");
+      button.textContent = "Confirm this answer";
+      button.disabled = preview.busy;
+      button.onclick = (e) => confirmImportedAnswer(e, preview, index);
+      li.append(button);
+    }
+    list.append(li);
+  });
+}
+async function confirmImportedAnswer(e, preview, index) {
+  if (!e.isTrusted || factImport !== preview || preview.busy || preview.confirmed.has(index)) return;
+  preview.busy = true;
+  renderFactImport();
+  try {
+    const active = await send({ type: "status", tabId: await targetTab() });
+    if (factImport !== preview) return;
+    if (!active.signedIn || active.email !== preview.account) { clearFactImport(); return; }
+    const confirmed = new Set([...preview.confirmed, index]);
+    const doc = { ...(preview.owner ? { user_id: preview.owner } : {}), answers: {}, saved: {} };
+    for (const n of confirmed) {
+      const item = preview.items[n];
+      doc[item.group][item.key] = { value: item.value, factId: item.factId, confirmed: true, ...(item.user_id ? { user_id: item.user_id } : {}) };
+    }
+    const r = await send({ type: "import-facts", json: JSON.stringify(doc) });
+    if (factImport !== preview) return;
+    if (!r?.ok) { text($("fact-import-msg"), r?.message || "The answer was not imported. Try again.", true); return; }
+    preview.confirmed = confirmed;
+    text($("fact-import-msg"), `${confirmed.size} answer${confirmed.size === 1 ? "" : "s"} confirmed for this browser session. No application was approved.`);
+    render();
+  } catch {
+    if (factImport === preview) text($("fact-import-msg"), "The import could not be confirmed. Check this browser's imported-answer count before trying again.", true);
+  } finally {
+    preview.busy = false;
+    if (factImport === preview) renderFactImport();
+  }
+}
+$("fact-import-cancel").onclick = (e) => { if (e.isTrusted && !factImport?.busy) clearFactImport(); };
 $("fill").onclick = async () => {
   text($("status"), "Reading the form and filling what Trainee knows...");
   const r = await send({ type: "prepare", tabId: await targetTab() });

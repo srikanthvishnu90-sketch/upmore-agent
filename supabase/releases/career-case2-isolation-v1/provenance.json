@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "agent_chat_original_archive_sha256": "65cfac31f37381c6f7ff13c02e1d27ea383531901b88249ff049875ffb2eb274",
+  "pr90_merge": "b316efbe24332e2f96fd484b47dcf63fa4d310b1",
+  "changes": {
+    "agent-chat": [
+      "_shared/career_host.js",
+      "_shared/router_core.career.js",
+      "src/handler-career.ts",
+      "_shared/career_persistence.js"
+    ],
+    "telegram-inbound": [
+      "_shared/channel_bridge.ts",
+      "_shared/channel_present.ts",
+      "_shared/telegram.ts"
+    ]
+  },
+  "functions": [
+    {
+      "name": "agent-chat",
+      "version": 246,
+      "files": [
+        {
+          "path": "src/index.ts",
+          "bytes": 576,
+          "sha256": "8c3381223b1d795a2e4abe2e0bb0517b23a9c22068a56b1ed51ad5ce7a3d5ca7"
+        },
+        {
+          "path": "src/handler-career.ts",
+          "bytes": 21635,
+          "sha256": "a2c270d5aec8a5b07f9693f28054c0cdd575487f8f7140c985c480c137259f04"
+        },
+        {
+          "path": "_shared/identity_redact.ts",
+          "bytes": 5660,
+          "sha256": "831a25411627de10615784bf209c0de304f13b61ad833c7f9769e0795b0d8f83"
+        },
+        {
+          "path": "src/_shared/chat_cors.ts",
+          "bytes": 778,
+          "sha256": "a2b2d1842471e86573601fe7e31075d8105a432b9d5fa053cfcd12fe591c7796"
+        },
+        {
+          "path": "src/_shared/chat_input.ts",
+          "bytes": 2034,
+          "sha256": "1929990c0e2f3ce56c59b67b413c6026aab0e15ae6b44daa3578076c17da2662"
+        },
+        {
+          "path": "src/_shared/chat_session.ts",
+          "bytes": 1326,
+          "sha256": "25aee5ae5b24d3150a8551ebfbe0db98297aed75fbb3a8b0423b52b2b29ec623"
+        },
+        {
+          "path": "_shared/router_core.career.js",
+          "bytes": 3391858,
+          "sha256": "1fca1f3969b70646c9c45173079026ed813368eadb8f8ba0aef2eb4396014b1c"
+        },
+        {
+          "path": "_shared/career_task_bridge.js",
+          "bytes": 13402,
+          "sha256": "48be697c55bd4f3952bf0e890e76032020476d27cf3000af7c435a1f927f3880"
+        },
+        {
+          "path": "_shared/career_host.js",
+          "bytes": 13318,
+          "sha256": "d8aa11c61f1c3227c7e38d2268384a95b97230c3eec662ed0680ff0694de66cb"
+        },
+        {
+          "path": "_shared/career_pool.js",
+          "bytes": 3582,
+          "sha256": "2ac09d226e04b8540dbe8a0d359f266f0bbe8e5624c8aaa7463229a4e0a574d4"
+        },
+        {
+          "path": "_shared/career_persistence.js",
+          "bytes": 4001,
+          "sha256": "75507cdcbef14440f6e2d0ff7c237a3d3fb12262cb868d0ab33aae55120b3c07"
+        },
+        {
+          "path": "_shared/channel_artifacts.ts",
+          "bytes": 9343,
+          "sha256": "2d76321add79177dc212176025e739e031217f9152500e34bdc12933754dc05d"
+        }
+      ]
+    },
+    {
+      "name": "telegram-inbound",
+      "version": 7,
+      "files": [
+        {
+          "path": "telegram-inbound/index.ts",
+          "bytes": 844,
+          "sha256": "47500fffed127fe7bc58638eee4d2dcf17d90982b9a729e9c5083f9e4f4037ab"
+        },
+        {
+          "path": "_shared/telegram.ts",
+          "bytes": 16381,
+          "sha256": "f2be86180f11b97af058069106f757a14a31ed7024914c4a427689d77bfa50eb"
+        },
+        {
+          "path": "_shared/channel_bridge.ts",
+          "bytes": 10564,
+          "sha256": "730ac97e96497a9b624b02048d43aee4dbed6935c8d423a347dc3d43a7935743"
+        },
+        {
+          "path": "_shared/channel_present.ts",
+          "bytes": 24247,
+          "sha256": "abe5e18cd7439755a0d83b722b6fdd2db4e0f9c3abeb61d51971b666697a8e5f"
+        },
+        {
+          "path": "_shared/channel_artifacts.ts",
+          "bytes": 9343,
+          "sha256": "2d76321add79177dc212176025e739e031217f9152500e34bdc12933754dc05d"
+        }
+      ]
+    }
+  ],
+  "type_boundary_runtime_equivalence": {
+    "method": "In-memory esbuild 0.25.12 type erasure with comments and whitespace removed; emitted output is not shipped.",
+    "files": [
+      {
+        "file": "agent-chat/src/handler-career.ts",
+        "emitted_runtime_equal": true,
+        "canonical_js_sha256": "813a7f5c6486d8b1e1aaef770cec3d24e2c7b2c95f65de507a9870b61f9b0b65",
+        "method": "In-memory esbuild0.25.12 type erasure plus comment/whitespace removal; no emitted code is shipped."
+      },
+      {
+        "file": "agent-chat/_shared/career_persistence.js",
+        "emitted_runtime_equal": true,
+        "canonical_js_sha256": "a1272a3980837cbb5abc9203000218e85dfd961995a825af214f1ef6c31cc782",
+        "method": "In-memory esbuild0.25.12 type erasure plus comment/whitespace removal; no emitted code is shipped."
+      }
+    ]
+  }
+}

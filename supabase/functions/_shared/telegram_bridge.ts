@@ -21,7 +21,8 @@
 // CHANNEL_APPROVAL_TTL_MIN (optional; approval-button lifetime).
 
 import {
-  ChannelDeps,
+  type ChannelDeps,
+  ChannelRateLimitError,
   NOT_AUTHORIZED_TEXT,
   json,
   resolveTestUser,
@@ -294,9 +295,14 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
         ? await withTelegramTyping(deps, token, parsed.chatId, runTurn)
         : await runTurn();
     } catch (e) {
-      if (e instanceof TurnLimitError) {
-        if (send && !dryRun) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.rateLimited); } catch { /* best effort */ } }
-        return json({ ok: true, limited: true });
+      if (e instanceof ChannelRateLimitError) {
+        if (send && !dryRun) {
+          try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.rateLimited); }
+          catch { console.warn("telegram-inbound: rate-limit notice could not be delivered."); }
+        }
+        // Acknowledge receipt so Telegram does not replay this same message.
+        // The person can send a new request after the quota window permits it.
+        return json({ ok: false, limited: true, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });
       }
       console.error("telegram-inbound turn:", e);
       if (send && !dryRun) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.error); } catch { /* response below still 500 */ } }

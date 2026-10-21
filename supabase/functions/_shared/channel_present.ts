@@ -76,7 +76,7 @@ export const VOICE = {
   empty: "(I didn't get a reply — try again.)",
   error: "Something went wrong on my side — nothing was changed. Give me a moment and send that again.",
   rateLimited:
-    "You've reached the limit of 60 messages an hour, so I didn't read that message and nothing was changed. The limit resets within the hour; send it again then.",
+    "This account has reached its message limit of 60 messages an hour, so I didn't read that message. The limit resets within the hour; send it again then.",
   dismiss: "Okay — nothing was approved. The batch stays right where it is.",
   approvalAck: "Got it ✓",
   approvalDeclined: "Not approved — nothing was sent.",

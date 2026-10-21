@@ -1,0 +1,86 @@
+{
+  "reference_merge": "b316efbe24332e2f96fd484b47dcf63fa4d310b1",
+  "reference_source": "packages/domain/130-career-onboarding.js; bundled counterpart in supabase/functions/_shared/router_core.career.js",
+  "base_sha256": "1fca1f3969b70646c9c45173079026ed813368eadb8f8ba0aef2eb4396014b1c",
+  "base_bytes": 3391858,
+  "candidate_sha256": "7339f0c04f1d85ad3242c2a4466605baeab9ca35dc12bbe22e791fac78603033",
+  "candidate_bytes": 3390379,
+  "replacements": [
+    {
+      "old_start": 604830,
+      "old_end": 604996,
+      "old_utf8": "const CORRECTION_STORE=new Map;function correctionKey(profile){const p=profile||{},b=p.basics||{};return b.email||b.name||p.id||(p.facts||[])[0]&&p.facts[0].id||null}",
+      "new_utf8": "",
+      "label": "Remove process-wide store and unauthenticated identity key",
+      "new_start": 604830,
+      "old_bytes": 166,
+      "new_bytes": 0,
+      "old_sha256": "8e39b89b08dd0204976f77f05dae380746645e7b86f654ed05d6fbd2a17eda05",
+      "new_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "old_start": 608281,
+      "old_end": 608503,
+      "old_utf8": "const key=correctionKey(profile);if(key)CORRECTION_STORE.set(key,{key,audit:profile.profile_corrections.slice(),changes,graduationDate:(profile.constraints||{}).graduationDate||null,resume_sources:profile.resume_sources});",
+      "new_utf8": "",
+      "label": "Explicit correction writes only the provided owner profile",
+      "new_start": 608115,
+      "old_bytes": 222,
+      "new_bytes": 0,
+      "old_sha256": "91e8ab19f4e511e0a06efee3b0abe5aef6c8c2467c63c2d1b9c2f6d50dab5650",
+      "new_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "old_start": 608845,
+      "old_end": 610055,
+      "old_utf8": "function applyPersistedCorrections(profile){if(!profile)return false;const key=correctionKey(profile);const rec=key&&CORRECTION_STORE.get(key);if(!rec)return false;let touched=false;if(rec.graduationDate&&(profile.constraints||{}).graduationDate!==rec.graduationDate){profile.constraints=Object.assign({},profile.constraints,{graduationDate:rec.graduationDate});touched=true}for(const ch of rec.changes||[]){const fact2=(profile.facts||[]).find(f=>f.id===ch.fact_id);if(fact2&&fact2.needs_confirmation){applyResolutionToFact(fact2,{to:ch.to},null);touched=true}}if(!(profile.profile_corrections||[]).length)profile.profile_corrections=(rec.audit||[]).slice();if(!profile.resume_sources||profile.resume_sources.status!==\"active_new_wins\")profile.resume_sources=rec.resume_sources;if(!profile.dependent_state||!profile.dependent_state.rebuilt)rebuildDependents(profile,null);if(touched)bumpFactVersion(profile);return touched}function exportCorrectionStore(){return[...CORRECTION_STORE.values()]}function restoreCorrectionStore(rows){CORRECTION_STORE.clear();for(const r of rows||[])if(r&&r.key)CORRECTION_STORE.set(r.key,r);return CORRECTION_STORE.size}function _resetCorrectionStore(){CORRECTION_STORE.clear()}",
+      "new_utf8": "function applyPersistedCorrections(){return false}function exportCorrectionStore(){return[]}function restoreCorrectionStore(){return 0}function _resetCorrectionStore(){}",
+      "label": "Retain deprecated compatibility APIs as merged PR90 safe no-ops",
+      "new_start": 608457,
+      "old_bytes": 1210,
+      "new_bytes": 169,
+      "old_sha256": "5aa95b0fccf3892febf51beadb0651512924b2ef9e467b052344d54958507cfb",
+      "new_sha256": "f8447ca81b6fe3d95ca856858fb06518ed7de91bebc66c06d2b2b0562499db35"
+    },
+    {
+      "old_start": 628439,
+      "old_end": 628489,
+      "old_utf8": "if(c.profile)applyPersistedCorrections(c.profile);",
+      "new_utf8": "",
+      "label": "Read/recall never replays process-local correction state",
+      "new_start": 627010,
+      "old_bytes": 50,
+      "new_bytes": 0,
+      "old_sha256": "a15fcef8f66554d24d4b875a524805c12b81ad92ef9943c22b0411f0168099df",
+      "new_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "unchanged_segments": [
+    {
+      "old_start": 0,
+      "bytes": 604830,
+      "sha256": "4e33720be63688ba7c9a161cf983a65016605aa80552d86a3b2f7d21dbaf26f5"
+    },
+    {
+      "old_start": 604996,
+      "bytes": 3285,
+      "sha256": "ea8287bdd1fc5be549687414f49f1543a705a2b5954689201f645dbffa1c7936"
+    },
+    {
+      "old_start": 608503,
+      "bytes": 342,
+      "sha256": "95ce1ee20559c5171c6e75a01638a2a74d8c9d804cf164d0ae083314f9a5a705"
+    },
+    {
+      "old_start": 610055,
+      "bytes": 18384,
+      "sha256": "061965b38bc3ea988901d2ce3686814a684a0de5788d4f48b781ab003f091085"
+    },
+    {
+      "old_start": 628489,
+      "bytes": 2763369,
+      "sha256": "91dd083b73b099c2a0b30645e8b2016cde7052a4aace1dca05bdc82dff021679"
+    }
+  ],
+  "policy": "Four asserted unique replacements only. No formatter, transpiler, bundler, regeneration or unrelated source change."
+}

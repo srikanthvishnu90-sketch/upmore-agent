@@ -36,7 +36,8 @@
 // payload parser against this same shared turn core, not a rewrite.
 
 import {
-  ChannelDeps,
+  type ChannelDeps,
+  ChannelRateLimitError,
   NOT_AUTHORIZED_TEXT,
   digitsOf,
   json,
@@ -260,9 +261,9 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
         messageId: parsed.messageId || null,
       });
     } catch (e) {
-      if (e instanceof TurnLimitError) {
+      if (e instanceof ChannelRateLimitError) {
         if (send && !dryRun) { try { await send(parsed.from, VOICE.rateLimited); } catch { /* best effort */ } }
-        return json({ ok: true, limited: true });
+        return json({ ok: false, limited: true, error: "rate_limited", retry_after_seconds: e.retryAfterSeconds });
       }
       console.error("whatsapp-inbound turn:", e);
       if (send && !dryRun) { try { await send(parsed.from, VOICE.error); } catch { /* response below still 500 */ } }

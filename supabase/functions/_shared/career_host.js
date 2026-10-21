@@ -192,11 +192,26 @@ const CareerHost = (() => {
   const PAUSE_RE = /^(?:STOP|UNSUBSCRIBE|stop everything|pause all career work)[.!]*$/i;
   const RESUME_RE = /^(?:resume career work|resume all career work)[.!]*$/i;
   const ERASE_RE = /^(?:forget|delete) my career profile[.!]*$/i;
-  // True when this turn belongs to the host's account controls: a pause, resume or erase command, or any turn while
-  // the account is paused. Any brain (the router or the agent) must hand such a turn to runTurn, before any model call.
+  // Entry-point navigation, not a fact assertion or an answer to a pending
+  // question. Whole-message matches leave substantive asks and link tokens
+  // with their existing owners. This menu never invokes a model or tool.
+  function isGreeting(text) {
+    const ask = typeof text === "string" ? text.trim() : "";
+    return /^(?:\/start|(?:hi|hello|hey)(?:\s+trainee)?|good (?:morning|afternoon|evening))[.!?]*$/i.test(ask) ||
+      /^(?:what can (?:you|trainee) do(?: for me)?|how can you help(?: me)?)[.!?]*$/i.test(ask);
+  }
+  function greetingResult() {
+    return {
+      intent: "career_greeting", resultStatus: "completed", action: null, sends: 0,
+      reply: "Hi — I'm Trainee, your career assistant.\n\n1. Find matching openings from the available postings.\n2. Prepare resume and application drafts from facts you confirm.\n3. Practice interviews and review your application record.\n\nYou review the exact answers before an application is sent. What would you like to work on first?",
+    };
+  }
+  // Account controls and entry-point navigation belong to code, before either
+  // brain. A greeting never answers a pending prompt or invokes a model.
   function isHostControlled(text, ctx) {
     const ask = typeof text === "string" ? text.trim() : "";
     if (PAUSE_RE.test(ask) || RESUME_RE.test(ask) || ERASE_RE.test(ask)) return true;
+    if (isGreeting(ask)) return true;
     return !!(ctx && ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control");
   }
   function applyHostControl(text, ctx) {
@@ -229,6 +244,8 @@ const CareerHost = (() => {
   }
 
   function createCareerHost(deps) {
+    const initialSnapshots = new WeakMap();
+    const readOnlyTurns = new WeakSet();
     const { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } = deps || {};
     for (const [name, mod] of Object.entries({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment })) {
       if (!mod || typeof mod.handleChat !== "function" && name !== "CareerReply" && name !== "CareerContainment") {
@@ -279,6 +296,7 @@ const CareerHost = (() => {
         accountPersistence: o.accountPersistence === true,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");
+      initialSnapshots.set(ctx, o.snapshot || { v: 1, scope: { userId: ctx.userId }, stores: {} });
       const stores = o.snapshot && typeof o.snapshot === "object" ? o.snapshot.stores : null;
       if (stores && typeof stores === "object") {
         for (const key of STATE_KEYS) {
@@ -287,7 +305,11 @@ const CareerHost = (() => {
           }
         }
       }
-      if (o.profile !== undefined) ctx.profile = o.profile;
+      if (o.profile !== undefined) {
+        ctx.profile = o.profile;
+        const original = initialSnapshots.get(ctx);
+        initialSnapshots.set(ctx, { ...original, stores: { ...original.stores, profile: cloneJson(o.profile) } });
+      }
       if (o.account) {
         if (o.account.preferred_locations && ctx.profile) {
           ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: o.account.preferred_locations.slice() });
@@ -359,6 +381,10 @@ const CareerHost = (() => {
     // module 140's honest fallback text, and the failure record is kept on
     // ctx.containmentRecords for the handler to log.
     function runTurn(text, ctx) {
+      readOnlyTurns.delete(ctx);
+      // Once this context has run substantive work, a later greeting must
+      // preserve its current stores rather than restore the initial load.
+      if (!isGreeting(text)) initialSnapshots.delete(ctx);
       let handler = null;
       const controls = applyHostControl(text, ctx);
       if (controls) return { ...controls, action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
@@ -370,6 +396,11 @@ const CareerHost = (() => {
       // router pauses fall through to dispatch, where 142's ownership-layer
       // pause control + action-only gate enforce them.
       if (ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control") return { reply: "Career work is paused. No new action was started. Say resume career work to lift this pause; earlier uncertain work will not be retried automatically.", intent: "career_paused", resultStatus: "blocked", action: null, handler: "CareerHostControl", contained: false, capabilities: workerCapabilities };
+      if (isGreeting(text)) {
+        readOnlyTurns.add(ctx);
+        const result = greetingResult();
+        return { ...result, result, handler: "CareerHostGreeting", contained: false, capabilities: workerCapabilities };
+      }
       const dispatch = () => {
         let r = CareerAccess.handleChat(text, ctx);
         if (r) { handler = "CareerAccess"; return ensureEndingGuarantee(r, CareerReply); }
@@ -421,6 +452,9 @@ const CareerHost = (() => {
     // Extract the durable per-thread state from a post-turn ctx. JSON-safe
     // by construction: unserializable values are skipped, never thrown.
     function extractSnapshot(ctx) {
+      // A greeting must not reconcile account/thread facts, answer onboarding,
+      // or rewrite a profile just because createTurnCtx loaded those records.
+      if (readOnlyTurns.has(ctx) && initialSnapshots.has(ctx)) return cloneJson(initialSnapshots.get(ctx));
       const stores = {};
       for (const key of STATE_KEYS) {
         if (ctx && ctx[key] !== undefined) {
@@ -435,7 +469,7 @@ const CareerHost = (() => {
       // against what the account held at turn start — an unchanged
       // record must not churn the account row every turn — and never
       // on an erase turn (the erase rebuild owns the account then).
-      if (ctx && ctx.accountPersistence && !(ctx._hostPatch && ctx._hostPatch.erase === true)) {
+      if (ctx && ctx.accountPersistence && !readOnlyTurns.has(ctx) && !(ctx._hostPatch && ctx._hostPatch.erase === true)) {
         try {
           const facts = ctx.statedFacts && Array.isArray(ctx.statedFacts.facts) ? ctx.statedFacts.facts : [];
           const mirrorNeg = ctx.trackStore && ctx.trackStore._careerThread && typeof ctx.trackStore._careerThread === "object" ? ctx.trackStore._careerThread.negotiation : null;

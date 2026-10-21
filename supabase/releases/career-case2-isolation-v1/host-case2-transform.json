@@ -1,0 +1,153 @@
+{
+  "base_sha256": "d8aa11c61f1c3227c7e38d2268384a95b97230c3eec662ed0680ff0694de66cb",
+  "base_bytes": 13318,
+  "candidate_sha256": "4251a5efc4f2f3eecb6dfa4e5942e9fa6c48f7f746944438856d3cff6ec9ced7",
+  "candidate_bytes": 14766,
+  "replacements": [
+    {
+      "old_start": 3579,
+      "old_end": 3615,
+      "old_utf8": "function applyHostControl(text,ctx){",
+      "new_utf8": "  function isGreeting(text) {\n    const ask = typeof text === \"string\" ? text.trim() : \"\";\n    return /^(?:\\/start|(?:hi|hello|hey)(?:\\s+trainee)?|good (?:morning|afternoon|evening))[.!?]*$/i.test(ask) ||\n      /^(?:what can (?:you|trainee) do(?: for me)?|how can you help(?: me)?)[.!?]*$/i.test(ask);\n  }\n  function greetingResult() {\n    return {\n      intent: \"career_greeting\", resultStatus: \"completed\", action: null, sends: 0,\n      reply: \"Hi \u2014 I'm Trainee, your career assistant.\\n\\n1. Find matching openings from the available postings.\\n2. Prepare resume and application drafts from facts you confirm.\\n3. Practice interviews and review your application record.\\n\\nYou review the exact answers before an application is sent. What would you like to work on first?\",\n    };\n  }\nfunction applyHostControl(text,ctx){",
+      "label": "Add same bounded whole-message greeting and static navigation result",
+      "new_start": 3579,
+      "old_bytes": 36,
+      "new_bytes": 824,
+      "old_sha256": "57e7ded28ce628f6bba75f5950ca842c0a2a624261af2618aa07f9575ec5bd8f",
+      "new_sha256": "4c7d4c0390b5e593ee0eb1ae2b6181eb984e10347edef8673a4e9ab2749508de"
+    },
+    {
+      "old_start": 5543,
+      "old_end": 5575,
+      "old_utf8": "function createCareerHost(deps){",
+      "new_utf8": "function createCareerHost(deps){const initialSnapshots=new WeakMap;const readOnlyTurns=new WeakSet;",
+      "label": "Per-context snapshot and read-only-turn guards",
+      "new_start": 6331,
+      "old_bytes": 32,
+      "new_bytes": 99,
+      "old_sha256": "43ea3fdee21c867a0a22a35a4221c77b8ae0686b97cbae6f7fdf6500f130c764",
+      "new_sha256": "bf17dad9298ce9a5bf13c2ee0c9ff4b1cf0c89ccbc2d7d562be748dffb0a1bc0"
+    },
+    {
+      "old_start": 7063,
+      "old_end": 7126,
+      "old_utf8": "throw new Error(\"career_snapshot_owner_mismatch\");const stores=",
+      "new_utf8": "throw new Error(\"career_snapshot_owner_mismatch\");initialSnapshots.set(ctx,o.snapshot||{v:1,scope:{userId:ctx.userId},stores:{}});const stores=",
+      "label": "Retain owner-checked input snapshot before account reconciliation",
+      "new_start": 7918,
+      "old_bytes": 63,
+      "new_bytes": 143,
+      "old_sha256": "76fdd421a74ad77d9e9bef3a484cc0872f90ce733846dd34cfaccb95adc8d919",
+      "new_sha256": "0e07951a973e2c893877b80f0e3b0a6474cd36fd97333aeaf36ce7e7a3ae5e67"
+    },
+    {
+      "old_start": 7327,
+      "old_end": 7371,
+      "old_utf8": "if(o.profile!==void 0)ctx.profile=o.profile;",
+      "new_utf8": "if(o.profile!==void 0){ctx.profile=o.profile;const original=initialSnapshots.get(ctx);initialSnapshots.set(ctx,{...original,stores:{...original.stores,profile:cloneJson(o.profile)}})}",
+      "label": "Preserve explicit profile input precedence",
+      "new_start": 8262,
+      "old_bytes": 44,
+      "new_bytes": 183,
+      "old_sha256": "cf941d6d4db1cc0d54e06a8a00310649b3d5d53e85160956e2c1c575391c7a21",
+      "new_sha256": "ce83debb8e0a8ca39b702d215a52bbe39fea35323e4d1b0458a8ce275f73df26"
+    },
+    {
+      "old_start": 9447,
+      "old_end": 9491,
+      "old_utf8": "function runTurn(text,ctx){let handler=null;",
+      "new_utf8": "function runTurn(text,ctx){readOnlyTurns.delete(ctx);if(!isGreeting(text))initialSnapshots.delete(ctx);let handler=null;",
+      "label": "Discard old snapshot cache on substantive controls/work",
+      "new_start": 10521,
+      "old_bytes": 44,
+      "new_bytes": 120,
+      "old_sha256": "72ad22c57101ef85fe3724a4aba54c996c72e4b69ec18783c0005a648f460ae6",
+      "new_sha256": "906b71eb5010daa59418a8e331132f1010738252a714394c7a49efc655e6d852"
+    },
+    {
+      "old_start": 10012,
+      "old_end": 10065,
+      "old_utf8": "capabilities:workerCapabilities};const dispatch=()=>{",
+      "new_utf8": "capabilities:workerCapabilities};if(isGreeting(text)){readOnlyTurns.add(ctx);const result=greetingResult();return{...result,result,handler:\"CareerHostGreeting\",contained:false,capabilities:workerCapabilities}}const dispatch=()=>{",
+      "label": "Return greeting only after existing account pause/control denials",
+      "new_start": 11162,
+      "old_bytes": 53,
+      "new_bytes": 229,
+      "old_sha256": "44ce64b76c5b03dce3b6f0e75cd0fe0f902d61ddbfe27192abd17eacadbcd64f",
+      "new_sha256": "dfb4214eb497582a1610f29a6d943b5b143edc4d156c122cf0f554de3862ab23"
+    },
+    {
+      "old_start": 11884,
+      "old_end": 11930,
+      "old_utf8": "function extractSnapshot(ctx){const stores={};",
+      "new_utf8": "function extractSnapshot(ctx){if(readOnlyTurns.has(ctx)&&initialSnapshots.has(ctx))return cloneJson(initialSnapshots.get(ctx));const stores={};",
+      "label": "Greeting extraction retains exact input snapshot",
+      "new_start": 13210,
+      "old_bytes": 46,
+      "new_bytes": 143,
+      "old_sha256": "77bc297b3fe0dd46f1a18a94a77f178646091e1034f55e8dee13610cf4e979f8",
+      "new_sha256": "519aae4f1bd3daeb9dbdfca2f069a7afc5d9dfe14e7735e6d799d8da8bf9569c"
+    },
+    {
+      "old_start": 12031,
+      "old_end": 12111,
+      "old_utf8": "if(ctx&&ctx.accountPersistence&&!(ctx._hostPatch&&ctx._hostPatch.erase===true)){",
+      "new_utf8": "if(ctx&&ctx.accountPersistence&&!readOnlyTurns.has(ctx)&&!(ctx._hostPatch&&ctx._hostPatch.erase===true)){",
+      "label": "Do not produce account stated-fact writes for greeting extraction",
+      "new_start": 13454,
+      "old_bytes": 80,
+      "new_bytes": 105,
+      "old_sha256": "a072935da0b30553783e40e9b564a4032552c55310cb178b081067c877792df4",
+      "new_sha256": "b44c68059b50d6876ded1c69667614941bda018e3c3099ca1cd247d56ccae954"
+    }
+  ],
+  "unchanged_segments": [
+    {
+      "old_start": 0,
+      "bytes": 3579,
+      "sha256": "67f6286fad257a12824f7e444559ef5b59b9e0c0ac5e2022192e36b7d57eb7dd"
+    },
+    {
+      "old_start": 3615,
+      "bytes": 1928,
+      "sha256": "afe9ef2e82e967a99f8427738dbc0b9d518ebd3a7b3c5463ee792f4a58f15535"
+    },
+    {
+      "old_start": 5575,
+      "bytes": 1488,
+      "sha256": "e7246cf394dc267eab3e2506a385b0a476bc437037f48d8199f14f2bfafcf98d"
+    },
+    {
+      "old_start": 7126,
+      "bytes": 201,
+      "sha256": "002cdf678d3081036d2d8d87fd56cddd318f2e0aadaeeae7e684b3df2d44bcc9"
+    },
+    {
+      "old_start": 7371,
+      "bytes": 2076,
+      "sha256": "8c89c35b845e2650a2827d120b80fe6da3a79fe83fc5678b010cffd89ba93d0c"
+    },
+    {
+      "old_start": 9491,
+      "bytes": 521,
+      "sha256": "b3f1938585bdd33bb56b1e9830472a2026a2287e37deac94f60a6fbafd229d5c"
+    },
+    {
+      "old_start": 10065,
+      "bytes": 1819,
+      "sha256": "0d84a2eb7f8b2782678675661f0933848d6b6be6df07f6367fe62bfdfffe54d5"
+    },
+    {
+      "old_start": 11930,
+      "bytes": 101,
+      "sha256": "8b48b4bc5bd06b13dfb5c6ae0847e51cf4a24fba05218160c94247ffbb9c6953"
+    },
+    {
+      "old_start": 12111,
+      "bytes": 1207,
+      "sha256": "5652ca83119ba4ba6a49571dc29eed8777b81a6c8d97d088751759a04f08483c"
+    }
+  ],
+  "inverse_verified": true,
+  "policy": "Eight asserted unique Case2 host sites only. Byte offsets, not character offsets. No duplicate baseline host needed in published tree."
+}

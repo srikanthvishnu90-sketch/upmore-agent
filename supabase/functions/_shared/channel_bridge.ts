@@ -23,6 +23,18 @@ export interface ChannelDeps {
   paceMs?: number; // send pacing between parts (imessage uses 250ms); tests pass 0
 }
 
+// A quota refusal happens before the career turn. Keep it distinct from a
+// failed/uncertain operation, and never retry it inside the bridge.
+export class ChannelRateLimitError extends Error {
+  retryAfterSeconds: number | null;
+  constructor(retryAfter: string | null = null) {
+    super("agent-chat rate limited");
+    this.name = "ChannelRateLimitError";
+    const seconds = retryAfter && /^\d{1,5}$/.test(retryAfter) ? Number(retryAfter) : NaN;
+    this.retryAfterSeconds = Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 86400 ? seconds : null;
+  }
+}
+
 export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -90,11 +102,9 @@ export interface RichTurnOutcome {
   chat: any; // the full agent-chat response (batch/task/meta/artifacts ride it)
 }
 
-// agent-chat's 429: the person's hourly turn limit (agent_rl_bump_as), not a failure. The channels speak it as the
-// limit (VOICE.rateLimited) and answer the webhook 200, so the provider does not retry it.
-export class TurnLimitError extends Error {
-  constructor() { super("agent-chat turn limit"); this.name = "TurnLimitError"; }
-}
+// Preserve the upstream name as the same constructor, so ordinary turns and
+// approval callbacks recognize the same quota refusal and Retry-After data.
+export { ChannelRateLimitError as TurnLimitError };
 
 // One agent-chat call, the bridge's exact wire shape: service-role bearer
 // + as_user_id, Authorization header ONLY (the gateway rejects conflicting
@@ -124,7 +134,7 @@ async function callAgentChat(
       signal: ctrl.signal,
     });
     const chat = await res.json().catch(() => ({}));
-    if (res.status === 429) throw new TurnLimitError();
+    if (res.status === 429) throw new ChannelRateLimitError(res.headers.get("retry-after"));
     if (!res.ok) throw new Error(`agent-chat HTTP ${res.status}: ${JSON.stringify(chat).slice(0, 200)}`);
     if (chat.error) throw new Error("agent-chat: " + String(chat.error).slice(0, 200));
     return chat;

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "purpose": "Explicit types at JavaScript boundaries and an owned Telegram PDF byte buffer; no router rebuild.",
+  "files": [
+    {
+      "path": "agent-chat/src/handler-career.ts",
+      "base_bytes": 21635,
+      "base_sha256": "a2c270d5aec8a5b07f9693f28054c0cdd575487f8f7140c985c480c137259f04",
+      "candidate_bytes": 22929,
+      "candidate_sha256": "15fe3e4afb9fcca4ac09cc0367e0dabceb29a754d60be8117e804d0de5f8d8b2",
+      "replacements": [
+        {
+          "new_start": 2778,
+          "old_utf8": "",
+          "new_utf8": "\n\n// The JavaScript host restores these optional fields from owner-scoped JSON.\n// Opaque records remain unknown until their existing runtime validators read them.\ninterface CareerContextExtensions {\n  _hostPatch?: Record<string, unknown>;\n  batchApplyState?: unknown;\n}\ninterface CareerTurnOutcome {\n  reply: string;\n  intent: string | null;\n  resultStatus?: string | null;\n  contained: boolean;\n  handler?: string | null;\n  capabilities: unknown;\n  result?: Record<string, unknown> | null;\n  task?: unknown;\n  batch?: unknown;\n}\ntype PoolFilter =\n  | { op: \"ilike\"; column: string; value: string }\n  | { op: \"eq\"; column: string; value: unknown };\ninterface PoolReadSpec {\n  table: string;\n  select: string;\n  order: { column: string; ascending: boolean; nullsFirst: boolean };\n  filters?: PoolFilter[];\n  limit: number;\n}\ninterface PoolReadQuery {\n  ilike(column: string, value: string): PoolReadQuery;\n  eq(column: string, value: unknown): PoolReadQuery;\n  limit(count: number): PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>;\n}"
+        },
+        {
+          "new_start": 14963,
+          "old_utf8": "",
+          "new_utf8": "PoolRe"
+        },
+        {
+          "new_start": 14970,
+          "old_utf8": "ny",
+          "new_utf8": "dSpec"
+        },
+        {
+          "new_start": 14995,
+          "old_utf8": "",
+          "new_utf8": ": PoolReadQuery"
+        },
+        {
+          "new_start": 16607,
+          "old_utf8": "",
+          "new_utf8": "type CareerPosting = Awaited<ReturnType<typeof poolLoader.loadTargeted>>[\"postings\"][number];\n      "
+        },
+        {
+          "new_start": 16719,
+          "old_utf8": "",
+          "new_utf8": ": CareerPosting[]"
+        },
+        {
+          "new_start": 17319,
+          "old_utf8": "",
+          "new_utf8": ": ReturnType<typeof host.createTurnCtx> & CareerContextExtensions"
+        },
+        {
+          "new_start": 17592,
+          "old_utf8": "",
+          "new_utf8": ": CareerTurnOutcome"
+        },
+        {
+          "new_start": 19182,
+          "old_utf8": "",
+          "new_utf8": "n: unknow"
+        }
+      ]
+    },
+    {
+      "path": "agent-chat/_shared/career_persistence.js",
+      "base_bytes": 4001,
+      "base_sha256": "75507cdcbef14440f6e2d0ff7c237a3d3fb12262cb868d0ab33aae55120b3c07",
+      "candidate_bytes": 4039,
+      "candidate_sha256": "9397908f99e172eaf428c036b45c0326a1c91919a5f27ec87a33f2083576d130",
+      "replacements": [
+        {
+          "new_start": 3484,
+          "old_utf8": "",
+          "new_utf8": "\n/** @param {unknown} [careerTask] */\n"
+        }
+      ]
+    },
+    {
+      "path": "telegram-inbound/_shared/telegram.ts",
+      "base_bytes": 16800,
+      "base_sha256": "b5f8b8e963841f1fb126efa4ce487c5f12933dbf8301c3368283459ecaabe917",
+      "candidate_bytes": 16816,
+      "candidate_sha256": "358bba5ab774f04c288823db194c23ad02c91606400fe69d822517767da2c9d1",
+      "replacements": [
+        {
+          "new_start": 15178,
+          "old_utf8": "",
+          "new_utf8": "new Uint8Array("
+        },
+        {
+          "new_start": 15202,
+          "old_utf8": "",
+          "new_utf8": ")"
+        }
+      ]
+    }
+  ]
+}

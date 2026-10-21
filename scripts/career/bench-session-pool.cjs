@@ -221,9 +221,10 @@ async function phaseConc(url) {
 
 async function phaseFifty(url) {
   const drives = Number(process.env.BENCH_DRIVES || 50);
-  const out = { drives, loadStart: load() };
+  const modes = (process.env.BENCH_MODES || "launch,pool1,pool4").split(",");
+  const out = { drives, modes, loadStart: load() };
   // Mode "launch": launch-per-drive (module 150 serial semantics).
-  {
+  if (modes.includes("launch")) {
     const times = [];
     const t0 = now();
     for (let i = 0; i < drives; i++) {
@@ -238,7 +239,7 @@ async function phaseFifty(url) {
     out.launchPerDrive = { totalMs: Math.round(now() - t0), perDrive: stats(times), load: load() };
   }
   // Mode "pool1": pool, serial, fresh context per drive.
-  {
+  if (modes.includes("pool1")) {
     const pool = createSessionPool({ maxContexts: 1 });
     const times = [];
     const t0 = now();
@@ -253,7 +254,7 @@ async function phaseFifty(url) {
     await pool.close();
   }
   // Mode "pool4": pool, 4 concurrent leases.
-  {
+  if (modes.includes("pool4")) {
     const pool = createSessionPool({ maxContexts: 4 });
     const t0 = now();
     let done = 0;

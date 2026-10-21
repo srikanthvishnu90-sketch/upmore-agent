@@ -22006,6 +22006,7 @@ const CareerPortalApply = (() => {
       submitOutcome: o.submitOutcome || "accepted",
       captchaAt: o.captchaAt || null,
       accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
+      codeStep: o.codeStep || null, codeAccepted: false, codeTries: 0,
     };
     const calls = { open: 0, fill: 0, submit: 0 };
     return {
@@ -22018,9 +22019,16 @@ const CareerPortalApply = (() => {
       form() { return { fields: SANDBOX_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
       fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
       answers() { return Object.assign({}, state.answers); },
-      atReview() { return { ok: true, captcha: state.captchaAt === "review" ? "challenge" : null }; },
+      atReview() {
+        if (state.captchaAt === "review") return { ok: true, captcha: "challenge" };
+        if (state.codeStep && !state.codeAccepted) return { ok: true, emailCode: { ats: state.codeStep.ats || "greenhouse", rejected: state.codeTries > 0 } };
+        return { ok: true, captcha: null };
+      },
+      fillCode(code) { state.codeTries += 1; state.codeAccepted = !!state.codeStep && code === state.codeStep.expect; return state.codeAccepted; },
+      get codeAccepted() { return state.codeAccepted; },
       submit() {
         calls.submit += 1;
+        if (state.codeStep && !state.codeAccepted) return { outcome: "timeout" };
         if (state.submitOutcome === "accepted") {
           state.confirmationSeq += 1;
           state.submitted = { confirmationId: `SBX-${String(state.confirmationSeq).padStart(4, "0")}`, answers: Object.assign({}, state.answers) };
@@ -22379,11 +22387,49 @@ const CareerPortalApply = (() => {
       .map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
   }
 
+  const ATS_NAMES = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", workday: "Workday" };
+  function codeStopText(status, ats) {
+    const n = ATS_NAMES[ats] || "the employer";
+    if (status === "no_google_connection") return `Connect Google so I can read the code ${n} emails you, or type the code on the page yourself.`;
+    if (status === "scope_missing") return `Your Google connection doesn't let me read mail. Connect Google again and allow reading mail so I can read the code ${n} emails you, or type the code on the page yourself.`;
+    if (status === "ambiguous") return `Two different codes from ${n} are in your inbox, so I didn't guess. Type the newest one on the page yourself.`;
+    if (status === "rejected") return `The page did not take the code from your email. Type the newest code from ${n} on the page yourself.`;
+    if (status === "not_approved") return `The form asks for the code ${n} emails you. Approve the application on its card first; then I read the code from your email, or you type it on the page yourself.`;
+    return `The code ${n} emails you hasn't arrived in your inbox after 3 minutes. Type the code on the page yourself when it comes.`;
+  }
+  function nowMs(inp) {
+    if (inp && Number.isFinite(inp.nowMs)) return inp.nowMs;
+    const t = inp && inp.now ? Date.parse(inp.now) : NaN;
+    return Number.isFinite(t) ? t : Date.now();
+  }
+  async function runApplyWithEmailCode(session, input, readCode) {
+    const inp = input || {};
+    const r = runApply(session, inp);
+    if (!(r && r.resultStatus === "blocked" && r.code === "EMAIL_CODE_REQUIRED" && r.codeStatus !== "rejected")) return r;
+    const approved = !!(inp.approval && inp.approval.approvedByUser === true);
+    if (!approved) return Object.assign(r, { codeStatus: "not_approved", stop: codeStopText("not_approved", r.ats) });
+    if (typeof readCode !== "function") return r;
+    const got = await readCode({ userId: session.userId, ats: r.ats, sinceMs: r.askedAtMs });
+    const status = (got && got.status) || "not_yet";
+    if (status !== "found" || !got.code) {
+      r.stepLog.push({ seq: r.stepLog.length + 1, action: "email_code_not_read", ats: r.ats, status });
+      return Object.assign(r, { codeStatus: status, stop: got && got.stop ? got.stop : codeStopText(status, r.ats) });
+    }
+    r.stepLog.push({ seq: r.stepLog.length + 1, action: "email_code_read", ats: r.ats });
+    session.emailCode = got.code;
+    try {
+      return prepareRound(session, inp, true, 1, r.stepLog);
+    } finally {
+      session.emailCode = null;
+    }
+  }
+
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.pendingAttestations = [];
     session.doorstep = null;
+    session.codeFilledAts = null;
     return prepareRound(session, input, false, 0, []);
   }
   function prepareRound(session, input, continued, round, priorSteps) {
@@ -22395,6 +22441,26 @@ const CareerPortalApply = (() => {
     const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
     const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
     const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+    const emailCodeStep = (rv) => {
+      if (!rv || !rv.emailCode) return null;
+      const ats = rv.emailCode.ats || board.atsFamily || null;
+      if (session.emailCodeAskedAtMs == null) session.emailCodeAskedAtMs = nowMs(inp);
+      const code = session.emailCode;
+      session.emailCode = null;
+      if (code && !rv.emailCode.rejected && typeof board.fillCode === "function") {
+        board.fillCode(typeof code.reveal === "function" ? code.reveal() : String(code));
+        session.codeFilledAts = ats || "employer";
+        logStep("email_code_filled", { ats });
+        if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+        return prepareRound(session, inp, true, round + 1, stepLog);
+      }
+      const status = rv.emailCode.rejected ? "rejected" : "no_google_connection";
+      logStep("email_code_stop", { ats, status });
+      return blocked("EMAIL_CODE_REQUIRED", {
+        ats, askedAtMs: session.emailCodeAskedAtMs, codeStatus: status, stop: codeStopText(status, ats),
+        reason: "the form asks for the code its application system emailed the person; it is read from their own Gmail only for an application they approved, and otherwise they type it",
+      });
+    };
 
     if (inp.userId && inp.userId !== session.userId) {
       logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
@@ -22554,6 +22620,8 @@ const CareerPortalApply = (() => {
       logStep("captcha_stop", { at: "review" });
       return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
     }
+    const codeStep = emailCodeStep(review);
+    if (codeStep) return codeStep;
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
       return prepareRound(session, inp, true, round + 1, stepLog);
@@ -22593,6 +22661,8 @@ const CareerPortalApply = (() => {
         logStep("captcha_stop", { at: "review_recheck" });
         return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: recheck.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step" });
       }
+      const recheckCode = recheck && emailCodeStep(recheck);
+      if (recheckCode) return recheckCode;
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
         return prepareRound(session, inp, true, round + 1, stepLog);
@@ -22610,6 +22680,10 @@ const CareerPortalApply = (() => {
       resultStatus: "prepared", asks, formAnalysis,
       doorstep: Object.assign({ atFinalReview: true, payload, payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => Object.assign({}, a)) } : {}),
     });
+    if (session.codeFilledAts) {
+      return Object.assign(prepared, { resultStatus: "awaiting_user", code: "EMAIL_CODE_FILLED",
+        stop: `Filled the code ${ATS_NAMES[session.codeFilledAts] || "the employer"} emailed you. Press Submit to finish.` });
+    }
     if (inp.approval && inp.approval.approvedByUser === true) {
       inp.approval.payloadSha256 = payloadSha256;
       logStep("approval_bound", { payloadSha256 });
@@ -22812,7 +22886,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

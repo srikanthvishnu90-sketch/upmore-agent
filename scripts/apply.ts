@@ -17,6 +17,17 @@ import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_sto
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
 import { bindFields as bind } from "./career/form-bind.ts";
 import { aiPolicyStatements } from "../supabase/functions/_shared/ai_policy.ts";
+import {
+  type Ats,
+  ATS_NAMES,
+  codeStop,
+  EmailCode,
+  fetchVerificationCode,
+  gmailCodeMailbox,
+  isAts,
+  redactCode,
+} from "../supabase/functions/_shared/career_email_code.ts";
+import { CODE_MAX_WAIT_MS, pollForCode } from "../supabase/functions/_shared/career_email_code_poll.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
@@ -116,6 +127,12 @@ function options(args: string[]) {
     // a texted yes on its card). The run fills and reads back as always and submits without asking again only if the
     // application is still exactly the one approved; any difference stops it with nothing sent.
     else if (k === "--approved" && /^[0-9a-f]{64}$/.test(args[i + 1] || "")) o.approved = args[++i];
+    // --email-code account|local-gmail (WO-096): when the employer emails a code after the approved submit, Trainee reads
+    // it from the person's own Gmail (read-only) and types it into the page. account: through the career-email-code
+    // function, signed in as the person, for the queue row being driven (UPMORE_SUPABASE_URL, UPMORE_SUPABASE_ANON_KEY,
+    // UPMORE_ACCESS_TOKEN, UPMORE_APPLY_JOB_ID, UPMORE_APPLY_LEASE). local-gmail: a loopback stand-in for Gmail's API
+    // (UPMORE_GMAIL_TEST_API), for the local test pages only.
+    else if (k === "--email-code" && ["account", "local-gmail"].includes(args[i + 1] || "")) o["email-code"] = args[++i];
     else if (
       ["--url", "--facts", "--resume", "--state-dir", "--evidence-dir"].includes(k) && args[i + 1] &&
       !args[i + 1].startsWith("--")
@@ -171,6 +188,59 @@ async function answer() {
   }
   return s.split("\n")[0].replace(/\r$/, "");
 }
+// WO-096: where the emailed code is read from, or null when the run was not asked to read it. The result carries the code
+// only inside an EmailCode (it prints as "[emailed code]"); a stop says what the person does instead.
+type CodeRead = { status: string; code?: EmailCode; stop?: string };
+type CodeReader = (i: { ats: Ats; sinceMs: number }) => Promise<CodeRead>;
+function codeReader(mode: string | undefined, local: boolean, userId: string): CodeReader | null {
+  if (!mode) return null;
+  const env = (k: string) => Deno.env.get(k) || "";
+  // A shorter wait, for the local test pages only; never longer than about three minutes.
+  const wait = local && Number(env("UPMORE_EMAIL_CODE_WAIT_MS")) >= 0 && env("UPMORE_EMAIL_CODE_WAIT_MS") !== ""
+    ? Math.min(Number(env("UPMORE_EMAIL_CODE_WAIT_MS")), CODE_MAX_WAIT_MS)
+    : CODE_MAX_WAIT_MS;
+  if (mode === "local-gmail") {
+    const base = env("UPMORE_GMAIL_TEST_API");
+    if (!local || !/^http:\/\/127\.\d+\.\d+\.\d+:\d+\//.test(base)) throw fail("LOCAL_GMAIL_LOCAL_ONLY");
+    return async ({ ats, sinceMs }) => {
+      const r = await fetchVerificationCode({ userId, ats, sinceMs, maxWaitMs: wait }, {
+        mailbox: async () => gmailCodeMailbox({ fetch, token: "TEST-LOCAL-ONLY", base }),
+        now: Date.now,
+      });
+      return r.status === "found" ? { status: r.status, code: r.code } : { status: r.status, stop: codeStop(r.status, ats) };
+    };
+  }
+  const [url, anon, access, job, lease] = [
+    "UPMORE_SUPABASE_URL",
+    "UPMORE_SUPABASE_ANON_KEY",
+    "UPMORE_ACCESS_TOKEN",
+    "UPMORE_APPLY_JOB_ID",
+    "UPMORE_APPLY_LEASE",
+  ].map(env);
+  if (!/^https:\/\//.test(url) || !anon || !access || !job || !lease) throw fail("EMAIL_CODE_NEEDS_SIGN_IN");
+  return ({ ats, sinceMs }) =>
+    pollForCode<CodeRead>(async () => {
+      let r: Response;
+      try {
+        r = await fetch(url.replace(/\/$/, "") + "/functions/v1/career-email-code", {
+          method: "POST",
+          headers: { apikey: anon, authorization: "Bearer " + access, "content-type": "application/json" },
+          body: JSON.stringify({ apply_id: job, lease, since_ms: sinceMs, ats }),
+        });
+      } catch {
+        return { status: "not_yet" };
+      }
+      if (r.status === 401 || r.status === 403) {
+        return { status: "refused", stop: "Type the code the employer emailed you on the page yourself." };
+      }
+      const body = await r.json().catch(() => null);
+      if (!r.ok || !body) return { status: "not_yet" };
+      if (body.status === "found" && typeof body.code === "string" && body.code) {
+        return { status: "found", code: new EmailCode(body.code) };
+      }
+      return { status: String(body.status), stop: String(body.stop || codeStop("not_yet", ats)) };
+    }, { now: Date.now, maxWaitMs: wait });
+}
 export async function runApply(args: string[]) {
   const o = options(args),
     u = new URL(o.url),
@@ -181,6 +251,8 @@ export async function runApply(args: string[]) {
       // A hand-off asks the person to complete a check in the browser window; a headless run has no window to use.
       if (o.handoff && !o.headed && !target.local) throw fail("HANDOFF_NEEDS_HEADED");
       if (o["person-submits"] && !o.headed && !target.local) throw fail("PERSON_SUBMITS_NEEDS_HEADED");
+      // The loopback stand-in for Gmail is for the local test pages; a real employer's code comes from the real mailbox.
+      if (o["email-code"] === "local-gmail" && !target.local) throw fail("LOCAL_GMAIL_LOCAL_ONLY");
     })(),
     factsBytes = fs.readFileSync(o.facts),
     factsHash = sha(factsBytes),
@@ -203,6 +275,11 @@ export async function runApply(args: string[]) {
   const company = typeof facts.posting?.company === "string" && facts.posting.company.trim()
     ? facts.posting.company
     : (target.local ? target.employer : target.tenant);
+  // WO-096: the emailed code's reader (null unless --email-code), and whose senders it reads: the posting's own
+  // application system (a local test page stands for Greenhouse).
+  const readCode = codeReader(o["email-code"], target.local, facts.user_id);
+  const family = hostAllowed(u.href).atsFamily;
+  const codeAts: Ats | null = isAts(family) ? family : target.local ? "greenhouse" : null;
   const stateDir = o["state-dir"] || path.join(os.homedir(), ".local", "state", "upmore", "apply");
   privateDir(stateDir);
   const store = createFileTaskStore(stateDir),
@@ -267,13 +344,17 @@ export async function runApply(args: string[]) {
   // its button themselves. While the window is open, one write per try goes to the employer's own site (codeAllowance);
   // only its keys are kept. Trainee never reads, stores or logs the code.
   let codeWindow = false, codeAllowance = 0, codeWrites = 0;
+  // WO-096: the code read from the person's mail, while this run holds it (memory only). Every record this run writes
+  // and the result it prints are cleaned of it (redactCode), whatever an employer's page echoed back.
+  let typedCode: EmailCode | null = null;
   // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
   let pageFields: Record<string, string> | null = null;
-  const write = (result: any) => {
+  const write = (raw: any) => {
+    const result = typedCode ? JSON.parse(redactCode(JSON.stringify(raw), typedCode)) : raw;
     evidence.result = result;
     const tmp = path.join(evidenceDir, crypto.randomUUID() + ".tmp"), fd = fs.openSync(tmp, "wx", 0o600);
     try {
-      fs.writeFileSync(fd, JSON.stringify(evidence, null, 2) + "\n");
+      fs.writeFileSync(fd, redactCode(JSON.stringify(evidence, null, 2), typedCode) + "\n");
       fs.fsyncSync(fd);
     } finally {
       fs.closeSync(fd);
@@ -356,6 +437,30 @@ export async function runApply(args: string[]) {
       const form = control?.form || control?.closest("form");
       return form ? { url: form.action, method: form.method } : null;
     });
+  // WO-096: fills the page's one visible code box (by its label, name, placeholder or one-time-code autocomplete).
+  // Exactly one box, or nothing is typed: split one-character boxes and two code boxes are the person's. Returns whether
+  // it filled the box. It never presses anything (D-029 rule 5).
+  async function typeCode(code: EmailCode): Promise<boolean> {
+    const marked = await page.evaluate(() => {
+      const d = (globalThis as any).document;
+      const named = /(verification|security|email|one[- _]?time|confirmation)[\s_-]*code|\botp\b|passcode|^code$/i;
+      const words = (e: any) => {
+        const label = e.id ? d.querySelector(`label[for="${String(e.id).replace(/"/g, "")}"]`) : null;
+        return [label?.innerText, e.getAttribute("aria-label"), e.name, e.id, e.placeholder].filter(Boolean).join(" ").trim();
+      };
+      const boxes = Array.from(d.querySelectorAll("input")).filter((e: any) =>
+        !e.disabled && !e.readOnly && e.getClientRects().length && ["text", "tel", "number", "search"].includes(e.type) &&
+        (e.autocomplete === "one-time-code" || named.test(words(e)) || named.test(String(e.name || "")))
+      ) as any[];
+      if (boxes.length !== 1 || (boxes[0].maxLength > 0 && boxes[0].maxLength < 4)) return false;
+      boxes[0].setAttribute("data-trainee-code-box", "1");
+      return true;
+    });
+    if (!marked) return false;
+    // D-029 rule 5: filled only, nothing pressed. The person presses Submit.
+    await page.fill("[data-trainee-code-box]", code.reveal());
+    return true;
+  }
   // A verification on the page is the person's: they complete it in the browser window, press Enter, and the run
   // re-checks the same page (no reload, which would lose what they did). Three tries, then it stops as needs_user.
   async function handOff(): Promise<boolean> {
@@ -642,8 +747,14 @@ export async function runApply(args: string[]) {
           pageFields[h.name] = h.value;
         }
       }
+      // A code box on the form before anything was approved: there is no approved application yet to read mail for
+      // (WO-096 reads a code only inside one), so the person types it.
       if (current.schema.some((f: any) => /verification code|one[- ]time|email.*code|passcode/i.test(f.label))) {
-        return write({ state: "needs_user", reason: "email_code" });
+        return write({
+          state: "needs_user",
+          reason: "email_code",
+          stop: "This form asks for an emailed code before the application can be shown to you. Type the code on the page yourself.",
+        });
       }
       // WO-053: where the job is, as its page shows it (the extension reads it the same way); WO-055: it goes with the
       // questions too, so an answer about a job abroad is kept as that posting's.
@@ -846,6 +957,8 @@ export async function runApply(args: string[]) {
         });
       });
       fenced = true;
+      // WO-096: the code the employer emails is for this click; mail from before it is never read as its code.
+      const clickAt = Date.now();
       allowSubmit = true;
       let cap: any;
       if (personSubmits) {
@@ -929,6 +1042,38 @@ export async function runApply(args: string[]) {
         };
       };
       let obs = await outcome(cap);
+      // WO-096: the employer emailed a code after the approved submit. With --email-code, Trainee reads it from the
+      // person's own Gmail (read-only: the posting's application system's own senders, mail after the click) and fills
+      // the page's one code box. It presses nothing (D-029 rule 5): headless, the run stops at needs_user; with
+      // --handoff the person presses Submit and the code window below lets that one write go under its rules. The code
+      // stays in memory: it is never printed and never in the evidence.
+      let stop: string | null = null, codeFilled = false;
+      if (obs.email_code_prompt && !obs.captcha && !denied && !readCode && !o.handoff) {
+        stop = codeStop("no_google_connection", codeAts ?? "");
+      }
+      if (obs.email_code_prompt && !obs.captcha && !denied && readCode) {
+        const got: CodeRead = codeAts ? await readCode({ ats: codeAts, sinceMs: clickAt }) : { status: "not_yet" };
+        evidence.code_auto = { ats: codeAts, status: got.status };
+        if (got.status === "found" && got.code) {
+          // D-029 rule 5: the code is filled and nothing is pressed. The person presses Submit (with --handoff the run
+          // watches for it below; headless, the run stops here at needs_user).
+          typedCode = got.code;
+          const typed = await typeCode(got.code);
+          evidence.code_auto.typed = typed;
+          codeFilled = typed;
+          // Every input is masked in the picture: the code box holds the code.
+          await page.screenshot({
+            path: path.join(evidenceDir, "after-code.png"),
+            fullPage: true,
+            mask: [page.locator("input, textarea, [contenteditable]")],
+          }).catch(() => {});
+          stop = typed
+            ? `Filled the code ${ATS_NAMES[codeAts!]} emailed you. Press Submit to finish.`
+            : "The page's code box could not be found. Type the code the employer emailed you on the page yourself.";
+        } else {
+          stop = got.stop || codeStop("not_yet", codeAts ?? "");
+        }
+      }
       // The employer emailed a code. With --handoff the person types it into the page and presses its button; the
       // window lets one write per try reach the employer's own site, then the page is read again. Three tries.
       if (obs.email_code_prompt && !obs.captcha && o.handoff && !denied) {
@@ -938,8 +1083,10 @@ export async function runApply(args: string[]) {
           codeAllowance = codeWrites + 1;
           codeWindow = true;
           console.log(
-            "The employer emailed you a verification code. Type it into the browser window and press the page's own " +
-              "button yourself; Trainee never sees or keeps the code. Then press Enter here.",
+            codeFilled && i === 0
+              ? `${stop} Press the page's Submit in the browser window yourself, then press Enter here.`
+              : "The employer emailed you a verification code. Type it into the browser window and press the page's own " +
+                "button yourself; Trainee never sees or keeps the code. Then press Enter here.",
           );
           await answer();
           for (let w = 0; w < 40 && codeWrites < codeAllowance && !evidence.code_rejection; w++) {
@@ -973,7 +1120,10 @@ export async function runApply(args: string[]) {
         if (denied) throw fail("HOST_REDIRECT_REFUSED");
       }
       evidence.observation = obs;
-      const result = classifyOutcome(obs), recorded = write(result);
+      const judged = classifyOutcome(obs);
+      // What the person does about a code still asked for, by name (WO-096); never the code.
+      const result = judged.state === "needs_user" && judged.reason === "email_code" && stop ? { ...judged, stop } : judged;
+      const recorded = write(result);
       store.withLock(id, () => {
         const j = store.get(id);
         store.put({ ...j, state: result.state, result });

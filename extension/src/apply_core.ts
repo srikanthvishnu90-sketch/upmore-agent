@@ -5,7 +5,7 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
@@ -90,7 +90,7 @@ export function planForm(o: {
   const questions = needs.map((n) => {
     const f = fields.find((x) => x.label === n.label) || ({} as FormField);
     const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-    return { label: n.label, type: String(f.type || "input_text"), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
+    return { label: n.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
   });
   return {
     fill, needs: questions, identity: identity.map((f) => ({ name: f.name, label: f.label, required: f.required })),
@@ -803,7 +803,8 @@ function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[]): 
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf);
+  const rule = (f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
+    (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
 }
 // Re-derive a work row from the original, trusted JSON through the same planner and actual row/anchor schema.
@@ -838,7 +839,7 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
     if (!("problem" in j)) fill.push(p);
     else if (f.required) {
       const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-      asks.push({ label: f.label, type: String(f.type || "input_text"), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem });
+      asks.push({ label: f.label, type: questionFieldType(f), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem });
     } else dropped.push(f.label);
   }
   return { fill, asks, dropped };

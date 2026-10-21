@@ -13,6 +13,7 @@ import {
   classifyOutcome,
   normLabel,
   planBatch,
+  questionFieldType,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
@@ -828,7 +829,7 @@ export async function runApply(args: string[]) {
         const questions = p.needs.map((n: any) => {
           const f = current.schema.find((x: any) => x.label === n.label) || {};
           const all = f.options || [];
-          return { label: n.label, type: String(f.type || "input_text"), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
+          return { label: n.label, type: questionFieldType(f), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
         });
         // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
         // them before it ever drafts a written answer for this posting.

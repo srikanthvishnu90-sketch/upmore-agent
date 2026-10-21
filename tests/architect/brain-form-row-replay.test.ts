@@ -92,3 +92,21 @@ Deno.test('row source binding: unused confirmed sources survive persisted replay
  assert(again.manifest.answers.country?.value==='United States'&&again.manifest.hash===original.manifest.hash,'full source manifest lost an unprinted source');
  assert(await engineHash(again.fields,again.manifest)===payload.engine_approval,'original approval did not reproduce with extra source');
 });
+Deno.test('calendar producers: actual open questions preserve section month/year precision',()=>{
+ for(const[format,type]of[['MM/YYYY','month'],['YYYY','year']]){
+  const schema=[{name:'work-1--start',label:'From',type:'date',required:true,options:[],section:{kind:'work',row:1,part:'start',anchor:'',format}}];
+  const p=planForm({userId:OWNER,jobId:JOB,company:'Synthetic hiring',family:'workday',workdayFlow:true,schema,answers:{},saved:{},now:0});assert(p.needs[0]?.type===type,'planner lost '+format+' precision');
+  const manifest=trustedFacts({user_id:OWNER,answers:{work_history:SOURCE},saved:{}},ARTIFACT);
+  const c=contractFill({schema,manifest,resume:ARTIFACT,plan:{fill:[{name:schema[0].name,label:'From',value:'unsupported',factId:SOURCE.factId}],needs:[],identity:[],ambiguous:[]}});assert(c.asks[0]?.type===type,'contract question lost '+format+' precision');
+ }
+});
+Deno.test('calendar contract: a fully stated personal native date/month may use equivalent ISO without adding precision',()=>{
+ for(const[type,value,want]of[['date','February 29, 2028','2028-02-29'],['month','February 2028','2028-02']]){
+  const schema=[{name:'start',label:'Available start date',type,required:true,options:[]}],manifest=trustedFacts({user_id:OWNER,answers:{start_date:{...SOURCE,factId:'TEST-start',value}},saved:{}},ARTIFACT);
+  const p=planForm({userId:OWNER,jobId:JOB,company:'Synthetic hiring',family:'greenhouse',schema,answers:manifest.answers,saved:manifest.saved,now:0});assert(p.fill[0]?.value===want,'planner native representation');
+  const c=contractFill({schema,plan:p,manifest,resume:ARTIFACT});assert(c.fill[0]?.value===want&&c.asks.length===0,'contract lost exact calendar meaning');
+  const invented=contractFill({schema,plan:{...p,fill:[{...p.fill[0],value:type==='date'?'2028-03-01':'2028-03'}]},manifest,resume:ARTIFACT});assert(invented.asks.length===1,'changed date was treated as equivalent');
+ }
+ const schema=[{name:'work-1--start',label:'From',type:'date',required:true,options:[],section:{kind:'work',row:1,part:'start',anchor:''}}],manifest=trustedFacts({user_id:OWNER,answers:{start_date:{...SOURCE,factId:'TEST-personal-start',value:'February 29, 2028'}},saved:{}},ARTIFACT);
+ const borrowed=contractFill({schema,plan:{fill:[{name:schema[0].name,label:'From',value:'2028-02-29',factId:'TEST-personal-start'}],needs:[],identity:[],ambiguous:[]},manifest,resume:ARTIFACT});assert(borrowed.asks.length===1,'native equivalence borrowed a personal date for a work row');
+});

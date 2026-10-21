@@ -111,6 +111,26 @@ This lifecycle test remains NOT_RUN while the no-apply instruction stands.
 
 ## Remaining gate answers and concrete implementation surface
 
+Concrete cloud interfaces for the tests: producer
+`career_apply_message_cloud_card_show_as(owner uuid,thread uuid,items jsonb)` returns the existing stored card
+envelope with `{id,hash,payload}`; each item is `{payload,hash,readback}`. Existing
+`career_apply_message_card_approve_own(uuid,text)` dispatches version-2/cloud cards and returns a stable receipt
+with `jobs:[{id,approval_id,payload_hash,expires_at}]`; existing version-1/extension behavior stays unchanged.
+New private metadata is `cloud_bound_approvals` (approval_id PK, owner, card_id,item_index,Hq,approved_at,expires_at,
+revoked_at) and `cloud_bound_jobs` (job_row_id PK, approval_id UNIQUE, owner, card_id,item_index, unique(card_id,item_index)).
+The card_id here is a durable value, not a cascading FK to a deletable card. The existing approval row's entry is
+exact P, batch_hash is Hq and used_at records consumption in the same transaction. Cloud tap inserts this row directly
+under its lock after cloud contract validation; it does NOT call extension-only batch_approve with a fabricated entry.
+
+Worker interface: `queue.authorize(job,phase)` throws on refusal; phases are before_engine and before_effect.
+CloudJob includes the queue Hq/approval hash and immutable origin ids. The parent holds the job/lease closure.
+For the actual pre-POST boundary, the engine subprocess uses piped stdin/stdout for a bounded control exchange:
+it requests one pre-effect authorization, the parent authorizes only its captured job/lease/Hq and answers allow or
+deny, then the engine awaits that answer and preserves its existing final form/body/destination checks. No service
+credential, arbitrary RPC selector, reusable bearer URL or browser-readable service endpoint reaches the child.
+Timeout, malformed messages, channel closure and extra effect requests refuse. Exact transport framing gets a real
+process test, not a fake engine calling a test hook and declaring the production transport proved.
+
 A1: Claude owns `workers/career-cloud/engine_input.ts` on `arch/engine-input`. Consume
 `readEngineInput(source,owner)` service-side on the existing self-hosted cloud worker machine; it calls pure
 `engineInput({owner,profile,rows})` and returns facts and manifest `{hash,version,kept,excluded,conflicts}`. The cloud

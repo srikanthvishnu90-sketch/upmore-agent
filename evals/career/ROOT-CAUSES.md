@@ -790,3 +790,18 @@ of private content.
 - Brain cause behind it (after the parity fix): no place to keep the day of a next step. Candidate code fix:
   track_application takes the day/time of the next step as the person said it, checked against their message words
   (D-007), kept on the row and shown by the situation. One round, after the parity ruling.
+
+## H004 cause found in the 5-pass control (run 39593068532 p2): an invalid stage saved, then every update refused
+- Trace: turn 1 track_application(stage "Interview") succeeds; turn 2 track_application refuses three times ("unknown
+  stage: Interview", "unknown stage: Interview scheduled for Friday", "unknown stage: Interview"), the turn ends with
+  no text and the person gets the error text "Something went wrong on my side". The same refusal is in H004's failing
+  passes in 39588330975 p1 and 39590964501 p2: a direct source of H004's instability and of an empty answer.
+- Line: career_tools.ts track_application passes the model's label straight through. CareerTrack.addApplication
+  (router_core.career.js:4561) keeps any string, so a new row can carry a stage that is not one of STAGES; manualUpdate
+  -> moveStage (router_core.career.js:4585) throws "unknown stage" for the same label. The tool and the tracker
+  disagree on what a stage is.
+- Fix (code, one cause): track_application maps the model's label to one of CareerTrack.STAGES before either call
+  (exact name first, any case; then by meaning: interview/onsite/panel -> "Interview rounds", screen -> "Recruiter
+  screen", assessment/test -> "OA/assessment", final -> "Final", offer, rejected, withdrawn, accepted, applied ->
+  "Submitted", saved); a label that maps to none is refused with the list of stages. Gate tests: "Interview" saves
+  as "Interview rounds" and the next update succeeds; nonsense is refused with the list.

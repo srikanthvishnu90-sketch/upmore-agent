@@ -524,3 +524,13 @@ of private content.
 - Correction (second judge): H004 v2 (run 39558487629) p3 rescored 31/38 combined; that round ties the baseline on
   clean-30 (85.6) and is -0.9 on full-38. Still not kept. The per-item flip was not posted; its verdict file keeps
   the original list.
+
+## Resumed (owner's rulings, 2026-10-21 later)
+- Bar: 95% on both judges for everything, all features; nothing ships below it; no deploy without 95% on both judges
+  and green CI, and the owner is told before any deploy. No merges of #129/#137/#140.
+- Eval ceiling: $15 total tonight ($4.569 used at the resume). The workflow limit (which sums all recorded spend since
+  the eval began) is the builder's arithmetic: $1.535 before tonight + $15 = $16.535, written as $16.30 for the
+  parallel passes. Not an owner figure.
+- Judge rounds on whether the live product does the task better (real-world, task-oriented), not on rubric wording.
+- Order: H031, H027, H002, H025 (+ gate test and tighter H025/H031 scoring), H001, H011, the fabricated-specifics
+  guard, H003. Note first, one fix per round, measured re-run, three-way ratchet.

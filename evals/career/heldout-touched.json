@@ -329,6 +329,30 @@
    "run": "builder's grep while locating H018, 2026-10-21",
    "read": "FULL ITEM TEXT (turns and rubric) shown by mistake (grep -A8 printed the following lines). These items are fully read by the builder; flag for replacement.",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H018"
+   ],
+   "run": "39551229537 p1",
+   "read": "the brain's reply for H018 (its output, read to trace the safety guard's gap) and both judges' notes",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H011",
+    "H033",
+    "H034",
+    "H035",
+    "H038"
+   ],
+   "run": "39551229537",
+   "read": "failing ids per judge only",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

@@ -30,8 +30,14 @@ const unscored = (m: string) => ids.filter((id) => verdicts[m].get(id) == null).
 const all = ids.filter((id) => Object.values(verdicts).every((v) => v.get(id) === true));
 const judges = Object.keys(verdicts).map((m) => `${m} ${count(m)}${unscored(m) ? ` (${unscored(m)} unscored)` : ""}`).join(", ");
 const label = ins.pass_label ?? r.label;
+// Owner, 2026-10-21: H019-H026 are burned (heldout-burned.json); the clean items are scored apart, and the burned ones
+// only as contaminated, never in the ratchet.
+const burned = new Set<string>(JSON.parse(await Deno.readTextFile(new URL("./heldout-burned.json", import.meta.url))).items);
+const cleanIds = ids.filter((id) => !burned.has(id)), cleanPass = all.filter((id) => !burned.has(id)).length;
+const burnedPass = all.filter((id) => burned.has(id)).length;
 const file = new URL("./SCORE-LOG.md", import.meta.url);
 const log = await Deno.readTextFile(file).catch(() => "");
-await Deno.writeTextFile(file, log + `| ${new Date().toISOString().slice(0, 19).replace("T", " ")} | ${r.source_commit ?? r.commit} | ${r.set} | ${r.brain} | ${total} | ${all.length} | ${(all.length / total * 100).toFixed(1)}% | COMBINED, every judge passes: ${judges} | ${r.stopped ? "STOPPED" : "no"} | ${ins.run ?? ""} ${label}${r.harness ? `; harness: ${r.harness}` : ""} |\n`);
-console.log(`${label}: combined ${all.length}/${total} (${(all.length / total * 100).toFixed(1)}%) · ${judges}`);
+const at = new Date().toISOString().slice(0, 19).replace("T", " "), harness = r.harness ? `; harness: ${r.harness}` : "";
+await Deno.writeTextFile(file, log + `| ${at} | ${r.source_commit ?? r.commit} | ${r.set}-clean | ${r.brain} | ${cleanIds.length} | ${cleanPass} | ${(cleanPass / cleanIds.length * 100).toFixed(1)}% | COMBINED on the clean ${cleanIds.length} (the ratchet's number), every judge passes: ${judges} (counts over all ${total}); burned ${burned.size}: ${burnedPass}/${burned.size}, CONTAMINATED | ${r.stopped ? "STOPPED" : "no"} | ${ins.run ?? ""} ${label}${harness} |\n`);
+console.log(`${label}: combined clean ${cleanPass}/${cleanIds.length} (${(cleanPass / cleanIds.length * 100).toFixed(1)}%) · all ${all.length}/${total} · burned ${burnedPass}/${burned.size} (contaminated) · ${judges}`);
 console.log(`not passed by every judge: ${ids.filter((id) => !all.includes(id)).map((id) => `${id}(${Object.keys(verdicts).map((m) => `${m.replace("gpt-", "")}${verdicts[m].get(id) === true ? "+" : verdicts[m].get(id) === false ? "-" : "?"}`).join(" ")})`).join(", ")}`);

@@ -46,15 +46,60 @@ function tidy(s: string): string {
 // What a sentence about the person may draw on: confirmed facts (never one waiting for their yes, memory.ts's rule),
 // the account's stated facts, this turn's message, their own earlier messages, and this turn's tool results. Never the
 // model's own earlier replies.
+const FACT_KINDS = new Set(["experience", "education", "skill", "project", "leadership", "award", "publication", "certification", "goal", "location", "preference", "other"]);
+const NOT_PERSONAL_EVIDENCE = new Set(["agent", "assistant", "model", "llm", "generated", "agent-generated", "assistant-generated", "model-generated", "ai-generated", "quarantined", "rejected"]);
+const record = (v: any) => !!v && typeof v === "object" && !Array.isArray(v);
+function sourceFactOk(f: any, legacyToolText = false): boolean {
+  if (!record(f) || f.quarantined === true || f.rejected === true) return false;
+  for (const origin of [f.source, f.origin, f.provenance?.source, f.provenance?.origin]) {
+    if (typeof origin === "string" && NOT_PERSONAL_EVIDENCE.has(origin.trim().toLowerCase().replace(/[ _]+/g, "-"))) return false;
+  }
+  // Explicit confirmation survives old rows without the flag; absent/unknown status on a stored profile is not proof.
+  // Opaque, unlabelled tool facts retain their existing conversational contract. This is not submit authorization.
+  return (f.status === "confirmed" || (legacyToolText && f.status === undefined)) &&
+    (f.needs_confirmation === false || f.needs_confirmation === undefined);
+}
+function currentFact(f: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of ["text", "title", "name", "value"]) if (typeof f[key] === "string" || typeof f[key] === "number") out[key] = f[key];
+  for (const key of ["bullets", "skills"]) if (Array.isArray(f[key])) out[key] = f[key].filter((v: unknown) => typeof v === "string");
+  // Audit, corrected_from, evidence ids and model notes describe how a row got here, not additional current facts.
+  return out;
+}
+const SOURCE_AUDIT_KEYS = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected"]);
+function sourceResult(v: any, factContext = false, depth = 0): any {
+  if (depth > 20) return undefined;
+  if (Array.isArray(v)) return v.map((x) => sourceResult(x, factContext, depth + 1)).filter((x) => x !== undefined);
+  if (!record(v)) return v;
+  // An employer's requirements describe a job, not this person's experience. Posting display still reads raw results.
+  if ((typeof v.job_id === "string" || typeof v.posting_id === "string") && typeof v.title === "string" &&
+    (typeof v.description === "string" || typeof v.url === "string")) return undefined;
+  if (factContext || Object.hasOwn(v, "needs_confirmation") || FACT_KINDS.has(v.kind)) return sourceFactOk(v, true) ? currentFact(v) : undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(v)) {
+    if (SOURCE_AUDIT_KEYS.has(key)) continue;
+    const cleaned = sourceResult(value, key === "facts" || key === "fact" || key === "confirmed", depth + 1);
+    if (cleaned !== undefined) out[key] = cleaned;
+  }
+  return out;
+}
+function resultSource(text: string): string {
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); }
+  // A truncated JSON result can still contain a rejected fact's words. Never reinterpret that broken record as prose.
+  catch { return /^\s*[\[{]/.test(text) ? "" : text; }
+  try { const clean = sourceResult(parsed); return clean === undefined ? "" : JSON.stringify(clean); }
+  catch { return ""; }
+}
 export function factSources(o: { state: Record<string, unknown>; message: string; history: any[]; results: string[] }): string[] {
   const profile: any = o.state?.profile;
-  const facts = (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) => f && typeof f === "object" && !f.needs_confirmation && f.status !== "draft" && f.status !== "rejected");
+  const facts = (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) => sourceFactOk(f));
   const sf: any = o.state?.statedFacts;
   const stated = Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : [];
   const userSaid = (Array.isArray(o.history) ? o.history : []).filter((m: any) => m && m.role === "user").map((m: any) =>
     typeof m.content === "string" ? m.content : Array.isArray(m.content) ? m.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : ""
   );
-  return [...facts.map(factText), ...stated.map(factText), String(o.message ?? ""), ...userSaid, ...o.results].filter(Boolean);
+  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...o.results.map(resultSource)].filter(Boolean);
 }
 
 // ------------------------------------------------------------------------------------------------ the fact lock on a reply
@@ -93,8 +138,14 @@ function classify(u: string, clause: string): Untraced | null {
     if (/[$%]|\d\s?(?:k|m|bn|b)$/i.test(w) || /^(?:19|20)\d\d$/.test(w)) return { word: w, kind: "number" };
     return NUM_UNIT.test(clause.slice(pre.length + w.length)) || /\bGPA\s*(?:of\s*)?$/i.test(pre) ? { word: w, kind: "number" } : null;
   }
-  // A name is the person's employer or school where the clause puts them there: "interned at X", "graduated from X".
-  if (/^[A-Z]/.test(w)) return /\b(?:at|from)\s+(?:the\s+)?$/i.test(pre) ? { word: w, kind: "place" } : null;
+  // A prospective role at an employer is not employment history ("your skills fit the role at X"). A worked/studied
+  // predicate still claims the person was there, even when that sentence also names a role.
+  if (/^[A-Z]/.test(w)) {
+    const targetRole = /\b(?:for|to|about)\s+(?:a|an|the|this|that)\s+(?:role|job|position|opening|opportunity)\s+at\s+(?:the\s+)?$/i.test(pre) ||
+      /\b(?:would|could|might|may)\b[^.!?]*\bin\s+(?:a|an|the|this|that)\s+(?:role|job|position|opening|opportunity)\s+at\s+(?:the\s+)?$/i.test(pre);
+    const personalHistory = /\b(?:worked|interned|employed|studied|graduated|served|held|was|were|am|attended)\b|'m\b/i.test(pre);
+    return /\b(?:at|from)\s+(?:the\s+)?$/i.test(pre) && !(targetRole && !personalHistory) ? { word: w, kind: "place" } : null;
+  }
   return null;
 }
 const unbracketed = (s: string) => s.replace(/\[[^\]]*\]/g, (m) => " ".repeat(m.length));

@@ -268,45 +268,108 @@ async function requestDraft(card, q, previous) {
 }
 const NO_DRAFT = "Trainee couldn't draft this right now, so nothing changed and the question is still open. Try again in a few minutes.";
 
-async function keepEvidence(rec) {
-  const list = await get(L, "evidence", []);
-  list.unshift(rec);
-  await put(L, "evidence", list.slice(0, 300));
+// 50-in-30: the proof list is read and written whole after every application. With both pictures inline it grows by
+// about 0.1-1 MB per application (measured on the TEST world: +8.5 ms per earlier proof), so only the newest INLINE_SHOTS
+// proofs keep their pictures inline; older ones keep them under "shot:<id>" (read back by "proof"). One write at a time.
+const INLINE_SHOTS = 10;
+function keepEvidence(rec) {
+  return withLists(async () => {
+    const list = await get(L, "evidence", []);
+    list.unshift(rec);
+    const kept = list.slice(0, 300), moved = {};
+    for (const e of kept.slice(INLINE_SHOTS)) {
+      if (!e.screenshot && !e.screenshot_after) continue;
+      moved["shot:" + e.id] = { screenshot: e.screenshot || null, screenshot_after: e.screenshot_after || null };
+      delete e.screenshot;
+      delete e.screenshot_after;
+      e.shots = true;
+    }
+    if (Object.keys(moved).length) await L.set(moved);
+    await put(L, "evidence", kept);
+    const gone = list.slice(300).filter((e) => e.shots).map((e) => "shot:" + e.id);
+    if (gone.length) await L.remove(gone);
+  });
 }
 
 async function queueState() {
   return await get(S, "queue", { items: [], index: -1, tabId: null, running: false });
 }
-async function openNext(q) {
-  q.index++;
-  while (q.index < q.items.length && q.items[q.index].state !== "waiting") q.index++;
-  if (q.index >= q.items.length) {
-    q.running = false;
+// 50-in-30: the agent may send on more than one tab ("lanes"), each the only tab of its own window, so each is "in front"
+// (active) for its own picture. One lane unless config.js agentTabs says more (at most SEND_LANES_MAX): windows hidden or
+// minimized on a real desktop are untested (docs/apply/FIFTY-IN-THIRTY.md). Every change to the queue goes through one
+// lock. Two lanes never hold postings of one company at once (one application per company in 30 days). What stays one
+// at a time: the pictures, the start of each application (the database takes the person's lock), the batch tap.
+const SEND_LANES_MAX = 3, QUEUE_GAP_MS = 150;
+const sendLanes = async () => {
+  const c = await config();
+  return c.agentSubmits ? Math.max(1, Math.min(SEND_LANES_MAX, Math.floor(Number(c.agentTabs)) || 1)) : 1;
+};
+function serial() {
+  let last = Promise.resolve();
+  return (f) => {
+    const run = last.then(f);
+    last = run.catch(() => {});
+    return run;
+  };
+}
+const withQueue = serial(), withLists = serial();
+const lanesOf = (q) => (Array.isArray(q.lanes) && q.lanes.length ? q.lanes : q.tabId !== null && q.tabId !== undefined ? [q.tabId] : []);
+const inLane = (q, tabId) => lanesOf(q).includes(tabId);
+// The employer's name as the account's company rule compares it (career_apply_company_key).
+const companyKey = (s) => String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
+  .replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
+const companyOf = (url) => companyKey(C.tenantOf(C.postingKey(url) || url) || url);
+async function openNext(q, tabId = q.tabId) {
+  const busy = new Set(q.items.filter((x) => x.state === "open").map((x) => companyOf(x.url)));
+  const i = q.items.findIndex((x) => x.state === "waiting" && !busy.has(companyOf(x.url)));
+  if (i < 0) {
+    if (!q.items.some((x) => x.state === "waiting" || x.state === "open")) q.running = false;
+    else if (q.items.some((x) => x.state === "waiting")) {
+      setTimeout(() => withQueue(async () => {
+        const q2 = await queueState();
+        if (q2.running && inLane(q2, tabId) && !q2.items.some((x) => x.state === "open" && x.lane === tabId)) await openNext(q2, tabId);
+      }), 500);
+    }
     await put(S, "queue", q);
     return;
   }
-  q.items[q.index].state = "open";
-  q.items[q.index].opened_at = Date.now();
+  q.index = i;
+  q.items[i].state = "open";
+  q.items[i].opened_at = Date.now();
+  q.items[i].lane = tabId;
   await put(S, "queue", q);
-  if (q.tabId !== null) {
+  if (tabId !== null && tabId !== undefined) {
     try {
-      await chrome.tabs.update(q.tabId, { url: q.items[q.index].url, active: true });
+      await chrome.tabs.update(tabId, { url: q.items[i].url, active: true });
       return;
     } catch { /* the tab was closed */ }
   }
-  const t = await chrome.tabs.create({ url: q.items[q.index].url, active: true });
-  q.tabId = t.id;
+  // The lane's tab was closed (or there was none): one lane opens a tab, as before; a lane among several, its own window.
+  const t = lanesOf(q).length > 1 ? (await chrome.windows.create({ url: q.items[i].url, focused: false, width: 1280, height: 900 })).tabs[0]
+    : await chrome.tabs.create({ url: q.items[i].url, active: true });
+  q.lanes = lanesOf(q).filter((x) => x !== tabId).concat(t.id);
+  if (q.tabId === tabId || q.tabId === null) q.tabId = t.id;
+  q.items[i].lane = t.id;
   await put(S, "queue", q);
 }
 async function queueAfter(tabId, state, ms, proofId) {
-  const q = await queueState();
-  if (!q.running || q.tabId !== tabId || q.index < 0) return;
-  const it = q.items[q.index];
-  it.state = state;
-  if (ms !== null) it.ms = ms;
-  if (proofId) it.proof_id = proofId;
-  await put(S, "queue", q);
-  setTimeout(() => queueState().then((q2) => q2.running && openNext(q2)), 900);
+  const moved = await withQueue(async () => {
+    const q = await queueState();
+    if (!q.running || !inLane(q, tabId)) return false;
+    const it = q.items.find((x) => x.state === "open" && (x.lane ?? q.tabId) === tabId);
+    if (!it) return false;
+    it.state = state;
+    if (ms !== null) it.ms = ms;
+    if (proofId) it.proof_id = proofId;
+    await put(S, "queue", q);
+    return true;
+  });
+  if (moved) {
+    setTimeout(() => withQueue(async () => {
+      const q2 = await queueState();
+      if (q2.running && inLane(q2, tabId)) await openNext(q2, tabId);
+    }), QUEUE_GAP_MS);
+  }
 }
 
 // ------------------------------------------------------------------------------------------------ the submit
@@ -394,13 +457,24 @@ async function readAfterNavigation(tabId, p) {
   await chrome.scripting.executeScript({ target: { tabId }, func: () => globalThis.__traineeUnmask?.() }).catch(() => {});
   return { observation: res?.result || null, shotAfter };
 }
-async function capture(windowId) {
-  try {
-    const url = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
-    return { sha256: await sha256Hex(b64ToBytes(url.split(",")[1])), dataUrl: url };
-  } catch {
-    return null;
-  }
+// 50-in-30: one picture at a time, at least SHOT_SPACING_MS apart. Chrome refuses more than two captures a second
+// (MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND), and with several lanes a refused picture would stop a ready application.
+const SHOT_SPACING_MS = 520;
+let shotChain = Promise.resolve(), lastShot = 0;
+function capture(windowId) {
+  const run = shotChain.then(async () => {
+    const wait = lastShot + SHOT_SPACING_MS - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastShot = Date.now();
+    try {
+      const url = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
+      return { sha256: await sha256Hex(b64ToBytes(url.split(",")[1])), dataUrl: url };
+    } catch {
+      return null;
+    }
+  });
+  shotChain = run.catch(() => {});
+  return run;
 }
 
 // A submit that moved the page away: the new page is read once it loads (the content script there may not run, e.g. a
@@ -515,10 +589,24 @@ async function typeEmailCode(tabId, frameId, p) {
 // ------------------------------------------------------------------------------------------------ answer once (WO-054)
 // "Prepare": the next queued postings are read in hidden tabs (content.js survey(): read only, nothing filled, clicked or
 // sent; each tab closed after) and the questions only the person can answer are gathered once for the panel
-// (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, four at a time: each is a whole employer page held in a
+// (TraineeCore.answerOnceQuestions). At most PREPARE_MAX postings, PREPARE_AT_ONCE at a time: each is a whole employer page held in a
 // hidden tab, and an answer given now should be about postings this session reaches. Workday postings are left out: the
 // person signs in on the employer's site first (D-013), so their questions are asked on their own cards.
-const PREPARE_MAX = 20, PREPARE_AT_ONCE = 4, SURVEY_WAIT_MS = 45_000;
+// 50-in-30: up to 100 postings (the queue's and the batch approval's own limit), eight hidden tabs at a time. A posting
+// read in the last SURVEY_FRESH_MS is planned again here from the form as it was read (after the person answered the
+// panel's questions) instead of loading the employer's page a second time; the send still checks the live page against
+// the approval (TraineeCore.batchMatch), so a form changed since is caught there, as before.
+const PREPARE_MAX = 100, PREPARE_AT_ONCE = 8, SURVEY_WAIT_MS = 45_000, SURVEY_FRESH_MS = 10 * 60_000;
+const surveyCache = new Map(); // posting url -> { at, r } (memory only: a restarted worker reads the page again)
+function planSurveyed(r, f, resume) {
+  const rs = resume ? { filename: resume.name, sha256: resume.sha256 } : null;
+  const plan = C.planForm({ userId: f.userId, jobId: r.jobId, company: r.company, family: r.family, schema: r.schema, answers: f.answers, saved: f.saved, now: Date.now(), location: r.location });
+  const cf = C.contractFill({ schema: r.schema, plan, manifest: f.manifest, listed: r.listed, resume: rs });
+  const asked = new Set(plan.needs.map((n) => n.label));
+  const p = { ...plan, fill: cf.fill, needs: [...plan.needs, ...cf.asks.filter((q) => !asked.has(q.label)).map((q) => ({ label: q.label, type: q.type, options: q.options }))] };
+  const batch = C.batchPlan({ jobId: r.jobId, company: r.company, url: r.pageUrl, family: r.family, schema: r.schema, plan: p, challenge: false, resume: rs, listed: r.listed, manifest: f.manifest });
+  return { ...r, needs: p.needs.slice(0, 200), batch };
+}
 const surveys = new Map(); // tabId -> resolve, while a hidden tab is being read
 let preparing = false;
 // A hidden tab sent to its posting while its own blank page was still loading was left "unloaded" by Chrome for Testing
@@ -570,11 +658,20 @@ async function prepareQueue() {
   await put(S, "answer_once", base);
   const results = new Array(pick.length);
   let next = 0, read = 0;
+  const f0 = await facts(a.user_id), resume0 = await get(L, "resume", null);
   const worker = async () => {
     while (next < pick.length) {
       const i = next++;
-      results[i] = await surveyOne(pick[i].url);
-      await put(S, "answer_once", { ...base, read: ++read });
+      const c = surveyCache.get(pick[i].url);
+      try {
+        if (c && Date.now() - c.at < SURVEY_FRESH_MS && c.r.userId === a.user_id) results[i] = { ...planSurveyed(c.r, f0, resume0), url: pick[i].url, replanned: true };
+      } catch { /* read the page again */ }
+      if (!results[i]) {
+        results[i] = await surveyOne(pick[i].url);
+        if (results[i].ok && Array.isArray(results[i].schema) && results[i].pageUrl) surveyCache.set(pick[i].url, { at: Date.now(), r: { ...results[i], userId: a.user_id } });
+      }
+      read++;
+      if (!results[i].replanned || read === pick.length || read % 10 === 0) await put(S, "answer_once", { ...base, read });
     }
   };
   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, pick.length) }, worker));
@@ -628,10 +725,18 @@ const AGENT_SETTLE_MS = 2500; // a card that differs gets this long to settle (a
 const agentWait = new Map(); // tabId -> timer
 const agentApproved = async () => await get(S, "agent_approved", {});
 async function agentBatch(results) {
-  const ready = [], out = [];
+  const ready = [], out = [], companies = new Set();
   for (const r of results) {
     const b = r.batch;
     if (r.ok && b?.ok && b.posting && Array.isArray(b.posting.answers)) {
+      // The account allows one application per company in 30 days and refuses a second at its start, after its fill: a
+      // second posting at a company already in this batch is left out of it, with why.
+      const co = companyKey(b.posting.company);
+      if (co && companies.has(co)) {
+        out.push({ url: r.url, company: String(b.posting.company), why: [`An earlier posting in this batch is at ${b.posting.company}, and your account allows one application per company in 30 days.`] });
+        continue;
+      }
+      companies.add(co);
       ready.push({ url: r.url, company: String(b.posting.company), jobId: String(b.posting.jobId), posting: b.posting, hash: await C.batchHash(b.posting) });
     } else {
       out.push({ url: r.url, company: String(r.company || ""), why: r.ok ? (Array.isArray(b?.why) ? b.why.slice(0, 20).map(String) : ["not read"]) : [String(r.why || "not read")] });
@@ -639,15 +744,17 @@ async function agentBatch(results) {
   }
   return { status: "ready", at: Date.now(), ready, out, approved: [] };
 }
-async function agentReceipt(o) {
-  const list = await get(L, "agent_receipts", []);
-  list.unshift({ at: Date.now(), company: o.company, url: o.url, state: o.state, proof_id: o.proofId || null, line: C.agentReceiptLine(o) });
-  await put(L, "agent_receipts", list.slice(0, 300));
+function agentReceipt(o) {
+  return withLists(async () => {
+    const list = await get(L, "agent_receipts", []);
+    list.unshift({ at: Date.now(), company: o.company, url: o.url, state: o.state, proof_id: o.proofId || null, line: C.agentReceiptLine(o) });
+    await put(L, "agent_receipts", list.slice(0, 300));
+  });
 }
 async function agentConsider(tabId, card) {
   if (!(await config()).agentSubmits || !card.batch) return;
   const q = await queueState();
-  if (!q.running || q.tabId !== tabId) return;
+  if (!q.running || !inLane(q, tabId)) return;
   const a = (await agentApproved())[card.jobId];
   if (!a) return;
   const r = C.batchMatch({ approved: a.posting, now: card.batch, card: card.payload?.fields || [], openRequired: card.openRequired || [], blockers: card.blockers || [] });
@@ -717,7 +824,7 @@ async function agentStopped(tabId, card, message) {
   await setCard(tabId, { status: "needs_you", message, approved: false, beforeClick: true });
   await agentReceipt({ company: card.company, url: card.url, state: "not_submitted", confirmation_id: null, proved: false, proof: false, reason: oneLine(message, "").replace(/^Not sent: /, "").replace(/\s*Nothing was sent\.?$/, "") });
   const q = await queueState();
-  if (q.running && q.tabId === tabId) await queueAfter(tabId, "needs_you", null);
+  if (q.running && inLane(q, tabId)) await queueAfter(tabId, "needs_you", null);
 }
 
 // ------------------------------------------------------------------------------------------------ messages
@@ -729,7 +836,7 @@ async function handle(m, sender) {
       const a = await session();
       const q = await queueState();
       const p = (await pendings())[tabId] || null;
-      if (!a) return { signedIn: false, message: say.signedOut, queued: q.running && q.tabId === tabId };
+      if (!a) return { signedIn: false, message: say.signedOut, queued: q.running && inLane(q, tabId) };
       let account = null;
       try {
         account = await rpc("career_apply_account_own", {});
@@ -738,7 +845,7 @@ async function handle(m, sender) {
       }
       const f = await facts(a.user_id);
       const resume = await get(L, "resume", null);
-      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && q.tabId === tabId, pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits,
+      return { signedIn: true, userId: a.user_id, ...f, resume, account, queued: q.running && inLane(q, tabId), pending: p && !p.finished ? p : null, personSubmits: !!(await config()).personSubmits,
         agentSubmits: !!(await config()).agentSubmits };
     }
     case "queued": {
@@ -748,7 +855,7 @@ async function handle(m, sender) {
       // fill itself, once, within ten minutes.
       const next = (await get(S, "workday_next", {}))[tabId];
       if (next) await setWorkdayNext(tabId, false);
-      return { queued: q.running && q.tabId === tabId, pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000, survey: surveys.has(tabId) };
+      return { queued: q.running && inLane(q, tabId), pending: !!(p && !p.finished), workdayNext: !!next && Date.now() - next.at < 600_000, survey: surveys.has(tabId) };
     }
     case "card": {
       // A new card replaces the old one whole: nothing approved or measured before carries over to it. A card being
@@ -783,8 +890,12 @@ async function handle(m, sender) {
       const done = surveys.get(tabId);
       if (!done) return { ok: false };
       surveys.delete(tabId);
+      // 50-in-30: the form as read (its schema, the fields whose options live on the page), kept to plan it again after
+      // the person answers the panel's questions, without loading the page a second time.
+      const schema = Array.isArray(m.schema) && JSON.stringify(m.schema).length < 1_000_000 ? m.schema : null;
       done({ ok: !!m.ok, why: m.why, jobId: m.jobId, company: m.company, location: m.location, needs: Array.isArray(m.needs) ? m.needs.slice(0, 200) : [],
-        batch: m.batch && typeof m.batch === "object" ? m.batch : null });
+        batch: m.batch && typeof m.batch === "object" ? m.batch : null, schema, listed: Array.isArray(m.listed) ? m.listed.map(String) : [], family: m.family,
+        pageUrl: typeof m.url === "string" ? m.url : null });
       return { ok: true };
     }
     case "questions": {
@@ -926,11 +1037,13 @@ async function handle(m, sender) {
     }
     case "proof": {
       const list = await get(L, "evidence", []);
-      return { ok: true, proof: list.find((e) => e.id === m.id) || null };
+      const e = list.find((x) => x.id === m.id) || null;
+      if (e?.shots) Object.assign(e, (await L.get("shot:" + e.id))["shot:" + e.id] || {});
+      return { ok: true, proof: e };
     }
     case "clear-proof":
       if (m.confirm !== "clear") return { ok: false, message: "Not cleared." };
-      await L.remove(["evidence", "timing"]);
+      await L.remove(["evidence", "timing", ...Object.keys(await L.get(null)).filter((k) => k.startsWith("shot:"))]);
       return { ok: true };
     // ---- from the panel (the person)
     case "status": {
@@ -1067,27 +1180,47 @@ async function handle(m, sender) {
       }
     }
     case "queue-start": {
-      const q = await queueState();
-      if (!q.items.some((x) => x.state === "waiting")) return { ok: false, message: "Add some posting links first." };
-      q.running = true;
-      q.index = Math.max(-1, q.items.findIndex((x) => x.state === "waiting") - 1);
-      q.tabId = m.tabId ?? q.tabId ?? null;
-      await put(S, "queue", q);
-      await openNext(q);
-      return { ok: true };
+      return await withQueue(async () => {
+        const q = await queueState();
+        const waiting = q.items.filter((x) => x.state === "waiting").length;
+        if (!waiting) return { ok: false, message: "Add some posting links first." };
+        q.running = true;
+        q.tabId = m.tabId ?? q.tabId ?? null;
+        // A posting left open by an earlier run that was stopped is not opened or sent again by this one.
+        for (const it of q.items) if (it.state === "open") it.state = "stopped";
+        await put(S, "queue", q);
+        // The person's own tab is the first lane; any others are windows of their own (kept from the last start if open).
+        // Only the agent sends on several lanes, and only as many as config.js agentTabs says (1 unless the owner sets more).
+        const want = Math.max(1, Math.min(await sendLanes(), waiting));
+        const lanes = q.tabId !== null ? [q.tabId] : [];
+        for (const t of lanesOf(q)) if (lanes.length < want && !lanes.includes(t) && (await chrome.tabs.get(t).catch(() => null))) lanes.push(t);
+        while (lanes.length < want && (lanes.length || want > 1)) lanes.push((await chrome.windows.create({ url: "about:blank", focused: false, width: 1280, height: 900 })).tabs[0].id);
+        q.lanes = lanes;
+        if (q.tabId === null && lanes.length) q.tabId = lanes[0];
+        await put(S, "queue", q);
+        if (!lanes.length) await openNext(q, null);
+        for (const t of lanes) await openNext(await queueState(), t);
+        return { ok: true };
+      });
     }
     case "queue-skip": {
-      const q = await queueState();
-      if (q.index >= 0 && q.items[q.index]) q.items[q.index].state = "skipped";
-      await put(S, "queue", q);
-      if (q.running) await openNext(q);
-      return { ok: true };
+      return await withQueue(async () => {
+        const q = await queueState();
+        // The posting open in the panel's tab's lane, else the last one opened.
+        const it = q.items.find((x) => x.state === "open" && m.tabId !== undefined && x.lane === m.tabId) || q.items[q.index];
+        if (it && it.state === "open") it.state = "skipped";
+        await put(S, "queue", q);
+        if (q.running) await openNext(q, it?.lane ?? q.tabId);
+        return { ok: true };
+      });
     }
     case "queue-stop": {
-      const q = await queueState();
-      q.running = false;
-      await put(S, "queue", q);
-      return { ok: true };
+      return await withQueue(async () => {
+        const q = await queueState();
+        q.running = false;
+        await put(S, "queue", q);
+        return { ok: true };
+      });
     }
     case "queue-clear":
       await put(S, "queue", { items: [], index: -1, tabId: null, running: false });
@@ -1143,13 +1276,16 @@ async function handle(m, sender) {
     case "batch-stop": {
       // WO-101: "Stop applying": the queue stops, every batch approval here is removed and withdrawn on the account, and a
       // send in progress stops at its next check before the click.
-      const q = await queueState();
-      q.running = false;
-      await put(S, "queue", q);
+      const q = await withQueue(async () => {
+        const x = await queueState();
+        x.running = false;
+        await put(S, "queue", x);
+        return x;
+      });
       await S.remove(["agent_approved", "agent_mode"]);
       for (const t of agentWait.values()) clearTimeout(t);
       agentWait.clear();
-      if (q.tabId !== null) chrome.tabs.sendMessage(q.tabId, { type: "agent-stop" }).catch(() => {});
+      for (const t of lanesOf(q)) chrome.tabs.sendMessage(t, { type: "agent-stop" }).catch(() => {});
       let withdrawn = true;
       try {
         await rpc("career_apply_batch_revoke_own", {});

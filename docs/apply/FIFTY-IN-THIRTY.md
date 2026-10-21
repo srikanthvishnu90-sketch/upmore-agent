@@ -150,9 +150,10 @@ Apply it with `git apply docs/apply/fifty-in-thirty.patch`. Nothing in extension
 6. **The panel renders at most every 250 ms** on storage changes. Gain: 92.1 s -> 58.3 s of send for 50 under 3 lanes.
 7. **Queue-start stores `running` before it opens lane windows,** so nothing reads a half-started queue.
 
-Checked against the existing suites, on a scratch copy of the repo with the patch applied: the agent-submits, browser,
-person-submits and Workday extension suites. The result is in the report back. An earlier draft that opened lanes even
-with the flag off failed 3 queue and answer-once tests, which expect one tab; item 3's flag gate fixed that.
+Checked against the existing suites, unedited, on a scratch copy of the repo with the patch applied: the agent-submits
+(flag on), browser, person-submits and Workday extension suites all pass, **80/80** (VERIFIED-offline). An earlier draft
+that opened lanes even with the flag off failed 3 of them (two queue tests and the answer-once test, which expect one
+tab); item 3's flag gate fixed that.
 
 ## Design for 50 in 30 minutes, live
 

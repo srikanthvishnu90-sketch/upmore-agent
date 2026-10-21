@@ -58,7 +58,8 @@ import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_b
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
-import { missingIntegration } from "../_shared/agent/integrations.ts";
+import { missingIntegration, mintConnectLink } from "../_shared/agent/integrations.ts";
+import { disconnectTurn, supabaseConnectStore, wantsConnectLink } from "../_shared/career_connect.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
@@ -400,6 +401,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
+      // WO-101: "disconnect gmail" asks once; only a yes on the next turn revokes this person's own Google grant.
+      const disc = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await disconnectTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseConnectStore(admin, { fetch }) })
+        : null;
+      // WO-101: the router's Gmail connect reply carries a signed, single-use link for this person, minted only for that reply.
+      const connectLink = !disc && wantsConnectLink(CareerAccess, message) ? await mintConnectLink(admin, user.id, Deno.env.get("SUPABASE_URL") ?? "") : null;
+      (ctx as any).secureLinkFor = (source: string) => (source === "google_career" ? connectLink : null);
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -424,6 +432,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
       } else if (cloud) {
         out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
+      } else if (disc) {
+        out = { reply: disc.reply, intent: disc.intent, resultStatus: disc.status, contained: false, handler: "connect" };
       } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

@@ -4,6 +4,7 @@
 import { answerKey, mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { aiPolicyStatements } from "../../supabase/functions/_shared/ai_policy.ts";
 import { factStaysHere } from "../../supabase/functions/_shared/career_apply.ts";
+import { STANDING_KEY } from "../../supabase/functions/_shared/standing_answers.ts";
 
 // Ask once: the answers the person texted, as the engine's confirmed facts for the next preparation. A fact for every
 // employer goes under the fact's name (their own facts file wins when it states the same fact); an answer for one wording
@@ -17,7 +18,7 @@ export function factsWithTextAnswers(facts: any, rows: TextAnswer[]) {
     if (r.key.startsWith("fact:")) {
       const f = r.key.slice(5);
       if (!Object.hasOwn(answers, f)) answers[f] = a;
-    } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key)) saved[r.key] = a;
+    } else if (/^(label|job):[0-9a-f]{16}$/.test(r.key) || STANDING_KEY.test(r.key)) saved[r.key] = a; // WO-074: a standing answer under its class key
   }
   return { ...facts, answers, saved };
 }

@@ -87,7 +87,7 @@ Deno.test("staged bundle tailor turn emits a real, valid, hash-bound PDF artifac
   assert(count && parseInt(count[1], 10) >= 1, "Pages /Count >= 1");
 
   // Content: the independent extractor recovers the tailored text.
-  const lines = RenderOracle.extractPdfLines(Buffer.from(bytes));
+  const lines = RenderOracle.extractPdfLines(RenderOracle.toBuffer(bytes)); // the oracle's own buffer type: no global Buffer needed (C1)
   assert(lines.some((l: string) => l.includes("Alex Testcase")), `name line missing: ${JSON.stringify(lines.slice(0, 4))}`);
   assert(lines.join("\n").includes("Python"), "tailored skill text missing from the PDF");
 

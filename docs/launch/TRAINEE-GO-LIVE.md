@@ -101,7 +101,10 @@ Function secrets are project-wide in Supabase: every function sees every one.
    `agent-chat/index.ts`, JWT on; deploying it from the repo tree would ship the shelved finance entry), then
    `career-ingest`, `career-proactive`, `trainee-deliver`, `trainee-inbound`, `trainee-telegram`, `trainee-whatsapp`
    with `--no-verify-jwt` (pg_cron, LoopMessage, Telegram and Meta send no JWT; each function checks its own secret).
-   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`. Every deploy
+   The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`. The test
+   bridges the live bot and number call today, `telegram-inbound` and `whatsapp-inbound`, deploy the same way (they run
+   the shared bridge code, so its fixes reach people only through them). `career-essay-draft` and `career-email-code`,
+   which the extension calls with the person's own session, deploy last with the platform's JWT check on. Every deploy
    runs from the staged commit, and right after each one its row goes into `public.career_deploy_ledger`: the sha, the
    function, its bundle sha256 from the manifest, the platform's version number (`supabase functions list`), the label.
 5. **schedules**: runs `schedule-career-ingest.sql` (every 5 min), `schedule-career-proactive.sql` (every 5 min) and

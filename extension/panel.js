@@ -54,6 +54,10 @@ async function render() {
   text($("result"), card?.status === "done" ? `${card.message}${card.ms ? ` ${(card.ms / 1000).toFixed(1)} s from card to answer.` : ""}${card.recorded === false ? " Not recorded yet; kept on this computer." : ""}` : "");
   $("card-proof").hidden = !card?.proof_id;
   $("card-proof").dataset.id = card?.proof_id || "";
+  // WO-091d (F4): the person's own edges for this posting's record, shown only where they apply.
+  const rowId = card?.proof_id || card?.row_id;
+  $("finished-myself").hidden = !(rowId && (card.result === "needs_user" || card.row_state === "needs_user"));
+  $("try-again").hidden = !(rowId && !card.released && (card.result === "failed" || card.row_state === "failed"));
   const q = st.queue;
   const ol = $("queue");
   ol.textContent = "";
@@ -81,9 +85,64 @@ async function render() {
 // leaves a question for its card; only the person's own tap on Save stores anything.
 const LEFT = { essay: "written answers (drafted on their card)", personal: "self-identification questions (yours, on the form)", identity: "identity numbers (typed by you)",
   file: "file uploads", agreement: "agreements (each is one employer's)" };
+// WO-074: a standing answer is one item of this same list: the class's short form (one pick, or two inputs), standing for
+// the questions it lists, and saved by the same Save. It starts empty; the statement is composed only from the person's
+// own picks, and only when complete (the background refuses anything else).
+const RIGHTS_ELSEWHERE = [["yes", "That is every country; anywhere else I would need visa sponsorship"],
+  ["no", "That is every country; I would not need visa sponsorship elsewhere"], ["partial", "That is not every country"]];
+function standingItem(q, li) {
+  const n = q.postings.length, names = [...new Set(q.postings.map((p) => p.company))];
+  li.querySelector(".ao-where").textContent = `Your standing answer, given once: it stands for ${n} question${n === 1 ? "" : "s"} on ${names.length} posting${names.length === 1 ? "" : "s"} (${names.join(", ")}) and later forms. A form it does not settle asks you on its card.`;
+  const box = li.querySelector(".ao-input");
+  if (q.choices) {
+    const sel = document.createElement("select");
+    sel.className = "ao-answer";
+    sel.append(new Option("Choose your answer", ""));
+    for (const c of q.choices) sel.append(new Option(c.label, c.value));
+    box.append(sel);
+    return;
+  }
+  const answer = document.createElement("input");
+  answer.type = "hidden";
+  answer.className = "ao-answer";
+  const text = document.createElement("input");
+  text.type = "text";
+  text.className = "sa-text";
+  const sel = document.createElement("select");
+  sel.className = "sa-pick";
+  sel.append(new Option(q.standing === "office" ? "Up to how many days a week?" : "Is that every country?", ""));
+  if (q.standing === "office") {
+    text.placeholder = "Cities, e.g. Chicago, IL; New York, NY";
+    for (let d = 1; d <= 5; d++) sel.append(new Option(`Up to ${d} day${d === 1 ? "" : "s"} a week${d === 5 ? " (full time on site)" : ""}`, String(d)));
+  } else {
+    text.placeholder = "Countries, e.g. United States";
+    for (const [v, l] of RIGHTS_ELSEWHERE) sel.append(new Option(l, v));
+  }
+  const compose = () => {
+    const list = text.value.split(q.standing === "office" ? /\s*;\s*/ : /\s*[;,]\s*/).map((x) => x.trim()).filter(Boolean);
+    if (!list.length || !sel.value) return (answer.value = "");
+    answer.value = q.standing === "office" ? JSON.stringify({ places: list, maxDays: Number(sel.value) })
+      : JSON.stringify({ countries: list, complete: sel.value !== "partial", sponsorshipElsewhere: sel.value === "no" ? "no" : "yes" });
+  };
+  text.addEventListener("input", compose);
+  sel.addEventListener("change", compose);
+  box.append(text, " ", sel, answer);
+}
 function aoItem(q) {
   const li = document.createElement("li");
   li.dataset.key = q.key;
+  if (q.standing) {
+    li.className = "ao-standing";
+    li.innerHTML = '<b class="ao-label"></b><p class="ao-where small"></p><span class="ao-input"></span> <button class="link ao-skip">Skip</button>';
+    li.querySelector(".ao-label").textContent = q.label;
+    standingItem(q, li);
+    li.querySelector(".ao-skip").onclick = async (e) => {
+      if (!e.isTrusted) return;
+      await send({ type: "answer-once-skip", key: q.key });
+      render();
+    };
+    return li;
+  }
   li.innerHTML = '<b class="ao-label"></b><p class="ao-where small"></p><span class="ao-input"></span> <button class="link ao-skip">Skip</button>';
   li.querySelector(".ao-label").textContent = q.label.replace(/\s*[*✱]+\s*$/, "") + (q.similar ? ` (and ${q.similar} similar)` : "");
   const n = q.postings.length, names = [...new Set(q.postings.map((p) => p.company))];
@@ -111,7 +170,12 @@ function aoItem(q) {
 }
 function renderAnswerOnce(ao) {
   const ol = $("ao-list");
-  const live = ao?.status === "ready" ? ao.questions.filter((q) => !ao.skipped.includes(q.key) && !ao.saved.includes(q.key)) : [];
+  // WO-074: a standing answer on offer stands in for the entries it covers (they are not shown while it is, saved or not);
+  // skipped, they are shown again as they were.
+  const standing = ao?.status === "ready" ? (ao.standing || []).filter((q) => !ao.skipped.includes(q.key)) : [];
+  // Once given, the questions it does not settle at their posting come back here (reopen), to be answered now.
+  const covered = new Set(standing.flatMap((q) => q.covers || []).filter((k) => !(ao.reopen || []).includes(k)));
+  const live = ao?.status === "ready" ? [...standing, ...ao.questions.filter((q) => !covered.has(q.key))].filter((q) => !ao.skipped.includes(q.key) && !ao.saved.includes(q.key)) : [];
   // The person's own unsaved choices stay as they are across renders.
   for (const el of [...ol.children]) if (!live.some((q) => q.key === el.dataset.key)) el.remove();
   live.forEach((q, i) => {
@@ -122,8 +186,10 @@ function renderAnswerOnce(ao) {
   if (!ao) return text($("ao-msg"), "");
   if (ao.status === "reading") return text($("ao-msg"), `Reading posting ${ao.read} of ${ao.total} in the background. Nothing is filled or sent.`);
   const left = Object.entries(ao.left || {}).map(([k, v]) => `${v} ${LEFT[k] || k}`);
+  const asks = standing.length + (ao.questions || []).filter((q) => !covered.has(q.key)).length;
   text($("ao-msg"), [
-    `Read ${ao.postings} of ${ao.total} postings: ${ao.questions.length} question${ao.questions.length === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
+    `Read ${ao.postings} of ${ao.total} postings: ${asks} question${asks === 1 ? "" : "s"} only you can answer, from ${ao.open} open on their forms.`,
+    standing.length ? `${standing.length} of them ${standing.length === 1 ? "is a standing answer" : "are standing answers"}, given once for every later form too (in place of ${covered.size} question${covered.size === 1 ? "" : "s"}).` : "",
     ...(ao.notes || []), ...(ao.failed || []).map((f) => `Not read: ${f.url} (${f.why}); its questions are asked on its card.`),
     left.length ? `Left for the cards: ${left.join(", ")}.` : "",
     ao.saved.length ? `${ao.saved.length} answer${ao.saved.length === 1 ? "" : "s"} saved. Each fills every posting whose own options fit it; you approve each card as always.` : "",
@@ -322,6 +388,18 @@ $("approve").onclick = async (e) => {
   if (!r.ok) text($("status"), r.message, true);
   render();
 };
+// WO-091d (F4): the person's own two edges, each on their own tap only. "I finished it myself": the page asked for a check
+// after the click and they finished it there. "Try again": the employer's form refused it in place and they will fix it.
+for (const [id, type] of [["finished-myself", "resolve-own"], ["try-again", "release-own"]]) {
+  $(id).onclick = async (e) => {
+    if (!e.isTrusted) return;
+    $(id).disabled = true;
+    const r = await send({ type, tabId: await targetTab() });
+    $(id).disabled = false;
+    if (!r.ok) text($("status"), r.message, true);
+    render();
+  };
+}
 const qmsg = (r) => text($("q-msg"), r.ok ? (r.added !== undefined ? `${r.added} posting${r.added === 1 ? "" : "s"} added.` : "") : r.message, !r.ok);
 $("q-add").onclick = async () => {
   qmsg(await send({ type: "queue-set", text: $("links").value }));

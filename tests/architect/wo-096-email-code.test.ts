@@ -443,9 +443,9 @@ Deno.test("WO-096 the extension: the code goes from the function's answer into t
   assert(/return \{ ok: true, typed: r\.typed, stop: r\.stop \}/.test(BACKGROUND), "the page that asked gets typed/stop, never the code");
   assert(/type: "email-code"/.test(CONTENT) && !/\.code\b(?!_)/.test(CONTENT.slice(CONTENT.indexOf("WO-096"), CONTENT.indexOf("Proof after the click"))));
   eq(cardOutcome({ state: "needs_user", reason: "email_code", confirmation_id: null }, true, codeStop("no_google_connection", "greenhouse")).message,
-    "Sent, and the page now asks for the code the employer emailed you. Connect Google so I can read the code Greenhouse emails you, or type the code on the page yourself.");
+    "Not finished: the page now asks for the code the employer emailed you. Connect Google so I can read the code Greenhouse emails you, or type the code on the page yourself. Then press I finished it myself.");
   eq(cardOutcome({ state: "needs_user", reason: "captcha", confirmation_id: null }, true, "x").message,
-    "Sent, and the page now asks you for something (a check or a code). Finish it yourself on the page.");
+    "Not finished: the page now asks you for something (a check or a code). Finish it yourself on the page, then press I finished it myself.");
 });
 
 Deno.test("WO-096 the engine: the code is read only after the approved click, and every record it writes is cleaned of it", () => {

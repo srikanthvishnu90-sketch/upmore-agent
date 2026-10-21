@@ -1,0 +1,11 @@
+6 WRONG "Dublin" with no country is ambiguous (Dublin, Ireland or Dublin, CA/OH in the US), and the question names no country, so Yes could be wrong
+18 WRONG question asks if they are "excited" about 5 days in office; the statement only says they can do it, not that they are enthusiastic
+38 WRONG the options include both "Detroit Lions Website" and "Job Board"; the statement doesn't say which applies to this posting, so picking one is a guess
+45 WRONG typed "Company careers website" picks one half of a statement that says "careers website or job board"; that source is not established for this posting
+57 WRONG the options list "Enova Career Site" and several job boards (Built in Chicago, Indeed, Glassdoor…); the statement doesn't settle which one
+62 WRONG the options include both "GR0 Website" and job boards or "Online Job Search"; choosing only the company site is a guess
+75 WRONG the options include "Prosper Site" and job boards (Indeed, Glassdoor, Otta, Wellfound); the statement doesn't settle which
+92 WRONG the options include both "Kabam career page" and "Third party career site"; the statement doesn't say which applies here
+99 WRONG "immediately" asks about availability or start date, which the statement doesn't give
+121 WRONG asks if they are "willing and excited"; the statement gives ability, not enthusiasm
+SUMMARY right=114 wrong=10 (all other ids 1-124 RIGHT)

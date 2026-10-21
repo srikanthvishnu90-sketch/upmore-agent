@@ -336,3 +336,56 @@ export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean; h
   }
   return m.kind === "essay" || m.kind === "derived" || (m.kind === "screen" && m.fact !== "job_experience") ? job : wording;
 }
+
+// ------------------------------------------------------------------------------------------------ standing answers (WO-074)
+// A standing answer is the person's own statement for a CLASS of question, given once: how they hear about jobs, relatives
+// at the employer, work rights by country, office and place. Which class a question belongs to is decided here, by rules
+// and an exclusion list over its wording, never by a model; a question no rule places, or one the exclusion list names, is
+// in no class and is asked as before. Whether the statement settles a given form's question (the posting's country, the
+// office's place and days, the form's options) is standing_answers.ts's.
+export type StandingClass = "how_heard" | "relatives_at_employer" | "work_rights" | "office";
+// The sentence that asks (the last one with a "?"), abbreviations such as "U.S." kept whole.
+export function askedSentence(label: string): string {
+  const kept = String(label ?? "").replace(/\b(?:[A-Za-z]\.){2,}/g, (a) => a.replace(/\./g, "․"));
+  const parts = kept.split(/(?<=[.?!])\s+/).filter((x) => x.trim()).map((x) => x.replace(/․/g, "."));
+  return parts.filter((x) => /\?/.test(x)).pop() ?? parts.pop() ?? String(label ?? "");
+}
+const SA_HOW = /\bhow did you (first |initially )?(hear|come across|find out|learn|come to know)\b|\bhow'?d you (first )?(hear|find out|learn)\b|\bhow did you find (us|this|the|our)\b|\bwhere did you (first )?(hear|find|learn|see)\b|\bhow (did you )?hear\b|\bhow you heard\b|\bwhere you heard\b|\bi heard about\b.{0,40}\bthrough\b|^(applicant |candidate |application |job )?source\??$/;
+const SA_HOW_NOT = /referr|\bwho\b|\bname\b|\bif (you )?(selected|chose|answered|checked|other|yes|so)\b|\bplease (specify|indicate|describe|explain|list)\b|\bspecify\b|\bemployee\b/;
+const SA_REL = /\b(relatives?|family members?|immediate family|family|spouses?|spousal equivalent|in-laws?|domestic partners?|significant others?|household members?|close personal relationships?|personal relationships?|related to (anyone|any)\b)/;
+const SA_REL_WORK = /\bemploy\w*|\bwork(s|ing)? (at|for|with|here)\b|\bemployees?\b|\bstaff\b/;
+const SA_REL_NOT = /friend|roommate|acquaint|know anyone|know someone|personally know|\bcontacts?\b|connections?|social relationship|supplier|vendor|customer|client|business|government|official|public|practic|health ?care|purchase|affiliat|subsidiar|related (entit|compan)|parent compan|group compan|sister compan|competitor|investment|outside|conflict|referr|\bnames?\b|\bwho\b|\bwhom\b|\blist\b|provide|specify|explain|details?|describe|department|title|relationship to you|\bhad\b|\bformer|\bpast\b|previous|ever been|household(?! members?)|\bif (yes|so)\b|\bplease\b/;
+const SA_AUTH = /\b(authori[sz]ed|eligible|entitled|permitted|allowed)\b.{0,30}\b(work|employment)\b|\bright to work\b|\bwork authori[sz]ation\b|\bpermiso de trabajo\b/;
+const SA_SPONSOR = /\b(require|need|requiring)\b.{0,80}\b(sponsor\w*|visa|work permit|work authori[sz]ation|immigration)\b|\bsponsor\w*\b.{0,40}\b(require|need)/;
+const SA_RIGHTS_NOT = /\bwhat\b|\bwhich (type|kind|visa|status|countr\w*|one|of)\b|\btype\b|\bkind of\b|\bdescribe|\bexplain|\bdetails?\b|\bspecify|\bplease (provide|list|indicate|confirm your|note|select)\b|\bif (yes|so|no|not|you|applicable)\b|\bunder 18\b|\bminor\b|\bpermanent\w*\b|\btemporary\b|\bexpir|\btransfer|\bgreen card\b|\bcitizen|\bnationality\b|\bresiden|\bcpt\b|\bopt\b|\bstem\b|\brelocation\b|\bminimum\b|\bat least\b|\bboth\b|\band\/or\b|\bor would\b|\blive and work\b|\bcontract\w*\b/;
+const SA_RIGHTS_NOT_2 = /\bexperience\b|\bchecks?\b|\bfamiliar\b|\bknowledge\b|\bprocess(es)?\b|\bwant\b|\bprefer/;
+const SA_OFFICE = /\bon-?site\b|\bin-?office\b|\bin the office\b|\bin office\b|\bin[- ]person\b|\bhybrid\b|\boffice\b|\bheadquarters\b|\bhq\b/;
+const SA_OFFICE_ASK = /\b(are|will|would|can|could|do|does|is)\b[^?]*\byou\b|\bcomfortable\b|\bopen to\b|\bwilling\b|\bable\b|\bavailable\b|\bcommit\b|\bwork for you\b/;
+// Words in the asking sentence that make it another question: where the person lives, moving, commuting, an interview, a
+// visit, remote work, a choice among places, a schedule or hours, a condition, an acknowledgement.
+const SA_OFFICE_NOT_ASKED = /relocat|commut|\bmiles\b|\bkm\b|\blive\b|\bliving\b|\breside|\blocated\b|\blocal\b|\bbased\b|\bnear\b|\bremote|\bwfh\b|work from home|prefer|\bwhich\b|\bwhat\b|\bhow\b|\bwhen\b|\bwhere\b|\bif\b|acknowledge|\baware\b|understand|\bagree\b|confirm|schedule|shift|\bhours\b|weekend|overtime|\bplan\b|\bmove\b|\bvisit|\bmeet|\bstart\b|excit|enthusias|passion|\blove\b|immediate|right away|\basap\b|\bsoon\b/; // feelings: tuned on A-D; when: found on E-H (WO-074 review)
+// Anywhere in the label: moving, commuting, travel, an interview, an internship or probation period, a customer's site,
+// remote days, a site that is not an office.
+const SA_OFFICE_NOT = /relocat|commut|interview|travel|occasional|\bintern|probation|first \d+ days|customer|client|\bwfh\b|work from home|remote (day|work|flexib)|\bstudio\b|\bcampus\b|\bwarehouse\b|\bplant\b|\bfield\b/;
+const yesNoish = (q: Question) => {
+  const o = (q.options || []).map((x) => String(x.label).trim());
+  if (!o.length) return /checkbox|boolean|text|input|textarea/.test(String(q.type ?? "input_text"));
+  return o.every((x) => /^(yes|no|sí|si|oui|non)\b/i.test(x));
+};
+export function standingClass(q: Question): { cls: StandingClass; why: string } | null {
+  const t = norm(q.label);
+  if (!t || t.length > 600 || /file/.test(String(q.type))) return null;
+  const asked = norm(askedSentence(q.label));
+  if (SA_HOW.test(t) && !SA_HOW_NOT.test(t)) return { cls: "how_heard", why: "how_heard: how or where the person heard of the job" };
+  if (SA_REL.test(t) && SA_REL_WORK.test(t) && !SA_REL_NOT.test(t) && yesNoish(q)) return { cls: "relatives_at_employer", why: "relatives: relatives or close relationships employed here" };
+  // Tuned on samples A-D (WO-074): the question asks the person ("you"), never a statement of theirs to tick ("I want to be
+  // based in the UK but will need visa support") nor their experience of the process ("experience with Right to Work checks").
+  if ((SA_AUTH.test(asked) || SA_SPONSOR.test(asked)) && /\byou\b|\btienes\b|\bvous\b/.test(asked) && !SA_RIGHTS_NOT.test(t) && !SA_RIGHTS_NOT_2.test(t)) {
+    return { cls: "work_rights", why: "work_rights: authorized to work, or sponsorship needed, in one place" };
+  }
+  const question = /\?/.test(q.label) || (!!q.options?.length && yesNoish(q));
+  if (SA_OFFICE.test(t) && SA_OFFICE_ASK.test(asked) && question && !SA_OFFICE_NOT_ASKED.test(asked) && !SA_OFFICE_NOT.test(t)) {
+    return { cls: "office", why: "office: working on site or in the office, at a place, some days a week" };
+  }
+  return null;
+}

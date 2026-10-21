@@ -43,6 +43,28 @@ function inOrder(out, steps) {
 // here (the apply pipeline's six once shipped in trunk without it; docs/playbook-drift-2026-10-19.md).
 const MIGRATIONS = fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => f >= '20261019' && f.endsWith('.sql')).sort();
 
+// The deploy ships every function the product calls (2026-10-21): the live Telegram and WhatsApp test bridges, which run
+// the shared bridge code (#131's hourly-limit reply reached nobody without them), and the two functions the extension
+// calls with the person's own session, which keep the platform's JWT check. A function the product calls that is not
+// deployed answers 404 in production while every test here stays green.
+test('dry run: the live bridges deploy without a JWT; the extension\'s own-session functions keep it', () => {
+  const { code, out } = dry();
+  assert.equal(code, 0, out);
+  for (const fn of ['telegram-inbound', 'whatsapp-inbound', 'gmail-oauth']) {
+    assert.match(out, new RegExp(`supabase functions deploy ${fn} --project-ref abcdefghijklmnopqrst --no-verify-jwt`), `${fn} is deployed`);
+  }
+  for (const fn of ['career-essay-draft', 'career-email-code']) {
+    assert.match(out, new RegExp(`supabase functions deploy ${fn} --project-ref abcdefghijklmnopqrst(?!\\S)`), `${fn} is deployed`);
+    assert.doesNotMatch(out, new RegExp(`deploy ${fn}[^\\n]*--no-verify-jwt`), `${fn} keeps the JWT check`);
+    assert.match(fs.readFileSync(path.join(root, 'supabase/config.toml'), 'utf8'), new RegExp(`\\[functions\\.${fn}\\]\\s*verify_jwt = true`), `${fn} verifies the session`);
+  }
+  // Every function the extension calls by name is one the deploy ships.
+  const ext = ['extension/background.js', 'extension/content.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
+  for (const m of new Set([...ext.matchAll(/functions\/v1\/([a-z0-9-]+)/g)].map((x) => x[1]))) {
+    assert.match(out, new RegExp(`supabase functions deploy ${m} `), `the extension calls ${m}; go-live deploys it`);
+  }
+});
+
 test('dry run: six steps in order, every Trainee migration in order, agent-chat staged then the four functions without JWT, the three schedules, then smoke', () => {
   const { code, out } = dry();
   assert.equal(code, 0, out);

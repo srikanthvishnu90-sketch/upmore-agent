@@ -180,13 +180,14 @@
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
       const doorstepPayload = {
         kind: "connect_google_doorstep", edge_action: "start_career", scopes: [...CAREER_SCOPES],
-        send_rail: "user_gmail_oauth", requires_user_tap: true, committed: false,
-        self_test: { test_email: "one test email to your own inbox", test_event: "one test calendar event", runs_after: "the consent tap lands" },
+        requires_user_tap: true, committed: false, link_ready: !!link,
       };
       return {
-        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        intent: "connect_google", family: "access", edge_action: "start_career", scopes: [...CAREER_SCOPES],
         resultStatus: "awaiting_user", artifact: doorstepPayload, payload: doorstepPayload, sends: 0,
-        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy plus events). One consent click on Google's own page, and no password ever in chat.${link ? ` ${link}` : ""} Next step — approve on Google's page and I will run the self-test: one test email to your own inbox and one test event on your calendar.`,
+        reply: link
+          ? `Connect Gmail and Trainee can read the job mail in your own Gmail and draft replies for you to approve. Nothing goes out from your Gmail. You allow access on Google's own page, and I never see your password. ${link} Next step — open the link and allow access; it works once, for 15 minutes.`
+          : "I couldn't make a connect link just now, so nothing changed. Next step — say \"connect my gmail\" again in a minute.",
       };
     }
     function handleLinkedInExport(_text, ctx) {
@@ -224,7 +225,7 @@
         artifact: payload, payload, sends: 0,
         reply: records
           ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No LinkedIn credentials pass through me, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths. Tell me a firm and I will rank who you know there.`
-          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No LinkedIn credentials pass through me, and I never see your password. Next step — tell me when the file is uploaded and I will show you exactly what it adds.",
+          : "Reading a LinkedIn data export file isn't available here yet, so nothing was imported. Trainee never logs in to LinkedIn for you, and no LinkedIn password ever passes through me. Next step — tell me about your experience here instead.",
       };
     }
     function handleConnected(_text, ctx) {
@@ -268,12 +269,13 @@
       const r = portalList((ctx || {}).portalRecords);
       return { intent: "portal_accounts", family: "access", resultStatus: "completed", sends: 0, companies: r.companies, reply: r.text };
     }
-    function handleConnectBrowser(text, ctx) {
-      const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
-      const plan = browserConnectPlan(source);
-      const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
-      const payload = { kind: "connect_browser_doorstep", source, committed: false, plan };
-      return { intent: "connect_browser_source", family: "access", resultStatus: "awaiting_user", sends: 0, ...plan, artifact: payload, payload, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""} Next step — sign in once in the shown session and the agent reuses it from there; shall I open the session now?` : plan.text };
+    function handleConnectBrowser(text, _ctx) {
+      const source = /handshake/i.test(text || "") ? "handshake" : /indeed/i.test(text || "") ? "indeed" : "linkedin";
+      const payload = { kind: "connect_browser_refused", source, committed: false, signs_in: false, session_offered: false };
+      return {
+        intent: "connect_browser_source", family: "access", resultStatus: "completed", sends: 0, source, method: "none", artifact: payload, payload,
+        reply: `Trainee never signs in to ${source === "handshake" ? "Handshake, LinkedIn or Indeed" : "LinkedIn or Indeed"} for you and never automates ${source === "handshake" ? "them" : "either site"}, so there is nothing to connect there. Importing a LinkedIn data export file isn't available yet. Gmail is the account you can connect: say "connect my gmail" and I'll send you a link.`,
+      };
     }
     function handleSessionHealth(_text, ctx) {
       const c = ctx || {};
@@ -352,7 +354,7 @@
       if (/\bcaptcha\b/.test(t)) return chatHandlers.captcha_handoff(text, ctx);
       if (/\bsession (dies|died|expired|killed|death)\b|\breauth\b|\bre-auth\b/.test(t)) return chatHandlers.session_health(text, ctx);
       if (/\b(linkedin|handshake)\b/.test(t) && /\bexport\b/.test(t) && /\b(connect|link|upload|uploaded|import|parse|parsed|add|bring)\b/.test(t)) return chatHandlers.profile_export(text, ctx);
-      if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
+      if (/\b(connect|link)\b.*\b(linkedin|handshake|indeed)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       if (/\bcloud[ -]?browser\b|\bsign in once\b|\bi sign in\b[^.]*\b(handshake|linkedin)\b|\breuse (that|the|my) session\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
       if (/\bwhat accounts\b[^.]*\bconnected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b|\bwhich accounts\b[^.]*\bconnected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
@@ -21166,11 +21168,53 @@ const CareerPlatformDrafts = (() => {
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPlatformDrafts;
 
 const CareerRender = (() => {
+  const EdgeBuffer = (() => {
+    const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    class EdgeBuffer extends Uint8Array {
+      static isBuffer(v) { return v instanceof EdgeBuffer; }
+      static alloc(n) { return new EdgeBuffer(n); }
+      static from(v, enc) {
+        if (typeof v !== "string") return EdgeBuffer._of(v instanceof ArrayBuffer ? new Uint8Array(v) : v);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { const b = new EdgeBuffer(v.length); for (let i = 0; i < v.length; i++) b[i] = v.charCodeAt(i) & 0xff; return b; }
+        if (e === "hex") { const b = new EdgeBuffer(v.length >> 1); for (let i = 0; i < b.length; i++) b[i] = parseInt(v.substr(i * 2, 2), 16); return b; }
+        return EdgeBuffer._of(new TextEncoder().encode(v));
+      }
+      static _of(src) { const b = new EdgeBuffer(src.length); for (let i = 0; i < src.length; i++) b[i] = src[i]; return b; }
+      static concat(list) {
+        const b = new EdgeBuffer(list.reduce((n, x) => n + x.length, 0));
+        let o = 0; for (const x of list) { b.set(x, o); o += x.length; }
+        return b;
+      }
+      toString(enc, start, end) {
+        const v = this.subarray(start || 0, end === undefined ? this.length : end);
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "latin1" || e === "binary") { let s = ""; for (let i = 0; i < v.length; i++) s += String.fromCharCode(v[i]); return s; }
+        if (e === "hex") { let s = ""; for (let i = 0; i < v.length; i++) s += v[i].toString(16).padStart(2, "0"); return s; }
+        if (e === "base64") {
+          let s = "";
+          for (let i = 0; i < v.length; i += 3) {
+            const n = (v[i] << 16) | ((v[i + 1] || 0) << 8) | (v[i + 2] || 0);
+            s += B64[(n >> 18) & 63] + B64[(n >> 12) & 63] + (i + 1 < v.length ? B64[(n >> 6) & 63] : "=") + (i + 2 < v.length ? B64[n & 63] : "=");
+          }
+          return s;
+        }
+        return new TextDecoder().decode(v);
+      }
+      copy(target, at) { target.set(this, at || 0); return this.length; }
+      readUInt16LE(o) { return this[o] | (this[o + 1] << 8); }
+      readUInt32LE(o) { return (this[o] | (this[o + 1] << 8) | (this[o + 2] << 16)) + this[o + 3] * 0x1000000; }
+      writeUInt16LE(v, o) { this[o] = v & 0xff; this[o + 1] = (v >>> 8) & 0xff; return o + 2; }
+      writeUInt32LE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (8 * i)) & 0xff; return o + 4; }
+      writeUInt32BE(v, o) { for (let i = 0; i < 4; i++) this[o + i] = (v >>> (24 - 8 * i)) & 0xff; return o + 4; }
+    }
+    return EdgeBuffer;
+  })();
   const nodeReq = (m) => (typeof require !== "undefined" ? (() => { try { return require(m); } catch { return null; } })() : null);
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+  const Buffer = rt.Buffer || EdgeBuffer;
   function adler32(data) {
     let a = 1, b = 0;
     for (let i = 0; i < data.length; i++) { a = (a + data[i]) % 65521; b = (b + a) % 65521; }
@@ -21351,8 +21395,8 @@ const CareerRender = (() => {
     },
   };
 
-  const zlib = rt.zlib || (Buffer ? pureZlib : null);
-  const crypto = rt.crypto || (Buffer ? pureCrypto : null);
+  const zlib = rt.zlib || pureZlib;
+  const crypto = rt.crypto || pureCrypto;
 
   const PDF_CONTENT_TYPE = "application/pdf";
   const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -21944,8 +21988,8 @@ const CareerRender = (() => {
     return { format, filename: rendered.filename, contentType: rendered.contentType, bytes: rendered.buffer.length, sha256: sha256(rendered.buffer), base64: rendered.buffer.toString("base64") };
   }
 
-  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!Buffer, codec: rt.zlib && rt.crypto ? "platform" : zlib && crypto ? "vendored" : "none" };
-  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => (Buffer ? Buffer.from(bytes) : null), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
+  const runtime = { zlib: !!rt.zlib, crypto: !!rt.crypto, Buffer: !!rt.Buffer, codec: rt.zlib && rt.crypto ? "platform" : "vendored" };
+  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST, runtime, toBuffer: (bytes) => Buffer.from(bytes), withRuntime: (r) => make({ ...NODE_RUNTIME, ...(r || {}) }) };
   }
   return make(NODE_RUNTIME);
 })();

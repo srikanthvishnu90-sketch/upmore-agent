@@ -9,6 +9,7 @@
 import { answerKey, AUTH_FACTS, FOREIGN, mapQuestion, NAMES_US, norm as normQuestion, RELATIVE_PLACE } from "./question_map.ts";
 import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 import { type PlacePart, postingAtHome, postingCountry, postingPlaces, STATE_NAMES } from "./posting_place.ts";
+import { standingAnswer } from "./standing_answers.ts";
 
 // ------------------------------------------------------------------------------------------------ outcome
 export interface Observation {
@@ -766,6 +767,14 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       if (value === null && (!direct || direct === o.answers[key]) && !followUp) {
         const m = byMeaning(f, p.company, o.answers, places, where, p.location);
         if (m) { a = m; value = m.value; }
+      }
+      // WO-074: a question still open after the person's own answer to it and their facts may be settled by their standing
+      // answer for its class (standing_answers.ts: the class by rules, the answer derived from the statement and this
+      // posting, onto the form's own options). Never over an answer the person gave for this exact question, never a
+      // follow-up; what the statement does not settle stays asked.
+      if (value === null && !own && !followUp) {
+        const s = standingAnswer({ label: f.label, type: f.type, options: f.options }, o.saved, { company: p.company, location: p.location, named: placesNamed(f.label, p.company), answers: o.answers });
+        if (s) { a = s; value = s.value; }
       }
       if (value !== null && f.dial !== undefined && a !== own && (key === "phone" || mapQuestion(f).fact === "phone")) value = nationalNumber(value, f.dial);
       // WO-048: a phone's country code list ("United States of America (+1)") answered from the country is right only when

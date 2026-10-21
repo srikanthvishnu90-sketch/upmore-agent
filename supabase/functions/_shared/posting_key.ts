@@ -43,7 +43,32 @@ export function postingKey(href: string): string | null {
   // under it, such as ".../apply/applyManually" or a step page, is not another posting).
   const at = seg.findIndex((s) => /^apply$/i.test(s));
   const last = at > 0 ? seg[at - 1] : seg.filter((s) => !/^(apply|applyManually|autofillWithResume)$/i.test(s)).at(-1);
-  return last ? `workday:${u.hostname.toLowerCase()}:${last}` : null;
+  if (!last) return null;
+  // WO-091d (F7): a data centre's shared host (wd3.myworkdaysite.com, wd5.myworkday.com) serves every employer on it; the
+  // tenant in the path keeps two employers' postings apart. A tenant's own host (*.myworkdayjobs.com) keeps WO-048's key.
+  const shared = !/(^|\.)myworkdayjobs\.com$/i.test(u.hostname);
+  const tenant = shared ? workdayTenant(href) : "";
+  return shared && tenant ? `workday:${u.hostname.toLowerCase()}:${tenant}:${last}` : `workday:${u.hostname.toLowerCase()}:${last}`;
+}
+
+// The Workday tenant (the employer) of a Workday link: the first label of a tenant's own host (northwind of
+// northwind.wd5.myworkdayjobs.com), or the tenant in the path on a data centre's shared host:
+// wd3.myworkdaysite.com/[locale/]recruiting/<tenant>/... and wd5.myworkday.com/<tenant>/... ("" when there is none).
+export function workdayTenant(href: string): string {
+  let u: URL;
+  try {
+    u = new URL(href);
+  } catch {
+    return "";
+  }
+  const h = u.hostname.toLowerCase();
+  if (/(^|\.)myworkdayjobs\.com$/.test(h)) return h.split(".")[0] === "myworkdayjobs" ? "" : h.split(".")[0];
+  if (!/(^|\.)(myworkdaysite|myworkday)\.com$/.test(h)) return "";
+  const seg = u.pathname.split("/").filter(Boolean);
+  const r = seg.findIndex((s) => /^recruiting$/i.test(s));
+  const locale = (s: string) => /^[a-z]{2}(-[A-Za-z]{2})?$/.test(s);
+  const t = r >= 0 ? seg[r + 1] : seg.find((s) => !locale(s));
+  return t && /^[A-Za-z0-9_.-]{1,80}$/.test(t) ? t.toLowerCase() : "";
 }
 
 // The page that holds the form: a Lever or Ashby posting link opens its description; the form is one step on.

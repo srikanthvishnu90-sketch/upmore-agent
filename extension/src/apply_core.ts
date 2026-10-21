@@ -5,15 +5,19 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, placesNamed, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import {
+  HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, STANDING_CLASSES, STANDING_INPUTS, STANDING_PROMPT, STANDING_TITLE, standingAnswer, standingApplies, type StandingClass, standingKey,
+} from "../../supabase/functions/_shared/standing_answers.ts";
+export { canonicalCountry, HOW_HEARD_CHOICES, parseStanding, RELATIVES_NONE, standingSummaries } from "../../supabase/functions/_shared/standing_answers.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 
-export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
-import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
+export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf, workdayTenant } from "../../supabase/functions/_shared/posting_key.ts";
+import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf, workdayTenant } from "../../supabase/functions/_shared/posting_key.ts";
 
 // A question that asks for an identity number, a bank or card number, or a secret: never filled, never stored, never in
 // evidence. The person types it on the form; its value never leaves the page (NEVER_BY_TEXT, the texting side's rule).
@@ -40,13 +44,11 @@ export const workdayDraftLine = (employer: string) => `Save and Continue sends t
 export const workdaySubmitLine = (employer: string) => `Approve submits this application to ${employer} with Workday's own Submit. This is the last step.`;
 export const workdaySignIn = (employer: string) => `Sign in to ${employer}'s Workday yourself; I'll fill the application after.`;
 export const WORKDAY_PERSONAL = "The disability form (Voluntary Self-Identification of Disability) is yours: Trainee never fills it. Answer it yourself on the page.";
-// The employer as its Workday tenant names it: the first label of the tenant's host ("northwind" of northwind.wd5...).
+// The employer as its Workday tenant names it: the first label of the tenant's host ("northwind" of northwind.wd5...), or,
+// on a data centre's shared host (wd3.myworkdaysite.com/recruiting/<tenant>/..., wd5.myworkday.com/<tenant>/...), the
+// tenant in the path, never the data centre (WO-091d F7).
 export function workdayEmployer(href: string): string {
-  try {
-    return new URL(href).hostname.toLowerCase().split(".")[0] || "the employer";
-  } catch {
-    return "the employer";
-  }
+  return workdayTenant(href) || "the employer";
 }
 
 export interface Answer { value: string; factId: string }
@@ -177,6 +179,9 @@ export interface PreparedPosting { jobId: string; company: string; url?: string;
 export interface AskedAt { jobId: string; company: string; label: string; type: string; options: string[]; misfit: boolean }
 export interface PanelQuestion {
   key: string; kind: string; label: string; type: string; options: string[]; similar: number; postings: AskedAt[]; perPosting: boolean; selected: null;
+  // WO-074: a standing answer's class: the panel draws its short form (`inputs` taps) in place of the questions it stands for.
+  standing?: StandingClass; inputs?: number; choices?: { label: string; value: string }[]; covers?: string[];
+  cover?: { key: string; jobId: string; company: string; location?: string; label: string; type: string; options: string[] }[]; home?: string;
 }
 export type LeftReason = "identity" | "personal" | "essay" | "file" | "agreement";
 function leftForCard(n: OpenQuestion): LeftReason | null {
@@ -190,9 +195,21 @@ function leftForCard(n: OpenQuestion): LeftReason | null {
   if (n.options?.length && n.options.every((l) => /^\s*(i\s+)?(will read|accept|agree|acknowledge|understand|consent|confirm|certify|attest)\b/i.test(l))) return "agreement";
   return null;
 }
+// WO-074: a standing answer is offered in this same panel, as one more item saved by the same Save, for the questions it
+// could settle (standing_answers.ts standingApplies: its class by rules, this posting's country or place known, a yes/no
+// shape). It `covers` the entries every one of whose postings asks a question of its class; while it is offered, the panel
+// shows it in their place, and if the person skips it they are shown again. It is offered only when the person has not
+// given that statement yet and only when it costs fewer taps than the entries it covers (more entries than its inputs: a
+// 1-pick statement for 2 or more, a 2-input one for 3 or more). A covered question the statement then does not settle at
+// its posting is shown again in the panel once the statement is saved (standingUnsettled), to be answered there.
+const standingOf = (n: { label: string; type: string; options: string[] }, p: PreparedPosting, answers: Record<string, unknown>) =>
+  standingApplies({ label: n.label, type: n.type, options: (n.options || []).map((l) => ({ label: l })) },
+    { company: p.company, location: p.location, named: placesNamed(n.label, p.company), answers: answers as Record<string, { value: unknown }> });
 export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: Record<string, unknown>; answered: Set<string> }) {
   const by = new Map<string, Omit<PanelQuestion, "label" | "type" | "options" | "similar" | "selected">>();
   const left: { jobId: string; label: string; why: LeftReason }[] = [];
+  const cls = new Map<string, (StandingClass | null)[]>(); // key -> the standing class of each posting's question under it
+  const where = new Map(o.postings.map((p) => [p.jobId, p.location]));
   for (const p of o.postings) {
     const keep: OpenQuestion[] = [];
     for (const n of p.needs) {
@@ -208,6 +225,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
       const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [], perPosting: String(r.key).startsWith("job:") };
       g.postings.push({ jobId: p.jobId, company: p.company, label: r.label, type: r.type, options: r.options, misfit: !!r.misfit });
       by.set(r.key, g);
+      cls.set(r.key, [...(cls.get(r.key) ?? []), standingOf(r, p, o.answers)]);
     }
   }
   const questions: PanelQuestion[] = [...by.values()].map((g) => {
@@ -221,7 +239,33 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
   });
   // Asked by the most postings first; otherwise in queue order (sort is stable).
   questions.sort((a, b) => b.postings.length - a.postings.length);
-  return { questions, left };
+  const standing: PanelQuestion[] = [];
+  for (const c of STANDING_CLASSES) {
+    if (o.answered.has(standingKey(c))) continue;
+    const covered = questions.filter((q) => (cls.get(q.key) ?? []).every((x) => x === c));
+    if (covered.length <= STANDING_INPUTS[c]) continue;
+    // A one-pick class carries its choices, each the whole statement it stands for; the others are typed (panel.js).
+    const choices = c === "how_heard" ? HOW_HEARD_CHOICES.map((x) => ({ label: x.label, value: JSON.stringify({ channels: x.channels }) }))
+      : c === "relatives_at_employer" ? [{ label: RELATIVES_NONE, value: JSON.stringify({ none: true }) }] : undefined;
+    standing.push({ key: standingKey(c), kind: "standing", label: STANDING_PROMPT[c], type: "standing", options: [], similar: 0, selected: null, perPosting: false,
+      postings: covered.flatMap((q) => q.postings), covers: covered.map((q) => q.key), standing: c, inputs: STANDING_INPUTS[c], ...(choices ? { choices } : {}),
+      cover: covered.flatMap((q) => q.postings.map((a) => ({ key: q.key, jobId: a.jobId, company: a.company, location: where.get(a.jobId), label: a.label, type: a.type, options: a.options }))),
+      home: String((o.answers.country as { value?: unknown } | undefined)?.value ?? "") });
+  }
+  return { questions, left, standing };
+}
+// WO-074: the entries a standing answer just given does not settle at one of their postings (by the same derivation the
+// planner runs), so the panel shows them again at once and the person answers them there, not later on a card.
+export function standingUnsettled(item: PanelQuestion, answer: string): string[] {
+  if (!item.standing || !item.cover) return [];
+  const saved = { [item.key]: { value: answer, factId: "panel" } };
+  const out = new Set<string>();
+  for (const c of item.cover) {
+    const q = { label: c.label, type: c.type, options: c.options.map((l) => ({ label: l, value: l })) };
+    const ctx = { company: c.company, location: c.location, named: placesNamed(c.label, c.company), answers: (item.home ? { country: { value: item.home } } : {}) as Record<string, { value: unknown }> };
+    if (!standingAnswer(q, saved, ctx)) out.add(c.key);
+  }
+  return [...out];
 }
 // The person's picks as the rows the store already takes: per posting, the questions (career_apply_questions_put_own, so
 // the row names that posting) and the answers (career_apply_questions_answer_from_form_own, under the same key the text
@@ -234,6 +278,21 @@ export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: st
     const q = o.questions.find((x) => x.key === pick.key);
     const answer = String(pick.answer ?? "").replace(/\s+/g, " ").trim();
     if (!q || !answer) continue;
+    // WO-074: a standing answer is kept only as a complete statement of its class (the panel composes it from the
+    // person's own picks); it is the person's for every employer, under its class key.
+    if (q.standing) {
+      if (answer.length > 2000 || !parseStanding(q.standing, answer)) {
+        refused.push({ key: q.key, why: "not a complete standing answer" });
+        continue;
+      }
+      const at = q.postings[0];
+      const g = groups.get(at.jobId) ?? { posting: at.jobId, questions: [], answers: [] };
+      const row = { key: q.key, kind: "fact", label: STANDING_PROMPT[q.standing], type: "standing", options: [] as string[], company: at.company };
+      g.questions.push({ ...row, misfit: false });
+      g.answers.push({ ...row, answer });
+      groups.set(at.jobId, g);
+      continue;
+    }
     const why = answer.length > 2000 || answer === MASKED || looksLikeIdNumber(answer) ? "not an answer Trainee keeps"
       : q.options.length && !q.options.includes(answer) ? "not one of the employer's options"
       : !q.perPosting && (q.postings.some((a) => namesEmployer(answer, a.company)) || (q.key === "fact:how_heard" && !howHeardChannel(answer)))
@@ -248,7 +307,14 @@ export function answerOnceRows(o: { questions: PanelQuestion[]; picks: { key: st
     g.answers.push({ key: q.key, kind: q.kind, label: at.label, type: at.type, options: at.options, company: at.company, answer });
     groups.set(at.jobId, g);
   }
-  return { groups: [...groups.values()], refused };
+  // WO-074: each standing answer kept, and the entries it covers that it does not settle (shown again in the panel).
+  const reopen: { key: string; keys: string[] }[] = [];
+  for (const p of o.picks) {
+    const q = o.questions.find((x) => x.key === p.key);
+    const answer = String(p.answer ?? "").replace(/\s+/g, " ").trim();
+    if (q?.standing && answer && !refused.some((r) => r.key === q.key)) reopen.push({ key: q.key, keys: standingUnsettled(q, answer) });
+  }
+  return { groups: [...groups.values()], refused, reopen };
 }
 // The fields on a card Trainee filled from an answer the person gave in the panel before the session (its stored row).
 export const beforeSession = (fields: SnapField[], factIds: string[]) =>
@@ -327,8 +393,16 @@ export function blockers(o: { fields: SnapField[]; openRequired: string[]; chall
 // cookie banner, a notice) is not the employer's answer. And after a click nothing is ever "not submitted": an end the
 // page does not make clear (no answer within the wait, the form gone without a word) is unknown_outcome, which counts as
 // applied and is never sent again.
+//
+// WO-091d (F1): one end is known for certain. The browser itself refused the submit: during the click it fired `invalid`
+// on a field of the form and never fired `submit`, and the form is still there (browser_refused lists those fields). Nothing
+// left the page: not_submitted, with a reason the queue lets the person approve again once the field is fixed.
 export const NO_ANSWER_WAIT_MS = 30_000;
-export function outcomeAfterClick(o: Observation, before: string[] = [], timedOut = false) {
+export const BROWSER_REFUSED = "the browser refused the submit";
+export function outcomeAfterClick(o: Observation & { browser_refused?: string[] }, before: string[] = [], timedOut = false) {
+  if (o.form_present_after && o.browser_refused?.length) {
+    return { state: "not_submitted", reason: `${BROWSER_REFUSED}: ${o.browser_refused.slice(0, 5).join("; ")}`.slice(0, 500), confirmation_id: null };
+  }
   // An error counts only while the form is still there (a notice on a thank-you page is not a refused form), and only if
   // it was not already showing before the click.
   const fresh = o.form_present_after ? (o.validation_errors || []).filter((e) => !before.includes(e)) : [];
@@ -340,6 +414,30 @@ export function outcomeAfterClick(o: Observation, before: string[] = [], timedOu
   return r;
 }
 export const BEFORE_CLICK = "stopped before the click";
+// What the person reads when the page's own rules refuse a field (WO-091d F1): not sent, and which field to fix.
+export function refusedMessage(items: { label: string; message: string }[]) {
+  const named = items.slice(0, 3).map((i) => `${shortLabel(i.label) || "a field"}${i.message ? ` (${i.message})` : ""}`);
+  return `Not sent — fix ${named.join("; ") || "the form"}. The page itself refuses it as it is, so nothing went to the employer. Fix it on the form; the card reads it again, then approve.`;
+}
+// WO-091d (F2, F11): an application the extension began and then lost track of (the tab or the browser was closed, the
+// service worker restarted between the record and the answer). After its click the employer may have it: unknown, never
+// sent again. With no click it was not sent, and the person may approve it again.
+// A posting already on record, said by what happened to it (the queue's duplicate_job names the row's state).
+export function duplicateMessage(state: string) {
+  if (state === "driving") {
+    return "An earlier approval of this posting is still being sent or recorded (in another tab or on another computer). If nothing is happening there, approve again after 30 minutes.";
+  }
+  if (state === "failed") return "You already applied to this posting, and the employer's form answered with an error. If the page shows it was not accepted, press Try again, then approve.";
+  if (state === "needs_user") return "You already applied to this posting, and the page asked you for something. If you finished it there, press I finished it myself.";
+  if (state === "unknown_outcome") return "You already applied to this posting, or Trainee can't tell whether it went through; it is never sent twice.";
+  return "You already applied to this posting.";
+}
+export const INTERRUPTED = "interrupted before the click";
+export function recoveredOutcome(p: { clicked_at?: number | null }, why: string) {
+  return p.clicked_at
+    ? { state: "unknown_outcome", reason: `application outcome unknown: ${why} after the click, before the employer's answer was read; not retried`, confirmation_id: null }
+    : { state: "not_submitted", reason: `${INTERRUPTED}: ${why}`, confirmation_id: null };
+}
 
 // The card the person reads before the tap: plain text, every answer exactly as it will be sent.
 const MARK: Record<string, string> = { consent: "You agree: ", attestation: "Your statement: ", screen: "About this job: " };
@@ -357,6 +455,7 @@ export interface WorkdayCard {
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
   blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[];
+  standing?: Partial<Record<StandingClass, string>>;
 }) {
   if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
@@ -365,7 +464,10 @@ export function cardLines(o: {
   for (const f of o.payload.fields) {
     const ids = draftFactIds(f.factId);
     // WO-054: an answer the person gave in the panel before the session says so, so they check it here.
-    const from = f.source === "trainee" ? (o.before?.includes(f.name) ? " (your answer, answered before the session)" : "") : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
+    // WO-074: an answer derived from a standing answer says which one, in the person's own terms.
+    const cls = f.source === "trainee" && typeof f.factId === "string" && f.factId.startsWith("standing:") ? f.factId.split(":")[1] as StandingClass : null;
+    const from = cls ? ` (from your standing answer: ${o.standing?.[cls] ?? STANDING_TITLE[cls] ?? cls})`
+      : f.source === "trainee" ? (o.before?.includes(f.name) ? " (your answer, answered before the session)" : "") : f.source === "you" ? " (typed by you)" : f.source === "fixed" ? " (set by the employer's page, read-only)"
       : f.source === "drafted" ? ` (drafted by Trainee from your confirmed facts${ids.length ? ` ${ids.join(", ")}` : ""}; put on the form by you)` : " (set by the page)";
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }
@@ -471,15 +573,22 @@ export async function evidenceRecord(o: {
 // type it), said instead of the general line. Never the code.
 export function cardOutcome(o: { state: string; reason: string; confirmation_id: string | null }, hasAfterShot: boolean, codeStop?: string | null) {
   if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
-    return { status: "done", message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}` };
+    return { status: "done", message: `Not finished: the page now asks for the code the employer emailed you. ${codeStop} Then press I finished it myself.` };
   }
   if (o.state === "confirmed" && hasAfterShot) {
     return { status: "done", message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` };
   }
-  if (o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome") {
+  if (o.state === "confirmed" || o.state === "submitted_unconfirmed") {
     return { status: "done", message: "Sent; the employer's answer could not be captured. Check your email for their confirmation." };
   }
-  if (o.state === "needs_user") return { status: "done", message: "Sent, and the page now asks you for something (a check or a code). Finish it yourself on the page." };
+  // WO-091d (F1): unknown is never "Sent"; the receipt's own words: Trainee cannot tell.
+  if (o.state === "unknown_outcome") {
+    return { status: "done", message: "Trainee can't tell whether it went through: the employer's answer could not be captured. It counts as applied and is never sent again; their confirmation email will say." };
+  }
+  // WO-091d (F4): the page asks the person for something; it is not finished until they do it, and say so on the card.
+  if (o.state === "needs_user") {
+    return { status: "done", message: "Not finished: the page now asks you for something (a check or a code). Finish it yourself on the page, then press I finished it myself." };
+  }
   return { status: "done", message: `Not confirmed: ${o.reason}.` };
 }
 

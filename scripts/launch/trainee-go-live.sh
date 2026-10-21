@@ -35,8 +35,8 @@
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
-#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
+#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp, trainee-agent-api
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram, Meta and agent tokens carry no JWT; each checks its own)
 #                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
@@ -119,9 +119,13 @@ MIGRATIONS=(
   20261022100000_career_apply_wanted.sql
   20261022110000_career_postings_pay.sql
   20261022120000_career_control_state.sql
+  20261022120200_career_apply_standing_answers.sql
   20261022120500_career_deploy_ledger.sql
   20261022150000_career_apply_authority.sql
+  20261023090700_trainee_agent_api.sql
+  20261023091400_career_apply_states.sql
   20261023100000_career_events_apply_queued.sql
+  20261023110000_connect_link_nonces.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -160,9 +164,13 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_wanted') is not null"
   "exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_postings' and column_name = 'pay')"
   "exists (select 1 from pg_proc where proname = 'career_quiet_users')"
+  "exists (select 1 from pg_constraint where conname = 'career_apply_questions_key_check' and pg_get_constraintdef(oid) like '%standing:%')"
   "to_regclass('public.career_deploy_ledger') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
+  "to_regclass('public.trainee_agent_grants') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_resolve_own')"
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"
+  "exists (select 1 from pg_proc where proname = 'connect_link_peek')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -178,8 +186,20 @@ SCHED_VARS=(CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET 
 CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
+# The test bridges the live bot and number actually call today (TEST ONLY, sender allowlist; their own secret headers,
+# no Supabase JWT): Telegram's webhook points at telegram-inbound, the WhatsApp sandbox at whatsapp-inbound. Both run
+# _shared/telegram_bridge.ts and whatsapp_twilio.ts, so a fix there (the hourly-limit reply, #131) reaches the person
+# only if these are deployed too. Deployed until one channel stack is retired (the design audit's "two of everything").
+BRIDGE_FNS=(telegram-inbound whatsapp-inbound)
+# Called with the person's own session (verify_jwt = true in supabase/config.toml): the extension's "Draft from my
+# facts" (WO-049) and the employer's emailed code (WO-096). Without them the extension's calls answer 404.
+JWT_FNS=(career-essay-draft career-email-code)
+# WO-101: the signed connect link the chat sends ("connect my gmail") opens gmail-oauth's GET ?t= page and its form POST;
+# neither carries a Supabase session (the single-use token is the authority). The finance app's own paths in the same
+# function are unchanged by WO-101.
+LINK_FNS=(gmail-oauth)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}")
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api "${LINK_FNS[@]}" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -510,7 +530,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/trainee-agent-api/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -647,8 +667,15 @@ else
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
+  # trainee-agent-api (WO-097) authorizes each call with the agent token the person minted (hashed, checked in the database).
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${BRIDGE_FNS[@]}" trainee-agent-api "${LINK_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
+  # The person's own session is checked by the platform (verify_jwt = true): deployed without --no-verify-jwt.
+  for fn in "${JWT_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF" supabase functions deploy "$fn" --project-ref "$REF"
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

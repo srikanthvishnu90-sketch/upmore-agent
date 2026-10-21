@@ -1,26 +1,40 @@
 "use strict";
 // Original synthetic panel-import cases. Actual Chromium DOM and panel code; chrome messaging is an in-memory fixture.
 // UPMORE_PLAYWRIGHT_PATH / UPMORE_EXTENSION_CHROMIUM_PATH select installed tools; this test downloads nothing.
-const { test, before, after } = require("node:test");
+// Always requires chromiumSandbox:true. Missing runtime/sandbox is NOT_RUN locally and a hard failure in CI.
+const { test: nodeTest, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm"), { webcrypto } = require("node:crypto");
 const ROOT = path.join(__dirname, "..");
-let pw, browser;
+let pw, browser, browserBlocked;
 for (const id of [process.env.UPMORE_PLAYWRIGHT_PATH, "playwright", "/opt/node22/lib/node_modules/playwright"]) {
   if (!id) continue;
   try { pw = require(id); break; } catch { /* use the next installed tool */ }
 }
 before(async () => {
-  assert.ok(pw, "Playwright is required; set UPMORE_PLAYWRIGHT_PATH. No browser was downloaded.");
-  const executablePath = [process.env.UPMORE_EXTENSION_CHROMIUM_PATH, pw.chromium.executablePath(), "/usr/bin/chromium", "/opt/pw-browsers/chromium"].find(p => p && fs.existsSync(p));
-  assert.ok(executablePath, "An installed Chromium is required; no browser was downloaded.");
-  const sandboxOff = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
-  browser = await pw.chromium.launch({ executablePath, headless: true, chromiumSandbox: !sandboxOff,
-    args: ["--disable-background-networking", "--host-resolver-rules=MAP * ~NOTFOUND", ...(sandboxOff ? ["--no-sandbox"] : [])] });
+  try {
+    assert.ok(pw, "Playwright is required; set UPMORE_PLAYWRIGHT_PATH. No browser was downloaded.");
+    const executablePath = process.env.UPMORE_EXTENSION_CHROMIUM_PATH || process.env.UPMORE_CHROMIUM_PATH || [pw.chromium.executablePath(), "/usr/bin/chromium", "/opt/pw-browsers/chromium"].find(p => p && fs.existsSync(p));
+    assert.ok(executablePath && fs.existsSync(executablePath), "An installed Chromium is required; no browser was downloaded.");
+    browser = await pw.chromium.launch({ executablePath, headless: true, chromiumSandbox: true, timeout: 15000,
+      args: ["--disable-background-networking", "--disable-component-update", "--host-resolver-rules=MAP * ~NOTFOUND"] });
+  } catch (e) {
+    browserBlocked = String(e.message).split("\n").find(line => /FATAL:|sandbox|Playwright is required|installed Chromium is required/i.test(line)) || String(e.message).split("\n")[0];
+  }
 });
 after(async () => { await browser?.close(); });
+function test(name, fn) {
+  return nodeTest(name, async t => {
+    if (browserBlocked) {
+      const reason = "NOT_RUN: strict sandbox browser unavailable: " + browserBlocked;
+      if (process.env.CI) assert.fail("CI cannot skip fact-import browser verification. " + reason);
+      t.skip(reason); return;
+    }
+    await fn(t);
+  });
+}
 const source = () => ({ user_id: "SYNTHETIC-IMPORT-OWNER", answers: {
   first_name: { value: "SYNTHETIC-GIVEN", factId: "SYNTHETIC-F1", confirmed: true },
   last_name: { value: "SYNTHETIC-FAMILY", factId: "SYNTHETIC-F2", confirmed: true },

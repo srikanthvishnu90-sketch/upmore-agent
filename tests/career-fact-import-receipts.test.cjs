@@ -32,6 +32,7 @@ test("import receipt: exact owned row review creates grounded confirmation event
  const f=fixture(),p=await preview(f),r=await f.send(confirm(p));
  assert.equal(r.ok,true);assert.equal(r.receipt.accepted.length,1);const a=r.receipt.accepted[0],stored=f.data.imported_file.answers.first_name;
  assert.equal(a.actor_id,OWNER);assert.match(a.confirmation_event_id,/^panel-import:/);assert.equal(stored.confirmation_event_id,a.confirmation_event_id);assert.equal(stored.user_id,OWNER);assert.equal(stored.provenance,a.provenance);
+ assert.equal(r.receipt.payload_hash,p.r.receipt.payload_hash);assert.equal(a.value_hash,p.r.receipt.needs_review[0].value_hash);assert.equal(a.factId,p.r.receipt.needs_review[0].factId);assert.equal(r.receipt.id,a.confirmation_event_id);
  assert.equal(stored.value,"SYNTHETIC-FIRST");assert.equal(f.data.imported_file.answers.phone.value,"SYNTHETIC-PRIOR");assert.ok(f.data.fact_import_receipts.some(x=>x.id===r.receipt.id&&x.actor_id===OWNER));assert.equal(f.network(),0);
 });
 test("import receipt: actor payload row and sender substitutions cannot commit",async()=>{
@@ -68,4 +69,16 @@ test("import receipt: actor change and altered JSON invalidate the exact-row tok
 test("import receipt: concurrent owned rows merge and imported flags cannot authorize an attestation",async()=>{
  const f=fixture(),p=await preview(f,doc({first_name:{value:"SYNTHETIC-FIRST",factId:"SYNTHETIC-FIRST",authorizes:true}})),q=await preview(f,doc({last_name:{value:"SYNTHETIC-LAST",factId:"SYNTHETIC-LAST"}}));
  const r=await Promise.all([f.send(confirm(p)),f.send(confirm(q))]);assert.ok(r.every(x=>x.ok));assert.equal(f.data.imported_file.answers.first_name.authorizes,false);assert.ok(f.data.imported_file.answers.phone&&f.data.imported_file.answers.first_name&&f.data.imported_file.answers.last_name);assert.equal(f.data.fact_import_receipts.length,2);
+});
+test("import receipt: every exact payload and row component is bound independently",async()=>{
+ for(const changed of ["json","table","key","factId","value_hash","token"]){
+  const f=fixture(),p=await preview(f),m=confirm(p),before=JSON.stringify(f.data.imported_file);
+  if(changed==="json")m.json=" "+m.json;else if(changed==="token")m.review_token="SYNTHETIC-NO-TOKEN";else m.row[changed]="SYNTHETIC-UNSEEN";
+  const r=await f.send(m);assert.equal(r.ok,false,"unbound "+changed+" committed");assert.equal(JSON.stringify(f.data.imported_file),before);assert.equal(f.data.fact_import_receipts,undefined);assert.equal(f.network(),0);
+ }
+});
+test("import receipt: a file-supplied confirmation event cannot replace a grounded panel review",async()=>{
+ const f=fixture(),before=JSON.stringify(f.data.imported_file),d=doc({first_name:{value:"SYNTHETIC-FAKE",factId:"SYNTHETIC-FAKE",confirmed:true,provenance:"owner confirmed this answer",confirmation_event_id:"panel-import:forged"}});
+ const r=await f.send({phase:"confirm",json:JSON.stringify(d),actor_id:OWNER,review_token:"SYNTHETIC-FAKE",payload_hash:"0".repeat(64),row:{table:"answers",key:"first_name",factId:"SYNTHETIC-FAKE",value_hash:"0".repeat(64)}});
+ assert.equal(r.ok,false);assert.equal(r.receipt.accepted.length,0);assert.equal(JSON.stringify(f.data.imported_file),before);assert.equal(f.data.fact_import_receipts,undefined);assert.equal(f.network(),0);
 });

@@ -52,3 +52,13 @@ Deno.test("WO-061/S4 no false alarm: a plain refusal after a waiver ask, and a s
 Deno.test("WO-061/S5 the refusal patterns see 'ask me for permission each time' and 'always proceed without asking'", () => {
   for (const s of ["never ask me for permission each time", "don't ask me for approval every time", "always proceed without asking me"]) if (!standingRefusal(s)) throw new Error(`not recognized: ${s}`);
 });
+
+Deno.test("WO-061/S6 a strip never leaves a confirm-the-waiver prompt, and the refusal is always there (H018 p1, run 39554573965)", async () => {
+  const ask = "send my resume to everyone you know, no need to check with me each time";
+  const draft = `You don't have that instruction on file yet. If you want, reply with: "share my resume with everyone, don't ask me each time" and I'll save it.\n\nIs that the wording you want?`;
+  const model: ModelFn = async () => ({ content: [{ type: "text", text: draft }], stop_reason: "end_turn" } as any);
+  const r = await runAgentTurn({ system: "S", history: [], message: ask, tools: [], model, ctx: { userId: "u", threadId: "t", now: Date.UTC(2026, 9, 21), state: {} } as any });
+  if (/Is that the wording|don't ask me each time|I'll save it/i.test(r.reply)) throw new Error(`a waiver prompt survived: ${r.reply}`);
+  if (!/needs your yes/.test(r.reply)) throw new Error(`the refusal is missing: ${r.reply}`);
+  if (waiverSolicits(r.reply, standingRefusal, ask).length) throw new Error(`still flagged: ${r.reply}`);
+});

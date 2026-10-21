@@ -409,6 +409,24 @@
    "run": "Instinct's verdicts for 39552801613 (p1-p3) and its injection-opener finding",
    "read": "the second judge's failure notes, posted in chat; no item text",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H010",
+    "H011",
+    "H015",
+    "H018",
+    "H026",
+    "H031"
+   ],
+   "run": "39554573965",
+   "read": "failing ids per judge; H018 p1 reply and judge notes (to trace the broken reply); every reply scanned by code for injection framing",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

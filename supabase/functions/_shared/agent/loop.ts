@@ -226,6 +226,9 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (claims.length || stillMoney.length || stillWaiver.length) {
         out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
         if (!/[A-Za-z0-9]/.test(out)) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+        // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
+        // and nothing left says it is still needed, code says it first.
+        if (stillWaiver.length && standingRefusal(o.message) && !/\b(your yes|your approval|without (asking|approval|your)|needs? (your|their) (yes|ok|okay|approval)|not kept|can'?t keep|won'?t (share|send|apply|skip))\b/i.test(out)) out = `${STANDING_REFUSED}\n\n${out}`;
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);

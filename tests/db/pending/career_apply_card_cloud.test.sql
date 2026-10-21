@@ -1,4 +1,4 @@
--- REVIEW-1 TESTS ONLY. No migration is applied by this file. Not wired into run.sh yet.
+-- REVIEW-1 TESTS ONLY. No migration is applied by this file. Pending directory prevents early run.sh discovery.
 -- WRITTEN / NOT_RUN under the owner's no-apply instruction. All UUIDs/facts are synthetic.
 -- First two assertions exercise existing 01401cb4 APIs, not absence of a future function.
 -- Their baseline failure must be captured on an authorized disposable DB, never inferred as a runtime result.
@@ -49,15 +49,16 @@ create temp table cc_state(k text primary key,v jsonb);
 grant all on cc_state to authenticated,service_role;
 
 -- NEW REGRESSION C9a: direct enqueue must not become permission to send.
-insert into cc_state values('direct',to_jsonb(career_apply_enqueue(pg_temp.cc_payload('direct'),
- pg_temp.cc_hash(pg_temp.cc_payload('direct')),pg_temp.cc_hash(pg_temp.cc_payload('direct')),25)));
+insert into cc_state values('direct',to_jsonb(career_apply_enqueue(pg_temp.cc_payload('direct','Synthetic direct employer'),
+ pg_temp.cc_hash(pg_temp.cc_payload('direct','Synthetic direct employer')),
+ pg_temp.cc_hash(pg_temp.cc_payload('direct','Synthetic direct employer')),25)));
 select t.ok((select career_apply_cloud_refusal(j,clock_timestamp())='not_card_approved'
  from career_apply_jobs j where id=(select (v->>'id')::uuid from cc_state where k='direct')),
  'NEW REGRESSION direct_enqueue_not_card_approved: old waiver refusal has no card-binding check');
 
 -- NEW REGRESSION C9b: exercise the old text reply path through prepare/open/answer, not a fabricated queue row.
 select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
-insert into cc_state values('old-prepared',to_jsonb(career_apply_prepare_own(pg_temp.cc_payload('text-yes'),
+insert into cc_state values('old-prepared',to_jsonb(career_apply_prepare_own(pg_temp.cc_payload('text-yes','Synthetic text employer'),
  array['SYNTHETIC text card - not a tap'])));
 insert into cc_state values('old-card',to_jsonb(career_apply_card_open_own(
  array[(select (v->>'id')::uuid from cc_state where k='old-prepared')])));
@@ -120,7 +121,7 @@ do $$ declare j career_apply_jobs; p jsonb; col text; val text; q text; begin
  for col,val in select * from (values
  ('user_id','00000000-0000-4000-8000-00000000cb02'),('job_id','different-posting'),
  ('url','https://jobs.lever.co/other/changed/apply'),('company','Changed company'),
- ('agent_batch_hash',null),('payload_hash',repeat('b',64)),('approval_hash',repeat('b',64)))v(c,v) loop
+ ('agent_batch_hash',repeat('b',64)),('payload_hash',repeat('b',64)),('approval_hash',repeat('b',64)))v(c,v) loop
   q:=format('update public.career_apply_jobs set %I=%L where id=%L',col,val,j.id);
   perform t.must_fail(q,'immutable','queue immutable column '||col);
  end loop;

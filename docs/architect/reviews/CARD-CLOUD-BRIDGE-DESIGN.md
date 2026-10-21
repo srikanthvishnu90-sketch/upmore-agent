@@ -54,6 +54,8 @@ only after a separate request; this design does not authorize it. Do not enroll 
 Cloud eligibility is: existing enabled synthetic TEST row OR that exact unrevoked, unexpired ordinary-account row.
 This replaces TEST-only for cloud-mode card preparation/read/tap/claim/pre-effect checks only. Existing extension
 mode remains TEST-only unchanged. RLS/read RPCs use the same predicate; non-enrolled accounts see no card data.
+Use a separate cloud-mode eligibility RPC/predicate and mode-specific RLS, not a broadened
+career_apply_message_card_test_enabled_own; otherwise the ordinary grant would accidentally admit v1 extension cards.
 Expiry, revocation and account deletion close the path. The frontend needs only the same server-derived eligibility
 for the approval card. Eligibility grants no payload approval, opt-in, waiver, switch or arbitrary job permission.
 Until the owner approves this rule and the row, the ordinary-account send remains blocked. Tests use invented UUIDs.
@@ -89,12 +91,19 @@ will be claimed before that. The runner integration is prepared only after code 
 
 Prepare `supabase/rollbacks/<bridge-name>.sql`, not executed. It restores the complete refusal and claim_at definitions
 from 20261024120000 byte for byte, including gate-waiver branches and original grants, and restores the pre-bridge
-card/extension entry points and guard changes from 01401cb4. No generic CASCADE and no drops of preexisting Messages,
+card/extension entry points, `career_apply_claim_own(integer,text)` and guard changes from 01401cb4. No generic CASCADE and no drops of preexisting Messages,
 approval, jobs, waiver, opt-in, account, question or resume data. Up/down track only bridge-owned objects. A second
 down is safe. Rollback cannot be used as a permission reset or to retry an uncertain employer effect.
 
 Rollback is permitted operationally only with BOTH switches OFF and no active cloud drive; otherwise refuse before
-DDL. Before removing private bridge metadata, mark every still-queued bridge job not_submitted with reason
+DDL. Serialize the check: new cloud prepare/tap/claim/authorize and own-claim routing take a common transaction-level
+SHARED bridge-maintenance advisory lock BEFORE account/card/job locks. Rollback takes its EXCLUSIVE counterpart
+first, waits for existing claim/tap transactions, then locks career_cloud_settings and the new enrollment table
+against writes for the rollback transaction, re-reads BOTH switches as OFF and checks no active cloud drive under
+that lock. A direct setting writer that won the race is observed; an ON row aborts rollback. No stale pre-lock
+enabled check can authorize a late claim. Existing own claims take the shared lock before their person lock.
+Concurrency tests hold a claim at the account lock while rollback waits, and race an operator flag write against
+the OFF check. No claims or authorization transaction can cross metadata removal. Before removing private bridge metadata, mark every still-queued bridge job not_submitted with reason
 card_cloud_bridge_rolled_back and copy its immutable card/item/approval id, Hq and deadline into job evidence. Copy
 the same binding receipt to existing terminal bridge job evidence; retain those queue rows and every attempted
 outcome. Drop only bridge-owned objects after that. No job is deleted or reset to queued, and down/up cannot revive
@@ -216,6 +225,11 @@ concurrency) prove claim/tap races, once SQL execution is separately authorized.
 Unresolved permissions are explicit: architect PASS for production code; owner's approval of C10 rule and exact
 account row; explicit authorization for any migration application, merge, deployment or switch change. Tests/design
 can be committed now; no CI job may inadvertently apply the draft migration.
+
+During the review-only phase, the SQL acceptance draft is at
+`tests/db/pending/career_apply_card_cloud.test.sql`, outside run.sh's early `*.test.sql` discovery. Promote it to the
+E14 path and put its final replay after 20261024120000 only once design/code and isolated DB execution are authorized.
+This is staging a not-yet-runnable acceptance suite, not skipping a passing gate or reporting SQL as tested.
 
 Ledger: this work $0 new spend; prior known $8.503100 plus unresolved-call hold $0.070743 = $8.573843 known+held.
 Prior comparison total remains UNRECONCILED; the 63 pending paid cases remain NOT_RUN.

@@ -14,7 +14,7 @@ const own = (factId: string, value: string) => ({ value, factId, confirmed: true
 const M = trustedManifest({ owner: OWNER, resume: RESUME, rows: [], file: { user_id: OWNER, saved: {}, answers: {
   first_name: own("TEST-1", "Test"), work_authorization: own("TEST-2", "Yes"), citizenship: own("TEST-3", "United States"),
   how_heard: own("TEST-4", "Company website"), location: own("TEST-5", "Chicago, IL"), school: own("TEST-6", "Example State University"),
-  country: own("TEST-7", "United States"),
+  country: own("TEST-7", "United States"), state: own("TEST-8", "IL"),
 } } });
 type O = { label: string; value: string };
 const w = (name: string, label: string, options: O[] = [], type = "multi_value_single_select") => ({ name, label, type, required: true, options, widget: "react-select" });
@@ -81,6 +81,8 @@ Deno.test("FRS-widget/4 a place or school search: an entry that names the fact f
   assert(e.ok && e.posting.ledger.filter((l) => l.derivation_rule === "listed-name").length === 2, `place and school searches: listed-name ${JSON.stringify(e)}`);
   assert(choose(loc, ["Chicago, Illinois, United States", "Springfield, Illinois, United States"]) === "Chicago, Illinois, United States", "the entry naming the city");
   assert(choose(sch, ["Example State University", "Other State University"]) === "Example State University", "the school by its name");
+  const st = w("st", "Which state, province, or region do you currently live in?", [], "input_text");
+  assert(choose(st, ["Indiana, United States", "Illinois, United States"]) === "Illinois, United States", "a state code by the state's name");
   assert(choose(loc, ["Cook County, IL", "Remote"]) === null && choose(sch, ["State University of Example", "Other"]) === null, "an entry by meaning only is not clicked");
   // A question read as the person's place whose list is countries: "United States" does not name "Chicago, IL".
   assert(choose(w("based", "Are you currently based in and can verify right to work from one of the following countries?"), ["United Kingdom", "United States"]) === null);

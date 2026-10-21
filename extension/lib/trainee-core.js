@@ -3981,12 +3981,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var SEARCHED = /* @__PURE__ */ new Set([
     "location",
     "city",
+    "state",
     "school"
   ]);
   var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
   function optionRule(option, fact, searched) {
     if (searched) {
-      const word = optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
+      const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
       return word && optN(option).includes(word) ? "listed-name" : null;
     }
     if (optN(option) === optN(fact)) return "option-exact";

@@ -11,6 +11,7 @@ import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -123,12 +124,13 @@ export function chooseWidgetOption(o: {
 }
 // A place or a school is searched by its name, not picked from a fixed list: the employer's entry must name the fact (its
 // first word: "Chicago, Illinois, United States" for "Chicago, IL"). Any other widget is a select whose list opens late.
-const SEARCHED = new Set(["location", "city", "school"]);
+const SEARCHED = new Set(["location", "city", "state", "school"]);
 const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
 // How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
 function optionRule(option: string, fact: string, searched: boolean): string | null {
   if (searched) {
-    const word = optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
+    // A US state code is named by the state ("IL": "Illinois, United States").
+    const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
     return word && optN(option).includes(word) ? "listed-name" : null;
   }
   if (optN(option) === optN(fact)) return "option-exact";

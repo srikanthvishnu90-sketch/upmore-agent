@@ -4418,7 +4418,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
       return {
         status: "done",
-        message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}`
+        message: `Not finished: the page now asks for the code the employer emailed you. ${codeStop} Then press I finished it myself.`
       };
     }
     if (o.state === "confirmed" && hasAfterShot) {

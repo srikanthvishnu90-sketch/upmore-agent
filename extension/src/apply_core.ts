@@ -501,7 +501,7 @@ export async function evidenceRecord(o: {
 // type it), said instead of the general line. Never the code.
 export function cardOutcome(o: { state: string; reason: string; confirmation_id: string | null }, hasAfterShot: boolean, codeStop?: string | null) {
   if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
-    return { status: "done", message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}` };
+    return { status: "done", message: `Not finished: the page now asks for the code the employer emailed you. ${codeStop} Then press I finished it myself.` };
   }
   if (o.state === "confirmed" && hasAfterShot) {
     return { status: "done", message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` };

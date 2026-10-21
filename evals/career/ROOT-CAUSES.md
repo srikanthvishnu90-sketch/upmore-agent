@@ -841,3 +841,9 @@ of private content.
 - H034 (second judge's repeat offender, read for the next note): the first add_profile_fact is refused by the fact
   lock, the retry saves the person's raw words ("Saved: 'wanna do something w computers'. Is that right?") and the
   reply goes to that instead of naming entry routes and asking which.
+
+### Second judge's ruling: H006 rewrite KEPT (run 39594786298)
+- Full-38 82.1 ties the bar; clean-30 82.0 vs 82.7, within noise; H006 5/5, H004 5/5 (control 3/5). On wo/agent-slice
+  as 71534f22; working branch only, no deploy. The kept brain is now e41d1723 + H006.
+- Watch list: H013 forward commitment dropped (p3, p5); H036 drops the resume/visa asks; H034 3/5 (must ask WHICH
+  route). Order: the H027/H004 empty-answer code bug (5 passes, on the new kept brain), then H034, then H013.

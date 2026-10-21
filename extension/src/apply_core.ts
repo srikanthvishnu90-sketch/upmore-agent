@@ -497,7 +497,12 @@ export async function evidenceRecord(o: {
 
 // "Confirmed" needs proof the person can see: the page after the click was read and photographed. Without the after
 // screenshot the card never says confirmed (the owner: "when someone submits... they need to show proof").
-export function cardOutcome(o: { state: string; reason: string; confirmation_id: string | null }, hasAfterShot: boolean) {
+// WO-096: codeStop is what the person does about an emailed code Trainee could not type for them (connect Google, or
+// type it), said instead of the general line. Never the code.
+export function cardOutcome(o: { state: string; reason: string; confirmation_id: string | null }, hasAfterShot: boolean, codeStop?: string | null) {
+  if (o.state === "needs_user" && o.reason === "email_code" && codeStop) {
+    return { status: "done", message: `Sent, and the page now asks for the code the employer emailed you. ${codeStop}` };
+  }
   if (o.state === "confirmed" && hasAfterShot) {
     return { status: "done", message: `Sent; the employer's page confirmed it${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` };
   }

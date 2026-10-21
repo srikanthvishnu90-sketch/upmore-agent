@@ -47,6 +47,10 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     async optedOut(contact) {
       return must<boolean>(await admin.rpc("channel_opted_out", { p_contact: contact }), "read opt-out") === true;
     },
+    // WO-091c: paused, opted out or erased (career_user_quiet, 20261022120000_career_control_state.sql).
+    async quiet(userId) {
+      return must<boolean>(await admin.rpc("career_user_quiet", { p_user: userId }), "read the pause") === true;
+    },
     async setOptOut(contact, out, at) {
       must(await admin.rpc("channel_set_opt_out", { p_contact: contact, p_out: out, p_at: iso(at) }), "save opt-out");
     },

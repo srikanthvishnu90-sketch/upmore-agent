@@ -182,13 +182,17 @@ done
 # WO-069: the pay a board states for a posting, a column on career_postings (applied twice: idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022110000_career_postings_pay.sql"
+# WO-093: the deploy ledger (RLS on, no client access, the service role reads and appends, append-only for everyone).
+# Applied twice: idempotent. Its test, career_deploy_ledger.test.sql, runs in the loop below.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 # WO-091d: every application row ends (the 30-minute sweep, interrupted, the person's own edges). It redefines 050000's
 # enqueue, 120000's begin and 010000's finish_own, so it comes after them; applied twice (idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023091400_career_apply_states.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261023091400_career_apply_states.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_apply_states.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_apply_states.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -284,6 +288,12 @@ echo "== career_apply_extension.test.sql (the extension records an approved appl
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_extension.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_form_answers.test.sql (answers typed on the form kept once sent; source 'extension' for the gate)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_form_answers.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# WO-091c: the control state the scheduled layer reads, and the outreach claim's expiry and pause. It redefines the claim
+# that the outreach re-run above set back, so it is applied here, last, twice (idempotent), as production ends.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120000_career_control_state.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120000_career_control_state.sql"
+echo "== career_control_state.test.sql (pause, STOP and erase are one predicate; an approval lasts 7 days; a quiet account sends nothing)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_control_state.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_authority.test.sql (an ordinary chat turn never makes an approval stale; a pause or a facts change does)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_authority.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # WO-091d, last as production ends: the earlier re-runs above never touch what it redefines, and it is applied once more.

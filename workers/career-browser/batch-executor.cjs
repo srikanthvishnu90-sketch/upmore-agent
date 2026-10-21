@@ -95,13 +95,16 @@ function createBatchExecutor(deps) {
   async function buildDeps(userId, postings) {
     const pack = (await d.profileFor(userId)) || {};
     const log = await store.ledgerFor(userId);
+    // WO-094: no standing attestations ride into a drive — the card's yes
+    // attests per application (155/149). The board provider is told the
+    // stored resume record's sha256 so the board service resolves THAT file.
+    const resume = pack.profile && pack.profile.resume ? pack.profile.resume : null;
     return {
       postings: Array.isArray(postings) ? postings : [],
       profile: pack.profile || null,
       profileMaster: pack.profileMaster || null,
-      attestations: pack.attestations || {},
       log,
-      boardFor: d.boardForFor(userId),
+      boardFor: d.boardForFor(userId, { resumeSha256: resume && resume.sha256 ? resume.sha256 : null }),
       now: nowOf(),
       track: track || undefined,
     };
@@ -250,6 +253,10 @@ if (require.main === module) {
   //   module.exports = { call: transport.call, postingsFor: sources.postingsFor,
   //     profileFor: sources.profileFor, boardForFor: <the operator's
   //     board-service binding for the §2 board-service process> };
+  // boardForFor(userId, { resumeSha256 }) receives the stored resume
+  // record's sha256 (WO-094): pass it to createWorkerBoardProvider's
+  // resumeSha256 so the board service (configured with resume-store.cjs
+  // createStoredResumeResolver) resolves that file or refuses, named.
   if (!process.argv[2] || !path.isAbsolute(process.argv[2])) throw new Error("usage: node batch-executor.cjs /absolute/operator-config.cjs");
   const cfg = require(process.argv[2]);
   const executor = createBatchExecutor({ store: createBatchRpcStore({ call: cfg.call }), postingsFor: cfg.postingsFor, profileFor: cfg.profileFor, boardForFor: cfg.boardForFor, track: cfg.track });

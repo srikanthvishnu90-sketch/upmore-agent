@@ -229,6 +229,9 @@ export function createWorkerBoardProvider(opts) {
   const userId = typeof o.userId === "string" && o.userId ? o.userId : null;
   const transport = typeof o.transport === "function" ? o.transport : null;
   if (!workerUrl || !secret || !userId || !transport) return null;
+  // WO-094: the stored resume record's sha256 rides on session creation so
+  // the board service resolves THAT file (or refuses the session, named).
+  const resumeSha256 = typeof o.resumeSha256 === "string" && /^[a-f0-9]{64}$/.test(o.resumeSha256) ? o.resumeSha256 : null;
   const headers = { "content-type": "application/json", "x-upmore-board-secret": secret };
   const codedError = (code, message) => Object.assign(new Error(message || code), { code });
   function callService(path, body) {
@@ -244,7 +247,7 @@ export function createWorkerBoardProvider(opts) {
   function boardFor(posting) {
     const url = posting && typeof posting.url === "string" ? posting.url : null;
     if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
-    const res = callService("/board-sessions", { userId, url });
+    const res = callService("/board-sessions", resumeSha256 ? { userId, url, resumeSha256 } : { userId, url });
     if (res.status !== 201) {
       const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
       const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;

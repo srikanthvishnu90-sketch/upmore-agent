@@ -29,6 +29,7 @@ import {
   runChannelTurnRich,
   sendParts,
   timingSafeEqual,
+  TurnLimitError,
 } from "./channel_bridge.ts";
 import {
   VOICE,
@@ -229,6 +230,10 @@ async function handleTelegramCallback(
         turnKey: `tgcb-${row.token}`,
       }));
   } catch (e) {
+    if (e instanceof TurnLimitError) {
+      if (send) { try { await sendTelegramPresented(deps, token, cb.chatId, VOICE.rateLimited); } catch { /* best effort */ } }
+      return json({ ok: true, limited: true });
+    }
     console.error("telegram-inbound approval:", e);
     if (send) { try { await sendTelegramPresented(deps, token, cb.chatId, VOICE.error); } catch { /* surfaced below */ } }
     return json({ ok: false, error: "internal" }, 500);
@@ -289,6 +294,10 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
         ? await withTelegramTyping(deps, token, parsed.chatId, runTurn)
         : await runTurn();
     } catch (e) {
+      if (e instanceof TurnLimitError) {
+        if (send && !dryRun) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.rateLimited); } catch { /* best effort */ } }
+        return json({ ok: true, limited: true });
+      }
       console.error("telegram-inbound turn:", e);
       if (send && !dryRun) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.error); } catch { /* response below still 500 */ } }
       return json({ ok: false, error: "internal" }, 500);

@@ -90,6 +90,12 @@ export interface RichTurnOutcome {
   chat: any; // the full agent-chat response (batch/task/meta/artifacts ride it)
 }
 
+// agent-chat's 429: the person's hourly turn limit (agent_rl_bump_as), not a failure. The channels speak it as the
+// limit (VOICE.rateLimited) and answer the webhook 200, so the provider does not retry it.
+export class TurnLimitError extends Error {
+  constructor() { super("agent-chat turn limit"); this.name = "TurnLimitError"; }
+}
+
 // One agent-chat call, the bridge's exact wire shape: service-role bearer
 // + as_user_id, Authorization header ONLY (the gateway rejects conflicting
 // apikey/Authorization pairs — same note as imessage-inbound).
@@ -118,6 +124,7 @@ async function callAgentChat(
       signal: ctrl.signal,
     });
     const chat = await res.json().catch(() => ({}));
+    if (res.status === 429) throw new TurnLimitError();
     if (!res.ok) throw new Error(`agent-chat HTTP ${res.status}: ${JSON.stringify(chat).slice(0, 200)}`);
     if (chat.error) throw new Error("agent-chat: " + String(chat.error).slice(0, 200));
     return chat;

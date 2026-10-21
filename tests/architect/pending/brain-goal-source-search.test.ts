@@ -60,3 +60,41 @@ Deno.test('goal search source: actual agentTurn receives only current search ter
   eq(result.stopped, 'final'); eq(result.tool_calls.map((c) => [c.name, c.ok]), [['search_jobs', true]]);
   eq(observed.goal, { roles: ['ux', 'designer'], places: ['denver'], remote: false }); eq(observed.postings[0].job_id, 'SYN-NEW-JOB');
 });
+
+for (const provenance of ['agent-generated', 'model generated']) for (const scope of ['fact', 'profile', 'preferences', 'basics']) {
+  Deno.test(`goal search source: negative provenance string ${provenance} at ${scope} cannot steer the actual search tool`, async () => {
+    const profile: any = { preferences: {}, facts: [current()] };
+    const expected = { roles: ['ux', 'designer'], places: ['denver'], remote: false };
+    if (scope === 'fact') profile.facts.push(old({ provenance }));
+    if (scope === 'profile') Object.assign(profile, { provenance, preferences: { roles: ['Data analyst'], locations: ['Austin'], remote: 'remote' } });
+    if (scope === 'preferences') profile.preferences = { provenance, roles: ['Data analyst'], locations: ['Austin'], remote: 'remote' };
+    if (scope === 'basics') profile.basics = { provenance, location: 'Austin' };
+    const before = JSON.stringify(profile), persisted = JSON.parse(before);
+    const tool = careerTools({ postings: async () => pool }).find((t) => t.name === 'search_jobs')!;
+    const result: any = await tool.run({}, { userId: USER, threadId: 'SYN-STRING-PROVENANCE', now: NOW, state: { profile: persisted }, turn: { message: 'Find jobs for my current goal.', added: [] } });
+    eq(result.goal, scope === 'profile' ? null : expected, 'string provenance was ignored');
+    eq(JSON.stringify(persisted), before, 'source filtering mutated persisted state');
+  });
+}
+for (const status of ['confirmed', 'draft']) {
+  Deno.test(`goal search source control: user provenance strings preserve ${status} alternate goals and preferences`, () => {
+    const profile = { provenance: 'user', preferences: { provenance: 'owner stated', roles: ['Product manager'], locations: ['Boston'] },
+      facts: [current(), old({ source: 'user', provenance: 'user', status, needs_confirmation: status === 'draft' })] };
+    const before = JSON.stringify(profile);
+    eq(goalOf(profile), { roles: ['product', 'manager', 'ux', 'designer', 'data', 'analyst'], places: ['boston', 'denver', 'austin'], remote: false });
+    eq(JSON.stringify(profile), before, 'own draft/alternate facts were mutated');
+  });
+}
+
+Deno.test('goal search source: explicit ai/inferred sources and rejected containers are excluded consistently', () => {
+  for (const source of ['ai', 'inferred']) {
+    eq(goalOf({ facts: [current(), old({ source })], preferences: {} }), { roles: ['ux', 'designer'], places: ['denver'], remote: false }, source);
+  }
+  const profile = { facts: [current()], preferences: { roles: ['Data analyst'], locations: ['Austin'], remote: 'remote' }, basics: { location: 'Austin' } };
+  eq(goalOf({ ...profile, status: 'rejected' }), null, 'rejected profile container');
+  eq(goalOf({ facts: [current()], preferences: { ...profile.preferences, status: 'rejected' }, basics: { ...profile.basics, status: 'rejected' } }),
+    { roles: ['ux', 'designer'], places: ['denver'], remote: false }, 'rejected child containers');
+});
+Deno.test('goal search source control: a user goal mentioning AI is content rather than source metadata', () => {
+  eq(goalOf({ facts: [{ ...current(), text: 'AI engineer role in Denver', provenance: 'user' }], preferences: {} }), { roles: ['ai', 'engineer'], places: ['denver'], remote: false });
+});

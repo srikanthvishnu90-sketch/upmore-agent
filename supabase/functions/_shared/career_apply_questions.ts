@@ -15,7 +15,7 @@
 // beside the questions shown (career:questions-shown), under the same rules: this thread's last word, a day, the numbers
 // shown. The employer's own AI policy decides first.
 import { chooseOption, yesNoOf } from "./answer_options.ts";
-import { matchOption } from "./career_apply.ts";
+import { matchOption, typedFieldProblem } from "./career_apply.ts";
 import { factType, mapQuestion, NEVER_BY_TEXT } from "./question_map.ts";
 import { readAiPolicy } from "./ai_policy.ts";
 import { type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
@@ -101,6 +101,8 @@ export function checkAnswer(q: OpenQuestion, raw: string): Check {
     const yn = yesNoWord(value);
     return yn ? { ok: true, value: cap(yn) } : { ok: false, why: "needs a yes or a no" };
   }
+  const typedProblem = typedFieldProblem({ type: q.type, label: q.label, options: [] }, value);
+  if (typedProblem) return { ok: false, why: typedProblem };
   return { ok: true, value };
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);

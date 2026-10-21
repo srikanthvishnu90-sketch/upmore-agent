@@ -160,3 +160,31 @@ test('opening the exact raw-payload disclosure is a legitimate review action and
   await button.click();await page.waitForFunction(()=>window.handle.getState()==='approved');
   assert.equal(await page.evaluate(()=>window.approvals.length),1);
 });
+
+test('a trusted click cannot approve after a capture listener detaches the disclosed card',async t=>{
+  const {page,button}=await fixture(t);
+  await page.evaluate(()=>{
+    document.addEventListener('click',event=>{
+      if(event.target!==window.handle.button)return;
+      window.detachedNativeEvent=event.isTrusted;
+      document.querySelector('#card').remove();
+      window.detachedBeforeHandler=!window.handle.button.isConnected;
+    },{capture:true,once:true});
+  });
+  await button.click();await page.waitForFunction(()=>window.handle.getState()!=='checking');
+  assert.equal(await page.evaluate(()=>window.detachedNativeEvent),true);
+  assert.equal(await page.evaluate(()=>window.detachedBeforeHandler),true);
+  assert.equal(await page.evaluate(()=>window.approvals.length),0);
+});
+
+test('stylesheet-zero-area answers block a native tap even when getClientRects returns a rectangle',async t=>{
+  const {page,button}=await fixture(t);
+  await page.addStyleTag({content:'.career-approval-card pre { transform: scale(0) !important; }'});
+  const rect=await page.locator('pre').first().evaluate(node=>{
+    const rectangles=node.getClientRects();return {n:rectangles.length,width:rectangles[0]?.width,height:rectangles[0]?.height};
+  });
+  assert.equal(rect.n,1);assert.equal(rect.width,0);assert.equal(rect.height,0);assert.equal(await button.isVisible(),true);
+  await button.click();await page.waitForFunction(()=>window.handle.getState()!=='checking');
+  assert.deepEqual(await page.evaluate(()=>window.trustedClicks),[true]);
+  assert.equal(await page.evaluate(()=>window.approvals.length),0);
+});

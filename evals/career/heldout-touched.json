@@ -121,6 +121,22 @@
    "run": "39542849277",
    "read": "gpt-5-mini failure reason only: says no research resume is on file and asks them to add it",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H006",
+    "H012",
+    "H023",
+    "H025",
+    "H026",
+    "H029",
+    "H030",
+    "H031",
+    "H032"
+   ],
+   "run": "Instinct's report, 2026-10-21",
+   "read": "named by the owner's second judge in chat with the failure pattern, and for H026 pass 3 one quoted line of the reply (quiet hours inverted); no item text read from the set",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

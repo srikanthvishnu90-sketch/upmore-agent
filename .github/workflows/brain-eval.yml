@@ -47,6 +47,12 @@ jobs:
         run: |
           for p in 1 2 3; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
           wait; cat "$RUNNER_TEMP"/h-agent-*.txt
+      # Re-scores of recorded runs listed in evals/career/rejudge.txt ("<label> <judge model>"), once each, judge only.
+      - name: Re-score recorded runs (judge only)
+        if: always()
+        run: |
+          [ -f evals/career/rejudge.txt ] || exit 0
+          while read -r l m; do [ -n "$l" ] && deno run -A evals/career/rejudge.ts "$l" "$m"; done < evals/career/rejudge.txt
       - name: Held-out set, router (the comparison)
         if: always()
         run: deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"

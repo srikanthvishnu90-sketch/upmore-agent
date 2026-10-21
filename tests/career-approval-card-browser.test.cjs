@@ -213,9 +213,14 @@ test('the actual built Messages history adapter reaches the own RPC only through
   const historyEnd=main.indexOf('  async function openGuideChat(',historyStart);
   assert.ok(authStart>=0&&chatStart>authStart&&chatEnd>chatStart&&historyStart>=0&&historyEnd>historyStart,'actual app boundaries must remain identifiable');
   const auth=main.slice(authStart,chatStart);
-  assert.ok(auth.includes('const CAREER_APPROVAL_TEST_USER_ID = "";'),'ordinary builds must keep approval cards disabled');
+  const configured=[...auth.matchAll(/const CAREER_APPROVAL_TEST_USER_ID = ("(?:[^"\\]|\\.)*");/g)];
+  assert.equal(configured.length,1,'the built TEST configuration must have one explicit JSON string');
+  const configuredId=JSON.parse(configured[0][1]);
+  assert.ok(configuredId===''||/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(configuredId),'compiled TEST configuration must be empty or a canonical UUID');
+  const builder=fs.readFileSync(path.resolve(__dirname,'../src/build-app.py'),'utf8');
+  assert.ok(builder.includes("test_profile = os.environ.get('UPMORE_APPROVAL_CARD_TEST_USER_ID', '')"),'the builder must default closed without explicit TEST configuration');
   // Only the fixture copy selects an invented TEST actor. Adapter functions stay byte-for-byte built source.
-  const fixtureAuth=auth.replace('const CAREER_APPROVAL_TEST_USER_ID = "";','const CAREER_APPROVAL_TEST_USER_ID = '+JSON.stringify(OWNER)+';');
+  const fixtureAuth=auth.replace(configured[0][0],'const CAREER_APPROVAL_TEST_USER_ID = '+JSON.stringify(OWNER)+';');
   const {page,card}=await fixture(t);
   const second=await envelope();second.id='55555555-5555-4555-8555-555555555555';second.payload.card_id=second.id;second.hash=await Cards.hash(second.payload,webcrypto);
   await page.evaluate(({cards,owner,now,day})=>{

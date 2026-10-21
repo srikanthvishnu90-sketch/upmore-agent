@@ -1,0 +1,4 @@
+{
+ "note": "Second judge's ruling (relayed in chat by the owner, 2026-10-21; in effect now and reversible): \"H019-H026 are burned. You read them, so they're out of the held-out set. Do NOT author replacements yourself - my independent judge is writing 8 replacements, sealed from you. Until they land, report scores on the clean 30 items separately, and keep any burned-8 results labeled contaminated, never merged into the ratchet.\" The builder read their full text by mistake on 2026-10-21 (heldout-touched.json). They still run, and their results are reported only as contaminated.",
+ "items": ["H019", "H020", "H021", "H022", "H023", "H024", "H025", "H026"]
+}

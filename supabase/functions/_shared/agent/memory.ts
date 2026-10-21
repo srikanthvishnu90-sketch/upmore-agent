@@ -56,6 +56,12 @@ export const STANDING_REFUSED = "Not kept: every application and message still n
 const WAIVES: RegExp[] = [
   // "don't ask me", "stop asking me first", "no need to ask for approval": the clause ends there; "about relocation" does not.
   /\b(don'?t|do not|never|no need to|stop|quit) (ask|asking|check with|checking with|confirm with|wait for|waiting for)( me)?( (first|before \w+|for (approval|permission|confirmation|a yes|my (ok|okay|yes|approval|permission))))?\s*($|[.,;:!]|\band\b|\bjust\b)/i,
+  // WO-061 (H018): "don't ask me each time", "stop asking me to confirm", "you don't have to check with me" waive the yes
+  // too; a frequency or a "to confirm" after the ask is still a waiver. "don't ask me about salary" is a preference.
+  /\b(don'?t|do not|never|no need to|stop|quit) (ask|asking|check with|checking with|confirm with)( me)?( (for|to give|to get) (your |my |a |the )?(permission|approval|approvals|confirmation|yes|ok|okay|go[- ]ahead|sign[- ]?off))? ((each|every|any) ?time|always|anymore|any more|again|to (confirm|approve|check|okay|ok))\b/i,
+  // "always proceed", "go ahead without asking", "act on your own": the yes is waived by what follows.
+  /\b(always|just) (proceed|go ahead|do it|apply|send|share)\b[^.;]{0,30}\b(without|no need)\b|\bproceed without (asking|checking|my)\b/i,
+  /\b(don'?t|do not|doesn'?t|does not|won'?t|will not|no) (have|need|needs) to (ask|check with|confirm with|wait for|get my (ok|okay|yes|approval))( me)?\b/i,
   /\b(skip|no|without) (the |any |my )?(approval|approvals|card|cards|confirmation|confirmations|sign[- ]?off)\b/i,
   // "just send it", "just submit them": the clause ends there.
   /\bjust (send|submit|apply)( it| them| those| these| everything| all)?\s*($|[,:]|\band\b)/i,

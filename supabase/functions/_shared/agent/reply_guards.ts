@@ -231,9 +231,14 @@ export function unsourcedMoney(reply: string, sources: string[]): { index: numbe
 // stops the save, not a reply proposing it. Wording the reply puts in their mouth (quoted, or after "reply with / text /
 // send / say ...:") that the refusal flags is a solicitation; so is the save offer beside it. Returns piece indices.
 const PROPOSE = /\b(reply|respond|text|send|say|type|write|message)( me| back| us)?( with| this| exactly| the words?)?\s*[:\u2013\u2014-]\s*(.*)$/i;
-const SAVE_OFFER = /\b(i'?ll|i will|i can|i'?d|let me|and i)\b[^.]{0,30}\b(save|keep|remember|store|set)\b/i;
-export function waiverSolicits(reply: string, refuse: (text: string) => string | null): number[] {
+const SAVE_OFFER = /\b(i'?ll|i will|i can|i'?d|let me|and i|want me to|should i|shall i)\b[^.?]{0,40}\b(save|keep|remember|store|set( up)?|record|add)\b|\b(standing instruction|standing rule|persistent rule|permanent rule|a rule (so|that)|save (it|that|this) as)\b/i;
+// WO-061 (H018 p1, run 39549570017 / 39551229537): when the person's own message asks to waive their yes, ANY offer in the
+// reply to save, keep or set something is an offer to save that waiver ("I can save a standing instruction that says
+// exactly what you want"), quoted or not. Anywhere, a save offer whose own sentence describes the waiver is one too.
+export function waiverSolicits(reply: string, refuse: (text: string) => string | null, message = ""): number[] {
   const ps = pieces(reply), hit = new Set<number>();
+  const asked = !!(message && refuse(message));
+  ps.forEach((p, i) => { if (SAVE_OFFER.test(p.text) && (asked || refuse(p.text))) hit.add(i); });
   ps.forEach((p, i) => {
     const segs: string[] = [];
     for (const m of p.text.matchAll(/["\u201c\u201d]([^"\u201c\u201d]{4,240})["\u201c\u201d]/g)) segs.push(m[1]);

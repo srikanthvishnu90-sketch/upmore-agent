@@ -195,7 +195,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const leak = { tools: toolNames, typed, postings: postingsOf(seen) };
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
       const money = unsourcedMoney(reply, [typed, ...seen, ...sources]);
-      const waiver = waiverSolicits(reply, standingRefusal);
+      const waiver = waiverSolicits(reply, standingRefusal, o.message);
       if ((claims.length || leaks.length || facts.length || money.length || waiver.length) && !checked && steps < max) {
         checked = true;
         const told = [
@@ -216,7 +216,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       let out = reply;
       const stillMoney = unsourcedMoney(reply, [typed, ...seen, ...sources]);
       // WO-061 (H018): proposed waiver wording that stands after the check is removed by code, with its save offer.
-      const stillWaiver = waiverSolicits(reply, standingRefusal);
+      const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
       if (claims.length || stillMoney.length || stillWaiver.length) {
         out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
         if (!/[A-Za-z0-9]/.test(out)) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };

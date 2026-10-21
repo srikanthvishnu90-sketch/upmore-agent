@@ -931,6 +931,50 @@
    "run": "39602408286 (stacked rerun, parity harness)",
    "read": "failing ids per judge; H004 traces and last replies (150 chars) in five passes; H018 p2/p4 judge notes and last replies (420 chars); H036 judge notes in five passes",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H008",
+    "H009",
+    "H010",
+    "H011",
+    "H013",
+    "H015",
+    "H021",
+    "H026",
+    "H030",
+    "H033",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "39603731114",
+   "read": "failing ids per judge; H004 and H003 last replies (120 chars) in five passes; H004 p1 traces and replies (80 chars)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H015",
+    "H017",
+    "H026",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39604511712",
+   "read": "failing ids per judge; the five H034 last replies (260 chars)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

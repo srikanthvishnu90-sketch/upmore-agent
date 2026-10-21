@@ -967,3 +967,24 @@ of private content.
 - Fix (prompt, one line, the second judge's direction): a day, time, name or company the person told you in this
   conversation counts as known: answer from it plainly ("Your interview is Friday"), and ask only for what is still
   missing; "not on file" is only for a record they have not told you about. No held-out phrase (checked by code).
+
+### H004 day-in-words round (run 39603731114, side commit b9962337, prompt, 5 passes): no gain; not proposed for keep
+- Both CI judges 29/33/30/31/36 of 38 (gpt-5-mini 31/33/30/32/36, gpt-4.1-mini 34/36/36/35/37); clean 30:
+  22/26/23/24/28 (mean 24.6) vs the parity-harness reference 39602408286's 24.4: a tie. Cost $0.5963.
+- H004 passes both CI judges 3/5 (reference 4/5). Wins: "Friday." / "You told me: Friday, not Thursday." Losses: p2 a bare
+  "Is that right?"; p3 "You don't have that interview on file yet: SITUATION shows nothing for Northwind Ledger" (also
+  leaks the internal block name SITUATION: leakedWords does not list it).
+- The real cause, from p1's trace: turn 2 calls track_application five times, every call succeeds, and the turn ends
+  at the step limit (MAX_STEPS_AFTER_SAVE_REPLY). The parity rerun shows the same pattern (3-4 calls in turn 2). The
+  model keeps re-recording because the tool cannot keep the day the person corrected, so nothing tells it the day was
+  kept. Fix (code): track_application takes the day or time of the next step as the person said it, checked against
+  their own message (D-007), keeps it on the row (next_when) and returns it; the situation shows it on the tracked
+  task. Then "when is it?" is answered from their record, and the loop has nothing left to retry.
+
+### H034 round (run 39604511712, side commit on the kept stack, 5 passes): H034 4/5, clean-30 up
+- Both CI judges 34/33/36/34/32 of 38 (gpt-5-mini 34/33/36/34/33, gpt-4.1-mini 36/36/37/36/37); clean 30:
+  26/25/28/26/25 (mean 26.0) vs the parity-harness reference's 24.4. Cost $0.5968. H034 passes both CI judges 4/5
+  (reference 2/5); some passing replies still search before asking which route.
+- Second judge's call: the last round of the night is the final stacked build (kept stack + H034 + the H004 code fix
+  8a6a983e). If it comes in below stacked build 2 (85.8/86.0) or H004 misbehaves, the H004 fix is dropped. Stay under
+  $15. Add SITUATION to the leak guard now, no measurement.

@@ -1,0 +1,132 @@
+diff --git a/supabase/functions/_shared/career_search.ts b/supabase/functions/_shared/career_search.ts
+index 2292811f..d7e5dd95 100644
+--- a/supabase/functions/_shared/career_search.ts
++++ b/supabase/functions/_shared/career_search.ts
+@@ -6,6 +6,7 @@ import { CareerJobs, CareerProfile, CareerRouter } from "./router_core.career.js
+ import { matchesWords, searchWords, titleTier, wordStem } from "./career_ingest.ts";
+ import { payFrom } from "./posting_pay.ts";
+ import { formUrlFor } from "./posting_key.ts";
++import { personalSourceGuard } from "./personal_fact_source.ts";
+ 
+ export interface Fit { score: number | null; bucket: string | null; excluded: boolean; reasons: string[]; gaps: string[] }
+ export interface SearchHit { job_id: string; company: string; title: string; location: string; url: string; first_seen_at: string | null; fit: Fit | null; pay: string | null; role_match: boolean }
+@@ -16,11 +17,17 @@ export interface Goal { roles: string[]; places: string[]; remote: boolean }
+ const GOAL_FILLER = new Set(["want", "wants", "looking", "role", "roles", "job", "jobs", "position", "work", "based", "live", "living", "move", "moving", "now", "in", "at", "near", "around", "the", "my", "a", "an", "i", "im", "am", "get", "find", "new", "next", "career"]);
+ const goalWords = (t: unknown) => searchWords(t).filter((w) => !GOAL_FILLER.has(w));
+ export function goalOf(profile: any): Goal | null {
+-  const p = profile ?? {}, pref = p.preferences ?? {}, facts: any[] = Array.isArray(p.facts) ? p.facts : [];
++  const sourceDenied = personalSourceGuard([profile]);
++  if (sourceDenied(profile)) return null;
++  const p = profile ?? {}, pref = sourceDenied(p.preferences) ? {} : p.preferences ?? {};
++  const basics = sourceDenied(p.basics) ? {} : p.basics ?? {};
++  const facts: any[] = (Array.isArray(p.facts) ? p.facts : []).filter((f: any) =>
++    f && typeof f === "object" && !Array.isArray(f) && typeof f.text === "string" && !!f.text.trim() &&
++    f.status !== "rejected" && !sourceDenied(f));
+   // A goal said in one breath ("senior data analyst role in Chicago or remote"): the role before "in", the place after.
+   const goals = facts.filter((f) => f?.kind === "goal").map((f) => String(f.text ?? "").split(/\b(?:in|near|around|based in|based out of|located in)\b/i));
+   const roles = [...new Set([...(pref.roles ?? []), ...goals.map((g) => g[0])].flatMap(goalWords))].filter((w) => w !== "remote");
+-  const places = [...new Set([...(pref.locations ?? []), p.basics?.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
++  const places = [...new Set([...(pref.locations ?? []), basics.location, ...goals.map((g) => g.slice(1).join(" ")), ...facts.filter((f) => f?.kind === "location").map((f) => f.text)].flatMap(goalWords))]
+     .filter((w) => w !== "remote" && w !== "or" && w !== "and");
+   const remote = /remote/i.test(String(pref.remote ?? "")) || facts.some((f) => (f?.kind === "goal" || f?.kind === "location" || f?.kind === "preference") && /\bremote\b/i.test(String(f.text)));
+   return roles.length || places.length || remote ? { roles, places, remote } : null;
+diff --git a/supabase/functions/_shared/fact_quarantine.ts b/supabase/functions/_shared/fact_quarantine.ts
+new file mode 100644
+index 00000000..dcb9e93f
+--- /dev/null
++++ b/supabase/functions/_shared/fact_quarantine.ts
+@@ -0,0 +1,24 @@
++// D-007 policy shared by conversation and application readers. The owner's bank is not changed or deleted.
++export function quarantinedFact(value: unknown): boolean {
++  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
++  const f = value as Record<string, unknown>;
++  for (const id of [f.factId, f.id]) {
++    const m = /^F-0*(\d+)$/.exec(String(id ?? "").trim());
++    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
++  }
++  return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
++}
++
++// Both metadata spellings are in stored profiles. They are a union: one valid alias cannot mask the other.
++// Null means malformed dependency metadata; an empty list means no dependencies. Never inspect fact-body/evidence text.
++export function factDependencies(value: unknown): string[] | null {
++  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
++  const row = value as Record<string, unknown>, ids: string[] = [];
++  for (const key of ["derived_from", "derivedFrom"]) {
++    if (!Object.hasOwn(row, key)) continue;
++    const list = row[key];
++    if (!Array.isArray(list) || list.some(id => typeof id !== "string" || !id.trim())) return null;
++    ids.push(...list);
++  }
++  return [...new Set(ids)];
++}
+diff --git a/supabase/functions/_shared/personal_fact_source.ts b/supabase/functions/_shared/personal_fact_source.ts
+new file mode 100644
+index 00000000..62d8dc04
+--- /dev/null
++++ b/supabase/functions/_shared/personal_fact_source.ts
+@@ -0,0 +1,64 @@
++// Negative provenance only. A false result is not confirmation or application authorization.
++// Inspect metadata, never the person's text/title/value/evidence: "AI engineer" can be their own stated goal.
++import { factDependencies, quarantinedFact } from "./fact_quarantine.ts";
++const DENIED_LABELS = new Set([
++  "agent", "assistant", "model", "llm", "ai", "inferred", "generated", "agent-generated", "assistant-generated",
++  "model-generated", "ai-generated", "quarantined", "rejected",
++]);
++const record = (value: unknown): value is Record<string, unknown> =>
++  !!value && typeof value === "object" && !Array.isArray(value);
++const label = (value: unknown) => typeof value === "string" ? value.trim().toLowerCase().replace(/[\s_]+/g, "-") : "";
++const deniedLabel = (value: unknown) => DENIED_LABELS.has(label(value));
++function deniedRecord(value: Record<string, unknown>): boolean {
++  return value.unproven === true || value.quarantined === true || value.rejected === true ||
++    label(value.status) === "rejected" || deniedLabel(value.source) || deniedLabel(value.origin);
++}
++export function personalSourceDenied(value: unknown): boolean {
++  if (!record(value)) return false;
++  return quarantinedFact(value) || deniedRecord(value) || deniedLabel(value.provenance) ||
++    (record(value.provenance) && deniedRecord(value.provenance));
++}
++
++// Build one read-only dependency closure over all available personal fact containers/results. A child's confirmation
++// cannot erase its parent's quarantine; a derived row cannot revive an excluded or absent source by using a new id.
++export function personalSourceGuard(roots: readonly unknown[]): (value: unknown) => boolean {
++  const rows: Record<string, unknown>[] = [], nodes: object[] = [], denied = new WeakSet<object>(), seen = new WeakMap<object, boolean>();
++  const parents = new Map<object, Set<object>>();
++  // These records describe history or external requirements, never current personal sources (reply guard's same rule).
++  const nonCurrent = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected", "requirement", "requirements", "evidence", "provenance"]);
++  const stack: { value: unknown; inherited: boolean; parent?: object }[] = roots.map(value => ({ value, inherited: false }));
++  while (stack.length) {
++    const { value, inherited, parent } = stack.pop()!;
++    if (!value || typeof value !== "object") continue;
++    if (parent) { const p = parents.get(value) ?? new Set<object>(); p.add(parent); parents.set(value, p); }
++    const bad = inherited || personalSourceDenied(value), prior = seen.get(value);
++    if (prior === true || prior === false && !bad) continue;
++    seen.set(value, bad);
++    if (bad) denied.add(value);
++    if (prior === undefined) { nodes.push(value); if (record(value)) rows.push(value); }
++    for (const [key, child] of Object.entries(value)) if (!nonCurrent.has(key)) stack.push({ value: child, inherited: bad, parent: value });
++  }
++  const idsOf = (v: Record<string, unknown>) => [v.id, v.factId].filter((id): id is string => typeof id === "string" && !!id.trim());
++  const allIds = new Set(rows.flatMap(idsOf)), deniedIds = new Set<string>(), unavailable = new Set<string>();
++  for (const row of rows) {
++    if (denied.has(row)) idsOf(row).forEach(id => deniedIds.add(id));
++    if (row.needs_confirmation === true || row.status !== undefined && row.status !== "confirmed") idsOf(row).forEach(id => unavailable.add(id));
++  }
++  const badDependencies = (row: Record<string, unknown>) => {
++    const ids = factDependencies(row);
++    return ids === null || ids.some(id => quarantinedFact({ factId: id }) || !allIds.has(id) || deniedIds.has(id) || unavailable.has(id));
++  };
++  for (let changed = true; changed;) {
++    changed = false;
++    for (const node of nodes) if (!denied.has(node) && [...parents.get(node) ?? []].some(parent => denied.has(parent))) {
++      denied.add(node); if (record(node)) idsOf(node).forEach(id => deniedIds.add(id)); changed = true;
++    }
++    for (const row of rows) {
++      if (!denied.has(row) && badDependencies(row)) {
++        denied.add(row); idsOf(row).forEach(id => deniedIds.add(id)); changed = true;
++      }
++    }
++  }
++  return value => personalSourceDenied(value) || !!value && typeof value === "object" && (denied.has(value) ||
++    record(value) && badDependencies(value));
++}

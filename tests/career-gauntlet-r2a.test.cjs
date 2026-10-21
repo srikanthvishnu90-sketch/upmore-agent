@@ -295,14 +295,15 @@ test("R2A NW13: a recipient change after the draft supersedes it — a new revie
 });
 
 // ---------------------------------------------------------------- guards (pass before + after)
-test("R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply", () => {
+test("R2A guard: C37's exact wording still halts with its own reply (owner: 142 — the router took the kill switch from 141)", () => {
   const profile = L.gauntletProfile("p1-early-career-swe");
   const statePath = queueFile("queue_ap17");
   const s = H.session("R2A-GUARD1", "r2a-guard1");
   const r = L.chatTurn(s, "stop everything. don't contact anyone", { profile, queueStatePath: statePath });
-  assert.equal(r.handler, "141-career-doorstep.handleChat", "the legacy exact phrases still fall through to 141");
+  assert.equal(r.handler, "142-career-router.handleChat", "the legacy exact phrases are claimed by 142's kill switch");
   assert.equal(r.result && r.result.halted_count, 3);
-  assert.match(joined(r), /Nothing was sent/);
+  assert.match(joined(r), /Nothing went out from this queue at all/);
+  assert.match(joined(r), /Counts: 0 already out/);
 });
 
 test("R2A guard: with no invalidation on record, 'approve and submit' still submits exactly once through 141", () => {

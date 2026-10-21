@@ -1,6 +1,6 @@
 # Tracking row identity: review-only QA
 
-Exact base: `1ec88f3cca4b21200be5c4f16ba2a948a72614b0`. The paid product pin, canonical writer, domain 126, generated career bundle, and frozen architect tests are unchanged. This branch is a review package for Claude; do not merge or apply the patch without architect ownership. No corpus or held-out case was read. All companies, roles, application IDs, dates, and URLs in the reproduction are invented. No provider, network, database, live action, paid run, or deployment occurred.
+Exact base: `1ec88f3cca4b21200be5c4f16ba2a948a72614b0`. The paid product pin, canonical writer, domain 126, generated career bundle, and frozen architect tests are unchanged. This branch is a review package for Claude; do not merge or apply the patch without architect ownership. No corpus or held-out case was read. All companies, roles, application IDs, dates, and URLs in the reproduction are invented. No provider call, runtime network access, database access, live product action, paid run, or deployment occurred. Authorized Git branch publication is the only network operation.
 
 ## Confirmed cause
 

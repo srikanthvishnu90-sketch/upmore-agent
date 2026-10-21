@@ -141,7 +141,7 @@
     {
       "name": "search fallback depends on provider filtering before local filtering",
       "classification": "harness/product adapter interaction",
-      "source": "supabase/functions/_shared/agent/career_tools.ts:388; evals/brain-reliability/run-comparison.ts provider fixture; supabase/functions/_shared/career_search.ts:67",
+      "source": "supabase/functions/_shared/agent/career_tools.ts:388; evals/brain-reliability/run-comparison.ts provider fixture; supabase/functions/_shared/career_search.ts:67; supabase/functions/agent-chat/handler-career.ts:454; supabase/functions/_shared/career_ingest.ts:247",
       "cause": "The tool shortens a query only when deps.postings(query) returns an empty pool. The evaluation fixture ignores query and returns a nonempty entire pool; local all-word matching can then return zero without reaching the fallback. A query-filtering provider reaches the fallback.",
       "independent_repro": {
         "current_fixture_results": 0,
@@ -156,6 +156,41 @@
         "artifact_cases_proven_caused_by_adapter": "UNKNOWN; no tool-input/state extraction was included in the safe recovery"
       },
       "acceptance": "The evaluation provider must honor the production query contract, or the tool must define and test post-filter empty behavior. Preserve saved constraints, report any relaxation, and use full posting retrieval when the requested answer requires requirements absent from search hits."
+    },
+    {
+      "name": "existing tracker role input is silently ignored",
+      "classification": "product state update",
+      "source": "supabase/functions/_shared/agent/career_tools.ts:323,336-337; packages/domain/126-career-track.js:73,94",
+      "cause": "The wrapper accepts a role but the existing-row path calls company-only manualUpdate, which changes only stage. The supplied role is used only when adding a new row. Company lookup also selects the first matching company, without distinguishing two roles.",
+      "independent_repro": {
+        "seed_role": "Assistant",
+        "requested_role": "Coordinator",
+        "returned_role": "Assistant",
+        "changed": false,
+        "network": "denied"
+      },
+      "observed_bounds": {
+        "failed_tracking_category_cases": 11,
+        "artifact_cases_causally_proven_to_be_this_mechanism": "UNKNOWN; category count is exposure only"
+      },
+      "acceptance": "Resolve an update by stable application identity, asking when ambiguous. Apply the requested supported fields and build the receipt from the returned stored row. A no-op must not claim the changed value."
+    },
+    {
+      "name": "qualitative outcome invention is outside token fact classification",
+      "classification": "product factuality guard coverage",
+      "source": "supabase/functions/_shared/agent/reply_guards.ts:134,160-172",
+      "cause": "The guard classifies enumerated skills, titles, degrees, number forms, result vocabulary and place/month tokens. An unsupported qualitative outcome can contain none of these and receive an empty untracedFacts result.",
+      "independent_repro": {
+        "source_has_project_only": true,
+        "draft_adds_unstated_qualitative_outcome": true,
+        "untraced_facts": [],
+        "network": "denied",
+        "scope": "guard-level, not a submit-boundary bypass proof"
+      },
+      "observed_bounds": {
+        "artifact_cases_causally_proven_to_be_this_mechanism": "UNKNOWN; representative draft failures motivate this fresh proof but no token-signature count is substituted for semantic adjudication"
+      },
+      "acceptance": "Every personal assertion, including qualitative actions and outcomes, must have eligible evidence; omit unsupported outcomes or ask. A draft may carry clearly marked proposed phrasing, but a submit-ready answer may not treat it as a confirmed personal fact. Preserve submit-boundary evidence validation independently of chat prose guards."
     }
   ],
   "next_fix_priority": [
@@ -185,6 +220,14 @@
     },
     {
       "priority": 4,
+      "fix": "Require provenance for qualitative claims and draft outcomes, not only recognized fact tokens",
+      "evidence_population": 74,
+      "population_definition": "combined failed application_answers, forms_materials and interview_negotiation categories; disjoint task exposure only, not a count of invented claims",
+      "proof": "fresh guard-level unsupported qualitative outcome escapes; submission boundary was not exercised",
+      "expected_score_uplift": "UNKNOWN"
+    },
+    {
+      "priority": 5,
       "fix": "State-selected tracker updates with precise returned-row receipts",
       "evidence_population": 11,
       "population_definition": "failed tracking category",
@@ -192,7 +235,7 @@
       "expected_score_uplift": "UNKNOWN"
     },
     {
-      "priority": 5,
+      "priority": 6,
       "fix": "Judge evidence alignment and separate product failures from strict judge disagreement",
       "evidence_population": 108,
       "population_definition": "all scored conversations with disagreeing judge verdicts; not all are false positives",

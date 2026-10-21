@@ -1,4 +1,6 @@
 // Fresh invented diagnostic inputs; no held-out scenario text or provider calls.
+import {untracedFacts} from '../../../supabase/functions/_shared/agent/reply_guards.ts';
+import {CareerTrack} from '../../../supabase/functions/_shared/router_core.career.js';
 import {runAgentTurn} from '../../../supabase/functions/_shared/agent/loop.ts';
 import {careerTools} from '../../../supabase/functions/_shared/agent/career_tools.ts';
 import {matchesWords,searchWords} from '../../../supabase/functions/_shared/career_ingest.ts';
@@ -9,4 +11,10 @@ const r=await runAgentTurn({system:'Answer the requested task. Never invent pers
  model:async()=>++n===1?{content:[{type:'tool_use',name:'add_profile_fact',id:'x',input:{}}],stop_reason:'tool_use'}:{content:[{type:'text',text:'Saved: My project was building a shift roster. Is that right?'}],stop_reason:'end_turn'}});
 const pool=[{job_id:'synthetic-1',title:'Support Specialist',company:'Invented Local Fixture',location:'Remote',description:'Help customers.',url:'https://example.test/job',first_seen_at:'2026-10-21T00:00:00Z'}];
 async function search(filtered:boolean){const calls:string[]=[];const tools=careerTools({postings:async(q:any)=>{calls.push(q);return filtered?pool.filter(p=>matchesWords(p,searchWords(q))):pool;}}as any);const tool=tools.find(t=>t.name==='search_jobs')!;const c:any={...ctx,state:{},turn:{message:'Find support specialist remote roles with flexible scheduling.',before:'',added:[]}};const result:any=await tool.run({query:'support specialist remote flexible scheduling'},c);return{results:result.postings.length,dependency_calls:calls.length,relaxed:!!result.relaxed_to};}
-console.log(JSON.stringify({receipt_completeness:{stopped:r.stopped,scripted_local_model_invocations:n,still_receipt_only:/^Saved:.*Is that right\?$/.test(r.reply)},search_adapter:{current_fixture:await search(false),query_filtering_dependency:await search(true)}},null,2));
+const tracked:any={...ctx,state:{trackStore:CareerTrack.createMemoryStore([])},turn:{message:'Correct my role at Imaginary Orchard from Assistant to Coordinator.',before:'',added:[]}};
+CareerTrack.addApplication(tracked.state.trackStore,{company:'Imaginary Orchard',role:'Assistant',stage:'Submitted'},{now:1});
+const tracker=careerTools({postings:async()=>[]}as any).find(t=>t.name==='track_application')!;
+const moved:any=await tracker.run({company:'Imaginary Orchard',role:'Coordinator',stage:'Submitted'},tracked);
+const qualitativeSource='I built a shift roster.';
+const qualitativeDraft='I built a shift roster, which improved reliability and streamlined operations.';
+console.log(JSON.stringify({tracker_role_correction:{requested:'Coordinator',actual:moved.application.role,changed:moved.application.role==='Coordinator'},qualitative_claim_guard:{unsupported_claims_reported:untracedFacts(qualitativeDraft,[qualitativeSource]),source_states_result:false},receipt_completeness:{stopped:r.stopped,scripted_local_model_invocations:n,still_receipt_only:/^Saved:.*Is that right\?$/.test(r.reply)},search_adapter:{current_fixture:await search(false),query_filtering_dependency:await search(true)}},null,2));

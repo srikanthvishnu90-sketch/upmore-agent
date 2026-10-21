@@ -205,6 +205,31 @@
    "run": "39546674445",
    "read": "failing ids per judge; failure reasons for H030, H031, H036 only",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H026",
+    "H031",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39548093320",
+   "read": "failure reasons (failed rubric lines and judge notes) only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H006"
+   ],
+   "run": "prompt pass 188d8116 (2026-10-20)",
+   "read": "FLAG: the words 'check the weather' in prompt.ts came from this held-out item before the read rule; removed in the H006 fix",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

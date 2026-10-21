@@ -21700,7 +21700,21 @@ const CareerProfile = (() => {
     f.needs_confirmation = false; f.status = "confirmed";
     return f;
   }
-  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation); }
+  // D-007 (docs/architect/DECISIONS.md): the 47 agent-invented "confirmed" facts from the owner's answer-all delegation
+  // never feed anything written for a person (essay, resume, cover letter, cold email, form answer). One reader decides,
+  // the same rule as the extension's contract (extension/src/apply_core.ts quarantinedFact): a fact flagged quarantined,
+  // or one whose provenance/source names the delegation, or the bank's own ids F-027..F-079 — read only from the bank's id
+  // field (factId), because every chat profile numbers its own facts F-001 up and those are the person's own.
+  const QUARANTINE_VERSION = "d007-v1";
+  const DELEGATED = /owner-delegated|answer-all|delegated[- _]answers|mi-038/i;
+  function quarantinedFact(f) {
+    if (!f || typeof f !== "object") return false;
+    if (f.quarantine || f.quarantined) return true;
+    if (["provenance", "source", "origin"].some((k) => DELEGATED.test(String(f[k] == null ? "" : f[k])))) return true;
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    return !!m && Number(m[1]) >= 27 && Number(m[1]) <= 79;
+  }
+  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation && !quarantinedFact(f)); }
   function unprovenSkills(profile) { refreshSkillFlags(profile); return (profile.facts || []).filter((f) => f.kind === "skill" && f.unproven); }
   function skillEvidence(profile, skillName) {
     const name = String(skillName || "").toLowerCase();
@@ -21977,7 +21991,7 @@ const CareerProfile = (() => {
     return receipt;
   }
 
-  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
+  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, quarantinedFact, QUARANTINE_VERSION, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
 
@@ -49661,6 +49675,41 @@ const CareerPortalApply = (() => {
     research: "research record — fellowship/essay material, not a portal screening answer",
     metric: "company metrics — essay/profile material, not a screening answer",
   };
+  // MUSE-F-007: the person's saved answers to application questions
+  // (application_answer; application_text, the long ones) are read ONLY
+  // through the WO-102 answer contract (extension/src/apply_core.ts:
+  // trustedManifest + ownAnswerOnly, passed in as the bundle — never
+  // copied here). Kept answers fill only the question they were given to
+  // (savedAnswerFor in prepareRound). A contract of another quarantine
+  // version is not read until this consumer is reviewed against it.
+  const SAVED_ANSWER_KINDS = ["application_answer", "application_text"];
+  const SAVED_ANSWER_CONTRACT = "d007-v1";
+  const normQuestion = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  function savedAnswersOf(bank, contract, owner) {
+    const facts = bank.facts.filter((f) => f && SAVED_ANSWER_KINDS.indexOf(f.kind) >= 0);
+    if (!facts.length || !owner || !contract || contract.QUARANTINE_VERSION !== SAVED_ANSWER_CONTRACT
+      || typeof contract.trustedManifest !== "function" || typeof contract.ownAnswerOnly !== "function") return [];
+    const str = (v) => (v === undefined || v === null ? "" : String(v));
+    const saved = {};
+    for (const f of facts) {
+      saved[str(f.id)] = Object.assign({ value: str(f.value), factId: str(f.id), confirmed: f.status === "confirmed" && f.needs_confirmation !== true,
+        provenance: f.provenance, confirmation_event_id: f.confirmation_event_id, authorizes: f.authorizes === true },
+      f.user_id ? { user_id: f.user_id } : {}, Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {});
+    }
+    const m = contract.trustedManifest({ owner, file: { user_id: owner, saved }, rows: [], resume: null });
+    if (!m || m.version !== SAVED_ANSWER_CONTRACT || !m.byFactId) return [];
+    const out = [];
+    for (const f of facts) {
+      const tf = m.byFactId[str(f.id)];
+      const question = normQuestion(f.question);
+      if (!tf || tf.value !== str(f.value) || !question) continue;
+      if (f.kind === "application_text" && !f.company) continue; // a long answer is written for one employer
+      if ((contract.ownAnswerOnly(str(f.question)) || contract.ownAnswerOnly(question)) && tf.authorizes !== true) continue;
+      out.push({ question, kind: f.kind, value: tf.value, company: f.company ? str(f.company) : null, factId: tf.factId,
+        confirmation_event_id: tf.event, provenance: tf.provenance, manifest_hash: m.hash, quarantine_version: m.version });
+    }
+    return out;
+  }
   const US_STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia" };
   // City -> IANA zone for the bank's own residence only. A residence
   // outside this table derives NO time-zone answer (the field stays an
@@ -49702,9 +49751,12 @@ const CareerPortalApply = (() => {
   // country, date_of_birth, and the education block in the F-001
   // contract shape). Nothing here invents: a source fact that is
   // absent or unconfirmed yields no entry, and the field stays an ask.
-  function deriveAnswers(bank, now) {
-    const out = { answers: {}, profileFields: {}, traces: {} };
+  // opts.contract + opts.owner (MUSE-F-007): the WO-102 bundle and whose
+  // bank this is; without them `savedAnswers` stays empty.
+  function deriveAnswers(bank, now, opts) {
+    const out = { answers: {}, profileFields: {}, traces: {}, savedAnswers: [] };
     if (!bank || !Array.isArray(bank.facts)) return out;
+    out.savedAnswers = savedAnswersOf(bank, opts && opts.contract, opts && opts.owner);
     const nowMs = tsMs(now);
     const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
     const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
@@ -49787,6 +49839,7 @@ const CareerPortalApply = (() => {
     if (bank && bank.basics && Object.keys(bank.basics).length) kinds.add("basics");
     const consumedKinds = new Set([].concat(...Object.values(ANSWER_KEY_SOURCES)));
     consumedKinds.add("basics"); // preferred_name / location corroboration derive from the basics block
+    for (const k of SAVED_ANSWER_KINDS) consumedKinds.add(k); // savedAnswersOf, through the WO-102 contract
     const consumed = [], exempt = [], uncovered = [];
     for (const k of kinds) {
       if (consumedKinds.has(k)) consumed.push(k);
@@ -50196,6 +50249,23 @@ const CareerPortalApply = (() => {
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    // MUSE-F-007: a field that would otherwise be asked takes a saved answer the contract kept, only for its exact
+    // question (and, when the answer names an employer, only there); kept answers that disagree leave it asked.
+    const savedAnswerFor = (f) => {
+      const q = normQuestion(f.label);
+      const hits = (Array.isArray(profile.savedAnswers) ? profile.savedAnswers : []).filter((s) => s && q && s.question === q
+        && s.quarantine_version === SAVED_ANSWER_CONTRACT && s.factId && s.confirmation_event_id
+        && (!s.company || normQuestion(s.company) === normQuestion(posting.company)));
+      return hits.length && hits.every((s) => s.value === hits[0].value) ? hits[0] : null;
+    };
+    const fillSaved = (f, entry) => {
+      const s = savedAnswerFor(f);
+      if (!s) return false;
+      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
+      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+        derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
+      return true;
+    };
     for (const f of formDef.fields) {
       const entry = { field_id: f.field_id, category: f.kind };
       if (f.kind === "standard") {
@@ -50209,7 +50279,7 @@ const CareerPortalApply = (() => {
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
           logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         // WO-094: in card-approval mode a note DRAFTED for this application
@@ -50220,7 +50290,7 @@ const CareerPortalApply = (() => {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
           logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
@@ -50240,7 +50310,7 @@ const CareerPortalApply = (() => {
           else session.pendingAttestations.push({ field_id: f.field_id, text, value });
           logStep("attestation_pending_card", Object.assign({}, entry, { text }));
         } else { asks.push({ field_id: f.field_id, reason: "attestation_requires_explicit_confirmation" }); }
-      } else {
+      } else if (!fillSaved(f, entry)) {
         asks.push({ field_id: f.field_id, reason: "unknown_field_category" });
       }
     }

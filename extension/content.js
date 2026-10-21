@@ -334,7 +334,9 @@
     // is left out of a batch (anything the person must answer or do first).
     const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
       challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f), manifest: c.manifest }) : undefined;
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch });
+    // 50-in-30: the form as read goes with it, so the background can plan it again after the person's answers.
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch,
+      schema: f.schema, listed: listedNames(f), family: portal.family });
   }
   function formReady(ms) {
     return new Promise((resolve) => {

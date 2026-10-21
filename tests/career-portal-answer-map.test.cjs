@@ -199,3 +199,87 @@ test("end to end: remove the DOB fact and the SAME 18+ field stops the drive (no
   assert.equal(board.held[ageDef.field_id], undefined, "no fact, no fill — the field is asked, not answered");
   assert.equal(board.calls.submit, 0);
 });
+
+// ---------- MUSE-F-007: saved answers (application_answer / application_text) ----------
+// The person's saved answers to application questions had no consumer, so
+// drives stopped on questions they already answered. They are read ONLY
+// through the WO-102 answer contract (extension/src/apply_core.ts, loaded
+// as its bundle, never copied): trustedManifest keeps a saved answer only
+// when it is confirmed, the person's own, positively stated, names its
+// confirmation event, is not quarantined (D-007: F-027..F-079 and the
+// answer-all delegation) and borrows no reserved id. A kept answer fills
+// ONLY the question it was given to (exact wording); an attestation or a
+// personal question takes only the person's own answer (authorizes:true).
+// Synthetic TEST persona.
+require(path.join(root, "extension/lib/trainee-core.js"));
+const Contract = globalThis.TraineeCore;
+const OWNER = "u-test";
+const saved = (id, kind, question, value, extra) => Object.assign({ id, kind, status: "confirmed", question, value, user_id: OWNER,
+  provenance: "owner stated in chat 2026-10-21 (TEST)", confirmation_event_id: `evt-TEST-${id}` }, extra || {});
+const Q = {
+  relocate: "Are you willing to relocate for this role?", workAuth: "Are you legally authorized to work in the United States?",
+  military: "Have you ever served in the military?", license: "Do you have a valid driver's license?", hybrid: "Are you open to hybrid work?",
+  june: "Can you start in June?", essay: "Why do you want to work at TEST Corps?", consent: "Do you consent to a background check?",
+  retention: "Do you agree to our data retention terms?", sponsor: "Will you now or in the future require visa sponsorship?",
+  nearRelocate: "Are you willing to relocate?", otherEssay: "What is a project you are proud of?",
+};
+const SAVED_BANK = { basics: { name: "Sam Synthetic" }, facts: [
+  saved("F-101", "application_answer", Q.relocate, "Yes"),
+  saved("F-102", "application_answer", Q.workAuth, "Yes"),
+  saved("F-050", "application_answer", Q.military, "No"), // D-007 quarantined id
+  saved("F-103", "application_answer", Q.license, "Yes", { provenance: "owner-delegated 2026-10-17 (answer-all directive)" }),
+  saved("F-104", "application_answer", Q.hybrid, "Yes", { provenance: undefined }),
+  saved("F-105", "application_answer", Q.june, "Yes", { confirmation_event_id: undefined }),
+  saved("F-106", "application_text", Q.essay, "TEST essay, in the person's own words.", { company: "TEST Corps" }),
+  saved("F-107", "application_answer", Q.consent, "Yes"), // an attestation, without the person's own answer to it
+  saved("F-108", "application_answer", Q.retention, "Yes", { authorizes: true }),
+] };
+const savedOf = (b) => Portal.deriveAnswers(b, NOW, { contract: Contract, owner: OWNER }).savedAnswers;
+function drive(bank, company) {
+  const raw = Object.values(Q).map((label, i) => ({ label, name: `q${i}`, id: `q${i}`, inputType: label === Q.essay || label === Q.otherEssay ? "textarea" : "text", tag: "input", cls: "", selector: `#q${i}`, required: true }));
+  const { defs } = BrowserBoard.classifyFields(raw);
+  const board = stubBoard(defs);
+  const profile = { name: "Sam Synthetic (TEST)", email: "sam@example.test", resume: { filename: "resume.pdf", sha256: "c".repeat(64) }, answers: {}, savedAnswers: savedOf(bank) };
+  const r = Portal.runApply(Portal.createPortalSession({ userId: OWNER, board }), { posting: Object.assign({}, POSTING, { company }), profile, log: { records: [] } });
+  const idOf = (label) => defs.find((d) => d.label === label).field_id;
+  return { r, board, held: (q) => board.held[idOf(q)], asked: (q) => (r.asks || []).some((a) => a.field_id === idOf(q)), row: (q) => r.stepLog.find((s) => s.action === "fill" && s.field_id === idOf(q)) };
+}
+
+test("MUSE-F-007 coverage: the saved-answer kinds are consumed, not uncovered", () => {
+  assert.deepEqual(Portal.answerMapCoverage(SAVED_BANK).uncovered, []);
+});
+
+test("MUSE-F-007 contract: only what trustedManifest keeps is a saved answer; no contract or another quarantine version, none", () => {
+  assert.deepEqual((savedOf(SAVED_BANK) || []).map((s) => s.factId).sort(), ["F-101", "F-102", "F-106", "F-108"], "quarantined, unprovenanced, no-event and unauthorized-attestation answers are left out");
+  for (const s of savedOf(SAVED_BANK)) {
+    assert.equal(s.confirmation_event_id, `evt-TEST-${s.factId}`);
+    assert.equal(s.quarantine_version, Contract.QUARANTINE_VERSION);
+    assert.match(s.manifest_hash, /^[0-9a-f]{64}$/);
+  }
+  assert.deepEqual(Portal.deriveAnswers(SAVED_BANK, NOW).savedAnswers, [], "without the contract nothing is read");
+  assert.deepEqual(Portal.deriveAnswers(SAVED_BANK, NOW, { contract: Object.assign({}, Contract, { QUARANTINE_VERSION: "d007-v2" }), owner: OWNER }).savedAnswers, [], "a contract of another version fills nothing until reviewed");
+  assert.deepEqual(Portal.deriveAnswers(SAVED_BANK, NOW, { contract: Contract, owner: "u-other" }).savedAnswers, [], "another person's facts are never theirs");
+});
+
+test("MUSE-F-007 end to end: a trusted saved answer fills its exact question with a ledger row; everything else is asked", () => {
+  const { r, board, held, asked, row } = drive(SAVED_BANK, "TEST Corps");
+  assert.equal(held(Q.relocate), "Yes");
+  const lr = row(Q.relocate) || {};
+  assert.deepEqual([lr.source, lr.fact_refs, lr.confirmation_event_id, lr.derivation, lr.quarantine_version],
+    ["saved_answer", ["F-101"], "evt-TEST-F-101", "saved-answer-exact-question", Contract.QUARANTINE_VERSION]);
+  assert.equal(held(Q.essay), "TEST essay, in the person's own words.", "application_text fills its own question");
+  assert.equal(held(Q.retention), "Yes", "an attestation with the person's own answer to it fills");
+  for (const q of [Q.military, Q.license, Q.hybrid, Q.june, Q.consent, Q.sponsor, Q.nearRelocate, Q.otherEssay]) {
+    assert.equal(held(q), undefined, `never filled: ${q}`);
+    assert.ok(asked(q), `asked: ${q}`);
+  }
+  assert.equal(r.resultStatus, "awaiting_user");
+  assert.equal(board.calls.submit, 0);
+});
+
+test("MUSE-F-007: application_text for one company never fills the same question at another", () => {
+  const { held, asked } = drive(SAVED_BANK, "Other TEST Co");
+  assert.equal(held(Q.essay), undefined);
+  assert.ok(asked(Q.essay));
+  assert.equal(held(Q.relocate), "Yes", "a saved answer that is not company-scoped still fills its question");
+});

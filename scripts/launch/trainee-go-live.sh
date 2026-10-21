@@ -124,6 +124,7 @@ MIGRATIONS=(
   20261023100000_career_events_apply_queued.sql
   20261024090000_career_apply_agent_submit.sql
   20261024100000_career_apply_agent_contract.sql
+  20261024110000_career_apply_cloud_ask.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -167,6 +168,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"
   "to_regclass('public.career_apply_batch_approvals') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_extension_begin_agent_own' and prosrc like '%agent contract%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_cloud_ask')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

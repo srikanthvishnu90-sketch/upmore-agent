@@ -669,6 +669,8 @@ export function trustedManifest(o: { owner: string; file: any; rows: { id: strin
 // Questions that are an attestation or a personal choice: only the owner's own answer to that question fills them.
 const ATTESTATION = /\b(certify|certif(y|ies)|attest|acknowledg\w*|i agree|agree to|consent|i understand|truthful|true and (complete|correct|accurate)|privacy (policy|notice))\b/i;
 const PERSONAL = /\b(gender|pronoun|race|ethnic\w*|hispanic|latin[oax]?|veteran|disabilit\w*|sexual orientation|transgender|lgbt\w*)\b/i;
+// The same test for every reader of saved answers (module 149 reads it from the bundle, MUSE-F-007).
+export const ownAnswerOnly = (label: string) => ATTESTATION.test(label) || PERSONAL.test(label);
 // The canonical JSON the apply stack hashes (sorted keys, compact), and a synchronous SHA-256 for the ledger's hashes.
 export function canonicalJson(v: unknown): string {
   if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
@@ -807,7 +809,7 @@ function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { file
 function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], jobId?: string): { rule: string; tf: TrustedFact } | { problem: string } {
   const tf = m.byFactId[a.factId];
   if (!tf) return { problem: "its answer is not from a fact you gave" };
-  if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
+  if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
   const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) ||
     (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };

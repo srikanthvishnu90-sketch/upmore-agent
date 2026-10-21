@@ -16,6 +16,7 @@
 // person with its link ("finish this one yourself"), and the check counts in the telemetry, which pauses a portal or a
 // person before failures pile up under their name.
 import { assertApprovedPayload, factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
+import { questionsToStore } from "../career-browser/ask-once.ts";
 
 export interface CloudJob {
   id: string;
@@ -30,6 +31,9 @@ export interface CloudQueue {
   claim(limit: number): Promise<CloudJob[]>;
   resume(job: CloudJob): Promise<CloudResume | null>;
   finish(job: CloudJob, state: string, evidence: Record<string, unknown>, outcome: Outcome, errorKind: string | null): Promise<unknown>;
+  // Ask, never guess: the questions a required field with no confirmed fact raised, as the person's open questions (the
+  // rows Messages asks), for the job this worker holds the lease on (career_apply_cloud_ask). Returns how many were kept.
+  ask(job: CloudJob, questions: Record<string, unknown>[]): Promise<number>;
   gatePresent(): Promise<boolean>;
 }
 // "interrupted": the worker was stopped on purpose (systemctl stop, Ctrl+C) while the engine ran. The application is
@@ -82,6 +86,11 @@ export async function evidenceOf(job: CloudJob, run: any, s: ReturnType<typeof s
   const answers = (Array.isArray(job.payload?.fields) ? job.payload.fields : [])
     .filter((f: any) => !(f?.value && typeof f.value === "object"))
     .map((f: any) => ({ label: clip(f.label, 300), value: clip(f.value, 2000), fact: clip(f.factId, 200) }));
+  const why = new Map((Array.isArray(run?.result?.contract) ? run.result.contract : []).map((c: any) => [c?.label, clip(c?.why, 200)]));
+  const questions = (Array.isArray(run?.result?.questions) ? run.result.questions : []).slice(0, 40).map((q: any) => ({
+    label: clip(q?.label, 300), type: clip(q?.type, 40), options: (Array.isArray(q?.options) ? q.options : []).slice(0, 60).map((o: unknown) => clip(o, 200)),
+    ...(why.get(q?.label) ? { why: why.get(q?.label) } : {}),
+  }));
   const out: Record<string, unknown> = {
     reason: s.reason || null,
     confirmation_id: run?.result?.confirmation_id ?? null,
@@ -96,8 +105,12 @@ export async function evidenceOf(job: CloudJob, run: any, s: ReturnType<typeof s
     started_at: new Date(t.started).toISOString(),
     finished_at: new Date(t.finished).toISOString(),
     ...(s.outcome === "bot_check" ? { link: job.url, handed_back: "a verification check appeared; the person finishes it at the link" } : {}),
+    // WO-102: a question the engine stopped on (needs_answers) goes back with the job in the form's own terms, so it is
+    // asked of the person rather than lost. Never an answer.
+    ...(s.reason === "needs_answers" ? { questions } : {}),
   };
   if (JSON.stringify(out).length > 60000) out.answers = answers.map((a: any) => ({ ...a, value: a.value.slice(0, 200) }));
+  if (JSON.stringify(out).length > 60000 && out.questions) out.questions = questions.map((q: any) => ({ ...q, options: [] }));
   return out;
 }
 
@@ -143,7 +156,21 @@ export async function runCloudJob(job: CloudJob, d: {
   } finally {
     await Deno.remove(dir, { recursive: true }).catch(() => {});
   }
-  const evidence = await evidenceOf(job, run, s, { started, finished: now() });
+  const evidence: Record<string, unknown> = await evidenceOf(job, run, s, { started, finished: now() });
+  // Ask, never guess: a stop on required fields with no confirmed fact (needs_answers) puts each one to the person as an
+  // open question, keyed as the person's computer keys it (ask-once.ts), while the lease is still held, before finish.
+  // An identity or bank number is never asked by text (NEVER_BY_TEXT); the person types it on the form.
+  if (s.reason === "needs_answers") {
+    const result = { ...(run?.result ?? {}), posting: run?.result?.posting || job.payload?.posting || job.payload?.job_id || job.url, company: run?.result?.company || job.company };
+    const { questions } = questionsToStore(result, { facts: {}, answered: new Set() });
+    evidence.asked = 0;
+    try {
+      if (questions.length) evidence.asked = await d.queue.ask(job, questions);
+    } catch (e: any) {
+      evidence.ask_error = String(e?.message ?? e).slice(0, 200);
+    }
+    if ((Array.isArray(result.questions) ? result.questions.length : 0) > questions.length) evidence.not_asked_by_text = "typed on the form (an identity or bank number), never by text";
+  }
   let recorded = false;
   for (let i = 0; i < 4 && !recorded; i++) {
     try {
@@ -260,6 +287,7 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
       return rows;
     },
     resume: (job) => rpc("career_apply_cloud_resume", { p_id: job.id, p_lease: job.lease_token }),
+    ask: (job, questions) => rpc("career_apply_cloud_ask", { p_id: job.id, p_lease: job.lease_token, p_questions: questions }),
     finish: (job, state, evidence, outcome, errorKind) =>
       rpc("career_apply_cloud_finish", { p_id: job.id, p_lease: job.lease_token, p_state: state, p_evidence: evidence, p_outcome: outcome, p_error_kind: errorKind }),
     async gatePresent() {

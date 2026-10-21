@@ -73,6 +73,10 @@ export function resumeNamedIn(text: string): string | null {
 // model can never confirm a fact it just wrote, or one the person has not answered.
 const AFFIRM = /\b(yes|yep|yeah|yup|correct|right|confirm(?:ed)?|accurate|exactly|true|looks (?:good|right)|that'?s (?:right|correct|it))\b/i;
 const DENY = /\b(no|nope|not|wrong|incorrect|isn'?t|don'?t|doesn'?t|never|actually|but|change|fix|correct (?:it|that|this))\b/i;
+async function sha256Hex(text: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 function confirmationRefusal(c: ToolCtx, id: string): string | null {
   const t = c.turn;
   if (!t) return "no confirmation from the person in this turn";
@@ -239,7 +243,14 @@ export function careerTools(deps: {
         const refusal = confirmationRefusal(c, id);
         if (refusal) throw new Error(`not confirmed: ${refusal}`);
         const fact = CareerProfile.confirmFact(profileOf(c), id);
-        await record(c, "fact_confirmed", fact?.text ?? id, { id, kind: fact?.kind ?? null });
+        // WO-102 evidence: the persisted fact_confirmed row (this person, now, their own message's hash) and the fact name
+        // each other by confirmation_event_id, with an owner provenance the answer contract accepts. A row that could not
+        // be recorded stamps nothing, so the fact reads as needs-review, never as evidenced.
+        const event = crypto.randomUUID(), at = new Date(c.now).toISOString();
+        const kept = await record(c, "fact_confirmed", fact?.text ?? id, {
+          id, kind: fact?.kind ?? null, confirmation_event_id: event, message_sha256: await sha256Hex(c.turn!.message),
+        });
+        if (kept && fact) Object.assign(fact, { provenance: `owner confirmed in chat (${at})`, confirmation_event_id: event, confirmed_at: at });
         return { fact };
       },
     },

@@ -10,8 +10,9 @@ import { bindFields } from "../../scripts/career/form-bind.ts";
 import { CODE_POLL_DELAYS_MS, pollForCode } from "../../supabase/functions/_shared/career_email_code_poll.ts";
 import * as core from "./apply_core.ts";
 import * as dom from "./dom.ts";
+import * as stated from "./stated_facts.ts";
 
 (globalThis as any).TraineeCore = {
   planBatch, rowsToAdd, classifyField, classifyOutcome, fileAlternative, normLabel, answerKey, mapQuestion, NEVER_BY_TEXT, hashApplyPayload,
-  factsWithTextAnswers, questionsToStore, jwtRole, bindFields, pollForCode, CODE_POLL_DELAYS_MS, ...core, dom,
+  factsWithTextAnswers, questionsToStore, jwtRole, bindFields, pollForCode, CODE_POLL_DELAYS_MS, ...core, ...stated, dom,
 };

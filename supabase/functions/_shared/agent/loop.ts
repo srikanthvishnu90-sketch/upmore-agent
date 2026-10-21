@@ -170,7 +170,7 @@ const ANSWER_REQUEST = new RegExp("\\?|" + ANSWER_WORDS.source, "i");
 const RECEIPT_REQUEST = /^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:save|remember|keep|store|record|note)\b/i;
 const QUESTION_LEAD = /^\s*(?:am|is|are|was|were|do|does|did|can|could|should|would|will|have|has|had)\b/i;
 function requestsAnswerBody(message: string): boolean {
-  return pieces(plainQuotes(message)).some(({ text }) => {
+  return pieces(plainQuotes(message)).flatMap(({ text }) => text.split(/[;—–]/)).some((text) => {
     const request = text.trim();
     const receipt = RECEIPT_REQUEST.exec(request);
     if (!receipt) return ANSWER_REQUEST.test(request);

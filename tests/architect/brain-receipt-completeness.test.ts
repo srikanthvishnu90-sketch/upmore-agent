@@ -65,6 +65,14 @@ Deno.test("receipt completeness: a remember-only question accepts its backed rec
   eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
 });
 
+for (const [label, separator] of [["semicolon", ";"], ["dash", "—"]]) {
+  Deno.test(`receipt completeness: a ${label} before a save-only question preserves its receipt`, async () => {
+    const message = `${FACT.replace(/\.$/, "")}${separator} can you save that?`;
+    const { result, payloads, saves } = await turn(message, [save(), text(RECEIPT)]);
+    eq(result.reply, RECEIPT); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
+  });
+}
+
 Deno.test("receipt completeness: words in the note being saved are not additional requests", async () => {
   for (const message of [
     "Please save my plan for how to welcome volunteers?",
@@ -79,6 +87,8 @@ Deno.test("receipt completeness: a persistence question with an additional conte
   for (const message of [
     `${FACT} Could you save that and compare a hands-on workshop with a short demonstration?`,
     `${FACT} Please remember that and draft an invitation to a Saturday session?`,
+    `${FACT} Save that; compare a hands-on workshop with a short demonstration?`,
+    `${FACT} Save that — draft an invitation to a Saturday session?`,
   ]) {
     const answer = message.includes("compare") ? COMPARISON : "Would you like to join our repair club this Saturday?";
     const { result, payloads, saves } = await turn(message, [save(), text(RECEIPT), text(answer)]);

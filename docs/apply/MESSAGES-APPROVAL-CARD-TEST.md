@@ -39,6 +39,14 @@ Only the card button calls `career_apply_message_card_approve_own({p_card,p_hash
 
 The receipt is `{card_id,card_hash,approved_count,approved_at,approval_expires_at}`. Both timestamps are ISO strings and match the actual minted approval rows. The card's own `payload.issued_at` and `payload.expires_at` are epoch milliseconds. A lost response is shown as unknown and does not automatically retry.
 
+## Exact queue boundary
+
+The new migration also guards the existing queue when its agent consumer attaches a Messages approval. A wrong answer, raw option value, resume fingerprint, destination or company raises inside the same transaction: no job remains and the permission stays unused. Unknown payload or field parameters are refused. This is scoped to approvals minted by the new Messages path; it does not replace the canonical consumer or claim to repair every older manual/legacy entry point.
+
+Private metadata binds each job to the particular approval ID it consumed. It contains IDs, hashes and deadlines, with no duplicate answer-body store. Deleting the displayed message or thread cannot remove that binding, and approving a later identical card cannot extend an earlier job's deadline. TEST disablement, withdrawal and expiry block new execution; a truthful terminal receipt for already-started work can still be recorded. Existing account, provenance, manifest, stop and submission-switch checks continue to apply.
+
+Supported first-TEST mappings are exact text; selects with `value=<raw>` readback; ordered radio/checkbox groups with unambiguous `checked=<raw>` values; native default-value checkboxes or explicit yes/no buttons; and single-file `SHA:size:MIME` readback. A deliberate No requires explicit negative-button evidence; an unchecked box alone is ambiguous. Listed widgets, conflicting text/display mappings, ambiguous choice values and unsupported checkbox mappings are refused. The preparing service must surface that refusal and request the missing mapping; it must not call a weaker approval route. This branch does not claim every ATS widget is covered.
+
 ## Claude's landing sequence
 
 1. Review the branch delta against the base above, including the new SQL migration, ACLs, native-tap guard, generated app and tests. Verify its current head and green test artifacts before landing. Neither this handoff nor a green local suite authorizes deployment.
@@ -49,6 +57,10 @@ The receipt is `{card_id,card_hash,approved_count,approved_at,approval_expires_a
 6. Connect the preparing service to the producer call above, using an existing owned TEST thread and actual prepared `BatchPosting` entries. Forward only the server card reference to Messages. Do not fabricate fact confirmations, resume digests or entries to get the TEST card to render. A pending question or unavailable resume stays pending; it cannot be replaced with a synthetic placeholder on the landing account.
 7. On the TEST account, verify the complete saved-message → full disclosure → authenticated native tap → exact stored approval → one-use consumer sequence. Change an answer and resume fingerprint separately; both must require a new review. Verify another account, a replay, an expired card and plain-text “yes” mint no permission. Keep employer submission and submission switches off during this verification.
 8. Capture the final source SHA, card/item hashes, TEST actor, actual receipt/approval-row deadline, replay/expiry outcomes and test counts for both judges. Do not include tokens, service keys or private answer bodies in public logs. Any later real application still requires the existing live submission gate and owner approval.
+
+## Disable the TEST path
+
+The authorized operator can set that TEST account's `enabled` value to `false` in `career_message_approval_private.test_users`, then remove `UPMORE_APPROVAL_CARD_TEST_USER_ID` and rebuild the app. Keep the boundary guard and its durable approval/job markers installed while any associated permission or queue job remains. Removing the marker or guard would erase the evidence that an approval came from this stricter path. Preserve truthful terminal receipts for work that already started; use the existing stop/cancel controls for pending work. Disabling this surface cannot undo an employer action.
 
 ## Verification boundaries
 

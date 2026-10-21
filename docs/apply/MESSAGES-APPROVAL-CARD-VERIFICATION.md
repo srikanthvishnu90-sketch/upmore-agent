@@ -16,9 +16,13 @@ Independent QA then reproduced a separate server defect: after a legitimate new-
 
 The positive fixture's file detail was corrected to the actual DOM reader's `SHA:size:MIME` representation before freezing that matrix. The four mutated values were preserved. Tests execute inside local synthetic transactions and roll back; they never submit a form.
 
-## Completion boundary
+## Queue fix and completion boundary
 
-The final branch must also pass the frozen mutation matrix, keep a rejected mutation from consuming its approval or leaving a queue job, and accept the original exact payload once. Message deletion, TEST disablement, expiry and queued-job binding require separate checks. A renderer-only pass cannot establish this boundary.
+The Messages-only queue fix is `2327c36c` plus `acb0b883`, integrated as `90c18df6` and `82907077`. It preserves the canonical consumer and adds durable approval/job metadata plus an exact queue guard. The migration file's SHA-256 is `c72c99c7e359f7fb96c2fc19033ab980e805613f95ef00c8897382f783df60bd`; its SQL test file is `a3a9fc5aacb1ad1b22ab59d71458e2af77d37aafcb14a9ac624fac1d61390c98`. The committed SQL suite passes **128/128** on a clean PostgreSQL 16 schema, up from 47 nonce checks before the boundary work. Unknown payload/field keys have their own failing-before cases.
+
+Independent QA reran its frozen source on the final `acb0b883` migration: **19/19 mutation checks, 6/6 deletion/lifecycle checks and 4/4 same-entry renewal checks pass (29/29)**. Each rejected mutation leaves no job and keeps the original permission unused; the original exact payload then starts once. [The reviewed verdict](evidence/messages-card-20261021/lane-b-guard-final-qa.json) records the source/function hashes and limits. The adjacent files retain all thirteen referenced probe sources, before/after results and assertions; their SHA-256 values were independently recomputed during integration. The canonical consumer's queried function hash remains `9451e0f70e0859c587c6a0ed82192986c1153467a996b8687a4c00be3bb238ae`.
+
+The first full CI found one missing integration: the deployment runner did not list the new migration. Its existing ordering test caught that omission (2,384 passed, 1 failed, 24 skipped in that test stage). Fix `2089712d`, integrated as `51110b61`, adds only the missing sorted migration and its matching schema marker. The unchanged focused go-live suite improves **13/14 to 14/14**, and the final renderer/Messages/chat/export/go-live group passes **61/61** locally. Full final-source CI and the thirteen-case integrated browser suite must pass separately; the QA JSON was written before those jobs.
 
 The actual deployed TEST-profile sequence remains **NOT_RUN** in this environment. Claude must return the landing evidence described in the companion document. No production deployment is claimed.
 

@@ -189,31 +189,39 @@ export function threadSummary(events: CareerEvent[], now: number, tz?: string): 
   const zone = zoneOf(tz), on = (e: CareerEvent) => SHORT(e.at, zone, now);
   const all = [...events].sort((a, b) => a.at.localeCompare(b.at));
   const of = (...k: EventKind[]) => all.filter((e) => k.includes(e.kind));
-  const lines: string[] = [];
+  const lines: { text: string; at: string }[] = [];
+  const add = (text: string, rows: CareerEvent[]) => lines.push({ text, at: rows[rows.length - 1].at });
   const searches = of("search");
-  if (searches.length) lines.push(`- Searches: ${searches.length}, latest ${searches.slice(-3).reverse().map((e) => `"${e.subject}" (${on(e)})`).join(", ")}.`);
+  if (searches.length) add(`- Searches: ${searches.length}, latest ${searches.slice(-3).reverse().map((e) => `"${e.subject}" (${on(e)})`).join(", ")}.`, searches);
   const alerts = of("alert_set", "alert_changed", "alert_stopped");
   if (alerts.length) {
     const word: Record<string, string> = { alert_set: "set", alert_changed: "changed", alert_stopped: "stopped" };
-    lines.push(`- Job alerts: ${alerts.slice(-4).map((e) => `${word[e.kind]} ${on(e)}${e.subject ? ` (${e.subject})` : ""}`).join("; ")}.`);
+    add(`- Job alerts: ${alerts.slice(-4).map((e) => `${word[e.kind]} ${on(e)}${e.subject ? ` (${e.subject})` : ""}`).join("; ")}.`, alerts);
   }
   const kept = of("instruction_kept"), removed = of("instruction_removed");
-  if (kept.length || removed.length) lines.push(`- Standing instructions: ${[kept.length ? `kept ${kept.length} (${names(kept.map((e) => e.subject), 3)})` : "", removed.length ? `removed ${removed.length} (${names(removed.map((e) => e.subject), 3)})` : ""].filter(Boolean).join("; ")}.`);
+  if (kept.length || removed.length) add(`- Standing instructions: ${[kept.length ? `kept ${kept.length} (${names(kept.map((e) => e.subject), 3)})` : "", removed.length ? `removed ${removed.length} (${names(removed.map((e) => e.subject), 3)})` : ""].filter(Boolean).join("; ")}.`, of("instruction_kept", "instruction_removed"));
   const facts = of("fact_confirmed");
-  if (facts.length) lines.push(`- Facts confirmed: ${facts.length}, latest ${on(facts[facts.length - 1])}.`);
+  if (facts.length) add(`- Facts confirmed: ${facts.length}, latest ${on(facts[facts.length - 1])}.`, facts);
+  // Queue writes have their own event kind. Keep that task after its chat has left the history window, without
+  // turning retry no-ops into applications or treating an earlier queue action as a submission receipt.
+  const queued = of("apply_queued").filter((e) => typeof e.detail?.queued === "number" && Number.isSafeInteger(e.detail.queued) && e.detail.queued > 0);
+  if (queued.length) {
+    const companies = queued.flatMap((e) => Array.isArray(e.detail.companies) ? e.detail.companies.filter((x): x is string => typeof x === "string") : []);
+    add(`- Postings queued: ${queued.reduce((n, e) => n + Number(e.detail.queued), 0)}${companies.length ? ` (${names(companies)})` : ""}, latest ${on(queued[queued.length - 1])}. Not sent by these queue actions; later receipts, if any, are separate.`, queued);
+  }
   const prepared = of("application_prepared");
-  if (prepared.length) lines.push(`- Applications prepared: ${prepared.length} (${names(prepared.map((e) => e.subject))}).`);
+  if (prepared.length) add(`- Applications prepared: ${prepared.length} (${names(prepared.map((e) => e.subject))}).`, prepared);
   const approved = of("application_approved");
-  if (approved.length) lines.push(`- Cards answered, approved: ${approved.length} (${names(approved.map((e) => e.subject))}), latest ${on(approved[approved.length - 1])}.`);
+  if (approved.length) add(`- Cards answered, approved: ${approved.length} (${names(approved.map((e) => e.subject))}), latest ${on(approved[approved.length - 1])}.`, approved);
   const notSent = of("status_change").filter((e) => e.source === "card");
-  if (notSent.length) lines.push(`- Cards answered, not sent: ${notSent.length} (${names(notSent.map((e) => e.subject))}).`);
+  if (notSent.length) add(`- Cards answered, not sent: ${notSent.length} (${names(notSent.map((e) => e.subject))}).`, notSent);
   const finished = of("application_finished");
-  if (finished.length) lines.push(`- Applications finished: ${finished.slice(-5).reverse().map((e) => `${e.subject} ${String(e.detail?.state ?? "").replace(/_/g, " ")} (${on(e)})`).join(", ")}${finished.length > 5 ? ` and ${finished.length - 5} more` : ""}.`);
+  if (finished.length) add(`- Applications finished: ${finished.slice(-5).reverse().map((e) => `${e.subject} ${String(e.detail?.state ?? "").replace(/_/g, " ")} (${on(e)})`).join(", ")}${finished.length > 5 ? ` and ${finished.length - 5} more` : ""}.`, finished);
   const tracked = of("status_change").filter((e) => e.source !== "card");
-  if (tracked.length) lines.push(`- Applications they reported: ${tracked.slice(-5).reverse().map((e) => `${e.subject}${e.detail?.stage ? ` ${e.detail.stage}` : ""} (${on(e)})`).join(", ")}.`);
+  if (tracked.length) add(`- Applications they reported: ${tracked.slice(-5).reverse().map((e) => `${e.subject}${e.detail?.stage ? ` ${e.detail.stage}` : ""} (${on(e)})`).join(", ")}.`, tracked);
   for (const [k, label] of [["outreach_drafted", "Outreach drafted"], ["outreach_approved", "Outreach approved"], ["outreach_sent", "Outreach sent"], ["outreach_replied", "Outreach replies"], ["outreach_bounced", "Outreach bounced"], ["intro_proposed", "Intros proposed"], ["intro_made", "Intros made"], ["mock_done", "Mock interviews"], ["note", "Notes"]] as const) {
     const xs = of(k);
-    if (xs.length) lines.push(`- ${label}: ${xs.length} (${names(xs.map((e) => e.subject))}).`);
+    if (xs.length) add(`- ${label}: ${xs.length} (${names(xs.map((e) => e.subject))}).`, xs);
   }
   const head = [
     "EARLIER IN THIS CONVERSATION. It is longer than the 40 messages shown. Upmore wrote this from its own record of what happened on the account, not from the person's words: use it to stay consistent, never quote it as theirs, and use the recall tool for details.",
@@ -221,7 +229,11 @@ export function threadSummary(events: CareerEvent[], now: number, tz?: string): 
   if (!lines.length) return [...head, "- Nothing else is on record."].join("\n");
   const out = [...head];
   let used = out[0].length;
-  for (const l of lines) { if (used + l.length + 1 > SUMMARY_MAX) break; out.push(l); used += l.length + 1; }
+  // A long older group must not consume the budget before a newer task outcome, or block a shorter group that fits.
+  for (const { text } of lines.sort((a, b) => b.at.localeCompare(a.at))) {
+    if (used + text.length + 1 > SUMMARY_MAX) continue;
+    out.push(text); used += text.length + 1;
+  }
   return out.join("\n");
 }
 export const SUMMARY_UNREADABLE = "EARLIER IN THIS CONVERSATION. It is longer than the 40 messages shown, and the record of what happened before could not be read this turn. If they ask about something older, say so and offer to look it up with the recall tool; never guess.";

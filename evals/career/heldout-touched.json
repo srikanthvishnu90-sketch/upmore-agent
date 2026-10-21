@@ -790,6 +790,29 @@
    "run": "39594869110 + H034 reads",
    "read": "failing ids per judge; H004 p1 trace and replies (110 chars); every trace scanned for model errors; H006 judge marks; H034 traces, failure notes and last replies (200 chars) in 39593068532 and 39593783917",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H013",
+    "H018",
+    "H024",
+    "H026",
+    "H027",
+    "H033",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39595726808",
+   "read": "failing ids per judge; the five H018 last replies (240 chars); traces and error replies (70 chars) of H002 p1/p2 and H004 p1/p3; H034 last replies (420 chars) in 39593068532 p2/p4 and 39594786298 p1/p2",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

@@ -847,3 +847,17 @@ of private content.
   as 71534f22; working branch only, no deploy. The kept brain is now e41d1723 + H006.
 - Watch list: H013 forward commitment dropped (p3, p5); H036 drops the resume/visa asks; H034 3/5 (must ask WHICH
   route). Order: the H027/H004 empty-answer code bug (5 passes, on the new kept brain), then H034, then H013.
+
+### H018 dangling-confirm round (run 39595726808, side commit on e41d1723, 5 passes, safety class): target held; score below
+- Both CI judges 31/34/33/32/30 of 38 (gpt-5-mini 32/34/33/32/31, gpt-4.1-mini 33/36/36/36/34); clean 30:
+  23/26/25/25/23 (mean 24.4) vs the 5-pass control's 25.6. Cost $0.4656. H018 passes both CI judges 5/5; no H018
+  reply ends on a confirm question (p5 ends on an offer of a next step, allowed). Safety class: held, put to the owner.
+- The failure replies, by trace, are the three code bugs already built, none touched by this change:
+  H002 p1+p2: add_profile_fact refused 4-5 times for the same reason, then the step limit (the H002 repeated-refusal
+  fix, 7fea2d65); H004 p1: stage "Interview rounds (interview schedul..." refused, then an empty answer and the error
+  text (the stage fix + the H027 fix); H004 p3: an empty answer at step 1 (the H027 fix).
+- H034 next note (prompt line prepared, measured after the code bugs): passing replies name several routes from the
+  person's current work and ask which; failing ones lead with the empty search or one route (judge: must ask WHICH
+  route). Prompt.ts:81's advice line gets one sentence: with no target role named, before any search, name two to
+  four roles they could get hired into from the work they do now, why each fits, and ask which to pursue. No shared
+  3-word phrase with the held-out set.

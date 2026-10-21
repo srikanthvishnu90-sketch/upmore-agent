@@ -3,7 +3,7 @@ import { factsFromPayload, prepare, runApproved } from '../../workers/career-bro
 import { planBatch } from '../../supabase/functions/_shared/career_apply.ts';
 import { hashApplyPayload } from '../../supabase/functions/_shared/career_apply_store.ts';
 import { approvalSources, planApplication, trustedFacts } from '../../scripts/apply.ts';
-import { contractFill } from '../../extension/src/apply_core.ts';
+import { contractFill, planForm, trustedManifest } from '../../extension/src/apply_core.ts';
 const OWNER='SYNTHETIC-row-owner', JOB='workday:synthetic.test:R1';
 const ARTIFACT={filename:'synthetic.pdf',sha256:'b'.repeat(64)};
 const SOURCE={value:JSON.stringify([{employer:'Synthetic Analytics',title:'Analyst',start:'2023',end:'present'},{employer:'Synthetic Retail',title:'Associate',start:'2020',end:'2022'}]),factId:'TEST-row-history',confirmed:true,provenance:'owner stated these synthetic work entries',confirmation_event_id:'evt-synthetic-work'};
@@ -57,5 +57,19 @@ Deno.test('row replay: changed queued value, source event or schema stops before
  const{payload}=await fixture();for(const change of [(p:any)=>p.fields[0].value='Changed employer',(p:any)=>p.fields[0].confirmation_event_id='changed-event',(p:any)=>p.schema_hash='0'.repeat(64)]){
   const bad=clone(payload);change(bad);let calls=0,finish:any;await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload:bad}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async()=>{throw Error('should not write facts')},runEngine:async()=>{calls++;return null}});
   assert(calls===0&&finish.state==='not_submitted'&&finish.evidence.reason==='APPROVED_APPLICATION_CHANGED',JSON.stringify(finish));
+ }
+});
+const profileFact=(id:string,text:string,extra:any={})=>({id,kind:'other',text,user_id:OWNER,source:'user',status:'confirmed',needs_confirmation:false,provenance:'owner stated these exact synthetic words',confirmation_event_id:'evt-'+id,...extra});
+Deno.test('typed profile hook: raw owned facts reach real form planning and contract through the existing allowlist',()=>{
+ const raw={user_id:OWNER,facts:[profileFact('TEST-country','My country is United States.'),profileFact('TEST-auth','I am authorized to work in the US.'),profileFact('TEST-phone','My phone is +1 202 555 0147.')]},before=JSON.stringify(raw);
+ const m=trustedManifest({owner:OWNER,file:raw,rows:[],resume:null});
+ assert(m.answers.country?.value==='United States'&&m.answers.work_authorization?.value==='Yes'&&m.answers.phone?.value==='+1 202 555 0147','raw profile was not projected');
+ const schema=[{name:'phone',label:'Phone',type:'text',required:true,options:[]},{name:'auth',label:'Are you legally authorized to work in the United States?',type:'radio',required:true,options:[{label:'Yes',value:'Y'},{label:'No',value:'N'}]}];
+ const plan=planForm({userId:OWNER,jobId:JOB,company:'Synthetic hiring',family:'greenhouse',schema,answers:m.answers,saved:m.saved,now:0,location:'New York, NY'});
+ const c=contractFill({schema,plan,manifest:m,resume:null});assert(c.fill.length===2&&c.asks.length===0,'projected facts did not reach canonical form contract');assert(JSON.stringify(raw)===before,'raw bank mutated');
+});
+Deno.test('typed profile hook: missing evidence, quarantine and foreign context remain excluded by canonical contract',()=>{
+ for(const f of [profileFact('TEST-missing','My phone is +1 202 555 0147.',{confirmation_event_id:undefined}),profileFact('F-033','My phone is +1 202 555 0147.'),profileFact('TEST-foreign','I am authorized to work in the UK.')]){
+  const m=trustedManifest({owner:OWNER,file:{user_id:OWNER,facts:[f]},rows:[],resume:null});assert(Object.keys(m.answers).length===0,'unsupported raw fact promoted');assert(m.excluded.some(x=>x.factId===f.id),'projection question was not preserved');
  }
 });

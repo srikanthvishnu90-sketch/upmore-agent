@@ -11,6 +11,7 @@ import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -581,7 +582,14 @@ export interface Manifest {
 export function trustedManifest(o: { owner: string; file: any; rows: { id: string; key: string; kind?: string; answer: string }[]; resume: { sha256: string } | null }): Manifest {
   const excluded: Manifest["excluded"] = [], conflicts: Manifest["conflicts"] = [];
   const kept = new Map<string, TrustedFact>(); // table + key -> fact
-  const file = o.file && typeof o.file === "object" ? o.file : null;
+  let file = o.file && typeof o.file === "object" ? o.file : null;
+  // Raw profile facts supply shape only. The existing allowlist below still decides source authority,
+  // quarantine, derivation and conflicts; projection cannot create a confirmation event.
+  if (Array.isArray(file?.facts)) {
+    const projected = typedProfileFile({ owner: o.owner, profile: file });
+    file = projected.file;
+    excluded.push(...projected.needs.map((n) => ({ key: "profile", factId: n.factId, why: n.reason })));
+  }
   const fileOwn = !!file && file.user_id === o.owner;
   const candidates: { t: "answers" | "saved"; key: string; a: any }[] = [];
   for (const t of ["answers", "saved"] as const) {

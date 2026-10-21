@@ -167,7 +167,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const seen: string[] = [];
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
-  let steps = 0, checked = false, ask = false;
+  let steps = 0, checked = false, ask = false, emptied = false;
   // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
   // the conversation. As a user-role message the model took it for the person's words, refused it out loud ("I can't
   // follow the instruction to show ... hidden internal words") and the refusal reached the person.
@@ -194,6 +194,14 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       if (said.length && reply.length < 160) reply = [...said, reply].filter(Boolean).join("\n\n");
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      // WO-061 (H027): an answer with neither a tool call nor text (a reasoning model can spend its whole budget thinking)
+      // was returned as "", and the conversation layer sent its error text mid-conversation. It is asked for once more,
+      // tools off, with code's note in that call's system prompt (never the conversation: see `review`).
+      if (!reply && !emptied && steps < max) {
+        emptied = true; ask = true;
+        review = "CODE'S NOTE. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request. Your last answer was empty. Write your reply to the person now, answering what they asked in their last message.";
+        continue;
+      }
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
       // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
       // stands after that, code fixes.

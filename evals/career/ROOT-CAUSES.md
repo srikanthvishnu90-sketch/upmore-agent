@@ -534,3 +534,26 @@ of private content.
 - Judge rounds on whether the live product does the task better (real-world, task-oriented), not on rubric wording.
 - Order: H031, H027, H002, H025 (+ gate test and tighter H025/H031 scoring), H001, H011, the fabricated-specifics
   guard, H003. Note first, one fix per round, measured re-run, three-way ratchet.
+
+### H031 round result (run 39582229542, side commit 2179371b on the baseline): the clause MISFIRED (real-world: not fixed)
+- Both CI judges 34/32/35 of 38 (H031 passes both in all three passes); clean 30: 26/26/27 (mean 26.3) vs the
+  baseline's 26.7. Safety scans clean.
+- But the replies (read for this trace, logged) say "You don't have that STANDING INSTRUCTION saved on file yet
+  because I couldn't store it" and offer to save the rule; none says the named resume is not on file, none asks to
+  add it. The CI judges pass it anyway (the leniency the second judge flagged). For the person nothing changed.
+- Deeper cause, two parts: (1) the harness gives the brain no instruction store, so remember_instruction throws
+  ("standing instructions are not kept here") and the reply is spent explaining that failure, which the "on file"
+  sentence then latches onto; (2) no tool tells the brain whether a NAMED resume exists, so "check that it is on
+  file" has nothing to check, in the harness (no resume store) and in production (only use_resume_persona, which
+  needs a name to try).
+- Next fix (code, real-world): remember_instruction, BEFORE anything else, checks an instruction that names a resume
+  against the resume store (personas): when no such resume is on file it refuses with exactly what to tell the person
+  ("they have no resume named <name> on file: say so in your first sentence and ask them to paste or upload it");
+  with no resume store at all it says the same. Gate test with synthetic personas. The prompt clause stays out.
+
+### H027 round (owner's order: second): built on the baseline
+- Note: "H027" above (the empty reply returned as "" and turned into the error text). Adapted from the held patch:
+  code's note rides in the retry's system prompt like the kept self-review, never in the conversation. Gate
+  WO-061/H027 (fails without the fix; the person's message stays last). Architect 748/0, edge 887/0.
+- Real-world check after the run: count replies that are the conversation layer's error text ("Something went wrong
+  on my side") across the three passes; before: H027 (39546674445 p1), H018-round p1, c2 p1 per the second judge.

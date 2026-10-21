@@ -120,3 +120,40 @@ Deno.test("guidance: current clearance survives an unrelated expired credential"
     eq(check(active, [fact(text)], NOW).status, "met", text);
   }
 });
+
+const activeClearance = { ...req("clearance", ["Orion clearance"]), text: "A current Orion clearance is required" };
+Deno.test("guidance: historical possession asks for current validity instead of qualifying", () => {
+  const text = "I held an Orion clearance in 2021.";
+  eq(check(activeClearance, [fact(text)], NOW).status, "unknown", "past possession does not establish current validity");
+  eq(check({ ...activeClearance, text: "Prior Orion clearance experience is relevant" }, [fact(text)], NOW).status, "met", "prior experience remains usable");
+});
+
+Deno.test("guidance: exact clearance dates are compared to the supplied turn day", () => {
+  for (const [date, expected] of [["2026-02-01", "unmet"], ["2026-12-01", "met"]]) {
+    eq(check(activeClearance, [fact(`I hold an Orion clearance valid until ${date}.`)], NOW).status, expected, date);
+  }
+  eq(check(activeClearance, [fact("My Orion clearance expires on 2025-12-31.")], NOW).status, "unmet", "scheduled expiry is evaluated against this turn");
+});
+
+Deno.test("guidance: ambiguous or invalid clearance dates require clarification", () => {
+  for (const date of ["03/04/2026", "2026-02-30", "2026-13-01", "2026"]) {
+    eq(check(activeClearance, [fact(`I hold an active Orion clearance valid until ${date}.`)], NOW).status, "unknown", `do not infer validity from ${date}`);
+  }
+  eq(check(activeClearance, [fact("I hold an active Orion clearance valid through 2026-10.")], Date.UTC(2026, 9, 1, 12)).status, "unknown", "a month alone does not invent a first-day expiry time");
+  eq(check(activeClearance, [fact("I hold an active Orion clearance valid through 2026.")], Date.UTC(2026, 0, 1, 12)).status, "unknown", "a year alone does not invent a first-day expiry time");
+});
+
+Deno.test("guidance: expiry attaches to the clearance noun phrase rather than another credential", () => {
+  eq(check(activeClearance, [fact("My training expired before my current Orion clearance was renewed.")], NOW).status, "met", "the current clearance was not the expired training");
+  eq(check(activeClearance, [fact("My expired Orion clearance was renewed in 2021.")], NOW).status, "unmet", "expired modifier on the clearance still counts");
+});
+
+Deno.test("guidance: clearance validity uses the turn clock across domain and tool boundaries", async () => {
+  const text = "I hold an active Full Scope Poly clearance valid until 2028.";
+  const tool = careerTools({ postings: async () => [] }).find((t) => t.name === "career_path_answer")!;
+  for (const [year, expected] of [[2023, "met"], [2030, "unmet"]] as const) {
+    const now = Date.UTC(year, 9, 21), state = { profile: { id: "SYN-PROFILE", basics: {}, preferences: {}, constraints: {}, facts: [{ ...fact(text), kind: "experience", status: "confirmed", needs_confirmation: false }] } };
+    const r: any = await tool.run({ firm: "Palantir", role: "intel" }, { userId: "SYN-OWNER", threadId: "SYN-THREAD", now, state });
+    eq(r.moves.find((m: any) => m.requirement.id === "palantir-r4")?.status, expected, `tool clock ${year}`);
+  }
+});

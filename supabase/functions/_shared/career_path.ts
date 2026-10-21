@@ -134,12 +134,36 @@ function prefixDeniesQualification(prefix: string): boolean {
     !/\b(?:experience|skills?|knowledge|proficiency|ability|practice|familiarity|clearance)\b/i.test(object[0])) return false;
   return true;
 }
-function endedClearance(prefix: string, suffix: string, now: number): boolean {
-  // Validity belongs to the clearance phrase, not an earlier credential in the same fact.
-  if (/\b(?:expired|former|inactive|revoked|lapsed)\s+(?:[\w-]+\s+){0,3}$/i.test(prefix) ||
-    /^\s*(?:security\s+)?(?:clearance\s+)?(?:(?:has|had|is|was)\s+)?(?:expired|inactive|revoked|lapsed)\b/i.test(suffix)) return true;
-  const until = suffix.match(/^\s*(?:(?:security\s+)?clearance\b\s*)?(?:(?:was|is)\s+)?(?:valid\s+)?(?:until|through)\s+(\d{4})\b/i);
-  return !!until && Number(until[1]) < new Date(now).getUTCFullYear();
+type Validity = "current" | "ended" | "unknown";
+function validityDate(text: string, now: number): Validity {
+  // Only unambiguous ISO dates and stated year/month precision are read. Never let Date.parse normalize an
+  // invalid day, or choose a locale for a slash date. Coarse precision describes a range, not an invented day.
+  const m = text.match(/^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?(?=\s|$)/);
+  if (!m || !Number.isFinite(now)) return "unknown";
+  const year = Number(m[1]), month = m[2] ? Number(m[2]) : null, day = m[3] ? Number(m[3]) : null;
+  if (year < 1900 || year > 2200 || (month !== null && (month < 1 || month > 12))) return "unknown";
+  const lastDay = month === null ? 31 : new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (day !== null && (day < 1 || day > lastDay)) return "unknown";
+  const earliest = day === null ? Date.UTC(year, (month ?? 1) - 1, 1) : Date.UTC(year, month! - 1, day, 23, 59, 59, 999);
+  const latest = Date.UTC(year, (month ?? 12) - 1, day ?? lastDay, 23, 59, 59, 999);
+  return latest < now ? "ended" : earliest >= now ? "current" : "unknown";
+}
+function clearanceValidity(prefix: string, suffix: string, now: number): Validity {
+  // Relative/prepositional scope separates another credential's expiry from this clearance's noun phrase.
+  const ownPrefix = prefix.split(/\b(?:before|after|since|while|when|because|although|despite|for|during|about|from|and)\b/i).pop()!;
+  const ownSuffix = suffix.replace(/^\s*(?:security\s+)?clearance\b\s*/i, "").trim();
+  if (/\b(?:expired|former|inactive|revoked|lapsed)\s+(?:[\w-]+\s+){0,3}$/i.test(ownPrefix) ||
+    /^(?:(?:has|had|is|was)\s+)?(?:expired|inactive|revoked|lapsed)\b/i.test(ownSuffix)) return "ended";
+  const end = ownSuffix.match(/^(?:(?:(?:is|was)\s+)?(?:valid\s+)?(?:until|through)|expires?(?:\s+on)?)\s+(.+)$/i);
+  const historical = /\b(?:held|had|possessed|formerly|previously)\b|\bused to\s+(?:hold|have|possess)\b/i.test(ownPrefix);
+  if (end) {
+    const validity = validityDate(end[1], now);
+    return validity === "current" && historical ? "unknown" : validity;
+  }
+  if (historical) return "unknown";
+  if (/\b(?:active|current|valid)\b/i.test(ownPrefix) || /^(?:(?:is|remains|stays)\s+)(?:active|current|valid)\b/i.test(ownSuffix) ||
+    /\b(?:i|we)\s+(?:currently\s+)?(?:hold|have|possess)\s+(?:[\w-]+\s+){0,5}$/i.test(ownPrefix)) return "current";
+  return "unknown";
 }
 function qualificationMentions(text: string, word: string, activeOnly = false, now = Date.now()): { yes: boolean; no: boolean } {
   let yes = false, no = false;
@@ -159,13 +183,14 @@ function qualificationMentions(text: string, word: string, activeOnly = false, n
       // "I use Python without help" does not deny Python.
       const prefix = at ? part.slice(0, at.index) : part;
       const suffix = at ? part.slice(at.index + at[0].length) : "";
+      const validity = at && activeOnly ? clearanceValidity(prefix, suffix, now) : null;
       const denied: boolean = at
         ? prefixDeniesQualification(prefix) || /^\s+(?:(?:is|are|was|were)\s+(?:not|never|no longer)|isn't|aren't|wasn't|weren't)\b/i.test(suffix) ||
-          (activeOnly && endedClearance(prefix, suffix, now)) || inherited
+          validity === "ended" || inherited
         : NEGATIVE_QUALIFICATION.test(part) || inherited;
       deniedList = denied;
       if (!at) continue;
-      if (denied) no = true; else yes = true;
+      if (denied) no = true; else if (validity !== "unknown") yes = true;
     }
   }
   return { yes, no };

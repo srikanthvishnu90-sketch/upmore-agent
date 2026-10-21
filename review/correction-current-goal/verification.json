@@ -1,0 +1,31 @@
+{
+  "base": "0cb4b9800bbce44a89bc93df79c1f6d95b5098db",
+  "dependencies_source": "d748097b4ca12c37d2704460ab7a9b1a624ecc06",
+  "baseline": {
+    "frozen_eight": {
+      "passed": 8,
+      "failed": 0
+    },
+    "negative_source_four": {
+      "passed": 1,
+      "failed": 3
+    }
+  },
+  "private_combined": {
+    "passed": 38,
+    "failed": 0
+  },
+  "portable_handoff": "NOT_RUN",
+  "cost_usd": 0,
+  "sha256": {
+    "README.md": "9b4dbe3e03f11bdb95c7e42be1b790ffd7b83a6b8b26a989f61c87681567004f",
+    "dependencies.patch": "26d1ab5ce504e2e5cda17c5d0d43ec211dcf227ea4762e51b5d18b205f9f1969",
+    "run-tests.sh": "2aaa2299488a0e47402af8abd87d226bbd8676a50164bc2f836a9e3fec6c246a",
+    "tests/frozen-eight.test.ts": "0456ca2813848fcbef0988e0d1e213ea690c081c93c70245cb4ceca28fbd8d41",
+    "tests/negative-source-four.test.ts": "c9a430b23b9b6ec705a442096fbf02a00a8227ec3721dcb812d1e0a373e486c5",
+    "tests/provenance-sixteen.test.ts": "412f9abfed253f3ae8427997435636a0bdd21c949d4efbda1bc28978efa92ce9",
+    "tests/quarantine-lineage-six.test.ts": "a973fdf78cc4eaee2cdb105f66a86f3e953f6976658d275e12af7b7cab845685",
+    "tests/reader-residue-four.test.ts": "b164c0ea609f87ac2b08ab129b1e441bf8a657c92310090ea914a06eb1686ee6",
+    "writer.patch": "6ab03dec7184ab5b373ede639b3d382921b8c44ba48e70f4d0b26060846bbb2f"
+  }
+}

@@ -1,0 +1,29 @@
+--- a/supabase/functions/_shared/agent/career_tools.ts
++++ b/supabase/functions/_shared/agent/career_tools.ts
+@@ -3,6 +3,7 @@
+ // model writes the words. No reply prose lives here.
+ import { CareerProfile, CareerTrack, CareerPrep, CareerPaths } from "../router_core.career.js";
+ import { AskPerson, type ToolSpec, type ToolCtx } from "./loop.ts";
++import { personalSourceGuard } from "../personal_fact_source.ts";
+ import { searchPostings } from "../career_search.ts";
+ import { searchWords, wordStem } from "../career_ingest.ts";
+ import { liveOnly, type LinkCheck } from "../link_check.ts";
+@@ -137,10 +138,17 @@
+ // role or place drops it from the cache too, unless another fact still says it ("Also open to Product manager roles in
+ // Boston" keeps both); remote, pay floor and companies are not derived from these words and stay.
+ const PREF_KINDS = new Set(["goal", "location", "preference"]);
++// Other facts may preserve a goal cache only while memory still treats them as the person's current words.
++// Draft goals/preferences remain eligible here; this is goal steering, never application confirmation.
+ function dropSuperseded(profile: any, id: string, was: string, text: string) {
+   const said = (s: unknown) => ` ${String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
+   const says = (s: unknown, entry: string) => said(entry).trim() !== "" && said(s).includes(said(entry));
+-  const others = (profile.facts || []).filter((f: any) => f.id !== id).map((f: any) => f.text);
++  const sourceDenied = personalSourceGuard([profile]);
++  const others = (Array.isArray(profile.facts) && !sourceDenied(profile) ? profile.facts : []).filter((f: any) =>
++    f && typeof f === "object" && !Array.isArray(f) && typeof f.id === "string" && !!f.id.trim() && f.id !== id &&
++    typeof f.kind === "string" && !!f.kind.trim() && typeof f.text === "string" && !!f.text.trim() &&
++    f.status !== "rejected" && !sourceDenied(f)
++  ).map((f: any) => f.text);
+   const p = profile.preferences;
+   if (!p) return;
+   for (const key of ["roles", "locations"]) {

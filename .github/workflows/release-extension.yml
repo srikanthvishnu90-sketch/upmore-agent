@@ -1,0 +1,54 @@
+# Publishes the Trainee extension as a GitHub release asset, built from the tagged commit by
+# scripts/extension/package.sh (it refuses a stale bundle and checks the variant's flags), so a non-engineer installs
+# from a download: unzip, then Load unpacked (docs/apply/INSTALL-EXTENSION.md). Tags: v<version>-agent or
+# v<version>-shipped. The release is a prerelease; its notes carry the zip's SHA-256 and the commit it was built from.
+# Nothing here deploys, sends or switches anything on: the agent build sends only after the person's batch approval
+# AND the owner's CAREER_AGENT_SUBMIT switch.
+name: release-extension
+on:
+  push:
+    tags: ["v*-agent", "v*-shipped"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Build the package
+        id: build
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          variant="${tag##*-}"
+          bash scripts/extension/package.sh --variant "$variant" --out dist | tee build.log
+          zip=$(ls dist/*.zip)
+          sha=$(sha256sum "$zip" | cut -d' ' -f1)
+          grep -q "$sha" build.log
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "variant=$variant" >> "$GITHUB_OUTPUT"
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip="${{ steps.build.outputs.zip }}"
+          info=$(unzip -p "$zip" BUILD-INFO.txt)
+          {
+            echo "Trainee extension, ${{ steps.build.outputs.variant }} build, from commit ${GITHUB_SHA}."
+            echo
+            echo "sha256: ${{ steps.build.outputs.sha }}  $(basename "$zip")"
+            echo
+            echo "Check it before loading: on Mac \`shasum -a 256 $(basename "$zip")\`, on Windows \`certutil -hashfile $(basename "$zip") SHA256\`; the hex must match the line above."
+            echo "Install: unzip it into a folder you keep, then chrome://extensions, Developer mode on, Load unpacked, pick the folder that holds manifest.json (docs/apply/INSTALL-EXTENSION.md)."
+            echo
+            echo "The agent build sends a posting only after you approve that batch of exact answers in the panel AND the owner's CAREER_AGENT_SUBMIT switch is on. With either missing, nothing is sent."
+            echo
+            echo '```'
+            echo "$info"
+            echo '```'
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" "$zip" --prerelease --title "Trainee extension $GITHUB_REF_NAME" --notes-file notes.md

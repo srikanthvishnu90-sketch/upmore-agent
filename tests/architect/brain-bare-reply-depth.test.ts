@@ -11,6 +11,9 @@ const COMPLETE = "The first posting focuses on reporting on weekdays. The second
 const text = (reply: string, reason = "end_turn") => ({ content: [{ type: "text", text: reply }], stop_reason: reason });
 const cut = (reply: string) => fromOpenAI({ choices: [{ message: { content: reply }, finish_reason: "length" }] });
 const call = () => ({ content: [{ type: "tool_use", id: "save-fixture", name: "save_fixture", input: {} }], stop_reason: "tool_use" });
+const gatewayCall = (reason: string) => fromOpenAI({ choices: [{ message: { content: "", tool_calls: [
+  { id: "save-fixture", type: "function", function: { name: "save_fixture", arguments: "{}" } },
+] }, finish_reason: reason }] });
 async function run(responses: any[], options: { maxSteps?: number; show?: boolean } = {}) {
   let saves = 0;
   const payloads: any[] = [];
@@ -51,6 +54,18 @@ Deno.test("reply depth: a truncated provider response cannot execute embedded to
   const truncated = { ...call(), stop_reason: "max_tokens" };
   const { result, payloads, saves } = await run([truncated, text(COMPLETE)]);
   eq(result.reply, COMPLETE); eq(payloads.length, 2); eq(saves, 0); eq(result.tool_calls, []); eq(result.pending_approvals, []);
+});
+
+Deno.test("reply depth: OpenAI length remains truncated even beside a fully parsed tool call", async () => {
+  const { result, payloads, saves } = await run([gatewayCall("length"), text(COMPLETE)]);
+  eq(result.reply, COMPLETE); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 0);
+  eq(result.tool_calls, []); eq(result.pending_approvals, []); eq(payloads[1].tool_choice, { type: "none" });
+});
+
+Deno.test("reply depth: an OpenAI completed tool call still executes once", async () => {
+  const { result, payloads, saves } = await run([gatewayCall("tool_calls"), text(COMPLETE)]);
+  eq(result.reply, COMPLETE); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
+  eq(result.tool_calls.length, 1); eq(result.tool_calls[0].ok, true);
 });
 
 Deno.test("reply depth: provider truncation leaves an already generated exact preview authoritative", async () => {

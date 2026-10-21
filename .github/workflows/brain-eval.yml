@@ -28,7 +28,10 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
-      EVAL_BUDGET_USD: "15"
+      # Owner, 2026-10-21 overnight: "hard cap $5 total tonight". The cap counts every recorded result file: $1.915 before
+      # tonight's first fix run, + $5 = $6.915; set lower ($6.50) because three passes run in parallel and each sees only the
+      # spend recorded before it started.
+      EVAL_BUDGET_USD: "6.50"
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }

@@ -179,7 +179,9 @@ if (import.meta.main) {
   try { const o = await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD^2"] }).output(); if (o.success) source = new TextDecoder().decode(o.stdout).trim(); } catch { /* no second parent */ }
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
-  const result = { label, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
+  // WO-061 (owner, 2026-10-21): every score from fix (b) on carries this label, so the harness gain is never read as a brain gain.
+  const harness = "situation parity since f265092a (production parity, not brain improvement)";
+  const result = { label, harness, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before, ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });

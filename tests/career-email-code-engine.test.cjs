@@ -152,7 +152,7 @@ function packet(dir) {
   const answers = { first_name: "Mary Jane", last_name: "Doe", email: "synthetic@example.test" };
   const facts = {
     user_id: "TEST-OWNER-096",
-    answers: Object.fromEntries(Object.entries(answers).map(([k, value], i) => [k, { value, factId: "TEST-FACT-" + i, confirmed: true }])),
+    answers: Object.fromEntries(Object.entries(answers).map(([k, value], i) => [k, { value, factId: "TEST-FACT-" + i, confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-FACT-" + i }])),
     saved: {},
   };
   fs.writeFileSync(path.join(dir, "facts.json"), JSON.stringify(facts));

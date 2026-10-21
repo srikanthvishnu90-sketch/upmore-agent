@@ -23,6 +23,9 @@ class Element {
   replaceChildren(...nodes) { this.children.forEach(node => { node.parentNode = null; }); this.children = []; this._text = ''; this.append(...nodes); }
   setAttribute(k, v) { this.attributes[k] = String(v); }
   getAttribute(k) { return this.attributes[k] ?? null; }
+  removeAttribute(k) { delete this.attributes[k]; }
+  querySelectorAll(tag) { return this.children.flatMap(child => [child, ...child.querySelectorAll(tag)]).filter(child => child.tagName === tag.toUpperCase()); }
+  cloneNode(deep) { const node = new Element(this.tagName); node.attributes = { ...this.attributes }; node.style = { ...this.style }; node.hidden = this.hidden; node._text = this._text; if (deep) node.append(...this.children.map(child => child.cloneNode(true))); return node; }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
   set textContent(value) { this.children.forEach(node => { node.parentNode = null; }); this.children = []; this._text = String(value); }
   get outerHTML() { return JSON.stringify([this.tagName, this.attributes, this.style, this.hidden, this._text, this.children.map(child => child.outerHTML)]); }
@@ -170,4 +173,10 @@ test('the first TEST path requires a real resume filename and fingerprint rather
   for (const change of [e => { e.answers.pop(); e.ledger.pop(); }, e => { e.answers[1].file = null; }, e => { e.answers[1].shown = ''; }]) {
     const f = await fixture({ change }); await f.handle.approve(); assert.equal(f.approvals.length, 0); assert.notEqual(f.handle.getState(), 'open');
   }
+});
+
+test('opening the exact-payload disclosure for review is allowed without weakening text or attribute tamper checks', async () => {
+  const f = await fixture();
+  descendants(f.handle.disclosure).find(node => node.tagName === 'DETAILS').setAttribute('open', '');
+  await f.handle.approve(); assert.equal(f.approvals.length, 1); assert.equal(f.handle.getState(), 'approved');
 });

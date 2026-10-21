@@ -45,3 +45,8 @@ verify_jwt = true
 
 [functions.career-email-code]
 verify_jwt = true
+
+# WO-097: other agents act for the person with a token the person minted (not a Supabase JWT); the handler hashes it and
+# every database door checks it.
+[functions.trainee-agent-api]
+verify_jwt = false

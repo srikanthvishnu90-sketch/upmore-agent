@@ -35,8 +35,8 @@
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
 #                 with --brain agent (--brain router unsets it; without --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
-#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
+#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp, trainee-agent-api
+#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram, Meta and agent tokens carry no JWT; each checks its own)
 #                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
@@ -122,6 +122,7 @@ MIGRATIONS=(
   20261022120200_career_apply_standing_answers.sql
   20261022120500_career_deploy_ledger.sql
   20261022150000_career_apply_authority.sql
+  20261023090700_trainee_agent_api.sql
   20261023100000_career_events_apply_queued.sql
 )
 MIGRATION_MARK=(
@@ -164,6 +165,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_constraint where conname = 'career_apply_questions_key_check' and pg_get_constraintdef(oid) like '%standing:%')"
   "to_regclass('public.career_deploy_ledger') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_sweep_stale')"
+  "to_regclass('public.trainee_agent_grants') is not null"
   "exists (select 1 from pg_constraint where conname = 'career_events_kind_check' and pg_get_constraintdef(oid) like '%apply_queued%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -512,7 +514,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/trainee-agent-api/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -649,7 +651,8 @@ else
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
+  # trainee-agent-api (WO-097) authorizes each call with the agent token the person minted (hashed, checked in the database).
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" trainee-agent-api; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi

@@ -169,6 +169,12 @@ function missingAnswerBody(reply: string, message: string, receiptOnly = false):
   if (!/[\p{L}\p{N}]/u.test(reply)) return true;
   const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
   if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
+  // In a drafted message, "I'll review the role tonight" can be the requested deliverable, not this agent's
+  // promise. Preserve an utterance the person actually supplied, including its contracted spelling. A general
+  // request to draft something does not exempt the agent's own "I'll draft it" preamble.
+  const utterance = (s: string) => plainQuotes(s).toLowerCase().replace(/\bi'll\b/g, "i will").replace(/[.!?]+$/, "").trim().replace(/\s+/g, " ");
+  if (/\b(?:write|draft|compose|word|say|saying|tell|respond)\b/i.test(message) &&
+    /\b(?:reply|message|email|text|note|letter|sentence|script)\b/i.test(message) && utterance(message).includes(utterance(reply))) return false;
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
   return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }

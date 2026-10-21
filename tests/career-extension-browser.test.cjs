@@ -1502,6 +1502,217 @@ test("answer once: Prepare reads 3 forms without touching them; the panel asks e
     await page.close();
   }
 });
+// ------------------------------------------------------------------------------------------------ WO-091d: states that end
+// docs/architect/work-orders/WO-091d-apply-states.md. F1 runs on the world's TEST Greenhouse-shaped page (NATIVE_URL): a
+// plain <form> with its own submit button and a stand-in employer that listens only for the form's submit event, so the
+// browser's own validation runs on the click first.
+const { NATIVE_URL } = require("./fixtures/extension/world.cjs");
+const GH = "native-test";
+const fieldValue = (card, name) => (card.payload?.fields || []).find((f) => f.name === name)?.value;
+
+test("091d F1: a URL the browser itself refuses is 'Not sent — fix Portfolio URL', recorded as not sent; fixed, the same posting goes", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const form = await openForm(NATIVE_URL);
+  try {
+    await readyCard(form);
+    await form.page.fill("#portfolio_test", "linkedin.com/in/x"); // text only: no page of that site is opened
+    await waitCard(form.tabId, (c) => c.status === "ready" && fieldValue(c, "portfolio_test") === "linkedin.com/in/x", 10000);
+    await form.panel.click("#approve");
+    const stopped = await waitCard(form.tabId, (c) => c.status === "stopped" || c.status === "done", 45000);
+    assert.equal(stopped.status, "stopped", stopped.message);
+    assert.match(stopped.message, /^Not sent — fix Portfolio URL/);
+    assert.doesNotMatch(stopped.message, /^Sent/);
+    await sleep(500);
+    assert.equal(submitsFor(GH).length, 0, "nothing reached the employer");
+    assert.equal(world.state.finishes.at(-1).p_state, "not_submitted", "recorded as not sent: it never counts as applied");
+    assert.match(world.state.finishes.at(-1).p_evidence.reason, /^the browser refused the submit: Portfolio URL/);
+    // The person fixes the field; the card reads it again; the same posting goes, once.
+    await form.page.fill("#portfolio_test", "https://linkedin.com/in/x");
+    await waitCard(form.tabId, (c) => c.status === "ready" && fieldValue(c, "portfolio_test") === "https://linkedin.com/in/x", 10000);
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (c) => c.status === "done" || c.status === "stopped", 45000);
+    assert.equal(done.result, "confirmed", done.message);
+    assert.doesNotMatch(done.message, /already applied/);
+    assert.equal(submitsFor(GH).length, 1);
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("091d F1: a field the browser refuses at the click (hidden from the person) is recorded as not sent, and the posting stays open", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const form = await openForm(NATIVE_URL + "?trainee_test=hiddenrequired");
+  try {
+    for (let round = 1; round <= 2; round++) {
+      await readyCard(form);
+      await form.panel.click("#approve");
+      const end = await waitCard(form.tabId, (c) => c.status === "stopped" || c.status === "done", 45000);
+      assert.equal(end.status, "stopped", `round ${round}: ${end.message}`);
+      assert.match(end.message, /^Not sent — fix TEST hidden employer field/);
+      assert.doesNotMatch(end.message, /already applied/);
+      assert.equal(world.state.begins.length, round, `round ${round} was recorded and approved again`);
+      assert.equal(world.state.finishes.at(-1).p_state, "not_submitted");
+      assert.match(world.state.finishes.at(-1).p_evidence.reason, /^the browser refused the submit: TEST hidden employer field/);
+    }
+    assert.equal(submitsFor(GH).length, 0, "nothing reached the employer");
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("091d F2: the record's answer is lost on the way back; approving the same card again resumes the same record and sends once", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03";
+  const form = await openForm(world.urlOf(id));
+  try {
+    const card = await readyCard(form);
+    world.state.dropBeginResponse = 1;
+    await form.panel.click("#approve");
+    const again = await waitCard(form.tabId, (c) => (c.status === "ready" && /Approve again/.test(c.message || "")) || c.status === "stopped", 20000);
+    assert.equal(again.status, "ready", again.message);
+    assert.equal(again.hash, card.hash, "the same card");
+    assert.equal(submitsFor(id).length, 0, "nothing was sent");
+    await form.panel.waitForFunction(() => !document.getElementById("approve").disabled, null, { timeout: 5000 });
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (c) => c.status === "done" || c.status === "stopped", 30000);
+    assert.equal(done.result, "confirmed", done.message);
+    assert.equal(world.state.jobs.filter((j) => j.payload?.url === world.urlOf(id)).length, 1, "one record");
+    assert.equal(world.state.finishes.length, 1);
+    assert.equal(submitsFor(id).length, 1, "sent once");
+  } finally {
+    world.state.dropBeginResponse = 0;
+    await closeForm(form);
+  }
+});
+
+test("091d F2: a finish the network refused is kept on the computer and recorded on the next form", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03";
+  let form = await openForm(world.urlOf(id));
+  try {
+    await readyCard(form);
+    world.state.failFinish = 3;
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (c) => c.status === "done", 30000);
+    assert.equal(done.recorded, false, "not recorded yet");
+    assert.equal(world.state.finishes.length, 0);
+    assert.equal((await sw.evaluate(async () => (await chrome.storage.local.get("finish_outbox")).finish_outbox || [])).length, 1, "kept on this computer");
+  } finally {
+    world.state.failFinish = 0;
+    await closeForm(form);
+  }
+  form = await openForm(world.urlOf("lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027"));
+  try {
+    await fill(form); // the next form asks for the person's context: what was kept goes now
+    await waitFor(() => world.state.finishes.length === 1, 10000);
+    assert.equal(world.state.finishes[0].p_state, "confirmed");
+    assert.equal(world.state.jobs.find((j) => j.payload?.url === world.urlOf(id)).state, "confirmed");
+    await sleep(300);
+    assert.equal((await sw.evaluate(async () => (await chrome.storage.local.get("finish_outbox")).finish_outbox || [])).length, 0, "and is no longer kept");
+    assert.equal((await evidenceLocal())[0].recorded, true);
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("091d F11: the queue's tab closed while a card waits: Start opens the same posting again", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const ids = ["ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03", "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027"];
+  const page = await ctx.newPage();
+  await page.goto("https://upmore-topaz.vercel.app/?queue=091d");
+  const tabId = await tabIdOf(page.url());
+  const panel = await openPanel(tabId);
+  let reopened = null;
+  try {
+    await panel.fill("#links", ids.map((id) => world.urlOf(id)).join("\n"));
+    await panel.click("#q-add");
+    await panel.waitForFunction(() => /added\./.test(document.getElementById("q-msg")?.textContent || ""), null, { timeout: 5000 });
+    await panel.click("#q-start");
+    const first = world.urlOf(ids[0]);
+    await waitFor(() => page.url() === first, 15000);
+    await waitCard(tabId, (c) => c.url === first && ["ready", "blocked"].includes(c.status), 20000);
+    await page.close();
+    await sleep(500);
+    const q = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    assert.equal(q.items[0].state, "waiting", "the open posting is waiting again");
+    assert.equal(q.running, false);
+    await panel.click("#q-start");
+    const end = Date.now() + 15000;
+    while (!reopened && Date.now() < end) {
+      reopened = ctx.pages().find((p) => p.url() === first) || null;
+      if (!reopened) await sleep(100);
+    }
+    assert.ok(reopened, "the same posting opened again");
+    const q2 = await sw.evaluate(async () => (await chrome.storage.session.get("queue")).queue);
+    assert.equal(q2.items[0].state, "open");
+    assert.equal(q2.items[1].state, "waiting");
+  } finally {
+    await sw.evaluate(() => chrome.storage.session.set({ queue: { items: [], index: -1, tabId: null, running: false } }));
+    await reopened?.close().catch(() => {});
+    await panel.close();
+    await page.close().catch(() => {});
+  }
+});
+
+test("091d F4: the page asks for a check after the click; the card says not finished, and the person records finishing it themselves", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03";
+  const form = await openForm(world.urlOf(id, "challengeafter"));
+  try {
+    await readyCard(form);
+    await form.panel.click("#approve");
+    const done = await waitCard(form.tabId, (c) => c.status === "done", 45000);
+    assert.equal(done.result, "needs_user", done.message);
+    assert.match(done.message, /^Not finished/);
+    assert.doesNotMatch(done.message, /^Sent/);
+    await form.panel.waitForSelector("#finished-myself:not([hidden])", { timeout: 5000 });
+    assert.equal(await form.panel.isHidden("#try-again"), true);
+    await form.panel.click("#finished-myself");
+    const after = await waitCard(form.tabId, (c) => c.result === "submitted_unconfirmed", 10000);
+    assert.match(after.message, /^Recorded: you finished it yourself/);
+    assert.equal(world.state.jobs.find((j) => j.payload?.url === world.urlOf(id, "challengeafter")).state, "submitted_unconfirmed");
+    await form.panel.waitForSelector("#finished-myself", { state: "hidden", timeout: 5000 });
+  } finally {
+    await closeForm(form);
+  }
+});
+
+test("091d F4: the employer's form refused it in place; Try again (the person's own tap) lets the same posting be approved once more", async (t) => {
+  if (skip(t)) return;
+  fresh();
+  const id = "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c";
+  const form = await openForm(world.urlOf(id, "rejects"));
+  try {
+    await readyCard(form);
+    await form.panel.click("#approve");
+    const failed = await waitCard(form.tabId, (c) => c.status === "done", 45000);
+    assert.equal(failed.result, "failed", failed.message);
+    await form.panel.waitForSelector("#try-again:not([hidden])", { timeout: 5000 });
+    // Nothing goes again by itself.
+    assert.equal(submitsFor(id).length, 1);
+    await form.panel.click("#try-again");
+    const released = await waitCard(form.tabId, (c) => c.status === "stopped" && c.released, 10000);
+    assert.match(released.message, /approve again/);
+    assert.equal(submitsFor(id).length, 1, "releasing sends nothing");
+    // The same page fills again and the person approves again.
+    await readyCard(form);
+    await form.panel.click("#approve");
+    const again = await waitCard(form.tabId, (c) => c.status === "done" || (c.status === "stopped" && !c.released), 45000);
+    assert.doesNotMatch(again.message, /already applied/);
+    assert.equal(again.result, "failed", again.message);
+    assert.equal(world.state.begins.length, 2);
+    assert.equal(submitsFor(id).length, 2, "sent again only on the person's second approval");
+  } finally {
+    await closeForm(form);
+  }
+});
+
 // A label as the card shows it (apply_core shortLabel: the required star dropped, cut at 160).
 const C_label = (l) => {
   const t = String(l || "").replace(/\s*[*✱]+\s*$/, "").replace(/\s+/g, " ").trim();

@@ -229,7 +229,8 @@
         return { ok: false };
       }
       jobId = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
-      company = C.tenantOf(jobId) || location.hostname;
+      // WO-091d (F7): on Workday the employer is the tenant, never a data centre's shared host.
+      company = (portal.family === "workday" ? C.workdayTenant(location.href) : "") || C.tenantOf(jobId) || location.hostname;
       where = D.fnPostingLocation(); // WO-053: where the job is, as its page shows it
       expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
       plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where });
@@ -299,8 +300,9 @@
     if (!f.schema.length) return send({ type: "survey", ok: false, why: "no application form on the page" });
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
-    const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+    const co = (portal.family === "workday" ? C.workdayTenant(location.href) : "") || C.tenantOf(id) || location.hostname;
+    const p = C.planForm({ userId: c.userId, jobId: id, company: co, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
+    return send({ type: "survey", ok: true, jobId: id, company: co, url: location.href, location: at, needs: p.needs });
   }
   function formReady(ms) {
     return new Promise((resolve) => {
@@ -524,6 +526,8 @@
     const begun = await send({ type: "begin", payload: reviewed.payload, hash, urlBefore: location.href, plannedNames: planned, formAnswers, screenshot: { sha256: shot.sha256, dataUrl: shot.dataUrl } });
     if (!begun?.ok) {
       submitting = false;
+      // WO-091d (F11): no answer at all (the service worker restarted): the card must not stay "Checking..." forever.
+      if (!begun?.message) await send({ type: "stopped", message: "Trainee could not record this application, so it was not sent. Press Fill this application, then approve again." });
       return;
     }
     // The last look and the click, in one task: no page script and no person can act between them (WO-031 review).
@@ -535,9 +539,28 @@
     }
     const errorsBefore = D.visibleErrors(), before = location.href;
     steps.begun = Date.now();
+    // WO-091d (F1): the browser's own verdict on this click, read while it happens. Its constraint validation runs inside
+    // click(): a refused form fires `invalid` on its fields and never `submit`. Window capture listeners hear both before
+    // any page script can stop them; they are taken off right after the click.
+    const refused = [];
+    let submitFired = false;
+    const onInvalid = (e) => refused.push(e.target);
+    const onSubmit = () => (submitFired = true);
+    window.addEventListener("invalid", onInvalid, true);
+    window.addEventListener("submit", onSubmit, true);
     sent = true;
     globalThis.__traineeClicked = true; // tells the background this page is the one that clicked, not the page after it
     button.click();
+    window.removeEventListener("invalid", onInvalid, true);
+    window.removeEventListener("submit", onSubmit, true);
+    if (!submitFired && refused.length && button.form?.isConnected) {
+      // Provably not sent: the form is here and the browser refused it. Recorded as not sent; the person may approve again.
+      sent = false;
+      globalThis.__traineeClicked = false;
+      const items = [...new Set(refused)].slice(0, 5).map((el) => ({ label: D.fieldLabel(el), message: String(el.validationMessage || "").slice(0, 160) }));
+      const reason = `${C.BROWSER_REFUSED}: ${items.map((i) => `${C.shortLabel(i.label)}: ${i.message}`).join("; ")}`.slice(0, 500);
+      return stop(C.refusedMessage(items), { finishPending: true, reason, beforeClick: true });
+    }
     send({ type: "clicked", at: Date.now(), errorsBefore, steps });
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.
     // The wait ends only when the form is gone, a new error appears, or the page asks for something; otherwise after 30
@@ -618,6 +641,13 @@
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;
+    }
+    // WO-091d (F4): the person released an attempt the employer's form refused in place: this page may be filled and
+    // approved once more (only by the background, on the person's own tap; never while sending).
+    if (m?.type === "rearm") {
+      if (!submitting) sent = false;
+      reply({ ok: !sent });
+      return false;
     }
     if (m?.type === "submit") {
       // Answered at once: the submit may move the page away, which would close a reply still waiting (WO-031 review).

@@ -458,7 +458,7 @@ type CalendarParts = { year: number; month: number | null; day: number | null };
 function calendarParts(value: string, dayFirst = false): CalendarParts | null {
   let year: number, month: number | null = null, day: number | null = null;
   let m: RegExpExecArray | null;
-  if ((m = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/.exec(value))) [year, month, day] = [Number(m[1]), m[2] ? Number(m[2]) : null, m[3] ? Number(m[3]) : null];
+  if ((m = /^(\d{4})(?:[\/.-](\d{1,2})(?:[\/.-](\d{1,2}))?)?$/.exec(value))) [year, month, day] = [Number(m[1]), m[2] ? Number(m[2]) : null, m[3] ? Number(m[3]) : null];
   else if ((m = /^(\d{1,2})[\/.-](\d{4})$/.exec(value))) [year, month] = [Number(m[2]), Number(m[1])];
   else if ((m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(value))) [year, month, day] = [Number(m[3]), Number(m[dayFirst ? 2 : 1]), Number(m[dayFirst ? 1 : 2])];
   else if ((m = /^([a-z]+)\.?\s+(?:(\d{1,2}),?\s+)?(\d{4})$/i.exec(value))) {
@@ -468,22 +468,44 @@ function calendarParts(value: string, dayFirst = false): CalendarParts | null {
   } else return null;
   return calendarOk(year, month, day) ? { year, month, day } : null;
 }
-// The same typed check runs before saving and before filling, for both saved and derived answers. No normalization or
-// completion: a month/year can fill only a field asking for that precision; it never acquires an invented day.
-export function typedFieldProblem(f: Pick<FormField, "type" | "label" | "options" | "section">, value: string): string | null {
+type TypedField = Pick<FormField, "type" | "label" | "options" | "section">;
+const dateFormat = (f: TypedField) => (f.section?.format || /\b(?:yyyy[-/.]mm(?:[-/.]dd)?|dd[-/.]mm[-/.]yyyy|mm[-/.]dd[-/.]yyyy|mm[-/.]yyyy|yyyy)\b/i.exec(normQuestion(f.label))?.[0] || "").toUpperCase();
+// The stored question has no section column. Preserve known date precision in its existing type, rather than guessing
+// from an ambiguous label such as "From". Options retain their original type and exact choice validation.
+export function questionFieldType(f: TypedField): string {
+  const type = String(f.type || "input_text");
+  if (f.options?.length || type === "checkbox" || /file/.test(type) || type === "number") return type;
+  const format = dateFormat(f);
+  if (format === "YYYY") return "year";
+  if (/^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || /month and year|month\/year/i.test(f.label)) return "month";
+  return type;
+}
+// The same typed check runs before saving and filling. A month/year can fill only a field asking for that precision;
+// it never acquires an invented day. Stored answers keep the person's exact representation.
+export function typedFieldProblem(f: TypedField, value: string): string | null {
   if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return null;
   const v = String(value).trim(), label = normQuestion(f.label);
   if (f.type === "number" && (!/^-?\d+(?:\.\d+)?$/.test(v) || !Number.isFinite(Number(v)))) return "needs a finite number, written as digits";
-  const format = (f.section?.format || /\b(?:yyyy[-/.]mm(?:[-/.]dd)?|dd[-/.]mm[-/.]yyyy|mm[-/.]dd[-/.]yyyy|mm[-/.]yyyy|yyyy)\b/i.exec(label)?.[0] || "").toUpperCase();
+  const format = dateFormat(f);
   const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
-  const yearOnly = format === "YYYY";
-  const date = f.type === "date" || f.type === "month" || !!format || DATE_FORMAT.test(label) || (/\bdates?\b/.test(label) && !/up[- ]to[- ]date/.test(label));
+  const yearOnly = format === "YYYY" || f.type === "year";
+  const date = f.type === "date" || f.type === "month" || f.type === "year" || !!format || DATE_FORMAT.test(label) || (/\bdates?\b/.test(label) && !/up[- ]to[- ]date/.test(label));
   if (!date) return null;
   const p = calendarParts(v, /^DD/.test(format));
   if (!p || (yearOnly ? p.month !== null : monthYear ? p.month === null || p.day !== null : p.day === null)) {
     return yearOnly ? "needs a valid four-digit year" : monthYear ? "needs a valid month and year, without adding a day" : "needs a valid calendar date including month, day and four-digit year";
   }
   return null;
+}
+// Native date/month inputs require ISO, even when the person stated an equivalent named or slash-separated date.
+// Only a fully validated, already-stated precision is reformatted. Custom section formats are emitted by sectionAnswer.
+export function canonicalTypedValue(f: TypedField, value: string): string | null {
+  if (typedFieldProblem(f, value)) return null;
+  if (f.options.length || f.section?.format || !["date", "month"].includes(f.type)) return value;
+  const p = calendarParts(String(value).trim(), /^DD/.test(dateFormat(f)));
+  if (!p || p.month === null || (f.type === "date" && p.day === null)) return null;
+  const year = String(p.year).padStart(4, "0"), month = String(p.month).padStart(2, "0");
+  return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${String(p.day).padStart(2, "0")}`;
 }
 const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
 // WO-052 (an independent review of every fill on samples A and B):
@@ -773,7 +795,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         // own list, by the row the reader tied it to; with no row it is left (asked when required). Never a fact about the
         // person as a whole (their city, phone, email, name, current employer), never an answer saved under its wording.
         const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-        if (s && fitsField(f, s.value)) { filled.push({ name: f.name, label: f.label, value: s.value, factId: s.factId }); continue; }
+        if (s && fitsField(f, s.value)) { filled.push({ name: f.name, label: f.label, value: canonicalTypedValue(f, s.value)!, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;
         const k = normLabel(f.label);
@@ -815,7 +837,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
       }
       if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
-      if (value !== null && value !== "" && fitsField(f, value, a === own)) { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
+      if (value !== null && value !== "" && fitsField(f, value, a === own)) { filled.push({ name: f.name, label: f.label, value: canonicalTypedValue(f, value)!, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;
       const k = normLabel(f.label);

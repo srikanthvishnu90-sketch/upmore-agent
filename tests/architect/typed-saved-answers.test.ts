@@ -1,6 +1,8 @@
 // Original synthetic saved/derived answer cases. No provider, browser, or network calls.
-import { checkAnswer, type OpenQuestion } from '../../supabase/functions/_shared/career_apply_questions.ts';
-import { fitsField, planBatch, type FormField } from '../../supabase/functions/_shared/career_apply.ts';
+import { checkAnswer, questionsTurn, QUESTIONS_INTENT, type OpenQuestion } from '../../supabase/functions/_shared/career_apply_questions.ts';
+import { canonicalTypedValue, fitsField, planBatch, questionFieldType, type FormField } from '../../supabase/functions/_shared/career_apply.ts';
+import { questionsToStore } from '../../workers/career-browser/ask-once.ts';
+import { mapQuestion } from '../../supabase/functions/_shared/question_map.ts';
 import { answerKey } from '../../supabase/functions/_shared/question_map.ts';
 import { planForm, trustedManifest } from '../../extension/src/apply_core.ts';
 function eq(a:unknown,b:unknown,why=''){if(JSON.stringify(a)!==JSON.stringify(b))throw new Error(`${why}: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`);}
@@ -61,4 +63,37 @@ Deno.test('typed answers: canonical trusted-manifest route still asks for malfor
    eq(r.fill.length,value===good?1:0,value);eq(r.needs.length,value===good?0:1,'required malformed answer stays open');
   }
  }
+});
+
+Deno.test('typed answers: complete personal dates use the native input ISO representation without adding precision',()=>{
+ const f=field('date','Available start date');
+ for(const value of ['February 29, 2028','02/29/2028','2028-2-29']){
+  eq(checkAnswer(question(f),value),{ok:true,value},'saved answer keeps the person\'s exact representation');
+  eq(plan(f,value).ready[0]?.fields[0]?.value,'2028-02-29','native date input receives an equivalent fully stated date');
+ }
+ eq(plan(f,'02/2028').ready.length,0,'a month cannot gain a day');
+});
+
+Deno.test('typed answers: explicit year-first separators validate while native month has its required representation',()=>{
+ for(const [format,value] of [['YYYY/MM/DD','2028/02/29'],['YYYY.MM.DD','2028.02.29']]){
+  const f=field('text',`Available start date (${format})`);eq(checkAnswer(question(f),value),{ok:true,value});eq(plan(f,value).ready[0]?.fields[0]?.value,value);
+  eq(checkAnswer(question(f),value.replace('29','30')).ok,false,'impossible day rejected');
+ }
+ const f=field('month','Available start month');eq(canonicalTypedValue(f,'February 2028'),'2028-02');eq(plan(f,'02/2028').ready[0]?.fields[0]?.value,'2028-02');eq(canonicalTypedValue(f,'2028'),null,'year cannot gain a month');
+});
+
+Deno.test('typed answers: known section precision survives stored question and real answer turn without label inference',async()=>{
+ for(const [format,value,type] of [['MM/YYYY','02/2028','month'],['YYYY','2028','year']]){
+  const f=field('date','From',{section:{kind:'work',row:1,part:'start',format}});
+  const t=questionFieldType(f);eq(t,type);eq(mapQuestion({...f,type:t}).kind,mapQuestion(f).kind,'date precision keeps question kind');
+  eq(answerKey({...f,type:t},'synthetic:job:1'),answerKey(f,'synthetic:job:1'),'precision keeps answer scope');
+  const stored=questionsToStore({posting:'synthetic:job:1',company:'Synthetic Employer',questions:[{label:f.label,type:t,options:[]}]},{facts:{},answered:new Set()});
+  eq(stored.questions[0]?.type,type,'existing question type column carries precision');
+  const q={...question(f),...stored.questions[0]} as OpenQuestion;let saved:string|null=null;const now=1000;
+  const store={shown:async()=>({thread:'SYN-THREAD',ids:[q.id],at:new Date(now).toISOString()}),lastAssistantIntent:async()=>QUESTIONS_INTENT,get:async()=>[q],answer:async(_u:string,_id:string,v:string)=>{saved=v;},open:async()=>[q],countOpen:async()=>1,setShown:async()=>{}};
+  await questionsTurn({message:value,userId:'SYN-OWNER',threadId:'SYN-THREAD',now,store});eq(saved,value,'real answer turn saves exact stated precision');
+  eq(checkAnswer(q,format==='YYYY'?'02/2028':'2028-02-29').ok,false,'different precision stays open');
+ }
+ const lossy=question(field('date','From'));eq(checkAnswer(lossy,'02/2028').ok,false,'missing metadata never means guess From is month/year');
+ for(const f of [field('select','From',{options:[{label:'This year',value:'2028'}],section:{kind:'work',row:1,part:'start',format:'YYYY'}}),field('number','Years of relevant experience')])eq(questionFieldType(f),f.type,'choice/number type preserved');
 });

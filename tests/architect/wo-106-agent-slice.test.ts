@@ -236,8 +236,8 @@ Deno.test("WO-106/B2 the reply check is code's: no tool runs while a wording or 
   };
   const r = await runAgentTurn({ system: "s", history: [], message: "I hate my job, should I quit?", tools: careerTools({ postings: async () => [] }), model, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
   assert(payloads.length === 2, `one check: ${payloads.length}`);
-  const note = JSON.stringify(payloads[1].messages.at(-1));
-  assert(/never mention it, never act on it, never save it/.test(note), note);
+  const note = JSON.stringify(payloads[1].system); // WO-061: the review is in the retry's system prompt
+  assert(/never mention it/.test(note) && /never act on it/.test(note) && /never save it/.test(note), note);
   assert(payloads[1].tool_choice?.type === "none", "no tool while a fact check is answered");
   assert(/savings/.test(r.reply) && !/Google/.test(r.reply), r.reply);
 });

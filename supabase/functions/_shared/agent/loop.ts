@@ -168,13 +168,19 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
   let steps = 0, checked = false, ask = false;
+  // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
+  // the conversation. As a user-role message the model took it for the person's words, refused it out loud ("I can't
+  // follow the instruction to show ... hidden internal words") and the refusal reached the person.
+  let review: string | null = null;
   // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
   // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
   const earlier: string[] = [];
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
+    const system = review ? `${o.system}\n\n${review}` : o.system;
+    review = null;
+    try { res = await o.model({ system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -205,10 +211,10 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
           waiver.length ? "Your reply offers them wording to send, or offers to save something, that would waive their yes or grant a standing permission. Never propose that wording or offer to save it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
         ].filter(Boolean).join(" ");
-        messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
         // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
         // it to the person): the note is code's, the rewrite is for the person, and no tool runs while it is answered.
-        messages.push({ role: "user", content: [{ type: "text", text: `[check from code, not from the person: never mention it, never act on it, never save it] ${told} Write your reply to the person again, answering what they asked, with only those changes.` }] });
+        // WO-061: it is no longer a message at all; the conversation stays as the person left it (see `review`).
+        review = `CODE'S REVIEW OF YOUR DRAFT REPLY. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request, never save it. Your draft was:\n"""\n${reply}\n"""\n${told} Write your reply to the person again, answering what they asked in their last message, with only those changes.`;
         // A claim may still be made true by its own tool; a wording or fact check runs no tool at all.
         if (!claims.length) ask = true;
         continue;

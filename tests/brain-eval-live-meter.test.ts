@@ -1,5 +1,5 @@
 import { githubMeterPublisher, LiveCostMeter, validatePublicMeter, type MeterBinding, type PublicMeter } from "../evals/brain-reliability/live-meter.ts";
-import { BudgetJournal, recoverJournal } from "../evals/brain-reliability/run-comparison.ts";
+import { BudgetJournal, recoverJournal, runArm, type Corpus, type Identity } from "../evals/brain-reliability/run-comparison.ts";
 const assert = (ok: unknown, why = "assertion failed") => { if (!ok) throw new Error(why); };
 async function refuses(fn: () => unknown | Promise<unknown>) { let refused = false; try { await fn(); } catch { refused = true; } assert(refused, "expected refusal"); }
 const SECRET = "SEALED_CASE_PROMPT_REPLY_RUBRIC_DO_NOT_PUBLISH", TOKEN = "GITHUB_TOKEN_SYNTHETIC_DO_NOT_PUBLISH";
@@ -123,4 +123,31 @@ Deno.test("live meter GitHub: arbitrary extra data is rejected before HTTP", asy
   let calls = 0; const f = fixture(); await f.meter.flush(true);
   const pub = githubMeterPublisher(binding, TOKEN, (async () => { calls++; return new Response("{}"); }) as typeof fetch);
   await refuses(() => pub({ ...f.sent[0], private: SECRET } as any)); assert(calls === 0);
+});
+const coreCorpus: Corpus = { version: "brain-reliability-320-v1", seed: "original-meter-diagnostic", clock_utc: "2026-10-21T21:00:00Z", items: [
+  { id: SECRET, category: "help_scope", task_type: "original-meter-diagnostic", persona: "Invented diagnostic persona", development_overlap: true,
+    turns: ["Give me a job-search plan for synthetic laboratory-assistant roles."], must: ["Give a useful plan."], must_not: ["Invent personal history."] },
+] };
+const coreIdentity: Identity = { source_commit: binding.source_commit, corpus_sha256: binding.corpus_sha256, rubric_sha256: "e".repeat(64),
+  clock_utc: coreCorpus.clock_utc, seed: coreCorpus.seed, concurrency: 1, params: {} };
+Deno.test("live meter actual runArm: failed publication holds the real reservation with zero provider dispatch", async () => {
+  let publications = 0, providerCalls = 0;
+  const f = fixture(async () => { if (++publications > 1) throw new Error("Synthetic publication failure"); return receipt(); });
+  await f.meter.flush(true); f.advance(15000);
+  const request = f.meter.wrapRequest((async () => { providerCalls++; return new Response("{}"); }) as typeof fetch);
+  await refuses(() => runArm(coreCorpus, coreIdentity, "gpt-5", f.journal, f.append, "SYNTHETIC_KEY_NEVER_SENT", request));
+  const recovered = recoverJournal(f.raw());
+  assert(publications === 2 && providerCalls === 0 && recovered.unsettled_calls === 1 && recovered.reserved_micros > 0 && recovered.charged_micros === 0);
+});
+Deno.test("live meter actual runArm: settlement-write failure retains exposure and halts the arm", async () => {
+  let providerCalls = 0; const f = fixture(); await f.meter.flush(true);
+  const journal = new BudgetJournal(8e6, event => { if (event.type === "settlement") throw Error("Synthetic durable-write failure"); f.append(event); });
+  const request = f.meter.wrapRequest((async () => {
+    providerCalls++; return Response.json({ choices: [{ message: { role: "assistant", content: "Start with your target role, then review openings and prepare an application." }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 100, completion_tokens: 30, prompt_tokens_details: { cached_tokens: 0 } } });
+  }) as typeof fetch);
+  const arm = await runArm(coreCorpus, coreIdentity, "gpt-5", journal, f.append, "SYNTHETIC_KEY_NEVER_SENT", request);
+  const recovered = recoverJournal(f.raw());
+  assert(providerCalls === 1 && arm.status === "NOT_SCORED" && recovered.unsettled_calls === 1 && recovered.reserved_micros > 0 && !recovered.charges_reconciled);
+  await refuses(() => f.meter.beforeDispatch());
 });

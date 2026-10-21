@@ -152,10 +152,12 @@ export class LiveCostMeter {
 
 // New orchestration entry point for a FUTURE, separately approved run. Existing paid workflows do not import it.
 // Callers still persist the full result privately; only PublicMeter is passed to the publisher.
-export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: string; approval: Approval & { live_meter_approval_ref: string }; binding: MeterBinding;
+export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: string; approvalFile: string; binding: MeterBinding;
   append: Append; publisher: Publisher; apiKey: string; firstArmRaw?: string; request?: typeof fetch; now?: () => number }): Promise<ArmResult> {
-  const { corpusRaw, manifestRaw, approval, binding, append, publisher, apiKey, firstArmRaw } = args;
+  const { corpusRaw, manifestRaw, approvalFile, binding, append, publisher, apiKey, firstArmRaw } = args;
+  const approval = JSON.parse(await Deno.readTextFile(approvalFile)) as Approval & { live_meter_approval_ref: string };
   require(typeof approval.live_meter_approval_ref === "string" && approval.live_meter_approval_ref.trim() !== "" && approval.live_meter_approval_ref !== "NOT_APPROVED");
+  require(approval.owner_approval_ref !== "NOT_APPROVED");
   const manifest = JSON.parse(manifestRaw), corpus = await validateCorpus(corpusRaw, manifest);
   const root = new URL("../../", import.meta.url);
   const git = async (...command: string[]) => {
@@ -176,6 +178,11 @@ export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: 
   require(sameBinding(bindingCopy(binding), { ...binding, source_commit: source, corpus_sha256: manifest.sha256,
     model: approval.model as MeterBinding["model"], cap_usd: approval.cap_usd, comparison_spent_usd: approval.comparison_spent_usd }));
   if (binding.model === "gpt-5") { require(typeof firstArmRaw === "string"); await verifyFirstArm(approval, identity, firstArmRaw!); }
+  // Same local once-only guard as the existing CLI. The shared owner ledger is still authoritative across machines.
+  const consumed = Deno.openSync(approvalFile + ".consumed", { write: true, createNew: true, mode: 0o600 });
+  try { const raw = new TextEncoder().encode(canonical({ approval, run_id: binding.run_id, consumed_at: new Date().toISOString() }));
+    let at = 0; while (at < raw.length) at += consumed.writeSync(raw.subarray(at)); consumed.syncSync();
+  } finally { consumed.close(); }
   const meter = new LiveCostMeter(binding, publisher, args.now);
   const durableObserved: Append = event => { append(event); meter.observe(event); };
   durableObserved({ type: "arm", model: binding.model, identity, approval });

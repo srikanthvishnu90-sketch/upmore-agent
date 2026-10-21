@@ -39,7 +39,7 @@ Deno.test('bound row answers: invalid exact row answers stay open and do not res
 });
 
 Deno.test('bound row answers: malformed or mismatched persisted binding is never treated as free text',()=>{
- const q=question(field());for(const changed of [{...q,type:'row:month:not-a-hash'},{...q,key:'job:0000000000000000'},{...q,type:'row:year:'+q.key.slice(4)+':junk'}])eq(checkAnswer(changed,'02/2028').ok,false);
+ const q=question(field());for(const changed of [{...q,type:'row:month:not-a-hash'},{...q,key:'job:0000000000000000'},{...q,type:'row:year:'+q.key.slice(4)+':junk'},{...q,type:'row:unbound'}])eq(checkAnswer(changed,'02/2028').ok,false);
 });
 
 Deno.test('bound row answers: exact choices and identical labels stay tied to their own fields',()=>{
@@ -54,4 +54,11 @@ Deno.test('bound row answers: repeated missing labels retain exact field identit
  const missing=run([a,b],{});eq(missing.needs.map(n=>(n as any).field_name),[a.name,b.name],'each row is independently asked');
  const partial=run([a,b],own(a,'02/2028'));eq(partial.needs.map(n=>(n as any).field_name),[b.name],'ask the unresolved row rather than first equal label');
  const plain=run([{name:'plain-field',label:'Ordinary unknown question',type:'text',required:true,options:[]}],{});eq(Object.hasOwn(plain.needs[0],'field_name'),false,'ordinary needs shape unchanged');
+});
+
+Deno.test('bound row answers: binding refusal precedes choice and yes-no acceptance',()=>{
+ const choice=field({name:'education-1--degree',type:'select',label:'Degree',options:[{label:'Bachelors',value:'bachelor'},{label:'Masters',value:'master'}],section:{kind:'education',row:1,part:'degree',anchor:'Synthetic School'}});
+ const yesno=field({name:'workExperience-1--current',type:'checkbox',label:'Currently work here',section:{kind:'work',row:1,part:'current',anchor:'Synthetic Employer'}});
+ for(const [f,answer]of[[choice,'Masters'],[yesno,'Yes']] as const){const q=question(f);eq(checkAnswer(q,answer).ok,true,'supported choice');for(const bad of [{...q,key:'job:0000000000000000'},{...q,type:'row:unbound'},{...q,type:q.type+':junk'}])eq(checkAnswer(bad,answer).ok,false,'no early choice/yes-no bypass');}
+ const year=question(field({section:{kind:'work',row:1,part:'start',anchor:'Synthetic Employer',format:'YYYY'}}));eq(checkAnswer({...year,label:'From'},'2028').ok,true,'encoded year precision does not depend on a displayed hint');
 });

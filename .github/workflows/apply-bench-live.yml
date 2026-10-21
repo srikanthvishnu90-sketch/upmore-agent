@@ -4,7 +4,9 @@
 # 2. The extension on the 17 real application pages, filled and NEVER sent: Approve is never pressed, every non-GET
 #    request leaving the browser is aborted, Upmore and Supabase are the local TEST world, the resume is a TEST file,
 #    LinkedIn and Indeed are never opened (evals/apply/live-fill.cjs).
-# Both results are uploaded, and on a pull request from this repository committed back to its branch.
+# Both results are uploaded as an artifact. On a pull request nothing is committed: a commit pushed by this workflow does
+# not trigger the gate, so it left PR heads with no gate run (PR #128, 2026-10-20). A manual run commits them to
+# ci/apply-bench-live, from where they are merged like any other change.
 name: apply-bench-live
 on:
   pull_request:
@@ -49,12 +51,11 @@ jobs:
             tests/fixtures/forms-ci/greenhouse-options.json
             evals/apply/results/live-fill.json
           retention-days: 14
-      - name: Commit the results to the pull request branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      - name: Commit the results to ci/apply-bench-live (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git add tests/fixtures/forms-ci/greenhouse-options.json evals/apply/results/live-fill.json
           if git diff --cached --quiet; then echo "unchanged"; exit 0; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "WO-042: Greenhouse option lists and the live fill (never sent) from CI"
-          git pull --rebase --autostash origin "${{ github.head_ref }}" || true
-          git push origin "HEAD:${{ github.head_ref }}"
+          git push --force origin "HEAD:refs/heads/ci/apply-bench-live"

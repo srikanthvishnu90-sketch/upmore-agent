@@ -64,9 +64,9 @@ test("create retry: two lost creates, third lands — boardFor succeeds, backoff
   assert.ok(board && board.workerSessionId === "a".repeat(32), "the session was created on the third attempt");
   assert.equal(calls.filter((p) => p === "/board-sessions").length, 3, "exactly three create attempts");
   assert.equal(sleeps.length, 2, "one sleep per retry");
-  // ladder: base 100 -> 100, 300, with +/-25% jitter
+  // ladder: base 100 -> 100, 200, with +/-25% jitter
   assert.ok(sleeps[0] >= 75 && sleeps[0] <= 125, `first backoff on the ladder (got ${sleeps[0]})`);
-  assert.ok(sleeps[1] >= 225 && sleeps[1] <= 375, `second backoff on the ladder (got ${sleeps[1]})`);
+  assert.ok(sleeps[1] >= 150 && sleeps[1] <= 250, `second backoff on the ladder (got ${sleeps[1]})`);
 });
 
 test("create retry: attempts and deadline bound the loop — a dead worker fails named, not forever", () => {

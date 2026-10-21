@@ -111,12 +111,17 @@ kills the session.
   timeout.
 - **Provider create retry (the session-create seam only):** `boardFor`
   retries **only** `WORKER_UNREACHABLE`, bounded — 4 attempts, backoff
-  1s → 3s → 9s with jitter, 30s total deadline, injectable sleep for
-  tests. Answered refusals (`DRIVER_HOST_REFUSED`,
+  0.75s → 1.5s → 3s with jitter, 30s total deadline, injectable sleep
+  for tests. Answered refusals (`DRIVER_HOST_REFUSED`,
   `FAMILY_NOT_DRIVEABLE`, `WORKER_AUTH_REFUSED`, `SESSION_LIMIT`) and
   `WORKER_TRANSPORT_TIMEOUT` are never retried. Board calls are never
   retried — the terminal doctrine stands, because a lost call response
-  is ambiguous by definition.
+  is ambiguous by definition. (Ladder amended same-day from 1s → 3s →
+  9s: the batch-delegation down-service proof showed a long ladder is
+  paid once per application by a whole batch before it can name the
+  worker down — 15 applications × ~13s breached its 180s budget. The
+  retry's job is seconds-scale contention on a live service; a dead
+  worker belongs to the executor's next tick.)
 - **Proof:** fault-injection tests over the real HTTP stack (flaked
   create recovers end-to-end; refusals attempted exactly once; a
   mid-sequence call flake still terminates the session — the boundary),

@@ -255,7 +255,13 @@ export function createWorkerBoardProvider(opts) {
   // full budget) are never retried either.
   const retryCfg = (o.createRetry && typeof o.createRetry === "object") ? o.createRetry : {};
   const CREATE_MAX_ATTEMPTS = Math.max(1, Math.min(8, retryCfg.maxAttempts || 4));
-  const CREATE_BASE_DELAY_MS = Math.max(0, Math.min(10000, retryCfg.baseDelayMs != null ? retryCfg.baseDelayMs : 1000));
+  // The ladder is deliberately short (0.75s -> 1.5s -> 3s): the retry
+  // rides out seconds-scale contention on a LIVE service — each attempt
+  // may itself wait behind the blocking call — it does not resurrect a
+  // dead worker (the executor's next tick owns that). A long ladder
+  // would be paid once per application by a whole batch before the
+  // batch could name the worker down.
+  const CREATE_BASE_DELAY_MS = Math.max(0, Math.min(10000, retryCfg.baseDelayMs != null ? retryCfg.baseDelayMs : 750));
   const CREATE_DEADLINE_MS = Math.max(0, retryCfg.deadlineMs != null ? retryCfg.deadlineMs : 30000);
   const nowFn = typeof o.now === "function" ? o.now : () => Date.now();
   const sleepSync = typeof o.sleepSync === "function" ? o.sleepSync : (ms) => {
@@ -273,7 +279,7 @@ export function createWorkerBoardProvider(opts) {
         if (!e || e.code !== "WORKER_UNREACHABLE" || attempt >= CREATE_MAX_ATTEMPTS) throw e;
         const remaining = CREATE_DEADLINE_MS - (nowFn() - startedAt);
         if (remaining <= 0) throw e;
-        const ladder = CREATE_BASE_DELAY_MS * Math.pow(3, attempt - 1);
+        const ladder = CREATE_BASE_DELAY_MS * Math.pow(2, attempt - 1);
         const jittered = ladder * (0.75 + Math.random() * 0.5);
         sleepSync(Math.min(jittered, remaining));
       }

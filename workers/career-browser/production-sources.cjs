@@ -114,8 +114,11 @@ function portalProfileFromMaster(master, now, owner) {
     location: id(b.location),
     answers: {},
   };
-  const derived = Portal.deriveAnswers({ basics: b, facts: t.facts, defaults: {} }, now != null ? now : Date.now());
+  // MUSE-F-007: the saved answers (application_answer / application_text) through the same contract, each only for its
+  // exact question.
+  const derived = Portal.deriveAnswers({ basics: b, facts: t.facts, defaults: {} }, now != null ? now : Date.now(), { contract: Contract, owner });
   p.answers = clone(derived.answers);
+  if (derived.savedAnswers.length) p.savedAnswers = clone(derived.savedAnswers);
   for (const [k, v] of Object.entries(derived.profileFields)) if (p[k] == null) p[k] = clone(v);
   const r = m.resume || b.resume || null;
   if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };

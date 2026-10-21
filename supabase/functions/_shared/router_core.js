@@ -36932,6 +36932,301 @@ const CareerRouter = (() => {
     return { intent: "outreach_draft", reply, resultStatus: "awaiting_user", sends: 0, draft };
   }
 
+  // ---------- CONNECTOR v1 (Lane B): consent capture, matching,
+  // double opt-in, the intro — behind the allowlist gate ----------
+  // Design: docs/connector/connector-v1-design.md. The claim runs
+  // ahead of the people-matching stop and stands down (null) unless
+  // the account is on the composition root's connector allowlist —
+  // for everyone else the stop below answers byte-identically, and
+  // this family writes nothing. Per-user records (match profile,
+  // consent, intro artifacts) ride the account stated-facts keyed
+  // carriage like every other record kind; proposals live ONLY in
+  // the pool service (ctx.connectorPool, runtime wiring) — a single
+  // authority, so no thread copy or per-user mirror can diverge the
+  // state machine or re-fire an intro (the round-2 lesson, applied
+  // up front). A turn acts only as ctx.userId: a decision is taken
+  // only from the side the proposal currently awaits.
+  const CONN_REVOKE = /\bopt me out\b|\brevoke my consent\b|\bstop matching me\b|\bremove me from the (matching )?pool\b|\bdelete my match profile\b|\bleave the (matching )?pool\b/;
+  const CONN_OPTIN = /\bopt me into\b|\bopt me in\b|\bopt in\b|\bjoin the (matching )?pool\b|\bstart matching me\b/;
+  const CONN_MATCH_ASK = /\bfind me a match\b|\bpropose my (first )?match\b|\bpropose a match\b|\bmatch me\b|\bmatch me with\b|\bhelp me meet( the right)? people\b|\bmeet the right people\b|\bintroduce me\b|\bfind me a mentor\b|\bmentor at\b/;
+  const CONN_ANY_MATCH = /\bany matches for me\b|\bany match for me\b/;
+  const CONN_STATUS = /\bam i opted in\b|\bwhat'?s my match (status|profile)\b|\bmy match (status|profile)\b|\bconnector status\b|\bcheck in on my intro\b|\bdid my intro happen\b|\bmy intro\b|\bbuild my match profile\b|\bwhat do you know about me that you'?d use for matching\b/;
+  const CONN_BOOK = /\bbook it\b|\bbook the call\b|\byes,? book( the call)?\b/;
+  const CONN_YES = /^(yes|yeah|yep)[.!]?$|\byes to the match\b|\bintroduce us\b|\baccept the match\b/;
+  const CONN_NO = /^(no|nope|pass)[.!]?$|\bno thanks\b|\bpass on (this|the) match\b|\bdecline( the match)?\b/;
+  const CONN_MARKER = /\bmatch(ing)?\b|\bpool\b|\bmentor\b|\bintroduce\b|\bintros?\b|\bconnector\b/;
+  function connectorRecordRead(ctx, kind, key) {
+    const f = statedFactsOf(ctx).find((x) => x.kind === kind && s(x.key || "").toLowerCase() === s(key || "").toLowerCase());
+    if (!f) return null;
+    try { return JSON.parse(f.value); } catch { return null; }
+  }
+  function connectorRecordWrite(ctx, kind, key, obj, evidence) {
+    if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) ctx.statedFacts = { facts: [] };
+    const facts = ctx.statedFacts.facts;
+    const k = s(key || "").toLowerCase();
+    const value = JSON.stringify(obj);
+    const at = new Date(nowOf(ctx)).toISOString();
+    const ex = facts.find((f) => f.kind === kind && s(f.key || "").toLowerCase() === k);
+    if (ex) { ex.value = value; ex.evidence = s(evidence || "").slice(0, 200); ex.at = at; }
+    else facts.push({ kind, key: k || undefined, value, evidence: s(evidence || "").slice(0, 200), at });
+    ctx.statedFacts.updatedAt = at;
+    return true;
+  }
+  function connectorRecordRemove(ctx, kind, key) {
+    if (!(ctx.statedFacts && Array.isArray(ctx.statedFacts.facts))) return;
+    const k = s(key || "").toLowerCase();
+    ctx.statedFacts.facts = ctx.statedFacts.facts.filter((f) => !(f.kind === kind && s(f.key || "").toLowerCase() === k));
+  }
+  function connectorCaptureOf(raw) {
+    const t = s(raw);
+    let name = null, needs = null, offers = null;
+    const nm = t.match(/\bmy name is ([A-Za-z][A-Za-z'-]{1,30})\b/i);
+    if (nm) name = nm[1];
+    const clean = (v) => s(v).replace(/\s+/g, " ").replace(/[\s,;.]+$/, "").trim();
+    const needM = t.match(/\bi need (.+?)(?=\s*,?\s*and i (?:can )?offer\b|\s*\bi (?:can )?offer\b|[.;]|$)/i);
+    if (needM) needs = clean(needM[1]) || null;
+    const offM = t.match(/\bi (?:can )?offer ([^.;]+)/i);
+    if (offM) offers = clean(offM[1]) || null;
+    if (!name && !needs && !offers) return null;
+    return { name, needs, offers };
+  }
+  const CONN_STOPWORDS = new Set(["that", "this", "with", "from", "into", "your", "their", "them", "they", "have", "been", "will", "would", "about", "someone", "people", "want", "wants", "looking", "offer", "offers", "need", "needs", "intros", "intro"]);
+  function connectorTokens(str) {
+    const out = new Set();
+    for (const w of lc(str || "").match(/[a-z][a-z0-9]+/g) || []) if (w.length >= 4 && !CONN_STOPWORDS.has(w)) out.add(w);
+    return out;
+  }
+  function connectorOverlap(a, b) { const A = connectorTokens(a); let n = 0; for (const w of connectorTokens(b)) if (A.has(w)) n += 1; return n; }
+  function connectorFit(mine, theirs) { return connectorOverlap(mine.needs, theirs.offers) + connectorOverlap(mine.offers, theirs.needs); }
+  // The why, for a proposal: every clause quotes a profile fact
+  // VERBATIM — no fact, no clause (the spec's hallucinated-why ban).
+  // Each clause is ONE sentence: module 140 compresses every fact to
+  // its first sentence, so a clause's payload must live in it.
+  function connectorWhy(viewer, other) {
+    const clauses = [];
+    if (connectorOverlap(viewer.needs, other.offers) > 0) clauses.push(`They offer ${other.offers} — that matches what you said you need: ${viewer.needs}`);
+    if (connectorOverlap(viewer.offers, other.needs) > 0) clauses.push(`They are looking for ${other.needs} — that matches what you offer: ${viewer.offers}`);
+    return clauses;
+  }
+  function connectorProfileOf(ctx) {
+    const rec = connectorRecordRead(ctx, "connector_profile", "self");
+    if (!rec) return null;
+    const basicsName = ctx.profile && ctx.profile.basics && ctx.profile.basics.name ? s(ctx.profile.basics.name) : null;
+    return { name: rec.name || basicsName || null, needs: rec.needs || null, offers: rec.offers || null, updatedAt: rec.updatedAt || null };
+  }
+  function connectorProfileComplete(p) { return !!(p && p.name && p.needs && p.offers); }
+  function handleConnector(text, ctx, rawText) {
+    if (!ctx || !ctx.userId) return null;
+    const allow = Array.isArray(ctx.connectorAllowlist) ? ctx.connectorAllowlist : null;
+    if (!allow || !allow.includes(ctx.userId)) return null; // the gate: zero behavior change for everyone else
+    const t = lc(text);
+    const raw = s(rawText || text);
+    const pool = ctx.connectorPool && typeof ctx.connectorPool === "object" ? ctx.connectorPool : null;
+    const cap = connectorCaptureOf(raw);
+    const hasRecord = !!connectorRecordRead(ctx, "connector_consent", "pool") || !!connectorRecordRead(ctx, "connector_profile", "self");
+    const capFamily = !!cap && ((cap.needs && cap.offers) || CONN_MARKER.test(t) || hasRecord);
+    const broadFam = CONN_REVOKE.test(t) || CONN_OPTIN.test(t) || CONN_MATCH_ASK.test(t) || CONN_ANY_MATCH.test(t) || CONN_STATUS.test(t) || CONN_BOOK.test(t) || capFamily;
+    if (!pool) {
+      if (!broadFam) return null;
+      const reply = compose({ headline: "Matching is switched on for your account, but the matching pool is not wired on this surface yet.", facts: ["So I can't record a match profile, propose a match, or make an introduction from here — and I won't invent a person or a match to fill the gap.", "Nothing about you has been recorded or shared."], nextStep: "Everything else I do still runs as before — jobs, drafts, prep and your stated record are all live." });
+      return { intent: "connector_not_wired", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    const me = ctx.userId;
+    const nowIso = new Date(nowOf(ctx)).toISOString();
+    const consentOf = () => connectorRecordRead(ctx, "connector_consent", "pool");
+    const introsOf = () => statedFactsOf(ctx).filter((f) => f.kind === "connector_intro").map((f) => { try { return JSON.parse(f.value); } catch { return null; } }).filter(Boolean);
+    const open = pool.openProposalFor(me);
+    const awaitingMe = !!open && ((open.state === "awaiting_a" && open.aId === me) || (open.state === "awaiting_b" && open.bId === me));
+    const decisionShape = CONN_YES.test(t) || CONN_NO.test(t);
+    const myProposals = typeof pool.proposalsFor === "function" ? pool.proposalsFor(me) : [];
+    const lastIntroProp = myProposals.filter((p) => p.state === "intro_sent").slice(-1)[0] || null;
+    if (!broadFam && !(awaitingMe && decisionShape)) {
+      // A stale or repeated yes after the intro already fired: the
+      // state machine is terminal — surface the intro on record,
+      // never re-fire it.
+      if (decisionShape && lastIntroProp && introsOf().length) return connectorStatusReply(ctx, pool, { surfaceIntro: true });
+      return null;
+    }
+    // ---- revoke: first, in any state ----
+    if (CONN_REVOKE.test(t)) {
+      const had = consentOf() || connectorProfileOf(ctx);
+      if (open) pool.updateProposal(open.id, { state: "closed_revoked" });
+      if (had) {
+        connectorRecordWrite(ctx, "connector_consent", "pool", { status: "revoked", at: nowIso, scope: "matching", version: 1 }, "connector revoke, stated by the user");
+        if (/\bdelete my match profile\b/.test(t)) connectorRecordRemove(ctx, "connector_profile", "self");
+        const facts = [`Your consent record now says revoked (at ${nowIso}) — you will not be listed in the pool, proposed to anyone, or introduced.`];
+        if (open) facts.push("The match that was open is closed — the other side never saw your name or anything about you beyond the need/offer summary.");
+        facts.push("Any intro that already happened stays on your own record — it is history, not something a revoke can unhappen.");
+        const reply = compose({ headline: "Done — you're out of the matching pool.", facts, nextStep: "If you ever want back in, restate what you need and offer, then say 'opt me in' again — joining always takes a fresh explicit yes." });
+        return { intent: "connector_revoke", reply, resultStatus: "completed", sends: 0, stated_facts: statedFactsOf(ctx) };
+      }
+      const reply = compose({ headline: "You're not in the matching pool — nothing to revoke.", facts: ["No consent or match profile is on your record, so nothing was changed and nothing was shared."], nextStep: "Say what you need and can offer, then 'opt me in', whenever you want in." });
+      return { intent: "connector_revoke", reply, resultStatus: "answered", sends: 0 };
+    }
+    // ---- a decision on the proposal that awaits ME ----
+    if (awaitingMe && decisionShape) {
+      const otherId = open.aId === me ? open.bId : open.aId;
+      if (CONN_NO.test(t)) {
+        pool.updateProposal(open.id, { state: open.state === "awaiting_a" ? "declined_a" : "declined_b", decidedAt: nowIso });
+        const reply = compose({ headline: "Recorded — no intro will be made from this match.", facts: ["Nothing about you was shared with them at any point — they never saw your name or details, and they will not be told who passed or why."], nextStep: "You're free for the next match whenever you want one — say 'find me a match'." });
+        return { intent: "connector_match_decision", reply, resultStatus: "completed", sends: 0 };
+      }
+      if (open.state === "awaiting_a") {
+        pool.updateProposal(open.id, { state: "awaiting_b", aYesAt: nowIso });
+        const reply = compose({ headline: "Recorded — you've said yes to this specific intro.", facts: ["The intro does NOT fire on one yes — the other side will see the same identity-free proposal on their next turn here, and only if they also say yes does the introduction land on both your records at once, with both names in it."], nextStep: "Nothing for you to do until they answer; ask me 'what's my match status?' any time." });
+        return { intent: "connector_match_decision", reply, resultStatus: "completed", sends: 0 };
+      }
+      // awaiting_b + my yes: FIRE — the state transition is the one
+      // and only fire point; every path back here sees a terminal
+      // state and stands down.
+      const aProf = pool.getProfile(open.aId);
+      const bProf = pool.getProfile(open.bId);
+      if (!aProf || !bProf) return null;
+      const dueIso = new Date(nowOf(ctx) + 72 * 3600 * 1000).toISOString();
+      const introText = connectorIntroText(aProf, bProf);
+      const introWhy = connectorIntroWhy(aProf, bProf);
+      pool.updateProposal(open.id, { state: "intro_sent", introAt: nowIso });
+      const factFor = (other) => ({ kind: "connector_intro", key: open.id, value: JSON.stringify({ id: open.id, otherName: other.name, why: introWhy, intro: introText, at: nowIso, followUpDueAt: dueIso, booking: "offered" }), evidence: "connector double opt-in: both sides said yes to this specific intro", at: nowIso });
+      pool.recordIntro(open.aId, factFor(bProf));
+      pool.recordIntro(open.bId, factFor(aProf));
+      // The reply is hand-built, not composed: module 140 compresses
+      // a fact to its first sentence, and the intro text must reach
+      // BOTH sides word for word — it is the artifact, not a summary.
+      const reply = ["You're introduced — this exact text is now on both your records:", introText, `Next step — settle on a time between you; either of you can say "book the call" and I'll record the acceptance on both records, and I'll check in with both of you at the 72-hour mark (${dueIso}).`].join("\n");
+      return { intent: "connector_intro", reply, resultStatus: "completed", sends: 0 };
+    }
+    // ---- a pending proposal surfaces / re-states ----
+    if (awaitingMe && (CONN_MATCH_ASK.test(t) || CONN_ANY_MATCH.test(t) || CONN_STATUS.test(t))) {
+      if (open.state === "awaiting_b" && !open.presentedB) {
+        pool.updateProposal(open.id, { presentedB: true });
+        const otherProf = pool.getProfile(open.aId === me ? open.bId : open.aId);
+        const myProf = connectorProfileOf(ctx);
+        if (otherProf && myProf) return connectorProposalReply(myProf, otherProf);
+      }
+      return connectorStatusReply(ctx, pool, {});
+    }
+    if (lastIntroProp && introsOf().length && (CONN_STATUS.test(t) || decisionShape)) return connectorStatusReply(ctx, pool, { surfaceIntro: true });
+    // ---- booking acceptance on an intro that already happened ----
+    if (CONN_BOOK.test(t)) {
+      const intros = introsOf();
+      const target = intros.filter((v) => v.booking === "offered").slice(-1)[0] || intros.slice(-1)[0];
+      if (target) {
+        pool.setIntroBooking(target.id, "accepted");
+        const reply = compose({ headline: "Booking recorded — the acceptance is on both records.", facts: ["Both intro records now say booking: accepted — the offer was made in the intro and you've taken it up.", "The calendar placement itself completes when Google is connected in the product — that connect is what gives me calendar access.", "Until then no calendar entry exists and no invite has gone out: you and " + target.otherName + " have the intro itself to settle the time, and the moment the connect lands I can place it for real."], nextStep: "Agree the time in the intro thread; the 72-hour check-in still lands either way." });
+        return { intent: "connector_booking_accept", reply, resultStatus: "completed", sends: 0 };
+      }
+    }
+    // ---- consent capture: needs/offers/name, then the explicit opt-in act ----
+    if (capFamily || CONN_OPTIN.test(t)) {
+      let profile = connectorProfileOf(ctx) || { name: null, needs: null, offers: null };
+      if (cap) {
+        profile = { name: cap.name || profile.name, needs: cap.needs || profile.needs, offers: cap.offers || profile.offers, updatedAt: nowIso };
+        connectorRecordWrite(ctx, "connector_profile", "self", { name: profile.name, needs: profile.needs, offers: profile.offers, updatedAt: nowIso }, "match profile, stated by the user");
+      }
+      const wantsIn = CONN_OPTIN.test(t);
+      if (wantsIn) {
+        if (connectorProfileComplete(profile)) {
+          connectorRecordWrite(ctx, "connector_consent", "pool", { status: "opted_in", at: nowIso, scope: "matching", version: 1 }, "explicit opt-in to the matching pool");
+          const reply = compose({ headline: "You're opted in — your consent is on your record.", facts: [`Recorded at ${nowIso}: you consented to be listed in the matching pool and to be proposed matches under double opt-in.`, "That consent covers matching only — every specific intro still needs your explicit yes, and 'opt me out' revokes it at any time.", `Your match profile, in your words: you need ${profile.needs}; you offer ${profile.offers}.`, "Only that need/offer summary is ever shown inside the pool — your name is revealed only inside an intro you both said yes to."], nextStep: "Say 'find me a match' when you're ready for your first proposal." });
+          return { intent: "connector_consent_record", reply, resultStatus: "completed", sends: 0, stated_facts: statedFactsOf(ctx) };
+        }
+        const missing = [!profile.name && "your name (the intro uses it)", !profile.needs && "what you need ('I need …')", !profile.offers && "what you can offer ('I can offer …')"].filter(Boolean);
+        const reply = compose({ headline: "Almost — I can't record your opt-in until the match profile is complete.", facts: [`Still missing: ${missing.join("; ")}.`, "Stating needs and offers alone never opts you in, and an opt-in without them would list an empty profile — both halves are required, in your own words."], nextStep: "Tell me the missing piece and say 'opt me in' again." });
+        return { intent: "connector_profile_record", reply, resultStatus: "awaiting_user", sends: 0, stated_facts: statedFactsOf(ctx) };
+      }
+      const c = consentOf();
+      const reply = compose({ headline: "Your match profile is on record.", facts: [`In your words: you need ${profile.needs || "— not stated yet"}; you offer ${profile.offers || "— not stated yet"}.`, c && c.status === "opted_in" ? "Your consent on record: opted in — you are listed in the pool." : "You are NOT opted in — this statement records the profile only, and joining the pool is a separate, explicit act."], nextStep: c && c.status === "opted_in" ? "Say 'find me a match' when ready." : "Say 'opt me in' to join the matching pool." });
+      return { intent: "connector_profile_record", reply, resultStatus: "completed", sends: 0, stated_facts: statedFactsOf(ctx) };
+    }
+    // ---- the match ask ----
+    if (CONN_MATCH_ASK.test(t) || CONN_ANY_MATCH.test(t)) {
+      if (open) return connectorStatusReply(ctx, pool, {});
+      const c = consentOf();
+      const profile = connectorProfileOf(ctx);
+      if (!c || c.status !== "opted_in") {
+        const reply = compose({ headline: "You're not in the matching pool yet.", facts: ["Matching runs on recorded consent — a match profile in your own words (what you need, what you offer, the name an intro should use), then an explicit 'opt me in' — and neither is on your record yet, so there is no one I can truthfully propose."], nextStep: "Tell me what you need and can offer, then say 'opt me in'." });
+        return { intent: "connector_status", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      if (!connectorProfileComplete(profile)) {
+        const reply = compose({ headline: "Your match profile is incomplete — no match can be proposed from it.", facts: ["A proposal cites your needs and offers verbatim; with a piece missing there is no honest why to attach, and I won't invent one."], nextStep: "Restate the missing piece ('I need …' / 'I can offer …' / 'my name is …'), then ask again." });
+        return { intent: "connector_status", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const candidates = pool.optedInProfiles(me)
+        .filter((x) => connectorProfileComplete(x.profile) && !pool.openProposalFor(x.userId))
+        .map((x) => ({ ...x, fit: connectorFit(profile, x.profile) }))
+        .filter((x) => x.fit >= 2)
+        .sort((a, b) => b.fit - a.fit);
+      if (!candidates.length) {
+        const n = pool.optedInProfiles(me).length;
+        const reply = compose({ headline: "No fit in the pool yet — and I won't force one.", facts: [`The pool holds ${n} other opted-in member(s) right now, and none of their stated offers and needs line up with yours on a real shared fact.`, "A match below that bar spends both sides' trust.", "Your opt-in stands — as the pool grows, the same ask re-checks it as it stands then."], nextStep: "Say 'find me a match' again any time." });
+        return { intent: "connector_match_none", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const best = candidates[0];
+      const prop = pool.createProposal({ aId: me, bId: best.userId, state: "awaiting_a", createdAt: nowIso });
+      return connectorProposalReply(profile, best.profile, prop);
+    }
+    // ---- status / read-backs ----
+    if (CONN_STATUS.test(t)) return connectorStatusReply(ctx, pool, {});
+    return null;
+  }
+  function connectorProposalReply(myProf, otherProf) {
+    const facts = [`Their side, in their own words: they need ${otherProf.needs}; they offer ${otherProf.offers}.`];
+    for (const clause of connectorWhy(myProf, otherProf, "They")) facts.push(clause);
+    facts.push("Nothing about you has been shared — not your name, not any detail. They see the same kind of summary of your needs and offers, and the introduction happens only if you both say yes to this specific match.");
+    const reply = compose({ headline: "One match to consider — no names until you both say yes.", facts, nextStep: "Say 'yes to the match' to agree to this intro, or 'pass on the match' to decline it." });
+    return { intent: "connector_match_proposal", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // The intro's why: the same two overlap pairs as the proposal's,
+  // with names in — both sides have said yes, identity is revealed.
+  function connectorIntroWhy(aProf, bProf) {
+    const bits = [];
+    if (connectorOverlap(aProf.needs, bProf.offers) > 0) bits.push(`${bProf.name} offers ${bProf.offers} — matching what ${aProf.name} needs: ${aProf.needs}`);
+    if (connectorOverlap(aProf.offers, bProf.needs) > 0) bits.push(`${bProf.name} is looking for ${bProf.needs} — matching what ${aProf.name} offers: ${aProf.offers}`);
+    return bits.join("; ");
+  }
+  function connectorIntroText(aProf, bProf) {
+    return [
+      `Introducing ${aProf.name} and ${bProf.name}.`,
+      `${aProf.name}: you said you need ${aProf.needs}; you offer ${aProf.offers}.`,
+      `${bProf.name}: you said you need ${bProf.needs}; you offer ${bProf.offers}.`,
+      `Why this match: ${connectorIntroWhy(aProf, bProf)}.`,
+      `A concrete first step: a 30-minute call this week. ${aProf.name}, send ${bProf.name} two times that suit you; ${bProf.name}, pick the one that works.`,
+      `Booking: once you've settled on a time, either of you can say "book the call" and I'll record the booking on both records — the calendar placement itself completes when Google is connected in the product. I'll check in with both of you at the 72-hour mark.`,
+    ].join("\n");
+  }
+  function connectorStatusReply(ctx, pool, opts) {
+    const o = opts || {};
+    const c = connectorRecordRead(ctx, "connector_consent", "pool");
+    const profile = connectorProfileOf(ctx);
+    const facts = [];
+    if (profile && (profile.needs || profile.offers)) facts.push(`Your match profile, in your words: you need ${profile.needs || "—"}; you offer ${profile.offers || "—"}.`);
+    const open = pool.openProposalFor(ctx.userId);
+    if (open) {
+      // A proposal is mentioned only to the side it currently
+      // concerns: the asker awaiting their own decision, the asker
+      // waiting on the other side, or the side it awaits. A proposal
+      // still awaiting the ASKER is invisible to the proposed side —
+      // its existence alone is the asker's to reveal by saying yes.
+      if (open.aId === ctx.userId && open.state === "awaiting_a") facts.push("One match is open and waiting on YOUR decision — say 'yes to the match' or 'pass on the match'.");
+      else if (open.state === "awaiting_b") facts.push(open.aId === ctx.userId ? "One match is open and waiting on the other side — if they say yes, the intro lands on both records at once, and if they pass, you're free for the next match." : "One match is open and waiting on YOUR decision — say 'yes to the match' or 'pass on the match'; nothing about the other side is revealed unless you both say yes.");
+    }
+    const intros = statedFactsOf(ctx).filter((f) => f.kind === "connector_intro").map((f) => { try { return JSON.parse(f.value); } catch { return null; } }).filter(Boolean);
+    let introTextOut = null;
+    for (const v of intros.slice(-1)) {
+      facts.push(`Your intro with ${v.otherName} happened at ${v.at}.`);
+      facts.push(v.booking === "accepted" ? "Booking on that intro: accepted on both records — the calendar placement itself completes when Google is connected in the product." : "Booking on that intro: offered — say 'book the call' once you've settled on a time.");
+      facts.push(nowOf(ctx) >= Date.parse(v.followUpDueAt) ? `The 72-hour follow-up on this intro is due — its marker was set for ${v.followUpDueAt}.` : `The 72-hour follow-up check-in on this intro is set for ${v.followUpDueAt}.`);
+      if (o.surfaceIntro && v.intro) introTextOut = v.intro;
+    }
+    if (!facts.length) facts.push("No match profile, consent, open match, or intro is on your record.");
+    const headline = c && c.status === "opted_in" ? "Your matching status: opted in." : c && c.status === "revoked" ? "Your matching status: not currently opted in." : "Your matching status: not opted in — no consent on record.";
+    const composed = compose({ headline, facts, nextStep: c && c.status === "opted_in" ? "Say 'find me a match' for a proposal, or 'opt me out' to leave the pool." : "Tell me what you need and can offer, then say 'opt me in' to join." });
+    // The intro artifact itself rides below the composed status —
+    // as a fact it would be compressed to its first sentence.
+    const reply = introTextOut ? composed + "\nThe intro itself, word for word as it landed:\n" + introTextOut : composed;
+    return { intent: "connector_status", reply, resultStatus: "answered", sends: 0 };
+  }
+
   // LANE A ITEM 5 (battery connector class: 12/100 honest stops):
   // PEOPLE-MATCHING asks — introductions, mentors, matches, match
   // profiles, contact hand-outs, intro follow-through — name a
@@ -44122,6 +44417,16 @@ const CareerRouter = (() => {
     // can read it as list-building.
     const singleDraft = handleSingleDraftAsk(text, c);
     if (singleDraft) return singleDraft;
+    // LANE B CONNECTOR v1: for ALLOWLISTED accounts the connector
+    // claim runs the real flow (consent capture, matching, double
+    // opt-in, intro) — it stands down (null) for everyone else and
+    // for every non-connector shape, so the stop below keeps its
+    // exact behavior for the rest of the world. Shapes route on the
+    // detypo'd copy like every claim; the CAPTURE parses rawText —
+    // records keep the user's original words (the CB-0441 doctrine
+    // above: detypo rewrote "intros" to "intro" on the record).
+    const connectorTurn = handleConnector(text, c, rawText);
+    if (connectorTurn) return connectorTurn;
     // LANE A v2 ITEM 5: people-matching asks end in the plain honest
     // stop here, before recommendations/fallback can claim them.
     const pmStop = handlePeopleMatchingStop(text, c);

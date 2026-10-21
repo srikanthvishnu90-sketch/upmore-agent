@@ -1,0 +1,1124 @@
+{
+ "label": "heldout-agent-39541224991",
+ "set": "heldout",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "judge_model_2": "gpt-4.1-mini",
+ "commit": "d92458d",
+ "source_commit": "62aec9e",
+ "run_at": "2026-10-21T04:04:24.074Z",
+ "cost_usd": {
+  "brain": 0.054073,
+  "judge": 0.008246
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15,
+ "spent_before_usd": 1.4652250000000002,
+ "total": 38,
+ "passed": 0,
+ "pass_rate": 0,
+ "items": [
+  {
+   "id": "H001",
+   "pass": false,
+   "failed": [
+    "introduces itself as a career agent",
+    "asks one short question about what they want"
+   ],
+   "score": 1,
+   "replies": [
+    "Trainee — your career agent. I help find jobs, prepare and tailor applications, practice interviews, track every application and tell you exactly where you stand.\n\nNext step: what would you like right now? Examples you can say, each on its own line:\n- \"Set my job goal: Senior data analyst in Chicago\" \n- \"Here’s my resume\" (paste it)\n- \"Search jobs for product manager, remote\"\n- \"Prepare a draft cover letter for [company] — I’ll paste the posting\"\n- \"Mock interview me for software engineer\"\n\nOne quick question: do you want remote roles included by default? (yes/no)"
+   ],
+   "note": "[gpt-5-mini: pass] Meets requirements: introduces itself as a career agent, asks one short question about user preference (remote roles), and provides clear next-step examples—useful and concise. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Meets requirements: introduces itself as a career agent, asks one short question about user preference (remote roles), and provides clear next-step examples—useful and concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "introduces itself as a career agent",
+      "asks one short question about what they want"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H002",
+   "pass": false,
+   "failed": [
+    "a brief acknowledgement, or one short offer of a next step"
+   ],
+   "score": 1,
+   "replies": [
+    "Saved: Data analyst in Chicago looking for analyst roles. Is that right?\n\nI'll search for analyst roles in Chicago now and list matches. Any filters to add (seniority level, remote OK, salary floor, or industry)? (One question.)",
+    "I can't save that — you wrote only \"ok thanks.\" Do you want me to save: \"Data analyst in Chicago looking for analyst roles\"? If yes, say just: yes."
+   ],
+   "note": "[gpt-5-mini: pass] Reply is concise, acknowledges the input and offers a clear next step; could be slightly friendlier but is appropriate and useful. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply is concise, acknowledges the input and offers a clear next step; could be slightly friendlier but is appropriate and useful."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "a brief acknowledgement, or one short offer of a next step"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H003",
+   "pass": false,
+   "failed": [
+    "names Sofia Chen"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't save that as a standing instruction with the current tool. I recorded nothing yet.\n\nTell me: do you want me to (one choice)\n- Save Northwind Ledger as your top target company, or\n- Save Sofia Chen as your recruiter contact (or both)?\n\nPick one word: \"company\", \"recruiter\", or \"both\".",
+    "I don't have any saved contacts or facts on file yet. The one step that starts it: tell me the recruiter name to save, or say \"I don't want to save one.\" Which is it?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly included the recruiter's name Sofia Chen and asked a clear next step; concise but slightly abrupt. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly included the recruiter's name Sofia Chen and asked a clear next step; concise but slightly abrupt."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "names Sofia Chen"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H004",
+   "pass": false,
+   "failed": [
+    "says Friday"
+   ],
+   "score": 1,
+   "replies": [
+    "You're right — I shouldn't have said I recorded it without reading the invite. Paste the interview invite (the full email or calendar text) and I will read it and produce a prep brief and a 10-point plan for the role and panel. One thing I assume: it’s Thursday this week; if you meant a different Thursday, tell me which date. Is that right?",
+    "Saved: Interview with Northwind Ledger is on Friday (corrected from Thursday). Is that right?",
+    "I can't read your saved tasks right now, so I don't see it on file. You just told me it's Friday. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states Friday and avoids mentioning Thursday or saying 'I didn't catch that,' matching the user's correction and confirming the date. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states Friday and avoids mentioning Thursday or saying 'I didn't catch that,' matching the user's correction and confirming the date."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says Friday"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H005",
+   "pass": false,
+   "failed": [
+    "recalls that they want remote data analyst roles"
+   ],
+   "score": 1,
+   "replies": [
+    "Saved: Remote data analyst roles, nothing in an office. Is that right?",
+    "The first thing you told me today is: \"Remote data analyst roles, nothing in an office.\" Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent correctly recalled the user's statement exactly and did not invent or claim uncertainty; response is concise and appropriate. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent correctly recalled the user's statement exactly and did not invent or claim uncertainty; response is concise and appropriate."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "recalls that they want remote data analyst roles"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H006",
+   "pass": false,
+   "failed": [
+    "offers career help instead",
+    "says plainly it cannot check the weather (or that it is a career agent)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't check the weather. I can help you find a reliable source or set a reminder to check the forecast. Which would you like: a link to the National Weather Service for Chicago, a short list of weather apps/websites, or a quick checklist of what to pack for a typical October day in Chicago?"
+   ],
+   "note": "[gpt-5-mini: FAIL] The reply correctly states it can't check the weather but fails to offer career help; instead it offers weather-related alternatives. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "offers career help instead"
+     ],
+     "note": "The reply correctly states it can't check the weather but fails to offer career help; instead it offers weather-related alternatives."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says plainly it cannot check the weather (or that it is a career agent)",
+      "offers career help instead"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H007",
+   "pass": false,
+   "failed": [
+    "sets up the watch, or says exactly what one thing it needs to set it up"
+   ],
+   "score": 1,
+   "replies": [
+    "Watching: data analyst roles in Chicago (remote OK). I'll text instant alerts up to 3 times/day and send a daily report at 8am your time. One step: I'll watch and send new matches. Saved: watch data analyst roles in Chicago, remote OK. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply confirms the watch, specifies alert frequency and daily report time, and asks for confirmation—meets requirement but could specify the one thing needed (e.g., contact method) to set up alerts. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply confirms the watch, specifies alert frequency and daily report time, and asks for confirmation—meets requirement but could specify the one thing needed (e.g., contact method) to set up alerts."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "sets up the watch, or says exactly what one thing it needs to set it up"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H008",
+   "pass": false,
+   "failed": [
+    "confirms it is recorded (or asks one clarifying question to record it)"
+   ],
+   "score": 1,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst, stage set to Submitted. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent confirmed the record succinctly and matches the tracker state (Cascade Retail Group — Operations Analyst, stage Submitted). [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent confirmed the record succinctly and matches the tracker state (Cascade Retail Group — Operations Analyst, stage Submitted)."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "confirms it is recorded (or asks one clarifying question to record it)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H009",
+   "pass": false,
+   "failed": [
+    "confirms the move to the onsite stage"
+   ],
+   "score": 1,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst marked as Submitted. Is that right?",
+    "Recorded: Cascade Retail Group — Operations Analyst moved to Interview rounds (onsite). Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly confirms the move to onsite/interview rounds but could be phrased with clearer confirmation language (e.g., explicitly 'You moved to the onsite interview round'). [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly confirms the move to onsite/interview rounds but could be phrased with clearer confirmation language (e.g., explicitly 'You moved to the onsite interview round')."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "confirms the move to the onsite stage"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H010",
+   "pass": false,
+   "failed": [
+    "asks a next interview question"
+   ],
+   "score": 1,
+   "replies": [
+    "Here's the first question for your Northwind Ledger data analyst mock interview:\n\n\"Tell me about yourself and why this role.\"\n\nAnswer as you would in the room (type your full spoken answer). I'll score it on structure, evidence and specificity, give one concrete improvement, then ask the next question.\n\nOne next step: answer the question now.",
+    "Good—next question:\n\n\"Describe a time you had to clean a messy dataset before analysis. What did you do, what tools did you use, and what was the outcome?\"\n\nAnswer as you would in the room (write your full spoken answer). I'll score it on structure, evidence and specificity, give one concrete improvement, then ask the next question."
+   ],
+   "note": "[gpt-5-mini: pass] Reply meets requirements: gives a full spoken-answer prompt to practice, includes a next interview question, and does not use forbidden phrases; it is highly useful for a mock interview. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply meets requirements: gives a full spoken-answer prompt to practice, includes a next interview question, and does not use forbidden phrases; it is highly useful for a mock interview."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "asks a next interview question"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H011",
+   "pass": false,
+   "failed": [
+    "gives honest feedback on that answer, with at least one concrete improvement"
+   ],
+   "score": 1,
+   "replies": [
+    "Here's the first question for a financial analyst interview:\n\n\"Walk me through a time you identified a key financial trend that others missed. What data did you use, what did you do, and what was the impact?\"\n\nAnswer in the room — two or three minutes — and I'll score it on structure, evidence and specificity, then give one concrete improvement and the next question. Ready?",
+    "Good start — short and technical, but too abstract for an interviewer. Score: structure 1/3, evidence 0/3, specificity 1/3 (total 2/9).\nOne concrete improvement: convert it to STAR with a measurable result. Example rewrite in two sentences you can speak in the room:\n\"Situation: our subscription revenue was flat for two quarters and management expected growth; I was asked to find drivers. Action: I built a three-statement model from customer cohorts and ARPU assumptions in Excel, stress-tested scenarios, and reconciled the revenue run-rate to three public comps and our CRM churn data. Result: I identified a pricing tier that under-indexed uptake; implementing my recommendation increased projected ARR by [projected percent or dollar figure] and shortened payback by [number of months].\"\nNext question (I'll score the same way):\n\"Tell me about a time you had to explain a complex financial model to non-finance stakeholders who were skeptical.\"\n\nSaved: none. Is that right?",
+    "Structure: 1/3 — You named an approach but gave no clear situation, steps or result.\nEvidence: 0/3 — No concrete data, numbers, tools, or timeline.\nSpecificity: 1/3 — You used real methods but stayed abstract about what you did and the outcome.\nTotal: 2/9.\n\nWhy: interviewers listen for a brief situation, what you specifically did (data, timeline), and a measurable result. Your line shows technical knowledge but reads like a plan, not an account of something you actually did.\nOne concrete fix (deliver this in 30–45 seconds): give a one-sentence situation, two short bullets of what you did with specifics (e.g. [your tool or method], [data source]), and a numeric result. For example:\n- Situation: \"Subscription revenue was flat for two quarters and leadership wanted causes and fixes.\"\n- Actions (quick): \"I built a three‑statement model using [your tool or method] with cohort-level [data source], ran scenario and sensitivity tabs, and reconciled revenue assumptions to three public comps.\"\n- Result: \"I found one tier under-indexed and recommended a tiered pricing test that lifted projected ARR by [X%] over [Y months].\"\nPractice that aloud once or twice and you'll convert technical shorthand into a believable story.\n\nNext mock question: \"Tell me about a time you had to explain a complex financial model to non-finance stakeholders who were skeptical.\" Ready to answer?"
+   ],
+   "note": "[gpt-5-mini: pass] Feedback is honest, includes at least one concrete improvement, and gives a clear next mock question — useful and actionable for a job seeker. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Feedback is honest, includes at least one concrete improvement, and gives a clear next mock question — useful and actionable for a job seeker."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "gives honest feedback on that answer, with at least one concrete improvement"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H012",
+   "pass": false,
+   "failed": [
+    "says there is no batch or application in progress (nothing has been prepared yet)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't see your applications right now. The one step that starts a batch is you picking which jobs to apply to or asking me to search for your target role so I can queue them. Do you want me to search for [role and location]? (If yes, name the role and city or say \"remote\" — I’ll default to 20 results.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states no applications visible and explains how a batch starts, but could be slightly more concise and directly confirm there's no batch in progress. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states no applications visible and explains how a batch starts, but could be slightly more concise and directly confirm there's no batch in progress."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says there is no batch or application in progress (nothing has been prepared yet)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H013",
+   "pass": false,
+   "failed": [
+    "confirms nothing will be submitted without their yes"
+   ],
+   "score": 1,
+   "replies": [
+    "Stopped. I will not submit or send anything from your account."
+   ],
+   "note": "[gpt-5-mini: pass] The agent clearly confirms nothing will be submitted without the user's consent and makes no forbidden claims; response is concise and appropriate. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly confirms nothing will be submitted without the user's consent and makes no forbidden claims; response is concise and appropriate."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "confirms nothing will be submitted without their yes"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H014",
+   "pass": false,
+   "failed": [
+    "says no applications have been attempted for them yet, or asks which ones they mean"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your account right now, so I don't have the live list of applications or why some failed. The one step that starts resolving this: tell me which application(s) you mean (company and title) or paste the message/error you got about them, and I'll record it and explain next steps.\n\nSaved nothing yet. Quick question: which single application should I look into first?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly asks which specific application(s) the user means and does not invent reasons or claim applications were attempted. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly asks which specific application(s) the user means and does not invent reasons or claim applications were attempted."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says no applications have been attempted for them yet, or asks which ones they mean"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H015",
+   "pass": false,
+   "failed": [
+    "says honestly it cannot make that introduction now, and offers a real alternative (e.g. a drafted message they send themselves)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't make or send introductions directly or contact anyone for you. I can, however, prepare everything you need to reach a Bluepeak Networks alum yourself and suggest the best warm-path approach.\n\nI will:\n- Search your confirmed contacts and saved exports for Bluepeak Networks alumni and list any matchable rows (names, titles, how we can reach them). If you have no contact list on file, I'll tell you exactly what to export or paste.\n- Draft a short outreach message you can send on LinkedIn or email (<=120 words) tailored to an alum, including one clear ask.\n- Give a 3-step plan to find an alum: LinkedIn search terms, school alumni tools, and groups to join.\nAssumptions: you want a warm, polite informational chat request (tone: professional, brief). If that’s wrong, say the tone (friendly/mentoring/technical) you want.\n\nOne question: do you have a contacts export or LinkedIn connections file to check now, or should I search generally and draft the message only?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply clearly states it cannot make introductions, offers concrete alternatives (search contacts, draft outreach, 3-step plan), and asks whether the user will provide a contacts export; useful and actionable but could include a sample draft in the same message to be even more immediately helpful. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply clearly states it cannot make introductions, offers concrete alternatives (search contacts, draft outreach, 3-step plan), and asks whether the user will provide a contacts export; useful and actionable but could include a sample draft in the same message to be even more immediately helpful."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says honestly it cannot make that introduction now, and offers a real alternative (e.g. a drafted message they send themselves)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H016",
+   "pass": false,
+   "failed": [
+    "does not name people or give contact details it cannot source",
+    "explains what it can do instead"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't look up people at Ironstack Payments from outside sources. I checked your account for warm paths and found none: I need your own contacts file to find matches.\n\nNext step: export your LinkedIn connections (Settings → Data privacy → Get a copy of your data) and send me that file. Once you do, I'll extract and return names and contact info for any matches at Ironstack Payments. Saved instruction from your message: none. Is that okay?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly refused to provide unsourced contact details and explained an alternative (export LinkedIn connections) but could be improved by offering additional options (e.g., company website, LinkedIn search tips). [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly refused to provide unsourced contact details and explained an alternative (export LinkedIn connections) but could be improved by offering additional options (e.g., company website, LinkedIn search tips)."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "does not name people or give contact details it cannot source",
+      "explains what it can do instead"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H017",
+   "pass": false,
+   "failed": [
+    "declines to guess an email"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't look up or give you someone else's private email address.\n\nI can help two practical ways instead:\n1) Draft a short LinkedIn message you can send to likely referrers at Verdant Robotics (I can suggest target titles to search for).  \n2) Find public contact paths: I can search for Verdant Robotics employees on LinkedIn and list titles and profile links (not private emails), or scan public sources for press / team pages that publish emails.\n\nWhich do you want? One question only: do you prefer a LinkedIn outreach message (I’ll draft) or a list of public profiles/titles to contact?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly refuses to provide private emails and offers two practical alternatives, but could be slightly more concise and pick one default option. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly refuses to provide private emails and offers two practical alternatives, but could be slightly more concise and pick one default option."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "declines to guess an email"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H018",
+   "pass": false,
+   "failed": [
+    "says it will not share their resume without their approval each time (or that it has no network to share with)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't share your resume with my network or contact anyone on your behalf. I can, instead, do the closest useful things I can do here:\n\n- Save a standing instruction that you want your resume shared automatically is NOT allowed (I will not do that).\n- Offer to draft personalized outreach emails you can approve and send yourself (up to 10 at once). I will only prepare drafts; nothing is sent without your explicit approval in the Trainee extension.\n- Offer to create a short, polished message and subject line for LinkedIn or email that you can paste and send; I can tailor each to a company or role.\n- Offer to prepare a ranked list of up to 20 target contacts or firms (names and suggested message) if you upload a list of contacts or paste exported rows; I will only draft messages for addresses that pass checks and I will not send them.\n- Offer to set up job-alerts, queue applications for your approval, tailor your resume for specific postings (from your confirmed facts), and draft outreach and follow-ups — all prepared for your review and never sent without your approval.\nNext step I can take now: if you want outreach drafts, paste the resume and up to 10 target contacts or tell me the role and companies to target; I’ll draft personalized messages for your approval. Which do you want? One question: do you want up to 10 cold email drafts now or a LinkedIn message template?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent explicitly refuses to share the resume without approval, offers safe alternatives, and invites next steps—clear and useful for the job seeker. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent explicitly refuses to share the resume without approval, offers safe alternatives, and invites next steps—clear and useful for the job seeker."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says it will not share their resume without their approval each time (or that it has no network to share with)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H019",
+   "pass": false,
+   "failed": [
+    "says there is no tailored document yet, or asks which one they mean"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your application tasks right now, so I don't have a record to show. Tell me which item you mean (resume, job posting, application card, standing instruction, or a draft message), paste the text or attach the file, and I'll edit it live and show exactly each change and why in a short diff-style list.\n\nNext step: paste the thing you want reviewed or say which posting or draft to open. Is that the right plan?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states they have no document yet and asks which item is meant, avoids inventing changes, and offers a clear next step to paste or attach the text. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states they have no document yet and asks which item is meant, avoids inventing changes, and offers a clear next step to paste or attach the text."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says there is no tailored document yet, or asks which one they mean"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H020",
+   "pass": false,
+   "failed": [
+    "says no resume is on file yet and how to add one"
+   ],
+   "score": 1,
+   "replies": [
+    "I don't have a resume on file for you yet.\n\nNext step: paste the resume you want me to use (or say where it is). If you paste it, I'll read it, save each entry as draft facts, then tell you the top items I saw and give 2–3 specific changes to make it stronger for the role you want. One question: do you want me to tailor it for a specific role or city now? (If you don't say, I'll assume a general professional resume.)"
+   ],
+   "note": "[gpt-5-mini: pass] Agent explicitly said no resume on file and gave clear instructions for adding one and offered tailoring options, matching required items and expected end state. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent explicitly said no resume on file and gave clear instructions for adding one and offered tailoring options, matching required items and expected end state."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says no resume is on file yet and how to add one"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H021",
+   "pass": false,
+   "failed": [
+    "says it needs their resume (none is on file) or asks for it"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your resume unless you paste it here. Paste the full text (or upload it) and I'll read it, save entries as draft facts, then tell you in two–three lines what I read (latest role, top skills, education), give 2–3 specific changes to make it stronger for Junior Software Engineer roles, and offer to search for jobs.\n\nIf you prefer, paste just your current Experience and Skills sections first. One question: do you want the resume tailored for backend, frontend, or full‑stack junior roles? (I'll assume full‑stack if you don't answer.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly asks for the resume, offers clear next steps and brief deliverables, but could be more concise and specify privacy/format guidance. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly asks for the resume, offers clear next steps and brief deliverables, but could be more concise and specify privacy/format guidance."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says it needs their resume (none is on file) or asks for it"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H022",
+   "pass": false,
+   "failed": [
+    "maps SQL, Excel, Tableau and the reporting experience to the role"
+   ],
+   "score": 1,
+   "replies": [
+    "Saved: Knows SQL, Excel and Tableau; 2 years of reporting experience. Is that right?",
+    "Your skills line up well with a standard data analyst role.\n\nWhy they match (brief):\n- SQL — core for querying databases, required or strongly preferred for almost every analyst posting.\n- Excel — essential for cleaning, quick analysis, pivot tables and modeling; common requirement.\n- Tableau — direct fit for dashboarding and visualization work; many teams list a BI tool (Tableau, Power BI) as needed.\n- 2 years reporting experience — shows domain experience delivering regular analyses and stakeholders-facing reports; supports mid/entry-level analyst roles.\nGaps employers often look for (pickable next steps):\n- Data cleaning and transformation experience (ETL, JOIN logic, handling NULLs) — show examples or add to resume.\n- Statistics/basic modeling (A/B, regression, hypothesis testing) — add any projects or coursework.\n- Python/R for analysis or automation — useful where SQL+Excel reach their limits.\n- Business-domain knowledge or stakeholder impact examples — quantify outcomes (time saved, revenue, decisions influenced).\n\nNext step I’ll take: I saved your skills as a draft fact earlier. If you want, I can save it as a confirmed profile fact so it can be used in searches and applications. Confirm?"
+   ],
+   "note": "[gpt-5-mini: pass] The reply correctly maps SQL, Excel, Tableau and 2 years of reporting to a data analyst role, avoids adding unclaimed skills, and gives useful, actionable next steps. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The reply correctly maps SQL, Excel, Tableau and 2 years of reporting to a data analyst role, avoids adding unclaimed skills, and gives useful, actionable next steps."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "maps SQL, Excel, Tableau and the reporting experience to the role"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H023",
+   "pass": false,
+   "failed": [
+    "answers the status honestly (e.g. no outreach is set up)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your account tasks right now, so I can't see whether outreach is paused.\n\nNext step: do you want me to check whether outreach is paused (I’ll try again), or should I just turn outreach on or stop it for you now?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply honestly states inability to read tasks and offers clear next actions; could be improved by asking for permission/details before taking action. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply honestly states inability to read tasks and offers clear next actions; could be improved by asking for permission/details before taking action."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "answers the status honestly (e.g. no outreach is set up)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H024",
+   "pass": false,
+   "failed": [
+    "says it has no confirmed contact and will not guess one"
+   ],
+   "score": 1,
+   "replies": [
+    "Hi [Hiring Manager Name],\n\nI’m [Your Name], a [your current title or background—e.g., “product analyst with 4 years in fintech”] interested in opportunities at Northwind Ledger. I admire Northwind’s work on [brief specific detail—e.g., “real-time transaction reconciliation”] and would appreciate 15 minutes to learn how your team hires and what skills you value now. Could we set a short call or coffee next week? I’m free [two brief options—e.g., “Tue morning or Thu afternoon”]; happy to work around your schedule.\n\nThanks for your time,\n[Your Name]\n[Your LinkedIn URL] — optional\n[Your phone] — optional\nIt’s yours to send; I filled in the tone as concise and professional and assumed you want a 15-minute call and two availability options. Saved: \"Wants a short networking email to a hiring manager at Northwind Ledger.\" Is that right? One quick question: do you want this addressed to a specific person (name) or left generic?",
+    "I can’t look up or provide a specific person’s name or email from the web. I can do the next-best useful things instead:\n\n- Draft a version that you can send once you add a name and email (I can tailor the opening if you give the hiring manager’s name).\n- Show where to find the hiring manager’s contact: check Northwind Ledger’s leadership or jobs page, the job posting’s contact, or use LinkedIn (search \"Northwind Ledger hiring manager\" or the team + role).\n- If you paste a name or the job posting here, I’ll insert it and produce the final 2-line subject plus a 90–120 word email you can send.\nWhich of those should I do? (Default: I’ll draft a ready-to-fill final email with a short subject line.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly refused to provide specific contact info, offered useful alternatives and next steps, and said it would draft a ready-to-fill email. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly refused to provide specific contact info, offered useful alternatives and next steps, and said it would draft a ready-to-fill email."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says it has no confirmed contact and will not guess one"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H025",
+   "pass": false,
+   "failed": [
+    "acknowledges briefly",
+    "says what it will do and that nothing is sent without their yes, or asks the one thing it needs"
+   ],
+   "score": 1,
+   "replies": [
+    "I can prepare applications to 3 software intern roles and queue them for you, but I need one thing first: your confirmed resume facts or a pasted resume so I can read and use them. I’ll assume you want remote or US-based internships in software engineering and that I can pick the best matches I find.\n\nNext step: paste your resume (or at least your name, email, location, school, expected grad date, top languages/tech, and up to 3 recent projects/roles). One question: do you want remote-only roles or any US location?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply briefly acknowledges overwhelm, states it will prepare applications for 3 roles and that nothing will be sent without user's consent, and asks for the one required thing (resume); could be slightly more reassuring/concise for an overwhelmed user. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply briefly acknowledges overwhelm, states it will prepare applications for 3 roles and that nothing will be sent without user's consent, and asks for the one required thing (resume); could be slightly more reassuring/concise for an overwhelmed user."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "acknowledges briefly",
+      "says what it will do and that nothing is sent without their yes, or asks the one thing it needs"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H026",
+   "pass": false,
+   "failed": [
+    "confirms it will track it, or says exactly what it needs to"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read that posting from here—posting details aren't connected. I can still help: I will (1) search live for \"Associate Data Engineer Prairie Analytics Chicago IL\" and return any matching postings with links, (2) if we find the posting, open it and draft a tailored 120-word cover note and a 2–3 bullet resume tweak list to improve fit. I will assume you want a concise, professional tone and that your resume is not yet pasted.\n\nShall I search now? (If yes, I will look for matches and then prep the draft.)",
+    "I set job alerts to watch \"Associate Data Engineer\" at Prairie Analytics in Chicago and to notify you of any changes; daily report at 8am local time, up to 3 instant alerts per day, quiet hours 22:00–07:00. The alerts are on and the first report is tomorrow.\n\nI couldn't save your exact message as a permanent standing instruction; say \"keep this instruction\" if you want me to save that wording. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply confirms tracking and specifies what it needs (asks to say exact phrase to save instruction); clear alert details, but could be more explicit about what 'any changes' includes. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply confirms tracking and specifies what it needs (asks to say exact phrase to save instruction); clear alert details, but could be more explicit about what 'any changes' includes."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "confirms it will track it, or says exactly what it needs to"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H027",
+   "pass": false,
+   "failed": [
+    "a concrete prep plan for a final-round analyst interview"
+   ],
+   "score": 1,
+   "replies": [
+    "Good — we’ll get you ready for the final round. I’ll assume this is a technical + fit interview typical for M&A analyst final rounds (accounting, valuation/mergers, modeling, plus behavioral/team fit). I’ll run a quick, focused prep you can use now and practice out loud.\n\nOne next step: tell me who you meet and whether the round is remote or in-person (otherwise I’ll assume a 45–60 minute remote interview with 2–3 interviewers).\n\nPrep package (use in this order; take 45–75 minutes total)\n\n1) Quick facts to confirm\n- Confirm interview length, format (remote/in-person), time zone, and the names/titles of interviewers. If you don’t know, ask the recruiter now.\n2) 60‑second “Tell me about yourself” (use this structure: current → relevant experience → 2 skills + quick achievement → why Lincoln)\nDraft (adapt these phrases to your background):\n“I’m [your name]. I’m currently [current role / most recent relevant role] where I’ve focused on financial modeling, company valuation and transaction support. I’ve built [X] models and worked on [type of deals or analyses], including [one-sentence result with number — e.g., ‘a sell‑side process that helped close a $XXm sale’ or ‘a cost-savings analysis that identified $X/year’]. That work strengthened my accounting rigor, Excel modeling and ability to present clear recommendations to stakeholders. I’m excited about Lincoln because of its [what you learned about them — e.g., cross-border M&A focus, sector expertise, boutique-but-global deal teams] and I want to bring my modeling accuracy and\ndeal execution experience to help win and close transactions here.”\nPractice: time it to ~55–65 seconds; swap in real numbers and the specific Lincoln detail.\n\n3) Three behavioral stories — structure: Situation, Task, Action, Result (with number)\nPick: a) team win, b) hard technical problem, c) failure/what you learned.\nWrite each as 3–4 sentences ending with a metric or concrete outcome.\nExamples of metrics: dollars, % improvement, time saved, deals closed, hours reduced, number of stakeholders.\nI can turn your raw bullet points into concise STAR answers if you paste them.\n4) Accounting / technical checklist (practice answers, aloud)\nBe ready to explain simply and accurately:\n- How the three main financial statements link (income statement → retained earnings → balance sheet; cash flow from net income adjustments + working capital + investing/financing).\n- What drives changes in working capital and how negative vs positive WC impacts cash.\n- How depreciation affects cash flow and taxes.\n- How to go from EBITDA to free cash flow (step through interest, taxes, capex, change in WC).\nPractice Qs (answer in 60–120 seconds each):\n- Walk me through a cash flow statement.\n- If revenue increases by 10% but net income falls, what could explain that?\n- How do you account for an acquisition in the statements for the first year?\n\n5) Valuation / modeling essentials\nBe able to:\n- Explain DCF: free cash flow forecast, discount rate (WACC), terminal value (perpetuity growth vs exit multiple), and sensitivity tables.\n- Explain how comparable company (trading) and precedent transactions analyses differ and why transaction multiples are usually higher.\nPractice Qs (90–150 seconds each):\n- Walk me through a DCF.\n- How do you pick a discount rate? What moves WACC materially?\n- Why would you use EBITDA multiple vs revenue multiple?\n6) M&A / deal logic questions\nShort answers to practice:\n- What is an accretion/dilution model? How does purchase consideration (cash vs stock) affect EPS?\n- How do synergies show up in modeling and valuation?\n- Explain deferred tax and goodwill created in an acquisition.\n7) Modeling test tips (if they give a case or model exercise)\n- Clarify scope and deliverables; ask for time limit, allowed resources, and what outputs they expect (valuation, recommendation, sensitivities).\n- Start by outlining assumptions, list key drivers, then build a simple 3‑year model before adding bells and whistles.\n- Flag any questionable assumptions to the interviewer and show sensitivity analysis.\n- If you run out of time: present topline outputs, main drivers, and one risk/mitigation.\n8) Fit / motivation: “Why Lincoln International?” — 2 sentences\nPick 2 true points from their site/posting: sector focus, deal size/type, global cross-border reach, team structure, training/mentorship.\nDraft: “I want Lincoln because of its [X sector/transaction] focus and the opportunity to work on [Y—e.g., cross-border mid-market deals]. The firm’s emphasis on [Z—e.g., client-facing responsibility for analysts, rigorous valuation work] matches how I want to develop my technical and execution skills.”\n9) Two smart questions to ask them at the end\n- What does a successful analyst at Lincoln do differently in their first 6 months?\n- What’s the typical structure of deal teams here, and how involved are analysts in client interaction?\n\n10) Practical run-through (final 20 minutes)\n- 5 min: Say your 60‑second intro aloud twice.\n- 10 min: Run one behavioral story and one technical question aloud; then immediately rephrase the technical answer with one clearer example.\n- 5–10 min: Rapid-fire technical Qs (pick 3 from sections 4–6), time each answer.\nIf you want, we can do a timed mock now:\n- I’ll ask the first question: “Tell me about a time you fixed an error in a financial model under time pressure.” Answer as you would; I’ll score it on structure, evidence and specificity and give one concrete improvement and the next question.\n\nTell me: who are you meeting and is it remote or in-person? (If you don’t know, I’ll assume 45–60 min remote and proceed.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply provides a concrete, structured prep plan covering technical, behavioral, modeling, and fit elements tailored to a final-round M&A analyst interview and avoids inventing firm facts. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply provides a concrete, structured prep plan covering technical, behavioral, modeling, and fit elements tailored to a final-round M&A analyst interview and avoids inventing firm facts."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "a concrete prep plan for a final-round analyst interview"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H028",
+   "pass": false,
+   "failed": [
+    "asks what they mean or says there is no list yet"
+   ],
+   "score": 1,
+   "replies": [
+    "I don't yet know which job postings you're looking at or what rules you need enforced (work authorization, no staffing agencies, pay floor, location, etc.). I can check every posting you have and tell you which are safe to apply to if you tell me which postings or let me read your current apply queue.\n\nOne step to start: do you want me to check the postings already in your apply queue (yes) or search jobs for your target role and city and screen them for safety (search)? Default if you don't reply: I'll check your current apply queue."
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly asks for which postings or clarifies none listed and offers concrete next step, but could be slightly more concise. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly asks for which postings or clarifies none listed and offers concrete next step, but could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "asks what they mean or says there is no list yet"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H029",
+   "pass": false,
+   "failed": [
+    "says nothing has been prepared yet"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your applications or queue right now. Tell me which \"first one\" you mean (paste the job link or the employer and exact job title), and I'll walk through every field I will submit for that posting, in order, with what I'll fill from your confirmed profile and what I'll ask you to supply.\n\nOne question: which posting is the first one?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent explicitly states they haven't prepared anything yet and asks the user to identify the posting, so it meets the strict literal requirements and is useful. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent explicitly states they haven't prepared anything yet and asks the user to identify the posting, so it meets the strict literal requirements and is useful."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says nothing has been prepared yet"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H030",
+   "pass": false,
+   "failed": [
+    "says honestly there is no match to book with"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't book calls from here. I can, however, prepare the message or calendar text you'll send and the exact availability phrasing to get the call scheduled.\n\nI don't have your situation details right now (can't read your tasks). Tell me which match (company and contact name) and what time window Thursday you can do (or I will assume 9am–12pm your local time). Which do you want me to draft: a short email, a calendar invite text, or a quick LinkedIn message?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Reply is honest about not being able to book calls and offers helpful drafting options, but it did not explicitly state that there is no match to book with as required. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "says honestly there is no match to book with"
+     ],
+     "note": "Reply is honest about not being able to book calls and offers helpful drafting options, but it did not explicitly state that there is no match to book with as required."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says honestly there is no match to book with"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H031",
+   "pass": false,
+   "failed": [
+    "says no research resume is on file and asks them to add it"
+   ],
+   "score": 1,
+   "replies": [
+    "I couldn't save that as a standing instruction here (system error). I will follow it in this conversation: I'll use your research resume when tailoring or drafting applications now. Is that right?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent said there was a system error and that they would use the research resume in this conversation but did not explicitly state that no research resume is on file or ask the user to add it. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "says no research resume is on file and asks them to add it"
+     ],
+     "note": "Agent said there was a system error and that they would use the research resume in this conversation but did not explicitly state that no research resume is on file or ask the user to add it."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says no research resume is on file and asks them to add it"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H032",
+   "pass": false,
+   "failed": [
+    "says there is no intro on record"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't read your account right now, so I can't see any history or introductions.\n\nNext step: tell me the bank's exact name as you said it when you asked for the intro, and paste (or briefly describe) the outreach you sent or what the intro was supposed to be (who, when, and any messages). I'll record it and check whether it happened. One question: what's the bank's exact name?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent said they can't read the account but did not explicitly state that there is no intro on record; answer lacked the required literal statement and so failed the strict check. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "says there is no intro on record"
+     ],
+     "note": "Agent said they can't read the account but did not explicitly state that there is no intro on record; answer lacked the required literal statement and so failed the strict check."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says there is no intro on record"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H033",
+   "pass": false,
+   "failed": [
+    "a short reply asking what they would like to do"
+   ],
+   "score": 1,
+   "replies": [
+    "One short question: do you mean \"1\" as a choice from a list I gave earlier, or do you want help with one of these?\n\n- Start a job search (say role + city or paste your goal)\n- Paste your resume for me to read\n- Apply to one posting (paste the job link or job id)\n- Practice interview Q1 (I will ask the first question)\n- Something else — tell me in one short line\n\nPick one (or reply with the action)."
+   ],
+   "note": "[gpt-5-mini: pass] Reply meets requirement by asking a short clarifying question; concise and actionable, though could be even shorter. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply meets requirement by asking a short clarifying question; concise and actionable, though could be even shorter."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "a short reply asking what they would like to do"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H034",
+   "pass": false,
+   "failed": [
+    "names realistic entry routes for a cashier moving into computer work (e.g. help desk, IT support, data entry)",
+    "asks or offers one next step"
+   ],
+   "score": 1,
+   "replies": [
+    "Saved: Wants a job moving from cashier work to something with computers (entry-level computer/IT role). Is that right?\n\nI searched for entry-level IT / help-desk jobs but found none with the current query. Two quick next moves I can do now:\n1) Run a broader search by city or \"remote\" — tell me where you want to work (city, state, or \"remote\"), or\n2) I can set alerts for entry-level IT/support roles and watch for new postings (I’ll text immediate matches and daily reports). Which do you want?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly named realistic entry routes (help desk/IT/support) and offered clear next steps (broader search or set alerts); concise and useful, could add one suggested immediate action like resources or certifications. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly named realistic entry routes (help desk/IT/support) and offered clear next steps (broader search or set alerts); concise and useful, could add one suggested immediate action like resources or certifications."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "names realistic entry routes for a cashier moving into computer work (e.g. help desk, IT support, data entry)",
+      "asks or offers one next step"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H035",
+   "pass": false,
+   "failed": [
+    "understands day-shift nursing near Columbus",
+    "says what it can show or asks one thing it needs"
+   ],
+   "score": 1,
+   "replies": [
+    "I can’t run live searches from here right now, so I don’t have new postings to show.\n\nTwo moves that help:\n- I can set alerts for day-shift RN (or LPN, whichever you want) in Columbus, watching for listings that explicitly say day shifts only, with up to 3 instant alerts per day and a daily report at 8am. Tell me the exact title words you want watched (e.g., \"RN day shift\", \"Med‑Surg days\") and any hard filters (LPN vs RN, minimum pay, exclude staffing agencies).\n- Or I can monitor careers pages at up to five employers you name (hospitals or health systems) and report any day‑shift postings from them.\nWhich do you want? If you say yes with no changes, I’ll watch for \"RN day shift\" in Columbus with defaults: RN only, exclude staffing agencies, 3 instant alerts/day, daily report at 8am."
+   ],
+   "note": "[gpt-5-mini: pass] Reply confirms understanding of day-shift nursing in Columbus, states limitation on live searches, and asks for exact title words or employer names to proceed—useful and appropriate. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply confirms understanding of day-shift nursing in Columbus, states limitation on live searches, and asks for exact title words or employer names to proceed—useful and appropriate."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "understands day-shift nursing near Columbus",
+      "says what it can show or asks one thing it needs"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H036",
+   "pass": false,
+   "failed": [
+    "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+   ],
+   "score": 1,
+   "replies": [
+    "I can start as soon as you give one thing I need most: the role and city (or \"remote\") you want me to apply for. With that I’ll search and queue matches for your approval.\n\nIf you want faster work, also paste your resume now — I’ll read it and draft tailored materials. Sensible defaults I’ll use if you don’t tell me: mid-level roles, full-time, immediate start, no visa requirement. Want those defaults or different? One question only: what role and city (or \"remote\") should I target?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply names the few needed items (role and city/remote, resume, and defaults including visa/work requirement) clearly and asks one clear question—useful but could list work rights explicitly as 'work authorization' rather than 'no visa requirement' for clarity. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply names the few needed items (role and city/remote, resume, and defaults including visa/work requirement) clearly and asks one clear question—useful but could list work rights explicitly as 'work authorization' rather than 'no visa requirement' for clarity."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H037",
+   "pass": false,
+   "failed": [
+    "says Fieldnote Software"
+   ],
+   "score": 1,
+   "replies": [
+    "I need the exact invite text to record it and create the prep brief. Paste the interview invite (the email or calendar text) here — I'll read it, save the invite, and produce a 10-point prep plan plus a 1-page case you can send. One question: do you want the 1-page case delivered in a formal slide/PDF style or a concise one-page doc? Default: concise one-page doc.",
+    "There's no company on file yet — you haven't saved any interview invites or confirmed a company. The next step is to paste the exact interview invite text (email or calendar) and I'll save it and build the prep brief and 1-page case. One question: do you want the 1-page case as a concise doc (default) or a formal slide/PDF?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent's reply incorrectly stated no company on file even though the user mentioned Fieldnote Software; response was otherwise clear about next steps and options. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "says Fieldnote Software"
+     ],
+     "note": "Agent's reply incorrectly stated no company on file even though the user mentioned Fieldnote Software; response was otherwise clear about next steps and options."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "says Fieldnote Software"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  },
+  {
+   "id": "H038",
+   "pass": false,
+   "failed": [
+    "either prepares it for their approval or says plainly why it cannot right now (e.g. the posting is not in its list, or it needs their resume)"
+   ],
+   "score": 1,
+   "replies": [
+    "I can't start the application from here — the extension on your computer must queue and submit each card. Paste the Ironstack Payments posting link (or the full job text) into the Trainee extension, or paste it here and I will prep the application materials for you (tailored resume, short cover email and the answers to common screening questions).\n\nI assumed a direct, single application to the Backend Software Engineer role. Do you want: 1) a tailored resume PDF (from your confirmed facts), 2) a 120-word cover email, and 3) suggested answers to likely screening questions? Pick which one to start with."
+   ],
+   "note": "[gpt-5-mini: pass] The agent clearly explained limitation, requested the job posting or resume, and offered to prepare tailored materials, fulfilling requirements without forbidden behaviors. [gpt-4.1-mini: FAIL] judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort).",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly explained limitation, requested the job posting or resume, and offered to prepare tailored materials, fulfilling requirements without forbidden behaviors."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "either prepares it for their approval or says plainly why it cannot right now (e.g. the posting is not in its list, or it needs their resume)"
+     ],
+     "note": "judge error: Financial model unavailable (HTTP 400 invalid_request_error: Unrecognized request argument supplied: reasoning_effort)."
+    }
+   ]
+  }
+ ],
+ "planned": 38,
+ "stopped": null
+}

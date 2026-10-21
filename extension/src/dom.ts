@@ -90,7 +90,12 @@ function widgetValue(el: any): string | null {
   const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
   const sv = root && root.querySelector("[class*='select__single-value'], [class*='-singleValue']");
   const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-  return t || null;
+  if (t) return t;
+  // A Greenhouse multi-select persists one chip per choice, not a single-value node. Read only each chip's label,
+  // in page order: the remove buttons and unpicked search text are not answers and must never reach the review card.
+  const labels = Array.from(root?.querySelectorAll("[class*='select__multi-value__label']") ?? [])
+    .map((label: any) => String(label.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+  return labels.length ? labels.join(", ") : null;
 }
 // WO-042, measured on the live pages from CI (evals/apply/results/live-fill.json): a Greenhouse react-select menu opens
 // for a page script only through the widget's own "Toggle flyout" button (typing, ArrowDown or a mousedown on the
@@ -140,6 +145,12 @@ function closeMenu(el: any) {
 }
 async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<boolean> {
   const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+  // Picking again appends to a multi-select rather than replacing it. Leave existing choices for the person: the
+  // content script must not label their whole selection as this fill's one chosen answer or hide earlier chips.
+  if (control?.querySelector("[class*='select__multi-value__label']")) {
+    lastChoice = null;
+    return widgetValue(el) === String(wanted).replace(/\s+/g, " ").trim();
+  }
   const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   if (toggle) press(toggle);

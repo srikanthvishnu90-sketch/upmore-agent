@@ -199,3 +199,21 @@ Deno.test("reliability: acknowledgements cannot bypass unknown imperative work r
     eq(r.reply, clarification); eq(m.payloads.length, 2); eq(state, {});
   }
 });
+
+Deno.test("reliability: a requested recruiter message is content rather than the agent's progress", async () => {
+  for (const [message, reply] of [
+    ["Write a single-sentence reply to the recruiter saying I will review the job description tonight.", "I'll review the job description tonight."],
+    ["Draft a note saying I will prepare the materials tomorrow.", "I will prepare the materials tomorrow."],
+  ]) {
+    const { r, m, state } = await fixture([text(reply)], { message });
+    eq(r.reply, reply); eq(r.stopped, "final"); eq(m.payloads.length, 1); eq(state, {});
+  }
+});
+
+Deno.test("reliability: a request to draft a message still rejects a promise to draft it", async () => {
+  const answer = "Which recruiter and posting is this reply for?";
+  const { r, m } = await fixture([text("I'll write a reply to the recruiter."), text(answer)], {
+    message: "Draft a reply to the recruiter.",
+  });
+  eq(r.reply, answer); eq(m.payloads.length, 2);
+});

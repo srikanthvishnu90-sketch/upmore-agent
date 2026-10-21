@@ -1,8 +1,8 @@
 // Original synthetic search-source regressions. No corpus, model provider, DB or network.
 // A legitimate goal can steer search before confirmation; explicit negative provenance cannot.
-import { goalOf } from '../../../supabase/functions/_shared/career_search.ts';
-import { careerTools } from '../../../supabase/functions/_shared/agent/career_tools.ts';
-import { agentTurn } from '../../../supabase/functions/agent-chat/career_brain.ts';
+import { goalOf } from '../../supabase/functions/_shared/career_search.ts';
+import { careerTools } from '../../supabase/functions/_shared/agent/career_tools.ts';
+import { agentTurn } from '../../supabase/functions/agent-chat/career_brain.ts';
 function ok(v: unknown, why: string): asserts v { if (!v) throw new Error(why); }
 function eq(a: unknown, b: unknown, why = '') { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${why}: ${JSON.stringify(a)}`); }
 const NOW = Date.UTC(2026, 9, 21, 19), USER = 'SYNTHETIC-SEARCH-SOURCE';

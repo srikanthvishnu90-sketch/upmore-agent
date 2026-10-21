@@ -71,3 +71,14 @@ Priority: P0
 Fix:
 Verified by:
 Follow-up (2026-10-20, Muse read-only diagnosis): the mechanism — the filter never had a chance. The executor's recency-ordered 600-posting window holds 246 SWE postings but ZERO intern-banded ones (bands in window: mid 224, senior 148, manager 113, staff 73, director 29, junior 5, intern 2 — both Operations; new_grad 1), so (family=SWE ∧ band=intern) is empty against the window, while the full shelf holds ~197 engineering-intern postings outside it. Classifiers, stamps, and filter all agree (counterfactual with fresh classifier output: still 0). Reproduced exactly by replaying the production path (600/5/0).
+
+[ID: MUSE-F-006] [Status: OPEN]
+Found: 2026-10-20 23:07 CDT, Muse (battery drive)
+Area: brain
+Input: "find data analyst internships in Chicago"
+Expected: data-family postings from the bot's own current list (the shelf's 595-role window carries 48 postings stamped Data/ML by the product's own classifiers — MUSE-F-005 diagnosis counts).
+Actual: "I found no data and machine learning roles in the current list, and I will not pad it with other kinds of roles. The current list holds 595 scored roles, and none of them are data and machine learning roles. Add boards that carry data and machine learning roles, or widen the ask to a neighbouring family, and I will search again." — a wrong-content zero, not a fallback: the bot asserted its own list holds no data roles at all while 48 of the 595 carry the product's own Data/ML stamp.
+Evidence: battery transcript (evidence/battery-14-2026-10-20.md) + F-005's family distribution.
+Priority: P0
+Fix:
+Verified by:

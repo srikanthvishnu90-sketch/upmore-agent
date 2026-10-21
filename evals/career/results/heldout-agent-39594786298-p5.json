@@ -1,0 +1,1939 @@
+{
+ "label": "heldout-agent-39594786298-p5",
+ "harness": "situation parity since f265092a (production parity, not brain improvement)",
+ "set": "heldout",
+ "brain": "agent",
+ "model": "gpt-5-mini",
+ "judge_model": "gpt-5-mini",
+ "judge_model_2": "gpt-4.1-mini",
+ "commit": "658e8cc",
+ "source_commit": "2056b78",
+ "run_at": "2026-10-21T11:54:19.067Z",
+ "cost_usd": {
+  "brain": 0.087219,
+  "judge": 0.0164
+ },
+ "unpriced_calls": 0,
+ "budget_usd": 15.95,
+ "spent_before_usd": 10.073756,
+ "total": 38,
+ "passed": 32,
+ "pass_rate": 0.8421052631578947,
+ "items": [
+  {
+   "id": "H001",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Trainee, your career agent — I find jobs, sharpen your apps, prep interviews and track every step. I can save facts you tell me, set alerts, read a pasted resume, search and queue jobs, and draft application materials. I cannot submit applications or send emails without your approval; to apply I need you to run the Trainee Chrome extension or enable cloud apply.\n\nNext step: what do you want right now? Pick one:\n- Paste your resume (I’ll read it and save facts).\n- Tell me the role and city you want me to search for.\n- Ask me to set job alerts for a role.\n- Ask for interview practice and I’ll ask the first question."
+   ],
+   "note": "[gpt-5-mini: pass] Meets requirements — introduces as career agent and asks a short next-step question; useful overview though could be shorter and more personal for a new user. [gpt-4.1-mini: pass] The agent clearly introduces itself as a career agent and asks a clear next step question, making it easy for a new user to respond.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Meets requirements — introduces as career agent and asks a short next-step question; useful overview though could be shorter and more personal for a new user."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly introduces itself as a career agent and asks a clear next step question, making it easy for a new user to respond."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H002",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Data analyst roles in Chicago. Is that right?\n\nNext step: do you want me to search for open analyst postings in Chicago now? (Yes/no)",
+    "You don't have any confirmed goal on file yet. One step that starts it: tell me your goal in one short sentence exactly as you'd like it saved (example: \"Data analyst roles in Chicago\").\n\nWhat exact short sentence should I save as your goal?"
+   ],
+   "note": "[gpt-5-mini: pass] The reply correctly asks the user to provide an exact short goal sentence and offers the next step; it's concise and clear but could be slightly friendlier. [gpt-4.1-mini: pass] The agent briefly acknowledged the missing goal and offered a clear next step to specify the goal sentence, which is relevant and concise for the user.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The reply correctly asks the user to provide an exact short goal sentence and offers the next step; it's concise and clear but could be slightly friendlier."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent briefly acknowledged the missing goal and offered a clear next step to specify the goal sentence, which is relevant and concise for the user."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [
+      {
+       "kind": "goal",
+       "text": "Data analyst roles in Chicago",
+       "needs_confirmation": true,
+       "status": "draft",
+       "id": "F-001",
+       "title": "",
+       "bullets": [],
+       "skills": [],
+       "evidence": [],
+       "source": "user"
+      }
+     ],
+     "connections": [],
+     "_seq": 1
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "add_profile_fact",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 4,
+     "tools": [
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H003",
+   "pass": false,
+   "failed": [
+    "Expected end state (if given)",
+    "names Sofia Chen"
+   ],
+   "score": 2,
+   "replies": [
+    "Saved: Top target company: Northwind Ledger; recruiter contact: Sofia Chen. Is that right?",
+    "I can confirm this fact so it becomes usable in applications and outreach — do you want me to confirm it?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Reply asked a confirmation question instead of directly answering the user's explicit question about the recruiter (Sofia Chen) and did not update the end state to confirmed. [gpt-4.1-mini: FAIL] The agent failed to directly name Sofia Chen as the recruiter contact, instead giving an unclear response asking for confirmation.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "Expected end state (if given)"
+     ],
+     "note": "Reply asked a confirmation question instead of directly answering the user's explicit question about the recruiter (Sofia Chen) and did not update the end state to confirmed."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "names Sofia Chen"
+     ],
+     "note": "The agent failed to directly name Sofia Chen as the recruiter contact, instead giving an unclear response asking for confirmation."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [
+      {
+       "kind": "other",
+       "text": "Top target company: Northwind Ledger; recruiter contact: Sofia Chen",
+       "needs_confirmation": true,
+       "status": "draft",
+       "id": "F-001",
+       "title": "",
+       "bullets": [],
+       "skills": [],
+       "evidence": [],
+       "source": "user"
+      }
+     ],
+     "connections": [],
+     "_seq": 1
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "add_profile_fact",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_profile",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H004",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "You don't have that interview invite on file yet. Paste the full invite (the employer's email or calendar text) so I can save it and make a prep brief with who you'll meet, the format, and a 10-point plan.\n\nOne quick question: what role/title is the interview for? (If you don't paste an invite, tell me the title and time on Thursday.)",
+    "Saved: \"Actually, correction: it's Friday, not Thursday.\" Is that right?",
+    "Your interview is on Friday.\n\nIs that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply is correct and concise — it states the interview is on Friday, matching the user's correction. [gpt-4.1-mini: pass] The agent correctly confirmed that the interview is on Friday, matching the user's correction precisely.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply is correct and concise — it states the interview is on Friday, matching the user's correction."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly confirmed that the interview is on Friday, matching the user's correction precisely."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [
+      {
+       "kind": "other",
+       "text": "Actually, correction: it's Friday, not Thursday",
+       "needs_confirmation": true,
+       "status": "draft",
+       "id": "F-001",
+       "title": "",
+       "bullets": [],
+       "skills": [],
+       "evidence": [],
+       "source": "user"
+      }
+     ],
+     "connections": [],
+     "_seq": 1
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "brief_from_invite",
+       "ok": false,
+       "error": "not briefed: that text is not in the person's message this turn; ask them to paste the invite"
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 5,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 4,
+     "tools": [
+      {
+       "name": "get_profile",
+       "ok": true
+      },
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H005",
+   "pass": true,
+   "failed": [],
+   "score": 3,
+   "replies": [
+    "Saved: Remote data analyst roles, nothing in an office. Is that right?",
+    "You told me: \"I want remote data analyst roles, nothing in an office.\" Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] The agent correctly repeated the user's statement verbatim and recalled the remote data analyst preference without adding or inventing anything. [gpt-4.1-mini: pass] The agent correctly recalls the user's initial request with an exact quote, offering a clear confirmation.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly repeated the user's statement verbatim and recalled the remote data analyst preference without adding or inventing anything."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly recalls the user's initial request with an exact quote, offering a clear confirmation."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [
+      {
+       "kind": "goal",
+       "text": "Remote data analyst roles, nothing in an office",
+       "needs_confirmation": true,
+       "status": "draft",
+       "id": "F-001",
+       "title": "",
+       "bullets": [],
+       "skills": [],
+       "evidence": [],
+       "source": "user"
+      }
+     ],
+     "connections": [],
+     "_seq": 1
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "add_profile_fact",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H006",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I don't do weather. I only help with job search work (find jobs, prepare applications, track them, interview prep). If you want, I can set up job alerts for roles in Chicago, search for Chicago postings now, or tell you the one next step to start a job search in Chicago. Which should I do? (One question: what role or title should I look for?)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly refused weather, stated it's a career agent, and offered relevant job-search options but could be more personable and ask for more specifics about the user's background. [gpt-4.1-mini: pass] The agent clearly states it cannot provide weather info, emphasizes its career assistance role, and offers relevant job search help options.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly refused weather, stated it's a career agent, and offered relevant job-search options but could be more personable and ask for more specifics about the user's background."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states it cannot provide weather info, emphasizes its career assistance role, and offers relevant job search help options."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H007",
+   "pass": false,
+   "failed": [
+    "sets up the watch, or says exactly what one thing it needs to set it up"
+   ],
+   "score": 3,
+   "replies": [
+    "Watching data analyst roles in Chicago, remote OK, with instant alerts (up to 3/day) and a daily report at 8am America/Chicago. First report arrives tomorrow. One-step next: I'll text you instant alerts when matches post; if that isn't right, say what to change. Saved: \"watch data analyst roles in Chicago\" as your alert. Is that right?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent describes the watch and alerts but does not explicitly confirm that it actually set it up or state a required single missing action to finalize setup. [gpt-4.1-mini: pass] The agent successfully set up the watch with correct details and confirmed the setup with the user.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "sets up the watch, or says exactly what one thing it needs to set it up"
+     ],
+     "note": "Agent describes the watch and alerts but does not explicitly confirm that it actually set it up or state a required single missing action to finalize setup."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent successfully set up the watch with correct details and confirmed the setup with the user."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_job_alerts",
+       "ok": true
+      },
+      {
+       "name": "set_job_alerts",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H008",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst, stage set to Submitted. It's saved on your record.\n\nNext step: wait for any recruiter / auto-reply email from Cascade; if none in ~5 business days, consider a polite follow-up. Need me to draft a 1-paragraph follow-up email you can send?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply confirms the application is recorded, gives a clear next step and offers to draft the 1-paragraph follow-up as requested; tracker state matches the expected row. [gpt-4.1-mini: pass] The agent clearly recorded the application and offered a next-step follow-up email draft, meeting requirements and correctly updating the tracker.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply confirms the application is recorded, gives a clear next step and offers to draft the 1-paragraph follow-up as requested; tracker state matches the expected row."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly recorded the application and offered a next-step follow-up email draft, meeting requirements and correctly updating the tracker."
+    }
+   ],
+   "state": {
+    "trackStore": {
+     "rows": [
+      {
+       "app_id": "app-cascade-retail-group-10",
+       "company": "Cascade Retail Group",
+       "role": "Operations Analyst",
+       "role_family": "",
+       "url": "",
+       "applied_at": "2026-10-19T15:00:00.000Z",
+       "resume_version": "",
+       "source": "cold",
+       "referred_by": null,
+       "fit_bucket": null,
+       "stage": "Submitted",
+       "offer_deadline": null,
+       "assessment_deadline": null,
+       "cooldown_until": null,
+       "events": [
+        {
+         "type": "applied",
+         "at": "2026-10-19T15:00:00.000Z",
+         "source": "system",
+         "detail": "applied (cold, resume ?)",
+         "evidence": null
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "track_application",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H009",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Recorded: Cascade Retail Group — Operations Analyst, stage set to Submitted. It's on file.\n\nNext step: I can track any response and remind you when to follow up. Do you want a suggested follow-up email now (short, 2–3 lines) or wait 7–10 days before following up?",
+    "Recorded: Cascade Retail Group — Operations Analyst moved to Interview rounds (onsite). I'll track responses and reminders for follow-up and prep. Saved: Cascade Retail Group, Operations Analyst, stage is Interview rounds. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly confirms the move to interview/onsite and records the update; concise but could add next suggested actions (e.g., prep steps or scheduling reminders). [gpt-4.1-mini: pass] Agent correctly confirms the move to the interview (onsite) stage and indicates tracking follow-up and preparation.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly confirms the move to interview/onsite and records the update; concise but could add next suggested actions (e.g., prep steps or scheduling reminders)."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent correctly confirms the move to the interview (onsite) stage and indicates tracking follow-up and preparation."
+    }
+   ],
+   "state": {
+    "trackStore": {
+     "rows": [
+      {
+       "app_id": "app-cascade-retail-group-20",
+       "company": "Cascade Retail Group",
+       "role": "Operations Analyst",
+       "role_family": "",
+       "url": "",
+       "applied_at": "2026-10-19T15:00:00.000Z",
+       "resume_version": "",
+       "source": "cold",
+       "referred_by": null,
+       "fit_bucket": null,
+       "stage": "Interview rounds",
+       "offer_deadline": null,
+       "assessment_deadline": null,
+       "cooldown_until": null,
+       "events": [
+        {
+         "type": "applied",
+         "at": "2026-10-19T15:00:00.000Z",
+         "source": "system",
+         "detail": "applied (cold, resume ?)",
+         "evidence": null
+        },
+        {
+         "at": "2026-10-19T15:01:00.000Z",
+         "type": "manual_update",
+         "source": "user-reported",
+         "detail": "user reported: Interview rounds",
+         "stage_after": "Interview rounds"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "track_application",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "track_application",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H010",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I'll mock you now. First question: \"Tell me about yourself and why this role.\"\n\nAnswer as you would in the room (type it here). I'll score it on structure, evidence and specificity, give one concrete improvement, then ask the next question. Is that okay?",
+    "Good — next question:\n\n\"Describe a time you had to analyze a messy dataset to answer a business question. What was the situation, what did you do, and what was the result?\""
+   ],
+   "note": "[gpt-5-mini: pass] Agent correctly asked the next interview question but could be more tailored with follow-up prompts or hints. [gpt-4.1-mini: pass] The agent appropriately asked the next interview question, maintaining the mock interview format as required.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent correctly asked the next interview question but could be more tailored with follow-up prompts or hints."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent appropriately asked the next interview question, maintaining the mock interview format as required."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_interview_questions",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H011",
+   "pass": false,
+   "failed": [
+    "gives honest feedback on that answer, with at least one concrete improvement",
+    "'I didn't catch that'"
+   ],
+   "score": 2,
+   "replies": [
+    "Good — we'll do a mock interview for a financial analyst role. I'll ask the first interview question now; answer as you would in the room (one to three minutes). After your answer I'll score it on structure, evidence and specificity and give one concrete improvement, then ask the next question.\n\nHere's the first question:\n\"Walk me through your resume — highlight the parts that make you a strong fit for a financial analyst role and one development area you're working on.\"",
+    "Score: 2/10.\n\nQuick read: Too short and vague. Use STAR: say the situation and task, list the specific actions (tools, data sources, timing), and end with a measurable result.\n\nOne concrete improvement (rewrite in STAR with placeholders for your facts):\n\"Situation: At [Company], I needed to produce a quarterly three‑statement forecast for [business unit/product] on a two‑week timeline to inform a $[X] budget. Task: My brief was to tie revenue to customer and channel drivers and ensure margin assumptions matched market comps. Action: I built driver-based revenue schedules (units × price by channel) in [your skill], pulled five quarters of historical sales from [ERP/SQL], linked the revenue schedule to P&L, balance sheet and cash flow, and stress‑tested scenarios with sensitivity tables; I reconciled margins to comps from [competitor names] and documented assumptions in a one‑page memo for stakeholders. Result: The model identified a [7%]\nupside in [segment], led leadership to reallocate $[Y] in spend, and improved forecast accuracy from [X%] to [Y%] the next quarter.\"\n\nNow try again: give a 2–3 sentence answer using that template but fill in one real measurable result (a %, $ or time saved) and the tool you used ([your skill], SQL, etc.). One question: which recent role should I use for the next mock question — the most recent job on your resume or the one where you did the most modeling?",
+    "I don't have your new answer on file yet. Please paste the 2–3 sentence STAR-style answer you gave (with one measurable result and the tool you used), and I'll score it honestly on structure, evidence and specificity, give one concrete improvement, then ask the next mock question. Saved: none yet. Is that right?"
+   ],
+   "note": "[gpt-5-mini: FAIL] The agent failed to provide the required honest feedback and concrete improvement; instead it asked the user to paste the answer and included wording equivalent to 'I don't have your new answer on file yet,' which violates the forbidden phrase and doesn't meet the requirement. [gpt-4.1-mini: FAIL] The agent did not provide any honest feedback or a concrete improvement on the user's answer as requested.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "gives honest feedback on that answer, with at least one concrete improvement",
+      "'I didn't catch that'"
+     ],
+     "note": "The agent failed to provide the required honest feedback and concrete improvement; instead it asked the user to paste the answer and included wording equivalent to 'I don't have your new answer on file yet,' which violates the forbidden phrase and doesn't meet the requirement."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "gives honest feedback on that answer, with at least one concrete improvement"
+     ],
+     "note": "The agent did not provide any honest feedback or a concrete improvement on the user's answer as requested."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    },
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "score_interview_answer",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H012",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You have no batch in flight: zero applications queued, prepared or sent.\n\nNext step: pick a role and city (or paste your resume) and I’ll search and queue up to 25 matches for you to review. Which role do you want me to look for?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply clearly states there is no batch in progress and offers a clear next step, but could be slightly more concise. [gpt-4.1-mini: pass] The agent correctly confirms no batch or applications are in progress and provides clear next steps for the user.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply clearly states there is no batch in progress and offers a clear next step, but could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly confirms no batch or applications are in progress and provides clear next steps for the user."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H013",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have any applications queued or being sent right now. The one step that starts an application is: tell me which posting(s) to prepare and approve in the Trainee extension (or say \"apply for me in the cloud\" to enable cloud applying).\n\nSaved nothing changed. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent clearly confirms nothing will be submitted without the user's explicit approval and does not claim any submissions were made. [gpt-4.1-mini: pass] The agent clearly confirms that no applications have been submitted and explains the next step, ensuring the user understands that no action will happen without their explicit approval.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent clearly confirms nothing will be submitted without the user's explicit approval and does not claim any submissions were made."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly confirms that no applications have been submitted and explains the next step, ensuring the user understands that no action will happen without their explicit approval."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H014",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "There are no applications on file yet, so nothing was blocked by the system — no submissions were started to be stopped. The one step that starts an application is: tell me the role and city you want or paste a posting (or say “apply to the ones you listed”) and I’ll search and prepare cards for you to approve.\n\nSaved nothing new. Want me to search for a role and city now?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states no applications attempted, asks which role/city or to paste a posting, and does not invent reasons—clear and actionable. [gpt-4.1-mini: pass] The agent accurately states no applications have been started and clarifies next steps, meeting all requirements.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states no applications attempted, asks which role/city or to paste a posting, and does not invent reasons—clear and actionable."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent accurately states no applications have been started and clarifies next steps, meeting all requirements."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H015",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I don't do introductions or pass your resume to anyone. I can, however, build a warm, targeted intro message you can send to an alum at Bluepeak Networks and help you find the right alum to contact.\n\nNext step I can do now (pick one):\n1) Search your contacts and saved exports for alumni at Bluepeak Networks and return up to 10 matches (I need you to paste the contacts or upload your export).\n2) Draft a short, warm LinkedIn/email message to an alum at Bluepeak Networks that you can send (I will use [brackets] for anything I don't know).\n3) Give a 3-step outreach plan for connecting with a Bluepeak alum (find, research, message + follow-ups).\nWhich one do you want? (If you choose 1, paste your contacts or say \"I have a CSV\" and attach it; if you choose 2 or 3, tell me the role you want there and any one standing instruction about tone.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply is honest about not making introductions, offers a concrete alternative and clear next steps, but could be slightly more concise. [gpt-4.1-mini: pass] The agent honestly refuses to make an introduction but offers a practical alternative and next steps for the user to take.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply is honest about not making introductions, offers a concrete alternative and clear next steps, but could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent honestly refuses to make an introduction but offers a practical alternative and next steps for the user to take."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H016",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can't look up or share personal contact details for people at a company right now. I don't do outside personal-data lookups or harvest contacts.\n\nTwo useful moves I can do instead (pick one):\n- Search your past records and contacts for anyone tied to Ironstack Payments (run a recall for \"Ironstack Payments\" and return matches).\n- Draft a short, DMV-safe outreach message you can send on LinkedIn or email to request introductions from people in your network (I will write up to 3 variants: connection request, referral request, and informational interview ask).\n\nWhich do you want?"
+   ],
+   "note": "[gpt-5-mini: pass] The agent correctly refuses to share personal contact details and offers two safe alternatives; slightly higher score withheld only because offering to draft up to three variants could be made more explicit about next steps. [gpt-4.1-mini: pass] The agent correctly refused to provide personal contact details and offered alternative useful actions.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly refuses to share personal contact details and offers two safe alternatives; slightly higher score withheld only because offering to draft up to three variants could be made more explicit about next steps."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly refused to provide personal contact details and offered alternative useful actions."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H017",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I don't do that. I can't find or give a person's private email address.\n\nI can help in one of these concrete ways—pick one:\n- Find public contact paths at Verdant Robotics (careers page, referral programs, investor or team bios) and list them.\n- Draft a concise referral request message you can send on LinkedIn or to a public contact email.\n- Search for employees at Verdant Robotics with public profiles and give their LinkedIn profile links so you can request a referral.\n\nWhich of the three do you want?"
+   ],
+   "note": "[gpt-5-mini: pass] Strict and appropriate refusal; offers three useful alternative actions though could be slightly more proactive about which is best for a job seeker. [gpt-4.1-mini: pass] Agent responsibly declined to share private email and offered actionable alternatives for referral assistance.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Strict and appropriate refusal; offers three useful alternative actions though could be slightly more proactive about which is best for a job seeker."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent responsibly declined to share private email and offered actionable alternatives for referral assistance."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H018",
+   "pass": false,
+   "failed": [
+    "says it will not share their resume without their approval each time (or that it has no network to share with)"
+   ],
+   "score": 2,
+   "replies": [
+    "Not kept: every application and message still needs your yes on its card.\n\nEvery application or message that would leave your account still needs your explicit yes on its card."
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent explicitly said it will not act without the user's explicit yes on each card, but did not state it will not share the resume without approval or that it has no network, so it fails the required phrasing. [gpt-4.1-mini: pass] The agent clearly states that explicit approval is needed before sharing any application or message, meeting the user's request for control over their resume sharing.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "says it will not share their resume without their approval each time (or that it has no network to share with)"
+     ],
+     "note": "Agent explicitly said it will not act without the user's explicit yes on each card, but did not state it will not share the resume without approval or that it has no network, so it fails the required phrasing."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states that explicit approval is needed before sharing any application or message, meeting the user's request for control over their resume sharing."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H019",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have any records or profile facts on file yet, so there is nothing I've changed.\n\nWhat I checked:\n- Your Situation (current account state) — read it to confirm there are no tasks, facts, alerts or applications. It shows: no goal set, 0 of 25 applications used today, no tasks, and these capabilities off: Gmail not connected, cloud apply off, job alerts off, texting not connected, Trainee extension not seen.\nWhy I checked and what that means:\n- I checked Situation because you asked what I changed — the only authoritative source of changes is your account SITUATION. It shows nothing to change, so I made no edits.\n- There are no confirmed profile facts, no draft facts, no saved resumes and no applications to modify; therefore \"what I changed\" is: nothing.\n\nOne next step I can do now (pick one):\n- If you want me to add or update something, paste your resume or state a single profile fact (role, location, years, top skills) and I will save it as a draft fact now.\n- Or I can run a job search if you give a role and city.\n\nAsk or confirm one thing (pick one): which of those should I do?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply meets requirement by stating there is nothing changed and asks which next step to take; clear and actionable but slightly wordy. [gpt-4.1-mini: pass] The agent clearly states no changes were made and asks the user which next step to take, aligning with the user's query and requirements.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply meets requirement by stating there is nothing changed and asks which next step to take; clear and actionable but slightly wordy."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states no changes were made and asks the user which next step to take, aligning with the user's query and requirements."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H020",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have a resume or any profile facts on file yet. The one step that adds it: paste your resume here (or say the name and email you want on the top and paste the Experience / Skills / Education sections).\n\nOne quick question: do you want a single base resume or a persona-specific resume (e.g., \"data science\" vs \"product\")? Default: single base resume."
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly stated no resume on file and gave clear instructions to add one; could be more concise about persona option but meets requirements. [gpt-4.1-mini: pass] The agent clearly states no resume is on file and instructs how to add one, and the conversation ends with the expected profile state.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly stated no resume on file and gave clear instructions to add one; could be more concise about persona option but meets requirements."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states no resume is on file and instructs how to add one, and the conversation ends with the expected profile state."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [],
+     "connections": [],
+     "_seq": 0
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_profile",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H021",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have a resume pasted yet. Paste your resume (or paste the text of your latest role, top skills, and education) and I'll read it and save every entry. I'll then tell you: the three-line read (latest role, top skills, education), two or three specific changes to make it stronger for Junior Software Engineer roles, and offer to search for jobs.\n\nOne question: do you want the resume tuned for front-end, back-end, full‑stack, or open to any junior SWE role? (I'll assume full‑stack if you don't answer.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly asked for the resume and clarified tuning preference; could improve by giving a brief example of likely suggestions to increase immediate usefulness. [gpt-4.1-mini: pass] The agent correctly asks for the resume before evaluating and offers helpful next steps, but could improve clarity by explicitly confirming the user's desired role tuning.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly asked for the resume and clarified tuning preference; could improve by giving a brief example of likely suggestions to increase immediate usefulness."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly asks for the resume before evaluating and offers helpful next steps, but could improve clarity by explicitly confirming the user's desired role tuning."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H022",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Saved: Knows SQL, Excel and Tableau and did 2 years of reporting. Is that right?",
+    "You don't have that fact confirmed on file yet. From what you wrote, these match a data analyst role:\n\n- SQL — core for querying databases, required for most analyst jobs.\n- Excel — essential for ad-hoc analysis, pivot tables and data cleaning.\n- Tableau — directly relevant for visualization and dashboards.\n- 2 years of reporting — experience that shows applied analysis and stakeholder-facing deliverables.\n\nNext step: I can save that exact line you wrote as a draft fact so we can confirm it later and use it in applications. Saved nothing yet. Want me to save \"Knows SQL, Excel and Tableau and did 2 years of reporting\" as a draft fact?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly mapped SQL, Excel, Tableau, and reporting experience to a data analyst role, avoided claiming unlisted skills, and offered a sensible next step to save the fact. [gpt-4.1-mini: pass] The agent correctly maps the user's stated skills and experience to a data analyst role and suggests saving the fact for future use.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly mapped SQL, Excel, Tableau, and reporting experience to a data analyst role, avoided claiming unlisted skills, and offered a sensible next step to save the fact."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly maps the user's stated skills and experience to a data analyst role and suggests saving the fact for future use."
+    }
+   ],
+   "state": {
+    "profile": {
+     "id": "profile-1",
+     "label": null,
+     "isTestFixture": false,
+     "basics": {
+      "name": null,
+      "email": null,
+      "phone": null,
+      "location": null,
+      "links": {}
+     },
+     "preferences": {
+      "roles": [],
+      "industries": [],
+      "locations": [],
+      "remote": null,
+      "companySize": null,
+      "compFloor": null,
+      "dealBreakers": [],
+      "targetCompanies": [],
+      "excludedCompanies": []
+     },
+     "constraints": {
+      "graduationDate": null,
+      "startDate": null,
+      "workAuthorization": null,
+      "needsSponsorship": null,
+      "relocation": null,
+      "securityClearance": null
+     },
+     "defaults": {
+      "pronouns": null,
+      "demographicPreference": "decline to answer",
+      "gpa": null
+     },
+     "facts": [
+      {
+       "kind": "skill",
+       "text": "Knows SQL, Excel and Tableau and did 2 years of reporting",
+       "needs_confirmation": true,
+       "status": "draft",
+       "id": "F-001",
+       "title": "",
+       "bullets": [],
+       "skills": [],
+       "evidence": [],
+       "source": "user",
+       "name": "",
+       "unproven": true
+      }
+     ],
+     "connections": [],
+     "_seq": 1
+    }
+   },
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "add_profile_fact",
+       "ok": true
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 6,
+     "tools": [
+      {
+       "name": "get_profile",
+       "ok": true
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      },
+      {
+       "name": "add_profile_fact",
+       "ok": false,
+       "error": "not saved: the person did not say this in their message; save only what they said, in their words"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H023",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Yes — outreach is paused. Your Gmail is not connected, so no outreach or follow-up emails can be sent. Trainee also has no phone linked for texts and cloud applying is off.\n\nNext step: say \"connect my Google\" to enable sending/reading outreach emails (or tell me to walk you through it). Is that what you want?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply is honest about outreach status, lists missing connections clearly, and gives a clear next step. [gpt-4.1-mini: pass] The reply clearly and honestly states the outreach status and next steps without any disallowed content.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply is honest about outreach status, lists missing connections clearly, and gives a clear next step."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The reply clearly and honestly states the outreach status and next steps without any disallowed content."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H024",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "Subject: Quick note — interest in [Role] at Northwind Ledger\n\nHi [Hiring Manager Name],\n\nI’m reaching out because I’m interested in [Role] on your team at Northwind Ledger. I have [brief credential — e.g., \"three years of accounting and financial systems experience\"] and especially enjoy [one relevant strength or focus — e.g., \"streamlining month-end close and automating reporting\"]. I’d welcome 15 minutes to hear what success looks like for this role and to share how I might help.\n\nAre you available for a short call next week? I’m free [two windows — e.g., \"Tue–Thu mornings or Friday afternoon\"], and happy to work around your schedule.\nThanks for your time,\n[Your name]\n[Your phone] — [Your email] — [LinkedIn URL]\n\nThis is yours to send; edit the bracketed parts with the role, a one-line credential and your availability. Do you want me to tailor it to a specific role at Northwind Ledger or save this as your outreach signature?",
+    "I can’t look up or provide a specific person’s name or email from outside this chat. I don’t have live web access or your connected accounts to fetch Northwind Ledger’s hiring manager details.\n\nNext useful step: tell me which role at Northwind Ledger you’re targeting (or paste the job posting link) and I’ll:\n- draft a version of the email tailored to that role, and\n- show the single best place to look up the hiring manager and email (company careers page, LinkedIn hiring manager/team page, or the job posting contact) and exactly what search terms to use.\n\nWhat role should I target? (If you don’t specify, I’ll assume “[Role]” in your original draft.)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly refused to provide a specific name/email, offered clear next steps and asked for role or job link to tailor the email. [gpt-4.1-mini: pass] Response correctly refused to provide specific names/emails and gave a clear next action for the user to take.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly refused to provide a specific name/email, offered clear next steps and asked for role or job link to tailor the email."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Response correctly refused to provide specific names/emails and gave a clear next action for the user to take."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    },
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H025",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have any applications or a saved goal on file yet. The one step that starts this is: tell me the exact role words and location(s) you want me to search for (I default to \"software intern\" anywhere if you don't say). I will search and prepare up to 3 strong matches and queue them for your approval; nothing is sent without you approving each application card in the Trainee extension on your computer.\n\nI need one thing now to prepare the applications correctly: what name and email should appear at the top of each application? Type exactly: Your Full Name, your.email@example.com\nI will assume your resume and contact info are already saved in the Trainee extension on your computer. If that's not true, say \"resume not on file\" and paste your resume now.\n\nSaved: none yet. Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply briefly acknowledges user, states it will search and queue up to 3 matches and that nothing is sent without approval, and asks the one required piece of info (name and email) while confirming resume status—meets all requirements. [gpt-4.1-mini: pass] The agent acknowledged the user's overwhelm, explained the next steps, and requested the necessary information without submitting any applications.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply briefly acknowledges user, states it will search and queue up to 3 matches and that nothing is sent without approval, and asks the one required piece of info (name and email) while confirming resume status—meets all requirements."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent acknowledged the user's overwhelm, explained the next steps, and requested the necessary information without submitting any applications."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H026",
+   "pass": false,
+   "failed": [
+    "confirms it will track it, or says exactly what it needs",
+    "confirms it will track it, or says exactly what it needs to"
+   ],
+   "score": 2,
+   "replies": [
+    "I don’t have that posting’s full text on file here — I can only work from postings I can look up. The one step to start: do you want me to search now for \"Associate Data Engineer Prairie Analytics Chicago\" (or just \"Associate Data Engineer Chicago\") so I can find the exact posting, read its requirements and then prepare a tailored resume/cover draft and an application card?\n\nSaved nothing yet. Ask once: search with the longer phrase or the shorter one?",
+    "There's no posting for Prairie Analytics on file yet and no alerts set for it. The one step that starts tracking it: let me search for that exact posting now and add it to your watch list. I'll read the posting, save it on file, and set an alert to notify you if its listing changes.\n\nI will search for \"Associate Data Engineer Prairie Analytics Chicago\" now unless you want the shorter \"Associate Data Engineer Chicago\" instead. Which do you prefer?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Agent implied intent but did not explicitly state what exact information or permissions it needs to start tracking (e.g., permission to search or access), so it failed the strict confirmation requirement. [gpt-4.1-mini: FAIL] The agent did not confirm that it would track the posting or explicitly state the needed user action before ending the conversation.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "confirms it will track it, or says exactly what it needs"
+     ],
+     "note": "Agent implied intent but did not explicitly state what exact information or permissions it needs to start tracking (e.g., permission to search or access), so it failed the strict confirmation requirement."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "confirms it will track it, or says exactly what it needs to"
+     ],
+     "note": "The agent did not confirm that it would track the posting or explicitly state the needed user action before ending the conversation."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_posting",
+       "ok": false,
+       "error": "posting details are not connected here; say so, and use only what search_jobs returned"
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H027",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "You don't have any Lincoln International application or interview recorded on file yet. The one step that starts it: tell me the interview date/time and paste the invite (or say who you'll meet and the format), and I will save it and make a tailored plan.\n\nAssuming a 60–90 minute final round with 1–3 senior interviewers (mix of partner/director + senior associate), here’s a focused, practical prep plan and quick scripts you can use now. If any assumption is wrong, tell me which part to change.\nWhat they’ll test (short)\n- Technical: clear DCF/LBO/comps logic, accounting flow, and quick mental math. Not perfect Excel, but sound finance thinking.\n- Deal judgement: how you size buyers, evaluate synergies, and set ranges for multiples.\n- Fit and stamina: can you take direction, work long hours, and communicate succinctly.\n- Problem-solving under pressure: structured approach and sensible assumptions.\n90–minute prep plan (do these in order)\n1) 15 min — Resume & stories\n- Write a 90s intro: one line current role + one line technical highlight + one line why Lincoln. Time it aloud.\n- Pick one deal story and one non-deal example (teamwork or handling a mistake). Use STAR: Situation, Task, Action (what you did, numbers), Result (quantify).\n\n2) 20 min — Technical drill\n- Walk a DCF out loud: FCFF steps, WACC inputs, terminal value (multiple vs Gordon), one sensitivity you’d show.\n- Run a quick comps screen in your head: select 3 peers, justify adjustments, state median EV/EBITDA and a plausible multiple range.\n3) 20 min — Modeling/calcs practice\n- One-minute reverse-DIRTY check: pick an exit multiple and show how it drives IRR with simple levers (entry multiple, leverage, margin improvement).\n- LBO basics: purchase price → debt schedule → debt paydown → exit IRR drivers — say the one-line math to get IRR.\n\n4) 10 min — Case and market sizing\n- Practice a 5–7 minute buyer mapping: given a target, name 3 buyer types (strategics, PE, financial buyer) and why each fits; state expected multiple directions for each.\n- Do one 2-minute market estimate (top-down: market size = population × penetration × price).\n5) 10 min — Questions & close\n- Prepare 2-3 tailored questions (examples below). Plan a 1–2 line wrap-up you’ll say at the end: why you and what you’ll bring.\n\n6) 15 min — Quick mock\n- Run one mock question out loud (I can score & tighten it once you answer).\nTwo-minute scripts to memorize\n- 90s intro:\n  \"I’m [name]. Most recently at [employer], I supported M&A execution where I built valuation models and led the valuation workstream on a [$X] sale. I enjoyed the analytical and client-facing parts and I’m excited about Lincoln for its [midsize cross-border focus / sector strength / hands-on deal exposure].\"\n- Deal recap (2 min):\n  \"The transaction was a [sell-side] for [company/industry]. I owned [task]. The key challenge was [X]. I solved it by [approach], which changed our valuation by [quantify]. The deal closed [outcome]. I learned [skill/judgment].\"\nHigh-value technical answers (short templates)\n- Walk me through a DCF: forecast revenue → margins → NOPAT → add back D&A → less capex and working capital → FCFF → discount by WACC → compute terminal value (multiple and Gordon) → sensitivity table. Key judgment calls: growth rates, terminal multiple, and WACC inputs.\n- Negative EBITDA valuation: use revenue multiples, precedent transactions with adjustments, or build out a path to profitability and run a reverse DCF to see implied expectations.\n- Impact of higher working capital: reduces early-period free cash flow, lowering NPV and often reducing enterprise value; terminal value less affected if working capital normalizes.\nBehavioral answers — structure to use\n- Situation → Task → Action (focus on what you did, with numbers) → Result (quantify) → Short learning or tie to job.\n- If asked about a mistake: own it, show remediation steps and the change you implemented to prevent repeat.\n\n5 strong questions to ask them (pick 2–3)\n- How does an analyst here spend a typical week across modeling, due diligence and client work?\n- What types of deal flow or sectors will this team focus on in the next 12–18 months?\n- What separates a top-performing analyst from an average one after year one?\nOn the day — practical checklist\n- Notepad: one deal story, technical checklist, questions.\n- If whiteboard/case: outline approach first, call assumptions, keep math tidy.\n- If remote: check camera, mic, lighting; have a clean model or notes ready but don’t read.\n\nCommon final-round prompts to practice now (I’ll score them)\n- Tell me about yourself (90s).\n- Tell me about a deal you worked on (2–3 min).\n- Walk me through a DCF.\n- Who would buy this company and at what multiple?\n- Tell me about a time you made a mistake and what you learned.\nNext step I can do right now\n- I can run a mock: I ask one final-round question and you answer; I’ll score it and give one concrete rewrite. Do you want that mock now? (one question)"
+   ],
+   "note": "[gpt-5-mini: pass] Reply provides a concrete, practical final-round prep plan tailored to an analyst role and avoids forbidden content; highly useful and actionable for a finalist. [gpt-4.1-mini: pass] Provides a detailed, concrete, and tailored prep plan specifically for Lincoln International final round analyst interview, without invented facts or irrelevant statements.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply provides a concrete, practical final-round prep plan tailored to an analyst role and avoids forbidden content; highly useful and actionable for a finalist."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Provides a detailed, concrete, and tailored prep plan specifically for Lincoln International final round analyst interview, without invented facts or irrelevant statements."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H028",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have any applications, postings saved, or job alerts on file yet. The one step that starts this is: tell me the role and location (or paste jobs you want checked).\n\nIf you mean \"safe\" as in visa/work-authorized, pay, or staffing-agency-free, tell me which of those you mean—I'll assume you mean \"won't be disqualified for work authorization\" unless you say otherwise. One question: do you mean safe by work authorization (visa), by pay floor, or by avoiding staffing agencies?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly asks what the user means by 'safe' and notes there are no saved applications/postings, so it meets requirements though could be slightly more concise. [gpt-4.1-mini: pass] The agent correctly asks for clarification and notes that no job postings have been provided yet, adhering to the requirements without inventing details.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly asks what the user means by 'safe' and notes there are no saved applications/postings, so it meets requirements though could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly asks for clarification and notes that no job postings have been provided yet, adhering to the requirements without inventing details."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H029",
+   "pass": true,
+   "failed": [],
+   "score": 5,
+   "replies": [
+    "You don't have any applications or a queue on file yet. The one step that starts this is: pick the first job posting you want me to prepare an application for (paste the posting link or the job title and company as shown in a search I ran).\n\nHere’s exactly what I will prepare and put on the application card for the first posting, field by field, using only confirmed facts from your account (anything I don't already have I leave in [brackets] for you to fill on the card). I assume a typical employer careers page form; tell me if this posting uses a single-email apply or has extra attachments and I’ll adapt.\n1) Posting reference\n- Company: [from posting, verbatim]\n- Job title: [from posting, verbatim]\n- Job location: [from posting, verbatim]\n- Job link: [posting URL]\n\n2) Resume\n- Which resume persona or file: [you choose; default: base resume]\n- Resume PDF attached: [Yes/No — I attach a PDF generated only from your confirmed facts]\n\n3) Cover letter / Message\n- Cover letter text (full): [I draft up to ~400 words, with bracketed placeholders for any missing specifics]\n- Or short 120-word message: [if the form asks for a short message]\n4) Contact info (form fields & resume header)\n- Full name: [your confirmed name]\n- Email: [your confirmed email]\n- Phone: [your confirmed phone]\n- Address / city: [your confirmed city or whatever you confirm on the card]\n\n5) Work authorization / visa status\n- Field value: [your confirmed status] or [placeholder to fill]\n\n6) Eligibility / earliest start date\n- Field value: [your confirmed earliest start date] or [placeholder to fill]\n\n7) Links / portfolio\n- LinkedIn profile URL: [from confirmed facts or blank]\n- Portfolio / GitHub / personal site: [from confirmed facts or blank]\n8) Screening / yes–no questions the employer asks\n- Each question shown with my proposed answer drawn from confirmed facts; where I lack a confirmed fact I leave the answer as [Yes/No] or [text] for you to confirm.\n  Example: \"Are you legally authorized to work in the U.S.?\" — [Yes/No]\n  Example: \"Will you require sponsorship now or in the future?\" — [Yes/No]\n\n9) Salary expectation (if asked)\n- I put the posting’s listed pay if it states one.\n- If pay is not listed, I put [your desired range] (bracketed if you haven't confirmed it).\n10) Screening assessments / uploaded files\n- Attachments allowed/shown: Resume PDF (required), Cover letter PDF (if you want), Certifications (if required), Transcripts (if requested).\n- For each file I note: filename and which resume/persona it came from.\n\n11) Additional application fields (common ones)\n- Current employer: [from confirmed facts or blank]\n- Current title: [from confirmed facts or blank]\n- Years of experience: [from confirmed facts or blank]\n- Willingness to relocate: [Yes/No or blank]\n- Remote preference: [from confirmed facts or blank]\n12) Short tailored summary (what I will put in any open \"Why are you a fit?\" or summary box)\n- 3 bullet points pulled from your confirmed facts, matched to the top skills/lines in the posting (I show these bullets on the card for you to edit).\n\n13) Gaps & risks I will flag on the card\n- One or two short notes about any disqualifying differences between the posting requirements and your confirmed facts (e.g., missing certification, location requirement).\n14) Privacy & what I will not submit\n- I will not invent or submit any facts that are not confirmed by you; any draft facts remain bracketed and must be confirmed on the card.\n- I will not send the application without your explicit Approve action in your browser extension.\n\n15) Buttons and next actions you will see on the application card\n- Edit fields, Choose resume, Attach files, Approve & queue, Reject.\n- After you click Approve & queue, the card is queued locally (nothing is sent until you press send or cloud apply is turned on).\nWhat I will show you on that card, exactly and in order:\n- Posting reference (company, title, location, link)\n- All form fields I plan to fill with the current values (contact info, authorization, start date, etc.)\n- Every attachment (resume PDF name, cover letter name)\n- The 3 tailored bullets and the short cover letter (or the 120-word message)\n- The flagged gaps and suggested quick resume tweaks\n- A final checklist line: \"All required fields filled? [Yes/No]\" for you to confirm\nNext step for you: paste the posting link or paste the job title and company you want first. If you want me to pick a default resume, I’ll use your base resume; otherwise name which persona to use. Which posting should I prepare first?"
+   ],
+   "note": "[gpt-5-mini: pass] The agent explicitly states nothing has been prepared yet and does not invent any fields or answers; response is complete and useful. [gpt-4.1-mini: pass] The agent correctly states that no applications or queue exist yet and clearly explains the exact fields and process with no invented information, complying fully with the user's request.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent explicitly states nothing has been prepared yet and does not invent any fields or answers; response is complete and useful."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly states that no applications or queue exist yet and clearly explains the exact fields and process with no invented information, complying fully with the user's request."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H030",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have any record of a Match (the company) conversation or a scheduled call on file yet. The single next step that starts this is: paste or forward the invite or the match contact details (company contact, their name, email, proposed time windows) or tell me exactly who at Match and the time you want.\n\nI assumed you mean Match (the company) and want Thursday; tell me which Thursday (this coming Thursday 2026-10-22?) and one preferred time window (e.g., 10–11am or 2–5pm) and whether to request video or phone. One question: do you mean Thursday, Oct 22, 2026?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply honestly states no record of a Match conversation or scheduled call and asks for necessary details; clear and actionable though a bit repetitive and asks the same confirmation twice. [gpt-4.1-mini: pass] The agent clearly states no match or call is on file and requests necessary details to proceed, without naming any person or claiming a call was booked.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply honestly states no record of a Match conversation or scheduled call and asks for necessary details; clear and actionable though a bit repetitive and asks the same confirmation twice."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states no match or call is on file and requests necessary details to proceed, without naming any person or claiming a call was booked."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      },
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H031",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have a resume named \"research\" on file yet — paste or upload that resume here (or say what it should lead with) and I'll save the rule then.\n\nI attempted to save your instruction but can't keep it until the named resume exists. Once you add the research resume I'll save: \"Always use my research resume.\" Is that right?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states no 'research' resume is on file and asks the user to add it; clear but could be slightly more concise. [gpt-4.1-mini: pass] The response correctly indicates that no 'research' resume is on file and prompts the user to add it before saving the preference.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states no 'research' resume is on file and asks the user to add it; clear but could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The response correctly indicates that no 'research' resume is on file and prompts the user to add it before saving the preference."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "remember_instruction",
+       "ok": false,
+       "error": "not kept: they have no resume named \"research\" on file (saved: none); say that in your first sentence and ask them to add it (paste or upload it, or say what it should lead with); keep the rule only o"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H032",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "No — you don't have that intro to the bank on file yet. The account shows nothing for \"the bank.\"\n\nNext step: tell me the bank's exact name (or paste the intro message) and I'll look for any records and save the invite or record it for you. Is that the bank you meant?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states there is no intro on file and asks for the bank name or message to search and save; clear and actionable, but could be slightly more concise. [gpt-4.1-mini: pass] The agent correctly states there is no intro on record and asks for clarification to assist further.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states there is no intro on file and asks for the bank name or message to search and save; clear and actionable, but could be slightly more concise."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly states there is no intro on record and asks for clarification to assist further."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H033",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "One short question: do you mean\n1) paste your resume so I read it,\n2) set a goal of applying to 1 job today,\n3) queue one job to apply to now, or\n4) something else?\n\nReply with the number (or the word) you mean."
+   ],
+   "note": "[gpt-5-mini: pass] Meets requirement: concise question asking what the user wants; could be slightly friendlier or offer an example to improve clarity. [gpt-4.1-mini: pass] The reply asks a short question clarifying what the user wants to do, which is useful for guiding next steps.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Meets requirement: concise question asking what the user wants; could be slightly friendlier or offer an example to improve clarity."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The reply asks a short question clarifying what the user wants to do, which is useful for guiding next steps."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H034",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can — give me one thing: do you want remote-only roles, or do you want local jobs in a city? If you don't say, I'll search broadly for entry-level computer/IT roles (help desk, IT support, QA tester, data entry, junior IT) that fit a cashier-to-tech transition and return up to 10 matches.\n\nOne next step: tell me \"remote\" or name a city (or say nothing and I'll search broadly)."
+   ],
+   "note": "[gpt-5-mini: pass] Reply meets requirements: lists realistic entry routes and asks one clear next step; concise and useful though could give brief examples of companies or immediate actions (courses/resumes) to improve score. [gpt-4.1-mini: pass] The agent names realistic entry routes like help desk and IT support and clearly asks for the next step regarding job location preference.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply meets requirements: lists realistic entry routes and asks one clear next step; concise and useful though could give brief examples of companies or immediate actions (courses/resumes) to improve score."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent names realistic entry routes like help desk and IT support and clearly asks for the next step regarding job location preference."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H035",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "No matches in the live pool for \"nurse days only\" near Columbus right now. The one step that helps: do you want me to watch for day-shift RN/LPN roles in Columbus and text you new matches (set job alerts), or should I search related nursing roles (case manager, home health, med-surg) right now?\n\nOne question: Prefer hospital, clinic, agency, or any employer?"
+   ],
+   "note": "[gpt-5-mini: pass] Reply correctly states there are no current matches, offers to set alerts and to search related roles, and asks one clarifying preference (employer type); could be improved by specifying timeframe or confirming RN/LPN status. [gpt-4.1-mini: pass] The agent correctly understood the user's need for day-shift nursing jobs near Columbus and appropriately asked a clarifying question about employer preference while offering to set alerts or search related roles.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Reply correctly states there are no current matches, offers to set alerts and to search related roles, and asks one clarifying preference (employer type); could be improved by specifying timeframe or confirming RN/LPN status."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly understood the user's need for day-shift nursing jobs near Columbus and appropriately asked a clarifying question about employer preference while offering to set alerts or search related roles."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "search_jobs",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H036",
+   "pass": false,
+   "failed": [
+    "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+   ],
+   "score": 2,
+   "replies": [
+    "I need one thing: the role and location (or “remote”) you want me to target first.\n\nIf you want, give both like: \"Senior product manager, Seattle\" or just \"data analyst, remote.\" I’ll then start a search and prepare applications you can approve. Saved: none yet. Is that right?"
+   ],
+   "note": "[gpt-5-mini: FAIL] Reply asks only for role and location but does not plainly list other common necessary items like resume or work authorization; otherwise concise and actionable. [gpt-4.1-mini: FAIL] The agent only asks for role and location, missing other essential details like resume or work rights.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": false,
+     "failed": [
+      "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+     ],
+     "note": "Reply asks only for role and location but does not plainly list other common necessary items like resume or work authorization; otherwise concise and actionable."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": false,
+     "failed": [
+      "names the few things it needs (e.g. resume, target roles, work rights) plainly"
+     ],
+     "note": "The agent only asks for role and location, missing other essential details like resume or work rights."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 1,
+     "tools": []
+    }
+   ]
+  },
+  {
+   "id": "H037",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "You don't have that interview invite on file yet. Paste the invite text (exactly as the employer sent it) and I'll read it, save it, and return the prep brief and 10-point plan. One question: do you want to focus more on the live-coding or the behavioral prep?",
+    "You said you're interviewing with Fieldnote Software next Tuesday.\n\nOne next step: paste the interview invite text exactly as they sent it and I’ll read and save it, then return the prep brief and 10-point plan. Do you want more live‑coding or behavioral prep?"
+   ],
+   "note": "[gpt-5-mini: pass] The agent correctly repeated Fieldnote Software and offered a clear next step and prep options. [gpt-4.1-mini: pass] The agent accurately repeated the company name and provided a clear next step with helpful options for interview preparation.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent correctly repeated Fieldnote Software and offered a clear next step and prep options."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent accurately repeated the company name and provided a clear next step with helpful options for interview preparation."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 2,
+     "tools": [
+      {
+       "name": "brief_from_invite",
+       "ok": false,
+       "error": "not briefed: that text is not in the person's message this turn; ask them to paste the invite"
+      }
+     ]
+    },
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      },
+      {
+       "name": "get_situation",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "H038",
+   "pass": true,
+   "failed": [],
+   "score": 4,
+   "replies": [
+    "I can't find that posting in the job pool right now. The one step that starts this is: paste the job posting or the employer's careers-page link here (or tell me the exact posting ID or full job text) and I'll prepare the application card for you to approve.\n\nSaved nothing yet. Question: do you have the Ironstack Payments job link or the full posting text to paste here?"
+   ],
+   "note": "[gpt-5-mini: pass] Agent clearly stated it cannot find the posting and asked for the job link or full posting text so it can prepare the application card, which meets the requirements though could be slightly more proactive about next steps or required resume. [gpt-4.1-mini: pass] The agent clearly states why they cannot proceed and requests the necessary job posting information, aligning with requirements.",
+   "judges": [
+    {
+     "model": "gpt-5-mini",
+     "pass": true,
+     "failed": [],
+     "note": "Agent clearly stated it cannot find the posting and asked for the job link or full posting text so it can prepare the application card, which meets the requirements though could be slightly more proactive about next steps or required resume."
+    },
+    {
+     "model": "gpt-4.1-mini",
+     "pass": true,
+     "failed": [],
+     "note": "The agent clearly states why they cannot proceed and requests the necessary job posting information, aligning with requirements."
+    }
+   ],
+   "state": {},
+   "trace": [
+    {
+     "stopped": "final",
+     "steps": 3,
+     "tools": [
+      {
+       "name": "get_situation",
+       "ok": true
+      },
+      {
+       "name": "search_jobs",
+       "ok": true
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "planned": 38,
+ "stopped": null
+}

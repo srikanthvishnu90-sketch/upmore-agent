@@ -46,7 +46,9 @@ import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_opti
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
-import { readPipeline, supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
+import { codePending, readSituation } from "../_shared/career_situation.ts";
+import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
 import { edgeRenderer, supabasePersonaStore, supabaseResumeStore } from "../_shared/career_tailor.ts";
 import { supabaseMailStore } from "../_shared/career_mail_store.ts";
 import { CONFIRM_INTENT, confirmWhichTurn, supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
@@ -174,8 +176,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     }
 
     const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // WO-100: the person's situation (every task in flight, the next steps, what Trainee can do), read once per turn,
+    // before anything answers; a source that fails is named in it, never guessed. A code an employer emailed them, while
+    // waiting, is removed from this text like a labeled one.
+    const situation = await readSituation(admin, user.id, Date.now()).catch((e) => { console.error("situation:", e?.message ?? e); return null; });
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
-    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
+    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
     const { message, userContent, imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
@@ -247,7 +254,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try { careerBatch = normalizeCareerBatchRequest(body.career_batch); }
     catch (_) { return json(cors, { error: "invalid_career_batch", action: null, turn_key: turnKey }, 400); }
     const requestHash = await careerRequestHash(rawMessage, imageBlocks, careerTask ?? (careerBatch ? { batch: careerBatch } : null));
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const persistence = createCareerPersistence(admin);
     // POOL LOADER (Lane E, Feature Depth Program v2 — closes the gap
     // diagnosed in the Lane D operator checklist §8): ctx.postings is
@@ -306,8 +312,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
       } catch { /* the window pool stands on its own */ }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings }) as ReturnType<typeof host.createTurnCtx> & {
-        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown;
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
       };
+      // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
+      if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
@@ -333,7 +341,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const draftMeter = newMeter();
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
       const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin),
+        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
       // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
@@ -425,13 +433,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const win = historyWindow((hist.data || []) as any[]), history = win.history;
         const postingsDb = supabasePostingsDb(admin);
         // WO-023: what is known about the person, every turn. Standing instructions are fundamental: if they cannot be
-        // read the turn fails rather than answer without them. Alerts and the pipeline say "could not be read" instead.
+        // read the turn fails rather than answer without them. Alerts say "could not be read" instead; the applications
+        // are the situation read at the top of the turn (WO-100), which names what it could not read.
         const memory = supabaseMemoryStore(admin), alertStore = supabaseAlertStore(admin), now = Date.now();
         const standing = await memory.standing(user.id);
-        const [alertRow, pipeline] = await Promise.all([
-          alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; }),
-          readPipeline(admin, user.id, now).catch((e) => { console.error("agent memory: pipeline", e?.message ?? e); return null; }),
-        ]);
+        const alertRow = await alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; });
         // WO-027: the account's timeline, written by the tools and read by recall; past the window, a summary of it written
         // in code. A timeline that cannot be read never fails the turn: the summary says so instead.
         const tz = alertRow?.tz;
@@ -450,7 +456,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
           // goes only on its card's tap.
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
-          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline }, memory });
+          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
           if (costErr) console.error("agent turn cost not recorded:", costErr.message);

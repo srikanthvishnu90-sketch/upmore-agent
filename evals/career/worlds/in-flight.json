@@ -1,0 +1,48 @@
+{
+ "version": 1,
+ "author": "architect (WO-100)",
+ "note": "One SYNTHETIC person (TEST data, example.test addresses, no real personal data) whose tasks are in flight in every place the product keeps one, so 'what is going on' has a known right answer. Notion confirmed (NOT-55812); Plaid stopped on an emailed code; Ramp failed 5 days ago (phone number required); Brex queued; Figma prepared with 2 open questions; Airtable asked for in chat 3 days ago and never taken by the extension; a draft to Plaid's recruiter waiting for approval; Gmail not connected; alerts on; texting linked; visa sponsorship a standing instruction. Rows are in the shape readSituation selects them (career_situation.ts).",
+ "now": "2026-10-20T15:00:00Z",
+ "postings": [
+  { "job_id": "greenhouse:stripe:7001001", "company": "Stripe", "title": "Data Analyst", "location": "Chicago, IL", "url": "https://job-boards.greenhouse.io/stripe/jobs/7001001", "description": "Stripe is hiring a Data Analyst in Chicago. SQL, Tableau or Looker, 2+ years. $95,000-$120,000.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:ramp:7002002", "company": "Ramp", "title": "Data Analyst", "location": "New York, NY or Remote", "url": "https://job-boards.greenhouse.io/ramp/jobs/7002002", "description": "Ramp Data Analyst. SQL, Python, 2+ years. Remote US ok.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:plaid:7003003", "company": "Plaid", "title": "Business Analyst", "location": "Chicago, IL", "url": "https://job-boards.greenhouse.io/plaid/jobs/7003003", "description": "Plaid Business Analyst. SQL, Excel, stakeholder work.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:figma:7004004", "company": "Figma", "title": "Data Analyst, Growth", "location": "Remote - US", "url": "https://job-boards.greenhouse.io/figma/jobs/7004004", "description": "Figma Growth Data Analyst. SQL, experimentation.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:brex:7005005", "company": "Brex", "title": "Data Analyst", "location": "Chicago, IL", "url": "https://job-boards.greenhouse.io/brex/jobs/7005005", "description": "Brex Data Analyst, SQL and dbt.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:airtable:7006006", "company": "Airtable", "title": "Analytics Analyst", "location": "Remote - US", "url": "https://job-boards.greenhouse.io/airtable/jobs/7006006", "description": "Airtable analytics analyst.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" },
+  { "job_id": "greenhouse:notion:7007007", "company": "Notion", "title": "Data Analyst", "location": "Chicago, IL", "url": "https://job-boards.greenhouse.io/notion/jobs/7007007", "description": "Notion Data Analyst.", "posted_at": "2026-10-18T14:00:00Z", "first_seen_at": "2026-10-18T15:00:00Z" }
+ ],
+ "apply_jobs": [
+  { "id": "j-notion", "job_id": "greenhouse:notion:7007007", "company": "Notion", "title": "Data Analyst", "url": "https://job-boards.greenhouse.io/notion/jobs/7007007", "state": "confirmed", "reason": null, "confirmation_id": "NOT-55812", "created_at": "2026-10-18T16:00:00.000Z", "updated_at": "2026-10-18T16:05:00.000Z" },
+  { "id": "j-plaid", "job_id": "greenhouse:plaid:7003003", "company": "Plaid", "title": "Business Analyst", "url": "https://job-boards.greenhouse.io/plaid/jobs/7003003", "state": "needs_user", "reason": "email_code", "confirmation_id": null, "created_at": "2026-10-19T18:00:00.000Z", "updated_at": "2026-10-19T18:03:00.000Z" },
+  { "id": "j-ramp", "job_id": "greenhouse:ramp:7002002", "company": "Ramp", "title": "Data Analyst", "url": "https://job-boards.greenhouse.io/ramp/jobs/7002002", "state": "failed", "reason": "Phone number is required", "confirmation_id": null, "created_at": "2026-10-15T14:00:00.000Z", "updated_at": "2026-10-15T14:02:00.000Z" },
+  { "id": "j-brex", "job_id": "greenhouse:brex:7005005", "company": "Brex", "title": "Data Analyst", "url": "https://job-boards.greenhouse.io/brex/jobs/7005005", "state": "queued", "reason": null, "confirmation_id": null, "created_at": "2026-10-20T13:00:00.000Z", "updated_at": "2026-10-20T13:00:00.000Z" }
+ ],
+ "wanted": [
+  { "posting_key": "greenhouse:airtable:7006006", "url": "https://job-boards.greenhouse.io/airtable/jobs/7006006", "company": "Airtable", "title": "Analytics Analyst", "state": "waiting", "queued_at": "2026-10-17T15:00:00.000Z", "taken_at": null }
+ ],
+ "prepared": [
+  { "id": "p-figma", "job_id": "greenhouse:figma:7004004", "company": "Figma", "url": "https://job-boards.greenhouse.io/figma/jobs/7004004", "state": "ready", "card_lines": ["Figma - Data Analyst, Growth (Remote - US)", "Resume: base. Answers: 14 filled from your facts, 2 open."], "created_at": "2026-10-20T09:00:00.000Z" }
+ ],
+ "questions": [
+  { "id": "q1", "key": "fact:work_authorization", "kind": "fact", "label": "Are you legally authorized to work in the United States?", "type": "select", "options": ["Yes", "No"], "company": "Figma", "job_ids": ["greenhouse:figma:7004004"], "misfit": false, "answer": null, "created_at": "2026-10-20T09:00:00.000Z" },
+  { "id": "q2", "key": "label:00000000000000aa", "kind": "label", "label": "What are your salary expectations?", "type": "text", "options": [], "company": "Figma", "job_ids": ["greenhouse:figma:7004004"], "misfit": false, "answer": null, "created_at": "2026-10-20T09:00:00.000Z" }
+ ],
+ "outreach": [
+  { "n": 1, "recipient": { "name": "Jordan Lee", "email": "jordan.lee@plaid.example.test", "firm": "Plaid", "title": "Technical Recruiter" }, "subject": "Business Analyst application", "body": "Hi Jordan, I applied for the Business Analyst role ... [draft]", "footer": "Sent by TEST person", "hash": "1111111111111111111111111111111111111111111111111111111111111111", "status": "shown", "approved_hash": null, "approved_at": null, "sent_at": null, "shared": [], "created_at": "2026-10-19T19:00:00.000Z" }
+ ],
+ "connections": [],
+ "cloud": null,
+ "channel": { "opted_out": false },
+ "standing": [
+  { "id": "S-001", "text": "Needs visa sponsorship (F-1 OPT)", "said": "I'm on F-1 OPT and will need sponsorship", "at": "2026-10-12T15:00:00.000Z" }
+ ],
+ "alerts": { "input": { "keywords": ["data analyst"], "locations": ["chicago"], "remote_ok": true }, "tz": "America/Chicago", "since": "2026-10-12T15:00:00Z" },
+ "facts": [
+  { "kind": "experience", "text": "Data analyst with 2 years of SQL and Tableau" },
+  { "kind": "location", "text": "Based in Chicago" }
+ ],
+ "tracked": [
+  { "company": "Plaid", "role": "Business Analyst", "stage": "Submitted" }
+ ]
+}

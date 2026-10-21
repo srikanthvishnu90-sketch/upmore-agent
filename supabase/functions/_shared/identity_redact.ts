@@ -36,7 +36,10 @@ function luhn(digits: string) {
   return sum % 10 === 0;
 }
 
-export function redactIdentity(input: string): Redaction {
+// WO-100: while an employer's emailed code is waiting (career_situation.ts codePending), a bare 6-8 digit number is that
+// code, so it is removed too ("Plaid emailed me a code, it's 482913"). Never otherwise: a bare number stays a number.
+const BARE_CODE = /(?<![\d$€£.,:/#-])\b\d{6,8}\b(?![\d.,:/-]|\s*(?:k\b|%|usd|dollars|a year|per\b|\/))/gi;
+export function redactIdentity(input: string, o: { codePending?: boolean } = {}): Redaction {
   const removed = new Set<Redaction["removed"][number]>();
   let t = String(input ?? "");
   t = t.replace(SSN_LABELED, (_m, label, sep) => { removed.add("ssn"); return `${label}${sep}[SSN removed]`; });
@@ -51,6 +54,7 @@ export function redactIdentity(input: string): Redaction {
   t = t.replace(PASSWORD_LOOSE, (m, lead, value: string) => { if (value.startsWith("[")) return m; removed.add("password"); return `${lead}[password removed]`; });
   t = t.replace(CODE_LABELED, (_m, label, sep) => { removed.add("code"); return `${label}${sep}[code removed]`; });
   t = t.replace(CVV_LABELED, (_m, label, sep) => { removed.add("card"); return `${label}${sep}[security code removed]`; });
+  if (o.codePending) t = t.replace(BARE_CODE, () => { removed.add("code"); return "[code removed]"; });
   return { text: t, removed: [...removed] };
 }
 

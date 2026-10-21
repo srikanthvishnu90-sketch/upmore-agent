@@ -36,7 +36,7 @@ const STATE_DIR = ".simulator", STATE_FILE = `${STATE_DIR}/state.json`;
 const MIME: Record<string, string> = { txt: "text/plain", md: "text/markdown", csv: "text/csv", json: "application/json", pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", heic: "image/heic" };
 
 if (brainName !== "router" && brainName !== "agent") { console.error("--brain must be router or agent"); Deno.exit(2); }
-if (brainName === "agent" && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
+if (brainName === "agent" && !opt("--world") && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY in the environment."); Deno.exit(2); }
 
 type Saved = { mem: MemoryState; now: number; as: string; alerts?: MemoryAlerts; posts?: Posting[]; optedOut?: string[] };
 let saved: Saved | null = null;
@@ -121,6 +121,42 @@ const agentBrain: Brain = async (a) => {
 const brain = brainName === "agent" ? agentBrain : routerBrain;
 
 const log = (line: string) => { console.log(line); if (transcript) Deno.writeTextFileSync(transcript, line + "\n", { append: true }); };
+// WO-100: --world evals/career/worlds/in-flight.json seeds one SYNTHETIC person with tasks in flight and runs each text
+// through agent-chat's dispatch (evals/career/world.ts). /thread B opens a new conversation. --model scripted (no key):
+// a scripted model that calls get_situation (with the employer the text names) and says its text, so the demo shows
+// exactly what the agent is given; it is labeled, never passed off as the model's own words.
+if (opt("--world")) {
+  const { openWorld, worldTurn } = await import("../evals/career/world.ts");
+  const file = JSON.parse(Deno.readTextFileSync(opt("--world")!));
+  const set = JSON.parse(Deno.readTextFileSync(new URL("../evals/career/conversations.json", import.meta.url)));
+  const scripted = opt("--model") === "scripted";
+  if (brainName === "agent" && !scripted && !Deno.env.get("OPENAI_API_KEY")) { console.log("NOT CONFIGURED: --brain agent needs OPENAI_API_KEY, or --model scripted."); Deno.exit(2); }
+  const w = await openWorld(file, { postings: set.postings });
+  const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+  const firms = [...new Set((file.postings ?? []).map((p: any) => String(p.company)))] as string[];
+  const scriptedModel = (message: string) => async (p: any) => {
+    const last = p.messages.at(-1);
+    const result = Array.isArray(last?.content) ? last.content.find((b: any) => b.type === "tool_result") : null;
+    if (!result) return { content: [{ type: "tool_use", id: "s1", name: "get_situation", input: { company: firms.find((f) => new RegExp(`\\b${f}\\b`, "i").test(message)) } }], stop_reason: "tool_use" };
+    let text = String(result.content); try { text = JSON.parse(text).text ?? text; } catch { /* the error text as is */ }
+    return { content: [{ type: "text", text: `[scripted model: get_situation's text]\n${text}` }], stop_reason: "end_turn" };
+  };
+  let thread = "A", now = w.now;
+  log(`Trainee text simulator · world ${opt("--world")} · brain: ${brainName}${brainName === "agent" ? scripted ? " (scripted model)" : ` (${cfg.model})` : ""} · ${new Date(now).toISOString()}`);
+  const lines = script ? Deno.readTextFileSync(script).split("\n") : null;
+  for (let i = 0; ; i++) {
+    const t = (lines ? lines[i] : prompt(">"))?.trim();
+    if (t === undefined || t === null || t === "/quit") break;
+    if (!t) continue;
+    if (t.startsWith("/thread ")) { thread = t.slice(8).trim(); log(`  (new conversation: thread ${thread})`); continue; }
+    log(`⟶ [${thread}] ${t}`);
+    const r = await worldTurn(w, { brain: brainName as "agent" | "router", threadId: thread, message: t, now, model: scripted ? scriptedModel(t) : (p: any) => callModel(cfg, p, { meter, role: "chat" }) });
+    log(`  ⟵ (${r.handler}) ${r.reply.replace(/\n/g, "\n     ")}`);
+    now += 60000;
+  }
+  if (meter.calls) log(`(model calls: ${meter.calls}, est. cost $${(meter.usd_micros / 1e6).toFixed(4)})`);
+  Deno.exit(0);
+}
 async function save() { Deno.mkdirSync(STATE_DIR, { recursive: true }); Deno.writeTextFileSync(STATE_FILE, JSON.stringify({ mem: mem.dump(), now, as, alerts: alerts.dump(), posts: await jobs.all(), optedOut: channel.optOuts() } satisfies Saved)); }
 // The same alerts run the scheduled function does, over the simulator's postings and people; new outbox rows go to the
 // conversation store's proactive queue, which deliver() drains.

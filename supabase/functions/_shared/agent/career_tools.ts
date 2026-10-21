@@ -30,6 +30,7 @@ import type { HiredResult, HiredSource } from "../career_hired.ts";
 import { queueWants, resolvePicks, screenPicks, type WantStore } from "../career_apply_want.ts";
 import { payFrom } from "../posting_pay.ts";
 import type { Limits } from "../career_apply.ts";
+import { type Situation, statusText } from "../career_situation.ts";
 
 const obj = (properties: Record<string, unknown> = {}, required: string[] = []) => ({ type: "object" as const, properties, required });
 const str = (description: string) => ({ type: "string", description });
@@ -82,6 +83,8 @@ export function careerTools(deps: {
   events?: EventStore | null; tz?: string; interviews?: InterviewStore | null; digest?: DigestStore | null; outreach?: OutreachDeps | null; verifier?: Verifier | null; tailor?: TailorTools | null; hired?: HiredSource | null;
   wants?: WantStore | null; limits?: Limits;
   posting?: ((jobId: string) => Promise<any | null>) | null;
+  // WO-100: the person's situation, read once this turn (career_situation.ts); absent, the tools read this thread alone.
+  situation?: Situation | null;
 }): ToolSpec[] {
   const alertsOf = () => { if (!deps.alerts) throw new Error("job alerts are not configured here"); return deps.alerts; };
   const outreachOf = () => { if (!deps.outreach) throw new Error("outreach is not set up here; say so, never pretend a draft or send happened"); return deps.outreach; };
@@ -159,10 +162,29 @@ export function careerTools(deps: {
       },
     },
     {
+      name: "get_situation", effect: "read",
+      description: "Read the person's situation as code built it this turn: every task in flight (applications, postings asked for in chat, open questions, drafts, interviews) with its state, what blocks it, who acts and how; the next steps in order; today's count; the last list shown; what Trainee can and cannot do right now; and what could not be read. Pass company for one employer.",
+      input_schema: obj({ company: str("One employer, if they named one") }),
+      run: async (i) => {
+        const s = deps.situation;
+        if (!s) throw new Error("their situation could not be read this turn; say so, never guess");
+        const company = i.company ? String(i.company) : null;
+        if (!company) return { ...s, text: statusText(s) };
+        const tasks = s.tasks.filter((t) => t.company && sameCompany(t.company, company));
+        return { company, tasks, next: s.next.filter((n) => tasks.some((t) => t.id === n.task_id)), unreadable: s.unreadable, text: statusText(s, company) };
+      },
+    },
+    {
       name: "list_applications", effect: "read",
-      description: "List the person's tracked job applications with company, role and current stage.",
+      description: "List every application of the person's, from every conversation: the apply queue (each one's state, what blocks it, its confirmation id or failure reason), postings asked for in chat, and the ones they told you about, with role and stage.",
       input_schema: obj(),
-      run: async (_i, c) => ({ applications: trackOf(c).rows }),
+      run: async (_i, c) => {
+        const rows = trackOf(c).rows, s = deps.situation;
+        if (!s) return { applications: rows };
+        const theirs = s.tasks.filter((t) => ["application", "apply_request", "tracked"].includes(t.kind) && !(t.kind === "tracked" && rows.some((r: any) => sameCompany(r.company, t.company))))
+          .map((t) => ({ company: t.company, role: t.title, state: t.state, stage: t.evidence.stage, blocker: t.blocker, confirmation_id: t.evidence.confirmation_id, reason: t.evidence.reason, since: t.since, source: t.source }));
+        return { applications: [...rows, ...theirs], unreadable: s.unreadable };
+      },
     },
     {
       name: "track_application", effect: "write_own",
@@ -234,7 +256,9 @@ export function careerTools(deps: {
         const { kept, filtered } = applyFloor(newest, saved?.prefs?.floor ?? {});
         const r = searchPostings(kept, query, c.state.profile, Number(i.limit) || 10);
         const found: any[] = Array.isArray((r as any).postings) ? (r as any).postings : [];
-        await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5) });
+        // WO-100: the list in the order shown, so "the second one" resolves in any thread (the situation's last_shown).
+        await record(c, "search", query, { results: found.length, companies: [...new Set(found.map((p) => String(p.company ?? "")).filter(Boolean))].slice(0, 5),
+          shown: found.slice(0, 10).map((p) => ({ job_id: String(p.job_id ?? ""), company: String(p.company ?? "").slice(0, 80), title: String(p.title ?? "").slice(0, 100) })) });
         return { ...r, filtered, source: "live", ...relaxed };
       },
     },
@@ -466,7 +490,12 @@ export function careerTools(deps: {
         const here = appsFromTracker(trackOf(c).rows);
         const stored = deps.mail ? await deps.mail.applications(c.userId) : [];
         const apps = [...here, ...stored.filter((a) => !here.some((h) => h.ref === a.ref))];
-        return standing(company, apps, deps.mail ? await deps.mail.events(c.userId) : []);
+        const r = standing(company, apps, deps.mail ? await deps.mail.events(c.userId) : []);
+        // WO-100: the situation's record of everything with this employer, failed, stopped and queued too, with the reason
+        // and the confirmation id (the mail view above keeps only applications that went).
+        const s = deps.situation, mine = s ? s.tasks.filter((t) => t.company && sameCompany(t.company, company)) : [];
+        if (!mine.length) return r;
+        return { ...r, found: Math.max(r.found, mine.length), text: [r.found ? r.text : "", statusText(s!, company)].filter(Boolean).join("\n"), in_flight: mine };
       },
     },
     {

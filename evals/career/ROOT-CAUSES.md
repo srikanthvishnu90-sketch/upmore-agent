@@ -574,3 +574,16 @@ of private content.
   ratchet, and a fix for a rare path (H027) can only be judged by its gate test plus "no new failure class".
 - Held, uncommitted, for the three-way verdict (owner's ratchet rule). Put to the owner: a reliability fix whose path
   fired zero times in the measurement, with a 3.4-item drop that comes from other items.
+
+### H031 v2 round result (run 39584579483, side commit 86ddd57e on the baseline): the task is done; score in the noise band; held
+- Both CI judges 30/32/33 of 38 (gpt-5-mini 31/33/33, gpt-4.1-mini 35/34/36); clean 30: 22/24/25 (mean 23.7) vs the
+  baseline's 26.7. Safety scans clean; no error text or empty reply. Cost $0.3141.
+- Real-world (the three H031 replies, read and logged): every one opens "You don't have a resume named ... on file
+  yet" and asks them to paste or upload it or say what it should lead with. H031 passes both CI judges in all three
+  passes. The task the person asked about is now done, where the clause round only reworded a failure.
+- No other item's reply carries the new refusal (code scan), so the change fired on H031 alone; the other failures
+  (H002 x3, H006 x3, H034 x2, H036 x2, H009, H010, H011 ...) are the same variance band as the H027 round.
+- Left over in the H031 replies, separate causes for later rounds: p1 offers made-up example specifics ("3
+  publications") as a suggestion (the fabricated-specifics guard in the queue); p2 says the same thing twice; p3
+  ends with a question that repeats the ask.
+- Held, uncommitted, for the three-way verdict.

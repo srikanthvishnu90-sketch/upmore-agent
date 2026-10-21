@@ -584,6 +584,27 @@
    "run": "39583493501",
    "read": "failing ids per judge; every reply scanned by code for the conversation layer's error text and for empty replies, across this and every stored run (ids only, no text printed)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H030",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39584579483",
+   "read": "failing ids per judge; the three H031 replies (420 chars each) to check the fix did the task; every reply scanned by code for the new refusal's wording, error text and empty replies (ids only)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

@@ -829,3 +829,15 @@ of private content.
 - Its note for the H006 round: H006 passes when a one-line pointer is followed by a career-pivot question. Read
   against the owner's condition (redirect to career help, do not offer the off-topic service): the builder's wording
   gives none of the off-topic thing; the H029 model error decides the next wording first.
+
+### H006 re-measured with model errors traced (run 39594786298, 5 passes): H006 5/5, no model error anywhere; held for the verdict
+- Both CI judges 33/32/33/36/32 of 38 (gpt-5-mini 33/33/33/36/32, gpt-4.1-mini 35/35/36/37/34); clean 30:
+  25/24/26/28/25 (mean 25.6), equal to the 5-pass control's 25.6. Cost $0.5281.
+- H006 passes both CI judges in all five passes again (ten of ten over the two H006 runs; control 1 of 5).
+- H029: no model error in any pass, same wording. The 5/5 failures of run 39593783917 were the provider's at that
+  time, not the wording (the trace now records any model error; none occurred).
+- H004 p1 turn 2: one step, no tool, no model error, an empty answer, then the error text. The empty-answer path
+  (the H027 fix) hits H004 too: now seen in 39589683291 p3 (H027) and here.
+- H034 (second judge's repeat offender, read for the next note): the first add_profile_fact is refused by the fact
+  lock, the retry saves the person's raw words ("Saved: 'wanna do something w computers'. Is that right?") and the
+  reply goes to that instead of naming entry routes and asking which.

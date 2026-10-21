@@ -22,25 +22,31 @@
      a turn must answer; a worker has a named-stop channel and
      uses it.)
 
-   profileFor(userId)
+   profileFor(userId, ctx)
      The user's pack, resolved from the user's own stored records
      via the existing store reads — the same rows the product's
      persistence layer reads and writes:
-       * profileMaster: the 122 master from the freshest
+       * profileMaster: the 122 master of record — the freshest
          agent_flow_state snapshot (state.career.stores.profile)
-         that carries one, exactly as the chat restores it;
-       * profile (module 149's shape): derived from that master by
-         the same rule the in-turn path uses (142's
-         batchPortalProfile: identity fields only, the resume only
-         when the record carries one with its sha256) PLUS the
-         answers the stored record itself carries, verbatim — a
-         fully-onboarded user's confirmed screening answers are
-         profile data and ride along; nothing is derived from
-         anything the user did not store;
-       * attestations: the stored record's own attestations,
-         verbatim, or {} — no stored source invents one, and a
-         required attestation then stops that application named
-         inside 149, exactly as in-turn today.
+         carrying a REAL profile. A stated-facts BRIDGE profile
+         (profile._fromStatedFacts) is a per-turn conversational
+         scaffold the host re-derives every turn; it is never the
+         profile of record, and on a busy account its snapshots
+         crowd the freshest rows — the scan therefore prefers a
+         non-bridge profile and falls back to the bridge only when
+         no real profile exists anywhere in the window (the
+         pre-writer behavior, kept as the floor).
+       * profile (module 149's shape) + attestations: DERIVED from
+         that master by module 149's own composition
+         (portalInputsFromBank — the LOOP-INPUT writer): identity
+         verbatim from basics, stored confirmed answers verbatim,
+         answers derived from the confirmed fact bank
+         (deriveAnswers) and the constraints/defaults seam, the
+         resume only when the record carries one with its sha256.
+         Attestations pass through only when the record itself
+         carries the user's explicit act; certify_true is derived
+         ONLY from ctx's approval act (an approve intent's run id +
+         card hash), never at prepare and never from facts.
      A user with NO stored profile produces the named stop
      BATCH_PROFILE_NOT_FOUND: profileFor throws it, the executor
      finishes the intent blocked with that code, and no profile is
@@ -54,16 +60,15 @@ const path = require("node:path");
 
 const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "functions", "_shared", "career_pool.js"));
 const CareerJobs = require(path.join(__dirname, "..", "..", "packages", "domain", "121-career-jobs.js"));
+const CareerPortal = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
 
 const coded = (code, message) => Object.assign(new Error(message || code), { code });
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-// The 149-shaped profile from the 122 master — 142's
-// batchPortalProfile derivation (identity only; the resume only
-// with its sha256), plus the stored record's own answers verbatim.
-// 142's function is not exported, so the rule is mirrored here with
-// its source named; the answers addition is the one deliberate
-// extension, and it carries only what the record already holds.
+// Kept for shape compatibility with earlier callers/tests: the
+// identity-only projection of the master. The executor's pack no
+// longer comes from here — profileFor derives the full portal
+// inputs through module 149's portalInputsFromBank (the writer).
 function portalProfileFromMaster(master) {
   const b = (master && master.basics) || {};
   const p = {
@@ -106,23 +111,47 @@ function createProductionSources(deps) {
       select: "state,updated_at",
       filters: { user_id: { eq: userId } },
       order: { column: "updated_at", ascending: false },
-      limit: 25,
+      limit: 150,
     });
+    // The profile of record wins over the stated-facts bridge (see
+    // the header): scan the window in freshness order for a real
+    // profile carrying data, then any real profile, and only then
+    // fall back to the freshest profile of any kind (the pre-writer
+    // rule) so a bridge-only account reads exactly as before.
+    let firstAny = null;
+    let firstReal = null;
     for (const row of rows || []) {
       const stores = row && row.state && row.state.career ? row.state.career.stores : null;
       const profile = stores ? stores.profile : null;
-      if (profile && typeof profile === "object" && (profile.basics || profile.facts)) return profile;
+      if (!profile || typeof profile !== "object") continue;
+      if (!firstAny) firstAny = profile;
+      if (profile._fromStatedFacts) continue;
+      if (!firstReal) firstReal = profile;
+      if (profile.basics || profile.facts) return profile;
     }
-    return null;
+    return firstReal || ((firstAny && (firstAny.basics || firstAny.facts)) ? firstAny : null);
   }
 
-  async function profileFor(userId) {
+  async function profileFor(userId, ctx) {
     const master = await readStoredMaster(userId);
     if (!master) throw coded("BATCH_PROFILE_NOT_FOUND", "no stored career profile for this user — the chat has not produced one; the batch stops named and nothing is fabricated");
+    // The writer (LOOP-INPUT): module 149's composition derives the
+    // executor's profile + attestations from the stored bank. The
+    // approval act rides ONLY an approve drain's context — the
+    // executor passes the intent's run id + the card hash it
+    // verified; prepare contexts carry no act and derive no
+    // attestation, ever.
+    const c = ctx || {};
+    const approvalAct = c.action === "approve" && c.runId
+      ? { runId: c.runId, cardSha256: c.cardSha256 || null }
+      : null;
+    const inputs = CareerPortal.portalInputsFromBank(master, { now: Date.now(), approvalAct });
+    if (!inputs.profile) throw coded("BATCH_PROFILE_NOT_FOUND", "the stored career profile carries no derivable portal inputs — the batch stops named and nothing is fabricated");
     return {
-      profile: portalProfileFromMaster(master),
+      profile: inputs.profile,
       profileMaster: master,
-      attestations: master.attestations && typeof master.attestations === "object" ? clone(master.attestations) : {},
+      attestations: inputs.attestations,
+      traces: inputs.traces,
     };
   }
 

@@ -585,6 +585,18 @@ const CareerRouter = (() => {
     const rendered = tailored.rendered || {};
     const artifact = { kind: "tailored_resume", format: "text", text: rendered.text || "", markdown: rendered.markdown || "", pdf: rendered.pdf == null ? null : rendered.pdf, sha256: sha256(rendered.text || ""), jobId, company, versionId: tailored.version && tailored.version.versionId || null };
     if (profile && typeof profile === "object") { profile._careerRouterArtifacts = [...(profile._careerRouterArtifacts || []), artifact]; }
+    // LOOP-INPUT (the writer): the resume the product just produced
+    // for this user becomes their resume of record on the master —
+    // { filename, sha256 } metadata only. Until this write existed
+    // the master's resume stayed null forever and the batch
+    // executor's profile could never carry one, so 149 stopped on
+    // the resume question instead of inventing (live, 2026-10-20).
+    // The PDF's own fingerprint wins (it is the file a board
+    // receives); the text artifact's hash is the fallback.
+    if (profile && typeof profile === "object") {
+      if (artifact.pdf && artifact.pdf.sha256) profile.resume = { filename: artifact.pdf.filename || "resume.pdf", sha256: artifact.pdf.sha256 };
+      else if (artifact.sha256) profile.resume = { filename: "resume.txt", sha256: artifact.sha256 };
+    }
     const jd = Tailor.parseJD(jdText);
     const proven = provenSkillNames(profile).map(lc);
     // R1 C11: gap CLASSES come from 123's typed result (tailored.requiredGaps /
@@ -8288,11 +8300,23 @@ const CareerRouter = (() => {
     };
   }
   function batchPortalProfile(master) {
-    // Minimal 149-shaped profile from the 122 master when the host has
-    // not injected one: identity fields only, NO answers — a required
-    // screening question then stops that application named
-    // (UNCOVERED_QUESTION) instead of being invented around. The full
-    // fact-to-answer adaptation rides 149's answer map (the R-2 lane).
+    // The 149-shaped portal profile for the in-turn batch seam is
+    // module 149's own composition over the 122 master
+    // (portalInputsFromBank — the LOOP-INPUT writer): identity from
+    // basics, answers from the confirmed fact bank + the
+    // constraints/defaults seam, the resume only when the record
+    // carries one with its sha256. Until the writer existed this
+    // seam shipped identity-only with NO answers, so every required
+    // screening question stopped the application named
+    // (UNCOVERED_QUESTION) instead of being answered from the bank.
+    // Attestations are NOT derived here — the seam's caller passes
+    // its own (batchDepsFor), and certify_true derives only from an
+    // approval act, never from the bank.
+    const Portal = getPortalApply();
+    if (Portal && typeof Portal.portalInputsFromBank === "function") {
+      const inputs = Portal.portalInputsFromBank(master, { now: Date.now() });
+      if (inputs.profile) return inputs.profile;
+    }
     const b = (master && master.basics) || {};
     const p = {
       name: b.name || b.full_name || (master && master.name) || null,

@@ -92,8 +92,13 @@ function createBatchExecutor(deps) {
     };
   }
 
-  async function buildDeps(userId, postings) {
-    const pack = (await d.profileFor(userId)) || {};
+  async function buildDeps(userId, postings, ctx) {
+    // The profile source receives the drain context: for an approve
+    // intent, the intent itself is the user's committed approval act
+    // (validated at commit time against this run at this card hash),
+    // and the source derives the certify_true attestation from it —
+    // never at prepare, never silently (LOOP Task 1, the writer).
+    const pack = (await d.profileFor(userId, ctx || {})) || {};
     const log = await store.ledgerFor(userId);
     return {
       postings: Array.isArray(postings) ? postings : [],
@@ -116,7 +121,7 @@ function createBatchExecutor(deps) {
     const run = Batch.restoreRun(clone(skeleton));
     if (!run) throw coded("BATCH_RUN_INVALID", "the prepare intent's run skeleton does not restore");
     const postings = await d.postingsFor(intent.userId, binding.family_text || run.familyText, run.requested);
-    const deps = await buildDeps(intent.userId, postings);
+    const deps = await buildDeps(intent.userId, postings, { action: "prepare", runId: run.id });
     Batch.prepareRun(run, deps);
     await store.saveRun(recordOf(run));
     await store.saveLedger(intent.userId, deps.log.records);
@@ -139,9 +144,23 @@ function createBatchExecutor(deps) {
       // card so a corrected yes can still land.
       return { blocked: "APPROVAL_SET_CHANGED", runId: run.id, runStatus: run.status };
     }
+    // Attestation completion (LOOP Task 1): applications that waited
+    // on the card for the user's certification are driven to their
+    // doorsteps NOW, under this approval — the deps carry the
+    // attestation this very intent derives (the approval act), and
+    // approveRun re-verifies the carded set before anything submits.
+    const hasPending = run.selected.some((k) => run.apps[k] && run.apps[k].stage === "awaiting_attestation");
+    const deps = await buildDeps(intent.userId, [], { action: "approve", runId: run.id, cardSha256: run.cardSha256 });
+    if (hasPending) Batch.completeAttestations(run, deps);
     const ap = Batch.approveRun(run, { approvedByUser: true });
-    if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
-    const deps = await buildDeps(intent.userId, []);
+    if (!ap.ok) {
+      // A completion moved the run's truth (doorsteps reached, or a
+      // named stop landed) even though the approval refuses — the
+      // stored record carries that truth; without a completion the
+      // run is untouched, exactly as before.
+      if (hasPending) await store.saveRun(recordOf(run));
+      return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
+    }
     Batch.executeRun(run, deps);
     await store.saveRun(recordOf(run));
     await store.saveLedger(intent.userId, deps.log.records);

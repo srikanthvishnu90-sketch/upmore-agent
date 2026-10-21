@@ -1,0 +1,92 @@
+# HANDOFF — FIXER lane → Claude (mission area split, owner 2026-10-20 19:59 / 20:02 CDT)
+
+**Worktree:** `~/workspace/upmore-v2-candidate` · **Branch:** `work/loop-task1` · **Base:** `0c4291d3` · **HEAD:** `119ab36e`
+**State:** STOP/PRESERVE per the owner's mission change. Nothing below the "Committed" section is committed, pushed, or deployed. Nothing was deleted. Take or discard freely — this note is the inventory.
+
+Task context: the single loop task "apply to 15 software engineering intern roles" (test account, chat → batch → approval → worker → SBX boards → employer confirmations). Baseline iteration 0 (Telegram, 19:23 CDT): apply claim shipped with NO roles/links; both status wordings ("what's the batch status", "where is my batch") hit the generic fallback. Full record: `~/workspace/your_files/real-world-actions/loop-ledger.md`.
+
+---
+
+## COMMITTED + LIVE (not handoff-pending — already done before the stop)
+
+**Fix 1 — batch control-hook semantics · commit `119ab36e` (pushed) · migration APPLIED LIVE · live-verified**
+- Defect: migration `20261016010000`'s `career_batch_control_hook_v1` cancelled queued intents whenever the account row's `version` diverged from the intent's birth version — but `version` is `career_host_commit`'s concurrency counter, bumped by every committed chat turn. The same pin in `career_batch_pending_v1` (listing) and `career_batch_claim_v1` ("batch authority revoked") made survivors unclaimable. Epoch + paused gates (true revocation acts) unchanged; `career_batch_turn_commit_v1` birth-transaction validation untouched.
+- Built: `supabase/migrations/20261020020000_career_batch_hook_semantics_v2.sql` (create-or-replace of hook + pending + claim, version terms removed); guard `tests/db/career/15-career-batch-hook-semantics.test.sql` + `run-batch-hook-guard.sh`; bug-ledger + forbidden-rules rows filed as BUG/FR-PENDING-ALLOCATION (loop-batch-hook-semantics) inside the commit.
+- Proof (rolled-back probe on the live DB, `/tmp/hook-probe-v3.sql`): pre-migration `a_state=cancelled a_pending=f a_claim=f a_claim_err=batch authority revoked b_state=cancelled c_state=cancelled c_runs=0` → post-migration `a_state=queued a_pending=t a_claim=t a_claim_err= b_state=cancelled c_state=cancelled c_runs=0`.
+
+---
+
+## UNCOMMITTED WORKTREE CHANGES — Fix 2: the derivation writer (LOOP-INPUT-NO-WRITER)
+
+Design: a real pipeline stage — confirmed facts → executor profile via module 149, with the batch approval tap as the only attestation act. Mirrors `extension_sync.js::composeSavedAnswers` layering exactly (stored answers → deriveAnswers → 132 constraints/defaults seam) so chat and extension surfaces cannot disagree.
+
+### `packages/domain/149-career-portal-apply.js` (+141/−0 approx)
+- New exported `portalInputsFromBank(bank, opts)`: layers basics identity verbatim (+links) → `deriveAnswers` profile fields → resume `{filename, sha256}` only when a sha is on the record → answers (stored confirmed verbatim → deriveAnswers → constraints/defaults seam: `needsSponsorship` boolean → sponsorship; `workAuthorization` via the new mirrored `workAuthorizationToken`; `defaults.pronouns`; located_in_us residence rule) → attestations: stored `explicit===true` entries pass through verbatim; **`certify_true` derived ONLY from `opts.approvalAct {runId, cardSha256}`** as `{value:true, explicit:true, source:"batch_approval", runId, cardSha256}`. A clone normalizes looser fact shapes (`confirmed:true` → status) without ever promoting drafts. Helpers: `cloneBankForDerivation`, US state code/name sets.
+- Why the shape: module 149's doorstep payload hash binds ALL filled fields incl. certify_true, so the attestation must exist at prepare time in the payload — hence attestation-deferred prepare in 155 (below) is the only design consistent with "certify_true derives only at approval".
+
+### `packages/domain/155-career-batch-apply.js` (+189) — Fix 2 parts
+- **Family filter** in prepareRun after dedupe: `askRoleFamilies(run.familyText)` ∩ posting `role_family` (pool postings carry `role_family`/`seniority_band` stamped by module 121's classifiers); band filter only when the ask's own `seniorityBand === "intern"`; `run.familyFound` recorded; unclassifiable family text keeps the whole shelf.
+- **Attestation-deferred prepare:** an `awaiting_user` result whose REQUIRED asks are all attestation-category (via `res.formAnalysis`) becomes stage `awaiting_attestation` + `app.pendingAttestations`, not a stop.
+- Card covers doorstep + attestation-pending apps (`app.carded=true`); status `awaiting_approval` if any carded; `run.attestationCardSha256` (init null); `cardSha` covers pending pairs as `key:attestation-pending:<fields>`.
+- New exported **`completeAttestations(run, deps)`**: stamps `run.attestationCardSha256 = run.cardSha256` before re-driving pending apps through runApply with approval-derived attestations; success → doorstep + `app.attestedFromCardSha256`.
+- **approveRun completion-aware branch:** if `attestationCardSha256` set → require `run.cardSha256 === stamp`, every carded app a doorstep (else refuse `ATTESTATION_COMPLETION_INCOMPLETE`), mint approvals from the completed payloads, approvalRef over the post-completion hash, update `run.cardSha256`. Original path unchanged otherwise. `summarizeRun` gains `familyFound` + `attestationPending`.
+
+### `workers/career-browser/production-sources.cjs` (+83)
+- Master resolution rewritten: read limit 150; preference order = first non-bridge profile with basics||facts → first non-bridge profile → freshest any-kind with basics||facts → null. (Bridge profiles — `_fromStatedFacts` snapshots — are per-turn scaffolds, never the record; mirrors the host's own v241 rule.) Fixes the live defect where bridge snapshots crowded the worker's scan window and the real master was never read.
+- `profileFor(userId, ctx)` now derives via `CareerPortal.portalInputsFromBank` (approvalAct only when `ctx.action==="approve" && ctx.runId`); returns `{profile, profileMaster, attestations, traces}`; `BATCH_PROFILE_NOT_FOUND` preserved; `portalProfileFromMaster` kept as a compat export.
+
+### `workers/career-browser/batch-executor.cjs` (+29)
+- `buildDeps(userId, postings, ctx)` passes ctx into `profileFor`; prepare ctx `{action:"prepare", runId}`; `executeApprove` builds deps with `{action:"approve", runId, cardSha256}` BEFORE approveRun, runs `completeAttestations` when pending apps exist, saves the run on a refused approval only when completion ran; card-hash check unchanged and first.
+
+### `packages/domain/122-career-profile.js` (+68)
+- New `parseResumeHeader(text)` (strict shapes only; stops at first section header) + `ingestResume` applies it **fill-nulls only** into `basics`/`basics.links` (LinkedIn-import precedent) — standing values never overwritten; recorded as `header_basics_applied` in the ingest audit, returned as `headerBasicsApplied`. Verified on the fixture resume: name/email/phone `+1 555-0100`/location `Chicago, IL (TEST)`/github all land. Before this, NO chat path wrote profile basics (only 122's LinkedIn import did) — this is why every stored master had basics ALL NULL.
+- Known wart left alone: derived `state_of_residence` "IL (TEST)" comes from deriveAnswers itself.
+
+### `packages/domain/142-career-router.js` (+74) — Fix 2 part
+- `batchPortalProfile` now delegates to `portalInputsFromBank` (old identity-only body kept as fallback). Also: `handleTailor` writes `profile.resume` from the produced artifact (PDF `{filename, sha256}` wins; else text `{filename:"resume.txt", sha256}`) — the resume-of-record writer. (The handleBatchStatus addition in this file is Fix 3, below.)
+
+### `tests/career-loop-input-writer.test.cjs` (NEW, untracked) — the Fix 2 guard
+- **7/7 PASS on this tree** (re-verified after the stop order, 2026-10-20 ~20:05 CDT); **6/7 FAIL on pristine base `0c4291d3`** (the one green = the APPROVAL_SET_CHANGED control, already-correct behavior).
+- Replays the record's journey through the REAL production-sources + executor + in-memory store + sandbox boards: the 8 uncovered asks shrink to zero for the fixture persona (identity from basics, work_authorization/sponsorship from constraints, cover_note from a stored confirmed draft, resume from the record) with certify_true pending on the card only; familyFound 3 of a 6-posting mixed pool, selection exactly the 3 SWE interns, `attestationPending` 3, stops []; approve intent → 3 submitted with `SBX-####` ids, stamps, ledger 3.
+- Generalization cases: second persona **Maya** derives HER answers from HER eligibility facts (sponsorship "Yes"; Austin → located_in_us). Nothing-invented control: no eligibility source → UNCOVERED_QUESTION naming work_authorization + sponsorship while identity/resume stay covered. Stored-attestation passthrough → 3 doorsteps at prepare. 122 header test included.
+
+---
+
+## UNCOMMITTED WORKTREE CHANGES — Fix 3: Step-1 surfacing + NL batch status (PARTIAL)
+
+### Done
+- `packages/domain/132-career-apply.js` (+1 line): `batchCard` items gain `url: i.url || null` passthrough.
+- `packages/domain/155-career-batch-apply.js` (same file as above): card composition passes `url: a.url`; **speakSummary** gains, purely additively (the Found line stays byte-identical — acceptance pins `/Found 20/` while familyFound there is 19): (a) a shelf line when `familyFound != null && !== found`; (b) **the selection listing** after the eligible line — `The N selected:` then per app `- <company> — <role> — <url> (<stage word>)`, stage words incl. doorstep "ready at the final review screen", awaiting_attestation "ready — waiting on your certification", submitted with its confirmation id, stopped "stopped (named below)"; (c) the awaiting_approval block — doorstep line guarded by `sm.doorstep`, plus an attestation line when `sm.attestationPending` ("…ready except your certification — approving this batch certifies that its/their answers are true and submits it/them. Nothing submits until your yes.").
+- `packages/domain/142-career-router.js`: **`handleBatchStatus(text, c)` defined at line 8391** — matcher: lc text contains `/\bbatch\b/` AND (`/\b(status|where|progress|standing|update|happened|doing|stand|check)\b/` or starts with where/what/how). Resolution: `c.batchRunRecord.run` (restoreRun → speakSummary reply + `card` + `batchRun`) → `c.batchApplyState` (`queued_prepare` → honest "with the browser worker being prepared" reply; otherwise speakSummary) → honest no-batch reply. Returns intent `career_batch_apply`. Designed to stand down on plain-text "Approve batch …" (no status word; doesn't start with where/what/how — the structured path owns approvals). **NOT WIRED — see below.**
+
+### NOT done (in order — this is where the stop landed)
+1. **Dispatch wiring in 142:** insert `const batchStatus = handleBatchStatus(text, c); if (batchStatus) return batchStatus;` immediately after the `handleBatchApply` call in `dispatchChat`. (handleBatchStatus currently has exactly ONE occurrence in the file — its definition.)
+2. **`supabase/functions/_shared/career_host.js`** (untouched): in `createTurnCtx`, near the batchDeps block, add `if (o.batchRunRecord) ctx.batchRunRecord = o.batchRunRecord;` — runtime-only, NOT a STATE_KEY. (STATE_KEYS already restores `batchApplyState` from `snapshot.stores`; `handler-career.ts` builds ctx from `persistence.load`, so `loaded.snapshot.stores.batchApplyState.id` is the thread's run id. The structured path exists only via `body.career_batch` → `planCareerBatchIntent` in `_shared/career_task_bridge.js`, which reads `persistence.readBatchRun` and speaks speakSummary — the NL route reuses exactly that record.)
+3. **`supabase/functions/agent-chat/handler-career.ts`** (untouched): after `persistence.load`, derive runId from `loaded.snapshot?.stores?.batchApplyState?.id`; when present, `await persistence.readBatchRun({ userId: user.id, runId })` and pass `batchRunRecord` into the `createTurnCtx` opts.
+4. **Guard `tests/career-batch-status-route.test.cjs`** — not yet written. Spec: the recorded words "what's the batch status" and "where is my batch" against an injected prepared record (apps with URLs) → reply lists the roles with links + the true status (not fallback); the queued-skeleton case; the honest no-batch case; a second-persona/persona-free case.
+5. Rebuild both bundles + `--check` (see bundle state below); neighbor suites; full sweep vs base.
+6. Bug-ledger + forbidden-rules PENDING-ALLOCATION rows for the Fix 2 and Fix 3 defects (writer absence; status-route absence + selection never surfaced) — **not yet filed** (Fix 1's rows are filed).
+
+### Bundle state — STALE, action needed
+- `supabase/functions/_shared/router_core.js` + `router_core.career.js` were rebuilt during Fix 2/early Fix 3 (hence modified vs HEAD) but predate the final 142/155/132 source edits. `tests/router-bundle.test.cjs` currently **2/3**: the freshness check fails with "Router bundle is stale: supabase/functions/_shared/router_core.js (run python3 scripts/build-router-core.py)". Rebuild both modes (`python3 scripts/build-router-core.py` and `--career-only`) to refresh; it was 3/3 at the Fix 2 checkpoint.
+
+---
+
+## TEST STATE (all numbers measured, none claimed)
+
+- Fix 2 guard (`tests/career-loop-input-writer.test.cjs`): **7/7 pass** this tree; 6/7 fail on base.
+- Router bundle: **2/3** (staleness only — above).
+- Neighbor suites (loop-acceptance, batch-delegation, worker-wiring, profile, portal-apply, portal-answer-map, agent-loop): **75/77**; the 2 fails are the answer-map coverage pair (`application_answer`/`application_text` kinds uncovered) — **byte-identical on base**, the recorded baseline "2 fact-bank coverage" fails. Crew A territory.
+- Full sweep, fixed tree (`/tmp/sweep-fixed.log`): 4,537 tests / 4,479 pass / **17 fail** / 41 skipped. Base `0c4291d3` in pristine worktree `/tmp/base-wt` (`/tmp/sweep-base.log`): 4,530 / 4,471 / **9 fail** / 50 skipped. Name-level adjudication: identical failing names EXCEPT (a) the 9 D11–D14 Chromium/board tests were **skipped** in the base-worktree run (browser env unavailable there; they account for the skipped 50 vs 41 delta) and **failed env-class** in the fixed-tree run — the recorded Chromium env-class baseline, failing identically pre/post in the main worktree, not code regressions; (b) **S3 claims register** (`tests/career-spec-gates.test.cjs`) **fails on pristine base, passes on this tree** — re-verified in isolation on both trees after the stop order; a pre-existing base failure, not a regression. The remaining shared fails: R2 C37 + R2A SC-300 pins, coverage ×2, "control: confirm with no tailor target", "probe j chain (live-shaped)", "throwing tailor leg" (the last three error `run with --experimental-vm-modules` — environmental, identical both sides), `tests/career-extension-sync.test.cjs` file-level `Cannot find module 'jsdom'` (environmental).
+- DB guards need a Postgres server; this VM has none (psql client only) — Fix 1's guard was proven via the rolled-back live-DB probe instead.
+
+## LIVE-DB FACTS CLAUDE WILL NEED (test account, project ref `mrwngntwmnaqrqhupvlt`)
+- Test user `2e8cb31d-59ab-4b2c-99bb-d4c5de8613a3` (`gauntlet-test@upmore.test`); Telegram chat 6836694463 → thread `3cddb160-8fb0-4f89-b3a6-b8801a5cf82f`; seeding thread `5b5ccc9c-a983-4e54-99f5-ed707d137091`. Batch tables are the `_v1` ones (`career_batch_intents_v1` — action in `binding->>'action'`, column `state`; `career_batch_runs_v1`; `career_batch_ledgers_v1`). Intent census ~19:30 CDT: 19 cancelled / 4 completed / 3 uncertain / 0 queued (all prepare).
+- The account's real master (thread 5b5ccc9c snapshot, 2026-10-20 21:17 UTC): **15 confirmed facts** (education, experience ×2, project ×2, leadership, skills ×9 — text-only, no structured org/start/end, no identity/eligibility/profile facts), **basics ALL NULL**, constraints `needsSponsorship=false` + `workAuthorization="I do not need sponsorship"` (a sentence — the 149 seam serves it verbatim as the user's own stored statement), **no resume, no answers, no attestations**. No snapshot anywhere has basics.name set; freshest snapshots are stated-facts bridge profiles that crowd the worker's scan window (the production-sources fix above addresses this). Account `stated_facts` hold conversational facts only — no identity.
+- Re-drive seeding implication: a fresh resume paste through product paths now lands basics (122 writer); a tailor run lands `profile.resume`; then "apply to 15 software engineering intern roles" → "what's the batch status" (expect the 15 selected SWE-intern roles WITH links + the attestation-pending certification line) → approve via the structured card path ("Approve batch <runId>") → "what's the batch status" (expect SBX confirmation ids).
+- Deploy mechanics (when authorized): stock sb.py deploy cannot ship this repo (hardcodes `entrypoint_path: "index.ts"`) — use a /tmp copy with `<slug>/index.ts`, uploading the `supabase/functions` tree via the Management API; verify provenance in the re-downloaded deployed body, never the version number. Worker-side files (batch-executor, production-sources, 149/155/122 run on this VM) — restart per `docs/gauntlet/worker-flip-2026-10-20.md`. Live at last check: agent-chat v246 = commit `8410e9cb`; worker ON (board service :8471 Greenhouse-only, executor 60s timer; sandbox instance :8472 stopped — SBX window arranged by parent/tester).
+
+## SCRATCH (ephemeral, /tmp)
+`/tmp/sweep-fixed.log`, `/tmp/sweep-base.log`, `/tmp/fail-fixed.txt`, `/tmp/fail-base.txt`, `/tmp/hook-probe-v3.sql`, `/tmp/neighbors.log`, `/tmp/bundle.log`; pristine base worktree `/tmp/base-wt` @ `0c4291d3` (my guard copy removed from it).
+
+— FIXER lane, stopped 2026-10-20 ~20:05 CDT. Standing by for reassignment inside the surface area only.

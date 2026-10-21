@@ -22526,6 +22526,32 @@ const CareerTailor = (() => {
     return { text: base, factIds: [fact.id] };
   }
 
+  // Fact selection picks a role/project; a posting also needs the most relevant evidence WITHIN that entry.
+  // Rank the person's own bullet strings without rewriting, dropping, or borrowing words from the employer.
+  // Explicit requirements lead preferences, then task-word overlap; equal scores retain the source order.
+  function bulletsForPosting(bullets, jd) {
+    const must = new Set((jd.mustHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const nice = new Set((jd.niceToHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const tokens = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").split(/\s+/).filter((w) => w.length > 4);
+    const generic = new Set("requirements qualifications responsibilities experience required preferred skills ability minimum candidate applicants company people position years opportunities".split(" "));
+    const taskWords = new Set(jdSegments(jd.rawText || "").filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate")
+      .flatMap((sg) => tokens(sg.text)).filter((w) => !generic.has(w)));
+    const scored = bullets.map((text, index) => {
+      const skills = new Set(skillsInText(text).map((s) => s.toLowerCase()));
+      const words = new Set(tokens(text));
+      return { text, index, score: [
+        [...must].filter((s) => skills.has(s)).length,
+        [...nice].filter((s) => skills.has(s)).length,
+        [...taskWords].filter((w) => words.has(w)).length,
+      ] };
+    });
+    scored.sort((a, b) => {
+      for (let i = 0; i < a.score.length; i++) if (a.score[i] !== b.score[i]) return b.score[i] - a.score[i];
+      return a.index - b.index;
+    });
+    return scored.map((s) => s.text);
+  }
+
   // ---- entry dates (BUG-2026-10-14-NDER) ----
   // An entry line prints its fact's date range, in the one-pager's proven
   // shape ("Title, Org, 2025–2029" / "…, 2025–Present" / single year when
@@ -22643,7 +22669,7 @@ const CareerTailor = (() => {
       return out;
     };
     const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => {
-      const bullets = (f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
+      const bullets = bulletsForPosting(f.bullets && f.bullets.length ? f.bullets : [f.text], jd).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
       return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...bullets, ...operativeClauses(f, [entryTextFor(f), ...bullets.map((b) => b.text)])];
     }) } : null;
     // consulting: one structured bullet per fact replaces the raw bullets

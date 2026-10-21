@@ -1597,6 +1597,100 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return m.kind === "essay" || m.kind === "derived" || m.kind === "screen" && m.fact !== "job_experience" ? job : wording;
   }
 
+  // supabase/functions/_shared/row_answer.ts
+  var PARTS = {
+    work: [
+      "title",
+      "employer",
+      "location",
+      "description",
+      "start",
+      "end",
+      "current"
+    ],
+    education: [
+      "school",
+      "degree",
+      "major",
+      "gpa",
+      "end"
+    ],
+    language: [
+      "language",
+      "fluent",
+      "proficiency"
+    ],
+    website: [
+      "url"
+    ]
+  };
+  var TITLES = {
+    work: "Work experience",
+    education: "Education",
+    language: "Language",
+    website: "Website"
+  };
+  var record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  var nonempty = (v) => typeof v === "string" && !!v.trim();
+  var LOGICAL_TYPE = /^[a-z][a-z0-9_]{0,18}$/;
+  function rowField(field) {
+    if (!record(field) || !nonempty(field.name) || !nonempty(field.label) || !nonempty(field.type) || !LOGICAL_TYPE.test(field.type) || !Array.isArray(field.options)) return false;
+    const s = field.section;
+    return record(s) && typeof s.kind === "string" && Object.hasOwn(PARTS, s.kind) && Number.isSafeInteger(s.row) && s.row >= 1 && PARTS[s.kind].includes(s.part) && (s.anchor === void 0 || typeof s.anchor === "string") && (s.format === void 0 || typeof s.format === "string") && field.options.every((o) => record(o) && typeof o.label === "string" && typeof o.value === "string");
+  }
+  function h162(text) {
+    let hash = 0xcbf29ce484222325n;
+    for (const byte of new TextEncoder().encode(text)) hash = BigInt.asUintN(64, (hash ^ BigInt(byte)) * 0x100000001b3n);
+    return hash.toString(16).padStart(16, "0");
+  }
+  function rowAnswerKey(field, jobId) {
+    if (!nonempty(jobId) || !rowField(field)) return null;
+    const s = field.section;
+    return "job:" + h162(JSON.stringify([
+      "row-answer-v1",
+      jobId,
+      field.name,
+      field.label,
+      field.type,
+      field.options.map((o) => [
+        o.label,
+        o.value
+      ]),
+      s.kind,
+      s.row,
+      s.part,
+      s.anchor ?? null,
+      s.format ?? null
+    ]));
+  }
+  function rowQuestionType(field, jobId, logicalType) {
+    const native = record(field) && typeof field.type === "string" ? field.type : "text";
+    const key = rowAnswerKey(field, jobId);
+    if (!key || !rowField(field)) return record(field) && field.section !== void 0 ? "row:unbound" : native;
+    let type = logicalType ?? native;
+    if (logicalType === void 0 && !field.options.length && native !== "checkbox" && native !== "number" && !/file/.test(native)) {
+      const format = String(field.section.format ?? "").toUpperCase();
+      if (format === "YYYY") type = "year";
+      else if (/^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format)) type = "month";
+    }
+    if (!LOGICAL_TYPE.test(type)) throw new Error("row_question_type_invalid");
+    return `row:${type}:${key.slice(4)}`;
+  }
+  function decodeRowQuestionType(type) {
+    if (typeof type !== "string" || type.length > 40) return null;
+    const match = /^row:([a-z][a-z0-9_]{0,18}):([0-9a-f]{16})$/.exec(type);
+    return match ? {
+      key: "job:" + match[2],
+      type: match[1]
+    } : null;
+  }
+  function rowQuestionLabel(field) {
+    const label = record(field) && typeof field.label === "string" ? field.label : "";
+    if (!rowField(field)) return label;
+    const s = field.section, anchor = s.anchor?.trim() ? s.anchor : "entry not named";
+    return `${TITLES[s.kind]} row ${s.row} (${anchor})${s.format ? ` [${s.format}]` : ""}: ${label}`;
+  }
+
   // supabase/functions/_shared/answer_options.ts
   var low = (s) => String(s ?? "").toLowerCase().replace(/[’`]/g, "'").replace(/\s+/g, " ").trim();
   var only = (xs) => xs.length === 1 ? xs[0].value : null;
@@ -3090,14 +3184,22 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   function canonicalTypedValue(f, value) {
     if (typedFieldProblem(f, value)) return null;
-    if (f.options.length || f.section?.format || ![
+    if (f.options.length) return value;
+    const format = dateFormat(f);
+    if (!f.section?.format && ![
       "date",
       "month"
     ].includes(f.type)) return value;
-    const p = calendarParts(String(value).trim(), /^DD/.test(dateFormat(f)));
-    if (!p || p.month === null || f.type === "date" && p.day === null) return null;
-    const year = String(p.year).padStart(4, "0"), month = String(p.month).padStart(2, "0");
-    return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${String(p.day).padStart(2, "0")}`;
+    const p = calendarParts(String(value).trim(), /^DD/.test(format));
+    if (!p) return null;
+    const year = String(p.year).padStart(4, "0"), month = p.month === null ? null : String(p.month).padStart(2, "0"), day = p.day === null ? null : String(p.day).padStart(2, "0");
+    if (f.section?.format) {
+      if (!/^(?:YYYY|MM[\/.-]YYYY|YYYY[\/.-]MM|YYYY[\/.-]MM[\/.-]DD|MM[\/.-]DD[\/.-]YYYY|DD[\/.-]MM[\/.-]YYYY)$/.test(format)) return null;
+      if (format.includes("MM") && month === null || format.includes("DD") && day === null) return null;
+      return format.replace(/YYYY|MM|DD/g, (part) => part === "YYYY" ? year : part === "MM" ? month : day);
+    }
+    if (month === null || f.type === "date" && day === null) return null;
+    return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${day}`;
   }
   var YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
   var YES_NO_LIKE = /^(yes|no|y|n|true|false|i (agree|accept|acknowledge|consent|understand)\b.*|i am (not )?currently employed)$/i;
@@ -3416,8 +3518,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         if (fileAlternative(f, p.fields)) continue;
         if (f.personal) continue;
         if (f.section || rowPartName(f)) {
-          const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-          const shaped2 = s && fitsField(f, s.value) ? canonicalTypedValue(f, s.value) : null;
+          const rowKey = rowAnswerKey(f, p.job_id);
+          const scoped = rowKey ? o.saved[rowKey] : void 0;
+          const s = scoped ?? (f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf2.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null);
+          const value2 = s ? f.options.length && scoped ? matchOption(String(s.value), f.options) : scoped && f.type === "checkbox" ? yesNo(String(s.value)) : String(s.value) : null;
+          const shaped2 = value2 !== null && fitsField(f, value2, !!scoped) ? canonicalTypedValue(f, value2) : null;
           if (s && shaped2 !== null) {
             filled.push({
               name: f.name,
@@ -3429,12 +3534,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           }
           if (!f.required) continue;
           blocked = true;
-          const k2 = normLabel(f.label);
+          const k2 = rowKey ?? normLabel(f.label);
           const n2 = needs.get(k2) ?? {
             label: f.label,
             key: "unknown",
             required: true,
-            job_ids: []
+            job_ids: [],
+            field_name: f.name
           };
           if (!n2.job_ids.includes(p.job_id)) n2.job_ids.push(p.job_id);
           needs.set(k2, n2);
@@ -3528,10 +3634,13 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ready,
       needs: [
         ...needs.values()
-      ].map(({ label, key, job_ids }) => ({
+      ].map(({ label, key, job_ids, field_name }) => ({
         label,
         key,
-        job_ids
+        job_ids,
+        ...field_name !== void 0 ? {
+          field_name
+        } : {}
       })),
       skipped
     };
@@ -3656,7 +3765,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       const label = String(q?.label ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
       if (!label || NEVER_BY_TEXT.test(label)) continue;
       const options = (Array.isArray(q.options) ? q.options : []).map((x) => String(x).slice(0, 300)).slice(0, 60);
-      const type = String(q.type || "input_text").slice(0, 40);
+      const rawType = String(q.type || "input_text"), row = decodeRowQuestionType(rawType);
+      if (rawType.startsWith("row:") && !row) continue;
+      const type = rawType.slice(0, 40);
       const shape = {
         label,
         type,
@@ -3664,9 +3775,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           label: l
         }))
       };
-      const m = mapQuestion(shape);
+      const m = row ? {
+        kind: "unknown",
+        fact: "unknown"
+      } : mapQuestion(shape);
       const here = factStaysHere(shape, result?.location ? String(result.location) : void 0, o.facts);
-      const key = answerKey(shape, posting, {
+      const key = row?.key ?? answerKey(shape, posting, {
         haveFact: m.kind === "fact" && Object.hasOwn(o.facts, m.fact),
         here
       });
@@ -3842,7 +3956,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     planForm: () => planForm,
     postingKey: () => postingKey,
     postingLinks: () => postingLinks,
-    quarantinedFact: () => quarantinedFact,
+    quarantinedFact: () => quarantinedFact2,
     questionsForTrainee: () => questionsForTrainee,
     reviewPayload: () => reviewPayload,
     scrubIdentity: () => scrubIdentity,
@@ -3967,6 +4081,20 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
   }
 
+  // supabase/functions/_shared/fact_quarantine.ts
+  function quarantinedFact(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const f = value;
+    for (const id of [
+      f.factId,
+      f.id
+    ]) {
+      const m = /^F-0*(\d+)$/.exec(String(id ?? "").trim());
+      if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    }
+    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  }
+
   // supabase/functions/_shared/posting_key.ts
   var GREENHOUSE = /^(job-boards|boards)(\.eu)?\.greenhouse\.io$/;
   var LEVER = /^jobs(\.eu)?\.lever\.co$/;
@@ -4068,7 +4196,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const identity = o.schema.filter((f) => isIdentityField(f));
     const count = /* @__PURE__ */ new Map();
     for (const f of o.schema) if (!fileAlternative(f, o.schema)) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
-    const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
+    const rowKeys = o.schema.map((f) => rowAnswerKey(f, o.jobId));
+    const ambiguous = o.schema.filter((f, i) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1 && !(rowKeys[i] && rowKeys.filter((key) => key === rowKeys[i]).length === 1));
     const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
     const posting = (fs) => [
       {
@@ -4108,20 +4237,25 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     });
     const planned = new Set(fill2.map((f) => f.name));
     const needs = basicOnly ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({
-      label: f.label
+      label: f.label,
+      field_name: f.name
     })) : strict.needs.map((n) => ({
-      label: n.label
+      label: n.label,
+      field_name: n.field_name
     }));
     const questions = needs.map((n) => {
-      const f = fields.find((x) => x.label === n.label) || {};
+      const f = fields.find((x) => n.field_name ? x.name === n.field_name : x.label === n.label) || {};
       const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
       return {
-        label: n.label,
-        type: questionFieldType(f),
+        label: rowQuestionLabel(f) || n.label,
+        type: rowQuestionType(f, o.jobId, questionFieldType(f)),
         options: opts2.length <= 60 ? opts2.map((x) => String(x.label)) : []
       };
     });
     return {
+      ...o.jobId ? {
+        jobId: o.jobId
+      } : {},
       fill: fill2,
       needs: questions,
       identity: identity.map((f) => ({
@@ -4702,7 +4836,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         ...Object.entries(t === "answers" ? projectedAnswers : {})
       ]) {
         const id = String(a?.factId ?? "");
-        const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact" : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value" : !id || id.length > 200 ? "no fact id" : RESERVED.test(id) ? "an id reserved for another source (forged)" : quarantinedFact(a) ? `quarantined (D-007, ${QUARANTINE_VERSION})` : !POSITIVE.test(String(a?.provenance ?? "")) ? "no positive provenance (not stated by the owner)" : typeof a?.confirmation_event_id !== "string" || !a.confirmation_event_id.trim() ? "no confirmation event" : "";
+        const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact" : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value" : !id || id.length > 200 ? "no fact id" : RESERVED.test(id) ? "an id reserved for another source (forged)" : quarantinedFact2(a) ? `quarantined (D-007, ${QUARANTINE_VERSION})` : !POSITIVE.test(String(a?.provenance ?? "")) ? "no positive provenance (not stated by the owner)" : typeof a?.confirmation_event_id !== "string" || !a.confirmation_event_id.trim() ? "no confirmation event" : "";
         if (why) excluded.push({
           key,
           factId: id,
@@ -4994,7 +5128,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       const a = answerOf(f, p, kind, o.resume);
       if (m) {
-        const j = judge(f, a, m, o.schema);
+        const j = judge(f, a, m, o.schema, o.jobId);
         if ("problem" in j) {
           if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
           continue;
@@ -5078,7 +5212,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       file: kind === "file" ? resume?.sha256 ?? null : null
     };
   }
-  function judge(f, a, m, schema) {
+  function judge(f, a, m, schema, jobId) {
     const tf = m.byFactId[a.factId];
     if (!tf) return {
       problem: "its answer is not from a fact you gave"
@@ -5086,7 +5220,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if ((ATTESTATION.test(f.label) || PERSONAL.test(f.label)) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
-    const rule = (f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) || (!f.section && a.kind === "text" && [
+    const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(a.kind, a, tf)) || (!f.section && a.kind === "text" && [
       "date",
       "month"
     ].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
@@ -5096,6 +5230,36 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     } : {
       problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")`
     };
+  }
+  function savedRowRule(f, a, tf, m, jobId) {
+    const key = rowAnswerKey(f, jobId);
+    if (!key || tf.table !== "saved" || tf.key !== key || m.saved[key]?.factId !== tf.factId || m.saved[key]?.value !== tf.value) return null;
+    const plan = planBatch({
+      userId: "contract-row-answer",
+      postings: [
+        {
+          job_id: jobId,
+          company: "",
+          title: "",
+          fields: [
+            f
+          ]
+        }
+      ],
+      answers: {},
+      saved: {
+        [key]: {
+          value: tf.value,
+          factId: tf.factId
+        }
+      },
+      log: [],
+      now: 0
+    });
+    const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+    if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+    const expected = answerOf(f, p, a.kind, null);
+    return expected.value === a.value && expected.shown === a.shown ? "row-answer-exact" : null;
   }
   function workRowRule(f, a, tf, m, schema) {
     if (tf.table !== "answers" || tf.key !== "work_history" || m.answers.work_history?.factId !== tf.factId || m.answers.work_history?.value !== tf.value || !f.section || f.section.row < 1) return null;
@@ -5132,6 +5296,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   }
   function contractFill(o) {
     const listed = new Set(o.listed ?? []);
+    const askedNames = /* @__PURE__ */ new Set();
     const fill2 = [], asks = [], dropped = [];
     for (const p of o.plan.fill) {
       const f = o.schema.find((x) => x.name === p.name);
@@ -5141,17 +5306,33 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         fill2.push(p);
         continue;
       }
-      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema);
+      const jobId = o.jobId ?? o.plan.jobId;
+      const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema, jobId);
       if (!("problem" in j)) fill2.push(p);
       else if (f.required) {
+        askedNames.add(f.name);
         const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
         asks.push({
-          label: f.label,
-          type: questionFieldType(f),
+          label: rowQuestionLabel(f),
+          type: rowQuestionType(f, jobId, questionFieldType(f)),
           options: opts2.length <= 60 ? opts2.map((x) => String(x.label)) : [],
-          why: j.problem
+          why: j.problem,
+          ...f.section ? {
+            field_name: f.name
+          } : {}
         });
       } else dropped.push(f.label);
+    }
+    for (const f of o.schema) {
+      if (!f.section || !f.required || f.personal || isIdentityField(f) || fill2.some((p) => p.name === f.name) || askedNames.has(f.name)) continue;
+      const opts2 = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+      asks.push({
+        label: rowQuestionLabel(f),
+        type: rowQuestionType(f, o.jobId ?? o.plan.jobId, questionFieldType(f)),
+        options: opts2.length <= 60 ? opts2.map((x) => String(x.label)) : [],
+        why: "this row has no matching confirmed answer",
+        field_name: f.name
+      });
     }
     return {
       fill: fill2,
@@ -5248,10 +5429,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const says = o.state === "confirmed" && o.proved ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.` : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome" ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.` : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.` : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.` : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
     return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
   }
-  function quarantinedFact(f) {
-    const m = /^F-0*(\d+)$/.exec(String(f.factId ?? "").trim());
-    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-    return /owner-delegated|answer-all/i.test(String(f.provenance ?? ""));
+  function quarantinedFact2(value) {
+    return quarantinedFact(value);
   }
 
   // extension/src/dom.ts
@@ -5950,7 +6129,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     }
     return null;
   }
-  var PARTS = {
+  var PARTS2 = {
     jobTitle: "title",
     companyName: "employer",
     company: "employer",
@@ -5972,7 +6151,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   };
   function partOf(kind, id, label, list) {
     const m = /--([A-Za-z0-9]+)$/.exec(String(id || "").replace(/-dateSection\w+-input$/, ""));
-    if (m && PARTS[m[1]]) return PARTS[m[1]];
+    if (m && PARTS2[m[1]]) return PARTS2[m[1]];
     const l = label.toLowerCase();
     const byLabel = [
       [

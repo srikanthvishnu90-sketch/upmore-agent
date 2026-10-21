@@ -1806,6 +1806,29 @@ const CareerTailor = (() => {
     return { text: base, factIds: [fact.id] };
   }
 
+  function bulletsForPosting(bullets, jd) {
+    const must = new Set((jd.mustHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const nice = new Set((jd.niceToHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const tokens = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").split(/\s+/).filter((w) => w.length > 4);
+    const generic = new Set("requirements qualifications responsibilities experience required preferred skills ability minimum candidate applicants company people position years opportunities".split(" "));
+    const taskWords = new Set(jdSegments(jd.rawText || "").filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate")
+      .flatMap((sg) => tokens(sg.text)).filter((w) => !generic.has(w)));
+    const scored = bullets.map((text, index) => {
+      const skills = new Set(skillsInText(text).map((s) => s.toLowerCase()));
+      const words = new Set(tokens(text));
+      return { text, index, score: [
+        [...must].filter((s) => skills.has(s)).length,
+        [...nice].filter((s) => skills.has(s)).length,
+        [...taskWords].filter((w) => words.has(w)).length,
+      ] };
+    });
+    scored.sort((a, b) => {
+      for (let i = 0; i < a.score.length; i++) if (a.score[i] !== b.score[i]) return b.score[i] - a.score[i];
+      return a.index - b.index;
+    });
+    return scored.map((s) => s.text);
+  }
+
   const yearOf = (v) => { const m = String(v == null ? "" : v).match(/\d{4}/); return m ? m[0] : null; };
   function dateRangeFor(fact) {
     if (!fact) return null;
@@ -1869,7 +1892,7 @@ const CareerTailor = (() => {
       return out;
     };
     const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => {
-      const bullets = (f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
+      const bullets = bulletsForPosting(f.bullets && f.bullets.length ? f.bullets : [f.text], jd).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
       return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...bullets, ...operativeClauses(f, [entryTextFor(f), ...bullets.map((b) => b.text)])];
     }) } : null;
     const mkSection = (heading, facts) => {

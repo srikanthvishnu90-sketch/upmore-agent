@@ -156,7 +156,7 @@ async function facts(userId) {
   // WO-054: the stored rows of answers the person gave in the panel before the session, for the card's mark.
   const beforeKeys = new Set(await get(S, "answered_before", []));
   return { answers: m.answers, saved: m.saved, answered: rows.map((r) => r.key), userId, before: rows.filter((r) => beforeKeys.has(r.key)).map((r) => "text-answer:" + r.id),
-    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
+    manifest: { hash: m.hash, version: m.version, byFactId: m.byFactId, answers: m.answers, saved: m.saved, excluded: m.excluded.length, conflicts: m.conflicts.map((c) => c.key) } };
 }
 // The facts behind an application's answers must all still be in the person's manifest now (WO-102: revalidated at the
 // boundary): the trusted fact behind each answer Trainee filled, and the facts behind each drafted answer.

@@ -613,6 +613,24 @@
    "run": "39584579483, 39583493501, 39556113702",
    "read": "H002 failure reasons (both CI judges, three passes); H002 last replies (400 chars) in three runs; H002's two user turns tested by code against the confirmation yes/no patterns (lengths and booleans only, no text printed)",
    "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H006",
+    "H010",
+    "H011",
+    "H018",
+    "H026",
+    "H031",
+    "H035",
+    "H036",
+    "H037"
+   ],
+   "run": "39586066852 (control)",
+   "read": "failing ids per judge; H018 failure reasons (p2, p3); every reply scanned by code for error, step-limit and empty replies (ids only)",
+   "at": "2026-10-21"
   }
  ],
  "ids_only": [

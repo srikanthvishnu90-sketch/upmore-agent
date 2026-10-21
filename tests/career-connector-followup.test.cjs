@@ -49,8 +49,9 @@ function composeFollowUp159(input) {
   return { message, record };
 }
 
-function machine(extraDeps) {
-  return F.createConnectorFollowUp(Object.assign({ composeFollowUp: composeFollowUp159 }, extraDeps || {}));
+function machine(extraDeps, snapshotJson) {
+  return F.createConnectorFollowUp(
+    Object.assign({ composeFollowUp: composeFollowUp159 }, extraDeps || {}), snapshotJson);
 }
 
 // --- Fixtures (synthetic people, invented for this test only) ---------------

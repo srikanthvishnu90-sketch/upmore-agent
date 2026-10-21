@@ -46,7 +46,9 @@ export function personalSourceGuard(roots: readonly unknown[]): (value: unknown)
   }
   const badDependencies = (row: Record<string, unknown>) => {
     const ids = factDependencies(row);
-    return ids === null || ids.some(id => quarantinedFact({ factId: id }) || !allIds.has(id) || deniedIds.has(id) || unavailable.has(id));
+    // A parent is denied by its own row (a bank row is quarantined by its factId) or by being absent; a bare id in the
+    // D-007 range is not a bank id (a chat profile numbers its own facts F-001 up), so it is not denied by number alone.
+    return ids === null || ids.some(id => !allIds.has(id) || deniedIds.has(id) || unavailable.has(id));
   };
   for (let changed = true; changed;) {
     changed = false;

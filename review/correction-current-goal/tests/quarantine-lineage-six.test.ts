@@ -17,10 +17,12 @@ async function run(others: any[]) {
  return { profile: persisted, result };
 }
 for (const kind of ['reserved', 'direct', 'transitive', 'missing-reserved'] as const) Deno.test(`correction quarantine lineage: ${kind} cannot preserve old preference cache`, async () => {
- const parent = row('F-033', 'Invented skill', { kind: 'skill' });
+ // Ruling on F-033 (second judge, 2026-10-21): the D-007 range is the owner's bank's ids, carried in factId; a chat
+ // profile's own id F-033 is the person's (controls below). Bank lineage is still blocked: the parent is a bank row.
+ const parent = row('SYN-BANK-PARENT', 'Invented skill', { kind: 'skill', factId: 'F-033' });
  const first = row('SYN-FIRST', oldWords, { derived_from: ['F-033'] });
  const second = row('SYN-SECOND', oldWords, { derived_from: ['SYN-FIRST'] });
- const others = kind === 'reserved' ? [row('F-033', oldWords)] : kind === 'direct' ? [parent, first] : kind === 'transitive' ? [second, first, parent] : [first];
+ const others = kind === 'reserved' ? [row('SYN-BANK-033', oldWords, { factId: 'F-033' })] : kind === 'direct' ? [parent, first] : kind === 'transitive' ? [second, first, parent] : [first];
  const { profile, result } = await run(others);
  assert(!profile.preferences.roles.includes('Data analyst') && !profile.preferences.locations.includes('Austin'), 'quarantined alias preserved replaced cache: ' + JSON.stringify(profile.preferences));
  assert(JSON.stringify(result.goal) === JSON.stringify({ roles: ['ux','designer'], places: ['denver'], remote: false }), 'old alias still steered fresh search');
@@ -34,4 +36,13 @@ Deno.test('correction quarantine lineage control: independently confirmed own de
 Deno.test('correction quarantine lineage control: independent own draft keeps its stated alternative', async () => {
  const { profile, result } = await run([row('SYN-OWN-DRAFT',oldWords,{ status:'draft', needs_confirmation:true })]);
  assert(profile.preferences.roles.includes('Data analyst') && result.goal.roles.includes('ux'), 'independent own draft was quarantined');
+});
+Deno.test('correction quarantine lineage control: a long profile\'s own chat fact F-033 keeps its stated alternative', async () => {
+ const { profile, result } = await run([row('F-033', oldWords)]);
+ assert(profile.preferences.roles.includes('Data analyst') && profile.preferences.locations.includes('Austin'), 'own chat F-033 was quarantined: ' + JSON.stringify(profile.preferences));
+ assert(result.goal.roles.includes('data') && result.goal.places.includes('austin'), 'own chat F-033 lost from search');
+});
+Deno.test('correction quarantine lineage control: derived from the person\'s own chat F-030 keeps its stated alternative', async () => {
+ const { profile, result } = await run([row('F-030', 'I prefer analytical work', { kind: 'preference' }), row('F-031', oldWords, { derived_from: ['F-030'] })]);
+ assert(profile.preferences.roles.includes('Data analyst') && result.goal.roles.includes('data'), 'own chat lineage was quarantined: ' + JSON.stringify(profile.preferences));
 });

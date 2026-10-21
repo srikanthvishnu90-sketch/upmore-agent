@@ -723,3 +723,18 @@ of private content.
   in the event detail ("user reported: onsite"), and returns it as stage_in_their_words; the tool description says to
   confirm the move in those words. Gate test with a synthetic company. "Onsite" is a standard step word and is on the
   list with the others; no held-out wording beyond that word.
+
+### Rulings (2026-10-21, later)
+- Owner, H006: prompt.ts:69 may be rewritten as one measured round on the kept brain; no held-out phrase in the new
+  wording; it redirects off-topic requests toward career help instead of offering the off-topic service; compared
+  against a same-night control.
+- Second judge, stray confirm (39589683291, c1dc40da): REVERT. 79.0/77.8 vs the same-night reference's 82.5/82.2;
+  the reference ties the earlier control, so the kept brain is fine. Pass-to-pass swing 16-18 points in both runs:
+  a 3-pass round cannot resolve a change under about 5 points. From now on keep decisions use 5 passes, and the
+  instability itself is the target (H004's Friday commitment, H003, the empty answers). c1dc40da stays off-branch,
+  re-ruled if a 5-pass rerun beats the reference on clean-30.
+- Builder: the workflow now runs five parallel passes; its limit drops from $16.30 to $15.95 so that four other
+  passes landing beside the one that reaches it still stay under $16.535 ($1.535 before tonight + the owner's $15).
+  The H009 round (39591xxxxx, launched before this ruling) is a 3-pass run: read for its mechanism only, not a keep.
+- Next measurements, in order: a 5-pass control of the kept brain (the same-night reference for 5-pass rounds), then
+  the H006 rewrite (5 passes), then the instability causes.

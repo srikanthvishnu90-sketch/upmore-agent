@@ -33,10 +33,10 @@ jobs:
       EVAL_JUDGE_MODEL_2: gpt-4.1-mini
       # OWNER'S RULING (2026-10-21, later): "Eval spend ceiling is now $15 total tonight ($4.57 used so far)."
       # BUILDER'S ARITHMETIC (not an owner figure): this limit sums every recorded result file since the eval began,
-      # so it is set to (recorded spend before tonight, $1.535) + $15 = $16.535, and written a little lower ($16.30)
-      # because three passes run in parallel and each sees only the spend recorded before it started. Tonight's
-      # $4.569 is inside it. Ledger: evals/career/ROOT-CAUSES.md, "EVAL SPEND LEDGER".
-      EVAL_BUDGET_USD: "16.30"
+      # so it is set to (recorded spend before tonight, $1.535) + $15 = $16.535, and written lower ($15.95) because five
+      # passes run in parallel and each sees only the spend recorded before it started: four others (about $0.12 each)
+      # can land beside the one that reaches the limit. Builder's arithmetic, not an owner figure. Ledger: evals/career/ROOT-CAUSES.md, "EVAL SPEND LEDGER".
+      EVAL_BUDGET_USD: "15.95"
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }
@@ -45,12 +45,12 @@ jobs:
       - name: The key is present
         run: |
           if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
-      # Three full passes of the same build, in parallel: the same brain scored 27/38 and 33/38 in two runs
-      # (39540312167, 39541224991), so one pass cannot say whether one fix helped. Each pass is logged; the bar is
-      # still one full pass at 95%, and a fix is kept only when its passes do not fall below the build before it.
-      - name: Held-out set, agent brain (the bar), three passes
+      # Five full passes of the same build, in parallel (second judge's ruling, 2026-10-21: the pass-to-pass swing is
+      # 16-18 points in one run, so three passes cannot resolve a change under about 5 points; keep decisions use five).
+      # Each pass is logged; the bar is still one full pass at 95%.
+      - name: Held-out set, agent brain (the bar), five passes
         run: |
-          for p in 1 2 3; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
+          for p in 1 2 3 4 5; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
           wait; cat "$RUNNER_TEMP"/h-agent-*.txt
       # Re-scores of recorded runs listed in evals/career/rejudge.txt ("<label> <judge model>"), once each, judge only.
       - name: Re-score recorded runs (judge only)
@@ -66,7 +66,7 @@ jobs:
         run: |
           deno run -A evals/career/score-log.ts evals/career/results/heldout-agent-${{ github.run_id }}-p*.json evals/career/results/heldout-router-${{ github.run_id }}.json --run ${{ github.run_id }}
           deno eval '
-            const ps = [1, 2, 3].map((p) => { try { return JSON.parse(Deno.readTextFileSync(`evals/career/results/heldout-agent-${{ github.run_id }}-p${p}.json`)); } catch { return null; } });
+            const ps = [1, 2, 3, 4, 5].map((p) => { try { return JSON.parse(Deno.readTextFileSync(`evals/career/results/heldout-agent-${{ github.run_id }}-p${p}.json`)); } catch { return null; } });
             const bad = (a) => !a || a.stopped || a.items.some((x) => /^judge error/.test(x.note ?? "") || (x.judges ?? []).some((j) => /^judge error/.test(j.note ?? "")));
             const ok = ps.filter((a) => !bad(a));
             if (!ok.length) { console.log("WO-061: NOT A SCORE (no pass finished cleanly: spend cap or judge errors)"); Deno.exit(0); }

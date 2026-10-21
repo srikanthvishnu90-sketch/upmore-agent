@@ -1,0 +1,210 @@
+{
+  "kind": "post-mini diagnostic analysis; no re-scoring",
+  "source_commit": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+  "analysis_workflow_commit": "8836ba90400c8e74831f5b79fe60733f2a8e1c9b",
+  "analysis_run_id": 39673893860,
+  "input": {
+    "evaluation_run_id": 39666739440,
+    "artifact_id": 12379695085,
+    "artifact_zip_sha256": "43d90f6772d8e87aeef97c3d8474a6b4d79bc2d1ff5d37776619f0831d692f28",
+    "result_sha256": "72539f4b441f29c9a35e3f68385e2d15b01cb91aca57979a7bdbe08472ddd927",
+    "corpus_sha256": "91dabe21a0f0c0dd6de1c6be780dda53941c9ff532f03f172013b90c934f72bc",
+    "manifest_sha256": "9cd9c81ea329b0dea318dc2c9751500e63d0e942a14674f4640e33d294140595"
+  },
+  "spend": {
+    "analysis_new_provider_calls": 0,
+    "analysis_new_model_cost_usd": 0,
+    "completed_mini_cost_usd": 2.25895
+  },
+  "coverage": {
+    "scored_cases": 320,
+    "failed_cases_recovered": 209,
+    "failed_judge_packets_digest_checked": 209,
+    "case_level_root_cause_allocation": "NOT_PROVEN: task categories partition all failures; diagnostic mechanism signatures overlap. No causal fix uplift is claimed.",
+    "heldout_status": "Exact failed replies and judge reasons exposed only to analyst after scoring. Future tuning against this evidence is diagnostic reuse, not untouched held-out validation.",
+    "failed_cases_available_with_stored_judge_reasons_replies_and_traces": 209,
+    "deep_manual_review": "Representative cases only; all209 included in deterministic task partition and signature counts."
+  },
+  "official_score": {
+    "passed": 111,
+    "total": 320,
+    "percent": 34.6875,
+    "clean_passed": 107,
+    "clean_total": 311,
+    "clean_percent": 34.40514469453376,
+    "unchanged": true
+  },
+  "judges": {
+    "gpt-5-mini_passed": 130,
+    "gpt-4.1-mini_passed": 200,
+    "both_passed": 111,
+    "both_failed": 101,
+    "mini_failed_4_1_passed": 89,
+    "mini_passed_4_1_failed": 19,
+    "disagreements": 108,
+    "disagreement_is_not_a_false_positive_count": true,
+    "third_adjudicator": "NOT_RUN"
+  },
+  "failure_task_partition": {
+    "search_refinement": {
+      "failed": 47,
+      "total": 56,
+      "passed": 9
+    },
+    "memory_goals": {
+      "failed": 24,
+      "total": 40,
+      "passed": 16
+    },
+    "application_answers": {
+      "failed": 31,
+      "total": 40,
+      "passed": 9
+    },
+    "forms_materials": {
+      "failed": 23,
+      "total": 40,
+      "passed": 17
+    },
+    "queue_followthrough": {
+      "failed": 21,
+      "total": 32,
+      "passed": 11
+    },
+    "tracking": {
+      "failed": 11,
+      "total": 24,
+      "passed": 13
+    },
+    "interview_negotiation": {
+      "failed": 20,
+      "total": 24,
+      "passed": 4
+    },
+    "alerts_discovery": {
+      "failed": 8,
+      "total": 24,
+      "passed": 16
+    },
+    "channel_handoff": {
+      "failed": 11,
+      "total": 16,
+      "passed": 5
+    },
+    "interrupted_retry": {
+      "failed": 10,
+      "total": 16,
+      "passed": 6
+    },
+    "help_scope": {
+      "failed": 3,
+      "total": 8,
+      "passed": 5
+    }
+  },
+  "diagnostic_signatures_overlapping": {
+    "receipt_only_in_any_reply": 61,
+    "receipt_only_in_last_reply": 18,
+    "closing_confirmation_in_any_reply": 121,
+    "any_refused_tool": 58,
+    "failed_cases_using_search_jobs": 49,
+    "failed_cases_using_get_posting": 8,
+    "search_category_using_search_jobs": 36,
+    "search_category_using_get_posting": 4
+  },
+  "product_execution": {
+    "failed_max_steps": 1,
+    "other_saved_product_failure_codes": {},
+    "failed_turns_stopped_final": 427,
+    "failed_turns_stopped_max_steps": 1,
+    "provider_errors_or_truncation_as_dominant_cause": "NOT_ESTABLISHED; saved trace does not support a widespread stall explanation"
+  },
+  "proven_mechanisms": [
+    {
+      "name": "save receipt can replace requested deliverable",
+      "classification": "product completeness",
+      "source": "supabase/functions/_shared/agent/loop.ts:188,264,306",
+      "cause": "Final completeness validation calls missingAnswerBody with receiptOnly=false. The receipt-only handling in the earlier-body recovery branch does not itself require a task answer. A successful save receipt with a closing question can therefore return final even when the request asks for finished content.",
+      "independent_repro": {
+        "network": "denied",
+        "scripted_local_model_invocations": 2,
+        "stopped": "final",
+        "still_receipt_only": true
+      },
+      "observed_bounds": {
+        "failed_cases_with_exact_receipt_only_any_turn": 61,
+        "failed_cases_with_exact_receipt_only_last_turn": 18,
+        "causally_resolved_by_fix": "NOT_RUN; these are exposure counts, not uplift"
+      },
+      "acceptance": "A completed fact write must not replace a separately requested answer or draft. Return the requested content from eligible facts or ask a concrete missing-fact question. A repair must be bounded, read-only and must not repeat a successful write. Preserve normal receipts for fact-only statements."
+    },
+    {
+      "name": "search fallback depends on provider filtering before local filtering",
+      "classification": "harness/product adapter interaction",
+      "source": "supabase/functions/_shared/agent/career_tools.ts:388; evals/brain-reliability/run-comparison.ts provider fixture; supabase/functions/_shared/career_search.ts:67",
+      "cause": "The tool shortens a query only when deps.postings(query) returns an empty pool. The evaluation fixture ignores query and returns a nonempty entire pool; local all-word matching can then return zero without reaching the fallback. A query-filtering provider reaches the fallback.",
+      "independent_repro": {
+        "current_fixture_results": 0,
+        "current_fixture_dependency_calls": 1,
+        "query_filtering_provider_results": 1,
+        "query_filtering_provider_dependency_calls": 3,
+        "relaxation_reported": true
+      },
+      "observed_bounds": {
+        "failed_search_category_cases": 47,
+        "failed_search_category_cases_using_search_tool": 36,
+        "artifact_cases_proven_caused_by_adapter": "UNKNOWN; no tool-input/state extraction was included in the safe recovery"
+      },
+      "acceptance": "The evaluation provider must honor the production query contract, or the tool must define and test post-filter empty behavior. Preserve saved constraints, report any relaxation, and use full posting retrieval when the requested answer requires requirements absent from search hits."
+    }
+  ],
+  "next_fix_priority": [
+    {
+      "priority": 1,
+      "fix": "Complete requested answer after save/refusal/filtering",
+      "evidence_population": 61,
+      "population_definition": "failed conversations with at least one exact receipt-only reply;18 end this way",
+      "proof": "independent receipt escape reproduced; implement QA-owned acceptance above",
+      "expected_score_uplift": "UNKNOWN"
+    },
+    {
+      "priority": 2,
+      "fix": "Resolve query-provider parity and finish posting-detail reads",
+      "evidence_population": 47,
+      "population_definition": "entire failed search_refinement category;36 used search_jobs,4 used get_posting",
+      "proof": "adapter interaction independently reproduced; full case-level cause assignment remains unknown",
+      "expected_score_uplift": "UNKNOWN"
+    },
+    {
+      "priority": 3,
+      "fix": "Recover from refused writes without weakening quote/provenance rules; route actual operations to their tools",
+      "evidence_population": 58,
+      "population_definition": "failed conversations with at least one refused tool call, across categories",
+      "proof": "refusal is observed, exact cause distribution is not yet classified; use tool error and state-specific independent tests",
+      "expected_score_uplift": "UNKNOWN"
+    },
+    {
+      "priority": 4,
+      "fix": "State-selected tracker updates with precise returned-row receipts",
+      "evidence_population": 11,
+      "population_definition": "failed tracking category",
+      "proof": "source review: manualUpdate selected by company; existing-row role input is not applied; fresh independent repro pending",
+      "expected_score_uplift": "UNKNOWN"
+    },
+    {
+      "priority": 5,
+      "fix": "Judge evidence alignment and separate product failures from strict judge disagreement",
+      "evidence_population": 108,
+      "population_definition": "all scored conversations with disagreeing judge verdicts; not all are false positives",
+      "proof": "101 failures are agreed by both judges; no automatic re-score or judge weakening",
+      "expected_score_uplift": "UNKNOWN"
+    }
+  ],
+  "limits": [
+    "Do not add diagnostic populations: they overlap.",
+    "Saved trace contains tool names/status/effects but not full tool inputs/results/state. It cannot by itself prove the exact proportion caused by each mechanism.",
+    "No model-tier blame or higher-tier improvement is established before the gpt-5 comparison.",
+    "Official mini score remains111/320. Analysis does not authorize a deploy,85/95 claim,or repaired score.",
+    "No paid calls or paid reruns were made by this analysis."
+  ]
+}

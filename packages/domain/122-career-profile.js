@@ -319,11 +319,75 @@ const CareerProfile = (() => {
   }
   const normKeyText = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   function draftKey(d) { return d.kind === "skill" ? `skill|${normKeyText(d.name || d.title)}` : `${d.kind}|${normKeyText(d.title || d.text)}`; }
+  // The header/contact block is not a FACT — but it IS the user's
+  // identity, and until this extraction existed no chat path wrote
+  // it anywhere: a user who pasted their resume got a confirmed fact
+  // bank whose profile basics stayed null forever, so every
+  // downstream consumer that reads basics (the batch executor above
+  // all) faced a nameless profile (LOOP-INPUT-NO-WRITER, live
+  // 2026-10-20). The header is parsed with strict shapes only (an
+  // email address, a phone number, a City, ST segment, a profile
+  // URL, and the one remaining short line as the name) and applied at
+  // ingest under the LinkedIn rule: fill NULLS only, never overwrite
+  // a standing value. The facts themselves stay drafts exactly as
+  // before — this writes contact identity, not claims.
+  function parseResumeHeader(text) {
+    const out = { links: {} };
+    const lines = String(text || "").split(/\r?\n/);
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (/^test resume/i.test(line)) continue;
+      const sec = SECTION_KIND[line.toLowerCase().replace(/:$/, "")];
+      if (sec && line.length < 40) break; // the header ends at the first section
+      let matched = false;
+      const email = line.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+      if (email) { if (!out.email) out.email = email[0]; matched = true; }
+      const url = line.match(/https?:\/\/[^\s|]+/);
+      if (url) {
+        if (/github/i.test(url[0])) { if (!out.links.github) out.links.github = url[0]; }
+        else if (/linkedin/i.test(url[0])) { if (!out.links.linkedin) out.links.linkedin = url[0]; }
+        else if (!out.links.portfolio) out.links.portfolio = url[0];
+        matched = true;
+      }
+      const phone = line.match(/\+?\(?\d[\d\s().-]{5,}\d/);
+      if (phone) {
+        const digits = phone[0].replace(/\D/g, "");
+        const shaped = phone[0].includes("+") || /[\s().-]/.test(phone[0].slice(1));
+        if (shaped && digits.length >= 7 && digits.length <= 15) { if (!out.phone) out.phone = phone[0].trim(); matched = true; }
+      }
+      for (const seg of line.split("|").map((x) => x.trim()).filter(Boolean)) {
+        if (/^[A-Za-z][A-Za-z .]*,\s*[A-Z]{2}(\s|\(|$)/.test(seg) && !/[@\d]/.test(seg)) {
+          if (!out.location) out.location = seg;
+          matched = true;
+        }
+      }
+      if (!matched && !out.name && line.length <= 60 && !/^(github|linkedin|portfolio|website|phone|email|address)\s*:/i.test(line)) {
+        out.name = line;
+      }
+    }
+    return (out.name || out.email || out.phone || out.location || Object.keys(out.links).length) ? out : null;
+  }
   function ingestResume(profile, input, opts) {
     const cls = classifyResumeIngest(input);
     if (!cls.ok) return ingestFailure(cls);
     const parsed = parseResumeText(cls.text);
     if (!parsed.length) return ingestFailure({ reason_class: "empty", file_name: cls.file_name, reason: "no resume content could be extracted from the file — no sections or entries were found in it", next_step: "Upload the resume as plain text with its sections (Experience, Skills, Education), or paste the text instead.", supported_formats: SUPPORTED_RESUME_FORMATS });
+    // Header contact block -> basics, fill-nulls only (see
+    // parseResumeHeader). Applied on every ingest; idempotent by
+    // construction — a standing value is never overwritten.
+    const header = parseResumeHeader(cls.text);
+    const headerBasicsApplied = [];
+    if (header) {
+      if (!profile.basics || typeof profile.basics !== "object") profile.basics = { name: null, email: null, phone: null, location: null, links: {} };
+      if (!profile.basics.links || typeof profile.basics.links !== "object") profile.basics.links = {};
+      for (const k of ["name", "email", "phone", "location"]) {
+        if (header[k] && !profile.basics[k]) { profile.basics[k] = header[k]; headerBasicsApplied.push(k); }
+      }
+      for (const k of ["github", "linkedin", "portfolio"]) {
+        if (header.links && header.links[k] && !profile.basics.links[k]) { profile.basics.links[k] = header.links[k]; headerBasicsApplied.push(`links.${k}`); }
+      }
+    }
     // Merge with correction precedence: CONFIRMED facts win. A parsed draft that
     // duplicates a confirmed fact (or an earlier draft from this same file) is
     // skipped and audited, never added as a shadow copy.
@@ -342,9 +406,9 @@ const CareerProfile = (() => {
       audit.push({ action: "added_draft", fact_id: f.id, kind: f.kind, source: "resume-ingest", precedence: "draft — needs confirmation; confirmed facts win" });
     }
     refreshSkillFlags(profile);
-    const record = { at: (opts && opts.now) || null, file_name: cls.file_name || null, added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, outcome: "ingested_as_drafts" };
+    const record = { at: (opts && opts.now) || null, file_name: cls.file_name || null, added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, outcome: "ingested_as_drafts", header_basics_applied: headerBasicsApplied };
     profile.profile_ingest_audit = [...(profile.profile_ingest_audit || []), record];
-    return { ok: true, failure: null, drafts, factIds: drafts.map((f) => f.id), added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, audit };
+    return { ok: true, failure: null, drafts, factIds: drafts.map((f) => f.id), added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, audit, headerBasicsApplied };
   }
 
   // ---- profile data lifecycle: retention declaration + real deletion (SHD-3) ----

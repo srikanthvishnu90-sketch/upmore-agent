@@ -104,3 +104,14 @@ Evidence: commit bc12cb87 on the repair branch; proactive.ts:305-306 + :313.
 Priority: P1
 Fix: unfilled (product lane's call — either the budget counts exempt findings, or the map is amended to bless the exemption).
 Verified by:
+
+[ID: MUSE-F-009] [Status: OPEN]
+Found: 2026-10-20, owner-reported from tonight's evals (run ID not supplied with the report — recorded as reported).
+Area: brain
+Input: a quiet-hours setup in evals (user's quiet hours 22:00–07:00).
+Expected: quiet hours are a silence window — everything but safety is held until the window ends (the product's own capability contract, packages/capabilities/registry.json "quiet hours enforcement": "everything but safety is held until the window ends, with the time it will be delivered").
+Actual: "I'll text only in your quiet hours 22:00-07:00" — the exact inversion: it promises to text ONLY inside the do-not-disturb window.
+Evidence: owner's eval report 2026-10-20 23:41 CDT; registry contract as above.
+Priority: P1
+Fix: unfilled — the quiet-hours logic + wording live in the proactive/alerts engine (brain side; NOT in Muse's surface lanes — ownership probed 2026-10-20: no quiet-hours logic exists in the link/pool/serving code).
+Verified by: unfilled (the battery scenario below catches this class from the next run on).

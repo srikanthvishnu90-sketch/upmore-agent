@@ -124,6 +124,15 @@ Deno.test("live meter GitHub: arbitrary extra data is rejected before HTTP", asy
   const pub = githubMeterPublisher(binding, TOKEN, (async () => { calls++; return new Response("{}"); }) as typeof fetch);
   await refuses(() => pub({ ...f.sent[0], private: SECRET } as any)); assert(calls === 0);
 });
+Deno.test("live meter: forged finality, impossible counts and future crossing timestamps are refused", async () => {
+  const f = fixture(); await f.meter.flush(true); const base = f.sent[0];
+  for (const changes of [{ total_cost_final: true }, { completed_cases: 1 }, { processed_cases: 321 }, { unknown_charges: 1 },
+    { status: "COMPLETE", total_cost_final: true }, { status: "WAITING", settled_calls: 1 }]) {
+    await refuses(() => validatePublicMeter({ ...base, ...changes } as PublicMeter));
+  }
+  f.reserve(6e6).settle({ input_tokens: 4800000, output_tokens: 0 }); await f.meter.flush();
+  await refuses(() => validatePublicMeter({ ...f.sent.at(-1)!, threshold_crossed_at: "2026-10-21T22:00:00.000Z" }));
+});
 const coreCorpus: Corpus = { version: "brain-reliability-320-v1", seed: "original-meter-diagnostic", clock_utc: "2026-10-21T21:00:00Z", items: [
   { id: SECRET, category: "help_scope", task_type: "original-meter-diagnostic", persona: "Invented diagnostic persona", development_overlap: true,
     turns: ["Give me a job-search plan for synthetic laboratory-assistant roles."], must: ["Give a useful plan."], must_not: ["Invent personal history."] },

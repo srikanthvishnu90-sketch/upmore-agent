@@ -37,10 +37,15 @@ export function validatePublicMeter(p: PublicMeter) {
   require(JSON.stringify(Object.keys(p).sort()) === JSON.stringify(publicKeys) && p.schema === VERSION && p.alert_delivery === "ARTIFACT_ONLY");
   require(Number.isSafeInteger(p.sequence) && p.sequence > 0 && Number.isFinite(Date.parse(p.observed_at)) && p.alert_threshold_usd === 6);
   require([p.settled_calls, p.completed_cases, p.processed_cases, p.unknown_charges, p.unsettled_calls].every(n => Number.isSafeInteger(n) && n >= 0));
+  require(p.completed_cases <= p.processed_cases && p.processed_cases <= 320 && p.unknown_charges <= p.unsettled_calls);
   require(["WAITING", "RUNNING", "HALTED", "COMPLETE"].includes(p.status) && typeof p.total_cost_final === "boolean");
   const known = micros(p.known_cost_usd), held = micros(p.held_reservations_usd), prior = micros(p.comparison_spent_usd);
   require(known + held <= micros(p.cap_usd) && micros(p.combined_known_cost_usd) === prior + known && micros(p.combined_exposure_usd) === prior + known + held);
   require(p.threshold_crossed_at === null ? known < 6e6 : Number.isFinite(Date.parse(p.threshold_crossed_at)) && known >= 6e6);
+  require(p.threshold_crossed_at === null || Date.parse(p.threshold_crossed_at) <= Date.parse(p.observed_at));
+  if (p.total_cost_final) require(["COMPLETE", "HALTED"].includes(p.status) && !p.unknown_charges && !p.unsettled_calls && !held);
+  if (p.status === "COMPLETE") require(p.total_cost_final && p.completed_cases === 320 && p.processed_cases === 320 && p.settled_calls >= 640);
+  if (p.status === "WAITING") require(!known && !held && !p.settled_calls && !p.processed_cases && !p.unknown_charges && !p.unsettled_calls && !p.total_cost_final);
 }
 export interface PublishReceipt { commit_sha: string; content_sha: string; url: string }
 export type Publisher = (snapshot: PublicMeter) => Promise<PublishReceipt>;
@@ -80,7 +85,10 @@ export function githubMeterPublisher(binding: MeterBinding, token: string, reque
         const previous = JSON.parse(new TextDecoder().decode(raw)) as PublicMeter;
         validatePublicMeter(previous); require(sameBinding(previous, b) && previous.sequence < snapshot.sequence);
         require(previous.known_cost_usd <= snapshot.known_cost_usd && previous.settled_calls <= snapshot.settled_calls &&
-          previous.processed_cases <= snapshot.processed_cases && (!previous.threshold_crossed_at || previous.threshold_crossed_at === snapshot.threshold_crossed_at));
+          previous.processed_cases <= snapshot.processed_cases && previous.completed_cases <= snapshot.completed_cases &&
+          Date.parse(previous.observed_at) <= Date.parse(snapshot.observed_at) && (!previous.threshold_crossed_at || previous.threshold_crossed_at === snapshot.threshold_crossed_at));
+        if (previous.total_cost_final) require(snapshot.total_cost_final && previous.status === snapshot.status && previous.known_cost_usd === snapshot.known_cost_usd &&
+          previous.settled_calls === snapshot.settled_calls && previous.processed_cases === snapshot.processed_cases && previous.completed_cases === snapshot.completed_cases);
       } else require(snapshot.sequence === 1);
       const raw = new TextEncoder().encode(JSON.stringify(snapshot) + "\n");
       const content = btoa(String.fromCharCode(...raw));
@@ -156,8 +164,8 @@ export async function runLiveMeteredArm(args: { corpusRaw: string; manifestRaw: 
   append: Append; publisher: Publisher; apiKey: string; firstArmRaw?: string; request?: typeof fetch; now?: () => number }): Promise<ArmResult> {
   const { corpusRaw, manifestRaw, approvalFile, binding, append, publisher, apiKey, firstArmRaw } = args;
   const approval = JSON.parse(await Deno.readTextFile(approvalFile)) as Approval & { live_meter_approval_ref: string };
-  require(typeof approval.live_meter_approval_ref === "string" && approval.live_meter_approval_ref.trim() !== "" && approval.live_meter_approval_ref !== "NOT_APPROVED");
-  require(approval.owner_approval_ref !== "NOT_APPROVED");
+  const approvedRef = (value: unknown) => typeof value === "string" && value.trim() !== "" && value.trim() !== "NOT_APPROVED";
+  require(approvedRef(approval.live_meter_approval_ref) && approvedRef(approval.owner_approval_ref));
   const manifest = JSON.parse(manifestRaw), corpus = await validateCorpus(corpusRaw, manifest);
   const root = new URL("../../", import.meta.url);
   const git = async (...command: string[]) => {

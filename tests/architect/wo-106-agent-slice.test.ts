@@ -7,7 +7,7 @@ import { CHANNEL_REPLIES } from "../../supabase/functions/_shared/channel.ts";
 import { memoryChannelWorld } from "../../supabase/functions/_shared/channel_memory.ts";
 import { FILE_NOT_READ_REPLY, runInbound } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { parseTelegramUpdate, telegramAdapter } from "../../supabase/functions/_shared/telegram.ts";
-import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
+import { careerTools, offRole } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { goalLines, personBlock } from "../../supabase/functions/_shared/agent/memory.ts";
 import { goalOf, searchPostings } from "../../supabase/functions/_shared/career_search.ts";
 import { apiUrlFor, linkChecker } from "../../supabase/functions/_shared/link_check.ts";
@@ -194,4 +194,74 @@ Deno.test("WO-106/S1 a resume sent as a file on Telegram gets an answer (paste i
   const before = c.sent.length;
   await runInbound({ ...sticker.message!, messageId: "3" } as any, c.d as any);
   assert(c.sent.length === before, "a sticker gets no reply");
+});
+
+Deno.test("WO-106/S2 a pasted resume is read by code into draft facts from the person's own message, never from text the model writes", async () => {
+  const msg = "here's my resume:\nMaya Chen\nExperience\nData Analyst, Northbridge Logistics, 2022-2025: built SQL and Tableau dashboards\nSkills\nSQL, Tableau, Python\nEducation\nBS Economics, University of Illinois Chicago, 2022";
+  const t = tools(), state: Record<string, unknown> = {};
+  const r = await t.read_resume.run({ text: "PhD, Stanford" }, ctxFor(msg, state)) as any;
+  const facts = (state.profile as any).facts;
+  assert(r.saved >= 5 && facts.every((f: any) => f.needs_confirmation), JSON.stringify(r));
+  assert(facts.some((f: any) => f.kind === "experience" && /Northbridge/.test(f.text)) && facts.some((f: any) => f.kind === "education" && /Illinois/.test(f.text)), JSON.stringify(facts));
+  assert(!JSON.stringify(facts).includes("Stanford"), "the model's own text is never read");
+  const none = await t.read_resume.run({}, ctxFor("I am a data analyst with three years of SQL experience in Chicago", {})) as any;
+  assert(none.saved === 0 && /add_profile_fact/.test(none.next), JSON.stringify(none));
+});
+
+Deno.test("WO-106/B1 the answer the model writes beside a tool call is kept when its last message is only a trailer (eval E010 lost it)", async () => {
+  const { runAgentTurn } = await import("../../supabase/functions/_shared/agent/loop.ts");
+  const answer = "The usual path is an apprenticeship (a union program or a non-union one), often after a short trade-school course; licensing rules vary by state.";
+  let n = 0;
+  const model = async () => (++n === 1
+    ? { content: [{ type: "text", text: answer }, { type: "tool_use", id: "t1", name: "add_profile_fact", input: { kind: "goal", text: "be an electrician" } }] }
+    : { content: [{ type: "text", text: "Saved: you want to be an electrician. Tell me if that's off." }] }) as any;
+  const r = await runAgentTurn({ system: "s", history: [], message: "I want to be an electrician, how do I start", tools: careerTools({ postings: async () => [] }), model, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(r.reply.startsWith(answer) && /Tell me if that's off/.test(r.reply), r.reply);
+  let m = 0;
+  const long = "Here is the full answer, which already covers everything the person asked for in detail, with the steps and the trade-offs for their state laid out in order.";
+  const model2 = async () => (++m === 1 ? { content: [{ type: "text", text: "Let me save that." }, { type: "tool_use", id: "t1", name: "add_profile_fact", input: { kind: "goal", text: "be an electrician" } }] } : { content: [{ type: "text", text: long }] }) as any;
+  const r2 = await runAgentTurn({ system: "s", history: [], message: "I want to be an electrician, how do I start", tools: careerTools({ postings: async () => [] }), model: model2, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(r2.reply === long, `a full final answer is left alone, and a short preamble is never added: ${r2.reply}`);
+});
+
+Deno.test("WO-106/B2 the reply check is code's: no tool runs while a wording or fact check is answered, and the note says not to act on it (eval E009 saved it as a standing instruction)", async () => {
+  const { runAgentTurn } = await import("../../supabase/functions/_shared/agent/loop.ts");
+  const payloads: any[] = [];
+  let n = 0;
+  const model = async (p: any) => {
+    payloads.push(p);
+    return (++n === 1
+      ? { content: [{ type: "text", text: "You have 7 years at Google as a staff engineer, so quitting is fine." }] }
+      : { content: [{ type: "text", text: "Whether to quit depends on your savings and how bad it is day to day; find the next role first if you can." }] }) as any;
+  };
+  const r = await runAgentTurn({ system: "s", history: [], message: "I hate my job, should I quit?", tools: careerTools({ postings: async () => [] }), model, ctx: { userId: "u", threadId: "t", now: T0, state: {} } });
+  assert(payloads.length === 2, `one check: ${payloads.length}`);
+  const note = JSON.stringify(payloads[1].messages.at(-1));
+  assert(/never mention it, never act on it, never save it/.test(note), note);
+  assert(payloads[1].tool_choice?.type === "none", "no tool while a fact check is answered");
+  assert(/savings/.test(r.reply) && !/Google/.test(r.reply), r.reply);
+});
+
+Deno.test("WO-106/B3 \"apply to 15 data analyst jobs\" queues only data analyst roles; picks by reference are not screened", () => {
+  const picks = [
+    { job_id: "greenhouse:spacex:1", url: "u1", company: "SpaceX", title: "Payroll Analyst", location: "Hawthorne, CA" },
+    { job_id: "greenhouse:spacex:2", url: "u2", company: "SpaceX", title: "Sr. Data Analyst, Starlink", location: "Redmond, WA" },
+    { job_id: "greenhouse:acme:3", url: "u3", company: "Acme", title: "Data Analyst", location: "Chicago, IL" },
+  ];
+  const r = offRole(picks, "apply to 15 data analyst jobs for me");
+  assert(r.ok.map((p) => p.job_id).join() === "greenhouse:spacex:2,greenhouse:acme:3" && /not a data analyst role/.test(r.refused[0].reason), JSON.stringify(r));
+  assert(offRole(picks, "Apply me to 3 data analyst jobs in Chicago, remote is fine").ok.map((p) => p.job_id).join() === "greenhouse:spacex:2,greenhouse:acme:3", "the role is the words before \"jobs\"; the place and the rest are the search's");
+  assert(offRole(picks, "apply me to it").ok.length === 3, "no role named, nothing screened");
+  assert(offRole(picks, "apply to the first one").ok.length === 3 && offRole(picks, "apply to both").ok.length === 3, "a pick by reference is the person's choice");
+});
+
+Deno.test("WO-106/F2.3 a move changes the city in the goal and keeps the role (run 39535880905 replaced the goal with \"I moved to Denver last month\")", async () => {
+  const t = tools(), state: Record<string, unknown> = {};
+  const { fact } = await t.add_profile_fact.run({ kind: "goal", text: "Senior data analyst role in Chicago" }, ctxFor("I want a senior data analyst role in Chicago", state)) as any;
+  await t.correct_profile_fact.run({ id: fact.id, text: "Senior data analyst role in Denver" }, ctxFor("I moved to Denver last month", state));
+  const goals = (state.profile as any).facts.filter((f: any) => f.kind === "goal");
+  assert(goals.length === 1 && goals[0].text === "Senior data analyst role in Denver", JSON.stringify(goals));
+  let refused = "";
+  try { await t.correct_profile_fact.run({ id: fact.id, text: "Staff engineer role in Denver" }, ctxFor("I moved to Denver last month", state)); } catch (e) { refused = String(e); }
+  assert(/not saved/.test(refused), `words neither said nor in the corrected fact are refused: ${refused}`);
 });

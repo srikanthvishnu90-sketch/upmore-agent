@@ -166,7 +166,26 @@ const SOCIAL_MESSAGE = /^(?:hi|hello|hey(?: there)?|thanks(?: a lot)?|thank you(
 // actual content, and is left alone; this does not attempt to grade the semantic quality of a plan.
 const PROGRESS_ONLY = /^(?:let me|i(?:'ll| will| am going to|'m going to))\s+(?:(?:just|first|now)\s+)?(?:check|look|search|find|read|review|save|record|prepare|draft|write|create|build|make|put together|work on|gather|think)\b[^:\n]*$/i;
 const ANSWER_REQUEST = /\?|\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
-function missingAnswerBody(reply: string, message: string, receiptOnly = false): boolean {
+// These are the fact guard's fill-in fields. They are useful in requested drafts, but cannot stand in for a fact
+// when answering a question. This authorizes an output format, never chooses an answer or a tool by topic.
+const FACT_PLACEHOLDER = /\[(?:your (?:skill|title|degree)|number|result|month|employer or school)\]/gi;
+function unresolvedFactFields(reply: string, message: string, sources: string[]): boolean {
+  const fields = reply.match(FACT_PLACEHOLDER) ?? [];
+  if (!fields.length || fields.every((f) => plainQuotes(message).toLowerCase().includes(f.toLowerCase()))) return false;
+  const contentRequest = /(?:^|[.!?]\s+)\s*(?:(?:please|(?:can|could|would|will) you(?: please)?)\s+)?(?:write|draft|compose|rewrite|revise|edit|rephrase|shorten|give|show|make|create|prepare|i (?:need|want|would like)|i'd like)\b/i.test(plainQuotes(message));
+  const draftFormat = /\b(?:templates?|fill[- ]in|placeholders?|emails?|messages?|letters?|notes?|repl(?:y|ies)|essays?|resumes?|bios?|scripts?)\b/i.test(message);
+  if (contentRequest && draftFormat) return false;
+  const sourceWords = new Set(sources.join(" ").toLowerCase().match(/[\p{L}\p{N}+#]+/gu) ?? []);
+  // A surviving supported explanation remains useful. A placeholder plus generic praise supplies none, whereas
+  // a qualifier naming actual recorded work can carry an answer independently of the missing field.
+  const clauses = pieces(reply).map((p) => p.text.trim()).filter(Boolean);
+  return clauses.length > 0 && clauses.every((clause) => {
+    if (!(clause.match(FACT_PLACEHOLDER) ?? []).length) return CLOSING_ONLY.test(clause.replace(/[.!?]+$/, "")) || ACK_ONLY.test(clause.replace(/[.!?]+$/, ""));
+    const context = /\b(?:from|at|using|with|through|during)\s+([^.!?\n\[\]]+)/gi;
+    return ![...clause.matchAll(context)].some((m) => (m[1].toLowerCase().match(/[\p{L}\p{N}+#]+/gu) ?? []).some((w) => w.length > 3 && sourceWords.has(w)));
+  });
+}
+function missingAnswerBody(reply: string, message: string, receiptOnly = false, sources: string[] = []): boolean {
   if (!/[\p{L}\p{N}]/u.test(reply)) return true;
   const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
   if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
@@ -176,10 +195,11 @@ function missingAnswerBody(reply: string, message: string, receiptOnly = false):
   const utterance = (s: string) => plainQuotes(s).toLowerCase().replace(/\bi'll\b/g, "i will").replace(/[.!?]+$/, "").trim().replace(/\s+/g, " ");
   if (/\b(?:write|draft|compose|word|say|saying|tell|respond)\b/i.test(message) &&
     /\b(?:reply|message|email|text|note|letter|sentence|script)\b/i.test(message) && utterance(message).includes(utterance(reply))) return false;
+  if (unresolvedFactFields(reply, message, sources)) return true;
   const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
   return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
 }
-const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement or closing confirmation is not an answer. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
+const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, closing confirmation or unresolved fill-in field is not an answer to an informational question. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
 
 export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
@@ -260,7 +280,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
           money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
           waiver.length ? "Your reply offers them wording to send, offers to save something, or asks them to confirm something, after they asked to waive their yes or grant a standing permission. Never propose that wording, offer to save it or ask them to confirm it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
-          facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
+          facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Answer from supported facts, or ask a concrete question for what is missing. Only if they requested a draft or template, mark missing facts with fill-in brackets; a placeholder is not an answer to an informational question.` : "",
         ].filter(Boolean).join(" ");
         // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
         // it to the person): the note is code's, the rewrite is for the person, and no tool runs while it is answered.
@@ -283,7 +303,7 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
-      if (missingAnswerBody(out, o.message)) {
+      if (missingAnswerBody(out, o.message, false, sources)) {
         if (repairing || steps >= max) return incomplete();
         // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
         // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.

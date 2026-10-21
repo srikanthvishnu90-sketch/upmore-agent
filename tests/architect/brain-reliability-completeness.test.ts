@@ -157,7 +157,7 @@ Deno.test("reliability: recovery cannot create an external approval even alongsi
 Deno.test("reliability: unsupported personal facts in a repair remain filtered", async () => {
   const { r, state, m } = await fixture([text(BARE), text("Your Excel skills will help in the interview.")]);
   ok(!r.reply.includes("Excel"), "repair bypassed fact tracing");
-  ok(r.reply.includes("[your skill]"), "missing fact must remain a placeholder");
+  ok(!r.reply.includes("[your skill]") && r.stopped === "incomplete_reply", "an informational answer with no supported facts must stop honestly");
   eq(state, {}); eq(m.payloads.length, 2);
 });
 

@@ -150,3 +150,64 @@ Deno.test("reply depth: malformed truncated retelling preserves an existing exac
   eq(result.reply, "Synthetic exact preview."); eq(result.stopped, "final"); eq(payloads.length, 2); eq(saves, 1);
   eq(meter.usd_micros, 250, "preview delivery retains both provider calls' usage");
 });
+
+async function placeholderTurn(message: string, replies: string[]) {
+  const payloads: any[] = [];
+  const result = await runAgentTurn({ system: "Answer only from the person's supplied facts; ask for facts you lack.", history: [], message,
+    tools: [], ctx: { userId: "SYNTHETIC-PLACEHOLDER-OWNER", threadId: "SYNTHETIC-PLACEHOLDER-THREAD", now: 0, state: {} },
+    model: async (p) => { payloads.push(structuredClone(p)); return text(replies[Math.min(payloads.length - 1, replies.length - 1)]); } });
+  return { result, payloads };
+}
+const MATCH_QUESTION = "Which of my skills match this role?";
+const PLACEHOLDER_CLAIM = "Your [your skill] skills are a strong match.";
+const ASK_FACTS = "Which skills have you used, and which posting should I compare them with?";
+
+Deno.test("reply depth: an informational answer cannot end at a fact placeholder produced by truth review", async () => {
+  const { result, payloads } = await placeholderTurn(MATCH_QUESTION, ["Your Excel skills are a strong match.", PLACEHOLDER_CLAIM, ASK_FACTS]);
+  eq(result.reply, ASK_FACTS); eq(result.stopped, "final"); eq(payloads.length, 3);
+  eq(payloads[2].tool_choice, { type: "none" }); eq(result.tool_calls, []); eq(result.pending_approvals, []);
+  eq(payloads[2].messages, payloads[0].messages, "review and placeholder are not the person's evidence");
+});
+
+Deno.test("reply depth: a directly returned personal-fact placeholder gets one clarification repair", async () => {
+  const { result, payloads } = await placeholderTurn(MATCH_QUESTION, [PLACEHOLDER_CLAIM, ASK_FACTS]);
+  eq(result.reply, ASK_FACTS); eq(payloads.length, 2); eq(payloads[1].tool_choice, { type: "none" });
+});
+
+Deno.test("reply depth: repeated placeholder pseudoanswers stop honestly within the existing repair bound", async () => {
+  const { result, payloads } = await placeholderTurn(MATCH_QUESTION, [PLACEHOLDER_CLAIM]);
+  eq(result.stopped, "incomplete_reply"); eq(payloads.length, 2);
+  ok(!result.reply.includes("[your skill]"), "the informational pseudoanswer escaped after recovery");
+});
+
+Deno.test("reply depth: supported answer content survives alongside an unfilled fact field", async () => {
+  const supported = "SQL matches the reporting requirement.";
+  const { result, payloads } = await placeholderTurn("I use SQL. Which skills match the reporting requirement?", [supported + " " + PLACEHOLDER_CLAIM, supported]);
+  eq(result.reply, supported + " " + PLACEHOLDER_CLAIM); eq(payloads.length, 1);
+});
+
+Deno.test("reply depth: explicit templates and requested drafts retain fill-in facts", async () => {
+  for (const message of ["Give me a fill-in template for a recruiter email.", "Write a recruiter email for me.", "Could you draft a short message for a recruiter?"]) {
+    const draft = "Hi [Recruiter Name],\n\nMy [your skill] experience fits the role. Could we discuss it?\n\n[Your Name]";
+    const { result, payloads } = await placeholderTurn(message, [draft]);
+    eq(result.reply, draft, message); eq(result.stopped, "final"); eq(payloads.length, 1);
+  }
+});
+
+Deno.test("reply depth: exact-copy and literal-placeholder explanations remain valid", async () => {
+  for (const [message, reply] of [
+    ['Reply exactly "Your [your skill] skills are a strong match."', PLACEHOLDER_CLAIM],
+    ['What does "[your skill]" mean in a template?', '"[your skill]" is a field to replace with a skill you have actually used.'],
+  ]) {
+    const { result, payloads } = await placeholderTurn(message, [reply]); eq(result.reply, reply); eq(payloads.length, 1);
+  }
+});
+
+Deno.test("reply depth: code-owned previews remain exact even when they contain a fill-in field", async () => {
+  const tool: ToolSpec = { name: "show_fixture", description: "Show a synthetic preview", effect: "read", input_schema: { type: "object", properties: {}, required: [] },
+    run: async (_i, c) => { c.turn!.show = { intent: "SYNTHETIC_SHOW", text: PLACEHOLDER_CLAIM }; return { shown: true }; } };
+  let calls = 0;
+  const result = await runAgentTurn({ system: "s", history: [], message: MATCH_QUESTION, tools: [tool], ctx: { userId: "SYNTHETIC-OWNER", threadId: "SYNTHETIC-THREAD", now: 0, state: {} },
+    model: async () => calls++ === 0 ? { content: [{ type: "tool_use", id: "SYNTHETIC-SHOW", name: tool.name, input: {} }], stop_reason: "tool_use" } : text("Shown.") });
+  eq(result.reply, PLACEHOLDER_CLAIM); eq(calls, 2); eq(result.show?.text, PLACEHOLDER_CLAIM);
+});

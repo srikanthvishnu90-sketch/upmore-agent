@@ -191,7 +191,7 @@ Deno.test("WO-054/8 wiring: prepare reads in hidden tabs, never fills or clicks 
   for (const bad of ["D.fill(", ".click(", "refresh(", "type: \"card\"", "type: \"questions\"", "type: \"begin\""]) assert(!body.includes(bad), `survey() must not ${bad}`);
   assert(/C\.planForm\(/.test(body) && /fnPostingLocation\(\)/.test(body), "survey reads the form and the posting's location");
   assert(/active: false/.test(BACKGROUND), "postings are read in background tabs");
-  assert(/PREPARE_MAX = (\d+)/.test(BACKGROUND) && Number(/PREPARE_MAX = (\d+)/.exec(BACKGROUND)![1]) <= 20, "a cap of at most 20");
+  assert(/PREPARE_MAX = (\d+)/.test(BACKGROUND) && Number(/PREPARE_MAX = (\d+)/.exec(BACKGROUND)![1]) <= 100, "a cap of at most 100 (owner ruling 2026-10-21: 50 in one batch, one tap; docs/apply/FIFTY-IN-THIRTY.md)");
   const prep = BACKGROUND.slice(BACKGROUND.indexOf("async function prepareQueue"), BACKGROUND.indexOf("\n}\n", BACKGROUND.indexOf("async function prepareQueue")));
   assert(/workday/.test(prep), "Workday postings are left out of prepare");
   const panelOnly = /const PANEL_ONLY = new Set\(\[([^\]]+)\]/.exec(BACKGROUND)![1], tabOnly = /const TAB_ONLY = new Set\(\[([^\]]+)\]/.exec(BACKGROUND)![1];

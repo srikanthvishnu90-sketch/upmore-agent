@@ -980,3 +980,11 @@ of private content.
   kept. Fix (code): track_application takes the day or time of the next step as the person said it, checked against
   their own message (D-007), keeps it on the row (next_when) and returns it; the situation shows it on the tracked
   task. Then "when is it?" is answered from their record, and the loop has nothing left to retry.
+
+### H034 round (run 39604511712, side commit on the kept stack, 5 passes): H034 4/5, clean-30 up
+- Both CI judges 34/33/36/34/32 of 38 (gpt-5-mini 34/33/36/34/33, gpt-4.1-mini 36/36/37/36/37); clean 30:
+  26/25/28/26/25 (mean 26.0) vs the parity-harness reference's 24.4. Cost $0.5968. H034 passes both CI judges 4/5
+  (reference 2/5); some passing replies still search before asking which route.
+- Second judge's call: the last round of the night is the final stacked build (kept stack + H034 + the H004 code fix
+  8a6a983e). If it comes in below stacked build 2 (85.8/86.0) or H004 misbehaves, the H004 fix is dropped. Stay under
+  $15. Add SITUATION to the leak guard now, no measurement.

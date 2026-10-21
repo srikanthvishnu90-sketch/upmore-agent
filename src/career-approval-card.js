@@ -148,7 +148,7 @@
             node('h5', answer.label + ' [' + answer.name + ']', field);
             const shown = node('pre', answer.shown, field); shown.style.whiteSpace = 'pre-wrap'; shown.style.overflowWrap = 'anywhere';
             if (answer.kind === 'file') node('p', (answer.factId === 'approved-local-resume:' + answer.file ? 'Resume' : 'File') + ' SHA-256: ' + answer.file, field);
-            if (answer.value !== answer.shown) { node('p', 'Exact value sent:', field); const value = node('pre', answer.value, field); value.style.whiteSpace = 'pre-wrap'; value.style.overflowWrap = 'anywhere'; }
+            if (answer.value !== answer.shown) { node('p', 'Prepared input value:', field); const value = node('pre', answer.value, field); value.style.whiteSpace = 'pre-wrap'; value.style.overflowWrap = 'anywhere'; }
           }
           node('p', entry.blank.length ? 'Left blank: ' + entry.blank.join('; ') : 'No listed fields are left blank.', application);
           node('p', 'Application fingerprint: ' + item.hash, application);

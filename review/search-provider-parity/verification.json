@@ -1,0 +1,37 @@
+{
+  "source_base": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+  "test_commit": "7370e795c2170f2edf538309f64d7e0f9b40f7cb",
+  "recorded_baseline": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "typecheck": "PASS"
+  },
+  "product_and_harness_files_modified": false,
+  "proposed_patch_applied": false,
+  "frozen_pair_changed": false,
+  "qa_cost_status": {
+    "qa_usd": 0,
+    "mini_recorded_usd": 2.25895,
+    "higher_status": "UNRECONCILED",
+    "cap_usd": 8,
+    "source": "Root QA owner handoff instruction"
+  },
+  "packaging_checks": {
+    "pending_gate_byte_identical_to_test_commit": true,
+    "gate_imports_are_repository_relative_and_resolve": true,
+    "new_test_or_eval_runs": false,
+    "canonical_product_and_harness_byte_identical_to_base": true,
+    "runner_shell_syntax_valid": true,
+    "recorded_raw_artifacts_retained_byte_for_byte": true,
+    "authored_files_whitespace_check": "PASS; raw recorded log retains its original formatting"
+  },
+  "artifact_sha256": {
+    "tests/architect/pending/search-provider-parity.test.ts": "45467592fd06c2558c34723df646efaa5a4885c61aecb354bd50826e2002e336",
+    "review/search-provider-parity/search-provider-parity-baseline.log": "709e1dd1902c59501e5cbcc1f0056ff873b87261cc4ecf89d0ea16888c4343b1",
+    "review/search-provider-parity/search-provider-parity-observed.json": "0d60b8aca10e059ab7b6cce6e07d11e001437e3c3cc2c2e2b0efa522a58b8a69",
+    "review/search-provider-parity/search-provider-query-parity-proposed.patch": "452f950d8945746c11d79fcb2451cea5fa013e113b14e7735635f7f827800c04",
+    "review/search-provider-parity/README.md": "5e6d7f7e45c555ec936762b2091ce049675ec242144758ea991d3168b8102b3b",
+    "review/search-provider-parity/run-tests.sh": "651152992a14e54afefedff778b5315a1cda9969364837584d3fd1d23fc0a5f5"
+  }
+}

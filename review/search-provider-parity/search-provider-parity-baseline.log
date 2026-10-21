@@ -1,0 +1,32 @@
+running 6 tests from ./tests/architect/pending/search-provider-parity.test.ts
+search provider parity: an exact empty query has equal results for query-filtered and whole-pool candidates ... FAILED (9ms)
+search provider hard constraint: an unapproved location broadening cannot return an out-of-location posting ... FAILED (33ms)
+search provider exact-match control: both providers preserve the matching job and original complete posting ... ok (817µs)
+search provider explicit-relaxation control: the person's broader query returns one result and supports full-posting follow-through ... ok (423µs)
+search provider no-match control: neither provider manufactures a posting for an absent role ... ok (288µs)
+search provider saved-floor control: explicit employer exclusion survives either provider shape ... ok (563µs)
+
+ ERRORS 
+
+search provider parity: an exact empty query has equal results for query-filtered and whole-pool candidates => ./tests/architect/pending/search-provider-parity.test.ts:43:6
+error: Error: {"cause":"provider_shape_changes_result","whole":{"ids":[],"queries":["reservoir analyst Copper Bay"]},"filtered":{"ids":["greenhouse:synthetic-parity:707"],"queries":["reservoir analyst Copper Bay","reservoir analyst Copper","reservoir analyst"]}}
+const assert = (value: unknown, why: string) => { if (!value) throw Error(why); };
+                                                                    ^
+    at assert (file:///workspace/upmore-qa-search-provider-parity-20261021/tests/architect/pending/search-provider-parity.test.ts:8:69)
+    at file:///workspace/upmore-qa-search-provider-parity-20261021/tests/architect/pending/search-provider-parity.test.ts:47:3
+
+search provider hard constraint: an unapproved location broadening cannot return an out-of-location posting => ./tests/architect/pending/search-provider-parity.test.ts:54:6
+error: Error: {"shape":"query-filtered","required_place":"Copper Bay","returned":[{"job_id":"greenhouse:synthetic-parity:707","company":"SYN-PARITY-CO","title":"Reservoir Analyst","location":"Pine Harbor","url":"https://jobs.synthetic.invalid/parity/707","first_seen_at":"2026-10-20T00:00:00Z","fit":null,"pay":"$123,456 per year","role_match":true,"link":"unchecked"}],"queries":["reservoir analyst Copper Bay","reservoir analyst Copper","reservoir analyst"],"relaxed_to":"reservoir analyst"}
+const assert = (value: unknown, why: string) => { if (!value) throw Error(why); };
+                                                                    ^
+    at assert (file:///workspace/upmore-qa-search-provider-parity-20261021/tests/architect/pending/search-provider-parity.test.ts:8:69)
+    at file:///workspace/upmore-qa-search-provider-parity-20261021/tests/architect/pending/search-provider-parity.test.ts:57:5
+
+ FAILURES 
+
+search provider parity: an exact empty query has equal results for query-filtered and whole-pool candidates => ./tests/architect/pending/search-provider-parity.test.ts:43:6
+search provider hard constraint: an unapproved location broadening cannot return an out-of-location posting => ./tests/architect/pending/search-provider-parity.test.ts:54:6
+
+FAILED | 4 passed | 2 failed (54ms)
+
+error: Test failed

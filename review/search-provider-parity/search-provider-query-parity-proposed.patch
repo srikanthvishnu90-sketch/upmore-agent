@@ -1,0 +1,8 @@
+diff --git a/evals/brain-reliability/run-comparison.ts b/evals/brain-reliability/run-comparison.ts
+--- a/evals/brain-reliability/run-comparison.ts
++++ b/evals/brain-reliability/run-comparison.ts
+@@ -223,3 +223,3 @@
+     const result = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId, threadId: currentThread, now, tz: fixture.alerts?.tz ?? "America/Chicago", alerts: alertDeps, interviews, digest, memory, events, wants: wantDeps,
+-      postings: async () => { fail("postings"); return copy(fixture.postings ?? []); }, posting: async (id) => { fail("posting"); return copy((fixture.postings ?? []).find((p: any) => p.job_id === id) ?? null); },
++      postings: async (query) => { fail("postings"); const { matchesWords, searchWords } = await import("../../supabase/functions/_shared/career_ingest.ts"); return copy((fixture.postings ?? []).filter((p: any) => matchesWords(p, searchWords(query)))); }, posting: async (id) => { fail("posting"); return copy((fixture.postings ?? []).find((p: any) => p.job_id === id) ?? null); },
+       known: { standing, alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation }, model: (payload) => model(payload, turn) });

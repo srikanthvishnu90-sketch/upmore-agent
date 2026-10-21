@@ -1,0 +1,75 @@
+{
+  "source_base": "1ec88f3cca4b21200be5c4f16ba2a948a72614b0",
+  "scope": "Independently invented deterministic development fixtures; no model/provider/network/database/corpus execution.",
+  "baseline": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "log": "search-provider-parity-baseline.log"
+  },
+  "observations": [
+    {
+      "cause": "provider_shape_changes_result",
+      "whole": {
+        "ids": [],
+        "queries": [
+          "reservoir analyst Copper Bay"
+        ]
+      },
+      "filtered": {
+        "ids": [
+          "greenhouse:synthetic-parity:707"
+        ],
+        "queries": [
+          "reservoir analyst Copper Bay",
+          "reservoir analyst Copper",
+          "reservoir analyst"
+        ]
+      }
+    },
+    {
+      "shape": "query-filtered",
+      "required_place": "Copper Bay",
+      "returned": [
+        {
+          "job_id": "greenhouse:synthetic-parity:707",
+          "company": "SYN-PARITY-CO",
+          "title": "Reservoir Analyst",
+          "location": "Pine Harbor",
+          "url": "https://jobs.synthetic.invalid/parity/707",
+          "first_seen_at": "2026-10-20T00:00:00Z",
+          "fit": null,
+          "pay": "$123,456 per year",
+          "role_match": true,
+          "link": "unchecked"
+        }
+      ],
+      "queries": [
+        "reservoir analyst Copper Bay",
+        "reservoir analyst Copper",
+        "reservoir analyst"
+      ],
+      "relaxed_to": "reservoir analyst"
+    }
+  ],
+  "smallest_contract": "Provider candidate shape must not change final job identities or relaxation disclosure; explicit hard constraints remain in force until the person relaxes them. A permitted broader query may return the available job, and its ID must resolve to original complete text, pay and URL.",
+  "passing_controls": [
+    "exact query and full posting identity/text/pay/URL",
+    "explicitly permitted broader query and full posting follow-through",
+    "absent role stays empty",
+    "saved employer exclusion remains enforced"
+  ],
+  "private_harness_proposal": {
+    "path": "/tmp/family-qa-handoffs-20261021/search-provider-query-parity-proposed.patch",
+    "applied": false,
+    "note": "Query-filter fixture candidates with the canonical all-word matcher while preserving full original rows and unchanged posting(id) lookup. Harness-only parity exposes the product fallback issue; it does not repair hard constraints. Do not alter frozen paired measurement.",
+    "read_only_apply_check": "PASS",
+    "sha256": "452f950d8945746c11d79fcb2451cea5fa013e113b14e7735635f7f827800c04"
+  },
+  "canonical_product_modified": false,
+  "frozen_pair_modified": false,
+  "test_sha256": "45467592fd06c2558c34723df646efaa5a4885c61aecb354bd50826e2002e336",
+  "source_read_boundary_note": "The first bounded read of the permitted run-comparison.ts file reached the adjacent rubric-construction line. No scenario, heldout, prompt or rubric files were opened; no corpus imports/execution occurred, and the adjacent line was not used.",
+  "gate_commit": "7370e795c2170f2edf538309f64d7e0f9b40f7cb",
+  "typecheck": "PASS: deno check --cached-only tests/architect/pending/search-provider-parity.test.ts"
+}

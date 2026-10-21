@@ -3985,8 +3985,30 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       now: o.now,
       location: o.location
     });
-    const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
-    return v !== null && labels.includes(v) ? v : null;
+    const p = r.fill.find((x) => x.name === o.field.name);
+    if (!p || !labels.includes(p.value) || o.factId && p.factId !== o.factId) return null;
+    const [key, fact] = [
+      ...Object.entries(o.answers),
+      ...Object.entries(o.saved)
+    ].find(([, a]) => a?.factId === p.factId) ?? [];
+    const shown2 = options.find((x) => x.value === p.value).label;
+    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+  }
+  var SEARCHED = /* @__PURE__ */ new Set([
+    "location",
+    "city",
+    "state",
+    "school"
+  ]);
+  var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+  function optionRule(option, fact, searched) {
+    if (searched) {
+      const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
+      return word && optN(option).includes(word) ? "listed-name" : null;
+    }
+    if (optN(option) === optN(fact)) return "option-exact";
+    const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
+    return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
   }
   function questionsForTrainee(o) {
     return questionsToStore({
@@ -4871,7 +4893,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     };
   }
   function answerOf(f, p, kind, resume) {
-    const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+    const opt = kind === "select" || kind === "choice" || kind === "listed" && f.options.length ? optionText(f, p.value) : null;
     const shown2 = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? YES2.test(p.value) ? "Yes (checked)" : NO_UNCHECKED : opt ? opt.shown : p.value;
     return {
       name: p.name,
@@ -4894,7 +4916,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (ownAnswerOnly(f.label) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
-    const rule = derivation(a.kind, a, tf);
+    const rule = derivation(f, a.kind, a, tf);
     return rule ? {
       rule,
       tf
@@ -4931,7 +4953,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       dropped
     };
   }
-  function derivation(kind, a, tf) {
+  function derivation(f, kind, a, tf) {
     const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
     const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
     if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
@@ -4940,6 +4962,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
       return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
     }
+    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+    if (kind === "listed") return n(a.value) === n(tf.value) ? SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option" : null;
     return n(a.value) === n(tf.value) ? "verbatim" : null;
   }
   var batchHash = (p) => hashApplyPayload({
@@ -5000,8 +5024,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         continue;
       }
       const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",") : a.kind === "select" ? c.detail === `value=${a.value}` : true;
-      const word = norm2(a.shown).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? norm2(a.shown);
-      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" && norm2(c.value).includes(word) : norm2(c.value) === norm2(a.shown);
+      const rule = o.approved.ledger?.find((l) => l.field_id === a.name)?.derivation_rule;
+      const searched = rule ? rule === "listed-name" : SEARCHED.has(classifyField(a.label, "input_text")) || /^(school|college|university)\b/i.test(a.label);
+      const dial = (x) => String(x ?? "").replace(/\s\+\d{1,4}$/, "");
+      const valueOk = a.kind === "listed" ? norm2(c.value) !== "" && !!optionRule(dial(c.value), dial(a.shown), searched) : norm2(c.value) === norm2(a.shown);
       if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
         diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
       }

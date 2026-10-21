@@ -11,6 +11,7 @@ import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -101,9 +102,12 @@ export function planForm(o: {
 // among them is the planner's, exactly as for an ordinary select: the field is planned again with the employer's own
 // option texts. A phone-country list ("United States +1") is matched by its country. Nothing the planner would not choose
 // is ever picked: no answer, or one that is not on the list, leaves the widget for the person.
+// FRS: nor anything the contract would refuse on a select (WO-102): the option must derive from the fact behind it
+// (optionRule), the fact that was approved (`factId`), never one the planner reached by meaning ("Yes" put on "I am
+// authorized to work ... for any employer"). Such a widget is left for the person, and asked.
 export function chooseWidgetOption(o: {
   userId: string; jobId: string; company: string; family: Family; field: FormField; labels: string[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[]; location?: string;
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[]; location?: string; factId?: string;
 }): string | null {
   const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
   if (!labels.length) return null;
@@ -112,8 +116,26 @@ export function chooseWidgetOption(o: {
   // The rest of the form rides along without options, for the rules that read a field beside its neighbours.
   const rest = (o.form ?? []).filter((f) => f.name !== o.field.name).map((f) => ({ ...f, options: [] }));
   const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }, ...rest], answers: o.answers, saved: o.saved, now: o.now, location: o.location });
-  const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
-  return v !== null && labels.includes(v) ? v : null;
+  const p = r.fill.find((x) => x.name === o.field.name);
+  if (!p || !labels.includes(p.value) || (o.factId && p.factId !== o.factId)) return null;
+  const [key, fact] = [...Object.entries(o.answers), ...Object.entries(o.saved)].find(([, a]) => a?.factId === p.factId) ?? [];
+  const shown = options.find((x) => x.value === p.value)!.label;
+  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+}
+// A place or a school is searched by its name, not picked from a fixed list: the employer's entry must name the fact (its
+// first word: "Chicago, Illinois, United States" for "Chicago, IL"). Any other widget is a select whose list opens late.
+const SEARCHED = new Set(["location", "city", "state", "school"]);
+const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+// How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
+function optionRule(option: string, fact: string, searched: boolean): string | null {
+  if (searched) {
+    // A US state code is named by the state ("IL": "Illinois, United States").
+    const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
+    return word && optN(option).includes(word) ? "listed-name" : null;
+  }
+  if (optN(option) === optN(fact)) return "option-exact";
+  const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
+  return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
 }
 
 // The rows career_apply_questions_put_own stores, keyed by how far each answer may travel (answerKey).
@@ -804,7 +826,7 @@ export function batchPlan(o: {
     manifest_hash: m ? m.hash : null, quarantine_version: m ? m.version : null } };
 }
 function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { filename: string; sha256: string } | null): BatchAnswer {
-  const opt = kind === "select" || kind === "choice" ? optionText(f, p.value) : null;
+  const opt = kind === "select" || kind === "choice" || (kind === "listed" && f.options.length) ? optionText(f, p.value) : null;
   const shown = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
   return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
 }
@@ -813,7 +835,7 @@ function judge(f: FormField, a: BatchAnswer, m: Manifest): { rule: string; tf: T
   if (a.kind === "file" && isCoverLetterFile(f)) return { problem: "it asks for a cover letter, and Trainee never attaches your resume as one" };
   if (!tf) return { problem: "its answer is not from a fact you gave" };
   if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = derivation(a.kind, a, tf);
+  const rule = derivation(f, a.kind, a, tf);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
 }
 // WO-102, in every path before anything is filled: the planner's answers that the contract allows, and the questions it
@@ -840,7 +862,9 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
 }
 // Batch 1's rules from a fact to an answer: the same words; the employer's option that is those words; a yes or no put
 // on the employer's yes or no option or box; the resume he picked. Anything else changes meaning and is asked.
-function derivation(kind: BatchKind, a: BatchAnswer, tf: TrustedFact): string | null {
+// A widget (`listed`) is a select: by its option when its list is known; else the fact's own words now, and the option it
+// opens on is held to the same rules when clicked (chooseWidgetOption) and at the send (batchMatch).
+function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFact): string | null {
   const n = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
   const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
   if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
@@ -849,6 +873,8 @@ function derivation(kind: BatchKind, a: BatchAnswer, tf: TrustedFact): string | 
     if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
     return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
   }
+  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+  if (kind === "listed") return n(a.value) === n(tf.value) ? (SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option") : null;
   return n(a.value) === n(tf.value) ? "verbatim" : null;
 }
 // What the batch approval is bound to: the same canonical SHA-256 as the one-tap approval (hashApplyPayload).
@@ -899,9 +925,12 @@ export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: Sn
       : a.kind === "select" ? c.detail === `value=${a.value}` : true;
     // A listed field's page text is the employer's own entry Trainee picked for the approved answer (the planner's answer
     // itself is checked above against the approval); any other field's must be the approved text.
-    // WO-102: the employer's entry must still name what he said (its first word), or it is a change of meaning.
-    const word = norm(a.shown).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? norm(a.shown);
-    const valueOk = a.kind === "listed" ? norm(c.value) !== "" && norm(c.value).includes(word) : norm(c.value) === norm(a.shown);
+    // WO-102 (FRS): the option the widget holds must derive from the approved answer by the rule approved with it: a place
+    // or school search's entry names it (its first word); any other widget's option is it, or its yes or no.
+    const rule = o.approved.ledger?.find((l) => l.field_id === a.name)?.derivation_rule;
+    const searched = rule ? rule === "listed-name" : SEARCHED.has(classifyField(a.label, "input_text")) || /^(school|college|university)\b/i.test(a.label);
+    const dial = (x: string) => String(x ?? "").replace(/\s\+\d{1,4}$/, "");
+    const valueOk = a.kind === "listed" ? norm(c.value) !== "" && !!optionRule(dial(c.value), dial(a.shown), searched) : norm(c.value) === norm(a.shown);
     if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
       diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
     }

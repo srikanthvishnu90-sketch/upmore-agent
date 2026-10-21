@@ -280,9 +280,19 @@
         // them, with the whole form beside it (an education end date is one only beside its school).
         const s = form.schema.find((x) => x.name === p.name);
         const listed = b.widget || D.isPlaceSearch(D.element(b.selector));
-        const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }) : undefined;
+        // FRS: only an option that derives from the approved fact is clicked (chooseWidgetOption); a list on which none does
+        // leaves a required widget to the person, asked like any question the contract turns back.
+        let refused = null;
+        const choose = listed && s ? (labels) => {
+          const v = C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where, factId: p.factId });
+          refused = v === null ? labels : null;
+          return v;
+        } : undefined;
         const t0 = Date.now();
         const ok = await D.fill(b, p.value, resume, choose);
+        if (!ok && refused && s.required && !plan.needs.some((n) => n.label === s.label)) {
+          plan.needs.push({ label: s.label, type: String(s.type || "input_text"), options: refused.length <= 60 ? refused : [] });
+        }
         await sleep(20);
         // WO-042: the fields that take time (over 300 ms), named, for the benchmark's slowest-step list.
         if (Date.now() - t0 > 300) (timing.slow ??= {})[p.name] = Date.now() - t0;

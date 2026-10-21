@@ -53,10 +53,14 @@ Deno.test("WO-042/3 Greenhouse's education end date is the stated graduation dat
   // Not an education block: an end date with no school beside it is a job's, never the graduation date.
   assertEquals(filled("Anduril", [field("end-year--0", "End date year")], a)["end-year--0"], undefined);
   assertEquals(filled("Anduril", [field("school--1", "School"), field("end-year--1", "End date year")], a)["end-year--1"], undefined);
-  // On a widget the month is chosen among the employer's own options, with the whole form beside it.
+  // Among the employer's own options the planner reads the month, with the whole form beside it.
+  const months = ["January", "February", "March", "April", "May", "June"];
+  assertEquals(filled("Anduril", [edu[0], field("end-month--0", "End date month", months, "multi_value_single_select"), edu[2]], a)["end-month--0"], "May");
+  // FRS (frs-gh-widget): a widget clicks only an option the WO-102 contract would approve on a select. "May" is read out
+  // of "05/2022", not the person's words, so the contract asks it on every path, and the widget no longer clicks it.
   const month = chooseWidgetOption({ userId: "u", jobId: "j", company: "Anduril", family: "greenhouse", field: edu[1],
-    labels: ["January", "February", "March", "April", "May", "June"], answers: a, saved: {}, now: Date.now(), form: edu });
-  assertEquals(month, "May");
+    labels: months, answers: a, saved: {}, now: Date.now(), form: edu });
+  assertEquals(month, null);
   const alone = chooseWidgetOption({ userId: "u", jobId: "j", company: "Anduril", family: "greenhouse", field: edu[1],
     labels: ["January", "May"], answers: a, saved: {}, now: Date.now() });
   assertEquals(alone, null, "without the form, no school beside it: not filled");

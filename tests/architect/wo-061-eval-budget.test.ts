@@ -51,4 +51,5 @@ Deno.test("WO-061/5 the workflow passes the cap, never reads a stopped run as a 
   if (!/for p in 1 2 3/.test(wf)) throw new Error("one pass alone decides whether a fix helped (the same build scored 27 and 33 of 38)");
   if (!/Instinct/.test(wf) || !/both-pass/.test(wf)) throw new Error("one judge alone decides (Instinct is the second judge, both must pass)");
   if (!/score-log\.ts/.test(wf)) throw new Error("the run is not logged");
+  if (!/EVAL_JUDGE_MODEL_2: gpt-4\.1-mini/.test(wf)) throw new Error("gpt-4.1-mini does not judge every run (owner, 2026-10-21: a judge that runs only sometimes makes runs incomparable)");
 });

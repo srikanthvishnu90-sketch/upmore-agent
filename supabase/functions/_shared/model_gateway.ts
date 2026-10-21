@@ -65,8 +65,13 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
     if (parts.length) messages.push({ role: "user", content: parts.every(p => p.type === "text") ? parts.map(p => p.text).join("") : parts });
   }
   // A reasoning model spends part of max_completion_tokens thinking; the headroom keeps a forced tool call from being cut off.
-  const body: any = { model: cfg.model, messages, max_completion_tokens: (payload.max_tokens || 1024) + (cfg.reasoningEffort ? REASONING_HEADROOM : 0) };
-  if (cfg.reasoningEffort) body.reasoning_effort = cfg.reasoningEffort;
+  // WO-061: decided by the model this request names, never by the config it was copied from. Callers write
+  // { ...modelConfig(env), model: X }, so the effort chosen for the default model rode along to X: gpt-4.1-mini got
+  // reasoning_effort and answered HTTP 400 on every call (run 39541224991), and a gpt-5 model under a non-reasoning default
+  // got a temperature and no headroom.
+  const effort = reasoningModel(cfg.model) ? (cfg.reasoningEffort || "minimal") : null;
+  const body: any = { model: cfg.model, messages, max_completion_tokens: (payload.max_tokens || 1024) + (effort ? REASONING_HEADROOM : 0) };
+  if (effort) body.reasoning_effort = effort;
   else if (typeof payload.temperature === "number") body.temperature = payload.temperature;
   if (Array.isArray(payload.tools) && payload.tools.length) {
     body.tools = payload.tools.map((t: any) => ({ type: "function", function: { name: t.name, description: t.description || "", parameters: t.input_schema || { type: "object", properties: {} } } }));

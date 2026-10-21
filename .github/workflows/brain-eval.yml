@@ -1,8 +1,8 @@
 # WO-061 (owner, 2026-10-21; D-030): the chat brain's one bar is 95% or better on the held-out set (evals/career/heldout-live.json),
-# one full pass, on the build that is live. Two independent judges: gpt-5-mini here (OpenAI; no Anthropic spend) and
-# Instinct, the owner-appointed second judge, who re-scores every run into evals/career/instinct/<run>.json; an item passes
-# only when both pass it (evals/career/both-pass.ts). The line this workflow logs is gpt-5-mini's alone, provisional. The router runs beside it on the same set as the
-# comparison. Every run adds one line per brain to evals/career/SCORE-LOG.md (date/time, brain commit, set size, score)
+# one full pass, on the build that is live. Judges: gpt-5-mini and gpt-4.1-mini here (OpenAI; no Anthropic spend), an item
+# passing in CI only when both pass it, and Instinct, the owner-appointed second judge, who scores every run beside them
+# into evals/career/instinct/<run>.json (evals/career/both-pass.ts). The router runs beside the agent on the same set as
+# the comparison. Every run adds one line per pass to evals/career/SCORE-LOG.md (date/time, brain commit, set size, score)
 # and commits it with the result files to ci/brain-eval. Needs the repository secret OPENAI_API_KEY; without it the run
 # prints NOT RUN and fails: a score is never faked. Spend: the runner counts every result file's recorded spend against
 # EVAL_BUDGET_USD and stops before the item that would cross it; a stopped run is not a score.
@@ -28,6 +28,9 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
+      # Owner, 2026-10-21: "gpt-4.1-mini judges every run from now on ... A judge that runs only sometimes makes runs
+      # incomparable." In CI an item passes only when both pass it; Instinct scores every run beside them.
+      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
       # Owner, 2026-10-21 overnight: "hard cap $5 total tonight". The cap counts every recorded result file: $1.915 before
       # tonight's first fix run, + $5 = $6.915; set lower ($6.50) because three passes run in parallel and each sees only the
       # spend recorded before it started.
@@ -47,6 +50,12 @@ jobs:
         run: |
           for p in 1 2 3; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
           wait; cat "$RUNNER_TEMP"/h-agent-*.txt
+      # Re-scores of recorded runs listed in evals/career/rejudge.txt ("<label> <judge model>"), once each, judge only.
+      - name: Re-score recorded runs (judge only)
+        if: always()
+        run: |
+          [ -f evals/career/rejudge.txt ] || exit 0
+          while read -r l m; do [ -n "$l" ] && deno run -A evals/career/rejudge.ts "$l" "$m"; done < evals/career/rejudge.txt
       - name: Held-out set, router (the comparison)
         if: always()
         run: deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
@@ -60,7 +69,7 @@ jobs:
             const ok = ps.filter((a) => !bad(a));
             if (!ok.length) { console.log("WO-061: NOT A SCORE (no pass finished cleanly: spend cap or judge errors)"); Deno.exit(0); }
             const best = Math.max(...ok.map((a) => a.pass_rate));
-            console.log(`WO-061: held-out agent passes ${ps.map((a) => bad(a) ? "void" : a.passed).join(", ")} of ${ok[0].total} on gpt-5-mini alone, brain ${ok[0].source_commit}: ${best >= 0.95 ? "a pass at 95% on gpt-5-mini alone; the score is both-pass with Instinct, on the live build" : "BELOW THE BAR (95%) on gpt-5-mini alone"}`);
+            console.log(`WO-061: held-out agent passes ${ps.map((a) => bad(a) ? "void" : a.passed).join(", ")} of ${ok[0].total} both-pass of gpt-5-mini and gpt-4.1-mini, brain ${ok[0].source_commit}: ${best >= 0.95 ? "a pass at 95% on the two CI judges; the score also needs Instinct, on the live build" : "BELOW THE BAR (95%) on the two CI judges"}`);
           ' | tee "$RUNNER_TEMP/verdict.txt"
       - name: Commit the results to ci/brain-eval
         if: always()

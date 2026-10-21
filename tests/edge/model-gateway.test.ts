@@ -135,3 +135,16 @@ Deno.test("cost per call: tokens times the model's price, in micro-dollars; an u
   const m = newMeter(); meterAdd(m, { ...OPENAI, model: "some-new-model" }, { input_tokens: 5, output_tokens: 5 });
   eq([m.calls, m.unpriced, m.usd_micros], [1, 1, 0]);
 });
+
+// WO-061: reasoning effort follows the model the request names, not the config it was spread from. Run 39541224991's
+// second judge, { ...modelConfig(env with gpt-5-mini), model: "gpt-4.1-mini" }, sent reasoning_effort: HTTP 400 every call.
+Deno.test("WO-061 gateway: a non-reasoning model copied from a reasoning config gets no reasoning_effort", () => {
+  const base = { provider: "openai", model: "gpt-5-mini", apiKey: "k", reasoningEffort: "minimal" } as any;
+  const b41 = toOpenAI({ messages: [{ role: "user", content: "hi" }], max_tokens: 100, temperature: 0 }, { ...base, model: "gpt-4.1-mini" });
+  if ("reasoning_effort" in b41) throw new Error("gpt-4.1-mini got reasoning_effort");
+  if (b41.max_completion_tokens !== 100) throw new Error(`gpt-4.1-mini got reasoning headroom: ${b41.max_completion_tokens}`);
+  const b5 = toOpenAI({ messages: [{ role: "user", content: "hi" }], max_tokens: 100, temperature: 0 }, { ...base, model: "gpt-5-mini", reasoningEffort: null });
+  if (b5.reasoning_effort !== "minimal" || "temperature" in b5) throw new Error("gpt-5-mini under a non-reasoning config got no effort or a temperature");
+  const same = toOpenAI({ messages: [{ role: "user", content: "hi" }], max_tokens: 100 }, base);
+  if (same.reasoning_effort !== "minimal" || same.max_completion_tokens !== 100 + 512) throw new Error("the gpt-5-mini request changed");
+});

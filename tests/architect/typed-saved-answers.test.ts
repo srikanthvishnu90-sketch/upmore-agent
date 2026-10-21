@@ -72,6 +72,7 @@ Deno.test('typed answers: complete personal dates use the native input ISO repre
   eq(plan(f,value).ready[0]?.fields[0]?.value,'2028-02-29','native date input receives an equivalent fully stated date');
  }
  eq(plan(f,'02/2028').ready.length,0,'a month cannot gain a day');
+ eq(plan(field('date','Graduation date (YYYY)'),'2028').ready.length,0,'a native full-date input cannot receive a partial or null payload');
 });
 
 Deno.test('typed answers: explicit year-first separators validate while native month has its required representation',()=>{

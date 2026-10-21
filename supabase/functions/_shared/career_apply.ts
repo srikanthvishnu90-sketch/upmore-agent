@@ -795,7 +795,8 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         // own list, by the row the reader tied it to; with no row it is left (asked when required). Never a fact about the
         // person as a whole (their city, phone, email, name, current employer), never an answer saved under its wording.
         const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-        if (s && fitsField(f, s.value)) { filled.push({ name: f.name, label: f.label, value: canonicalTypedValue(f, s.value)!, factId: s.factId }); continue; }
+        const shaped = s && fitsField(f, s.value) ? canonicalTypedValue(f, s.value) : null;
+        if (s && shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;
         const k = normLabel(f.label);
@@ -837,7 +838,8 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
       }
       if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
-      if (value !== null && value !== "" && fitsField(f, value, a === own)) { filled.push({ name: f.name, label: f.label, value: canonicalTypedValue(f, value)!, factId: a!.factId }); continue; }
+      const shaped = value !== null && value !== "" && fitsField(f, value, a === own) ? canonicalTypedValue(f, value) : null;
+      if (shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;
       const k = normLabel(f.label);

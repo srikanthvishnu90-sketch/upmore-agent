@@ -16,6 +16,21 @@ const clean = (v: unknown) => typeof v === 'string' ? v.trim().replace(/[.!]+$/,
 const US = /^(?:the )?(?:US|U\.S\.?|USA|United States(?: of America)?)$/i;
 const countryValue = (s: string) => /^[A-Za-z][A-Za-z .'-]{1,79}$/.test(s) && !/\b(?:not|unknown|maybe|perhaps|or|unsure)\b/i.test(s) ? s : null;
 const phoneValue = (s: string) => /^\+?[\d ()-]+$/.test(s) && s.replace(/\D/g, '').length >= 7 && s.replace(/\D/g, '').length <= 15 ? s : null;
+// Domain records preserve both spellings. Projection must carry every dependency to the canonical allowlist;
+// a malformed spelling cannot disappear or be masked by an otherwise valid alias.
+function derivationIds(f: any): string[] | undefined | null {
+  const ids = new Set<string>(); let present = false;
+  for (const key of ['derived_from', 'derivedFrom']) {
+    if (!Object.hasOwn(f, key)) continue;
+    present = true;
+    if (!Array.isArray(f[key])) return null;
+    for (const id of f[key]) {
+      if (typeof id !== 'string' || !id.trim()) return null;
+      ids.add(id); // Preserve source IDs exactly; normalization cannot create a different source reference.
+    }
+  }
+  return present ? [...ids] : undefined;
+}
 function fieldOf(f: any): { key: Key; value: string } | null {
   const t = clean(f.text), name = clean(f.name || f.title);
   let m: RegExpMatchArray | null;
@@ -39,7 +54,7 @@ function fieldOf(f: any): { key: Key; value: string } | null {
 export function typedProfileFile(o: { owner: string; profile: any }): { file: TypedProfileFile; needs: FieldQuestion[] } {
   const file: TypedProfileFile = { user_id: o.owner, answers: {}, saved: {} }, needs: FieldQuestion[] = [];
   const profile = o.profile;
-  const candidates = new Map<Key, { fact: any; value: string }[]>();
+  const candidates = new Map<Key, { fact: any; value: string; derived?: string[] }[]>();
   for (const f of Array.isArray(profile?.facts) ? profile.facts : []) {
     const id = typeof f?.id === 'string' ? f.id : '';
     if (!object(f) || profile.user_id !== o.owner || (f.user_id !== undefined && f.user_id !== o.owner) || denied(profile) || denied(f) ||
@@ -49,19 +64,23 @@ export function typedProfileFile(o: { owner: string; profile: any }): { file: Ty
     if (typeof f.provenance !== 'string' || !f.provenance.trim() || typeof f.confirmation_event_id !== 'string' || !f.confirmation_event_id.trim()) {
       needs.push({ factId: id, reason: 'The original positive provenance and confirmation event are required; projection cannot create them.' }); continue;
     }
+    const derived = derivationIds(f);
+    if (derived === null) {
+      needs.push({ factId: id, reason: 'Malformed derivation metadata requires review before its source dependencies can be checked.' }); continue;
+    }
     const field = fieldOf(f);
     if (!field) { needs.push({ factId: id, reason: 'No unambiguous supported field value and country context were stated.' }); continue; }
     // These keys and wire types are the existing apply schema, not a second field registry.
     if (FACT_SCHEMA.facts[field.key].type !== 'text') throw new Error('typed profile field schema changed');
-    const rows = candidates.get(field.key) ?? []; rows.push({ fact: f, value: field.value }); candidates.set(field.key, rows);
+    const rows = candidates.get(field.key) ?? []; rows.push({ fact: f, value: field.value, derived }); candidates.set(field.key, rows);
   }
   for (const [key, rows] of candidates) {
     if (new Set(rows.map(r => r.value.toLowerCase())).size !== 1) {
       for (const r of rows) needs.push({ factId: r.fact.id, reason: `Conflicting ${key} values need the owner's correction.` }); continue;
     }
-    const { fact: f, value } = rows[0];
+    const { fact: f, value, derived } = rows[0];
     file.answers[key] = { value, factId: f.id, confirmed: true, user_id: o.owner, provenance: f.provenance,
-      confirmation_event_id: f.confirmation_event_id, ...(Array.isArray(f.derived_from) ? { derived_from: f.derived_from.slice() } : {}) };
+      confirmation_event_id: f.confirmation_event_id, ...(derived !== undefined ? { derived_from: derived } : {}) };
   }
   // This is a shape projection, not authority. The caller must pass this unchanged file through the existing
   // trustedManifest allowlist, including reserved/quarantined IDs, provenance, derivation and conflict checks.

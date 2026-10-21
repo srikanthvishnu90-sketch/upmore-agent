@@ -101,7 +101,7 @@ Deno.test('goal search source control: a user goal mentioning AI is content rath
 
 for (const chain of ['reserved', 'direct', 'transitive', 'missing-parent'] as const) {
   Deno.test(`goal search quarantine: ${chain} source cannot steer the actual next-search tool`, async () => {
-    const reserved = { ...old({ source: 'user' }), id: 'F-033' };
+    const reserved = { ...old({ source: 'user' }), id: 'F-033', factId: 'F-033' };
     const derived = { ...old({ source: 'user' }), id: 'SYN-DERIVED', derived_from: ['F-033'] };
     const second = { ...old({ source: 'user' }), id: 'SYN-SECOND', derived_from: ['SYN-DERIVED'] };
     const denied = chain === 'reserved' ? [reserved] : chain === 'direct' ? [reserved, derived] :
@@ -115,6 +115,15 @@ for (const chain of ['reserved', 'direct', 'transitive', 'missing-parent'] as co
     eq(JSON.stringify(persisted), before, 'source reads changed the stored bank');
   });
 }
+Deno.test('goal search quarantine control: a person\'s own chat F-033 (id, no bank factId) and its lineage still steer search', async () => {
+  // F-033 ruling (second judge, 2026-10-21): a chat profile numbers its own facts F-001 up; the bank is matched on factId.
+  for (const denied of [[{ ...old({ source: 'user' }), id: 'F-033' }], [{ ...old({ source: 'user' }), id: 'SYN-DERIVED', derived_from: ['F-033'] }, { ...old({ source: 'user' }), id: 'F-033', text: 'Data analyst' }]]) {
+    const persisted = JSON.parse(JSON.stringify({ preferences: {}, facts: [current(), ...denied] }));
+    const search = careerTools({ postings: async () => pool }).find(t => t.name === 'search_jobs')!;
+    const result: any = await search.run({}, { userId: USER, threadId: 'SYN-OWN-CHAT-ID', now: NOW, state: { profile: persisted }, turn: { message: 'Find jobs for my current goal.', added: [] } });
+    eq(result.goal, { roles: ['ux', 'designer', 'data', 'analyst'], places: ['denver', 'austin'], remote: false }, 'own chat F-033 was taken for the bank');
+  }
+});
 for (const scope of ['profile', 'preferences', 'basics'] as const) {
   Deno.test(`goal search quarantine: derived ${scope} container cannot lend authority to its children`, () => {
     const profile: any = { preferences: { roles: ['Data analyst'], locations: ['Austin'], remote: 'remote' }, basics: { location: 'Austin' }, facts: [current()] };

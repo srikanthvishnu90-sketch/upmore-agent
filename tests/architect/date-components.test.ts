@@ -11,7 +11,11 @@ Deno.test('date components: exact education-end year and month scenario survives
  eq(got['end-year--0'],'2022');eq(got['end-month--0'],'May');
  eq(filled(edu,{graduation_date:fact('2022-12')})['end-month--0'],'December');eq(filled(edu,{graduation_date:fact('May 2022')})['end-month--0'],'May');
  eq(filled([field('end-year--0','End date year')],a)['end-year--0'],undefined,'requires school field');eq(filled([field('school--1','School'),field('end-year--1','End date year')],a)['end-year--1'],undefined,'first entry only');
- const month=chooseWidgetOption({userId:'SYN-OWNER',jobId:'SYN-JOB',company:'Synthetic Employer',family:'greenhouse',field:edu[1],labels:['January','February','March','April','May','June'],answers:a,saved:{},now:0,form:edu});eq(month,'May');
+ const month=chooseWidgetOption({userId:'SYN-OWNER',jobId:'SYN-JOB',company:'Synthetic Employer',family:'greenhouse',field:edu[1],labels:['January','February','March','April','May','June'],answers:a,saved:{},now:0,form:edu});
+ // WO-102 (pin, widget fix): a widget holds only an option its fact gives by an approved rule (exact, yes/no, listed name).
+ // "May" taken from the stated date "05/2022" is none of them (the live agent start, 20261024100000, refuses it too): asked.
+ eq(month,null,'month widget from a full date is asked');
+ eq(chooseWidgetOption({userId:'SYN-OWNER',jobId:'SYN-JOB',company:'Synthetic Employer',family:'greenhouse',field:edu[1],labels:['January','May','June'],answers:{graduation_date:fact('May','SYN-GRAD'),school:fact('Example State University')},saved:{},now:0,form:edu}),'May','a stated month is picked exactly');
  const alone=chooseWidgetOption({userId:'SYN-OWNER',jobId:'SYN-JOB',company:'Synthetic Employer',family:'greenhouse',field:edu[1],labels:['January','May'],answers:a,saved:{},now:0});eq(alone,null);
 });
 Deno.test('date components: explicit component fields never weaken full native dates or add unstated precision',()=>{

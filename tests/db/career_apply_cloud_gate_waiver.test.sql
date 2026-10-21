@@ -30,6 +30,9 @@ insert into jobs values
  ('w2',pg_temp.q('00000000-0000-4000-8000-000000000c01','TEST-W2','Waiver Two','https://jobs.lever.co/waivertwo/2')),
  ('g1',pg_temp.q('00000000-0000-4000-8000-000000000c01','TEST-G1','Waiver Green','https://job-boards.greenhouse.io/waivergreen/jobs/1')),
  ('x1',pg_temp.q('00000000-0000-4000-8000-000000000c02','TEST-X1','Other Lever','https://jobs.lever.co/otherlever/1'));
+-- One transaction gives every job the same created_at, and the claim then orders by id (random): W1 is made the oldest
+-- so "the oldest of W's Lever jobs" is W1 on every run.
+update career_apply_jobs set created_at = created_at - interval '1 minute' where id = (select id from jobs where name='w1');
 
 -- No waiver: the gate as before.
 select t.ok(not career_apply_cloud_open('lever') and pg_temp.why((select id from jobs where name='w1'))='gate_closed','no waiver: a closed gate refuses');

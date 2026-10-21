@@ -9,19 +9,23 @@ const block = (facts: any[]) => personBlock({ profile: { facts }, standing: [], 
 const sources = (facts: any[], results: string[] = []) => factSources({ state: { profile: { facts } }, message: "Which skills fit?", history: [], results });
 const supported = (skill: string, s: string[]) => untracedFacts(`Your ${skill} skills are a strong match.`, s).length === 0;
 Deno.test("quarantine closure: reserved IDs and delegated provenance never enter remembered own facts", () => {
-  for (const fact of [row("F-033", "Excel"), row("F-00027", "Excel"), row("SYN-DELEGATED", "Excel", { provenance: "Owner-delegated answer-all" })]) {
+  for (const fact of [row("SYN-BANK", "Excel", { factId: "F-033" }), row("SYN-BANK-PADDED", "Excel", { factId: "F-00027" }), row("SYN-DELEGATED", "Excel", { provenance: "Owner-delegated answer-all" })]) {
     assert(!block([fact]).includes("[skill] Excel"), "reserved/delegated fact printed as own memory");
     assert(!supported("Excel", sources([fact])), "reserved/delegated fact backed a reply");
   }
 });
+Deno.test("quarantine control: a person's own chat F-033 (id, no bank factId) and its lineage stay their own", () => {
+  const facts = [row("F-033", "Excel"), row("SYN-DERIVED", "Python", { derived_from: ["F-033"] })], s = sources(facts), text = block(facts);
+  for (const skill of ["Excel", "Python"]) assert(text.includes("[skill] " + skill) && supported(skill, s), "own chat fact or its lineage taken for the bank: " + skill);
+});
 Deno.test("quarantine closure: direct and transitive derived facts cannot escape a reserved source", () => {
-  const facts = [row("SYN-SECOND", "Python", { derived_from: ["SYN-FIRST"] }), row("SYN-FIRST", "Java", { derived_from: ["F-033"] }), row("F-033", "Excel"), row("SYN-OWN", "SQL")];
+  const facts = [row("SYN-SECOND", "Python", { derived_from: ["SYN-FIRST"] }), row("SYN-FIRST", "Java", { derived_from: ["F-033"] }), row("F-033", "Excel", { factId: "F-033" }), row("SYN-OWN", "SQL")];
   const before = JSON.stringify(facts), s = sources(facts), text = block(facts);
   for (const skill of ["Python", "Java", "Excel"]) { assert(!text.includes("[skill] " + skill), "tainted derivation remained remembered: " + skill);assert(!supported(skill, s), "tainted derivation backed claim: " + skill); }
   assert(text.includes("[skill] SQL") && supported("SQL", s), "independent own SQL lost");assert(JSON.stringify(facts) === before, "read rewrote bank");
 });
 Deno.test("quarantine closure: absent reserved parent and quarantined structured tool rows still taint derivatives", () => {
-  for (const root of [{ facts: [row("SYN-FIRST", "Java", { derived_from: ["F-033"] }), row("SYN-SECOND", "Python", { derived_from: ["SYN-FIRST"] })] }, { facts: [row("F-033", "Excel"), row("SYN-SECOND", "Python", { derived_from: ["F-033"] })] }]) {
+  for (const root of [{ facts: [row("SYN-FIRST", "Java", { derived_from: ["F-033"] }), row("SYN-SECOND", "Python", { derived_from: ["SYN-FIRST"] })] }, { facts: [row("F-033", "Excel", { factId: "F-033" }), row("SYN-SECOND", "Python", { derived_from: ["F-033"] })] }]) {
     const before = JSON.stringify(root), s = sources([], [JSON.stringify(root)]);
     for (const skill of ["Excel", "Java", "Python"]) assert(!supported(skill, s), "tool laundering from quarantine: " + skill);
     assert(JSON.stringify(root) === before, "tool source changed");
@@ -41,15 +45,16 @@ Deno.test("quarantine closure control: valid own derivation draft goal content a
   assert(s.some(v => v.includes('"count":2')), "unrelated tool record lost");
 });
 Deno.test("quarantine closure: real next-turn prompt excludes direct and derived inventions and retains own draft goal", async () => {
-  const profile = { facts: [row("F-033", "Excel"), row("SYN-DERIVED", "Python", { derived_from: ["F-033"] }), row("SYN-OWN", "SQL"), row("SYN-GOAL", "SYN-OWN-GOAL", { kind: "goal", status: "draft", needs_confirmation: true })] }, before = JSON.stringify(profile);
+  const profile = { facts: [row("F-033", "Excel", { factId: "F-033" }), row("SYN-DERIVED", "Python", { derived_from: ["F-033"] }), row("SYN-OWN", "SQL"), row("SYN-GOAL", "SYN-OWN-GOAL", { kind: "goal", status: "draft", needs_confirmation: true })] }, before = JSON.stringify(profile);
   let system = "";
   await agentTurn({ message: "Which skills fit?", history: [], stores: { profile }, userId: "SYN-OWNER", threadId: "SYN-NEXT", now: 0, known: { standing: [], alerts: null, pipeline: null }, model: async p => { system = p.system;return { content: [{ type: "text", text: "Which role would you like to target?" }], stop_reason: "end_turn" }; } });
   assert(!system.includes("[skill] Excel") && !system.includes("[skill] Python"), "actual prompt inherited quarantined claim");
   assert(system.includes("[skill] SQL") && system.includes("SYN-OWN-GOAL (said, not confirmed yet)"), "actual prompt lost own fact or goal qualification");assert(JSON.stringify(profile) === before, "recall mutated bank");
 });
 Deno.test("quarantine policy: shared reserved range and provenance preserve exact canonical boundaries", () => {
-  for (const id of ["F-027", "F-033", "F-079", "F-00033"]) { assert(quarantinedFact({ id }), "profile id escaped quarantine");assert(quarantinedFact({ factId: id }), "file factId escaped quarantine"); }
-  for (const id of ["F-026", "F-080", "SYN-OWN"]) assert(!quarantinedFact({ id }), "unreserved own identifier was excluded");
+  // F-033 ruling (second judge, 2026-10-21): the range names the bank's facts by factId; a chat profile's own id is the person's.
+  for (const id of ["F-027", "F-033", "F-079", "F-00033"]) { assert(!quarantinedFact({ id }), "own chat id taken for the bank");assert(quarantinedFact({ factId: id }), "file factId escaped quarantine"); }
+  for (const id of ["F-026", "F-080", "SYN-OWN"]) assert(!quarantinedFact({ id }) && !quarantinedFact({ factId: id }), "unreserved identifier was excluded");
   assert(quarantinedFact({ provenance: "OWNER-DELEGATED" }) && quarantinedFact({ provenance: "answer-all" }), "delegation provenance escaped");
   assert(!quarantinedFact({ id: "SYN-OWN", text: "I study answer-all classifiers" }), "fact text interpreted as provenance");
 });

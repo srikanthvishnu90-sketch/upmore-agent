@@ -14,7 +14,7 @@ export interface Task {
   kind: "application" | "apply_request" | "question" | "outreach" | "mail_draft" | "interview" | "tracked";
   company: string | null; title: string | null; state: string; since: string | null;
   blocker: { what: string; who: Actor; how: string } | null;
-  evidence: { confirmation_id?: string; reason?: string; url?: string; job_id?: string; stage?: string };
+  evidence: { confirmation_id?: string; reason?: string; url?: string; job_id?: string; stage?: string; when?: string };
   source: string;
 }
 export interface Situation {
@@ -108,7 +108,7 @@ export function situationFrom(r: SituationRows, now: number): Situation {
   for (const a of r.threads.flatMap((t) => (Array.isArray(t.rows) ? t.rows : []))) {
     if (!a?.company || tracked.has(String(a.app_id)) || tasks.some((t) => t.kind === "application" && t.company && sameCompany(t.company, a.company))) continue;
     tracked.add(String(a.app_id));
-    add({ id: `track:${a.app_id}`, kind: "tracked", company: String(a.company), title: str(a.role), state: "tracked", since: a.applied_at ?? null, source: "tracker (they told Trainee)", blocker: null, evidence: { stage: String(a.stage || "Submitted") } });
+    add({ id: `track:${a.app_id}`, kind: "tracked", company: String(a.company), title: str(a.role), state: "tracked", since: a.applied_at ?? null, source: "tracker (they told Trainee)", blocker: null, evidence: { stage: String(a.stage || "Submitted"), ...(a.next_when ? { when: String(a.next_when) } : {}) } });
   }
   const prefs = r.alerts?.prefs;
   const capabilities = capabilitiesFrom({ connections: r.connections, extension_seen_at: seen, cloud: r.cloud, channel: r.channel,
@@ -197,7 +197,7 @@ const STATE_WORDS: Record<string, string> = {
 const WHO: Record<Actor, string> = { person: "them", trainee: "Trainee", extension: "the extension", employer: "the employer" };
 function taskLine(t: Task, how = true): string {
   const e = t.evidence, b = t.blocker;
-  return `- ${t.company ?? "?"}${t.title ? ` (${t.title})` : ""}: ${STATE_WORDS[t.state] ?? t.state}${e.stage ? ` (stage: ${e.stage})` : ""}${e.confirmation_id ? `; confirmation ${e.confirmation_id}` : ""}` +
+  return `- ${t.company ?? "?"}${t.title ? ` (${t.title})` : ""}: ${STATE_WORDS[t.state] ?? t.state}${e.stage ? ` (stage: ${e.stage})` : ""}${e.when ? ` (next: ${e.when}, as they said it)` : ""}${e.confirmation_id ? `; confirmation ${e.confirmation_id}` : ""}` +
     `${b ? `; blocker: ${b.what}; who acts: ${WHO[b.who]}${how ? `; how: ${b.how}` : ""}` : ""}${t.since ? ` (since ${day(t.since)})` : ""}`;
 }
 const nextLine = (n: Situation["next"][number], i: number) => `${i + 1}. [${WHO[n.who]}] ${n.what}${n.say ? ` (they text: "${n.say}")` : ""}`;

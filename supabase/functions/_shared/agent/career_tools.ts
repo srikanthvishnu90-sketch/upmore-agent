@@ -50,6 +50,14 @@ export function trackerStage(label: unknown): string | null {
   for (const [re, stage] of STAGE_MEANING) if (re.test(l) && stages.includes(stage)) return stage;
   return null;
 }
+// WO-061 (H004): a day or time for the next step, kept only when every word of it is in the person's message this turn.
+export function whenSaid(message: unknown, when: unknown): string | null {
+  const w = String(when ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+  if (!w) return null;
+  const said = ` ${String(message ?? "").toLowerCase().replace(/[^a-z0-9:]+/g, " ")} `;
+  const words = w.toLowerCase().replace(/[^a-z0-9:]+/g, " ").trim().split(" ").filter(Boolean);
+  return words.length && words.every((x) => said.includes(` ${x} `)) ? w : null;
+}
 // A resume called by a name of its own ("my fintech resume", "the PM version of my resume"), as a saved persona would be;
 // words that only describe their one resume ("my updated resume", "my resume") name nothing.
 const NOT_A_RESUME_NAME = new Set(["new", "current", "latest", "updated", "old", "original", "own", "full", "whole", "last", "same", "this", "that", "one page", "one-page", "1 page", "two page", "2 page", "tailored", "existing", "real", "actual", "master", "complete", "uploaded", "saved", "plain", "best", "final", "other", "right", "correct", "appropriate", "relevant", "most relevant", "matching", "proper", "specific", "good", "better", "strongest", "strong", "short", "long", "generic", "general", "standard", "same old", "entire", "official", "a", "an", "my", "the", "your", "their", "pdf", "word"]);
@@ -285,17 +293,23 @@ export function careerTools(deps: {
     {
       name: "track_application", effect: "write_own",
       description: "Record an application the person made, or move an existing one to a new stage when they report news (stages: Saved, Submitted, Recruiter screen, OA/assessment, Interview rounds, Final, Offer, Rejected, Withdrawn, Accepted).",
-      input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record") }, ["company", "stage"]),
+      input_schema: obj({ company: str("Employer name as the person said it"), role: str("Job title, if said"), stage: str("The stage to record"),
+        when: str("The day or time of the next step (an interview, a call) in the person's own words from THIS message, e.g. 'Tuesday 2pm'; leave out if they did not say one") }, ["company", "stage"]),
       run: async (i, c) => {
         const s = trackOf(c);
+        // WO-061 (H004, run 39603731114 p1: a day said in words had nowhere to go, and the model called this tool five
+        // times until the step limit): the day of the next step is kept on the row, only in the person's own words.
+        const when = whenSaid(c.turn?.message, i.when);
         // WO-061 (H004, run 39593068532 p2): addApplication kept any label ("Interview") and every later update refused it
         // ("unknown stage"); the label is one of the tracker's stages before either call.
         const stage = trackerStage(i.stage);
         if (!stage) throw new Error(`not recorded: "${String(i.stage ?? "")}" is not a stage; use one of: ${(CareerTrack.STAGES as string[]).join(", ")}`);
         const moved = CareerTrack.manualUpdate(s, String(i.company), stage, { now: c.now });
         const application = moved.ok ? moved.application : CareerTrack.addApplication(s, { company: String(i.company), role: i.role ? String(i.role) : "", stage }, { now: c.now });
-        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage) });
-        return { application };
+        if (application && when) application.next_when = when;
+        await record(c, "status_change", String(i.company), { role: application?.role || (i.role ? String(i.role) : null), stage: application?.stage ?? String(i.stage), ...(when ? { when } : {}) });
+        const said = i.when && !when ? { when_not_kept: "that day or time is not in their message this turn; ask them" } : {};
+        return { application, ...(when ? { when_kept: when } : {}), ...said };
       },
     },
     {

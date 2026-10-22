@@ -22,6 +22,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const repo = path.resolve(__dirname, "..");
+const source = path.resolve(process.env.CLOUD_BRIDGE_SOURCE_ROOT || repo);
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "card-cloud-worker-gate-"));
 let measured;
 before(() => {
@@ -31,10 +32,10 @@ before(() => {
     assert.ok(html.includes('name="' + name + '"'), "captured Veeva field missing: " + name);
   const driver = path.join(dir, "driver.ts");
   fs.writeFileSync(driver, `
-import { prepare } from ${JSON.stringify("file://" + repo + "/workers/career-browser/approve-first.ts")};
-import { runCloudJob } from ${JSON.stringify("file://" + repo + "/workers/career-cloud/worker.ts")};
-import { applicationApprovalHash, planApplication, trustedFacts } from ${JSON.stringify("file://" + repo + "/scripts/apply.ts")};
-import { hashApplyPayload } from ${JSON.stringify("file://" + repo + "/supabase/functions/_shared/career_apply_store.ts")};
+import { prepare } from ${JSON.stringify("file://" + source + "/workers/career-browser/approve-first.ts")};
+import { runCloudJob } from ${JSON.stringify("file://" + source + "/workers/career-cloud/worker.ts")};
+import { applicationApprovalHash, planApplication, trustedFacts } from ${JSON.stringify("file://" + source + "/scripts/apply.ts")};
+import { hashApplyPayload } from ${JSON.stringify("file://" + source + "/supabase/functions/_shared/career_apply_store.ts")};
 const OWNER="TEST-card-cloud-owner", URL="https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply", JOB="lever:veeva:9ac55b31-df46-4acb-b305-2c0b7ed56027";
 const bytes=new TextEncoder().encode("%PDF-1.4 SYNTHETIC CARD TEST"), sha=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map(n=>n.toString(16).padStart(2,"0")).join("");
 const artifact={filename:"synthetic.pdf",sha256:sha};
@@ -67,7 +68,7 @@ async function drive(kind){
   ask:async()=>{throw Error("unexpected question side effect");},
   finish:async(j,state,evidence,outcome)=>{finishCalls++;receipts.push({id:j.id,lease:j.lease_token,state,outcome,reason:evidence.reason});if(kind==="receipt-lost"&&finishCalls===1)throw Error("synthetic lost receipt response");}
  };
- await runCloudJob(job,{queue,log:()=>{},runEngine:async(args,env)=>{engineCalls.push({args,env:env??null});effects++;return{result:{state:"confirmed",reason:"synthetic effect probe only",confirmation_id:"TEST-RECEIPT-1"},evidence:{}};}});
+ await runCloudJob(job,{queue,log:()=>{},runEngine:async(args,env,controls)=>{engineCalls.push({args,env:env??null});if(controls)await controls.beforeEffect();effects++;return{result:{state:"confirmed",reason:"synthetic effect probe only",confirmation_id:"TEST-RECEIPT-1"},evidence:{}};}});
  return{kind,effects,resumeCalls,finishCalls,authorizations,engineCalls,receipts,engineHash:original.engine_approval,originalCardPayloadHash:p.hash,queuedPayloadHash:await hashApplyPayload(job.payload),queueDeclaredPayloadHash:job.payload_hash,queueApprovalHash:job.approval_hash};
 }
 const results={};for(const kind of ["clean","denied-before-start","revoked-during-resume","receipt-lost","answer","resume","destination","company","page-url"])results[kind]=await drive(kind);

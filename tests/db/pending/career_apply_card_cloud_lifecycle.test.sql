@@ -158,12 +158,13 @@ select t.ok((select state='queued' and attempts=0 from career_apply_jobs where j
 grant select on cc_short_claim to service_role;
 set role service_role;
 select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_short_claim),
- (select lease_token from cc_short_claim),(select payload_hash from cc_short_claim))$$,'expired|stale','expired_at_effect_refused');
+ (select lease_token from cc_short_claim),(select payload_hash from cc_short_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest'))$$,'expired|stale','expired_at_effect_refused');
 select t.ok((career_apply_cloud_finish((select id from cc_short_claim),(select lease_token from cc_short_claim),
  'not_submitted','{"reason":"permission_expired"}','not_sent',null)).state='not_submitted','expired_terminal_receipt_recordable');
 reset role;
 
--- Ordinary account grant is intentionally separate from TEST eligibility. Proposed columns must match reviewed migration.
+-- Ordinary account grant is separate from TEST eligibility. Columns confirmed by owner before implementation.
 delete from career_message_approval_private.test_users where user_id='00000000-0000-4000-8000-00000000cb01';
 select t.must_fail($$select pg_temp.cc_show('ordinary')$$,'enroll|eligible|disabled|TEST','ordinary_without_grant_refused');
 insert into career_message_approval_private.cloud_card_enrollments(user_id,purpose,created_at,expires_at,approval_ref)

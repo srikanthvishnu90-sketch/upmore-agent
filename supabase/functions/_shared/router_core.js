@@ -50629,11 +50629,36 @@ const CareerPortalApply = (() => {
     }
   }
 
+  // Coverage fraction (P2, 2026-10-22): every field on the form is
+  // accounted for exactly once — filled and read back, or unfilled with
+  // the rule that left it unfilled. `total` is every field the drive saw
+  // across its rounds; `filled` counts fields whose readback carries a
+  // value. A pending card certification is unfilled until the yes.
+  function fieldCoverage(session, payload, asks) {
+    const askReason = {};
+    for (const a of [...((session && session.preparationAsks) || []), ...(asks || [])]) {
+      if (a && a.field_id && !askReason[a.field_id]) askReason[a.field_id] = a.reason;
+    }
+    const pending = new Set(((session && session.pendingAttestations) || []).map((a) => a.field_id));
+    const seen = new Set();
+    let filled = 0;
+    const unfilled = [];
+    for (const f of (session && session.preparationFields) || []) {
+      if (!f || seen.has(f.field_id)) continue;
+      seen.add(f.field_id);
+      if (pending.has(f.field_id)) { unfilled.push({ field_id: f.field_id, reason: "attestation_pending_card" }); continue; }
+      if (!payloadValueMissing(payload && payload[f.field_id])) { filled += 1; continue; }
+      unfilled.push({ field_id: f.field_id, reason: askReason[f.field_id] || "not_read_back" });
+    }
+    return { filled, total: seen.size, unfilled };
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.pendingAttestations = [];
+    session.preparationAsks = [];
     session.doorstep = null;
     session.codeFilledAts = null;
     return prepareRound(session, input, false, 0, []);
@@ -51043,7 +51068,7 @@ const CareerPortalApply = (() => {
     });
     if (requiredAsks.length) {
       logStep("awaiting_user", { asks: requiredAsks.map((a) => a.field_id) });
-      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis });
+      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis, coverage: fieldCoverage(session, session.preparationPayload, asks) });
     }
 
     // §8.3 collision check (MI-108 / G3): a hand-filed application to
@@ -51099,6 +51124,7 @@ const CareerPortalApply = (() => {
     if (codeStep) return codeStep;
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+      session.preparationAsks = (session.preparationAsks || []).concat(asks);
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
     if (review.atFinalReview === false && !reviewValidationPending) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -51166,6 +51192,7 @@ const CareerPortalApply = (() => {
       if (recheckCode) return recheckCode;
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+        session.preparationAsks = (session.preparationAsks || []).concat(asks);
         return prepareRound(session, inp, true, round + 1, stepLog);
       }
       if (!recheck || recheck.atFinalReview !== true) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -51178,7 +51205,7 @@ const CareerPortalApply = (() => {
     if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => Object.assign({}, a));
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
-      resultStatus: "prepared", asks, formAnalysis,
+      resultStatus: "prepared", asks, formAnalysis, coverage: fieldCoverage(session, payload, asks),
       doorstep: Object.assign({ atFinalReview: true, payload, payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => Object.assign({}, a)) } : {}),
     });
     // step 6: submit only on the explicit approval carried in this run.
@@ -53453,7 +53480,11 @@ const CareerBatchApply = (() => {
     run.cardSha256 = cardSha(run);
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
-    event(run, "prepared", { doorstep: doorstepApps.length, status: run.status });
+    // Coverage fraction first: how many of the selected came through,
+    // and every selected application once, with its stage and code.
+    const acc = run.summary.accounting;
+    event(run, "prepared", { doorstep: doorstepApps.length, status: run.status, coverage: `${acc.through}/${acc.total}`,
+      outcomes: acc.outcomes.map((o) => ({ postingKey: o.postingKey, stage: o.stage, code: o.code })) });
     return run;
   }
 
@@ -53472,6 +53503,8 @@ const CareerBatchApply = (() => {
 
   function absorbPrepareResult(run, app, res) {
     if (!res) { stopApp(run, app, "NO_RESULT", "the portal run returned nothing"); return; }
+    // field-level coverage from 149: fields filled and read back / fields on the form
+    if (res.coverage && typeof res.coverage.total === "number") app.coverage = { filled: res.coverage.filled, total: res.coverage.total, unfilled: (res.coverage.unfilled || []).slice() };
     if (res.resultStatus === "prepared" && res.doorstep) {
       app.stage = "doorstep";
       app.payloadSha256 = res.doorstep.payloadSha256;
@@ -53668,6 +53701,67 @@ const CareerBatchApply = (() => {
   }
 
   // ---------------- J5: the report ----------------
+  // Coverage fraction + drop reasons (P2, 2026-10-22): every selected
+  // application is accounted for exactly once — through (ready for the
+  // yes, or submitted once the yes was given) or not, with its code and
+  // reason. Before the yes, "through" is the doorstep; after it, a
+  // submission. Never reduced: 0/0 when nothing was selected.
+  const PENDING_REASONS = {
+    selected: { code: "NOT_PREPARED", reason: "selected, but the drive to the final review has not run yet" },
+    doorstep: { code: "NOT_SUBMITTED", reason: "it reached the final review, but it was not in the approved set, so it was not submitted" },
+  };
+  function accountRun(run) {
+    const afterYes = !!run.approvalRef;
+    const capByKey = {};
+    for (const x of run.deferred || []) if (x && x.code === "CAP_REACHED") capByKey[x.postingKey] = x;
+    const outcomes = [];
+    let through = 0;
+    for (const key of run.selected || []) {
+      const a = (run.apps || {})[key] || { postingKey: key, stage: "missing" };
+      const o = { postingKey: key, company: a.company || null, role: a.role || null, stage: a.stage, through: false, code: null, reason: null };
+      if (a.coverage) o.fields = { filled: a.coverage.filled, total: a.coverage.total };
+      if (a.stage === "submitted" || (!afterYes && a.stage === "doorstep")) { o.through = true; through += 1; }
+      else if ((a.stage === "stopped" || a.stage === "captcha_handoff") && a.stop) { o.code = a.stop.code; o.reason = a.stop.reason; }
+      else if (a.stage === "deferred_cap") {
+        const c = capByKey[key];
+        o.code = "CAP_REACHED";
+        o.reason = `${(c && c.reason) || "the daily application cap is reached"} — queued for ${(c && c.resumeOn) || "tomorrow"}`;
+      } else if (PENDING_REASONS[a.stage]) { o.code = PENDING_REASONS[a.stage].code; o.reason = PENDING_REASONS[a.stage].reason; }
+      else { o.code = "NO_RECORD"; o.reason = "the run holds no application record for this selection"; }
+      outcomes.push(o);
+    }
+    return { total: outcomes.length, through, phase: afterYes ? "submitted" : "ready", outcomes };
+  }
+
+  // The exactly-once invariant over a summary's outcome groups: every
+  // selected key appears in exactly one of ready / submitted / stops /
+  // cap deferrals / pending, and no group names a key outside the
+  // selection. Returns the breakage; assertAccounted throws on it.
+  function checkAccounted(run, summary) {
+    const sm = summary || run.summary || summarizeRun(run);
+    const seen = new Map();
+    const note = (k) => seen.set(k, (seen.get(k) || 0) + 1);
+    for (const x of sm.ready || []) note(x.postingKey);
+    for (const x of sm.confirmations || []) note(x.postingKey);
+    for (const x of sm.stops || []) note(x.postingKey);
+    for (const x of sm.deferred || []) if (x.code !== "COUNT_DEFERRED") note(x.postingKey);
+    for (const x of sm.pending || []) note(x.postingKey);
+    const selected = new Set(run.selected || []);
+    const missing = [...selected].filter((k) => !seen.has(k));
+    const duplicated = [...seen].filter(([k, n]) => selected.has(k) && n > 1).map(([k]) => k);
+    const unknown = [...seen.keys()].filter((k) => !selected.has(k));
+    return { ok: !missing.length && !duplicated.length && !unknown.length, missing, duplicated, unknown };
+  }
+  function assertAccounted(run, summary) {
+    const r = checkAccounted(run, summary);
+    if (!r.ok) {
+      const e = new Error(`batch run ${run && run.id} does not account for every selected application exactly once — missing: [${r.missing.join(", ")}], duplicated: [${r.duplicated.join(", ")}], not selected: [${r.unknown.join(", ")}]`);
+      e.code = "ACCOUNTING_BROKEN"; e.detail = r;
+      throw e;
+    }
+    return r;
+  }
+
   function summarizeRun(run) {
     const apps = run.selected.map((k) => run.apps[k]).filter(Boolean);
     const submitted = apps.filter((a) => a.stage === "submitted");
@@ -53684,15 +53778,31 @@ const CareerBatchApply = (() => {
       eligible: run.eligible, selected: run.selected.length,
       doorstep: apps.filter((a) => a.stage === "doorstep").length,
       submitted: submitted.length,
-      confirmations: submitted.map((a) => ({ company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      confirmations: submitted.map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
       stops,
       deferred: run.deferred.slice(),
+      ready: apps.filter((a) => a.stage === "doorstep").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
+      pending: apps.filter((a) => a.stage === "selected").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, code: "NOT_PREPARED" })),
+      accounting: accountRun(run),
     };
+  }
+
+  // The first line of every batch reply: the fraction that came
+  // through, then each one that did not, named once with its code.
+  function coverageLines(run) {
+    const acc = accountRun(run);
+    const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
+    const lines = [`${acc.through}/${acc.total} applications ${verb}.`];
+    for (const o of acc.outcomes) {
+      if (o.through) continue;
+      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
+    }
+    return lines;
   }
 
   function speakSummary(run) {
     const sm = run.summary || summarizeRun(run);
-    const lines = [];
+    const lines = coverageLines(run);
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
@@ -53736,7 +53846,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

@@ -2002,11 +2002,36 @@ const CareerPortalApply = (() => {
     }
   }
 
+  // Coverage fraction (P2, 2026-10-22): every field on the form is
+  // accounted for exactly once — filled and read back, or unfilled with
+  // the rule that left it unfilled. `total` is every field the drive saw
+  // across its rounds; `filled` counts fields whose readback carries a
+  // value. A pending card certification is unfilled until the yes.
+  function fieldCoverage(session, payload, asks) {
+    const askReason = {};
+    for (const a of [...((session && session.preparationAsks) || []), ...(asks || [])]) {
+      if (a && a.field_id && !askReason[a.field_id]) askReason[a.field_id] = a.reason;
+    }
+    const pending = new Set(((session && session.pendingAttestations) || []).map((a) => a.field_id));
+    const seen = new Set();
+    let filled = 0;
+    const unfilled = [];
+    for (const f of (session && session.preparationFields) || []) {
+      if (!f || seen.has(f.field_id)) continue;
+      seen.add(f.field_id);
+      if (pending.has(f.field_id)) { unfilled.push({ field_id: f.field_id, reason: "attestation_pending_card" }); continue; }
+      if (!payloadValueMissing(payload && payload[f.field_id])) { filled += 1; continue; }
+      unfilled.push({ field_id: f.field_id, reason: askReason[f.field_id] || "not_read_back" });
+    }
+    return { filled, total: seen.size, unfilled };
+  }
+
   // ---------- §6.1 pipeline over the board seam ----------
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.pendingAttestations = [];
+    session.preparationAsks = [];
     session.doorstep = null;
     session.codeFilledAts = null;
     return prepareRound(session, input, false, 0, []);
@@ -2416,7 +2441,7 @@ const CareerPortalApply = (() => {
     });
     if (requiredAsks.length) {
       logStep("awaiting_user", { asks: requiredAsks.map((a) => a.field_id) });
-      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis });
+      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis, coverage: fieldCoverage(session, session.preparationPayload, asks) });
     }
 
     // §8.3 collision check (MI-108 / G3): a hand-filed application to
@@ -2472,6 +2497,7 @@ const CareerPortalApply = (() => {
     if (codeStep) return codeStep;
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+      session.preparationAsks = (session.preparationAsks || []).concat(asks);
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
     if (review.atFinalReview === false && !reviewValidationPending) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -2539,6 +2565,7 @@ const CareerPortalApply = (() => {
       if (recheckCode) return recheckCode;
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+        session.preparationAsks = (session.preparationAsks || []).concat(asks);
         return prepareRound(session, inp, true, round + 1, stepLog);
       }
       if (!recheck || recheck.atFinalReview !== true) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -2551,7 +2578,7 @@ const CareerPortalApply = (() => {
     if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => Object.assign({}, a));
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
-      resultStatus: "prepared", asks, formAnalysis,
+      resultStatus: "prepared", asks, formAnalysis, coverage: fieldCoverage(session, payload, asks),
       doorstep: Object.assign({ atFinalReview: true, payload, payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => Object.assign({}, a)) } : {}),
     });
     // step 6: submit only on the explicit approval carried in this run.

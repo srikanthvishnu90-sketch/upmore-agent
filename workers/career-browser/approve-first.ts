@@ -28,7 +28,8 @@ export interface EngineResult {
   evidence: any;
 }
 // env: extra environment for this one run (WO-096: the drive's queue row and lease, for reading the emailed code).
-export type RunEngine = (args: string[], env?: Record<string, string>) => Promise<EngineResult | null>;
+export interface EngineControls { beforeEffect: () => Promise<void> }
+export type RunEngine = (args: string[], env?: Record<string, string>, controls?: EngineControls) => Promise<EngineResult | null>;
 // WO-096: what the engine needs to read the code an employer emails for this approved drive through the person's own
 // session (the career-email-code function checks the row is theirs, being driven, under this lease). null: not offered.
 export type EmailCodeEnv = (job: Job) => Promise<Record<string, string> | null>;

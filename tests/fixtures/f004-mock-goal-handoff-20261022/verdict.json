@@ -1,0 +1,51 @@
+{
+  "bug": "MUSE-F-004",
+  "status": "VERIFIED_LOCAL_NOT_DEPLOYED",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "outcome": "A user can state a new career target during an unfinished mock and recall it in a fresh thread; the target is not rubric-scored.",
+  "root_cause": "Pending-mock capture classifies short narrative-led I want / I am aiming statements as answers, while the existing early goal owner recognizes only my goal is declarations. The canonical explicit form already works on the base.",
+  "fix": "An assertion-only career-target parser is shared by stored goal capture and the early goal claim. Labeled answers, requests, questions, hypotheticals and quoted speech do not enter the new frame.",
+  "new_tests": {
+    "base": {
+      "pass": 9,
+      "fail": 3,
+      "skip": 0
+    },
+    "fix": {
+      "pass": 12,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "existing_neighbors": {
+    "command": "node --test --test-reporter=tap tests/career-goal-frame.test.cjs tests/career-wave1-mock-session.test.cjs",
+    "pass": 17,
+    "fail": 0,
+    "skip": 0
+  },
+  "frozen_test_sha256": "d2bee0770ee913503e8f44d8df7bd772d32c5ff5c68f2e4cdd0fd5965f9cdb5f",
+  "base_router_sha256": "c8ada13adb274599057482b823950d4a6e9c506a975f7e0be487337e68bfb0f3",
+  "fix_router_sha256": "35041ca4535137a08b77c1caf60e8967133ea95ce50dde2c15b92b345af51bf5",
+  "files_touched": [
+    "packages/domain/142-career-router.js",
+    "tests/career-f004-mock-goal-handoff.test.cjs",
+    "tests/fixtures/f004-mock-goal-handoff-20261022/"
+  ],
+  "runtime_scope": "Local real-host/store semantics with invented synthetic profile and mock; no provider, database, browser or employer access. Shared generated router bundles intentionally not regenerated; root serializes them.",
+  "submit_approval_flags_migrations_edited": false,
+  "new_cost_usd": 0,
+  "logs": {
+    "base.tap": {
+      "sha256": "ded475cebe929a13c9756f5d834ec11b1930fb33be62ead5e0be06b9ff794ea1",
+      "bytes": 5805
+    },
+    "fix.tap": {
+      "sha256": "a9bbf1cd12c76690e341e68fb04b1b6a84cead45895487c0236fe1d4afd24250",
+      "bytes": 3217
+    },
+    "neighbors.tap": {
+      "sha256": "21e62452dfbb56a1ce61ef72108bab95884c6834aee70cd73a9c77afefcef2bd",
+      "bytes": 4432
+    }
+  }
+}

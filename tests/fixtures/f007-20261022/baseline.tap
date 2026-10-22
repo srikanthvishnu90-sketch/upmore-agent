@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: coverage: every fact kind in the bank is consumed or exempted with a reason — zero uncovered
+ok 1 - coverage: every fact kind in the bank is consumed or exempted with a reason — zero uncovered
+  ---
+  duration_ms: 1.919189
+  type: 'test'
+  ...
+# Subtest: forcing function: a confirmed fact kind nobody consumes FAILS coverage (the bank growing forces the wiring)
+ok 2 - forcing function: a confirmed fact kind nobody consumes FAILS coverage (the bank growing forces the wiring)
+  ---
+  duration_ms: 0.370516
+  type: 'test'
+  ...
+# Subtest: derivation: every bank-answered kind resolves, each answer traced to its fact ID
+ok 3 - derivation: every bank-answered kind resolves, each answer traced to its fact ID
+  ---
+  duration_ms: 1.668249
+  type: 'test'
+  ...
+# Subtest: declared-source law: every emitted answer key is declared in ANSWER_KEY_SOURCES with a fact-kind source
+ok 4 - declared-source law: every emitted answer key is declared in ANSWER_KEY_SOURCES with a fact-kind source
+  ---
+  duration_ms: 0.871671
+  type: 'test'
+  ...
+# Subtest: confirmed-only: an unconfirmed fact yields no answer (the DOB flipped unconfirmed -> the 18+ answer vanishes)
+ok 5 - confirmed-only: an unconfirmed fact yields no answer (the DOB flipped unconfirmed -> the 18+ answer vanishes)
+  ---
+  duration_ms: 0.430087
+  type: 'test'
+  ...
+# Subtest: classification: module 150 routes the new phrasings to the derived keys
+ok 6 - classification: module 150 routes the new phrasings to the derived keys
+  ---
+  duration_ms: 5.382904
+  type: 'test'
+  ...
+# Subtest: end to end: the 18+ field is FILLED from the DOB fact; an unmapped required field still stops the drive
+ok 7 - end to end: the 18+ field is FILLED from the DOB fact; an unmapped required field still stops the drive
+  ---
+  duration_ms: 5.147415
+  type: 'test'
+  ...
+# Subtest: end to end: remove the DOB fact and the SAME 18+ field stops the drive (nothing fills it)
+ok 8 - end to end: remove the DOB fact and the SAME 18+ field stops the drive (nothing fills it)
+  ---
+  duration_ms: 0.62281
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 coverage: the saved-answer kinds are consumed, not uncovered
+ok 9 - MUSE-F-007 coverage: the saved-answer kinds are consumed, not uncovered
+  ---
+  duration_ms: 0.374663
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 contract: only what trustedManifest keeps is a saved answer; no contract or another quarantine version, none
+ok 10 - MUSE-F-007 contract: only what trustedManifest keeps is a saved answer; no contract or another quarantine version, none
+  ---
+  duration_ms: 6.754375
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 end to end: a trusted saved answer fills its exact question with a ledger row; everything else is asked
+ok 11 - MUSE-F-007 end to end: a trusted saved answer fills its exact question with a ledger row; everything else is asked
+  ---
+  duration_ms: 4.719558
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007: application_text for one company never fills the same question at another
+ok 12 - MUSE-F-007: application_text for one company never fills the same question at another
+  ---
+  duration_ms: 2.202356
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 402.700701

@@ -91,8 +91,8 @@
     insist(exact(r, ['answers', 'resume_name', 'resume_sha256', 'destination', 'blank', 'employer_fields']));
     insist(text(r.resume_name) && r.resume_sha256 === p.resume_sha256 && r.destination === p.destination, 'resume_missing');
     insist(Array.isArray(r.answers) && r.answers.length === p.fields.length && Array.isArray(r.blank) && r.blank.every(text) && new Set(r.blank).size === r.blank.length);
-    insist(Array.isArray(r.employer_fields) && r.employer_fields.length === p.page_field_names.length);
-    const names = new Set(), employerNames = new Set();
+    insist(Array.isArray(r.employer_fields) && r.employer_fields.every(text) && canonical(r.employer_fields) === canonical(p.page_field_names));
+    const names = new Set();
     for (const field of p.fields) {
       insist(closed(field, ['name', 'label', 'value', 'factId'], ['provenance', 'confirmation_event_id', 'authorizes', 'source']));
       insist(text(field.name) && text(field.label) && text(field.factId) && !names.has(field.name)); names.add(field.name);
@@ -102,10 +102,6 @@
       insist(answer.label === field.label && answer.factId === field.factId && canonical(answer.value) === canonical(field.value));
       insist(typeof answer.shown === 'string' || typeof answer.shown === 'boolean');
       if (Object.hasOwn(answer, 'kind')) insist(text(answer.kind));
-    }
-    for (const field of r.employer_fields) {
-      insist(exact(field, ['name', 'value']) && text(field.name) && p.page_field_names.includes(field.name) && !employerNames.has(field.name)); employerNames.add(field.name);
-      canonical(field.value);
     }
     insist(encoder.encode(canonical(p)).length <= 131072);
   }
@@ -212,7 +208,7 @@
             }
             node('p', 'Resume: ' + r.resume_name, application); node('p', 'Resume SHA-256: ' + r.resume_sha256, application);
             node('p', r.blank.length ? 'Left blank: ' + r.blank.join('; ') : 'No listed fields are left blank.', application);
-            for (const field of r.employer_fields) { node('h5', 'Employer field: ' + field.name, application); const value = node('pre', shownValue(field.value), application); value.style.whiteSpace = 'pre-wrap'; value.style.overflowWrap = 'anywhere'; }
+            for (const name of r.employer_fields) node('p', 'Employer page sets: ' + name, application);
             node('p', 'Application fingerprint: ' + item.hash, application); continue;
           }
           const entry = item.entry;

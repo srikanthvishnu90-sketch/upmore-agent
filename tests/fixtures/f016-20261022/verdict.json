@@ -1,0 +1,79 @@
+{
+  "bug": "F-016",
+  "branch": "wo/f016-chat-resume-correction-20261022",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source": "0068bc2605fc718db48c28c09e8dc21f549bd23d",
+  "new_checks": {
+    "base": {
+      "pass": 7,
+      "fail": 9
+    },
+    "fix": {
+      "pass": 16,
+      "fail": 0
+    }
+  },
+  "neighbors": {
+    "base": {
+      "pass": 70,
+      "fail": 4
+    },
+    "fix": {
+      "pass": 70,
+      "fail": 4
+    }
+  },
+  "full_gate": "RED: same four preexisting neighbor failures on base and fix; no new neighbor failure",
+  "cause": "130 consumed only contrived conflict facts/context. Actual chat ingest writes source-tagged drafts and an ingest audit. Confirmation in 142 also reactivated superseded drafts.",
+  "fix": "Resolve one unambiguous graduation fact from the latest actual ingest, cite real fact IDs and instruction, supersede only matching education, invalidate stale materials, no-op retries, and exclude superseded facts from resume confirmation.",
+  "command": "node --experimental-vm-modules --test --test-reporter=tap tests/career-f016-chat-resume-correction.test.cjs tests/correction-authority-privacy.test.cjs tests/career-profile.test.cjs tests/career-onboarding.test.cjs tests/career-quality-onboarding.test.cjs tests/career-gauntlet-r3.test.cjs tests/career-gauntlet-r2a.test.cjs tests/career-gauntlet-r2b.test.cjs",
+  "bundles": "full and career-only canonical --check PASS",
+  "existing_tests": "byte-identical to base",
+  "test_sha256": "895048c311928c791107d4ed4637a06cf0fc9738f1b01163fd10d9ac97bcc63b",
+  "raw_logs": {
+    "base-family": {
+      "sha256": "3e9c59043ea36b74b331e5dd8ee61ce4dcf6d12ec305d8b4620eb42760894add",
+      "failed": [
+        "not ok 1 - F016 real ingest drafts can resolve graduation without a manufactured labeled-conflict fact",
+        "not ok 2 - F016 correction changes no unrelated draft, skill, or experience",
+        "not ok 3 - F016 correcting graduation invalidates dependent material instead of pretending it rebuilt",
+        "not ok 7 - F016 correction retries are no-ops with no extra audit entry or version bump",
+        "not ok 9 - F016 a different confirmed education record is not superseded",
+        "not ok 12 - F016 source and confirmation evidence name actual ingested facts, never invented files or events",
+        "not ok 13 - F016 staged pure-chat paste, correction, recall writes 2028 and leaves the other owner byte-identical",
+        "not ok 15 - F016 staged committed correction survives fresh process and receipt retry",
+        "not ok 16 - F016 staged later resume confirmation cannot reactivate superseded graduation",
+        "not ok 31 - R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply",
+        "not ok 74 - first-run evidence: every case ran 3 trials with pack verdicts and per-assertion fail kinds",
+        "not ok 75 - first-run evidence: trial verdicts are consistent across the 3 trials (deterministic staging path)",
+        "not ok 76 - first-run evidence: OB-07 registry covers every driven turn and the firstrun doc exists with per-case verdicts"
+      ]
+    },
+    "fix-family": {
+      "sha256": "72d66e86a7abb4886d52061eee37ed9eb9b92335ed9770895a5133251f90f64f",
+      "failed": [
+        "not ok 31 - R2A guard: C37's exact wording still belongs to 141 and still halts with its own reply",
+        "not ok 74 - first-run evidence: every case ran 3 trials with pack verdicts and per-assertion fail kinds",
+        "not ok 75 - first-run evidence: trial verdicts are consistent across the 3 trials (deterministic staging path)",
+        "not ok 76 - first-run evidence: OB-07 registry covers every driven turn and the firstrun doc exists with per-case verdicts"
+      ]
+    },
+    "confirmation-repro": {
+      "sha256": "afdf71915439cc2d65aa2d5d1554b7739b9630a114e41e1dbca53104a2df743f",
+      "failed": [
+        "not ok 1 - F016 staged later resume confirmation cannot reactivate superseded graduation"
+      ]
+    }
+  },
+  "not_run": [
+    "live flow",
+    "GitHub CI",
+    "paid evaluation"
+  ],
+  "limits": "No submit-path or flag edits; no deploy, live apply, migrations, merges, spend, or workflow dispatch. Legacy labeled-conflict correction compatibility preserved.",
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

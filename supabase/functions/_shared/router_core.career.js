@@ -23300,6 +23300,12 @@ const CareerPortalApply = (() => {
       logStep("session_binding_invalid", {});
       return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
     }
+    const pendingAtt = stored.attestations == null ? [] : stored.attestations;
+    if (!Array.isArray(pendingAtt) || pendingAtt.some((a) => !a || typeof a.field_id !== "string" || !a.field_id || typeof a.text !== "string" || a.value === undefined)) {
+      logStep("session_binding_invalid", { cause: "attestations" });
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep's pending certifications are malformed — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    const pendingIds = new Set(pendingAtt.map((a) => a.field_id));
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
     if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
@@ -23326,7 +23332,7 @@ const CareerPortalApply = (() => {
         logStep("session_state_mismatch", { cause: "empty_form" });
         return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
       }
-      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256" && !(pendingAtt.length && k === "attestation_text"));
       const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
       const observed = board.answers() || {};
       const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
@@ -23336,8 +23342,8 @@ const CareerPortalApply = (() => {
       }
       session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
       session.preparationPayload = {};
-      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
-      const livePayload = buildPayload(board, session);
+      for (const k of payloadIds) if (!pendingIds.has(k)) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = bindAttestations(buildPayload(board, session, overlayOf(pendingAtt)), pendingAtt);
       const liveHash = sha256(JSON.stringify(livePayload));
       if (liveHash !== stored.payloadSha256) {
         const changedFields = [], addedFields = [], removedFields = [];
@@ -23385,9 +23391,10 @@ const CareerPortalApply = (() => {
       }
       session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
       return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
-        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+        doorstep: Object.assign({ atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })) } : {}) });
     } catch (e) {
       if (e && SESSION_DEATH_CODES.has(e.code)) {
         logStep("session_not_live", { cause: e.code });
@@ -24722,9 +24729,62 @@ const CareerBatchApply = (() => {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
         url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
+        doorstep: null,
+        boardSession: null,
       };
     }
     return run.apps[key];
+  }
+
+  const SESSION_REUSE_TTL_MS = 10 * 60 * 1000;
+  const RESUME_FALLBACK_CODES = new Set(["SESSION_NOT_LIVE", "SESSION_STATE_MISMATCH", "SESSION_BINDING_INVALID"]);
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function recordBoardSession(run, app, board, res, now) {
+    if (app.stage !== "doorstep" || !res || !res.doorstep || !res.doorstep.payload) return;
+    if (!board || typeof board.workerSessionId !== "string" || !board.workerSessionId) return;
+    const nowMs = typeof now === "number" ? now : (Date.parse(now) || Date.now());
+    app.boardSession = {
+      sessionId: board.workerSessionId, atsFamily: board.atsFamily || null, host: board.host || null,
+      preparedAt: nowMs, expiresAt: nowMs + SESSION_REUSE_TTL_MS,
+    };
+    app.doorstep = {
+      payload: res.doorstep.payload, payloadSha256: res.doorstep.payloadSha256,
+      attestations: (res.doorstep.attestations || []).map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })),
+    };
+    event(run, "board_session_recorded", { postingKey: app.postingKey, expiresAt: app.boardSession.expiresAt });
+  }
+  function tryResume(run, app, d, posting, approvedSha, ctx) {
+    const Portal = ctx.Portal;
+    const b = app.boardSession;
+    if (!b || typeof b.sessionId !== "string" || !b.sessionId) return null;
+    if (typeof d.boardFor !== "function" || typeof Portal.resumeApply !== "function") return null;
+    const nowMs = typeof ctx.now === "number" ? ctx.now : Date.parse(ctx.now);
+    if (Number.isFinite(nowMs) && typeof b.expiresAt === "number" && nowMs >= b.expiresAt) return null;
+    const fallback = (code, cause) => { event(run, "session_resume_fallback", Object.assign({ postingKey: app.postingKey, code }, cause ? { cause } : {})); return null; };
+    if (!app.doorstep || app.doorstep.payloadSha256 !== approvedSha) return fallback("SESSION_BINDING_INVALID");
+    let board = null;
+    try { board = d.boardFor(posting, { resumeSessionId: b.sessionId, atsFamily: b.atsFamily || null, host: b.host || null }); }
+    catch (e) { return fallback("SESSION_NOT_LIVE", (e && e.code) || "RESUME_BOARD_REFUSED"); }
+    if (!board) return fallback("SESSION_NOT_LIVE", (d.boardFor.lastRefusal && d.boardFor.lastRefusal.code) || "RESUME_BOARD_UNAVAILABLE");
+    const discard = () => { try { if (typeof board.close === "function") board.close(); } catch (_) {   } };
+    let res = null;
+    try {
+      const session = Portal.createPortalSession({ userId: run.userId, board });
+      res = Portal.resumeApply(session, { posting, profile: ctx.profile, log: ctx.log, userId: run.userId, now: ctx.now, doorstep: app.doorstep });
+      if (res && res.resultStatus === "prepared" && res.doorstep && res.doorstep.payloadSha256 === approvedSha) {
+        event(run, "session_resumed", { postingKey: app.postingKey, via: "execute" });
+        return session;
+      }
+    } catch (e) {
+      discard();
+      if (e && SESSION_DEATH_CODES.has(e.code)) return fallback("SESSION_NOT_LIVE", e.code);
+      throw e;
+    }
+    discard();
+    if (res && res.resultStatus === "blocked" && RESUME_FALLBACK_CODES.has(res.code)) return fallback(res.code);
+    if (res && res.resultStatus === "prepared") return fallback("SESSION_BINDING_INVALID");
+    absorbPrepareResult(run, app, res);
+    return false;
   }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
@@ -24852,6 +24912,7 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      recordBoardSession(run, app, board, res, now);
     }
 
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
@@ -24984,6 +25045,12 @@ const CareerBatchApply = (() => {
       let session = rt.sessions[key];
       try {
         if (!session) {
+          const profile = rt.profiles[key] || profileFor(d, posting);
+          const resumed = tryResume(run, app, d, posting, approvedSha, { Portal, log, now, profile });
+          if (resumed === false) continue;
+          if (resumed) { session = resumed; rt.sessions[key] = session; }
+        }
+        if (!session) {
           const board = boardOrStop(run, app, d, posting);
           if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
@@ -25097,7 +25164,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

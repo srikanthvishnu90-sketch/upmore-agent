@@ -130,7 +130,7 @@ c(area, req, name, ok) as (values
   ('mark', 'apply', '20261019000001_career_postings', to_regclass('public.career_ingest_state') is not null),
   ('mark', 'full',  '20261019010000_channel_pending_approvals', to_regclass('public.channel_pending_approvals') is not null),
   ('mark', 'apply', '20261019010001_career_alerts', to_regclass('public.career_proactive_runs') is not null),
-  ('mark', 'full',  '20261019020000_channel_delivery', exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')),
+  ('mark', 'full',  '20261019020001_channel_delivery', exists (select 1 from pg_proc where proname = 'career_outbox_contacts_on')),
   ('mark', 'full',  '20261019030000_channel_inbound', exists (select 1 from pg_proc where proname = 'career_outbox_claim_key')),
   ('mark', 'full',  '20261020000000_channel_artifacts', to_regclass('public.channel_artifacts') is not null),
   ('mark', 'apply', '20261020000001_career_apply_jobs', to_regclass('public.career_apply_jobs') is not null),

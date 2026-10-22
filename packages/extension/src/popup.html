@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trainee — Assisted Apply</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Trainee — Assisted Apply</h1>
+  <div id="account-block">
+    <div id="signin-block">
+      <p class="muted">Sign in with your Trainee account to fill forms from <strong>your saved answers</strong> and send your application proofs back to Trainee.</p>
+      <input id="signin-email" type="email" placeholder="Email" autocomplete="username">
+      <input id="signin-password" type="password" placeholder="Password" autocomplete="current-password">
+      <button id="signin-btn">Sign in</button>
+      <p id="signin-status" class="muted"></p>
+    </div>
+    <div id="signedin-block" hidden>
+      <p id="account-line"></p>
+      <p id="sync-line" class="muted"></p>
+      <button id="signout-btn">Sign out</button>
+    </div>
+  </div>
+  <hr>
+  <p id="bank-line" class="muted">Checking this page…</p>
+  <p id="coverage-line" class="coverage"></p>
+  <div id="needs-block" hidden>
+    <p class="muted">These need you (highlighted on the page, never guessed):</p>
+    <ul id="needs-list"></ul>
+  </div>
+  <button id="fill-btn" disabled>Fill from my saved answers</button>
+  <p id="fill-result" class="muted"></p>
+  <div id="proof-block" hidden>
+    <hr>
+    <p id="proof-line"></p>
+    <p id="proof-report-line" class="muted"></p>
+  </div>
+  <p class="muted small">You review everything and click Submit yourself. Trainee never submits, never solves a captcha, and never checks an attestation box for you.</p>
+  <script src="config.js"></script>
+  <script src="sync-client.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

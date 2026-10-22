@@ -9,16 +9,23 @@ begin;
 reset role;
 create temp table export_doc as select :'export_doc'::jsonb as j;
 do $$ declare
-  d jsonb := (select j from export_doc); r record; e jsonb; c text; n int := 0; missing text := ''; bad text := '';
+  d jsonb := (select j from export_doc); r record; e jsonb; c text; n int := 0; missing text := ''; bad text := ''; att int2;
   listed text[] := array(select x->>'table' from jsonb_array_elements(d->'export') x);
   excluded text[] := array(select jsonb_object_keys(d->'excluded'));
   stubs text[] := array['profiles','agent_threads','simplefin_connections'];
 begin
   for r in
+    -- MUSE-F-038: has_column_privilege(role, table, 'name', priv) RAISES when the column is missing, and the planner may
+    -- evaluate WHERE predicates in any order, so an "exists (user_id) and has_column_privilege(..., 'user_id', ...)"
+    -- pair died on tables without user_id whenever the privilege test ran first. The column is now proven by the join
+    -- (it supplies a.attnum), and the privilege is asked by attnum, which never raises (missing/dropped -> null), inside
+    -- a CASE so it is only evaluated for a live column: no evaluation order can reach a missing column.
     select c2.oid, c2.relname from pg_class c2 join pg_namespace ns on ns.oid = c2.relnamespace
+      join pg_attribute a on a.attrelid = c2.oid and a.attname = 'user_id' and a.attnum > 0 and not a.attisdropped
     where ns.nspname = 'public' and c2.relkind = 'r' and c2.relname <> all(stubs)
-      and exists (select 1 from pg_attribute a where a.attrelid = c2.oid and a.attname = 'user_id')
-      and has_column_privilege('authenticated', c2.oid, 'user_id', 'select')
+      and case when a.attnum > 0 and not a.attisdropped
+               then coalesce(has_column_privilege('authenticated', c2.oid, a.attnum, 'select'), false)
+               else false end
       and (not c2.relrowsecurity or exists (select 1 from pg_policy p where p.polrelid = c2.oid and p.polcmd in ('r','*')))
   loop
     n := n + 1;
@@ -33,8 +40,12 @@ begin
     n := n + 1;
     for c in select jsonb_array_elements_text(e->'order') union all select unnest(string_to_array(coalesce(e->>'select', ''), ',')) loop
       if c = '' then continue; end if;
-      if not exists (select 1 from pg_attribute a where a.attrelid = ('public.' || (e->>'table'))::regclass and a.attname = c and not a.attisdropped)
-         or not has_column_privilege('authenticated', ('public.' || (e->>'table'))::regclass, c, 'select') then
+      -- MUSE-F-038: look the column up first (separate statement), then ask the privilege by attnum only when it exists.
+      att := null;
+      select a.attnum into att from pg_attribute a
+       where a.attrelid = ('public.' || (e->>'table'))::regclass and a.attname = c and a.attnum > 0 and not a.attisdropped;
+      if att is null
+         or not coalesce(has_column_privilege('authenticated', ('public.' || (e->>'table'))::regclass, att, 'select'), false) then
         bad := bad || ' ' || (e->>'table') || '.' || c;
       end if;
     end loop;

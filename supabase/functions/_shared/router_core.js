@@ -51256,6 +51256,18 @@ const CareerPortalApply = (() => {
       logStep("session_binding_invalid", {});
       return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
     }
+    // WO-094 (F-031 on trunk's design): a card-approval doorstep carries
+    // its PENDING certifications — the payload holds their would-send
+    // values (an overlay, never ticked on the page) and binds their text
+    // (attestation_text). The resume rebuilds the payload exactly as
+    // prepareRound did, so the stored hash is reproduced only when the
+    // live page AND the certification text are what the card showed.
+    const pendingAtt = stored.attestations == null ? [] : stored.attestations;
+    if (!Array.isArray(pendingAtt) || pendingAtt.some((a) => !a || typeof a.field_id !== "string" || !a.field_id || typeof a.text !== "string" || a.value === undefined)) {
+      logStep("session_binding_invalid", { cause: "attestations" });
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep's pending certifications are malformed — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    const pendingIds = new Set(pendingAtt.map((a) => a.field_id));
     // target rules (§6.3): the same gates prepare applies before any board use
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
@@ -51290,7 +51302,7 @@ const CareerPortalApply = (() => {
       // its live field set or its live readback must carry the
       // payload's fields. A board carrying NONE of them is a
       // different page, whatever its session id claims.
-      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256" && !(pendingAtt.length && k === "attestation_text"));
       const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
       const observed = board.answers() || {};
       const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
@@ -51304,8 +51316,10 @@ const CareerPortalApply = (() => {
       // the rebuild is the same union prepare hashed at the doorstep.
       session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
       session.preparationPayload = {};
-      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
-      const livePayload = buildPayload(board, session);
+      // a pending certification is never seeded: its value comes only
+      // from the overlay, exactly as prepareRound built it
+      for (const k of payloadIds) if (!pendingIds.has(k)) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = bindAttestations(buildPayload(board, session, overlayOf(pendingAtt)), pendingAtt);
       const liveHash = sha256(JSON.stringify(livePayload));
       if (liveHash !== stored.payloadSha256) {
         const changedFields = [], addedFields = [], removedFields = [];
@@ -51357,9 +51371,13 @@ const CareerPortalApply = (() => {
       }
       session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      // the certifications stay PENDING on the resumed doorstep:
+      // submitDoorstep ticks them only from the card's yes, bound to
+      // this payload hash and text (WO-094), exactly as on a fresh one
+      if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
       return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
-        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+        doorstep: Object.assign({ atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })) } : {}) });
     } catch (e) {
       if (e && SESSION_DEATH_CODES.has(e.code)) {
         logStep("session_not_live", { cause: e.code });
@@ -53066,6 +53084,22 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerAssi
    MI-116's rebuild-and-compare inside 149 is what makes a payload
    changed since the card stop itself (APPROVAL_PAYLOAD_MISMATCH).
 
+   SESSION REUSE (MUSE-F-031, re-implemented on trunk's WO-094 design,
+   2026-10-22): the board service holds a prepare drive's filled page
+   alive under its idle TTL — what died at the prepare/approve seam was
+   the HANDLE, so every application was driven twice. Prepare now
+   records app.boardSession (the service session id + a local expiry
+   stamp) and app.doorstep (the exact carded payload, its hash, and its
+   PENDING certifications). The execution turn first resumes THAT
+   session through 149's resumeApply, which verifies the live page
+   against the stored payload (no open, no fills) before anything
+   proceeds; submitDoorstep then ticks the certification from the
+   card's yes and re-verifies the hash at click time, unchanged. Only
+   RESUME_FALLBACK_CODES (session gone / differing / binding not
+   trustworthy) fall back to the rebuild above, each named as a
+   session_resume_fallback event — never silently. The session id is
+   session material: run record only, never in events or summaries.
+
    Pure/sync like the other domain modules: the host (or the test
    harness) injects postings, profiles, boards and the clock via deps. */
 const CareerBatchApply = (() => {
@@ -53154,9 +53188,84 @@ const CareerBatchApply = (() => {
         // MUSE-F-001: the posting's own link (its url, else its first http(s) source url), never an invented one.
         url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
+        doorstep: null, // { payload, payloadSha256, attestations } — the exact
+        // carded payload, kept so an execution-turn resume can verify the
+        // live board against it (149 resumeApply)
+        boardSession: null, // { sessionId, atsFamily, host, preparedAt,
+        // expiresAt } — the board-service session the prepare drive left
+        // live; session material, run-record only, never logged
       };
     }
     return run.apps[key];
+  }
+
+  // ---------------- session reuse (F-031) ----------------
+  // The reuse window mirrors the board service's idle session TTL
+  // (workers/career-browser/board-service.cjs, 10 minutes, refreshed by
+  // each board call). The stamp is only a local pre-check — the
+  // service's own expiry (410) is the hard gate, and 149's
+  // SESSION_NOT_LIVE is its verdict here.
+  const SESSION_REUSE_TTL_MS = 10 * 60 * 1000;
+  // 149 resume verdicts that mean "this session cannot carry the
+  // approval" — and ONLY these — discard the resumed board and fall
+  // back to a fresh drive. Any other stop (captcha, caps, a board code)
+  // is the application's result, exactly as a fresh drive would name it.
+  const RESUME_FALLBACK_CODES = new Set(["SESSION_NOT_LIVE", "SESSION_STATE_MISMATCH", "SESSION_BINDING_INVALID"]);
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function recordBoardSession(run, app, board, res, now) {
+    if (app.stage !== "doorstep" || !res || !res.doorstep || !res.doorstep.payload) return;
+    if (!board || typeof board.workerSessionId !== "string" || !board.workerSessionId) return;
+    const nowMs = typeof now === "number" ? now : (Date.parse(now) || Date.now());
+    app.boardSession = {
+      sessionId: board.workerSessionId, atsFamily: board.atsFamily || null, host: board.host || null,
+      preparedAt: nowMs, expiresAt: nowMs + SESSION_REUSE_TTL_MS,
+    };
+    app.doorstep = {
+      payload: res.doorstep.payload, payloadSha256: res.doorstep.payloadSha256,
+      attestations: (res.doorstep.attestations || []).map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })),
+    };
+    event(run, "board_session_recorded", { postingKey: app.postingKey, expiresAt: app.boardSession.expiresAt });
+  }
+  // Try to resume the prepare session for an approved application.
+  // Returns the live portal session (verified at the doorstep), or null
+  // after recording WHY it fell back; returns false when 149 named a
+  // non-fallback stop that is this application's result (already
+  // absorbed). Nothing is sent here: resumeApply only reads the page.
+  function tryResume(run, app, d, posting, approvedSha, ctx) {
+    const Portal = ctx.Portal;
+    const b = app.boardSession;
+    if (!b || typeof b.sessionId !== "string" || !b.sessionId) return null;
+    if (typeof d.boardFor !== "function" || typeof Portal.resumeApply !== "function") return null;
+    const nowMs = typeof ctx.now === "number" ? ctx.now : Date.parse(ctx.now);
+    // an expired binding is not addressed at all — the fresh drive is the path
+    if (Number.isFinite(nowMs) && typeof b.expiresAt === "number" && nowMs >= b.expiresAt) return null;
+    const fallback = (code, cause) => { event(run, "session_resume_fallback", Object.assign({ postingKey: app.postingKey, code }, cause ? { cause } : {})); return null; };
+    // the stored payload must be the one the card's yes approved — a
+    // differing hash is refused before the board is even addressed
+    if (!app.doorstep || app.doorstep.payloadSha256 !== approvedSha) return fallback("SESSION_BINDING_INVALID");
+    let board = null;
+    try { board = d.boardFor(posting, { resumeSessionId: b.sessionId, atsFamily: b.atsFamily || null, host: b.host || null }); }
+    catch (e) { return fallback("SESSION_NOT_LIVE", (e && e.code) || "RESUME_BOARD_REFUSED"); }
+    if (!board) return fallback("SESSION_NOT_LIVE", (d.boardFor.lastRefusal && d.boardFor.lastRefusal.code) || "RESUME_BOARD_UNAVAILABLE");
+    const discard = () => { try { if (typeof board.close === "function") board.close(); } catch (_) { /* best effort; the service reaps by TTL */ } };
+    let res = null;
+    try {
+      const session = Portal.createPortalSession({ userId: run.userId, board });
+      res = Portal.resumeApply(session, { posting, profile: ctx.profile, log: ctx.log, userId: run.userId, now: ctx.now, doorstep: app.doorstep });
+      if (res && res.resultStatus === "prepared" && res.doorstep && res.doorstep.payloadSha256 === approvedSha) {
+        event(run, "session_resumed", { postingKey: app.postingKey, via: "execute" });
+        return session;
+      }
+    } catch (e) {
+      discard();
+      if (e && SESSION_DEATH_CODES.has(e.code)) return fallback("SESSION_NOT_LIVE", e.code);
+      throw e;
+    }
+    discard();
+    if (res && res.resultStatus === "blocked" && RESUME_FALLBACK_CODES.has(res.code)) return fallback(res.code);
+    if (res && res.resultStatus === "prepared") return fallback("SESSION_BINDING_INVALID");
+    absorbPrepareResult(run, app, res);
+    return false;
   }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
@@ -53324,6 +53433,9 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      // F-031: a doorstep application's page is still live on its board
+      // session — leave the execution turn its handle + the exact payload.
+      recordBoardSession(run, app, board, res, now);
     }
 
     // the card (132's shape) covers doorstep-ready applications only;
@@ -53486,6 +53598,15 @@ const CareerBatchApply = (() => {
       let session = rt.sessions[key];
       try {
         if (!session) {
+          // F-031: resume the prepare session first — one drive per
+          // application. A resume that cannot carry the approval falls
+          // back below, named; a non-fallback stop is the app's result.
+          const profile = rt.profiles[key] || profileFor(d, posting);
+          const resumed = tryResume(run, app, d, posting, approvedSha, { Portal, log, now, profile });
+          if (resumed === false) continue;
+          if (resumed) { session = resumed; rt.sessions[key] = session; }
+        }
+        if (!session) {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
           // that a changed payload stops (APPROVAL_PAYLOAD_MISMATCH).
@@ -53615,7 +53736,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

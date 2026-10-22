@@ -104,16 +104,15 @@ Deno.test("WO-022/3 a yes answers the card only while the card is the thread's l
   eq(m.answers.length, 0);
 });
 
-Deno.test("WO-022/4 yes but not 2 approves exactly 1 and 3; a number not on the card and an old card approve nothing", async () => {
+Deno.test("WO-022/4 a text yes approves nothing (only the tap sends); a number not on the card and an old card approve nothing", async () => {
   const m = memoryCards();
   await turn(m.store, "show my applications");
   const bad = await turn(m.store, "yes but not 9");
   eq(bad?.status, "not_on_card");
   eq(m.answers.length, 0);
-  const ok = await turn(m.store, "yes but not 2");
-  eq(m.answers, [[1, 3]]);
-  assert(ok && /^2 approved exactly as shown\. Nothing has gone to an employer yet\./.test(ok.reply), ok?.reply);
-  assert(/2\. TEST Employer 2: not sent/.test(ok!.reply));
+  const yes = await turn(m.store, "yes but not 2");
+  eq(yes?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
+  eq(m.answers.length, 0, "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
   const old = memoryCards({ shownAt: T - 25 * 3600000 });
   await turn(old.store, "show my applications", T - 25 * 3600000);
   eq((await turn(old.store, "yes"))?.status, "expired");
@@ -142,7 +141,7 @@ Deno.test("WO-022/5 the answer's words: what was approved, what was not and why"
   );
 });
 
-Deno.test("WO-022/6 the loop: prepared on the computer, card, 'yes but not 2', queued, run, receipts", async () => {
+Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends nothing, the tap approves 1 and 3, queued, run, receipts", async () => {
   // 1. The engine's dry run on three postings (a fake engine; the real one is in tests/career-approve-first.test.cjs).
   const prepared: { id: string; payload: any; card: string[]; hash: string }[] = [];
   for (const i of [1, 2, 3]) {
@@ -208,7 +207,9 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, 'yes but not 2', q
   };
   const shown = await turn(store, "show my applications");
   for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
-  await turn(store, "yes but not 2");
+  eq((await turn(store, "yes but not 2"))?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
+  eq(queue.length, 0, "a text yes queued nothing");
+  await store.answer("TEST-USER", "C1", [1, 3]); // the person's tap on the card (career_apply_card_answer_own)
   eq(queue.map((j) => j.payload.company), ["TEST Employer 1", "TEST Employer 3"]);
   eq(queue.map((j) => j.approval), [prepared[0].hash, prepared[2].hash], "approved by the hash that was shown");
   // 3. The person's computer runs them with the engine's own approval; 4. each ends in one receipt.

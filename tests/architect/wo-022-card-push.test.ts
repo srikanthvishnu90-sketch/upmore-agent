@@ -80,7 +80,7 @@ Deno.test("WO-022/P4 the database saying no is not a push; one person's failure 
   assert(/card push failed for 1 people \(2 pushed\): push a card: card text does not carry every line/.test(err), err);
 });
 
-Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then 'yes but not 2' answers the pushed card", async () => {
+Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then a text yes approves nothing and a no declines the pushed card", async () => {
   // A store that does what career_apply_card_push_for does: open the card and make it the thread's last word.
   let card: any = null, last: string | null = "agent";
   const approved: number[][] = [];
@@ -117,6 +117,8 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then '
   eq(res.status, 200);
   eq(runs.map((r) => [r.cards, r.error]), [[1, null]]);
   const out = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store });
-  eq(approved, [[1, 3]]);
-  assert(out && /^2 approved exactly as shown/.test(out.reply), out?.reply);
+  eq(out?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
+  eq(approved, [], "a text yes approved nothing");
+  await cardTurn({ message: "no", userId: "A", threadId: "TH", now: T + 60000, store });
+  eq(approved, [[]], "a text no declines the pushed card");
 });

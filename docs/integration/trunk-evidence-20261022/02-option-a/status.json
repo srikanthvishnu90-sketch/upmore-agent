@@ -1,0 +1,12 @@
+{
+  "incoming": "9568596d",
+  "base": "b7d02be231036d542a6b20f1820046758f2b436b",
+  "fail_first": {
+    "passed": 0,
+    "total": 3,
+    "failed": 3
+  },
+  "full_suites": "NOT_RUN pending post-merge execution",
+  "manual_approval_path_edits": false,
+  "new_spend_usd": 0
+}

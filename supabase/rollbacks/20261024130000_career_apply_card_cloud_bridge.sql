@@ -284,6 +284,18 @@ begin
   return next j;
  end loop;
 end $$;
+create or replace function public.career_apply_batch_revoke_own()
+returns integer language plpgsql security definer set search_path = public, pg_temp as $$
+declare u uuid := auth.uid(); n integer;
+begin
+ if u is null then raise exception 'not signed in'; end if;
+ update public.career_apply_batch_approvals set revoked_at = clock_timestamp() where user_id = u and revoked_at is null and used_at is null;
+ get diagnostics n = row_count;
+ return n;
+end $$;
+revoke all on function public.career_apply_batch_revoke_own() from public,anon,authenticated,service_role;
+grant execute on function public.career_apply_batch_revoke_own() to authenticated;
+
 drop policy if exists career_apply_message_cards_owner_read on public.career_apply_message_cards;
 create policy career_apply_message_cards_owner_read on public.career_apply_message_cards for select to authenticated
  using ((select auth.uid()) = user_id and (select public.career_apply_message_card_test_enabled_own()));

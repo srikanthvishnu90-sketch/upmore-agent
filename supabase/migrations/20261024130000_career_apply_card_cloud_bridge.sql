@@ -46,7 +46,8 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  select * into j from public.career_apply_jobs where id=p_id for update;n:=clock_timestamp();
  if j.state is distinct from'driving' or j.source is distinct from'cloud' or j.lease_token is distinct from p_lease
-  or p_lease is null or j.payload_hash is distinct from p_hash or j.claimed_at<=n-interval'15 minutes' then raise exception 'invalid apply claim'; end if;
+  or p_lease is null or j.payload_hash is distinct from p_hash or j.claimed_at is null
+  or j.claimed_at<=n-interval'15 minutes' then raise exception 'invalid apply claim'; end if;
  if not public.career_apply_cloud_enabled() or not public.career_apply_agent_submit_enabled() then raise exception 'cloud switches off'; end if;
  reason:=career_message_approval_private.cloud_bound_refusal(j,n,true);
  if reason is not null then raise exception '%',reason; end if;
@@ -323,7 +324,7 @@ begin
    if not coalesce(career_message_approval_private.cloud_keys(f,array['name','label','value','factId','provenance','confirmation_event_id','authorizes','source']),false)
     or jsonb_typeof(f->'name') is distinct from'string' or coalesce(f->>'name','')='' or jsonb_typeof(f->'label') is distinct from'string' or coalesce(f->>'label','')=''
     or jsonb_typeof(f->'factId') is distinct from'string' or coalesce(f->>'factId','')=''
-    or coalesce(jsonb_typeof(f->'value'),'missing') not in('string','object','number','boolean')
+    or jsonb_typeof(f->'value') is null or jsonb_typeof(f->'value') not in('string','object','number','boolean')
     or (f?'authorizes' and jsonb_typeof(f->'authorizes') is distinct from'boolean')
     or not coalesce(career_message_approval_private.cloud_source_ok(f->'source'),false)
     or jsonb_typeof(f->'confirmation_event_id') is distinct from'string' or coalesce(f->>'confirmation_event_id','')=''
@@ -672,6 +673,30 @@ begin
   return next j;
  end loop;
 end $$;
+-- Existing Stop applying entrypoint: retain all unused legacy revocations, and also revoke consumed cloud
+-- approvals. A cloud approval is consumed when queued, so used_at IS NULL alone would miss every new cloud job.
+create or replace function public.career_apply_batch_revoke_own()
+returns integer language plpgsql security definer set search_path = public, pg_temp as $$
+declare u uuid := auth.uid(); n integer; cloud_count integer;
+begin
+ perform pg_advisory_xact_lock_shared(hashtextextended('career-card-cloud-bridge-maintenance-v1',0));
+ if u is null then raise exception 'not signed in'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(u::text,0));
+ update public.career_apply_batch_approvals set revoked_at = clock_timestamp() where user_id = u and revoked_at is null and used_at is null;
+ get diagnostics n = row_count;
+ update public.career_apply_batch_approvals a set revoked_at=clock_timestamp()
+  where a.user_id=u and a.revoked_at is null and a.used_at is not null and exists(
+   select 1 from career_message_approval_private.cloud_bound_approvals b where b.approval_id=a.id and b.user_id=u);
+ get diagnostics cloud_count=row_count;
+ update career_message_approval_private.cloud_bound_approvals set revoked_at=clock_timestamp() where user_id=u and revoked_at is null;
+ update public.career_apply_jobs j set state='not_submitted',reason='cloud approval revoked',
+  evidence=j.evidence||jsonb_build_object('reason','cloud approval revoked','revoked_at',clock_timestamp()),updated_at=clock_timestamp()
+  where j.user_id=u and j.state='queued' and exists(select 1 from career_message_approval_private.cloud_bound_jobs b
+   where b.job_row_id=j.id and b.user_id=u);
+ -- Driving jobs retain their lease/outcome recording path; before-effect authorization now refuses their revocation.
+ return n+cloud_count;
+end $$;
+
 -- Explicit function grants; no new private metadata endpoint or client write.
 revoke all on function public.career_apply_message_cloud_sources(uuid) from public,anon,authenticated,service_role;
 grant execute on function public.career_apply_message_cloud_sources(uuid) to service_role;
@@ -696,5 +721,7 @@ grant execute on function public.career_apply_message_cloud_enabled_own() to aut
 revoke all on function public.career_apply_cloud_refusal(public.career_apply_jobs,timestamptz),public.career_apply_cloud_claim_at(integer,timestamptz) from public,anon,authenticated,service_role;
 revoke all on function public.career_apply_message_card_read_own(uuid),public.career_apply_message_card_approve_own(uuid,text),public.career_apply_claim_own(integer,text),public.career_apply_extension_begin_own(jsonb,text),career_message_approval_private.guard_queue() from public,anon,authenticated,service_role;
 grant execute on function public.career_apply_message_card_read_own(uuid),public.career_apply_message_card_approve_own(uuid,text),public.career_apply_claim_own(integer,text),public.career_apply_extension_begin_own(jsonb,text) to authenticated;
+revoke all on function public.career_apply_batch_revoke_own() from public,anon,authenticated,service_role;
+grant execute on function public.career_apply_batch_revoke_own() to authenticated;
 
 commit;

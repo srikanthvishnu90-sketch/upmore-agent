@@ -2,8 +2,18 @@
 -- WRITTEN / NOT_RUN under the owner's no-apply instruction. All UUIDs/facts are synthetic.
 -- First two assertions exercise existing 01401cb4 APIs, not absence of a future function.
 -- Their baseline failure must be captured on an authorized disposable DB, never inferred as a runtime result.
+\if :{?card_cloud_tests_authorized}
+\else
+ \echo 'NOT_RUN: explicit disposable-DB authorization required'
+ \quit 3
+\endif
+\if :card_cloud_tests_authorized
+\else
+ \quit 3
+\endif
 begin;
 reset role;
+\ir ../../fixtures/card-cloud-db-20261021/fixture.sql
 insert into auth.users(id,email) values
  ('00000000-0000-4000-8000-00000000cb01','card-cloud-a@example.test'),
  ('00000000-0000-4000-8000-00000000cb02','card-cloud-b@example.test');
@@ -75,11 +85,11 @@ insert into career_message_approval_private.test_users(user_id) values
 reset role;
 insert into career_apply_cloud_resumes(user_id,sha256,filename,bytes,privacy_epoch)
  values('00000000-0000-4000-8000-00000000cb01',
- encode(sha256(convert_to('SYNTHETIC resume','UTF8')),'hex'),'synthetic.pdf',convert_to('SYNTHETIC resume','UTF8'),1);
+ encode(sha256(convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8')),'hex'),'synthetic.pdf',convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8'),1);
 set role service_role;
 insert into cc_state values('cloud-card',career_apply_message_cloud_card_show_as(
  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
- jsonb_build_array(pg_temp.cc_item(pg_temp.cc_payload('tap-only','Synthetic tap employer')))));
+ jsonb_build_array(pg_temp.cc_full_item('binding-negative'))));
 select t.must_fail($$select career_apply_message_cloud_card_show_as(
  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cbb2',
  jsonb_build_array(pg_temp.cc_item(pg_temp.cc_payload('foreign-thread'))))$$,'not yours',
@@ -94,30 +104,30 @@ select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
 insert into cc_state values('receipt',career_apply_message_card_approve_own(
  (select (v->>'id')::uuid from cc_state where k='cloud-card'),
  (select v->>'hash' from cc_state where k='cloud-card')));
-select t.ok((select count(*)=1 from career_apply_jobs where job_id='tap-only'),
+select t.ok((select count(*)=1 from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative'),
  'NEW REGRESSION tap_cloud_queues_exact: tap queues exactly one frozen payload');
 insert into cc_state values('replay',career_apply_message_card_approve_own(
  (select (v->>'id')::uuid from cc_state where k='cloud-card'),
  (select v->>'hash' from cc_state where k='cloud-card')));
 select t.ok((select v from cc_state where k='receipt')=(select v from cc_state where k='replay')
- and (select count(*)=1 from career_apply_jobs where job_id='tap-only'),
+ and (select count(*)=1 from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative'),
  'NEW REGRESSION replayed_cloud_tap: identical receipt, no second enqueue or renewal');
 reset role;
 select t.ok((select j.payload=it->'payload' and j.payload_hash=it->>'hash' and j.approval_hash=it->>'hash'
  and pg_temp.cc_hash(j.payload)=it->>'hash' and j.source is null and j.state='queued' and j.attempts=0
  from career_apply_jobs j,cc_state s,jsonb_array_elements(s.v->'payload'->'items')it
- where j.job_id='tap-only' and s.k='cloud-card'),
+ where j.job_id='lever:veeva:synthetic-binding-negative' and s.k='cloud-card'),
  'NEW REGRESSION canonical_card_queue_identity: no late serialization, restamping or route marker in payload');
 select t.ok((select count(*)=1 and bool_and(a.entry=j.payload and a.batch_hash=j.payload_hash and a.used_at is not null)
  from career_message_approval_private.cloud_bound_jobs b
  join career_apply_batch_approvals a on a.id=b.approval_id join career_apply_jobs j on j.id=b.job_row_id
- where j.job_id='tap-only'),'NEW REGRESSION durable_id_binding: a specific consumed approval owns this job');
+ where j.job_id='lever:veeva:synthetic-binding-negative'),'NEW REGRESSION durable_id_binding: a specific consumed approval owns this job');
 select t.ok((select count(*)=0 from career_apply_cloud_claim_at(6,clock_timestamp())),
  'CONTROL switches_off: recording consent does not execute');
 
 -- Every immutable column is tried; payload attacks recompute both hashes, so equality is not enough.
 do $$ declare j career_apply_jobs; p jsonb; col text; val text; q text; begin
- select * into j from career_apply_jobs where job_id='tap-only';
+ select * into j from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative';
  for col,val in select * from (values
  ('user_id','00000000-0000-4000-8000-00000000cb02'),('job_id','different-posting'),
  ('url','https://jobs.lever.co/other/changed/apply'),('company','Changed company'),
@@ -141,12 +151,12 @@ end $$;
 -- The immutable origin survives deletion of the visible card/message/thread. Permission is not renewed by it.
 delete from agent_threads where id='00000000-0000-4000-8000-00000000cba1';
 select t.ok((select count(*)=1 from career_message_approval_private.cloud_bound_jobs b
- join career_apply_jobs j on j.id=b.job_row_id where j.job_id='tap-only'),
+ join career_apply_jobs j on j.id=b.job_row_id where j.job_id='lever:veeva:synthetic-binding-negative'),
  'NEW REGRESSION deleted_thread_preserves_origin: deleting review UI cannot erase the binding');
 update career_cloud_settings set value='on' where key in ('CAREER_CLOUD_APPLY','CAREER_AGENT_SUBMIT');
 create temp table cc_claimed as select * from career_apply_cloud_claim_at(6,clock_timestamp());
 grant select on cc_claimed to service_role;
-select t.ok((select count(*)=1 and bool_and(job_id='tap-only' and source='cloud' and attempts=1) from cc_claimed),
+select t.ok((select count(*)=1 and bool_and(job_id='lever:veeva:synthetic-binding-negative' and source='cloud' and attempts=1) from cc_claimed),
  'NEW REGRESSION only_tap_claimed: text/direct remain queued even when both switches are on');
 select t.ok(career_apply_cloud_waiver_left('00000000-0000-4000-8000-00000000cb01','lever',clock_timestamp())=4,
  'CONTROL waiver_accounting: exactly one claim consumes exactly one send');

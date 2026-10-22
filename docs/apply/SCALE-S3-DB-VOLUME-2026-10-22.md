@@ -67,7 +67,8 @@ verbatim notices:
 ages the rows instead of the clock.)
 
 Contention: the dedicated claim-only leg was folded into the volume runs —
-8 workers racing one queue over 1,000 + 3,213 claims produced **zero
+workers racing one queue over 5,213 claims (1,000 @4 workers, 1,000 and
+3,213 @8 workers) produced **zero
 double-claims, zero deadlocks, zero worker errors** (the claim's per-user
 advisory locks in user-id order + `for update skip locked` do their job).
 

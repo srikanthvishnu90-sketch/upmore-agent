@@ -22,6 +22,8 @@ jobs:
           # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
           # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
           npm ci --prefix tools --no-audit --no-fund
+          # jsdom for tests/career-extension-sync.test.cjs (the live extension-sync function's client), pinned by its own lockfile.
+          npm ci --prefix packages/extension/tools --no-audit --no-fund
           # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
           # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
           (cd tools && npx --no-install playwright install chromium)

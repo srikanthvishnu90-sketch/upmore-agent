@@ -9,6 +9,7 @@
 // Synthetic values; no network, no model, no browser.
 import { contractFill, planForm, trustedManifest } from "../../extension/src/apply_core.ts";
 import { runCloudJob } from "../../workers/career-cloud/worker.ts";
+import { authorizer, cardBound } from "../helpers/cloud_card_auth.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -81,10 +82,10 @@ async function cloudRun(questions: unknown[], ask?: (q: Record<string, unknown>[
   const bytes = new TextEncoder().encode("%PDF-1.4 TEST");
   const sha = await sha256Hex(bytes);
   const calls: string[] = [], asked: Record<string, unknown>[][] = [], finished: any[] = [];
-  const job = { id: "job-1", lease_token: "lease-1", user_id: OWNER, company: "Test Co", url: "https://jobs.lever.co/test-co/ask-1111",
-    payload: { posting: JOB, engine_approval: "c".repeat(64), resume_sha256: sha, fields: [] } };
+  const job = await cardBound({ id: "job-1", lease_token: "lease-1", user_id: OWNER, company: "Test Co", url: "https://jobs.lever.co/test-co/ask-1111",
+    payload: { posting: JOB, user_id: OWNER, company: "Test Co", url: "https://jobs.lever.co/test-co/ask-1111", engine_approval: "c".repeat(64), resume_sha256: sha, fields: [] } });
   const queue: any = {
-    claim: async () => [], gatePresent: async () => true,
+    claim: async () => [], gatePresent: async () => true, authorize: authorizer().authorize,
     resume: async () => ({ filename: "resume.pdf", sha256: sha, b64: btoa(String.fromCharCode(...bytes)) }),
     finish: async (_j: unknown, state: string, evidence: unknown) => { calls.push("finish"); finished.push({ state, evidence }); },
     ...(ask ? { ask: async (_j: unknown, q: Record<string, unknown>[]) => { calls.push("ask"); asked.push(q); return ask(q); } } : {}),

@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import * as Engine from "../../scripts/apply.ts";
 import * as Own from "../../workers/career-browser/approve-first.ts";
 import { type CloudJob, runCloudJob } from "../../workers/career-cloud/worker.ts";
+import { authorizer, cardBound, effectAware } from "../helpers/cloud_card_auth.ts";
 import { type Manifest, QUARANTINE_VERSION } from "../../extension/src/apply_core.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 
@@ -261,13 +262,13 @@ function contractEngine(seen: string[]) {
   };
 }
 async function cloud(payload: any) {
-  const job: CloudJob = { id: "c1", lease_token: "l1", user_id: OWNER, company: "test-co", url: payload.url, payload };
+  const job: CloudJob = await cardBound({ id: "c1", lease_token: "l1", user_id: OWNER, company: "test-co", url: payload.url, payload });
   const finished: any[] = [], seen: string[] = [];
   await runCloudJob(job, {
     queue: { claim: async () => [], resume: async () => ({ filename: ARTIFACT.filename, sha256: ARTIFACT.sha256, b64: btoa(String.fromCharCode(...RESUME_BYTES)) }),
       ask: async (_j, questions) => questions.length,
-      finish: async (_j, state, evidence) => void finished.push({ state, evidence }), gatePresent: async () => true },
-    runEngine: contractEngine(seen), log: () => {},
+      finish: async (_j, state, evidence) => void finished.push({ state, evidence }), gatePresent: async () => true, authorize: authorizer().authorize },
+    runEngine: effectAware(contractEngine(seen)) as any, log: () => {},
   });
   return { state: finished[0].state, ran: seen.length };
 }

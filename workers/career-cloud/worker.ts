@@ -338,8 +338,11 @@ export function cloudEngineRunner(o: { root: string; evidenceRoot: string; deno?
     let status: Deno.CommandStatus;
     try { [, , status] = await Promise.all([stdout, stderr, child.status]); }
     finally { clearTimeout(timer); await writer?.close().catch(() => {}); }
-    if (protocolFailed || !status.success || !resultLine) return null;
+    // scripts/apply.ts prints RESULT and exits 1 on every refusal (FACT_OWNER_MISMATCH, a changed application, a refused
+    // card authorization): that result is the refusal, not "no result". A sent state is trusted only from a clean exit.
+    if (protocolFailed || !resultLine) return null;
     const result = JSON.parse(resultLine.slice(7));
+    if (!status.success && ["confirmed", "submitted_unconfirmed"].includes(result?.state)) return null;
     if (submitting && ["confirmed", "submitted_unconfirmed"].includes(result?.state) && !authorized) return null;
     let evidence = null;
     try { evidence = JSON.parse(await Deno.readTextFile(evidenceDir + "/evidence.json")); }

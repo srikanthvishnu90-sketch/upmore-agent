@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: F004: a new own career target escapes a pending mock: I want a software engineering internship.
+ok 1 - F004: a new own career target escapes a pending mock: I want a software engineering internship.
+  ---
+  duration_ms: 215.788377
+  type: 'test'
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+ok 2 - F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+  ---
+  duration_ms: 11.784384
+  type: 'test'
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+ok 3 - F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+  ---
+  duration_ms: 4.491411
+  type: 'test'
+  ...
+# Subtest: F004 control: the already-fixed explicit career goal keeps its early claim
+ok 4 - F004 control: the already-fixed explicit career goal keeps its early claim
+  ---
+  duration_ms: 3.973346
+  type: 'test'
+  ...
+# Subtest: F004 control: a labeled mock answer is session content even when it names a desired role
+ok 5 - F004 control: a labeled mock answer is session content even when it names a desired role
+  ---
+  duration_ms: 6.985256
+  type: 'test'
+  ...
+# Subtest: F004 control: ordinary past-tense narrative is still scored in the pending mock
+ok 6 - F004 control: ordinary past-tense narrative is still scored in the pending mock
+  ---
+  duration_ms: 8.063487
+  type: 'test'
+  ...
+# Subtest: F004 control: a multi-sentence labeled answer never changes the goal
+ok 7 - F004 control: a multi-sentence labeled answer never changes the goal
+  ---
+  duration_ms: 4.491989
+  type: 'test'
+  ...
+# Subtest: F004 control: an instruction to find roles is not saved as a personal goal
+ok 8 - F004 control: an instruction to find roles is not saved as a personal goal
+  ---
+  duration_ms: 3.615297
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+ok 9 - F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+  ---
+  duration_ms: 76.769177
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+ok 10 - F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+  ---
+  duration_ms: 5.93815
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+ok 11 - F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+  ---
+  duration_ms: 17.605525
+  type: 'test'
+  ...
+# Subtest: F004 control: an explicit new task remains discovery rather than becoming a goal record
+ok 12 - F004 control: an explicit new task remains discovery rather than becoming a goal record
+  ---
+  duration_ms: 5.827516
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 518.893657

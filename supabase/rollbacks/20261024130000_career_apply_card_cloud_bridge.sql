@@ -8,6 +8,8 @@ do $$ begin
  if public.career_apply_cloud_enabled() or public.career_apply_agent_submit_enabled() then raise exception 'rollback requires both switches OFF'; end if;
  if exists(select 1 from public.career_apply_jobs where source='cloud' and state='driving') then raise exception 'rollback refuses active cloud drive'; end if;
 end $$;
+-- The pinned baseline daily column had no default; restore that DDL without rewriting a row.
+alter table public.career_apply_cloud_optin alter column daily drop default;
 -- Complete pre-bridge definitions, copied verbatim from the pinned migration sources.
 create or replace function career_message_approval_private.guard_queue() returns trigger
 language plpgsql security definer set search_path=public,pg_temp as $$
@@ -295,6 +297,36 @@ begin
 end $$;
 revoke all on function public.career_apply_batch_revoke_own() from public,anon,authenticated,service_role;
 grant execute on function public.career_apply_batch_revoke_own() to authenticated;
+
+create or replace function public.career_apply_cloud_optin_as(p_user uuid, p_on boolean, p_terms text) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare a jsonb; d int;
+begin
+ if p_user is null or p_on is null then raise exception 'invalid cloud opt-in'; end if;
+ if p_on then
+  if p_terms is null or length(btrim(p_terms)) not between 1 and 1500 then raise exception 'invalid cloud opt-in'; end if;
+  select value into a from public.career_watch_kv where user_id = p_user and key = 'career:account';
+  if a is null then raise exception 'no_account'; end if;
+  if coalesce(a->>'paused', 'false') <> 'false' then raise exception 'account_paused'; end if;
+  d := public.career_apply_daily_limit(p_user);
+  insert into public.career_apply_cloud_optin (user_id, enabled, terms, terms_sha256, daily, privacy_epoch, turned_on_at, updated_at)
+  values (p_user, true, p_terms, encode(sha256(convert_to(p_terms, 'UTF8')), 'hex'), d, coalesce((a->>'epoch')::bigint, 0), now(), now())
+  on conflict (user_id) do update set enabled = true, terms = excluded.terms, terms_sha256 = excluded.terms_sha256, daily = excluded.daily,
+   privacy_epoch = excluded.privacy_epoch, turned_on_at = excluded.turned_on_at, updated_at = now();
+  return jsonb_build_object('enabled', true, 'daily', d);
+ end if;
+ update public.career_apply_cloud_optin set enabled = false, turned_off_at = now(), updated_at = now() where user_id = p_user;
+ delete from public.career_apply_cloud_resumes where user_id = p_user;
+ return jsonb_build_object('enabled', false);
+end $$;
+
+create or replace function public.career_apply_cloud_optin_get(p_user uuid) returns jsonb
+language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce((select jsonb_build_object('enabled', enabled, 'daily', daily, 'terms', terms, 'terms_sha256', terms_sha256) from public.career_apply_cloud_optin
+  where user_id = p_user), jsonb_build_object('enabled', false))
+$$;
+revoke all on function public.career_apply_cloud_optin_as(uuid,boolean,text),public.career_apply_cloud_optin_get(uuid) from public,anon,authenticated,service_role;
+grant execute on function public.career_apply_cloud_optin_as(uuid,boolean,text),public.career_apply_cloud_optin_get(uuid) to service_role;
 
 drop policy if exists career_apply_message_cards_owner_read on public.career_apply_message_cards;
 create policy career_apply_message_cards_owner_read on public.career_apply_message_cards for select to authenticated

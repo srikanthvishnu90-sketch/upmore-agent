@@ -67,7 +67,7 @@ begin
  if o.user_id is null or not o.enabled or o.privacy_epoch is distinct from coalesce((account->>'epoch')::bigint,0) then raise exception 'not_opted_in'; end if;
  if exists(select 1 from public.career_apply_cloud_pauses where until>n and ((scope='portal' and portal=fam) or(scope='person' and user_id=u))) then raise exception 'cloud paused'; end if;
  if (select count(*) from public.career_apply_jobs where user_id=u and id<>j.id and state=any(went) and claimed_at>n-interval'1 day')
-  >=least(coalesce(o.daily,25),public.career_apply_daily_limit(u)) then raise exception 'daily_limit'; end if;
+  >=least(15,coalesce(o.daily,15),public.career_apply_daily_limit(u)) then raise exception 'daily_limit'; end if;
  if public.career_apply_company_key(j.company)<>'' and exists(select 1 from public.career_apply_jobs x where x.user_id=u and x.id<>j.id and x.state=any(went)
   and coalesce(x.claimed_at,x.created_at)>n-interval'30 days' and public.career_apply_company_key(x.company)=public.career_apply_company_key(j.company)) then raise exception 'company_cooldown'; end if;
  if not exists(select 1 from public.career_apply_cloud_resumes r where r.user_id=u and r.sha256=j.payload->>'resume_sha256'
@@ -197,7 +197,7 @@ begin
   insert into career_message_approval_private.cloud_bound_approvals(approval_id,user_id,card_id,item_index,payload_hash,approved_at,expires_at)
    values(aid,u,c.id,n,h,stamp,deadline);
   -- The queue trigger binds this newly created immutable item before INSERT returns. P is passed unmodified.
-  j:=public.career_apply_enqueue(p,h,h,public.career_apply_daily_limit(u));
+  j:=public.career_apply_enqueue(p,h,h,least(15,coalesce((select daily from public.career_apply_cloud_optin where user_id=u),15),public.career_apply_daily_limit(u)));
   if not exists(select 1 from career_message_approval_private.cloud_bound_jobs b where job_row_id=j.id and approval_id=aid and user_id=u)
    then raise exception 'cloud item was not bound'; end if;
   jobs:=jobs||jsonb_build_object('id',j.id,'approval_id',aid,'payload_hash',h,'expires_at',deadline);n:=n+1;
@@ -614,7 +614,7 @@ begin
  if exists (select from public.career_apply_cloud_pauses where scope = 'person' and user_id = j.user_id and until > p_now) then
   return 'person_paused'; end if;
  if (select count(*) from public.career_apply_jobs where user_id = j.user_id and state = any(went) and claimed_at > p_now - interval '1 day')
-  >= least(coalesce(o.daily, 25), public.career_apply_daily_limit(j.user_id)) then return 'daily_limit'; end if;
+  >= least(15, coalesce(o.daily, 15), public.career_apply_daily_limit(j.user_id)) then return 'daily_limit'; end if;
  if co <> '' and exists (select from public.career_apply_jobs x where x.user_id = j.user_id and x.id <> j.id and x.state = any(went)
   and coalesce(x.claimed_at, x.created_at) > p_now - interval '30 days' and public.career_apply_company_key(x.company) = co) then
   return 'company_cooldown'; end if;
@@ -697,6 +697,40 @@ begin
  return n+cloud_count;
 end $$;
 
+
+-- Owner's later explicit cloud-only15/day ruling supersedes the old25 default for CLOUD only.
+-- No existing opt-in rows are rewritten; old25/50 rows are capped effectively at every cloud boundary.
+alter table public.career_apply_cloud_optin alter column daily set default 15;
+create or replace function public.career_apply_cloud_optin_as(p_user uuid, p_on boolean, p_terms text) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare a jsonb; d int;
+begin
+ perform pg_advisory_xact_lock_shared(hashtextextended('career-card-cloud-bridge-maintenance-v1',0));
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text,0));
+ if p_user is null or p_on is null then raise exception 'invalid cloud opt-in'; end if;
+ if p_on then
+  if p_terms is null or length(btrim(p_terms)) not between 1 and 1500 then raise exception 'invalid cloud opt-in'; end if;
+  select value into a from public.career_watch_kv where user_id = p_user and key = 'career:account';
+  if a is null then raise exception 'no_account'; end if;
+  if coalesce(a->>'paused', 'false') <> 'false' then raise exception 'account_paused'; end if;
+  d := least(15, public.career_apply_daily_limit(p_user));
+  insert into public.career_apply_cloud_optin (user_id, enabled, terms, terms_sha256, daily, privacy_epoch, turned_on_at, updated_at)
+  values (p_user, true, p_terms, encode(sha256(convert_to(p_terms, 'UTF8')), 'hex'), d, coalesce((a->>'epoch')::bigint, 0), now(), now())
+  on conflict (user_id) do update set enabled = true, terms = excluded.terms, terms_sha256 = excluded.terms_sha256, daily = excluded.daily,
+   privacy_epoch = excluded.privacy_epoch, turned_on_at = excluded.turned_on_at, updated_at = now();
+  return jsonb_build_object('enabled', true, 'daily', d);
+ end if;
+ update public.career_apply_cloud_optin set enabled = false, turned_off_at = now(), updated_at = now() where user_id = p_user;
+ delete from public.career_apply_cloud_resumes where user_id = p_user;
+ return jsonb_build_object('enabled', false);
+end $$;
+
+create or replace function public.career_apply_cloud_optin_get(p_user uuid) returns jsonb
+language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce((select jsonb_build_object('enabled', enabled, 'daily', least(15,coalesce(daily,15),public.career_apply_daily_limit(p_user)), 'terms', terms, 'terms_sha256', terms_sha256) from public.career_apply_cloud_optin
+  where user_id = p_user), jsonb_build_object('enabled', false,'daily',least(15,public.career_apply_daily_limit(p_user))))
+$$;
+
 -- Explicit function grants; no new private metadata endpoint or client write.
 revoke all on function public.career_apply_message_cloud_sources(uuid) from public,anon,authenticated,service_role;
 grant execute on function public.career_apply_message_cloud_sources(uuid) to service_role;
@@ -723,5 +757,8 @@ revoke all on function public.career_apply_message_card_read_own(uuid),public.ca
 grant execute on function public.career_apply_message_card_read_own(uuid),public.career_apply_message_card_approve_own(uuid,text),public.career_apply_claim_own(integer,text),public.career_apply_extension_begin_own(jsonb,text) to authenticated;
 revoke all on function public.career_apply_batch_revoke_own() from public,anon,authenticated,service_role;
 grant execute on function public.career_apply_batch_revoke_own() to authenticated;
+
+revoke all on function public.career_apply_cloud_optin_as(uuid,boolean,text),public.career_apply_cloud_optin_get(uuid) from public,anon,authenticated,service_role;
+grant execute on function public.career_apply_cloud_optin_as(uuid,boolean,text),public.career_apply_cloud_optin_get(uuid) to service_role;
 
 commit;

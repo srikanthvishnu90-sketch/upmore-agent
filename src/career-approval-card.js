@@ -129,6 +129,7 @@
     if (Object.hasOwn(card, 'receipt')) { insist(cloud && card.state === 'approved'); validReceipt(card.receipt, card); }
     return freeze(copy(card));
   }
+  const expired = (card, time) => time >= card.payload.expires_at || (card.payload.version === 2 && card.payload.items.some(item => time >= Date.parse(item.payload.expires_at)));
   function validReceipt(receipt, card) {
     const start = Date.parse(receipt?.approved_at), end = Date.parse(receipt?.approval_expires_at);
     insist(record(receipt) && receipt.card_id === card.id && receipt.card_hash === card.hash && receipt.approved_count === card.payload.items.length && iso(receipt.approved_at) && iso(receipt.approval_expires_at) && start >= card.payload.issued_at && start < card.payload.expires_at && end - start === DAY, 'unknown');
@@ -277,7 +278,7 @@
         if (state !== 'open' || pending.has(cardId) || finished.has(cardId)) return;
         if (!ownerTap(event)) return;
         if (!allowed()) { outcome('stale'); return; }
-        if (now() >= snapshot.payload.expires_at) { outcome('expired'); return; }
+        if (expired(snapshot, now())) { outcome('expired'); return; }
         if (!disclosed()) { outcome('changed'); return; }
         pending.add(cardId); outcome('checking', 'Checking this exact card before approval…');
         let dispatched = false;
@@ -292,7 +293,7 @@
           insist(current() && allowed(), 'stale');
           insist(fresh.hash === snapshot.hash && canonical(fresh.payload) === canonical(snapshot.payload), 'changed');
           insist(fresh.state === 'open', fresh.state);
-          insist(now() < fresh.payload.expires_at, 'expired');
+          insist(!expired(fresh, now()), 'expired');
           insist(disclosed(), 'changed');
           // No await between the final owner/disclosure check and the authenticated RPC dispatch.
           insist(current() && allowed(), 'stale');
@@ -325,7 +326,7 @@
         if (snapshot.state !== 'open') outcome(snapshot.state);
         else if (finished.has(cardId)) outcome(finished.get(cardId));
         else if (pending.has(cardId)) outcome('checking');
-        else if (now() >= snapshot.payload.expires_at) outcome('expired');
+        else if (expired(snapshot, now())) outcome('expired');
         else outcome('open', 'Review every answer and resume fingerprint before approving. Nothing has been submitted.');
       } catch (error) {
         if (doc && container && typeof container.replaceChildren === 'function') {

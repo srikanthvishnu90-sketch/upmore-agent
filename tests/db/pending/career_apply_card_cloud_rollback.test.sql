@@ -1,99 +1,91 @@
--- WRITTEN / NOT_RUN. Review-only; NOT in tests/db/run.sh's top-level discovery.
--- No baseline regression, SQL runtime PASS, migration apply, or rollback proof is claimed.
--- Future execution needs separately scoped authorization for a disposable local database.
--- Invoke psql -X with an EXPLICIT connection and EVERY variable below; no target/path defaults.
--- Reviewed up/down own their BEGIN/COMMIT. This harness deliberately commits lifecycle changes
--- in the explicitly named disposable database; it does NOT provide rollback isolation.
--- Every include/fixture must be reviewed, with no connection-changing psql meta-commands.
--- Require bridge_lifecycle_commits_authorized=true in addition to all guards below.
--- Destroy the disposable database after success OR failure; never reuse it as a live target.
--- Both are unavailable until design PASS; missing artifacts are BLOCKED evidence, not behavior.
--- live source fixture: creates pg_temp.bridge_live_source(signature text PK, source_body text,
---   source_path text, source_commit text). Bodies must be extracted from pinned 01401cb4 files.
--- seed fixture: marker current_setting('upmore.bridge_rollback_fixture')='synthetic-only'; creates
---   pg_temp.bridge_rollback_cases(job_row_id uuid PK, approval_id uuid, card_id uuid,
---   item_index integer, payload_hash text, expires_at timestamptz, expected_before_state text,
---   evidence_path text[], binding_receipt jsonb). Use invented UUIDs and example.test only.
--- Seed must use actual bridge producer/tap paths for queued work and supply already settled
--- attempted submitted_unconfirmed and unknown_outcome cases; no active leases before down.
--- Terminal fixture history alone is not proof of claim/finish behavior. No switch is enabled
--- by this harness. Receipt shape/path is caller supplied until reviewed.
--- Baseline fixture setup precedes this script; source fixture performs no persistent writes.
--- Temporary snapshots survive the reviewed scripts' commits. Seeded cases are committed fixture
--- history before down, including the two settled attempted outcomes; no final ROLLBACK erases them.
--- Two real-session lock/ON-write/active-drive refusal races need separate authorization and
--- remain unavailable evidence here; this sequential lifecycle does NOT establish concurrency.
+-- WRITTEN / NOT_RUN. Stage checkpoints only; use the separate explicit Python driver.
+-- Production up/down NEVER appear here and run as standalone psql -X -v ON_ERROR_STOP=1 -f FILE
+-- processes, each in its own session. No outer migration transaction, -1, or SQL include exists.
+-- Persistent state lives only in the caller-named qa_card_cloud_rollback_* schema, excluded from
+-- baseline/catalog snapshots. Destroy the disposable database after success OR failure.
+-- Source fixture contract: pg_temp.bridge_live_source(signature,source_body,source_path,source_commit).
+-- Seed contract: pg_temp.bridge_rollback_cases(job_row_id PK,approval_id,card_id,item_index,
+-- payload_hash,expires_at,expected_before_state,evidence_path text[],binding_receipt jsonb), plus
+-- session marker upmore.bridge_rollback_fixture=synthetic-only. Source/seed and their checkpoint
+-- share a fixture-only session so the checkpoint copies temporary inputs into the private QA schema.
+-- Seeds use real producer/tap bindings and settled attempted outcomes; no real employer proof claimed.
+-- Negative rollback and maintenance/setting-write races remain NOT_RUN, separate-session evidence.
 \set ON_ERROR_STOP on
 \if :{?bridge_rollback_authorized}
 \else
- \echo 'BLOCKED: explicit bridge_rollback_authorized=true required; NOT_RUN'
- \quit 3
-\endif
-\if :bridge_rollback_authorized
-\else
- \echo 'BLOCKED: disposable rollback lifecycle not authorized; NOT_RUN'
+ \echo 'BLOCKED: bridge_rollback_authorized required; NOT_RUN'
  \quit 3
 \endif
 \if :{?bridge_lifecycle_commits_authorized}
 \else
- \echo 'BLOCKED: explicit bridge_lifecycle_commits_authorized=true required; NOT_RUN'
- \quit 3
-\endif
-\if :bridge_lifecycle_commits_authorized
-\else
- \echo 'BLOCKED: committed disposable migration lifecycle not authorized; NOT_RUN'
+ \echo 'BLOCKED: bridge_lifecycle_commits_authorized required; NOT_RUN'
  \quit 3
 \endif
 \if :{?bridge_disposable_database}
 \else
- \echo 'BLOCKED: explicit disposable database name required; NOT_RUN'
+ \echo 'BLOCKED: bridge_disposable_database required; NOT_RUN'
  \quit 3
 \endif
-\if :{?bridge_up_path}
+\if :{?bridge_scratch_schema}
 \else
- \echo 'BLOCKED: explicit reviewed future up file required; NOT_RUN'
+ \echo 'BLOCKED: bridge_scratch_schema required; NOT_RUN'
  \quit 3
 \endif
-\if :{?bridge_down_path}
+\if :{?bridge_run_nonce}
 \else
- \echo 'BLOCKED: explicit reviewed future down file required; NOT_RUN'
+ \echo 'BLOCKED: bridge_run_nonce required; NOT_RUN'
  \quit 3
 \endif
-\if :{?bridge_seed_path}
+\if :{?bridge_stage}
 \else
- \echo 'BLOCKED: explicit synthetic lifecycle fixture required; NOT_RUN'
+ \echo 'BLOCKED: bridge_stage required; NOT_RUN'
  \quit 3
 \endif
-\if :{?bridge_live014_source_path}
+select coalesce(:'bridge_rollback_authorized'='true' and :'bridge_lifecycle_commits_authorized'='true'
+ and current_database()=:'bridge_disposable_database' and inet_server_addr() is null
+ and current_setting('upmore.test.disposable',true)='card-cloud-rollback'
+ and :'bridge_scratch_schema'~'^qa_card_cloud_rollback_[a-z0-9_]{1,40}$'
+ and :'bridge_run_nonce'~'^[0-9a-f]{32}$'
+ and :'bridge_stage' in('baseline','up1','up2','seed','down1','down2','reup'),false) as rb_guard_ok,
+ :'bridge_stage'='baseline' as rb_baseline, :'bridge_stage'='up1' as rb_up1,
+ :'bridge_stage'='up2' as rb_up2, :'bridge_stage'='seed' as rb_seed,
+ :'bridge_stage'='down1' as rb_down1, :'bridge_stage'='down2' as rb_down2,
+ :'bridge_stage'='reup' as rb_reup \gset
+\if :rb_guard_ok
 \else
- \echo 'BLOCKED: explicit pinned live014 source fixture required; NOT_RUN'
- \quit 3
-\endif
-select current_database()=:'bridge_disposable_database' and inet_server_addr() is null
- and current_setting('upmore.test.disposable',true)='card-cloud-rollback' as disposable_ok \gset
-\if :disposable_ok
-\else
- \echo 'BLOCKED: named local disposable database/marker mismatch; NOT_RUN'
+ \echo 'BLOCKED: authorization/local exact DB/independent marker/schema/nonce/stage mismatch'
  \quit 3
 \endif
 reset role;
-set search_path=public,pg_temp;
-create function pg_temp.rb_ok(ok boolean, label text) returns void language plpgsql as $$
+\if :rb_baseline
+select to_regnamespace(:'bridge_scratch_schema') is null as rb_fresh \gset
+\if :rb_fresh
+\else
+ \echo 'BLOCKED: scratch schema already exists; refuse stale snapshots'
+ \quit 3
+\endif
+create schema :"bridge_scratch_schema";
+revoke all on schema :"bridge_scratch_schema" from public,anon,authenticated,service_role;
+\endif
+set search_path=:"bridge_scratch_schema",public,pg_temp;
+\if :rb_baseline
+create table rb_context as select :'bridge_run_nonce'::text nonce,current_database()::text dbname,session_user::text username;
+create table rb_progress(stage text not null);
+insert into rb_progress values('baseline');
+create function rb_ok(ok boolean,label text) returns void language plpgsql set search_path from current as $$
 begin if ok is distinct from true then raise exception 'FAIL rollback: %',label; end if;
  raise notice 'ok rollback: %',label; end $$;
-create function pg_temp.rb_off_idle() returns boolean language sql as $$
+create function rb_off_idle() returns boolean language sql set search_path from current as $$
  select not exists(select from public.career_cloud_settings where
-  key in ('CAREER_CLOUD_APPLY','CAREER_AGENT_SUBMIT') and value='on')
- and not exists(select from public.career_apply_jobs where state='driving')
-$$;
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'PRECONDITION: both switches OFF, no driving/uncertain active lease');
-select pg_temp.rb_ok(to_regclass('career_message_approval_private.cloud_bound_jobs') is null
+ key in('CAREER_CLOUD_APPLY','CAREER_AGENT_SUBMIT') and value='on')
+ and not exists(select from public.career_apply_jobs where state='driving') $$;
+select rb_ok(rb_off_idle(),'PRECONDITION: both OFF and no driving/uncertain active lease');
+select rb_ok(to_regclass('career_message_approval_private.cloud_bound_jobs') is null
  and to_regclass('career_message_approval_private.cloud_bound_approvals') is null
- and to_regclass('career_message_approval_private.cloud_card_enrollments') is null,
- 'PRECONDITION: live014 baseline, bridge not installed');
-
+ and to_regclass('career_message_approval_private.cloud_card_enrollments') is null
+ and to_regclass('career_message_approval_private.cloud_tap_receipts') is null,'PRECONDITION: unbridged live014 baseline');
 -- All required baseline functions must exist BEFORE an up file is included. Absence is setup failure.
-create temp table rb_required(signature text primary key, source_path text not null);
+create table rb_required(signature text primary key, source_path text not null);
 insert into rb_required values
  ('public.career_apply_cloud_refusal(public.career_apply_jobs,timestamp with time zone)','supabase/migrations/20261024120000_career_apply_cloud_gate_waiver.sql'),
  ('public.career_apply_cloud_claim_at(integer,timestamp with time zone)','supabase/migrations/20261024120000_career_apply_cloud_gate_waiver.sql'),
@@ -110,10 +102,10 @@ insert into rb_required values
  ('public.career_apply_batch_revoke_own()','supabase/migrations/20261024090000_career_apply_agent_submit.sql'),
  ('public.career_apply_cloud_optin_as(uuid,boolean,text)','supabase/migrations/20261021080000_career_apply_cloud.sql'),
  ('public.career_apply_cloud_optin_get(uuid)','supabase/migrations/20261021080000_career_apply_cloud.sql');
-select pg_temp.rb_ok(not exists(select from rb_required where to_regprocedure(signature) is null),
+select rb_ok(not exists(select from rb_required where to_regprocedure(signature) is null),
  'PRECONDITION: waiver-era cloud, integer/text own-claim, Messages guard and entrypoints installed');
-\i :bridge_live014_source_path
-select pg_temp.rb_ok(not exists(select from rb_required r left join bridge_live_source s using(signature)
+create table bridge_live_source as select * from pg_temp.bridge_live_source;
+select rb_ok(not exists(select from rb_required r left join bridge_live_source s using(signature)
  left join pg_proc p on p.oid=to_regprocedure(r.signature)
  where s.signature is null or s.source_path is distinct from r.source_path
  or s.source_commit is distinct from '01401cb456bc2982d67316165e183bbd275581c9'
@@ -121,35 +113,35 @@ select pg_temp.rb_ok(not exists(select from rb_required r left join bridge_live_
     regexp_replace(trim(s.source_body),'\s+',' ','g')),
  'PRECONDITION: normalized DDL bodies match exact pinned source files, especially 20261024120000');
 -- Definition MD5 is byte-sensitive; raw ACL, owner and OID also must be restored exactly.
-create temp table rb_live_functions as select p.oid,p.oid::regprocedure::text signature,
+create table rb_live_functions as select p.oid,p.oid::regprocedure::text signature,
  md5(pg_get_functiondef(p.oid)) definition_md5,p.proacl::text acl,p.proowner
  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
  where n.nspname in ('public','career_message_approval_private') and p.prokind in ('f','p');
-create function pg_temp.rb_restore_functions(stage text) returns void language plpgsql as $$
-begin perform pg_temp.rb_ok(not exists(select from rb_live_functions b left join pg_proc p on p.oid=b.oid
+create function rb_restore_functions(stage text) returns void language plpgsql set search_path from current as $$
+begin perform rb_ok(not exists(select from rb_live_functions b left join pg_proc p on p.oid=b.oid
  where p.oid is null or md5(pg_get_functiondef(p.oid)) is distinct from b.definition_md5
  or p.proacl::text is distinct from b.acl or p.proowner is distinct from b.proowner),
  stage||': byte-exact live definitions/MD5, function identities, owners and ACLs restored'); end $$;
 
 -- Snapshot every preexisting public/private/auth/storage table, including account cap settings,
 -- Messages, approvals, questions, resumes, waivers, opt-in and employer-attempted outcomes.
-create temp table rb_base_tables as select c.oid,c.oid::regclass::text name
+create table rb_base_tables as select c.oid,c.oid::regclass::text name
  from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname in ('public','career_message_approval_private','auth','storage') and c.relkind='r';
-create function pg_temp.rb_rows(rel regclass) returns jsonb language plpgsql as $$
+create function rb_rows(rel regclass) returns jsonb language plpgsql set search_path from current as $$
 declare result jsonb; begin execute format(
  'select coalesce(jsonb_agg(v order by v::text),''[]''::jsonb) from (select to_jsonb(x) v from %s x) s',rel)
  into result; return result; end $$;
-create temp table rb_data(stage text,oid oid,name text,rows jsonb,primary key(stage,oid));
-create function pg_temp.rb_save_data(stage text) returns void language sql as $$
- insert into rb_data select $1,oid,name,pg_temp.rb_rows(oid::regclass) from rb_base_tables
+create table rb_data(stage text,oid oid,name text,rows jsonb,primary key(stage,oid));
+create function rb_save_data(stage text) returns void language sql set search_path from current as $$
+ insert into rb_data select $1,oid,name,rb_rows(oid::regclass) from rb_base_tables
 $$;
-create function pg_temp.rb_same_data(stage text,except_jobs boolean default false) returns void language plpgsql as $$
+create function rb_same_data(stage text,except_jobs boolean default false) returns void language plpgsql set search_path from current as $$
 declare b record; begin for b in select * from rb_data where rb_data.stage=rb_same_data.stage loop
  if except_jobs and b.oid='public.career_apply_jobs'::regclass then continue; end if;
- perform pg_temp.rb_ok(to_regclass(b.name)::oid=b.oid and pg_temp.rb_rows(b.oid::regclass)=b.rows,
+ perform rb_ok(to_regclass(b.name)::oid=b.oid and rb_rows(b.oid::regclass)=b.rows,
  stage||': preserved table identity/data '||b.name); end loop; end $$;
-create function pg_temp.rb_catalog() returns jsonb language sql as $$
+create function rb_catalog() returns jsonb language sql set search_path from current as $$
  select jsonb_build_object(
  'schemas',(select jsonb_agg(jsonb_build_array(n.oid,n.nspname,n.nspowner,n.nspacl::text) order by n.oid)
   from pg_namespace n where n.nspname in ('public','career_message_approval_private')),
@@ -177,57 +169,79 @@ create function pg_temp.rb_catalog() returns jsonb language sql as $$
  'policies',(select jsonb_agg(to_jsonb(p) order by p.schemaname,p.tablename,p.policyname)
   from pg_policies p where p.schemaname in ('public','career_message_approval_private')))
 $$;
-create temp table rb_catalogs(stage text primary key,value jsonb);
-insert into rb_catalogs values('live014',pg_temp.rb_catalog());
-select pg_temp.rb_save_data('before_up');
+create table rb_catalogs(stage text primary key,value jsonb);
+insert into rb_catalogs values('live014',rb_catalog());
+select rb_save_data('before_up');
 
--- The future files are selected by the authorized caller, never guessed or globbed.
-\i :bridge_up_path
-select pg_temp.rb_same_data('before_up');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'up: no switch enable or active drive');
-select pg_temp.rb_ok(to_regclass('career_message_approval_private.cloud_bound_jobs') is not null
+
+revoke all on all tables in schema :"bridge_scratch_schema" from public,anon,authenticated,service_role;
+revoke all on all functions in schema :"bridge_scratch_schema" from public,anon,authenticated,service_role;
+\else
+select rb_ok((select nonce=:'bridge_run_nonce' and dbname=current_database() and username=session_user from rb_context),
+ 'checkpoint belongs to this exact authorized run/user/database');
+select rb_ok((select stage=case :'bridge_stage' when 'up1' then 'baseline' when 'up2' then 'up1'
+ when 'seed' then 'up2' when 'down1' then 'seed' when 'down2' then 'down1' when 'reup' then 'down2' end
+ from rb_progress),'strict checkpoint order');
+\if :rb_up1
+select rb_same_data('before_up');
+select rb_ok(rb_off_idle(),'up: no switch enable or active drive');
+select rb_ok(to_regclass('career_message_approval_private.cloud_bound_jobs') is not null
  and to_regclass('career_message_approval_private.cloud_bound_approvals') is not null
- and to_regclass('career_message_approval_private.cloud_card_enrollments') is not null,
+ and to_regclass('career_message_approval_private.cloud_card_enrollments') is not null
+ and to_regclass('career_message_approval_private.cloud_tap_receipts') is not null,
  'up: proposed private metadata installed (missing symbols are setup/implementation unavailable)');
-select pg_temp.rb_ok(not exists(select from career_message_approval_private.cloud_card_enrollments)
+select rb_ok(not exists(select from career_message_approval_private.cloud_card_enrollments)
  and not exists(select from career_message_approval_private.cloud_bound_approvals)
- and not exists(select from career_message_approval_private.cloud_bound_jobs),'up: no seeds or permissions minted');
-select pg_temp.rb_ok(not exists(select from pg_class c join pg_namespace n on n.oid=c.relnamespace
+ and not exists(select from career_message_approval_private.cloud_bound_jobs)
+ and not exists(select from career_message_approval_private.cloud_tap_receipts),'up: no seeds or permissions minted');
+select rb_ok(not exists(select from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname='career_message_approval_private'
- and c.relname in ('cloud_bound_jobs','cloud_bound_approvals','cloud_card_enrollments')
+ and c.relname in ('cloud_bound_jobs','cloud_bound_approvals','cloud_card_enrollments','cloud_tap_receipts')
  and (not c.relrowsecurity or has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE')
  or has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'))),'up: private RLS/client grants');
-insert into rb_catalogs values('up_once',pg_temp.rb_catalog());
-create temp table rb_up_functions as select p.oid::regprocedure::text signature,
+insert into rb_catalogs values('up_once',rb_catalog());
+create table rb_up_functions as select p.oid::regprocedure::text signature,
  md5(pg_get_functiondef(p.oid)) definition_md5,p.proacl::text acl,p.proowner
  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
  where n.nspname in ('public','career_message_approval_private') and p.prokind in ('f','p');
-create temp table rb_up_grants as select n.nspname,c.relname,c.relacl::text acl,c.relrowsecurity
+create table rb_up_grants as select n.nspname,c.relname,c.relacl::text acl,c.relrowsecurity
  from pg_class c join pg_namespace n on n.oid=c.relnamespace
  where n.nspname in ('public','career_message_approval_private') and c.relkind='r';
-\i :bridge_up_path
-select pg_temp.rb_ok(pg_temp.rb_catalog()=(select value from rb_catalogs where stage='up_once'),
- 'up/up: same object identities, definitions, grants, limits, indexes, policies and triggers');
-select pg_temp.rb_same_data('before_up');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'up/up: both switches OFF and no drive');
-
-\i :bridge_seed_path
-select pg_temp.rb_ok(current_setting('upmore.bridge_rollback_fixture',true)='synthetic-only',
+\endif
+\if :rb_up2
+select rb_ok(rb_catalog()=(select value from rb_catalogs where stage='up_once'),
+ 'up/up: same identities, definitions, grants, limits, indexes, policies and triggers');
+select rb_same_data('before_up');
+select rb_ok(rb_off_idle(),'up/up: both OFF and no drive');
+select rb_ok(not exists(select from career_message_approval_private.cloud_card_enrollments)
+ and not exists(select from career_message_approval_private.cloud_bound_jobs)
+ and not exists(select from career_message_approval_private.cloud_bound_approvals)
+ and not exists(select from career_message_approval_private.cloud_tap_receipts),'up/up: no new permissions or seeds');
+\endif
+\if :rb_seed
+create table bridge_rollback_cases as select * from pg_temp.bridge_rollback_cases;
+alter table bridge_rollback_cases add primary key(job_row_id);
+select rb_ok(current_setting('upmore.bridge_rollback_fixture',true)='synthetic-only',
  'PRECONDITION: explicit synthetic fixture marker');
-select pg_temp.rb_ok((select count(*)>=3 from bridge_rollback_cases)
+select rb_ok((select count(*)>=3 from bridge_rollback_cases)
  and not exists(select s from unnest(array['queued','submitted_unconfirmed','unknown_outcome']) s
   where not exists(select from bridge_rollback_cases c where c.expected_before_state=s)),
  'PRECONDITION: queued and two settled attempted cases present');
 -- Caller supplies only the receipt layout, not permission to ignore its immutable contents.
-select pg_temp.rb_ok(not exists(select from bridge_rollback_cases c
+select rb_ok(not exists(select from bridge_rollback_cases c
  left join public.career_apply_jobs j on j.id=c.job_row_id
  left join career_message_approval_private.cloud_bound_jobs b on b.job_row_id=j.id
  left join career_message_approval_private.cloud_bound_approvals a on a.approval_id=b.approval_id
+ left join career_message_approval_private.cloud_tap_receipts r on r.card_id=b.card_id and r.user_id=b.user_id
  where j.id is null or j.state is distinct from c.expected_before_state
  or b.approval_id is distinct from c.approval_id or b.card_id is distinct from c.card_id
  or b.item_index is distinct from c.item_index or a.expires_at is distinct from c.expires_at
  or j.payload_hash is distinct from c.payload_hash or j.approval_hash is distinct from c.payload_hash
- or c.evidence_path is null or cardinality(c.evidence_path)=0 or jsonb_typeof(c.binding_receipt)<>'object'
+ or b.user_id is distinct from j.user_id or a.user_id is distinct from j.user_id or r.receipt is null
+ or c.evidence_path is distinct from array['card_cloud_bridge_receipt']
+ or c.binding_receipt is distinct from jsonb_build_object('card_id',b.card_id,'item_index',b.item_index,
+  'approval_id',b.approval_id,'payload_hash',a.payload_hash,'approved_at',a.approved_at,'expires_at',a.expires_at,
+  'card_hash',r.card_hash,'tap_receipt',r.receipt)
  or not jsonb_path_exists(c.binding_receipt,'$.** ? (@ == $v)',jsonb_build_object('v',c.card_id))
  or not jsonb_path_exists(c.binding_receipt,'$.** ? (@ == $v)',jsonb_build_object('v',c.approval_id))
  or not jsonb_path_exists(c.binding_receipt,'$.** ? (@ == $v)',jsonb_build_object('v',c.item_index))
@@ -236,23 +250,24 @@ select pg_temp.rb_ok(not exists(select from bridge_rollback_cases c
  or (j.state='queued' and (j.attempts<>0 or j.source is not null))
  or (j.state<>'queued' and (j.attempts<>1 or j.source is distinct from 'cloud'))),
  'PRECONDITION: actual durable origin/deadline/Hq and attempted outcomes, full expected receipt');
-create temp table rb_case_jobs as select j.id,to_jsonb(j) row_before from public.career_apply_jobs j
+create table rb_case_jobs as select j.id,to_jsonb(j) row_before from public.career_apply_jobs j
  join bridge_rollback_cases c on c.job_row_id=j.id;
-create temp table rb_other_jobs as select id,to_jsonb(j) row_before from public.career_apply_jobs j
+create table rb_other_jobs as select id,to_jsonb(j) row_before from public.career_apply_jobs j
  where not exists(select from bridge_rollback_cases c where c.job_row_id=j.id);
-select pg_temp.rb_save_data('before_down');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'down PRECONDITION: both OFF, every active/uncertain drive settled');
-\i :bridge_down_path
-select pg_temp.rb_restore_functions('first down');
-select pg_temp.rb_same_data('before_down',true);
-select pg_temp.rb_ok(pg_temp.rb_catalog()=(select value from rb_catalogs where stage='live014'),
+select rb_save_data('before_down');
+select rb_ok(rb_off_idle(),'down PRECONDITION: both OFF, every active/uncertain drive settled');
+\endif
+\if :rb_down1
+select rb_restore_functions('first down');
+select rb_same_data('before_down',true);
+select rb_ok(rb_catalog()=(select value from rb_catalogs where stage='live014'),
  'down: only bridge-owned objects removed; original schema/ACL/guard/entrypoints restored');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'down: switches remain OFF; no late claim');
-select pg_temp.rb_ok((select count(*) from public.career_apply_jobs)=
+select rb_ok(rb_off_idle(),'down: switches remain OFF; no late claim');
+select rb_ok((select count(*) from public.career_apply_jobs)=
  (select count(*) from rb_case_jobs)+(select count(*) from rb_other_jobs)
  and not exists(select from rb_other_jobs b left join public.career_apply_jobs j on j.id=b.id
   where to_jsonb(j) is distinct from b.row_before),'down: no queue deletion/addition or unrelated job mutation');
-select pg_temp.rb_ok(not exists(select from rb_case_jobs b join bridge_rollback_cases c on c.job_row_id=b.id
+select rb_ok(not exists(select from rb_case_jobs b join bridge_rollback_cases c on c.job_row_id=b.id
  left join public.career_apply_jobs j on j.id=b.id where j.id is null
  or (to_jsonb(j)-array['state','reason','evidence','updated_at']) is distinct from
     (b.row_before-array['state','reason','evidence','updated_at'])
@@ -262,17 +277,19 @@ select pg_temp.rb_ok(not exists(select from rb_case_jobs b join bridge_rollback_
  or (c.expected_before_state<>'queued' and (j.state is distinct from c.expected_before_state
   or j.reason is distinct from b.row_before->>'reason'))),
  'down: queued closed, terminal outcomes/attempts retained, original evidence plus immutable binding receipt');
-select pg_temp.rb_save_data('after_down');
-\i :bridge_down_path
-select pg_temp.rb_restore_functions('second down');
-select pg_temp.rb_same_data('after_down');
-select pg_temp.rb_ok(pg_temp.rb_catalog()=(select value from rb_catalogs where stage='live014'),
+select rb_save_data('after_down');
+\endif
+\if :rb_down2
+select rb_restore_functions('second down');
+select rb_same_data('after_down');
+select rb_ok(rb_catalog()=(select value from rb_catalogs where stage='live014'),
  'down/down: exact live definitions/grants/schema; no reset or extra evidence');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'down/down: still OFF and idle');
-\i :bridge_up_path
-select pg_temp.rb_same_data('after_down');
-select pg_temp.rb_ok(pg_temp.rb_off_idle(),'down/up: OFF; no job revival or new lease');
-select pg_temp.rb_ok(not exists(select from rb_up_functions b
+select rb_ok(rb_off_idle(),'down/down: still OFF and idle');
+\endif
+\if :rb_reup
+select rb_same_data('after_down');
+select rb_ok(rb_off_idle(),'down/up: OFF; no job revival or new lease');
+select rb_ok(not exists(select from rb_up_functions b
  left join pg_proc p on p.oid=to_regprocedure(b.signature)
  where p.oid is null or md5(pg_get_functiondef(p.oid)) is distinct from b.definition_md5
  or p.proacl::text is distinct from b.acl or p.proowner is distinct from b.proowner)
@@ -280,13 +297,15 @@ select pg_temp.rb_ok(not exists(select from rb_up_functions b
  left join pg_class c on c.relnamespace=n.oid and c.relname=b.relname
  where c.oid is null or c.relacl::text is distinct from b.acl or c.relrowsecurity is distinct from b.relrowsecurity),
  'down/up: same bridge/live function definitions, owners, ACLs and table RLS/grants');
-select pg_temp.rb_ok(not exists(select from career_message_approval_private.cloud_bound_jobs)
+select rb_ok(not exists(select from career_message_approval_private.cloud_bound_jobs)
  and not exists(select from career_message_approval_private.cloud_bound_approvals)
  and not exists(select from career_message_approval_private.cloud_card_enrollments),
  'down/up: no reconstructed permissions, seeded enrollment or renewed approvals');
--- No claim call here: historical unbound claim semantics after down require switches to stay OFF.
--- Remaining NOT_RUN evidence: negative rollback refusal, real two-session maintenance/account
--- lock ordering, operator setting/enrollment write races, and pre-effect fence interleavings.
--- The last up is committed by the reviewed migration; all assertions above describe that state.
--- Caller cleanup is destruction of this explicitly authorized disposable database, even on failure.
-\echo 'Lifecycle assertions complete in committed disposable database; destroy it before reuse.'
+select rb_ok(not exists(select from career_message_approval_private.cloud_tap_receipts),'down/up: no reconstructed tap receipts');
+\endif
+update rb_progress set stage=:'bridge_stage';
+revoke all on all tables in schema :"bridge_scratch_schema" from public,anon,authenticated,service_role;
+revoke all on all functions in schema :"bridge_scratch_schema" from public,anon,authenticated,service_role;
+\endif
+-- Checkpoints intentionally persist; production up/down were separate standalone processes.
+-- No claim after down. OFF switches remain mandatory until a new owner decision.

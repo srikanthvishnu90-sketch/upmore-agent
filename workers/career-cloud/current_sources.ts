@@ -64,6 +64,9 @@ export async function authorizeCurrentCloudJob(job: CardCloudJob, phase: Authori
   catch { deny("CARD_CLOUD_SOURCE_READ_FAILED"); }
   if (!object(snapshot) || !Object.hasOwn(snapshot, "profile") || !Array.isArray(snapshot.rows) ||
     !SHA.test(String(snapshot.digest))) deny("CARD_CLOUD_SOURCE_READ_FAILED");
+  if (snapshot.user_id !== job.user_id) deny("FACT_OWNER_MISMATCH");
+  if (await hashApplyPayload({ user_id: job.user_id, profile: snapshot.profile, rows: snapshot.rows }) !== snapshot.digest)
+    deny("CARD_CLOUD_SOURCE_READ_FAILED");
   const input = await readEngineInput({
     latestProfile: async (owner) => owner === job.user_id ? snapshot.profile : deny("FACT_OWNER_MISMATCH"),
     answeredRows: async (owner) => owner === job.user_id ? snapshot.rows : deny("FACT_OWNER_MISMATCH"),

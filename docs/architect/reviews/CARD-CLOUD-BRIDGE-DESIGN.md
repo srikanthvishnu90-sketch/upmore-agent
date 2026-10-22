@@ -1,10 +1,10 @@
 # Card tap to cloud queue: response to review 1
 
-Status: DESIGN FOR REVIEW; tests permitted, bridge code and migration blocked until the architect writes PASS.
+Status: IMPLEMENTATION AUTHORIZED by the owner's subsequent build-now instruction; architect review remains a release gate.
 Source pin: `01401cb456bc2982d67316165e183bbd275581c9`.
 Review: `arch/card-cloud-bridge-gate` at `6efca1a2b844b402579bfcf4238f3e53a33d0f90`,
 `CARD-CLOUD-BRIDGE-REVIEW-1.md` and `CARD-CLOUD-BRIDGE-GATE.md`.
-No migration has been written or applied for this bridge. No merge, deployment, enrollment, opt-in, waiver or switch change is authorized.
+Migration SQL may be WRITTEN, never APPLIED. No merge, deployment, enrollment, opt-in, waiver or switch change is authorized.
 
 ## Five open items: explicit answers
 
@@ -239,7 +239,7 @@ grants, message deletion and the four existing EXTENSION post-approval bypass te
 fixture and local mocks only; no employer requests. Two real DB sessions (not one sequential transaction pretending
 concurrency) prove claim/tap races, once SQL execution is separately authorized. No paid model calls.
 
-Unresolved permissions are explicit: architect PASS for production code; owner's approval of C10 rule and exact
+Unresolved permissions are explicit: architect PASS for release; owner's approval of C10 rule and exact
 account row; explicit authorization for any migration application, merge, deployment or switch change. Tests/design
 can be committed now; no CI job may inadvertently apply the draft migration.
 

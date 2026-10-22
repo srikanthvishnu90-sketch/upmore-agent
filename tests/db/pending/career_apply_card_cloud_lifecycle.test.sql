@@ -203,7 +203,7 @@ set role service_role;
 select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_stop_claim),
  (select lease_token from cc_stop_claim),(select payload_hash from cc_stop_claim),
  (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest'))$$,
- 'revok','owned_Stop_prevents_effect_on_existing_lease');
+ '^cloud permission disabled or expired$','owned_Stop_prevents_effect_on_existing_lease');
 select t.ok((career_apply_cloud_finish((select id from cc_stop_claim),(select lease_token from cc_stop_claim),
  'not_submitted','{"reason":"owner_stopped"}','not_sent',null)).state='not_submitted',
  'Stop_does_not_block_truthful_terminal_receipt');

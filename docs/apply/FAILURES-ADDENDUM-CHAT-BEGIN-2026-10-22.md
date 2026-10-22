@@ -5,7 +5,7 @@ FAILURES.md proper by the coordinator (FAILURES.md lives on
 `muse/2026-10-20-failures-backlog`; this branch's base does not carry
 it). Numbering continues the MUSE-F series used by the apply lanes.
 
-## MUSE-F-030 — FIXED (repo-only, built-not-applied): a chat/cloud begin is mis-stamped `extension`, and no DB claim ever takes a begun row
+## MUSE-F-030 — begin side FIXED (repo-only, built-not-applied); claim side BLOCKED-BY-DESIGN (bridge C9) — a chat/cloud begin is mis-stamped `extension`, and no DB claim ever takes a begun row
 
 Found by the chunk-40% map (docs/career/chat-begin-caller-2026-10-22.md,
 links 6-7), read-only, from the migration sources on
@@ -88,6 +88,44 @@ never widened, because both were correct; the stamp was the defect.
   Note for the apply: on a tree carrying the new file, the launch
   ledger (`apply-rails-and-seed.sh --pending`) lists it as pending by
   design; the chain sequence applies it after `20261024110000`.
+
+UPDATE (2026-10-22, owner-ordered rebase + SQL leg; note
+`docs/apply/ROOT-CAUSE-RUNSH-LEDGER-2026-10-22.md`): the branch was
+rebased onto `origin/arch/pin-landing-candidate-bridge` @ `348c2d4a`,
+the tree that carries the full chain. Consequences, all measured:
+
+- The migration is renumbered `20261024120000` → `20261024140000`:
+  the target line already carries the gate waiver at `20261024120000`
+  and the card-cloud bridge at `20261024130000`; this file applies
+  after both.
+- The owner's `run.sh` failure (exit 3 at the migration-ledger step)
+  was reproduced on the pre-rebase tree and root-caused: the ledger
+  transaction reached the F-030 file without its chain, and its
+  helper's typed variable named a type whose creating migration was
+  absent. On the rebased tree the ledger leg passes.
+- The run then exposed a defect in this migration itself: the
+  helper's typed variable and composite return type pinned
+  `career_apply_batch_approvals` in pg_depend and stopped the owner's
+  documented rollback of `20261024090000` (which drops the RPCs it
+  knows, then the table, no cascade). Fixed in the file: the helper
+  works on a `record` and returns the approval as jsonb; the six
+  rules' text is byte-identical; both doors read the approval id from
+  the jsonb. No table type is named by any variable or return type.
+- The SQL leg now RUNS: full `tests/db/run.sh` on PostgreSQL 16.14
+  exits 0 ("db tests passed"), and the leg executes at the final
+  schema with 28/28 assertions ok — the doors, the contract, the
+  gate, the tallies and the grants at full strength. What it proves
+  about the claim changed on this line, and the leg says so in its
+  own header: the bridge's design C9 ("card is the only cloud
+  authorization route") re-created the refusal/claim to require a
+  durable card binding, so the unbound chat-begun row is refused
+  `not_card_approved`, gate closed and gate open alike, and waits
+  intact. The begin side of F-030 stands fixed; the claim side is
+  BLOCKED-BY-DESIGN pending the composition decision (chat card
+  mints the binding, or C9 stands absolute and the door is retired)
+  — the owner's/architect's call, recorded in the root-cause note.
+  The apply word for `20261024140000` remains a separate owner
+  decision on top of that.
 
 ## The missing chat begin-caller — FIXED (built, NOT deployed)
 

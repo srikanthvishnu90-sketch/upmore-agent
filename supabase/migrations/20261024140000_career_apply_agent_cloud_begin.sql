@@ -12,7 +12,13 @@
 --   career_apply_agent_contract_approval    the start checks of 20261024100000, unchanged and in one place: the
 --                                            owner's switch, the live approval (locked for update), and the six
 --                                            contract rules over the approved entry. Internal: granted to no
---                                            one; the two agent begins are its only callers.
+--                                            one; the two agent begins are its only callers. It hands the
+--                                            approval back as jsonb and works on a record, never a variable
+--                                            typed as the approvals table: a typed variable (or return
+--                                            type) pins that table in pg_depend, and the owner's rollback
+--                                            of 20261024090000 -- which drops the two agent RPCs it knows,
+--                                            then the table, "no cascade anywhere" -- must not be stopped
+--                                            by a dependent it cannot see. The six rules' text is unchanged.
 --   career_apply_extension_begin_agent_own  redefined over that helper, its tail exactly as 20261024100000 left
 --                                            it (the extension's begin, the approval used, the batch stamped):
 --                                            the extension door is unchanged.
@@ -28,9 +34,9 @@
 -- Not applied to any database by this change: applying it live is the owner's call.
 
 create or replace function public.career_apply_agent_contract_approval(p_payload jsonb, p_batch_hash text)
-returns public.career_apply_batch_approvals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare
- u uuid := auth.uid(); a public.career_apply_batch_approvals; r jsonb; e jsonb; l jsonb; f text;
+ u uuid := auth.uid(); a record; r jsonb; e jsonb; l jsonb; f text;
  qv constant text := 'd007-v1';
  rules constant text[] := array['verbatim', 'option-exact', 'option-yes-no', 'checkbox-yes-no', 'attachment'];
  uuid_re constant text := '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
@@ -98,17 +104,17 @@ begin
   end if;
  end loop;
 
- return a;
+ return row_to_json(a)::jsonb;
 end $$;
 
 create or replace function public.career_apply_extension_begin_agent_own(p_payload jsonb, p_approval text, p_batch_hash text)
 returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare
- u uuid := auth.uid(); a public.career_apply_batch_approvals; r jsonb;
+ u uuid := auth.uid(); ah jsonb; r jsonb;
 begin
- a := public.career_apply_agent_contract_approval(p_payload, p_batch_hash);
+ ah := public.career_apply_agent_contract_approval(p_payload, p_batch_hash);
 r := public.career_apply_extension_begin_own(p_payload, p_approval);
- update public.career_apply_batch_approvals set used_at = clock_timestamp() where id = a.id;
+ update public.career_apply_batch_approvals set used_at = clock_timestamp() where id = (ah->>'id')::uuid;
  update public.career_apply_jobs set agent_batch_hash = p_batch_hash where id = (r->>'id')::uuid and user_id = u;
  return r;
 end $$;
@@ -116,9 +122,9 @@ end $$;
 create or replace function public.career_apply_cloud_begin_agent_own(p_payload jsonb, p_approval text, p_batch_hash text)
 returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare
- u uuid := auth.uid(); a public.career_apply_batch_approvals; h text; j public.career_apply_jobs;
+ u uuid := auth.uid(); ah jsonb; h text; j record;
 begin
- a := public.career_apply_agent_contract_approval(p_payload, p_batch_hash);
+ ah := public.career_apply_agent_contract_approval(p_payload, p_batch_hash);
 
  -- The door's own checks: this payload is the cloud worker's, in the shapes the claim will demand of it
  -- (career_apply_cloud_refusal: the destination the person approved, the engine's approval hash). A payload
@@ -135,7 +141,7 @@ begin
  h := encode(sha256(convert_to(public.career_apply_canonical(p_payload), 'UTF8')), 'hex');
  if p_approval is null or p_approval is distinct from h then raise exception 'invalid or stale application approval'; end if;
  j := public.career_apply_enqueue(p_payload, h, h, public.career_apply_daily_limit(u));
- update public.career_apply_batch_approvals set used_at = clock_timestamp() where id = a.id;
+ update public.career_apply_batch_approvals set used_at = clock_timestamp() where id = (ah->>'id')::uuid;
  update public.career_apply_jobs set agent_batch_hash = p_batch_hash where id = j.id and user_id = u;
  return jsonb_build_object('id', j.id, 'payload_hash', j.payload_hash);
 end $$;

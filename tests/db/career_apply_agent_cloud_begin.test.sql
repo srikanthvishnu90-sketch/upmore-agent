@@ -4,6 +4,14 @@
 -- null, attempts 0 only) never takes a chat-begun row, and the stamp would have counted toward the family
 -- gate's hand tally. The cloud door runs the same WO-102 contract (one helper, both doors), refuses a payload
 -- the claim could never take, and only enqueues: the claim stamps the row 'cloud' itself.
+-- CHAIN NOTE (2026-10-22, this branch rebased onto arch/pin-landing-candidate-bridge): the card-cloud bridge
+-- (20261024130000, design C9: "card is the only cloud authorization route") re-created the refusal and the
+-- claim to require a durable cloud-mode Messages card binding for the exact row/approval; a direct enqueue
+-- with no card behind it is refused 'not_card_approved' BY DESIGN (the bridge's own matrix names the case:
+-- direct_enqueue_not_card_approved). The claim-phase assertions below therefore characterise the chain as
+-- it stands: the door, the contract, the gate and the tallies are asserted at full strength, and the claim
+-- itself is asserted to refuse the unbound row -- the composition of the chat begin with the card binding
+-- is an open design question (F-030's ledger entry), not something this test decides.
 begin;
 reset role;
 -- O is the owner's gate tester (their hand submissions open the lever gate); A is the person applying in chat.
@@ -127,10 +135,12 @@ create function pg_temp.hand_tally(who text) returns bigint language sql as $$
 $$;
 select t.ok(pg_temp.hand_tally('00000000-0000-4000-8000-000000001102') = 0, 'A has no hand submissions');
 
--- With the gate closed the claim takes nothing, and says why.
+-- With the gate closed the claim takes nothing. The refusal names the missing card binding, not the gate:
+-- the bridge's refusal checks the binding before the gate (C9), so for an unbound row 'not_card_approved' is
+-- the chain's designed first answer in either gate state; the gate itself is asserted on its own predicate.
 select t.ok(not career_apply_cloud_open('lever'), 'the lever gate is closed below 3 hand submissions');
-select t.ok((select career_apply_cloud_refusal(j, now()) from career_apply_jobs j where job_id='cld') = 'gate_closed',
- 'the begun row''s refusal is the closed gate, nothing else');
+select t.ok((select career_apply_cloud_refusal(j, now()) from career_apply_jobs j where job_id='cld') = 'not_card_approved',
+ 'an unbound begun row is refused not_card_approved (C9: the card is the only cloud authorization route)');
 select t.ok((select count(*) from career_apply_cloud_claim_at(6, now())) = 0, 'a closed gate claims nothing');
 select t.ok((select state='queued' and source is null from career_apply_jobs where job_id='cld'), 'the row still waits');
 
@@ -157,25 +167,30 @@ select pg_temp.hand('00000000-0000-4000-8000-000000001101','F030-H2','Hand Two',
 select pg_temp.hand('00000000-0000-4000-8000-000000001101','F030-H3','Hand Three','https://jobs.lever.co/hthree/3');
 select t.ok(career_apply_cloud_open('lever'), '3 confirmed hand submissions by the gate tester open lever');
 
--- Begin -> claim: the worker takes the chat-begun row, exactly once, and stamps it 'cloud' itself.
+-- Begin -> claim, as the chain stands (C9): with the gate OPEN the claim still takes nothing -- the begun
+-- row carries no card binding, and the refusal stays 'not_card_approved'. The row is not swept or stamped:
+-- it waits exactly as the door left it, so a future binding (the open design question) finds it intact.
 create temp table bc_claimed as select * from career_apply_cloud_claim_at(6, now());
-select t.ok((select count(*) = 1 and bool_and(job_id='cld' and source='cloud' and state='driving' and attempts=1
-  and lease_token is not null) from bc_claimed), 'the claim takes the chat-begun row once, stamped cloud');
-select t.ok((select count(*) from career_apply_cloud_claim_at(6, now())) = 0, 'a claimed job is not claimed again');
+select t.ok((select count(*) from bc_claimed) = 0, 'the claim takes no unbound row, gate open or not (C9)');
+select t.ok((select career_apply_cloud_refusal(j, now()) from career_apply_jobs j where job_id='cld') = 'not_card_approved',
+ 'the refusal is still the missing card binding after the gate opens');
+select t.ok((select count(*) = 1 and bool_and(state='queued' and source is null and attempts=0 and lease_token is null
+  and agent_batch_hash=(select bh from bc_ch where n='cld')) from career_apply_jobs where job_id='cld'),
+ 'the begun row waits intact: queued, unstamped, its batch hash on it');
 select t.ok((select count(*) = 1 and bool_and(state='driving' and source='extension') from career_apply_jobs where job_id='clext'),
  'the extension-begun row is untouched by the claim');
 
--- Confirmed by the employer's email, the chat submission counts in its own class, never the hand tally.
-select pg_temp.confirm((select id from career_apply_jobs where job_id='cld'), 'received', repeat('9',64));
+-- Unclaimed, the begun row counts in no tally: not the hand tally (the F-030 lie, fixed) and not the cloud
+-- class (nothing was submitted). The gate stands on the tester's hand submissions alone.
 select t.ok(pg_temp.hand_tally('00000000-0000-4000-8000-000000001102') = 0,
- 'a confirmed chat submission is not a hand submission');
-select t.ok((select count(*) = 1 from career_apply_jobs where user_id='00000000-0000-4000-8000-000000001102'
-  and state='confirmed' and source='cloud' and email_confirmed_at is not null),
- 'the chat submission is counted in the cloud class');
+ 'a chat-begun row is not a hand submission');
+select t.ok((select count(*) = 0 from career_apply_jobs where user_id='00000000-0000-4000-8000-000000001102'
+  and state='confirmed'),
+ 'nothing of A''s is confirmed: an unclaimed begin submits nothing');
 select t.ok(pg_temp.hand_tally('00000000-0000-4000-8000-000000001101') = 3 and career_apply_cloud_open('lever'),
  'the gate still stands on the tester''s 3 hand submissions alone');
-select t.must_fail($$update career_apply_jobs set source='extension' where job_id='cld'$$,'source_fixed',
- 'a cloud submission cannot be relabelled as a hand one');
+select t.must_fail($$update career_apply_jobs set source='cloud' where job_id='clext'$$,'source_fixed',
+ 'a row whose source is stamped cannot be relabelled (the chain''s own rule: a null source may be stamped once, from queued -- which is the claim''s move, and nobody else''s in any product path)');
 
 -- Grants: the person's door is the person's; the helper is nobody's.
 select t.ok(has_function_privilege('authenticated','public.career_apply_cloud_begin_agent_own(jsonb,text,text)','execute')

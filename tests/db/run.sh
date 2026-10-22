@@ -374,6 +374,6 @@ fi
 # against the schema production ends on.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024140000_career_apply_agent_cloud_begin.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024140000_career_apply_agent_cloud_begin.sql"
-echo "== career_apply_agent_cloud_begin.test.sql (a begin made in chat is enqueued for the cloud claim and stamped 'cloud' only by that claim; the extension door unchanged)"
+echo "== career_apply_agent_cloud_begin.test.sql (a begin made in chat enqueues a claim-shaped row; on this chain the claim requires a card binding -- C9 -- and refuses the unbound row; the extension door unchanged)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_cloud_begin.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

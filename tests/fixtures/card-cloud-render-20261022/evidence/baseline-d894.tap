@@ -1,0 +1,119 @@
+TAP version 13
+# Subtest: NEW REGRESSION actual full producer P/R with nonempty employer string names renders and approves exact Hc
+not ok 1 - NEW REGRESSION actual full producer P/R with nonempty employer string names renders and approves exact Hc
+  ---
+  duration_ms: 17.242415
+  type: 'test'
+  location: '/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:57:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'invalid' !== 'open'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'open'
+  actual: 'invalid'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:62:9)
+    async Test.run (node:internal/test_runner/test:1389:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: NEW REGRESSION object-shaped employer values cannot replace actual string-array ABI even when card is rehashed
+not ok 2 - NEW REGRESSION object-shaped employer values cannot replace actual string-array ABI even when card is rehashed
+  ---
+  duration_ms: 25.736731
+  type: 'test'
+  location: '/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:70:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" to be strictly unequal to:
+    
+    'open'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'open'
+  actual: 'open'
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:72:9)
+    async Test.run (node:internal/test_runner/test:1389:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure unlisted
+ok 3 - CONTROL refuses malformed producer disclosure unlisted
+  ---
+  duration_ms: 8.611957
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure omitted
+ok 4 - CONTROL refuses malformed producer disclosure omitted
+  ---
+  duration_ms: 6.181055
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure duplicate
+ok 5 - CONTROL refuses malformed producer disclosure duplicate
+  ---
+  duration_ms: 5.648622
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-value
+ok 6 - CONTROL refuses malformed producer disclosure answer-value
+  ---
+  duration_ms: 5.866489
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-missing
+ok 7 - CONTROL refuses malformed producer disclosure answer-missing
+  ---
+  duration_ms: 6.87639
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-extra
+ok 8 - CONTROL refuses malformed producer disclosure answer-extra
+  ---
+  duration_ms: 4.456659
+  type: 'test'
+  ...
+# Subtest: CONTROL send deadline overrides current card and zero RPCs
+not ok 9 - CONTROL send deadline overrides current card and zero RPCs
+  ---
+  duration_ms: 7.227755
+  type: 'test'
+  location: '/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:81:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'invalid'
+    - 'expired'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'expired'
+  actual: 'invalid'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-card-cloud-worker-gate-20261021/tests/career-cloud-card-render-producer-qa.test.cjs:83:9)
+    async Test.run (node:internal/test_runner/test:1389:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  ...
+# Subtest: CONTROL explicit cloud eligibility lost before tap blocks exact actual producer item
+ok 10 - CONTROL explicit cloud eligibility lost before tap blocks exact actual producer item
+  ---
+  duration_ms: 8.511123
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 7
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 195.766848

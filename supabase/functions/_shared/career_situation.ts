@@ -14,7 +14,7 @@ export interface Task {
   kind: "application" | "apply_request" | "question" | "outreach" | "mail_draft" | "interview" | "tracked";
   company: string | null; title: string | null; state: string; since: string | null;
   blocker: { what: string; who: Actor; how: string } | null;
-  evidence: { confirmation_id?: string; reason?: string; url?: string; job_id?: string; stage?: string };
+  evidence: { confirmation_id?: string; reason?: string; url?: string; job_id?: string; stage?: string; when?: string };
   source: string;
 }
 export interface Situation {
@@ -108,7 +108,7 @@ export function situationFrom(r: SituationRows, now: number): Situation {
   for (const a of r.threads.flatMap((t) => (Array.isArray(t.rows) ? t.rows : []))) {
     if (!a?.company || tracked.has(String(a.app_id)) || tasks.some((t) => t.kind === "application" && t.company && sameCompany(t.company, a.company))) continue;
     tracked.add(String(a.app_id));
-    add({ id: `track:${a.app_id}`, kind: "tracked", company: String(a.company), title: str(a.role), state: "tracked", since: a.applied_at ?? null, source: "tracker (they told Trainee)", blocker: null, evidence: { stage: String(a.stage || "Submitted") } });
+    add({ id: `track:${a.app_id}`, kind: "tracked", company: String(a.company), title: str(a.role), state: "tracked", since: a.applied_at ?? null, source: "tracker (they told Trainee)", blocker: null, evidence: { stage: String(a.stage || "Submitted"), ...(a.next_when ? { when: String(a.next_when) } : {}) } });
   }
   const prefs = r.alerts?.prefs;
   const capabilities = capabilitiesFrom({ connections: r.connections, extension_seen_at: seen, cloud: r.cloud, channel: r.channel,
@@ -197,11 +197,15 @@ const STATE_WORDS: Record<string, string> = {
 const WHO: Record<Actor, string> = { person: "them", trainee: "Trainee", extension: "the extension", employer: "the employer" };
 function taskLine(t: Task, how = true): string {
   const e = t.evidence, b = t.blocker;
-  return `- ${t.company ?? "?"}${t.title ? ` (${t.title})` : ""}: ${STATE_WORDS[t.state] ?? t.state}${e.stage ? ` (stage: ${e.stage})` : ""}${e.confirmation_id ? `; confirmation ${e.confirmation_id}` : ""}` +
+  return `- ${t.company ?? "?"}${t.title ? ` (${t.title})` : ""}: ${STATE_WORDS[t.state] ?? t.state}${e.stage ? ` (stage: ${e.stage})` : ""}${e.when ? ` (next: ${e.when}, as they said it)` : ""}${e.confirmation_id ? `; confirmation ${e.confirmation_id}` : ""}` +
     `${b ? `; blocker: ${b.what}; who acts: ${WHO[b.who]}${how ? `; how: ${b.how}` : ""}` : ""}${t.since ? ` (since ${day(t.since)})` : ""}`;
 }
 const nextLine = (n: Situation["next"][number], i: number) => `${i + 1}. [${WHO[n.who]}] ${n.what}${n.say ? ` (they text: "${n.say}")` : ""}`;
-const goalLine = (s: Situation) => `Goal: ${s.goal.roles.join(", ") || "not stated"}${s.goal.places.length ? ` in ${s.goal.places.join(" or ")}` : ""}${s.goal.constraints.length ? `; must hold: ${s.goal.constraints.join("; ")}` : ""}.`;
+// WO-106 (F2): this goal is the job alerts' only. "Goal: not stated" here sat beside the goal they had told the chat (kept in
+// their profile, "Their goal") and the model was handed both; it now says which goal it is.
+const goalLine = (s: Situation) => (s.goal.roles.length || s.goal.places.length
+  ? `Job-alert goal: ${s.goal.roles.join(", ") || "any role"}${s.goal.places.length ? ` in ${s.goal.places.join(" or ")}` : ""}`
+  : "Job-alert goal: no alerts set (the goal they told you is under \"Their goal\")") + `${s.goal.constraints.length ? `; must hold: ${s.goal.constraints.join("; ")}` : ""}.`;
 
 // The block for the system prompt. Next steps, tasks waiting on the person and what Trainee can do are never cut for
 // length; past the budget the other task lines go first (from the end), then the last list shown, and the cut is said.
@@ -214,6 +218,8 @@ export function situationBlock(s: Situation, budget = SITUATION_BUDGET): string 
     ["Next steps, in order (how is the exact step):", true], ...(s.next.length ? s.next.map(nextLine) : ["- nothing in flight"]).map((x): [string, boolean] => [x, true]),
     ...(ls ? [[`Last list shown (${day(ls.at)}, "${ls.query}"): ${ls.items.map((x, i) => `${i + 1}. ${x.company}, ${x.title} (${x.job_id})`).join("; ")}`, false] as [string, boolean]] : []),
     ["Tasks:", true],
+    // WO-061 fix (b): an empty account says so in words the brain can repeat, never a bare heading it reads as unknown.
+    ...(s.tasks.some((t) => t.kind !== "question") ? [] : [["- none on file: no applications (queued, prepared, sent or failed), no postings saved to apply to, no drafts, no interviews. Asked about any of these, say plainly there are none yet and the one step that starts one.", true] as [string, boolean]]),
     ...s.tasks.filter((t) => t.kind !== "question" && t.blocker?.who === "person").map((t): [string, boolean] => [line(t), true]),
     ...s.tasks.filter((t) => t.kind !== "question" && t.blocker?.who !== "person").map((t): [string, boolean] => [line(t), false]),
     ["What Trainee can and cannot do right now:", true],

@@ -2010,6 +2010,7 @@
 <!--__LEDGER_CONTROLLER__-->
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
+<!--__CAREER_APPROVAL_CARD__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -5326,7 +5327,9 @@
       ["career_apply_jobs", "created_at,id"],
       ["career_apply_prepared", "created_at,id"],
       ["career_apply_cards", "shown_at,id"],
+      ["career_apply_message_cards", "shown_at,id"],
       ["career_apply_wanted", "queued_at,posting_key"],
+      ["career_apply_batch_approvals", "approved_at,id"],
       ["career_apply_questions", "created_at,id"],
       ["career_mail_events", "detected_at,id"],
       ["career_mail_drafts", "created_at,id"],
@@ -7904,7 +7907,7 @@
     const ta = $("chatInput"); if (ta) ta.focus();
   }
   // History bubbles: synchronous (no typing delay) renders of stored messages.
-  function histBubble(el, role, content) {
+  function histBubble(el, role, content, meta) {
     const txt = String(content || "");
     if (role === "user") {
       const d = document.createElement("div"); d.className = "umsg";
@@ -7914,6 +7917,7 @@
       const m = document.createElement("div"); m.className = "amsg";
       m.innerHTML = `<p>${md(txt)}</p>`;
       el.appendChild(m);
+      renderCareerApproval(m, meta, chatRequests.capture());
     }
   }
   async function openGuideChat(id) {
@@ -7932,7 +7936,7 @@
       if(result.state!=='ok')throw Error('Chat history unavailable');
       const data=result.value;
       el.innerHTML = "";
-      (data || []).forEach(m => histBubble(el, m.role, m.content));
+      (data || []).forEach(m => histBubble(el, m.role, m.content, m.meta));
       if (!(data || []).length) {
         chatThread.empty = true;
         el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el);
@@ -7947,11 +7951,50 @@
   /* ============ Supabase Auth (Google) + profile + progress sync ============ */
   const supa = window.supabase.createClient(UPMORE_BACKEND_URL, UPMORE_ANON_KEY);
   let session = null, dbProfile = null;
+  /*__CAREER_APPROVAL_TEST_PROFILE__*/
+  const careerApprovalCards = typeof TraineeApprovalCards === 'object' ? TraineeApprovalCards.createController({
+    testUserId: CAREER_APPROVAL_TEST_USER_ID,
+    identity: () => session?.user?.id || null,
+    thread: () => upmoreThread,
+    authenticate: async () => {
+      const { data, error } = await supa.auth.getUser();
+      if (error || !data?.user?.id) throw Error('Sign in again to review this approval.');
+      return data.user.id;
+    },
+    cloudEnabled: async () => {
+      const { data, error } = await supa.rpc('career_apply_message_cloud_enabled_own');
+      if (error) throw error;
+      return data === true;
+    },
+    readCard: async cardId => {
+      const { data, error } = await supa.rpc('career_apply_message_card_read_own', { p_card: cardId });
+      if (error) throw error;
+      return data;
+    },
+    approve: async ({ card_id, card_hash }) => {
+      const { data, error } = await supa.rpc('career_apply_message_card_approve_own', { p_card: card_id, p_hash: card_hash });
+      if (error) throw error;
+      return data;
+    },
+    now: () => Date.now(), document, crypto: globalThis.crypto
+  }) : null;
+  function renderCareerApproval(host, metadata, ticket) {
+    if (!careerApprovalCards || !ticket.current()) return;
+    const cardId = metadata?.intent === 'career_message_approval' ? metadata.career_approval_card_id
+      : metadata?.type === 'career_message_approval' ? metadata.card_id : null;
+    if (typeof cardId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cardId)) return;
+    const target = document.createElement('section'); target.className = 'mini career-approval-card'; host.appendChild(target);
+    careerApprovalCards.mount(target, cardId, { current: () => ticket.current() }).catch(() => {
+      if (!ticket.current()) return;
+      target.textContent = 'This approval could not be verified. Nothing was approved.';
+      target.setAttribute('role', 'alert');
+    });
+  }
   const chatRequests=UpmoreChatRequests({
     identity:()=>session?{owner:session.user.id}:null,conversation:()=>({thread:upmoreThread,mode:chatMode}),getToken:()=>getSessionToken(),
     request:async(body,token)=>{const response=await fetch(UPMORE_BACKEND_URL+'/functions/v1/agent-chat',{method:'POST',headers:{'content-type':'application/json',apikey:UPMORE_ANON_KEY,authorization:'Bearer '+token},body:JSON.stringify(body)});if(!response.ok)throw Error('Chat unavailable');return await response.json();},
     readThreads:async owner=>{const {data,error}=await supa.from('agent_threads').select('id,user_id,title,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data;},
-    readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('thread_id,role,content').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
+    readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('id,thread_id,role,content,meta').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
   });
   function resetPrivateChat() {
     chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;
@@ -8275,9 +8318,9 @@
         // Real agent reply. Apply walkthrough actions.
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) {
           const r = routeById(j.action.route_id);
-          if (r) { addAI([j.reply], null, null, ticket, j.action); startWalkthrough(j.action.route_id); busy = false; return; }
+          if (r) { addAI([j.reply], null, null, ticket, j.action, j.meta); startWalkthrough(j.action.route_id); busy = false; return; }
         }
-        addAI([j.reply], null, null, ticket, j.action);
+        addAI([j.reply], null, null, ticket, j.action, j.meta);
       } else {
         const r = guideAnswer(text);
         const imgNote = hasImg ? ["I couldn't look at your photo just now — the analysis service didn't respond. Here's what I can answer from your message:"] : [];
@@ -12417,7 +12460,7 @@ document.addEventListener("click", (e) => {
   e.preventDefault();
   startConnect(a.dataset.connect);
 });
-function addAI(paras, card, prov, requestTicket, workflowAction) {
+function addAI(paras, card, prov, requestTicket, workflowAction, messageMeta) {
   const ticket=requestTicket && typeof requestTicket.current==='function' ? requestTicket : chatRequests.capture();
   if(!ticket.current())return;
   chatNoteEmpty(); maybeTs();
@@ -12435,6 +12478,7 @@ function addAI(paras, card, prov, requestTicket, workflowAction) {
       html += `<div class="mini"><span>${esc(card.tag || "")}</span><b>${esc(card.title || "")}</b><span>${esc(card.meta || "")}</span>${card.aff ? `<span class="abadge">Affiliate</span>` : ""}<button data-open>Open move</button></div>`;
     }
     m.insertAdjacentHTML("beforeend", html);
+    renderCareerApproval(m, messageMeta?.intent === 'career_message_approval' ? messageMeta : workflowAction, ticket);
     const workflow=ticket.workflow(workflowAction);
     if(workflow){const review=document.createElement('button');review.type='button';review.className='ghostbtn';review.textContent='Review bill next step';review.onclick=()=>workflow.open(link=>{openBillWorkflow(link,ticket).catch(()=>{if(ticket.current())toast('Bill details are unavailable. Reload bills to try again.');});});m.appendChild(review);}
     const b = m.querySelector("[data-open]");
@@ -12634,7 +12678,7 @@ async function agentChat(text, images) {
   };
   const okStep = (el) => { el.dataset.st = "done"; el.querySelector(".sc").textContent = "✓"; };
 
-  let paras = null, card = null, prov = null, walkthrough = null, workflow = null, src = "local";
+  let paras = null, card = null, prov = null, walkthrough = null, workflow = null, approvalMeta = null, src = "local";
   const s1 = mkStep("Understanding the request");
   try {
     // Real work: the same intent pipeline Ask mode uses. With attached photos
@@ -12650,7 +12694,7 @@ async function agentChat(text, images) {
       const j = await agentAsk(text, images, ticket);
       if(!ticket.current() || j?.stale){run.remove();return;}
       if (j && j.reply) {
-        paras = [j.reply]; prov = null; src = "agent"; workflow = j.action;
+        paras = [j.reply]; prov = null; src = "agent"; workflow = j.action; approvalMeta = j.meta;
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) walkthrough = j.action.route_id;
       } else {
         const r = guideAnswer(text);
@@ -12681,7 +12725,7 @@ async function agentChat(text, images) {
   okStep(s2);
   run.remove();
 
-  addAI(paras && paras.length ? paras : ["I couldn't find an answer for that yet — try asking about your budget, bills, or subscriptions."], card, prov, ticket, workflow);
+  addAI(paras && paras.length ? paras : ["I couldn't find an answer for that yet — try asking about your budget, bills, or subscriptions."], card, prov, ticket, workflow, approvalMeta);
   if (walkthrough) { const r = routeById(walkthrough); if (r) startWalkthrough(walkthrough); }
   try { await writeLedger({ action: "agent_chat", outcome: "done", evidence: { title: text, source: src, liveAccounts: liveN, openTasks: openN } }); } catch (e) {}
   if(!ticket.current())return;

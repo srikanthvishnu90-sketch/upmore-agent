@@ -65,13 +65,37 @@ function yesNoButtons(el: any): any[] {
   const box = el.closest && el.closest("[class*='yesno']");
   return box ? Array.from(box.querySelectorAll("button[data-option]")) : [];
 }
+// The button the page shows pressed, "yes" or "no" (null: none). A "No" leaves the hidden box unchecked, exactly like a
+// question nobody answered, so the pressed button is the only place the page shows it. Ashby renders aria-pressed on
+// both buttons ("false" in every capture until pressed) and keeps an empty slot in the option's class for its
+// selected-state class; a selected-state class is read only where a page renders no aria-pressed at all.
+const SELECTED_CLASS = /(^|\s)(_(active|selected|pressed|checked)_[\w-]+|active|selected|is-active|is-selected)(?=\s|$)/i;
+function yesNoPressed(el: any): "yes" | "no" | null {
+  for (const b of yesNoButtons(el)) {
+    const a = b.getAttribute("aria-pressed");
+    const on = a !== null ? a === "true" : SELECTED_CLASS.test(String(b.getAttribute("class") || ""));
+    const o = String(b.getAttribute("data-option") || "").toLowerCase();
+    if (on && (o === "yes" || o === "no")) return o;
+  }
+  return null;
+}
+// A person's press on a yes/no button (content.js: the card refreshes on it; the hidden box gets no input or change).
+export function yesNoPress(target: any): boolean {
+  const b = target?.closest?.("button[data-option]");
+  return !!b && !!b.closest("[class*='yesno']");
+}
 
 // A react-select widget's chosen value, as the page renders it (the engine's fnWidgetValue).
 function widgetValue(el: any): string | null {
   const root = el.closest("[class*='select__control']") || el.closest("[class*='select__container'], [class*='-container']") || el.parentElement;
   const sv = root && root.querySelector("[class*='select__single-value'], [class*='-singleValue']");
   const t = sv ? String(sv.textContent || "").replace(/\s+/g, " ").trim() : "";
-  return t || null;
+  if (t) return t;
+  // A Greenhouse multi-select persists one chip per choice, not a single-value node. Read only each chip's label,
+  // in page order: the remove buttons and unpicked search text are not answers and must never reach the review card.
+  const labels = Array.from(root?.querySelectorAll("[class*='select__multi-value__label']") ?? [])
+    .map((label: any) => String(label.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+  return labels.length ? labels.join(", ") : null;
 }
 // WO-042, measured on the live pages from CI (evals/apply/results/live-fill.json): a Greenhouse react-select menu opens
 // for a page script only through the widget's own "Toggle flyout" button (typing, ArrowDown or a mousedown on the
@@ -121,6 +145,12 @@ function closeMenu(el: any) {
 }
 async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<boolean> {
   const control = el.closest("[class*='select__control']") || el.closest("[class*='-control']");
+  // Picking again appends to a multi-select rather than replacing it. Leave existing choices for the person: the
+  // content script must not label their whole selection as this fill's one chosen answer or hide earlier chips.
+  if (control?.querySelector("[class*='select__multi-value__label']")) {
+    lastChoice = null;
+    return widgetValue(el) === String(wanted).replace(/\s+/g, " ").trim();
+  }
   const toggle = control?.querySelector("button[aria-label*='flyout' i], button[aria-label*='toggle' i]");
   const pick = choose ?? ((labels: string[]) => labels.find((l) => norm(l) === norm(wanted)) ?? null);
   if (toggle) press(toggle);
@@ -281,8 +311,14 @@ export async function fill(b: any, value: string, resume: Resume | null, choose?
     const want = yes(value);
     const buttons = yesNoButtons(el);
     if (buttons.length) {
-      const btn = buttons.find((x: any) => x.getAttribute("data-option") === (want ? "yes" : "no"));
-      btn?.click();
+      // The answer is the button. One already pressed is left alone (a second press may undo it); the page's own render
+      // of a press may come a tick later (React), and once it shows a pressed button that is what was taken. A page that
+      // never shows one (no page script: the TEST world's stripped captures) falls through to the box, as before.
+      const opt = want ? "yes" : "no";
+      if (yesNoPressed(el) !== opt) buttons.find((x: any) => String(x.getAttribute("data-option")).toLowerCase() === opt)?.click();
+      await until(() => (yesNoPressed(el) === opt ? opt : null), 300, 20);
+      const shown = yesNoPressed(el);
+      if (shown) return shown === opt;
     }
     if (el.checked !== want) el.click();
     if (el.checked !== want) {
@@ -324,7 +360,11 @@ export function readDetail(b: any): string {
   if (b.inputType === "radio_group" || b.inputType === "checkbox_group") {
     return (b.options || []).map((o: any) => element(o.selector)).filter((x: any) => x?.checked).map((x: any) => `checked=${x.value}`).join(",");
   }
-  if (b.inputType === "checkbox") return `checked=${!!el.checked};value=${el.value}`;
+  if (b.inputType === "checkbox") {
+    // A yes/no question's answer is its pressed button: a "No" and an unanswered question have the same unchecked box.
+    const box = `checked=${!!el.checked};value=${el.value}`;
+    return yesNoButtons(el).length ? `${box};pressed=${yesNoPressed(el) ?? "none"}` : box;
+  }
   return "";
 }
 // Read-only fields the page set: sent with the form, so shown on the card and bound to the approval.
@@ -357,8 +397,8 @@ export function readValue(b: any): string {
     return chosen.join(", ");
   }
   if (b.inputType === "checkbox") {
-    const pressed = yesNoButtons(el).find((x: any) => x.getAttribute("aria-pressed") === "true");
-    if (pressed) return pressed.getAttribute("data-option") === "yes" ? "Yes" : "No";
+    const pressed = yesNoPressed(el);
+    if (pressed) return pressed === "yes" ? "Yes" : "No";
     return el.checked ? "Yes (checked)" : "";
   }
   return String(el.value ?? "");
@@ -732,6 +772,22 @@ function readWorkdayValue(b: any, el: any): string {
   return "";
 }
 
+// Carry the browser's declared native constraints with its type. Custom Workday date/list/prompt widgets have their
+// own formats and options; their internal search/spinbutton inputs are not the question's native field contract.
+function wdNativeConstraints(control: any): Record<string, string | number> {
+  if (!["INPUT", "TEXTAREA"].includes(String(control?.tagName))) return {};
+  const out: Record<string, string | number> = {};
+  for (const key of ["min", "max", "step", "pattern"]) {
+    const value = control.getAttribute(key);
+    if (value !== null) out[key] = String(value);
+  }
+  for (const [attr, key] of [["minlength", "minLength"], ["maxlength", "maxLength"]]) {
+    const value = control.getAttribute(attr);
+    if (value !== null && /^\d+$/.test(value) && Number.isSafeInteger(Number(value))) out[key] = Number(value);
+  }
+  return out;
+}
+
 // Every field of this step. Hidden fields (a conditional not shown) are not on the page for the person either: not read.
 export function readWorkday(): Form {
   wdEls.clear();
@@ -751,7 +807,7 @@ export function readWorkday(): Form {
     const radios = Array.from(w.querySelectorAll('input[type="radio"]')) as any[];
     const boxes = Array.from(w.querySelectorAll('input[type="checkbox"]')) as any[];
     const area = w.querySelector("textarea");
-    const text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"]');
+    const text = w.querySelector('input:not([type]), input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"], input[type="date"], input[type="month"]');
     let control: any = null, widget: string | null = null, inputType = "text", type = "text", optionEls: any[] = [];
     if (file) [control, widget, inputType, type] = [file, "wd-file", "file", "file"];
     else if (date) [control, widget, inputType, type] = [date, "wd-date", "text", "date"];
@@ -761,10 +817,10 @@ export function readWorkday(): Form {
     else if (boxes.length > 1) [control, inputType, type, optionEls] = [boxes[0], "checkbox_group", "checkbox", boxes];
     else if (boxes.length === 1) [control, inputType, type] = [boxes[0], "checkbox", "checkbox"];
     else if (area) [control, type] = [area, "textarea"];
-    else if (text) [control, type] = [text, "text"];
+    else if (text) [control, inputType, type] = [text, String(text.type || "text").toLowerCase(), String(text.type || "text").toLowerCase()];
     else continue;
     let label = wdLabelOf(w, control);
-    const required = !!w.querySelector('abbr[title="required"]') || (Array.from(w.querySelectorAll("abbr")) as any[]).some((a) => /\*/.test(a.textContent)) ||
+    const required = !!control.required || !!w.querySelector('abbr[title="required"]') || (Array.from(w.querySelectorAll("abbr")) as any[]).some((a) => /\*/.test(a.textContent)) ||
       control.getAttribute?.("aria-required") === "true";
     const rowEl = rowOfField(w);
     const g = rowEl ? sectionOfRow(rowEl) : null;
@@ -808,9 +864,10 @@ export function readWorkday(): Form {
       })
       : (wdOptions.get(name) ?? []).map((l) => ({ label: l, value: l, selector: "" }));
     if (new Set(options.map((o) => o.value)).size !== options.length) options.forEach((o) => (o.value = o.label));
-    const isPhone = !section && type === "text" && (/--phoneNumber$/.test(String(control.id || "")) || /^phone number$/i.test(label));
+    const isPhone = !section && ["text", "tel"].includes(type) && (/--phoneNumber$/.test(String(control.id || "")) || /^phone number$/i.test(label));
     schema.push({
       name, label: label || name, type, required, options: options.map((o) => ({ label: o.label, value: o.value })),
+      ...(!widget ? wdNativeConstraints(control) : {}),
       ...(section ? { section } : {}), ...(isPhone && dial !== undefined ? { dial } : {}), ...(wdPersonal(w, control) ? { personal: true } : {}),
     });
     bindings[name] = { field_id: name, inputType, selector: "wd:" + name, options: optionEls.length ? options : [], widget, elementRefs: [] };

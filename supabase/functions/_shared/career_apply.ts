@@ -7,6 +7,7 @@
 //                     batches need nothing; the batch is admitted against the limits up front.
 // The worker (WO-009b) fills exactly the prepared fields by name, reads each back, and classifies the outcome here.
 import { answerKey, AUTH_FACTS, FOREIGN, mapQuestion, NAMES_US, norm as normQuestion, RELATIVE_PLACE } from "./question_map.ts";
+import { rowAnswerKey } from "./row_answer.ts";
 import { chooseOption, levelOption, usCitizenChoice, yesNoFromFact, yesNoOf } from "./answer_options.ts";
 import { type PlacePart, postingAtHome, postingCountry, postingPlaces, STATE_NAMES } from "./posting_place.ts";
 
@@ -89,7 +90,8 @@ const KEYS: [RegExp, string][] = [
   [/first\s*(name\s*)?(&|and)\s*last\s*name/i, "full_name"],
   [/^first\s*name|^given\s*name|^preferred\s*first/i, "first_name"],
   [/^last\s*name|^family\s*name|^surname/i, "last_name"],
-  [/^(full\s*)?name$|^legal\s*name/i, "full_name"],
+  [/^legal\s*name\b|^full\s+legal\s+name\b/i, "legal_name"],
+  [/^(full\s*)?name$/i, "full_name"],
   [/e-?mail/i, "email"],
   [/\b(tele)?phone\b|\bcell\b|^mobile\b(?!\s*(app|development|device|engineer))|mobile\s*(phone|number)/i, "phone"],
   [/resume|\bcv\b|curriculum/i, "resume"],
@@ -217,6 +219,12 @@ const homeInUs = (answers: Record<string, unknown> = {}) => {
   const v = (k: string) => String((answers[k] as { value?: unknown } | undefined)?.value ?? "");
   return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
 };
+// Owner (Ashby scope, 2026-10-21): an answer offered for a work-rights question can tie it to the job's country ("No, I do
+// not require sponsorship to work in the country where this role is located", Harvey). Such a question is read with that
+// option: it is the person's US answer only at a posting known to be in the US, and asked at one with no location (F-013).
+// A question that names the US itself ("authorized to work in the United States?") stays the person's, whatever its options say.
+const placeText = (q: { label: string; options?: { label: string }[] }) => NAMES_US.test(q.label) ? q.label :
+  [q.label, ...(q.options ?? []).map((o) => o.label).filter((l) => RELATIVE_PLACE.test(l))].join(" ");
 export function otherCountry(fact: string, label: string, location?: string, homeUs = false): boolean {
   if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
   const abroad = postingCountry(postingPlaces(location ?? "")) === "abroad";
@@ -250,7 +258,7 @@ const BEYOND_FACT: [string[], RegExp][] = [
 // becomes the person's US sponsorship fact, and a US "No" saved as the fact never answers London's question.
 export function factStaysHere(q: { label: string; type: string; options?: { label: string }[] }, location?: string, answers?: Record<string, unknown>): boolean {
   const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
-  return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
+  return m.kind === "fact" && (otherCountry(m.fact, placeText(q), location, homeInUs(answers)) || beyondFact(m.fact, q));
 }
 const byNationalityList = (options: { label: string }[]) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
 export function beyondFact(fact: string, f: { label: string; type: string; options?: { label: string }[] }): boolean {
@@ -360,7 +368,7 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     return citizen && pick.length === 1 && postingCountry(posting) !== "abroad" ? { value: pick[0].value, factId: answers.citizenship.factId } : null;
   }
   // WO-052: the employer list derives "worked here before"; it is never typed as one employer, a title or a date.
-  if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
+  if (m.fact === "former_employers" || otherCountry(m.fact, placeText(f), location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
   if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
   // The person's own contact and identity facts never answer a question about someone else, by meaning either
   // ("Phone number of the person referring you"; WO-031, tests/fixtures/extension/answer-key.json).
@@ -442,12 +450,92 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
 //   referring team member's full name": "No" is not a name).
 // - A field that asks for a date in a stated format, or a date input, takes only a date ("2 weeks" is not MM/DD/YY).
 // - A number input takes only a number.
-// Anything else is left: asked when required, empty when optional. An answer the person gave for this exact question is
-// theirs and is not second-guessed here. Options are matched by chooseOption, checkboxes by yesNoFromFact.
+// Anything else is left: asked when required, empty when optional. Saved answers retain the person's wording, but must
+// still fit the employer's typed field. Options are matched by chooseOption, checkboxes by yesNoFromFact.
 const ASKS_DATA = /\b(name|e-?mail|phone|number|date|address|url|link|website|zip|postal|street)\b/;
 const ASKED_YES_NO = /^(are|do|does|have|has|will|would|can|could|is|did|were|was|may|should|shall)\b|\byes\s*(\/|or)\s*no\b|\(y\/n\)/;
 const DATE_FORMAT = /\b(mm|dd)\s*[\/.-]\s*(dd|mm|yy|yyyy)\b|\bdate format\b|\bin (the )?format\b.*\b(dd|mm|yyyy)\b/;
-const DATE_VALUE = /^(\d{1,4}[\/.-]\d{1,2}([\/.-]\d{1,4})?|\d{4}-\d{2}-\d{2}|[a-z]{3,9}\.? \d{1,2},? \d{4})$/i;
+function calendarOk(year: number, month: number | null, day: number | null): boolean {
+  if (!Number.isInteger(year) || year < 1 || year > 9999 || (month !== null && (month < 1 || month > 12))) return false;
+  if (day === null) return true;
+  if (month === null || !Number.isInteger(day) || day < 1) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  return day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+}
+type CalendarParts = { year: number; month: number | null; day: number | null };
+function calendarParts(value: string, dayFirst = false): CalendarParts | null {
+  let year: number, month: number | null = null, day: number | null = null;
+  let m: RegExpExecArray | null;
+  if ((m = /^(\d{4})(?:[\/.-](\d{1,2})(?:[\/.-](\d{1,2}))?)?$/.exec(value))) [year, month, day] = [Number(m[1]), m[2] ? Number(m[2]) : null, m[3] ? Number(m[3]) : null];
+  else if ((m = /^(\d{1,2})[\/.-](\d{4})$/.exec(value))) [year, month] = [Number(m[2]), Number(m[1])];
+  else if ((m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(value))) [year, month, day] = [Number(m[3]), Number(m[dayFirst ? 2 : 1]), Number(m[dayFirst ? 1 : 2])];
+  else if ((m = /^([a-z]+)\.?\s+(?:(\d{1,2}),?\s+)?(\d{4})$/i.exec(value))) {
+    const index = MONTHS.findIndex((s) => s.toLowerCase() === m![1].toLowerCase() || s.slice(0, 3).toLowerCase() === m![1].toLowerCase());
+    if (index < 0) return null;
+    [year, month, day] = [Number(m[3]), index + 1, m[2] ? Number(m[2]) : null];
+  } else return null;
+  return calendarOk(year, month, day) ? { year, month, day } : null;
+}
+type TypedField = Pick<FormField, "type" | "label" | "options" | "section">;
+const dateFormat = (f: TypedField) => (f.section?.format || /\b(?:yyyy[-/.]mm(?:[-/.]dd)?|dd[-/.]mm[-/.]yyyy|mm[-/.]dd[-/.]yyyy|mm[-/.]yyyy|yyyy)\b/i.exec(normQuestion(f.label))?.[0] || "").toUpperCase();
+// The stored question has no section column. Preserve known date precision in its existing type, rather than guessing
+// from an ambiguous label such as "From". Options retain their original type and exact choice validation.
+export function questionFieldType(f: TypedField): string {
+  const type = String(f.type || "input_text");
+  if (f.options?.length || type === "checkbox" || /file/.test(type) || type === "number") return type;
+  const format = dateFormat(f);
+  if (format === "YYYY") return "year";
+  if (/^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || /month and year|month\/year/i.test(f.label)) return "month";
+  return type;
+}
+// The same typed check runs before saving and filling. A month/year can fill only a field asking for that precision;
+// it never acquires an invented day. Stored answers keep the person's exact representation.
+export function typedFieldProblem(f: TypedField, value: string): string | null {
+  if (f.options.length || f.type === "checkbox" || /file/.test(f.type)) return null;
+  const v = String(value).trim(), label = normQuestion(f.label);
+  if (f.type === "number" && (!/^-?\d+(?:\.\d+)?$/.test(v) || !Number.isFinite(Number(v)))) return "needs a finite number, written as digits";
+  // Some forms split a date into separately labelled components. Those explicit non-native fields take only
+  // their stated component; a native date/month input still requires its complete declared precision.
+  const component = !["date", "month", "year"].includes(f.type) && !f.section?.format
+    ? /\bdate\s+(month|year)\s*[*:]?$/i.exec(label)?.[1] : null;
+  if (component === "year") {
+    const p = calendarParts(v);
+    return /^\d{4}$/.test(v) && p && p.month === null ? null : "needs a valid four-digit year";
+  }
+  if (component === "month") {
+    const valid = MONTHS.some((month) => month.toLowerCase() === v.toLowerCase()) || /^\d{1,2}$/.test(v) && Number(v) >= 1 && Number(v) <= 12;
+    return valid ? null : "needs a valid month only";
+  }
+  const format = dateFormat(f);
+  const monthYear = /month and year|month\/year/i.test(label) || /^(?:MM[\/.-]YYYY|YYYY[\/.-]MM)$/.test(format) || f.type === "month";
+  const yearOnly = format === "YYYY" || f.type === "year";
+  const date = f.type === "date" || f.type === "month" || f.type === "year" || !!format || DATE_FORMAT.test(label) || (/\bdates?\b/.test(label) && !/up[- ]to[- ]date/.test(label));
+  if (!date) return null;
+  const p = calendarParts(v, /^DD/.test(format));
+  if (!p || (yearOnly ? p.month !== null : monthYear ? p.month === null || p.day !== null : p.day === null)) {
+    return yearOnly ? "needs a valid four-digit year" : monthYear ? "needs a valid month and year, without adding a day" : "needs a valid calendar date including month, day and four-digit year";
+  }
+  return null;
+}
+// Native date/month inputs require ISO, even when the person stated an equivalent named or slash-separated date.
+// Only a fully validated, already-stated precision is reformatted. Segmented date widgets receive their declared
+// part order, while the source and saved answer retain the person's exact words.
+export function canonicalTypedValue(f: TypedField, value: string): string | null {
+  if (typedFieldProblem(f, value)) return null;
+  if (f.options.length) return value;
+  const format = dateFormat(f);
+  if (!f.section?.format && !["date", "month"].includes(f.type)) return value;
+  const p = calendarParts(String(value).trim(), /^DD/.test(format));
+  if (!p) return null;
+  const year = String(p.year).padStart(4, "0"), month = p.month === null ? null : String(p.month).padStart(2, "0"), day = p.day === null ? null : String(p.day).padStart(2, "0");
+  if (f.section?.format) {
+    if (!/^(?:YYYY|MM[\/.-]YYYY|YYYY[\/.-]MM|YYYY[\/.-]MM[\/.-]DD|MM[\/.-]DD[\/.-]YYYY|DD[\/.-]MM[\/.-]YYYY)$/.test(format)) return null;
+    if ((format.includes("MM") && month === null) || (format.includes("DD") && day === null)) return null;
+    return format.replace(/YYYY|MM|DD/g, (part) => part === "YYYY" ? year : part === "MM" ? month! : day!);
+  }
+  if (month === null || (f.type === "date" && day === null)) return null;
+  return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${day}`;
+}
 const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
 // WO-052 (an independent review of every fill on samples A and B):
 // - A yes, a no or an "I agree" goes into a typed box only when the box asks a yes-or-no question, and only that: "If
@@ -462,7 +550,11 @@ function asksYesNo(t: string): boolean {
   const q = (asked.length ? asked[asked.length - 1] : t.split(/(?<=[.!:])\s+/).pop() ?? t).trim();
   return ASKED_YES_NO.test(q) && !/\b(what|which|when|where|how|why|who)\b|%/.test(q);
 }
-export function fitsField(f: FormField, value: string): boolean {
+export function fitsField(f: FormField, value: string, ownAnswer = false): boolean {
+  if (typedFieldProblem(f, value)) return false;
+  // An exact personal answer may be a terse "No" in an ordinary free-text box. Keep its words; only its explicit
+  // numeric/date shape is imposed here. Derived answers still pass the semantic checks below.
+  if (ownAnswer) return true;
   // A dropdown widget's value is chosen later among its own options (chooseWidgetOption), never typed (WO-052, live run).
   if (f.options.length || f.widget || f.type === "checkbox" || /file/.test(f.type)) return true;
   const t = normQuestion(f.label), v = String(value).trim();
@@ -471,8 +563,6 @@ export function fitsField(f: FormField, value: string): boolean {
   // WO-055: a box that says "y/n" or "yes/no" takes a yes or a no, never a fact's text ("U.S. Citizenship is required.
   // Are you able to meet this requirement? y/n" is not "United States").
   if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
-  if ((f.type === "date" || DATE_FORMAT.test(t) || (/\bdates?\b/.test(t) && !/\b(month|year)\b|\bup[- ]to[- ]date\b/.test(t))) && !DATE_VALUE.test(v)) return false;
-  if (f.type === "number" && !/^-?\d+(\.\d+)?$/.test(v)) return false;
   // WO-057: "What date are you available to begin (Month and Year)" takes a month and year, never "2 weeks".
   if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
   return true;
@@ -614,8 +704,7 @@ function statedDate(value: string, format = "MM/YYYY"): string | null {
     const i = MONTHS.findIndex((n) => new RegExp(`^${n.slice(0, 3)}[a-z]*\\.?\\s+((?:19|20)\\d{2})$`, "i").test(v));
     if (i >= 0) [m, y] = [String(i + 1), /\d{4}/.exec(v)![0]];
   }
-  if (m !== null && (Number(m) < 1 || Number(m) > 12)) return null;
-  if (d !== null && (Number(d) < 1 || Number(d) > 31)) return null;
+  if (!y || !calendarOk(Number(y), m === null ? null : Number(m), d === null ? null : Number(d))) return null;
   const mm = m && m.padStart(2, "0"), dd = d && d.padStart(2, "0");
   const f = format.toUpperCase();
   if (f === "YYYY") return y;
@@ -710,7 +799,7 @@ function nationalNumber(value: string, dial: string): string | null {
 }
 export function planBatch(o: { userId: string; postings: PlanPosting[]; answers: Record<string, Answer>; saved: Record<string, Answer>; log: LogRow[]; now: number; limits?: Limits }) {
   const ready: { job_id: string; company: string; title: string; fields: PlannedField[] }[] = [];
-  const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[] }>();
+  const needs = new Map<string, { label: string; key: string; required: boolean; job_ids: string[]; field_name?: string }>();
   const skipped: { job_id: string; reason: string }[] = [];
   const log = o.log.slice();
   for (const p of o.postings) {
@@ -734,12 +823,20 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         // WO-048 round 3: a field the form names as one part of a repeating section's row is answered only from the person's
         // own list, by the row the reader tied it to; with no row it is left (asked when required). Never a fact about the
         // person as a whole (their city, phone, email, name, current employer), never an answer saved under its wording.
-        const s = f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null;
-        if (s) { filled.push({ name: f.name, label: f.label, value: s.value, factId: s.factId }); continue; }
+        // A direct answer belongs only to this exact posting/field/row snapshot. Neither its displayed wording nor a
+        // global date fact may stand in for that binding. An invalid newer answer stays open instead of restoring an
+        // older history value; absent a scoped answer, the original structured-history derivation remains unchanged.
+        const rowKey = rowAnswerKey(f, p.job_id);
+        const scoped: Answer | undefined = rowKey ? o.saved[rowKey] : undefined;
+        const s = scoped ?? (f.section && f.section.row >= 1 ? sectionAnswer(f, rowsOf.get(f.section.kind)?.get(f.section.row), o.answers, p.fields) : null);
+        const value = s ? (f.options.length && scoped ? matchOption(String(s.value), f.options)
+          : scoped && f.type === "checkbox" ? yesNo(String(s.value)) : String(s.value)) : null;
+        const shaped = value !== null && fitsField(f, value, !!scoped) ? canonicalTypedValue(f, value) : null;
+        if (s && shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: s.factId }); continue; }
         if (!f.required) continue;
         blocked = true;
-        const k = normLabel(f.label);
-        const n = needs.get(k) ?? { label: f.label, key: "unknown", required: true, job_ids: [] };
+        const k = rowKey ?? normLabel(f.label);
+        const n = needs.get(k) ?? { label: f.label, key: "unknown", required: true, job_ids: [], field_name: f.name };
         if (!n.job_ids.includes(p.job_id)) n.job_ids.push(p.job_id);
         needs.set(k, n);
         continue;
@@ -753,7 +850,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       const here = factStaysHere(f, p.location, o.answers);
       const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ?? o.saved[normLabel(f.label)];
       const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ??
-        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, placeText(f), p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);
@@ -777,7 +874,8 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
         if (!code || !phone.startsWith("+") || !phone.replace(/\D/g, "").startsWith(code)) value = null;
       }
       if (value !== null && a !== own && !f.options.length) value = payShape(f, value, key !== "unknown" ? key : mapQuestion(f).fact, o.answers);
-      if (value !== null && value !== "" && (a === own || fitsField(f, value))) { filled.push({ name: f.name, label: f.label, value, factId: a!.factId }); continue; }
+      const shaped = value !== null && value !== "" && fitsField(f, value, a === own) ? canonicalTypedValue(f, value) : null;
+      if (shaped !== null) { filled.push({ name: f.name, label: f.label, value: shaped, factId: a!.factId }); continue; }
       if (!f.required) continue; // optional and unknown: left empty, never guessed
       blocked = true;
       const k = normLabel(f.label);
@@ -789,5 +887,5 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
     ready.push({ job_id: p.job_id, company: p.company, title: p.title, fields: filled });
     log.push({ user_id: o.userId, job_id: p.job_id, company: p.company, at: o.now, state: "planned" });
   }
-  return { ready, needs: [...needs.values()].map(({ label, key, job_ids }) => ({ label, key, job_ids })), skipped };
+  return { ready, needs: [...needs.values()].map(({ label, key, job_ids, field_name }) => ({ label, key, job_ids, ...(field_name !== undefined ? { field_name } : {}) })), skipped };
 }

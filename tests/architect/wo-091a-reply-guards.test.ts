@@ -48,7 +48,7 @@ const text = (t: string) => [{ type: "text", text: t }];
 const use = (name: string, id = name) => [{ type: "tool_use", id, name, input: {} }];
 const run = (m: any, message: string, o: { history?: any[]; facts?: any } = {}) =>
   runAgentTurn({ system: "s", history: o.history ?? [], message, tools: TOOLS, model: m.model, ctx: { userId: "u", threadId: "t", now: 0, state: { profile: o.facts ?? profile() } } });
-const lastTold = (m: any) => JSON.stringify(m.seen.at(-1).messages.at(-1));
+const lastTold = (m: any) => JSON.stringify(m.seen.at(-1).system); // WO-061: the review is in the retry's system prompt
 // "Excel" outside any [bracket].
 const bare = (reply: string, word: string) => new RegExp(`\\b${word}\\b`, "i").test(reply.replace(/\[[^\]]*\]/g, ""));
 

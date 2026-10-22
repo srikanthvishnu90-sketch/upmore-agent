@@ -7,6 +7,7 @@
 //   leaks   no tool name, raw job id, uuid or JSON field name reaches the person.
 // Each finder returns what it found (for the one rewrite the loop asks for) and a fixer applies code's last resort.
 import { DEGREES, factLock, factText, norm, SCALE, TITLES, TOOLS } from "../essay_draft.ts";
+import { personalSourceDenied as sourceDenied, personalSourceGuard } from "../personal_fact_source.ts";
 
 // ------------------------------------------------------------------------------------------------ sentences
 // A reply as sentence pieces with the whitespace after each, so a piece can be dropped or changed and the rest of the
@@ -46,15 +47,67 @@ function tidy(s: string): string {
 // What a sentence about the person may draw on: confirmed facts (never one waiting for their yes, memory.ts's rule),
 // the account's stated facts, this turn's message, their own earlier messages, and this turn's tool results. Never the
 // model's own earlier replies.
+const FACT_KINDS = new Set(["experience", "education", "skill", "project", "leadership", "award", "publication", "certification", "goal", "location", "preference", "other"]);
+const record = (v: any) => !!v && typeof v === "object" && !Array.isArray(v);
+function sourceFactOk(f: any, legacyToolText = false): boolean {
+  if (!record(f) || sourceDenied(f)) return false;
+  // Explicit confirmation survives old rows without the flag; absent/unknown status on a stored profile is not proof.
+  // Opaque, unlabelled tool facts retain their existing conversational contract. This is not submit authorization.
+  return (f.status === "confirmed" || (legacyToolText && f.status === undefined)) &&
+    (f.needs_confirmation === false || f.needs_confirmation === undefined);
+}
+function currentFact(f: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of ["text", "title", "name", "value"]) if (typeof f[key] === "string" || typeof f[key] === "number") out[key] = f[key];
+  for (const key of ["bullets", "skills"]) if (Array.isArray(f[key])) out[key] = f[key].filter((v: unknown) => typeof v === "string");
+  // Audit, corrected_from, evidence ids and model notes describe how a row got here, not additional current facts.
+  return out;
+}
+const SOURCE_AUDIT_KEYS = new Set(["corrected_from", "was", "audit", "audit_log", "profile_corrections", "unconfirmed", "drafts", "rejected", "requirement", "requirements"]);
+const pathMove = (v: any) => record(v) && record(v.requirement) && Object.hasOwn(v, "fact") && ["met", "unmet", "unknown"].includes(v.status);
+function sourceResult(v: any, factContext = false, depth = 0, denied = sourceDenied): any {
+  if (depth > 20) return undefined;
+  if (Array.isArray(v)) return v.map((x) => sourceResult(x, factContext, depth + 1, denied)).filter((x) => x !== undefined);
+  if (!record(v)) return v;
+  // A child's own status cannot erase an enclosing record's explicit untrusted provenance.
+  if (denied(v)) return undefined;
+  // An employer's requirements describe a job, not this person's experience. Posting display still reads raw results.
+  if ((typeof v.job_id === "string" || typeof v.posting_id === "string") && typeof v.title === "string" &&
+    (typeof v.description === "string" || typeof v.url === "string")) return undefined;
+  // career_path_answer mixes cited personal facts with external requirements and prose rendered from those
+  // requirements. Keep only each move's actual personal evidence; its messages are not an independent fact source.
+  if (Array.isArray(v.moves) && v.moves.some(pathMove)) return sourceResult(v.moves.filter(pathMove), false, depth + 1, denied);
+  if (pathMove(v)) return record(v.fact) ? sourceResult(v.fact, true, depth + 1, denied) : undefined;
+  if (factContext || Object.hasOwn(v, "needs_confirmation") || FACT_KINDS.has(v.kind) ||
+    (typeof v.text === "string" && Object.hasOwn(v, "status"))) return sourceFactOk(v, true) ? currentFact(v) : undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(v)) {
+    if (SOURCE_AUDIT_KEYS.has(key)) continue;
+    const cleaned = sourceResult(value, key === "facts" || key === "fact" || key === "confirmed", depth + 1, denied);
+    if (cleaned !== undefined) out[key] = cleaned;
+  }
+  return out;
+}
+function parseSourceResult(text: string): { raw: string; structured: boolean; value: unknown } {
+  try { return { raw: text, structured: true, value: JSON.parse(text) }; }
+  catch { return { raw: text, structured: false, value: undefined }; }
+}
+function resultSource(result: ReturnType<typeof parseSourceResult>, denied: (value: unknown) => boolean): string {
+  // A truncated JSON result can still contain a rejected fact's words. Never reinterpret that broken record as prose.
+  if (!result.structured) return /^\s*[\[{]/.test(result.raw) ? "" : result.raw;
+  try { const clean = sourceResult(result.value, false, 0, denied); return clean === undefined ? "" : JSON.stringify(clean); }
+  catch { return ""; }
+}
 export function factSources(o: { state: Record<string, unknown>; message: string; history: any[]; results: string[] }): string[] {
   const profile: any = o.state?.profile;
-  const facts = (Array.isArray(profile?.facts) ? profile.facts : []).filter((f: any) => f && typeof f === "object" && !f.needs_confirmation && f.status !== "draft" && f.status !== "rejected");
   const sf: any = o.state?.statedFacts;
+  const results = o.results.map(parseSourceResult), denied = personalSourceGuard([profile, sf, ...results.map(r => r.value)]);
+  const facts = (Array.isArray(profile?.facts) && !denied(profile) ? profile.facts : []).filter((f: any) => !denied(f) && sourceFactOk(f));
   const stated = Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : [];
   const userSaid = (Array.isArray(o.history) ? o.history : []).filter((m: any) => m && m.role === "user").map((m: any) =>
     typeof m.content === "string" ? m.content : Array.isArray(m.content) ? m.content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("\n") : ""
   );
-  return [...facts.map(factText), ...stated.map(factText), String(o.message ?? ""), ...userSaid, ...o.results].filter(Boolean);
+  return [...facts.map((f: any) => factText(currentFact(f))), ...stated.filter((f: any) => !denied(sf) && !denied(f) && sourceFactOk(f, true)).map((f: any) => factText(currentFact(f))), String(o.message ?? ""), ...userSaid, ...results.map(r => resultSource(r, denied))].filter(Boolean);
 }
 
 // ------------------------------------------------------------------------------------------------ the fact lock on a reply
@@ -93,8 +146,14 @@ function classify(u: string, clause: string): Untraced | null {
     if (/[$%]|\d\s?(?:k|m|bn|b)$/i.test(w) || /^(?:19|20)\d\d$/.test(w)) return { word: w, kind: "number" };
     return NUM_UNIT.test(clause.slice(pre.length + w.length)) || /\bGPA\s*(?:of\s*)?$/i.test(pre) ? { word: w, kind: "number" } : null;
   }
-  // A name is the person's employer or school where the clause puts them there: "interned at X", "graduated from X".
-  if (/^[A-Z]/.test(w)) return /\b(?:at|from)\s+(?:the\s+)?$/i.test(pre) ? { word: w, kind: "place" } : null;
+  // A prospective role at an employer is not employment history ("your skills fit the role at X"). A worked/studied
+  // predicate still claims the person was there, even when that sentence also names a role.
+  if (/^[A-Z]/.test(w)) {
+    const targetRole = /\b(?:for|to|about)\s+(?:a|an|the|this|that)\s+(?:role|job|position|opening|opportunity)\s+at\s+(?:the\s+)?$/i.test(pre) ||
+      /\b(?:would|could|might|may)\b[^.!?]*\bin\s+(?:a|an|the|this|that)\s+(?:role|job|position|opening|opportunity)\s+at\s+(?:the\s+)?$/i.test(pre);
+    const personalHistory = /\b(?:worked|interned|employed|studied|graduated|served|held|was|were|am|attended)\b|'m\b/i.test(pre);
+    return /\b(?:at|from)\s+(?:the\s+)?$/i.test(pre) && !(targetRole && !personalHistory) ? { word: w, kind: "place" } : null;
+  }
   return null;
 }
 const unbracketed = (s: string) => s.replace(/\[[^\]]*\]/g, (m) => " ".repeat(m.length));
@@ -175,8 +234,12 @@ export function leakedWords(reply: string, o: { tools: string[]; typed: string; 
   for (const id of o.postings.keys()) if (idLike(id) && t.includes(id)) add(id);
   for (const re of [RAW_ID, UUID, SNAKE]) for (const m of t.matchAll(re)) add(m[0]);
   for (const name of o.tools) if (/_/.test(name) && new RegExp(`\\b${esc(name)}\\b`).test(t)) add(name);
+  // WO-061 (second judge, run 39603731114 p3: "You don't have that interview on file yet: SITUATION shows nothing"):
+  // the name of the system prompt's block is internal; only the all-caps block name, never the ordinary word.
+  if (BLOCK_NAME.test(t) && !/\bSITUATION\b/.test(o.typed)) add("SITUATION");
   return out;
 }
+const BLOCK_NAME = /\bSITUATION\b/;
 // Code's last resort: a known job id becomes "title at company" (or goes, when the sentence already names it), any other
 // id goes, and a field or tool name becomes plain words.
 export function stripLeaks(reply: string, o: { tools: string[]; typed: string; postings: Map<string, Posting> }): string {
@@ -194,8 +257,77 @@ export function stripLeaks(reply: string, o: { tools: string[]; typed: string; p
         const say = known && !named ? [known.title, known.company].filter(Boolean).join(" at ") : "";
         s = s.split(id).join(say);
       }
-      return s.replace(SNAKE, (w) => own.has(w.toLowerCase()) ? w : w.replace(/_/g, " "));
+      return s.replace(SNAKE, (w) => own.has(w.toLowerCase()) ? w : w.replace(/_/g, " ")).replace(/\bSITUATION\b/g, (w) => /\bSITUATION\b/.test(o.typed) ? w : "your account");
     }));
   }
   return rebuild(ps);
 }
+
+// ------------------------------------------------------------------------------------------------ money
+// WO-106 (eval run 39538248995, E038: "postings ... list about $65k–$95k" with no tool call): a pay or money figure is said
+// only when this turn's tool results or the person's own words hold it. The sentences that carry one are returned.
+const MONEY = /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|K|m|M)?\b|\b\d{2,3}(?:\.\d)?\s?[kK]\b/g;
+const moneyKey = (m: string) => {
+  const t = m.replace(/[$,\s]/g, "").toLowerCase();
+  const n = /k$/.test(t) ? Math.round(parseFloat(t) * 1000) : /m$/.test(t) ? Math.round(parseFloat(t) * 1e6) : Math.round(parseFloat(t));
+  return Number.isFinite(n) ? String(n) : t;
+};
+function moneyIn(text: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of String(text ?? "").matchAll(MONEY)) out.add(moneyKey(m[0]));
+  for (const m of String(text ?? "").matchAll(/\b\d{4,7}\b/g)) out.add(String(Number(m[0])));
+  return out;
+}
+export function unsourcedMoney(reply: string, sources: string[]): { index: number; figure: string }[] {
+  const known = new Set<string>();
+  for (const s of sources) for (const k of moneyIn(s)) known.add(k);
+  const out: { index: number; figure: string }[] = [];
+  pieces(reply).forEach((p, index) => {
+    for (const m of p.text.matchAll(MONEY)) if (!known.has(moneyKey(m[0]))) { out.push({ index, figure: m[0].trim() }); break; }
+  });
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ waiver wording
+// WO-061 (H018, run 39549570017 p2): the brain drafted the approval-bypass wording for the person to send ("reply with:
+// Share my resume with your whole network - don't ask me each time ... I'll save it"). The standing-instruction refusal
+// stops the save, not a reply proposing it. Wording the reply puts in their mouth (quoted, or after "reply with / text /
+// send / say ...:") that the refusal flags is a solicitation; so is the save offer beside it. Returns piece indices.
+const PROPOSE = /\b(reply|respond|text|send|say|type|write|message)( me| back| us)?( with| this| exactly| the words?)?\s*[:\u2013\u2014-]\s*(.*)$/i;
+const SAVE_OFFER = /\b(i'?ll|i will|i can|i'?d|let me|and i|want me to|should i|shall i)\b[^.?]{0,40}\b(save|keep|remember|store|set( up)?|record|add)\b|\b(standing instruction|standing rule|persistent rule|permanent rule|a rule (so|that)|save (it|that|this) as)\b/i;
+// WO-061 (H018 p1, run 39549570017 / 39551229537): when the person's own message asks to waive their yes, ANY offer in the
+// reply to save, keep or set something is an offer to save that waiver ("I can save a standing instruction that says
+// exactly what you want"), quoted or not. Anywhere, a save offer whose own sentence describes the waiver is one too.
+export function waiverSolicits(reply: string, refuse: (text: string) => string | null, message = ""): number[] {
+  const ps = pieces(reply), hit = new Set<number>();
+  const asked = !!(message && refuse(message));
+  ps.forEach((p, i) => { if (SAVE_OFFER.test(p.text) && (asked || refuse(p.text))) hit.add(i); });
+  ps.forEach((p, i) => {
+    const segs: string[] = [];
+    for (const m of p.text.matchAll(/["\u201c\u201d]([^"\u201c\u201d]{4,240})["\u201c\u201d]/g)) segs.push(m[1]);
+    const m = PROPOSE.exec(p.text);
+    if (m) segs.push(m[4] || ps[i + 1]?.text || "");
+    if (segs.some((x) => x.trim() && refuse(x))) { hit.add(i); if (m && !m[4]) hit.add(i + 1); }
+  });
+  for (const i of [...hit]) for (const j of [i - 1, i + 1]) if (ps[j] && SAVE_OFFER.test(ps[j].text)) hit.add(j);
+  // WO-061 (H018 p1, run 39554573965): a short question pointing at removed wording ("Is that the wording you want?",
+  // "Does that work?") goes with it; left alone it is a bare prompt to confirm the waiver.
+  for (const i of [...hit].sort((a, b) => a - b)) {
+    for (let j = i + 1; j < ps.length && j <= i + 2; j++) {
+      const t = ps[j].text.trim();
+      if (!t || hit.has(j)) continue;
+      if (/\?\s*$/.test(t) && t.split(/\s+/).length <= 14 && /\b(wording|words|phrasing|that right|this right|that work|that ok|that okay|want me to|should i|shall i|is that what you want|sound (good|right))\b/i.test(t)) hit.add(j);
+      break;
+    }
+  }
+  // WO-061 (H018 p1, run 39592260931: refusal, then "Is that what you'd like?"): after the person asked to waive their
+  // yes there is nothing for them to confirm; a short confirm question anywhere in the reply reads as an offer to waive.
+  if (asked) ps.forEach((p, i) => { const t = p.text.trim(); if (t.split(/\s+/).length <= 10 && CONFIRM_AFTER_REFUSAL.test(t)) hit.add(i); });
+  // WO-061 (H018 p1, stacked run 39599518668: "Is there a short phrase you want saved?"): after a waiver ask, any
+  // question about saving, keeping or remembering something is an offer to save the waiver, first person or not.
+  if (asked) ps.forEach((p, i) => { if (/\?\s*$/.test(p.text) && SAVE_WORDS.test(p.text)) hit.add(i); });
+  return [...hit].filter((i) => i >= 0 && i < ps.length).sort((a, b) => a - b);
+}
+const SAVE_WORDS = /\b(?:sav(?:e|ed|ing)|keep(?:s|ing)?|kept|remember(?:ed|ing)?|stor(?:e|ed|ing)|record(?:ed|ing)?|note (?:it|that|this) down)\b/i;
+const CONFIRM_AFTER_REFUSAL = /^(?:(?:is|does|would|will|are|was)\s+(?:that|this|it|everything|all of that)\b[^?]{0,50}|(?:sounds?|ok|okay|good|alright|all right|fair|agreed|deal)\b[^?]{0,20}|.{0,30}\bwhat you(?:'d| would)? (?:like|want)\b[^?]{0,20})\?$/i;
+

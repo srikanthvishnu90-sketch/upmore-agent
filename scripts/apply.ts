@@ -1,5 +1,6 @@
-// Terminal apply path. Candidate answers must be explicit confirmed records:
-// {user_id, answers:{email:{value,factId,confirmed:true}}, saved:{normalized_label:...}}.
+// Terminal apply path. Candidate answers must be facts the owner gave, as the second judge's contract (WO-102) keeps
+// them: {user_id, answers:{email:{value,factId,confirmed:true,provenance:"owner stated ...",confirmation_event_id}},
+// saved:{normalized_label:...}, text_answers:[{id,key,kind,answer}]} (extension/src/apply_core.ts trustedManifest).
 // Default: dry-run. Real submission requires --submit and the exact word yes.
 import fs from "node:fs";
 import path from "node:path";
@@ -12,6 +13,7 @@ import {
   classifyOutcome,
   normLabel,
   planBatch,
+  questionFieldType,
 } from "../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../supabase/functions/_shared/career_apply_store.ts";
 // How a form's fields become the planner's questions; shared with the browser extension (WO-031).
@@ -28,6 +30,10 @@ import {
   redactCode,
 } from "../supabase/functions/_shared/career_email_code.ts";
 import { CODE_MAX_WAIT_MS, pollForCode } from "../supabase/functions/_shared/career_email_code_poll.ts";
+// WO-102: the submission-quality contract, the extension's own functions (never copied): which facts may be sent at all
+// (trustedManifest), and which planned answers they stand behind (contractFill).
+import { contractFill, type Manifest, trustedManifest } from "../extension/src/apply_core.ts";
+import { rowQuestionLabel, rowQuestionType } from "../supabase/functions/_shared/row_answer.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
@@ -109,11 +115,58 @@ function privateDir(dir: string) {
   const st = fs.lstatSync(dir);
   if (!st.isDirectory() || st.isSymbolicLink() || (st.mode & 0o077)) throw fail("PRIVATE_DIRECTORY_REQUIRED");
 }
+// Cloud-only one-shot IPC. The worker owns all credentials and chooses the captured job/lease; this channel
+// can request only before_effect, never an RPC, URL, identity or hash. The browser receives none of it.
+export function cloudEffectAuthorization(nonce: string, timeoutMs = 5000): () => Promise<void> {
+  if (!/^[0-9a-f]{64}$/.test(nonce)) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+  let requested = false;
+  return async () => {
+    if (requested) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+    requested = true;
+    const reader = Deno.stdin.readable.getReader();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const request = "CLOUD_AUTH " + JSON.stringify({ v: 1, nonce, phase: "before_effect" }) + "\n";
+      const bytes = new TextEncoder().encode(request);
+      let written = 0;
+      while (written < bytes.length) written += await Deno.stdout.write(bytes.subarray(written));
+      const read = async () => {
+        let input = "";
+        const decoder = new TextDecoder("utf-8", { fatal: true });
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          input += decoder.decode(chunk.value, { stream: true });
+          if (input.length > 1024) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          if (!input.includes("\n")) continue;
+          if (!input.endsWith("\n") || input.indexOf("\n") !== input.length - 1 || !input.startsWith("CLOUD_AUTH "))
+            throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          let response;
+          try { response = JSON.parse(input.slice(11, -1)); } catch { throw fail("CARD_CLOUD_AUTH_PROTOCOL"); }
+          if (!response || Object.keys(response).sort().join(",") !== "allow,nonce,v" || response.v !== 1 ||
+            response.nonce !== nonce || typeof response.allow !== "boolean") throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          if (!response.allow) throw fail("CARD_CLOUD_AUTH_REFUSED");
+          return;
+        }
+      };
+      await Promise.race([read(), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(fail("CARD_CLOUD_AUTH_TIMEOUT")), timeoutMs);
+      })]);
+    } finally {
+      clearTimeout(timer);
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+}
+
 function options(args: string[]) {
   const o: any = { submit: false };
   for (let i = 0; i < args.length; i++) {
     const k = args[i];
     if (k === "--submit") o.submit = true;
+    else if (k === "--cloud-authorize-stdio") o["cloud-authorize-stdio"] = true;
+    else if (k === "--cloud-authorize-nonce" && /^[0-9a-f]{64}$/.test(args[i + 1] || "")) o["cloud-authorize-nonce"] = args[++i];
     else if (k === "--dry-run") o.dry = true;
     // --handoff: when a verification shows on the page, wait for the person to complete it, then go on from the same
     // page. --headed opens a visible browser for the person's own runs (and implies --handoff).
@@ -166,17 +219,65 @@ function posting(u: URL) {
     tenant,
   };
 }
-function confirmed(input: any, owner: string) {
-  const out: any = Object.create(null);
-  for (const [key, a] of Object.entries(input || {}) as any) {
-    if (a?.user_id && a.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
-    if (
-      a?.confirmed === true && typeof a.value === "string" && typeof a.factId === "string" && a.factId.length > 0 &&
-      a.factId.length <= 200
-    ) out[key] = { value: a.value, factId: a.factId };
+// WO-102 (every path): the facts this run may send, by the extension's positive allowlist (trustedManifest): confirmed,
+// the owner's own, a positive provenance ("owner stated ..."), the event that confirmed it, not quarantined (D-007:
+// F-027..F-079 and the answer-all delegation), no id reserved for another source, not derived from anything excluded.
+// A confirmed:true label alone is not enough. His texted answers (text_answers, career_apply_answers_own rows) are his;
+// one that disagrees with the file excludes both, so the question is asked again. Another person's fact or answer stops.
+export function trustedFacts(facts: any, artifact: { sha256: string }): Manifest {
+  const owner = facts?.user_id;
+  for (const t of ["answers", "saved"]) {
+    for (const a of Object.values(facts?.[t] || {}) as any[]) if (a?.user_id && a.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
   }
-  return out;
+  const rows = Array.isArray(facts?.text_answers) ? facts.text_answers : [];
+  for (const r of rows) if (r?.user_id && r.user_id !== owner) throw fail("FACT_OWNER_MISMATCH");
+  return trustedManifest({ owner, file: facts, rows, resume: { sha256: artifact.sha256 } });
 }
+// One step's plan: the planner on the trusted facts only, then the contract on what it would send (contractFill): an
+// answer it cannot stand behind on a required question is asked (nothing is sent), on an optional one left empty; an
+// attestation or a personal choice goes only on the owner's own answer to it.
+export function planApplication(o: {
+  manifest: Manifest; userId: string; jobId: string; employer: string; location?: string; schema: any[];
+  artifact: { filename: string; sha256: string }; now: number;
+}): { ready: true; fields: any[]; dropped: string[] } | { ready: false; needs: { label: string; why?: string; field_name?: string }[] } {
+  const p = planBatch({
+    userId: o.userId,
+    postings: [{ job_id: o.jobId, company: o.employer, title: "", fields: o.schema, location: o.location }],
+    answers: o.manifest.answers,
+    saved: o.manifest.saved,
+    log: [],
+    now: o.now,
+  });
+  if (!p.ready.length) return { ready: false, needs: p.needs.map((n: any) => ({ label: n.label, ...(n.field_name ? { field_name: n.field_name } : {}) })) };
+  const c = contractFill({
+    schema: o.schema, manifest: o.manifest, resume: o.artifact, jobId: o.jobId,
+    plan: { fill: p.ready[0].fields, needs: [], identity: [], ambiguous: [] },
+  });
+  if (c.asks.length) return { ready: false, needs: c.asks.map((a) => ({ label: a.label, why: a.why, ...(a.field_name ? { field_name: a.field_name } : {}) })) };
+  return { ready: true, fields: c.fill, dropped: c.dropped };
+}
+// What the approval binds beside the answers (WO-102): each answer's fact, the event that confirmed it, its provenance,
+// whether it may attest, and the quarantine rules it was judged under. Any change is another application.
+export function approvalSources(fields: { name: string; factId: string }[], m: Manifest) {
+  return fields.map((f) => {
+    const tf = m.byFactId[f.factId];
+    if (!tf) throw fail("UNTRUSTED_ANSWER: " + f.name);
+    return { name: f.name, factId: f.factId, event: tf.event, provenance: tf.provenance, authorizes: tf.authorizes, quarantine_version: m.version,
+      table: tf.table, key: tf.key, value: tf.value };
+  }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+}
+export async function applicationApprovalHash(o: {
+  userId: string; posting: string; destination: string; fields: any[]; resumeSha256: string; schemaHash: string;
+  pageFieldNames: string[]; manifest: Manifest;
+}) {
+  return await hashApplyPayload({ user_id: o.userId, posting: o.posting, destination: o.destination,
+    fields: o.fields.map((f) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })), resume: o.resumeSha256,
+    schema_hash: o.schemaHash, page_field_names: o.pageFieldNames, manifest_hash: o.manifest.hash,
+    sources: approvalSources(o.fields, o.manifest) });
+}
+const trustRecord = (m: Manifest) => ({
+  quarantine_version: m.version, manifest_hash: m.hash, excluded: m.excluded.slice(0, 200), conflicts: m.conflicts.slice(0, 200),
+});
 async function answer() {
   const b = new Uint8Array(128);
   let s = "";
@@ -242,8 +343,12 @@ function codeReader(mode: string | undefined, local: boolean, userId: string): C
     }, { now: Date.now, maxWaitMs: wait });
 }
 export async function runApply(args: string[]) {
-  const o = options(args),
-    u = new URL(o.url),
+  const o = options(args);
+  if ((o["cloud-authorize-stdio"] || o["cloud-authorize-nonce"]) &&
+    (!o["cloud-authorize-stdio"] || !o["cloud-authorize-nonce"] || !o.submit || !o.approved || o["person-submits"] || o.handoff))
+    throw fail("CARD_CLOUD_AUTH_REQUIRED");
+  const authorizeCloudEffect = o["cloud-authorize-stdio"] ? cloudEffectAuthorization(o["cloud-authorize-nonce"]) : null;
+  const u = new URL(o.url),
     target = posting(u),
     _local = (() => {
       // Another state folder would be another once-only record: for a real employer there is exactly one.
@@ -316,9 +421,7 @@ export async function runApply(args: string[]) {
     };
   }
   const artifact = { filename: path.basename(o.resume), sha256: sha(fs.readFileSync(o.resume)) },
-    answers = confirmed(facts.answers, facts.user_id),
-    saved = confirmed(facts.saved, facts.user_id);
-  answers.resume = { value: artifact.sha256, factId: "approved-local-resume:" + artifact.sha256 };
+    manifest = trustedFacts(facts, artifact);
   const evidenceDir = o["evidence-dir"] || fs.mkdtempSync(path.join(stateDir, "evidence-"));
   privateDir(evidenceDir);
   if (fs.readdirSync(evidenceDir).length) throw fail("EVIDENCE_DIRECTORY_NOT_EMPTY");
@@ -334,6 +437,15 @@ export async function runApply(args: string[]) {
     destination = "",
     current: any,
     version = "";
+  const authorizeEffect = async (route: any) => {
+    if (!authorizeCloudEffect) return true;
+    try { await authorizeCloudEffect(); return true; }
+    catch (e: any) {
+      evidence.transport_rejection = e?.code || "CARD_CLOUD_AUTH_REFUSED";
+      await route.abort("blockedbyclient");
+      return false;
+    }
+  };
   const wire: any = {};
   const personSubmits = !!o["person-submits"];
   // Resume uploads the page made while filling an approved application, and the employer's answers to them.
@@ -629,6 +741,7 @@ export async function runApply(args: string[]) {
           await route.abort("blockedbyclient");
           return;
         }
+        if (!(await authorizeEffect(route))) return;
         mutations++;
         destination = req.url();
         postStatus = 0;
@@ -686,6 +799,7 @@ export async function runApply(args: string[]) {
           await route.abort("blockedbyclient");
           return;
         }
+        if (!(await authorizeEffect(route))) return;
         mutations++;
       }
       // A request the network refuses (an unreachable image host) is that request's failure, not the run's: it fails in
@@ -759,30 +873,37 @@ export async function runApply(args: string[]) {
       // WO-053: where the job is, as its page shows it (the extension reads it the same way); WO-055: it goes with the
       // questions too, so an answer about a job abroad is kept as that posting's.
       const location = String(await page.evaluate(fnPostingLocation).catch(() => ""));
-      const p = planBatch({
+      // WO-102: planned on the trusted facts only, and every answer judged by the contract before anything is filled.
+      const p = planApplication({
+        manifest,
         userId: facts.user_id,
-        postings: [{ job_id: target.key, company: target.employer, title: "", fields: current.schema, location }],
-        answers,
-        saved,
-        log: [],
+        jobId: target.key,
+        employer: target.employer,
+        location,
+        schema: current.schema,
+        artifact,
         now: Date.now(),
       });
-      if (!p.ready.length) {
+      if (!p.ready) {
         for (const n of p.needs) console.log("Required confirmed answer: " + JSON.stringify(n.label));
         // Each question as the form asks it (its type and the employer's own options), so it can be asked once by text and
         // answered in the form's own terms; `fields` keeps the labels for older readers. A list longer than 60 (every
         // country) goes as none: the answer is then typed and checked against the full list at the next preparation.
         const questions = p.needs.map((n: any) => {
-          const f = current.schema.find((x: any) => x.label === n.label) || {};
+          const f = current.schema.find((x: any) => n.field_name ? x.name === n.field_name : x.label === n.label) || {};
           const all = f.options || [];
-          return { label: n.label, type: String(f.type || "input_text"), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
+          return { label: rowQuestionLabel(f) || n.label, type: rowQuestionType(f, target.key, questionFieldType(f)), options: all.length <= 60 ? all.map((o: any) => String(o.label)) : [] };
         });
         // The form's own words about AI help (WO-030), even when a standing consent filled that question: Trainee reads
         // them before it ever drafts a written answer for this posting.
         const ai_policy = aiPolicyStatements(current.schema.map((f: any) => f.label));
-        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, location, fields: p.needs.map((n: any) => n.label), questions, ...(ai_policy.length ? { ai_policy } : {}) });
+        // WO-102: why the contract turned an answer back into a question, and which facts it left out (ids and reasons,
+        // never values).
+        const contract = p.needs.filter((n) => n.why).map((n) => ({ label: n.label, why: n.why }));
+        evidence.trust = trustRecord(manifest);
+        return write({ state: "not_submitted", reason: "needs_answers", posting: target.key, company: target.employer, location, fields: p.needs.map((n: any) => n.label), questions, ...(contract.length ? { contract } : {}), ...(ai_policy.length ? { ai_policy } : {}) });
       }
-      const fields = p.ready[0].fields, before = await hashApplyPayload(current.schema);
+      const fields = p.fields, before = await hashApplyPayload(current.schema);
       for (const f of fields) {
         populated = true;
         const b = current.bindings[f.name];
@@ -845,6 +966,7 @@ export async function runApply(args: string[]) {
       if (!bound && !personSubmits) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
       destination = bound ? action.url : "";
       evidence.fields = Object.values(planned);
+      evidence.schema = current.schema; // Exact schema bytes already bound by `before`, for refusal-only question recovery.
       evidence.payload = {
         user_id: facts.user_id,
         posting: target.key,
@@ -863,15 +985,22 @@ export async function runApply(args: string[]) {
       // What the person approves: their answers, the resume, the form's questions, where it goes, and the names of the
       // employer's own hidden fields (their values can change with every page load; each is still checked against the
       // consent rule and kept in the evidence). The same application on a fresh load gives the same hash.
-      const approvalHash = await hashApplyPayload({
-        user_id: facts.user_id,
+      const approvalHash = await applicationApprovalHash({
+        userId: facts.user_id,
         posting: target.key,
         destination: evidence.payload.destination,
-        fields: evidence.fields.map((f: any) => ({ name: f.name, label: f.label, value: f.value, factId: f.factId })),
-        resume: artifact.sha256,
-        schema_hash: before,
-        page_field_names: Object.keys(pageFields || {}).sort(),
+        fields: evidence.fields,
+        resumeSha256: artifact.sha256,
+        schemaHash: before,
+        pageFieldNames: Object.keys(pageFields || {}).sort(),
+        // WO-102: the facts behind the answers (fact, event, provenance) and the quarantine rules they were judged under.
+        manifest,
       });
+      // The source of each answer, so an approved run can be checked against the contract again (approve-first's
+      // factsFromPayload carries these into the run's facts), and what the contract left out (never values).
+      evidence.sources = Object.fromEntries(evidence.fields.map((f: any) => [f.factId, manifest.byFactId[f.factId]]));
+      evidence.replay_sources = Object.values(manifest.byFactId);
+      evidence.trust = trustRecord(manifest);
       evidence.approval_hash = approvalHash;
       evidence.payload_hash = payloadHash;
       evidence.final_url = page.url();
@@ -1012,6 +1141,7 @@ export async function runApply(args: string[]) {
       }
       allowSubmit = false;
       evidence.post = { mutations, status: postStatus, destination };
+      if (evidence.transport_rejection) throw fail(evidence.transport_rejection);
       if (denied || cap.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       // A challenge at the click that nobody completed: nothing left the browser, and the reason says what is needed.
       if (cap.captcha && mutations === 0) throw fail("CAPTCHA_AT_SUBMIT");

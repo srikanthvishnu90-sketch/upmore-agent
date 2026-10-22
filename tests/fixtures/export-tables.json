@@ -516,8 +516,16 @@
    "order": ["shown_at", "id"]
   },
   {
+   "table": "career_apply_message_cards",
+   "order": ["shown_at", "id"]
+  },
+  {
    "table": "career_apply_wanted",
    "order": ["queued_at", "posting_key"]
+  },
+  {
+   "table": "career_apply_batch_approvals",
+   "order": ["approved_at", "id"]
   },
   {
    "table": "career_apply_questions",

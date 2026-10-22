@@ -132,7 +132,8 @@ const CareerBatchApply = (() => {
     if (!run.apps[key]) {
       run.apps[key] = {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
-        url: posting.url || null, stage: "selected", stop: null, payloadSha256: null,
+        // MUSE-F-001: the posting's own link (its url, else its first http(s) source url), never an invented one.
+        url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
       };
     }
@@ -150,6 +151,64 @@ const CareerBatchApply = (() => {
   function runtimeFor(run) {
     if (!RUNTIME.has(run.id)) RUNTIME.set(run.id, { sessions: {}, profiles: {} });
     return RUNTIME.get(run.id);
+  }
+
+  // F-035 (bench-60 fix round, 2026-10-22): resolve a fresh board
+  // for one application, or record its stop and return null. A
+  // boardFor that resolves through the worker bridge records the
+  // worker's coded refusal on itself (careerBoardFor.lastRefusal)
+  // when it returns null; a boardFor that throws a coded error
+  // directly is treated the same. The naming rule (stopForRefusal):
+  // an ANSWERED refusal — the service heard the ask and decided
+  // (SESSION_LIMIT, DRIVER_HOST_REFUSED, FAMILY_NOT_DRIVEABLE, …) —
+  // names the stop by its own code, with the code also carried as
+  // workerRefusal. A TRANSPORT-family failure — no answer ever
+  // arrived (WORKER_UNREACHABLE, WORKER_TRANSPORT_TIMEOUT,
+  // WORKER_TRANSPORT_CLOSED, WORKER_PROTOCOL) — is the not-wired
+  // degradation the loop has always named BOARD_NOT_WIRED
+  // (loop-acceptance's standing guard: a down worker stops every
+  // drive BOARD_NOT_WIRED); its code is still carried as
+  // workerRefusal evidence. BOARD_NOT_WIRED without a workerRefusal
+  // means no board adapter exists for this posting's family at all.
+  const TRANSPORT_REFUSAL_CODES = new Set(["WORKER_UNREACHABLE", "WORKER_TRANSPORT_TIMEOUT", "WORKER_TRANSPORT_CLOSED", "WORKER_PROTOCOL"]);
+  function stopForRefusal(run, app, code, message) {
+    if (TRANSPORT_REFUSAL_CODES.has(code)) {
+      stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run", { workerRefusal: code });
+      return;
+    }
+    stopApp(run, app, code, message || `the board worker refused this session (${code})`, { workerRefusal: code });
+  }
+  function boardOrStop(run, app, d, posting) {
+    let board = null;
+    try { board = typeof d.boardFor === "function" ? d.boardFor(posting) : null; }
+    catch (e) {
+      if (e && e.code) { stopForRefusal(run, app, e.code, String((e && e.message) || e).slice(0, 300)); return null; }
+      board = null;
+    }
+    if (board) return board;
+    const refusal = (typeof d.boardFor === "function" && d.boardFor.lastRefusal) || null;
+    if (refusal && refusal.code) { stopForRefusal(run, app, refusal.code, refusal.message); return null; }
+    stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run");
+    return null;
+  }
+
+  // F-036 (bench-60 fix round, 2026-10-22): a board throw mid-drive
+  // (measured signature: module 150's coded DRIVER_ERROR, "Target
+  // crashed") becomes THIS application's named stop — never an
+  // escape that blocks the intent and erases the run record. The
+  // stop carries the verbatim error and the fills the board had
+  // already rendered (its own renderedValues — preserved, never
+  // reconstructed).
+  function stopDriveThrow(run, app, board, e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    const detail = { error: msg };
+    try {
+      const rv = board && board.renderedValues;
+      if (rv && typeof rv === "object" && !Array.isArray(rv) && Object.keys(rv).length) {
+        detail.fills = JSON.parse(JSON.stringify(rv));
+      }
+    } catch (_) { /* a board that cannot report its fills loses nothing else */ }
+    stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the portal drive threw before it could name an outcome: ${msg}`, detail);
   }
 
   // ---------------- prepare: discover -> screen -> tailor -> doorsteps ----
@@ -229,14 +288,22 @@ const CareerBatchApply = (() => {
       }
       const profile = profileFor(d, posting);
       rt.profiles[key] = profile;
-      const board = d.boardFor ? d.boardFor(posting) : null;
-      if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      // WO-094: no standing attestation rides into a drive (deps.attestations
-      // is not read). In card-approval mode 149 leaves a certification
-      // PENDING on the doorstep; the card's yes is the attestation act.
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      const board = boardOrStop(run, app, d, posting);
+      if (!board) continue;
+      let res = null;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        // WO-094: no standing attestation rides into a drive (deps.attestations
+        // is not read). In card-approval mode 149 leaves a certification
+        // PENDING on the doorstep; the card's yes is the attestation act.
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      } catch (e) {
+        // F-036: the throw is this application's outcome — stop it
+        // named, keep the run record, drive the next application.
+        stopDriveThrow(run, app, board, e);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
     }
 
@@ -244,7 +311,7 @@ const CareerBatchApply = (() => {
     // stops and defers are reported beside it, never hidden inside it.
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
     if (Apply && Apply.batchCard && doorstepApps.length) {
-      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, url: a.url, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
       // WO-094: the card shows each application's certification text — the
       // words the yes signs, for that application only (inside its hash).
       run.card.certifications = [];
@@ -299,8 +366,22 @@ const CareerBatchApply = (() => {
       event(run, "captcha_handoff", { postingKey: app.postingKey });
       return;
     }
-    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped"); return; }
+    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped", stopDetailOf(res)); return; }
     stopApp(run, app, res.code || "UNEXPECTED_RESULT", `unexpected portal result: ${res.resultStatus || "unknown"}`);
+  }
+
+  // FDSE-MISMATCH (2026-10-21): a portal stop's diagnostic detail
+  // (the field an observation mismatch names, and the expected /
+  // observed values) must survive into the stored app record — the
+  // generic blocked paths used to forward only code + reason, so the
+  // live record for batch-5ab08dedd45c could not name the field 149
+  // had already identified. Carriage is whitelisted to these three
+  // keys: arbitrary portal extras do not leak into the run record.
+  function stopDetailOf(res) {
+    if (!res) return undefined;
+    const d = {};
+    for (const k of ["field_id", "expected", "observed"]) if (res[k] !== undefined) d[k] = res[k];
+    return Object.keys(d).length ? d : undefined;
   }
 
   function stopApp(run, app, code, reason, extra) {
@@ -389,8 +470,9 @@ const CareerBatchApply = (() => {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
           // that a changed payload stops (APPROVAL_PAYLOAD_MISMATCH).
-          const board = d.boardFor ? d.boardFor(posting) : null;
-          if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+          // F-035: a coded worker refusal is named, not flattened to BOARD_NOT_WIRED.
+          const board = boardOrStop(run, app, d, posting);
+          if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
@@ -439,7 +521,7 @@ const CareerBatchApply = (() => {
       return;
     }
     if (out && out.resultStatus === "blocked") {
-      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application");
+      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application", stopDetailOf(out));
       return;
     }
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
@@ -451,7 +533,7 @@ const CareerBatchApply = (() => {
     const submitted = apps.filter((a) => a.stage === "submitted");
     const stops = [];
     for (const a of apps) {
-      if (a.stage === "stopped" && a.stop) stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason });
+      if (a.stage === "stopped" && a.stop) stops.push(Object.assign({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason }, a.stop.field_id !== undefined ? { field_id: a.stop.field_id } : {}));
       if (a.stage === "captcha_handoff") stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: "CAPTCHA_HANDOFF", reason: a.stop ? a.stop.reason : "a captcha appeared", handoffUrl: a.stop ? a.stop.handoffUrl : a.url });
     }
     return {
@@ -474,6 +556,22 @@ const CareerBatchApply = (() => {
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
+    // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
+    const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
+    if (selApps.length) {
+      lines.push(`The ${selApps.length} selected:`);
+      for (const a of selApps) {
+        const stage = a.stage === "doorstep" ? "ready at the final review screen"
+          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
+          : a.stage === "stopped" ? "stopped (named below)"
+          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "selected" ? "selected, not prepared yet"
+          : a.stage;
+        lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
+      }
+    }
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
       lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
       // WO-094: the certification each form asks for is signed by this yes,

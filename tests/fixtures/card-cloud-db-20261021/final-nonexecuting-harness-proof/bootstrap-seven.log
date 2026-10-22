@@ -1,0 +1,12 @@
+test_changed_verified_input_aborts_before_any_postgres_command (__main__.SetupProof.test_changed_verified_input_aborts_before_any_postgres_command) ... ok
+test_failed_schema_stage_never_reaches_bridge_or_auto_cleanup (__main__.SetupProof.test_failed_schema_stage_never_reaches_bridge_or_auto_cleanup) ... ok
+test_fixed_pin_only_plan_retained_cluster_and_standalone_up (__main__.SetupProof.test_fixed_pin_only_plan_retained_cluster_and_standalone_up) ... ok
+test_fixed_plan_matches_exact_pinned_runner_and_launcher_order (__main__.SetupProof.test_fixed_plan_matches_exact_pinned_runner_and_launcher_order) ... ok
+test_neither_output_can_dirty_any_source_checkout (__main__.SetupProof.test_neither_output_can_dirty_any_source_checkout) ... ok
+test_only_reviewed_database_prefixes_are_allowed (__main__.SetupProof.test_only_reviewed_database_prefixes_are_allowed) ... ok
+test_unreviewed_checkout_aborts_before_initialization (__main__.SetupProof.test_unreviewed_checkout_aborts_before_initialization) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 5.131s
+
+OK

@@ -14,6 +14,7 @@ import { factsFromPayload, handRecord } from "../../workers/career-browser/appro
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { CLOUD_INTENT, cloudTurn, type CloudOptinStore, parseCloudCommand, termsText } from "../../supabase/functions/_shared/career_cloud_optin.ts";
 import { receiptText } from "../../supabase/functions/_shared/career_apply_receipts.ts";
+import { authorizer, cardBound, effectAware } from "../helpers/cloud_card_auth.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -49,7 +50,8 @@ async function job(user: string, n: number, over: Record<string, unknown> = {}):
   };
   payload.engine_approval = await hashApplyPayload(factsFromPayload(payload).saved);
   Object.assign(payload, over);
-  return { id: `job-${user}-${n}`, lease_token: `lease-${n}`, user_id: user, company: payload.company, url: payload.url, payload };
+  // 20261024130000: a cloud job is card-bound; the queue row carries the canonical payload hash as both hashes.
+  return await cardBound({ id: `job-${user}-${n}`, lease_token: `lease-${n}`, user_id: user, company: payload.company, url: payload.url, payload });
 }
 function memQueue(jobs: CloudJob[], o: { resume?: (j: CloudJob) => any; finishFails?: number } = {}) {
   const finished: { id: string; state: string; outcome: string; errorKind: string | null; evidence: any }[] = [];
@@ -66,6 +68,7 @@ function memQueue(jobs: CloudJob[], o: { resume?: (j: CloudJob) => any; finishFa
       finished.push({ id: j.id, state, outcome, errorKind, evidence });
     },
     gatePresent: async () => true,
+    authorize: authorizer().authorize,
   };
   return { q, finished };
 }
@@ -73,7 +76,7 @@ const arg = (args: string[], k: string) => args[args.indexOf(k) + 1];
 // The fake engine: reads the facts and resume the worker wrote, refuses an application that is no longer the approved
 // one (APPROVED_APPLICATION_CHANGED, nothing sent), and otherwise reports what `then` says.
 function fakeEngine(then: (args: string[], facts: any) => any, seen: any[] = []) {
-  return async (args: string[]) => {
+  return effectAware(async (args: string[]) => {
     const facts = JSON.parse(await Deno.readTextFile(arg(args, "--facts")));
     const st = await Deno.stat(arg(args, "--facts"));
     seen.push({ args, facts, mode: (st.mode ?? 0) & 0o777, resume: await Deno.readFile(arg(args, "--resume")) });
@@ -81,7 +84,7 @@ function fakeEngine(then: (args: string[], facts: any) => any, seen: any[] = [])
       return { result: { state: "not_submitted", reason: "APPROVED_APPLICATION_CHANGED" }, evidence: null };
     }
     return then(args, facts);
-  };
+  });
 }
 const sent = { result: { state: "submitted_unconfirmed", reason: "acknowledged" }, evidence: { post: { status: 200, mutations: 1, destination: "https://jobs.lever.co/x" }, observation: { url_after: "https://jobs.lever.co/x/thanks", page_text: "Thanks" } } };
 
@@ -161,8 +164,16 @@ Deno.test("WO-039/3 parallel contexts: one engine process per job, never more th
 });
 
 Deno.test("WO-039/4 the approval hash still binds: a payload changed after approval is not submitted", async () => {
-  const j = await job("A", 9);
-  j.payload.fields[0].value = "TEST changed after the card"; // the engine approval stays the one the person said yes to
+  // Card-bound (20261024130000): the queue row's hashes no longer match the changed payload, so it stops before the engine.
+  const changed = await job("A", 9);
+  changed.payload.fields[0].value = "TEST changed after the card";
+  const c = memQueue([changed]), unseen: any[] = [];
+  await runCloudJob(changed, { queue: c.q, log: () => {}, runEngine: fakeEngine(() => sent, unseen) });
+  eq([unseen.length, c.finished[0].state, c.finished[0].evidence.reason], [0, "not_submitted", "APPROVED_APPLICATION_CHANGED"], "refused before the engine");
+  // A row whose hashes were rewritten with the payload (forged past the database guard): the engine approval still binds.
+  const base = await job("A", 9), forged: any = { ...base, payload: structuredClone(base.payload) };
+  forged.payload.fields[0].value = "TEST changed after the card"; // the engine approval stays the one the person said yes to
+  const j = await cardBound(forged);
   const { q, finished } = memQueue([j]), seen: any[] = [];
   await runCloudJob(j, { queue: q, log: () => {}, runEngine: fakeEngine(() => sent, seen) });
   eq(arg(seen[0].args, "--approved"), j.payload.engine_approval, "the engine is always given the approved hash");
@@ -329,4 +340,31 @@ Deno.test("WO-039/10 a deliberate stop is interrupted, not a failure; a hand rec
   }
   const nonJwt = await preflight({ queue: memQueue([]).q, key: "sb_secret_TESTONLY" });
   assert(!nonJwt.ok && /NOT_THE_SERVICE_KEY/.test((nonJwt as any).why), "a key that is not a service-role JWT is refused");
+});
+
+Deno.test("WO-039/card a queue that refuses the card's authorization sends nothing, before the engine or at the effect", async () => {
+  for (const refuse of ["before_engine", "before_effect"]) {
+    const j = await job("A", 20), { q, finished } = memQueue([j]), a = authorizer({ allow: (phase) => phase !== refuse }), seen: any[] = [];
+    await runCloudJob(j, { queue: { ...q, authorize: a.authorize }, log: () => {}, runEngine: fakeEngine(() => sent, seen) });
+    eq(seen.length, refuse === "before_engine" ? 0 : 1, `engine runs only when allowed (${refuse})`);
+    assert(finished[0].state !== "submitted_unconfirmed" && finished[0].state !== "confirmed", JSON.stringify(finished[0]));
+    eq(finished[0].outcome, "not_sent", `nothing went (${refuse}): ${JSON.stringify(finished[0].evidence?.reason)}`);
+  }
+  const j = await job("A", 21), { q, finished } = memQueue([j]);
+  const { authorize: _none, ...noAuth } = q as any;
+  await runCloudJob(j, { queue: noAuth, log: () => {}, runEngine: fakeEngine(() => sent) });
+  eq([finished[0].outcome, finished[0].evidence.reason], ["not_sent", "CARD_CLOUD_AUTH_REQUIRED"], "a queue without authorize is refused");
+});
+
+Deno.test("WO-039/refusal an engine refusal (RESULT printed, exit 1) is that refusal, never 'no result' (unknown, an error)", async () => {
+  // scripts/apply.ts prints RESULT with the reason and exits 1 on every refusal (FACT_OWNER_MISMATCH, a changed
+  // application, a refused card authorization). The runner must keep that result; only a missing RESULT is no result.
+  const dir = await Deno.makeTempDir(), fake = `${dir}/fake-deno.sh`;
+  await Deno.writeTextFile(fake, '#!/bin/sh\necho "RESULT {\\"state\\":\\"not_submitted\\",\\"reason\\":\\"FACT_OWNER_MISMATCH\\"}"\nexit 1\n');
+  await Deno.chmod(fake, 0o755);
+  const r = await cloudEngineRunner({ root: "/repo", evidenceRoot: dir, deno: fake })(["--url", "u"]);
+  eq(r?.result, { state: "not_submitted", reason: "FACT_OWNER_MISMATCH" }, "the refusal survives");
+  eq(settle(r?.result ?? null).outcome, "not_sent", "a refusal is not an unknown outcome");
+  await Deno.writeTextFile(fake, '#!/bin/sh\necho "no result here"\nexit 1\n');
+  eq(await cloudEngineRunner({ root: "/repo", evidenceRoot: dir, deno: fake })(["--url", "u"]), null, "no RESULT line: no result");
 });

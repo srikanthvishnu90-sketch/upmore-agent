@@ -8,8 +8,9 @@ jobs:
   gate:
     runs-on: ubuntu-24.04
     # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
-    # cancelled it (5470fe98). Headroom, not a target: a slower gate is still a finding.
-    timeout-minutes: 15
+    # cancelled it (5470fe98). Consolidating the fix line onto trunk (PR #156) added ~270 tests and the 15-minute cap
+    # cancelled the first run. Headroom, not a target: a slower gate is still a finding.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,15 +19,17 @@ jobs:
         with: { deno-version: "v2.9.6" }
       - name: Install tooling and use the runner's packaged Chrome
         run: |
-          npm install --prefix "$RUNNER_TEMP/wo001-tools" --no-audit --no-fund playwright@1.64.1 esbuild@0.25.12
+          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
+          # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
+          npm ci --prefix tools --no-audit --no-fund
           # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
           # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
-          (cd "$RUNNER_TEMP/wo001-tools" && npx --no-install playwright install chromium)
+          (cd tools && npx --no-install playwright install chromium)
           browser_path=$(command -v google-chrome)
           test -x "$browser_path"
-          echo "UPMORE_PLAYWRIGHT_PATH=$RUNNER_TEMP/wo001-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
           echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
-          echo "ESBUILD_BIN=$RUNNER_TEMP/wo001-tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
           # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
           python3 -m venv "$RUNNER_TEMP/py"
           "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
@@ -34,7 +37,22 @@ jobs:
       - name: Allow sandboxed Chromium user namespaces for this gate job
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Career gate
-        run: bash scripts/gate.sh
+        # The gate's result is also written as annotations (readable through the checks API, where a job log may not
+        # be): the step summary lines, then the failing tests' names.
+        run: |
+          set -o pipefail
+          bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"
+      - name: Gate result as annotations
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/gate.log" || exit 0
+          summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
+          [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
+          failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
+          [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
+          # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
+          sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          exit 0
   database:
     runs-on: ubuntu-24.04
     steps:

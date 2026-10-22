@@ -11,9 +11,12 @@
 // Needs OPENAI_API_KEY (the judge; and the agent brain). Without it: NOT RUN, exit 2. A score is never faked.
 // Results: evals/career/results/<label>.json, plus the pass rate and failing ids on stdout.
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
-export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown }>;
+// `trace` (WO-061): per turn, how the agent loop ended and every tool it called (name, ok, error). Never shown to a judge;
+// it is there so a failure reply (the step-limit text) can be traced to its cause instead of guessed.
+export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[]; errors?: string[] }[];
+export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown; trace?: Trace }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
-export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string }
+export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; trace?: Trace; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
 export interface EvalResult { total: number; passed: number; pass_rate: number; items: EvalItemResult[]; planned: number; stopped: string | null }
 
 // stop: asked before each item; a reason ends the run there (the spend cap), and the items not run are not scored.
@@ -23,18 +26,34 @@ export async function runEval(items: EvalItem[], brain: Brain, judge: Judge, sto
   for (const it of items) {
     stopped = stop ? stop() : null;
     if (stopped) break;
-    let replies: string[] = [], state: unknown = null;
-    try { const r = await brain(it.turns); replies = r.replies; state = r.state; }
+    let replies: string[] = [], state: unknown = null, trace: Trace | undefined;
+    try { const r = await brain(it.turns); replies = r.replies; state = r.state; trace = r.trace; }
     catch (e) { out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `brain error: ${e instanceof Error ? e.message : String(e)}` }); continue; }
     try {
       const j = await judge(it, replies[replies.length - 1] ?? "", state);
-      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "" });
+      // The end state the judges saw is kept, so a later re-score (rejudge.ts) grades exactly what they graded.
+      out.push({ id: it.id, pass: !!j.pass, failed: j.failed || [], score: Number(j.score) || 1, replies, note: j.note || "", ...((j as any).judges ? { judges: (j as any).judges } : {}), state: state ?? null, ...(trace ? { trace } : {}) });
     } catch (e) {
       out.push({ id: it.id, pass: false, failed: it.must, score: 1, replies, note: `judge error: ${e instanceof Error ? e.message : String(e)}` });
     }
   }
   const passed = out.filter((x) => x.pass).length;
   return { total: out.length, passed, pass_rate: out.length ? passed / out.length : 0, items: out, planned: items.length, stopped };
+}
+
+// WO-061 (owner, 2026-10-21: "Two independent judges score each item. One judge's reading never decides an item alone;
+// when judges disagree, the item counts as a failure until both pass it."): both verdicts are kept, and the item passes
+// only when every judge passes it. A judge that errors fails the item.
+export type Verdict = { pass: boolean; failed: string[]; score: number; note: string };
+export function bothJudges(verdicts: { model: string; v: Verdict }[]): Verdict & { judges: { model: string; pass: boolean; failed: string[]; note: string }[] } {
+  const judges = verdicts.map(({ model, v }) => ({ model, pass: !!v.pass, failed: v.failed || [], note: v.note || "" }));
+  return {
+    pass: judges.length > 0 && judges.every((j) => j.pass),
+    failed: [...new Set(judges.flatMap((j) => j.failed))],
+    score: Math.min(...verdicts.map(({ v }) => Number(v.score) || 1)),
+    note: judges.map((j) => `[${j.model}: ${j.pass ? "pass" : "FAIL"}] ${j.note}`).join(" "),
+    judges,
+  };
 }
 
 // The spend already recorded: every result file's brain and judge cost, except the label being written now.
@@ -85,23 +104,54 @@ if (import.meta.main) {
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
+  const { situationFrom } = await import("../../supabase/functions/_shared/career_situation.ts");
+  const { memoryBriefStores } = await import("../../supabase/functions/_shared/career_brief_store.ts");
   const meter = newMeter(), judgeMeter = newMeter();
   const host = CareerHost.createCareerHost({ CareerAccess: core.CareerAccess, CareerOnboarding: core.CareerOnboarding, CareerRouter: core.CareerRouter, CareerDoorstep: core.CareerDoorstep, CareerReply: core.CareerReply, CareerContainment: core.CareerContainment });
   const brainCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const judgeCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("EVAL_JUDGE_MODEL") || "gpt-5-mini" };
+  const judge2Model = Deno.env.get("EVAL_JUDGE_MODEL_2") || null;
+  const judge2Cfg = judge2Model ? { ...modelConfig(Deno.env, "chat"), model: judge2Model } : null;
   const T0 = Date.UTC(2026, 9, 19, 15);
   const brain: Brain = async (turns) => {
     const store = memoryStore();
     // WO-061: the agent gets an alert store, as agent-chat gives it in production; without one every alert request
     // failed with "job alerts are not configured here", a harness artifact the router (its own state) never paid.
     const alerts = memoryAlertStore();
+    // WO-061 (production parity, second judge's ruling 2026-10-21): agent-chat gives the brain the interviews store
+    // (handler-career.ts: supabaseInterviewStore) and readSituation reads its upcoming rows (career_situation.ts:
+    // career_interviews id, company, role, starts_at, interview_date, from a day ago on). The harness keeps the same
+    // store in memory for this persona; only rows the brain's own tools saved are in it.
+    const { interviews } = memoryBriefStores();
     let now = T0;
-    const replies: string[] = [];
+    const replies: string[] = [], trace: Trace = [];
     const turnFn = async (a: any) => {
       const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: a.userId, now, snapshot: a.stores.snapshot ?? null });
       let reply: string;
       if (brainName === "agent") {
-        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, model: (p) => callModel(brainCfg, p, { meter, role: "chat" }) });
+        // WO-061 fix 2 (production parity): agent-chat reads the person's situation from their account every turn
+        // (readSituation) and passes it; the harness passed none, so every records question met "could not be read this
+        // turn". An eval persona's account holds nothing but the alerts it set in this chat: that is its situation.
+        const row = await alerts.get(a.userId);
+        const today = new Date(now - 86400000).toISOString();
+        const upcoming = (await interviews.list(a.userId))
+          .map((r) => ({ id: r.key, company: r.company, role: r.role, starts_at: r.starts_at, interview_date: r.date }))
+          .filter((r) => (r.starts_at != null && r.starts_at >= today) || (r.interview_date != null && r.interview_date >= today.slice(0, 10)));
+        const situation = situationFrom({ jobs: [], wanted: [], prepared: [], card: null, questions: [], outreach: [], mail_drafts: [], interviews: upcoming,
+          alerts: row ? { prefs: row.prefs, tz: row.tz } : null, standing: [],
+          // WO-061 (production parity, H004 traces; second judge's ruling 2026-10-21): readSituation reads every thread's
+          // tracker rows from agent_flow_state (career_situation.ts: state->career->trackStore->rows), as saved after each
+          // earlier turn; the harness passed none, so a row recorded earlier in the same chat was "not on file" by the next
+          // turn. The eval persona's one thread is this chat: its own rows as saved after the last turn, nothing added.
+          threads: [{ thread_id: a.userId, rows: a.stores?.snapshot?.stores?.trackStore?.rows ?? null }],
+          connections: [], cloud: null, channel: null, last_search: null, unreadable: [] }, now);
+        // WO-061 (H029, run 39593783917: the model call failed in all five passes and the reason was not recorded): a failed
+        // model call's provider status and message go in the trace, never to a judge.
+        const errors: string[] = [];
+        const model = async (p: any) => { try { return await callModel(brainCfg, p, { meter, role: "chat" }); } catch (e) { errors.push(String((e as any)?.summary?.() ?? e).slice(0, 300)); throw e; } };
+        const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, interviews, model,
+          known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
+        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })), ...(errors.length ? { errors } : {}) });
         if (t.stopped === "model_error") throw new Error("agent model unavailable");
         reply = t.reply;
       } else {
@@ -116,11 +166,17 @@ if (import.meta.main) {
     }
     const p = await store.userFor("+15550001000");
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
-    return { replies, state: snap ? snap.stores : null };
+    return { replies, state: snap ? snap.stores : null, ...(brainName === "agent" ? { trace } : {}) };
+  };
+  const oneJudge = async (cfg: any, item: EvalItem, reply: string, state: unknown) => {
+    const res = await callModel(cfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
+    return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));
   };
   const judge: Judge = async (item, reply, state) => {
-    const res = await callModel(judgeCfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
-    return parseJudge((res.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join(""));
+    if (!judge2Cfg) return oneJudge(judgeCfg, item, reply, state);
+    const settle = async (cfg: any) => { try { return await oneJudge(cfg, item, reply, state); } catch (e) { return { pass: false, failed: item.must, score: 1, note: `judge error: ${e instanceof Error ? e.message : String(e)}` }; } };
+    const [a, b] = await Promise.all([settle(judgeCfg), settle(judge2Cfg)]);
+    return bothJudges([{ model: judgeCfg.model, v: a }, { model: judge2Cfg.model, v: b }]);
   };
   // --set heldout: the held-out live phrasings (WO-059), reported beside the official set; D-008's bar is the official set's.
   const setName = opt("--set") || "official";
@@ -129,7 +185,7 @@ if (import.meta.main) {
   const items: EvalItem[] = set.items.filter((i: EvalItem) => !only || only.split(",").includes(i.id));
   const budgetArg = opt("--budget-usd") ?? Deno.env.get("EVAL_BUDGET_USD") ?? null;
   const budget = budgetArg === null ? null : Number(budgetArg);
-  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (brainName === "agent" && !PRICES[brainCfg.model]))) {
+  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (judge2Cfg && !PRICES[judge2Cfg.model]) || (brainName === "agent" && !PRICES[brainCfg.model]))) {
     console.log(`NOT RUN: a budget needs a positive number and a priced model (judge ${judgeCfg.model}, brain ${brainCfg.model}); an unpriced call cannot be capped.`);
     Deno.exit(2);
   }
@@ -143,9 +199,14 @@ if (import.meta.main) {
   const now$ = () => before + (meter.usd_micros + judgeMeter.usd_micros) / 1e6;
   if (budget !== null) console.log(`budget $${budget.toFixed(2)} · already spent $${before.toFixed(3)} (${prior.length} result files)`);
   const r = await runEval(items, brain, judge, budgetStop(budget, now$));
+  // The brain's own commit: a measurement commit on ci/brain-eval merges the branch measured as its second parent.
+  let source = "unknown";
+  try { const o = await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD^2"] }).output(); if (o.success) source = new TextDecoder().decode(o.stdout).trim(); } catch { /* no second parent */ }
   let commit = "unknown";
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
-  const result = { label, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, commit, run_at: new Date().toISOString(),
+  // WO-061 (owner, 2026-10-21): every score from fix (b) on carries this label, so the harness gain is never read as a brain gain.
+  const harness = "situation parity since f265092a (production parity, not brain improvement)";
+  const result = { label, harness, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before, ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });

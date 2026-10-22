@@ -1,0 +1,166 @@
+{
+  "status": "SCOPED_PASS",
+  "scope": "New Messages-origin approvals only: actual local synthetic PostgreSQL producer, authenticated tap, unchanged canonical consumer, new queue guard. No claim about unbound legacy/manual APIs.",
+  "source": {
+    "commit": "acb0b883374a11c4581a5a6e9c2bda89fe829a70",
+    "migration": "supabase/migrations/20261021220430_career_apply_message_cards.sql",
+    "migration_sha256": "c72c99c7e359f7fb96c2fc19033ab980e805613f95ef00c8897382f783df60bd",
+    "source_test": "tests/db/career_apply_message_cards.test.sql",
+    "source_test_sha256": "a3a9fc5aacb1ad1b22ab59d71458e2af77d37aafcb14a9ac624fac1d61390c98",
+    "actual_guard_function_sha256": "841f3427c82cb7a357e494574785f6f640ea229d5ba1863d5cfcba549897910d",
+    "unchanged_canonical_consumer_function_sha256": "9451e0f70e0859c587c6a0ed82192986c1153467a996b8687a4c00be3bb238ae",
+    "function_hashes_independently_queried_from_local_cluster": true
+  },
+  "independent_checks": {
+    "post_approval_mutation_gate": {
+      "before": {
+        "passed": 3,
+        "total": 19
+      },
+      "after": {
+        "passed": 19,
+        "total": 19
+      },
+      "mutations": [
+        "answer text",
+        "resume_sha256",
+        "destination URL",
+        "company"
+      ],
+      "proof": "Each mutation creates zero jobs, leaves the original approval unused, then the original exact payload starts once. Unchanged positive starts and consumes once."
+    },
+    "deletion_and_lifecycle": {
+      "before": {
+        "passed": 2,
+        "total": 6
+      },
+      "after": {
+        "passed": 6,
+        "total": 6
+      },
+      "cases": [
+        {
+          "case": "delete_message",
+          "pass": true
+        },
+        {
+          "case": "delete_thread",
+          "pass": true
+        },
+        {
+          "case": "disabled",
+          "pass": true
+        },
+        {
+          "case": "expired",
+          "pass": true
+        },
+        {
+          "case": "association_strip",
+          "pass": true
+        },
+        {
+          "case": "terminal_receipt",
+          "pass": true
+        }
+      ]
+    },
+    "same_entry_card_cannot_renew_old_job": {
+      "passed": 4,
+      "total": 4,
+      "proof": "A second real same-owner/job/hash card has a new approval ID; the old queued job keeps its original consumed ID/deadline, refuses continued driving after that deadline, leaves the new approval unused, and still records its terminal unknown_outcome receipt."
+    },
+    "total": {
+      "passed": 29,
+      "failed": 0
+    }
+  },
+  "fixture_notes": [
+    "All UUIDs/accounts/statements/files are invented local fixtures, never the real TEST profile.",
+    "Positive file detail was corrected from an empty legacy fixture to actual DOM readDetail SHA:size:MIME format; the four mutated values were unchanged.",
+    "The renewal fixture operator ages only OLD private bound-approval metadata to simulate expiry; client/service roles have no grant to edit it. statement_timestamp() keeps its required exact24h interval.",
+    "The deletion/lifecycle terminal case additionally tests TEST disable and ages the underlying batch approval; the renewal case tests the private bound deadline itself."
+  ],
+  "execution": {
+    "transactions": "ROLLED_BACK",
+    "provider_calls": 0,
+    "employer_requests": 0,
+    "real_profile_access": false,
+    "deployed_TEST": "NOT_RUN",
+    "final_integrated_sandboxed_browser": "PENDING_SEPARATE_CI",
+    "full_source_CI": "PENDING_SEPARATE_CI"
+  },
+  "evidence": [
+    {
+      "file": "consumer-mutations-gate.py",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-gate.py",
+      "sha256": "089fdca836ba30ec227e0ebc4dbde3e3606f16ce620d1fa00f4a2dad71ad22a9"
+    },
+    {
+      "file": "consumer-mutations-gate.sql",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-gate.sql",
+      "sha256": "a58b556322c17ce68212ac973b3409981531f5a7a4a70cdaaff46d5e8c7bb9fe"
+    },
+    {
+      "file": "consumer-mutations-assert.py",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-assert.py",
+      "sha256": "e5b18bbe24ee494a303b767a855c14fb766ec4974c0388e9833560839e828430"
+    },
+    {
+      "file": "consumer-mutations-gate-before.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-gate-before.json",
+      "sha256": "d55ba44afbc09a4a9fc9c9181a47bc257b8cfbf6dc928d89ff48ac245856c58c"
+    },
+    {
+      "file": "consumer-mutations-gate-result.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-gate-result.json",
+      "sha256": "72fdb804bf5d5736d31aa8bb9062c597f21b76636a2fd4cb6272646f7ec94c5e"
+    },
+    {
+      "file": "consumer-mutations-gate-verdict.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-mutations-gate-verdict.json",
+      "sha256": "15a92b69296b41f1bc4971598f2ce1c66c4762eecdf21441f0e14abe69762197"
+    },
+    {
+      "file": "consumer-lineage-lifecycle.py",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-lineage-lifecycle.py",
+      "sha256": "d5757e3894f937cd89724d88c9c7f12dfd95fc28e7aff48a8f05c15990a2fbdc"
+    },
+    {
+      "file": "consumer-lineage-lifecycle.sql",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-lineage-lifecycle.sql",
+      "sha256": "35cd54c2b70798007c6a8c7533cb7509354692b11e274e9cb18adaf0a3750ea9"
+    },
+    {
+      "file": "consumer-lineage-lifecycle-before.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-lineage-lifecycle-before.json",
+      "sha256": "87888b243365ca138d717bd2ff5876aecbd554a262f3c9cd86932165f1a14c00"
+    },
+    {
+      "file": "consumer-lineage-lifecycle-result.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-lineage-lifecycle-result.json",
+      "sha256": "c5a85bdea30e1f147d469a23e95344842546d7ba3ed1ea9ef104338cf42c558f"
+    },
+    {
+      "file": "consumer-renewal.py",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-renewal.py",
+      "sha256": "33fe6ae22244e34206d092ea0079dc22507a9bd0fd8ac5ce3b3a596f5a845770"
+    },
+    {
+      "file": "consumer-renewal.sql",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-renewal.sql",
+      "sha256": "b7583ca12cb5c8b95d798958082baa52a7440d3afdbd95b4cd40f25f3cfdf25d"
+    },
+    {
+      "file": "consumer-renewal-result.json",
+      "local_path": "/tmp/approval-card-independent-aafbf7b3/consumer-renewal-result.json",
+      "sha256": "db0ec243409fd3eba5fbed55b966593117bec622d06dfd2384a4c61d7088d4f7"
+    }
+  ],
+  "cost": {
+    "new_spend_usd_micros": 0,
+    "comparison_known_usd_micros": 8503100,
+    "comparison_held_unknown_usd_micros": 70743,
+    "comparison_final_cost": "UNRECONCILED"
+  }
+}

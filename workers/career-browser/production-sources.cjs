@@ -14,8 +14,9 @@
      (supabase/functions/_shared/career_pool.js) — the identical
      mapping the Edge handler passes into createTurnCtx, read here
      through the worker transport. The in-turn pool and the worker
-     pool can never disagree about what exists (checklist §8 step
-     2). A failed read throws BATCH_DISCOVERY_READ_FAILED: the
+     mapping stays shared; named batch asks also read the bounded
+     keyed supplement beyond the recency window (F-005). A failed
+     read throws BATCH_DISCOVERY_READ_FAILED: the
      intent finishes blocked with that name rather than preparing a
      run against a silently-empty pool dressed up as "no jobs".
      (The chat turn degrades to its honest-empty reply instead —
@@ -56,9 +57,37 @@ const path = require("node:path");
 const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "functions", "_shared", "career_pool.js"));
 const CareerJobs = require(path.join(__dirname, "..", "..", "packages", "domain", "121-career-jobs.js"));
 const Portal = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
+const { createTargetedShelfRead, mergePostings } = require("./career-shelf-targeted.cjs");
+
+// WO-102: the second judge's submission-quality contract, the extension's own functions (extension/src/apply_core.ts
+// trustedManifest, bundled unchanged into extension/lib/trainee-core.js, which extension/build.ts --check keeps fresh).
+// Loaded for its functions only; never copied.
+require(path.join(__dirname, "..", "..", "extension", "lib", "trainee-core.js"));
+const Contract = globalThis.TraineeCore;
 
 const coded = (code, message) => Object.assign(new Error(message || code), { code });
 const clone = (v) => JSON.parse(JSON.stringify(v));
+
+// WO-102 (every path): the master's facts and basics as the contract keeps them, by the same positive allowlist as every
+// other submission path (trustedManifest): confirmed, the owner's own, a positive provenance ("owner stated ..."), the
+// event that confirmed it, not quarantined (D-007: F-027..F-079 and the answer-all delegation), no id reserved for another
+// source, not derived from anything excluded. A status "confirmed" label alone is not enough. The basics (name, email,
+// phone, location) are kept only when the block itself carries the owner's own confirmation.
+function trustedMaster(m, owner) {
+  const facts = Array.isArray(m.facts) ? m.facts : [];
+  const b = m.basics || {};
+  const entry = (f, id, value) => ({
+    value: String(value ?? ""), factId: String(id ?? ""), confirmed: f.status === "confirmed" || (f.status === undefined && f.confirmed === true),
+    ...(f.needs_confirmation === true || f.status === "draft" ? { confirmed: false } : {}),
+    ...(f.user_id ? { user_id: f.user_id } : {}), provenance: f.provenance, confirmation_event_id: f.confirmation_event_id,
+    ...(Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {}),
+  });
+  const answers = {};
+  facts.forEach((f, i) => { if (f && typeof f === "object") answers["fact:" + i] = entry(f, f.id, f.value ?? f.title ?? f.name ?? f.text); });
+  answers.basics = entry({ ...b, status: b.status ?? "confirmed" }, b.id || "basics", b.name || b.email || "basics");
+  const kept = Contract.trustedManifest({ owner, file: { user_id: owner, answers }, rows: [], resume: null }).answers;
+  return { facts: facts.filter((_f, i) => !!kept["fact:" + i]), basics: kept.basics ? b : {} };
+}
 
 // The 149-shaped profile from the 122 master (WO-094, loop input).
 // Identity: 142's batchPortalProfile rule (identity fields from the
@@ -73,10 +102,12 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 // a stored note or answer could ride without a confirmed fact), and a
 // cover note comes only from a note drafted onto this application's
 // payload (155 coverNoteFor), never from the master.
-function portalProfileFromMaster(master, now) {
+function portalProfileFromMaster(master, now, owner) {
   const m = master || {};
-  const b = m.basics || {};
-  const basicsConfirmed = !(b.needs_confirmation === true || b.status === "draft");
+  // WO-102: only what the contract keeps reaches the profile (trustedMaster); no standing defaults (no fact behind them).
+  const t = trustedMaster(m, owner);
+  const b = t.basics;
+  const basicsConfirmed = Object.keys(b).length > 0;
   const id = (v) => (basicsConfirmed && v ? v : null);
   const p = {
     name: id(b.name || b.full_name || m.name),
@@ -85,8 +116,11 @@ function portalProfileFromMaster(master, now) {
     location: id(b.location),
     answers: {},
   };
-  const derived = Portal.deriveAnswers({ basics: basicsConfirmed ? b : {}, facts: Array.isArray(m.facts) ? m.facts : [], defaults: m.defaults || {} }, now != null ? now : Date.now());
+  // MUSE-F-007: the saved answers (application_answer / application_text) through the same contract, each only for its
+  // exact question.
+  const derived = Portal.deriveAnswers({ basics: b, facts: t.facts, defaults: {} }, now != null ? now : Date.now(), { contract: Contract, owner });
   p.answers = clone(derived.answers);
+  if (derived.savedAnswers.length) p.savedAnswers = clone(derived.savedAnswers);
   for (const [k, v] of Object.entries(derived.profileFields)) if (p[k] == null) p[k] = clone(v);
   const r = m.resume || b.resume || null;
   if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
@@ -106,14 +140,32 @@ function createProductionSources(deps) {
     jobs,
     limit: d.poolLimit,
   });
+  const targeted = createTargetedShelfRead({ readRows: (spec) => transport.readRows(spec), jobs });
 
-  async function postingsFor(/* userId, familyText, count */) {
-    // The pool is a shared snapshot source (not per-user state);
-    // family/count selection is module 155's own screening, exactly
-    // as the in-turn pool is consumed whole by 142.
+  async function postingsFor(_userId, familyText, _count) {
+    // This is shared posting data, never a profile read. The ask is converted only to 121's named classifier keys;
+    // raw user text never becomes an SQL pattern. 155 selects the requested count after this discovery projection.
     const pool = await loader.loadPool();
     if (pool.error) throw coded("BATCH_DISCOVERY_READ_FAILED", "the KB pool read failed on the worker — the batch stops named rather than preparing against an invented or silently-empty pool");
-    return pool.postings;
+    const ask = typeof familyText === "string" ? familyText : "";
+    const families = jobs.askRoleFamilies(ask);
+    const classifiedBand = jobs.seniorityBand(ask, "");
+    // mid is the classifier's fallback, so an unbanded ask must not accidentally exclude every other band.
+    const band = classifiedBand === "mid" ? null : classifiedBand;
+    if (!families.length && !band) return pool.postings;
+    let postings = pool.postings;
+    // Band is the scarce dimension. Its reviewed keys cover title and JD-head candidates; classification still
+    // rejects substring overfetch. Without a named band, read each named family, rather than guessing one.
+    const targets = band ? [{ band }] : families.map((family) => ({ family }));
+    for (const target of targets) {
+      const keyed = await targeted.loadKeyed(target);
+      if (keyed.error) throw coded("BATCH_DISCOVERY_READ_FAILED", "the keyed KB read failed on the worker — no partial shelf is reported as an empty eligible set");
+      postings = mergePostings(postings, keyed.postings);
+    }
+    // The production executor does not filter by family/band itself. Widening its pool alone would still choose
+    // the recent senior roles first. Keep 121's mapped classifications as the membership authority here.
+    return postings.filter((p) => (!band || p.seniority_band === band) &&
+      (!families.length || families.includes(p.role_family)));
   }
 
   async function readStoredMaster(userId) {
@@ -139,7 +191,7 @@ function createProductionSources(deps) {
     // never read — the approval card is the attestation act, per
     // application, bound into that application's payload hash.
     return {
-      profile: portalProfileFromMaster(master, nowOf()),
+      profile: portalProfileFromMaster(master, nowOf(), userId),
       profileMaster: master,
       attestations: {},
     };

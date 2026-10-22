@@ -24,7 +24,7 @@ function byYesNo(want: "yes" | "no", options: Opt[]): string | null {
   return only(plain);
 }
 
-const DECLINE = /decline|prefer not|\bnot declared\b|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|ne préfère pas/;
+const DECLINE = /decline|prefer not|\bnot declared\b|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|do not want to answer|ne préfère pas/;
 
 const EDUCATION: Record<string, RegExp> = {
   high_school: /high school|ged|secondary|diploma or equivalent/,

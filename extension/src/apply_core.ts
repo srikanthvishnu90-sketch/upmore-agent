@@ -5,12 +5,16 @@
 //   hashApplyPayload            supabase/functions/_shared/career_apply_store.ts (the same canonical hash the queue's SQL computes)
 //   questionsToStore            workers/career-browser/ask-once.ts (ask once, shared with the desktop runner)
 // Bundled into extension/lib/trainee-core.js by extension/build.ts; tested by tests/architect/wo-031-extension.test.ts.
-import { classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch } from "../../supabase/functions/_shared/career_apply.ts";
+import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, type FormField, normLabel, type Observation, planBatch, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
+import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
+import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
+import { rowAnswerKey, rowQuestionLabel, rowQuestionType } from "../../supabase/functions/_shared/row_answer.ts";
+import { factDependencies, quarantinedFact as sharedQuarantinedFact } from "../../supabase/functions/_shared/fact_quarantine.ts";
 
 export { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
 import { applyUrl, detectPortal, type Family, type Portal, postingKey, tenantOf } from "../../supabase/functions/_shared/posting_key.ts";
@@ -66,7 +70,9 @@ export function planForm(o: {
   // field under the label; planBatch answers the pair with the approved file (fileAlternative).
   const count = new Map<string, number>();
   for (const f of o.schema) if (!fileAlternative(f, o.schema)) count.set(normLabel(f.label), (count.get(normLabel(f.label)) ?? 0) + 1);
-  const ambiguous = o.schema.filter((f) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1);
+  const rowKeys = o.schema.map((f) => rowAnswerKey(f, o.jobId));
+  const ambiguous = o.schema.filter((f, i) => !isIdentityField(f) && !f.personal && (count.get(normLabel(f.label)) ?? 0) > 1 &&
+    !(rowKeys[i] && rowKeys.filter((key) => key === rowKeys[i]).length === 1));
   // WO-048: a form only the person fills (the disability self-identification) is neither planned nor asked by text.
   const fields = o.schema.filter((f) => !isIdentityField(f) && !ambiguous.includes(f) && !f.personal);
   // WO-053: the posting's own location as its page shows it, for the questions that depend on where the job is.
@@ -83,15 +89,16 @@ export function planForm(o: {
   const strict = planBatch({ userId: o.userId, postings: posting(fields), answers: o.answers, saved: o.saved, log: [], now: o.now });
   const planned = new Set(fill.map((f) => f.name));
   const needs = basicOnly
-    ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({ label: f.label }))
-    : strict.needs.map((n) => ({ label: n.label }));
+    ? fields.filter((f) => f.required && !planned.has(f.name)).map((f) => ({ label: f.label, field_name: f.name }))
+    : strict.needs.map((n) => ({ label: n.label, field_name: (n as { field_name?: string }).field_name }));
   // Each open question as the form asks it, the engine's shape, so it is asked once by text in the form's own terms.
   const questions = needs.map((n) => {
-    const f = fields.find((x) => x.label === n.label) || ({} as FormField);
+    const f = fields.find((x) => n.field_name ? x.name === n.field_name : x.label === n.label) || ({} as FormField);
     const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
-    return { label: n.label, type: String(f.type || "input_text"), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
+    return { label: rowQuestionLabel(f) || n.label, type: rowQuestionType(f, o.jobId, questionFieldType(f)), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [] };
   });
   return {
+    ...(o.jobId ? { jobId: o.jobId } : {}),
     fill, needs: questions, identity: identity.map((f) => ({ name: f.name, label: f.label, required: f.required })),
     ambiguous: ambiguous.map((f) => ({ name: f.name, label: f.label, required: f.required })),
   };
@@ -101,9 +108,12 @@ export function planForm(o: {
 // among them is the planner's, exactly as for an ordinary select: the field is planned again with the employer's own
 // option texts. A phone-country list ("United States +1") is matched by its country. Nothing the planner would not choose
 // is ever picked: no answer, or one that is not on the list, leaves the widget for the person.
+// FRS: nor anything the contract would refuse on a select (WO-102): the option must derive from the fact behind it
+// (optionRule), the fact that was approved (`factId`), never one the planner reached by meaning ("Yes" put on "I am
+// authorized to work ... for any employer"). Such a widget is left for the person, and asked.
 export function chooseWidgetOption(o: {
   userId: string; jobId: string; company: string; family: Family; field: FormField; labels: string[];
-  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[]; location?: string;
+  answers: Record<string, Answer>; saved: Record<string, Answer>; now: number; form?: FormField[]; location?: string; factId?: string;
 }): string | null {
   const labels = o.labels.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
   if (!labels.length) return null;
@@ -112,8 +122,26 @@ export function chooseWidgetOption(o: {
   // The rest of the form rides along without options, for the rules that read a field beside its neighbours.
   const rest = (o.form ?? []).filter((f) => f.name !== o.field.name).map((f) => ({ ...f, options: [] }));
   const r = planForm({ userId: o.userId, jobId: o.jobId, company: o.company, family: o.family, schema: [{ ...o.field, options }, ...rest], answers: o.answers, saved: o.saved, now: o.now, location: o.location });
-  const v = r.fill.find((p) => p.name === o.field.name)?.value ?? null;
-  return v !== null && labels.includes(v) ? v : null;
+  const p = r.fill.find((x) => x.name === o.field.name);
+  if (!p || !labels.includes(p.value) || (o.factId && p.factId !== o.factId)) return null;
+  const [key, fact] = [...Object.entries(o.answers), ...Object.entries(o.saved)].find(([, a]) => a?.factId === p.factId) ?? [];
+  const shown = options.find((x) => x.value === p.value)!.label;
+  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+}
+// A place or a school is searched by its name, not picked from a fixed list: the employer's entry must name the fact (its
+// first word: "Chicago, Illinois, United States" for "Chicago, IL"). Any other widget is a select whose list opens late.
+const SEARCHED = new Set(["location", "city", "state", "school"]);
+const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+// How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
+function optionRule(option: string, fact: string, searched: boolean): string | null {
+  if (searched) {
+    // A US state code is named by the state ("IL": "Illinois, United States").
+    const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
+    return word && optN(option).includes(word) ? "listed-name" : null;
+  }
+  if (optN(option) === optN(fact)) return "option-exact";
+  const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
+  return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
 }
 
 // The rows career_apply_questions_put_own stores, keyed by how far each answer may travel (answerKey).
@@ -205,7 +233,7 @@ export function answerOnceQuestions(o: { postings: PreparedPosting[]; answers: R
         left.push({ jobId: p.jobId, label: r.label, why: "agreement" });
         continue;
       }
-      const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [], perPosting: String(r.key).startsWith("job:") };
+      const g = by.get(r.key) ?? { key: r.key, kind: r.kind, postings: [] as PanelQuestion["postings"], perPosting: String(r.key).startsWith("job:") };
       g.postings.push({ jobId: p.jobId, company: p.company, label: r.label, type: r.type, options: r.options, misfit: !!r.misfit });
       by.set(r.key, g);
     }
@@ -275,8 +303,11 @@ export interface Account { epoch: number; version: number }
 export function reviewPayload(o: {
   userId: string; jobId: string; company: string; url: string; family: Family;
   fields: SnapField[]; resume: { filename: string; sha256: string } | null; account: Account; expiresAt: string;
+  manifest?: { hash: string; version: string } | null;
 }) {
   return {
+    // WO-102: the approval binds the trusted fact manifest and the quarantine version it was made under.
+    ...(o.manifest ? { manifest_hash: o.manifest.hash, quarantine_version: o.manifest.version } : {}),
     version: 1 as const,
     source: "extension",
     user_id: o.userId,
@@ -356,7 +387,7 @@ export interface WorkdayCard {
 }
 export function cardLines(o: {
   company: string; family: Family; payload: ReviewPayload; openRequired: string[]; identity: { label: string }[];
-  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[];
+  blockers: string[]; verification: string[]; ambiguous?: { label: string }[]; workday?: WorkdayCard; before?: string[]; coverFiles?: CoverFile[];
 }) {
   if (o.family === "workday" && o.workday) return workdayLines(o as typeof o & { workday: WorkdayCard });
   const lines: string[] = [`${o.company}`];
@@ -370,7 +401,13 @@ export function cardLines(o: {
     lines.push(`${MARK[mapQuestion({ label: f.label }).kind] ?? ""}${shortLabel(f.label)}: ${f.value}${from}`);
   }
   lines.push(`Resume: ${o.payload.resume_name ?? "none attached"}`);
-  for (const l of o.openRequired) lines.push(`Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+  // FRS: a cover-letter upload is the person's to attach (never asked by text, never the resume); an optional one left empty says so.
+  const covers = (o.coverFiles ?? []).filter((c) => !c.attached && !c.pasted);
+  for (const l of o.openRequired) {
+    const c = covers.find((x) => x.required && shortLabel(x.label) === l);
+    lines.push(c ? coverLetterLine(c) : `Still needed: ${l}. Answer it on the form, or answer Trainee once by text and it fills on every later form.`);
+  }
+  for (const c of covers.filter((x) => !x.required)) lines.push(coverLetterLine(c));
   for (const f of o.ambiguous ?? []) lines.push(`Still needed: ${shortLabel(f.label)}. Two fields on this form share that label, so Trainee left both for you.`);
   for (const f of o.identity) lines.push(`Type this yourself on the form: ${f.label}. Trainee never fills, keeps or sends it anywhere.`);
   if (o.verification.length) lines.push(`The page runs a verification check (${o.verification.join(", ")}). If it asks you something, you answer it.`);
@@ -525,10 +562,12 @@ export const OWN_WORDS_UNREAD = "This form names its own AI policy without sayin
 // The written questions the card offers to draft: required, not an identity number, a written answer by the question map,
 // and not answered yet, or answered with a draft the person used (so its text stays editable on the card). One the person
 // typed themselves, or that Trainee filled from a saved answer, is theirs and not offered.
+// FRS: a cover letter typed into a text box is offered too when it is optional (the person may send one or not).
 export function essayQuestions(o: { schema: FormField[]; fields: { name: string; source: string }[]; maxLength?: Record<string, number> }): EssayAsk[] {
   const by = new Map(o.fields.map((f) => [f.name, f]));
+  const mapped = (f: FormField) => mapQuestion({ label: f.label, type: f.type, options: f.options || [] });
   return o.schema
-    .filter((f) => f.required && !isIdentityField(f) && mapQuestion({ label: f.label, type: f.type, options: f.options || [] }).kind === "essay")
+    .filter((f) => !isIdentityField(f) && mapped(f).kind === "essay" && (f.required || mapped(f).fact === "essay_cover_letter"))
     .filter((f) => !by.has(f.name) || by.get(f.name)!.source === "drafted")
     .map((f) => {
       const n = Number(o.maxLength?.[f.name]);
@@ -544,6 +583,20 @@ export function showableDraft(r: unknown): boolean {
   return !!x && x.ok === true && typeof x.text === "string" && x.text.trim().length > 0 && x.text.length <= 2000 &&
     /[.!?]["”')\]]?$/.test(x.text.trim()) && Array.isArray(x.fact_ids) && x.fact_ids.every((i: unknown) => typeof i === "string");
 }
+// FRS: the form's cover-letter uploads (a file whose label names a cover letter and not a resume), whether the person
+// attached one, and whether its paste box (Greenhouse's cover_letter_text, a fileAlternative) holds one instead. Trainee
+// never attaches one: it makes no cover-letter file, and never sends the resume as one (judge).
+export interface CoverFile { name: string; label: string; required: boolean; attached: boolean; pasted: boolean }
+export const isCoverLetterFile = (f: { label: string; type: string }) => /file/.test(String(f.type)) && mapQuestion({ label: f.label, type: "file" }).fact === "cover_letter";
+export function coverLetterFiles(o: { schema: FormField[]; fields: { name: string }[] }): CoverFile[] {
+  const have = new Set(o.fields.map((f) => f.name));
+  return o.schema.filter(isCoverLetterFile).map((f) => ({ name: f.name, label: f.label, required: !!f.required, attached: have.has(f.name),
+    pasted: o.schema.some((x) => x.name === `${f.name}_text` && fileAlternative(x, o.schema) && have.has(x.name)) }));
+}
+export const coverLetterLine = (c: { label: string; required: boolean }) => c.required
+  ? `Still needed: ${shortLabel(c.label)}. Attach your cover letter on the form yourself; Trainee never attaches your resume as a cover letter.`
+  : `Left empty: ${shortLabel(c.label)} (optional). Trainee doesn't attach a cover letter, and never your resume as one; attach one yourself if you want to send it.`;
+
 // For the proof (D-024): each drafted answer, the facts it came from and whether the person edited it before it went.
 export function draftProvenance(fields: { name: string; value: string; source: string; factId: string | null }[],
   drafts: Record<string, { original: string; factIds: string[] }>) {
@@ -557,4 +610,427 @@ export function draftProvenance(fields: { name: string; value: string; source: s
     out[f.name] = { fact_ids: ids, edited, said: `drafted by Trainee from your facts${ids.length ? ` (${ids.join(", ")})` : ""}, ${edited ? "edited and used by you" : "used by you as drafted"}` };
   }
   return out;
+}
+
+// ------------------------------------------------------------------------------------------------ trusted facts (WO-102)
+// The second judge's submission-quality contract. Only facts the owner gave reach a batch: a positive allowlist, not a
+// blocklist. A fact from his confirmed-facts file is kept only when it is confirmed, his own, says where it came from in
+// a positive way ("owner stated ...", "owner confirmed ..."), names the event that confirmed it, is not quarantined
+// (D-007: the answer-all delegation of 2026-10-17, by id or provenance), does not borrow an id reserved for another
+// source, and is not derived from anything not kept. His own answers to asked questions (career_apply_questions rows)
+// are kept as his. A text answer that disagrees with the file excludes both: the question is asked again. The resume is
+// the file he picked. The manifest's hash and the quarantine version are bound into every batch approval.
+export const QUARANTINE_VERSION = "d007-v1";
+const POSITIVE = /^owner (stated|confirmed|typed|answered|gave|provided|picked)\b/i;
+const RESERVED = /^(text-answer:|approved-local-resume:|essay-draft:)/;
+export interface TrustedFact { table: "answers" | "saved"; key: string; value: string; factId: string; event: string; provenance: string; authorizes: boolean }
+export interface Manifest {
+  answers: Record<string, Answer>; saved: Record<string, Answer>; byFactId: Record<string, TrustedFact>;
+  excluded: { key: string; factId: string; why: string }[]; conflicts: { key: string; factIds: string[] }[]; hash: string; version: string;
+}
+export function trustedManifest(o: { owner: string; file: any; rows: { id: string; key: string; kind?: string; answer: string }[]; resume: { sha256: string } | null }): Manifest {
+  const excluded: Manifest["excluded"] = [], conflicts: Manifest["conflicts"] = [];
+  const kept = new Map<string, TrustedFact>(); // table + key -> fact
+  const file = o.file && typeof o.file === "object" ? o.file : null;
+  let projectedAnswers: Record<string, unknown> = {};
+  // Raw profile facts supply shape only. The existing allowlist below still decides source authority,
+  // quarantine, derivation and conflicts; projection cannot create a confirmation event.
+  if (Array.isArray(file?.facts)) {
+    const projected = typedProfileFile({ owner: o.owner, profile: file });
+    projectedAnswers = projected.file.answers;
+    excluded.push(...projected.needs.map((n) => ({ key: "profile", factId: n.factId, why: n.reason })));
+  }
+  const fileOwn = !!file && file.user_id === o.owner;
+  const candidates: { t: "answers" | "saved"; key: string; a: any }[] = [];
+  for (const t of ["answers", "saved"] as const) {
+    for (const [key, a] of [...Object.entries((file?.[t] ?? {}) as Record<string, any>), ...Object.entries(t === "answers" ? projectedAnswers : {})] as [string, any][]) {
+      const id = String(a?.factId ?? "");
+      const why = !fileOwn ? "another person's file" : a?.user_id && a.user_id !== o.owner ? "another person's fact"
+        : a?.confirmed !== true ? "not confirmed" : typeof a?.value !== "string" || !a.value.trim() ? "no value"
+        : !id || id.length > 200 ? "no fact id" : RESERVED.test(id) ? "an id reserved for another source (forged)"
+        : quarantinedFact(a) ? `quarantined (D-007, ${QUARANTINE_VERSION})` : !POSITIVE.test(String(a?.provenance ?? "")) ? "no positive provenance (not stated by the owner)"
+        : typeof a?.confirmation_event_id !== "string" || !a.confirmation_event_id.trim() ? "no confirmation event" : "";
+      if (why) excluded.push({ key, factId: id, why });
+      else candidates.push({ t, key, a });
+    }
+  }
+  // Derived facts stand only on kept facts: drop, until nothing changes, any whose sources are not all kept.
+  const grouped = new Map<string, typeof candidates>();
+  for (const c of candidates) { const key = c.t + "\n" + c.key; grouped.set(key, [...grouped.get(key) ?? [], c]); }
+  const conflicting = new Set<string>();
+  for (const [key, rows] of grouped) {
+    if (new Set(rows.map((c) => c.a.value.trim().replace(/\s+/g, " ").toLowerCase())).size <= 1) continue;
+    conflicting.add(key);
+    conflicts.push({ key: rows[0].key, factIds: rows.map((c) => String(c.a.factId)) });
+    for (const c of rows) excluded.push({ key: c.key, factId: String(c.a.factId), why: "conflicts with another confirmed source for this field" });
+  }
+  let live = candidates.filter((c) => !conflicting.has(c.t + "\n" + c.key));
+  for (let changed = true; changed;) {
+    changed = false;
+    const ids = new Set(live.map((c) => String(c.a.factId)));
+    live = live.filter((c) => {
+      const from = factDependencies(c.a);
+      if (from !== null && from.every((x: string) => ids.has(x))) return true;
+      excluded.push({ key: c.key, factId: String(c.a.factId), why: from === null ? "malformed dependency metadata" : "derived from an excluded or unknown fact" });
+      changed = true;
+      return false;
+    });
+  }
+  for (const c of live) {
+    if (kept.has(c.t + "\n" + c.key)) continue; // agreeing raw projection does not replace the original canonical source
+    kept.set(c.t + "\n" + c.key, { table: c.t, key: c.key, value: c.a.value, factId: String(c.a.factId), event: String(c.a.confirmation_event_id),
+      provenance: String(c.a.provenance), authorizes: c.a.authorizes === true });
+  }
+  // His own answers to asked questions.
+  const n = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  for (const r of o.rows || []) {
+    if (!r || typeof r.answer !== "string" || !r.answer.trim() || typeof r.key !== "string") continue;
+    const t = r.key.startsWith("fact:") ? "answers" : /^(label|job):[0-9a-f]{16}$/.test(r.key) ? "saved" : null;
+    if (!t) continue;
+    const key = t === "answers" ? r.key.slice(5) : r.key;
+    const tf: TrustedFact = { table: t, key, value: r.answer, factId: `text-answer:${r.id}`, event: `text-answer:${r.id}`,
+      provenance: `owner answered this question (text-answer:${r.id})`, authorizes: t === "saved" };
+    const prior = kept.get(t + "\n" + key);
+    if (!prior) kept.set(t + "\n" + key, tf);
+    else if (n(prior.value) !== n(tf.value)) {
+      kept.delete(t + "\n" + key);
+      conflicts.push({ key, factIds: [prior.factId, tf.factId] });
+      excluded.push({ key, factId: prior.factId, why: `conflicts with ${tf.factId}` }, { key, factId: tf.factId, why: `conflicts with ${prior.factId}` });
+    }
+  }
+  if (o.resume?.sha256) {
+    kept.set("answers\nresume", { table: "answers", key: "resume", value: o.resume.sha256, factId: "approved-local-resume:" + o.resume.sha256,
+      event: "resume:" + o.resume.sha256, provenance: "owner picked this file in the panel", authorizes: false });
+  }
+  const answers: Record<string, Answer> = {}, saved: Record<string, Answer> = {}, byFactId: Record<string, TrustedFact> = {};
+  for (const tf of kept.values()) {
+    (tf.table === "answers" ? answers : saved)[tf.key] = { value: tf.value, factId: tf.factId };
+    byFactId[tf.factId] = tf;
+  }
+  const rows = [...kept.values()].map((x) => [x.table, x.key, x.factId, x.value, x.event, x.provenance, x.authorizes]).sort((a, b) => (String(a) < String(b) ? -1 : 1));
+  return { answers, saved, byFactId, excluded, conflicts, version: QUARANTINE_VERSION, hash: sha256Hex(canonicalJson({ version: QUARANTINE_VERSION, rows })) };
+}
+// Questions that are an attestation or a personal choice: only the owner's own answer to that question fills them.
+const ATTESTATION = /\b(certify|certif(y|ies)|attest|acknowledg\w*|i agree|agree to|consent|i understand|truthful|true and (complete|correct|accurate)|privacy (policy|notice))\b/i;
+const PERSONAL = /\b(gender|pronoun|race|ethnic\w*|hispanic|latin[oax]?|veteran|disabilit\w*|sexual orientation|transgender|lgbt\w*)\b/i;
+// The same test for every reader of saved answers (module 149 reads it from the bundle, MUSE-F-007).
+export const ownAnswerOnly = (label: string) => ATTESTATION.test(label) || PERSONAL.test(label);
+// The canonical JSON the apply stack hashes (sorted keys, compact), and a synchronous SHA-256 for the ledger's hashes.
+export function canonicalJson(v: unknown): string {
+  if (v === null || typeof v !== "object") return JSON.stringify(v ?? null);
+  if (Array.isArray(v)) return "[" + v.map(canonicalJson).join(",") + "]";
+  return "{" + Object.keys(v as Record<string, unknown>).sort().map((k) => JSON.stringify(k) + ":" + canonicalJson((v as any)[k])).join(",") + "}";
+}
+export function sha256Hex(text: string): string {
+  const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  const bytes = new TextEncoder().encode(text);
+  const len = bytes.length, total = ((len + 9 + 63) >> 6) << 6;
+  const m = new Uint8Array(total);
+  m.set(bytes);
+  m[len] = 0x80;
+  const bits = len * 8;
+  const dv = new DataView(m.buffer);
+  dv.setUint32(total - 4, bits >>> 0);
+  dv.setUint32(total - 8, Math.floor(bits / 0x100000000));
+  const h = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  const w = new Uint32Array(64);
+  const r = (x: number, n: number) => (x >>> n) | (x << (32 - n));
+  for (let i = 0; i < total; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+    for (let t = 16; t < 64; t++) {
+      const s0 = r(w[t - 15], 7) ^ r(w[t - 15], 18) ^ (w[t - 15] >>> 3), s1 = r(w[t - 2], 17) ^ r(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, hh] = h;
+    for (let t = 0; t < 64; t++) {
+      const t1 = (hh + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[t] + w[t]) >>> 0;
+      const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      hh = g, g = f, f = e, e = (d + t1) >>> 0, d = c, c = b, b = a, a = (t1 + t2) >>> 0;
+    }
+    h[0] = (h[0] + a) >>> 0, h[1] = (h[1] + b) >>> 0, h[2] = (h[2] + c) >>> 0, h[3] = (h[3] + d) >>> 0;
+    h[4] = (h[4] + e) >>> 0, h[5] = (h[5] + f) >>> 0, h[6] = (h[6] + g) >>> 0, h[7] = (h[7] + hh) >>> 0;
+  }
+  return h.map((x) => x.toString(16).padStart(8, "0")).join("");
+}
+
+// ------------------------------------------------------------------------------------------------ agent batch (WO-101)
+// The agent submits; the person approves a batch up front, of the exact answers (CLAUDE.md: "external effects need the
+// user's approval of the exact payload"). One posting's entry is every answer the planner will send, as the browser sends
+// it (`value`) and as the page will show it (`shown`: a select's option text, the resume's file name), with the fact
+// behind it, and every field left blank. A posting with anything the person must answer or do first is not in a batch.
+// A field whose options exist only on the page (a place search, a dropdown widget: `listed`, read by the content script)
+// shows the person's answer; on the page Trainee puts it on the employer's own entry for it (chooseWidgetOption, WO-042).
+// The checkbox state the page reads for a box Trainee leaves unchecked (content.js shows it so the card says so).
+export const NO_UNCHECKED = "No (left unchecked)";
+export type BatchKind = "text" | "select" | "choice" | "checkbox" | "file" | "listed";
+export interface BatchAnswer { name: string; label: string; value: string; shown: string; kind: BatchKind; factId: string; file: string | null }
+// One ledger row per answer (WO-102): where it goes, what was asked, what is sent, the facts and events behind it, and the
+// rule that turned the fact into the answer. Batch 1 allows only rules that keep the owner's meaning exactly.
+export interface LedgerRow {
+  application_id: string; field_id: string; question_hash: string; answer_hash: string; fact_refs: string[]; source_refs: string[];
+  confirmation_event_id: string; derivation_rule: string;
+}
+export interface BatchPosting {
+  jobId: string; company: string; url: string; answers: BatchAnswer[]; blank: string[];
+  ledger: LedgerRow[]; question_set_hash: string; manifest_hash: string | null; quarantine_version: string | null;
+}
+export type BatchPlan = { ok: true; posting: BatchPosting } | { ok: false; why: string[] };
+const YES = /^(true|yes|y|on|checked)\b/i;
+// A checkbox with more than one option is a group (the reader's checkbox_group), read back as its checked options' texts.
+const kindOf = (f: FormField, listed: Set<string>): BatchKind =>
+  /file/.test(f.type) ? "file" : listed.has(f.name) || f.widget ? "listed" : f.type === "checkbox" && f.options.length < 2 ? "checkbox"
+  : f.type === "checkbox" || /radio|checkbox_group|multi_value_multi_select/.test(f.type) ? "choice" : f.options.length ? "select" : "text";
+const optionText = (f: FormField, v: string) => {
+  const one = (x: string) => f.options.find((o) => o.value === x) ?? f.options.find((o) => o.label === x);
+  const o = one(v);
+  if (o) return { value: o.value, shown: String(o.label).replace(/\s+/g, " ").trim() };
+  const parts = v.split(/,\s*/).map(one);
+  return parts.length > 1 && parts.every(Boolean) ? { value: v, shown: parts.map((x) => String(x!.label).replace(/\s+/g, " ").trim()).join(", ") } : null;
+};
+export function batchPlan(o: {
+  jobId: string; company: string; url: string; family: Family; schema: FormField[]; plan: ReturnType<typeof planForm>;
+  challenge: boolean; resume: { filename: string; sha256: string } | null; listed?: string[]; manifest?: Manifest;
+}): BatchPlan {
+  const listed = new Set(o.listed ?? []);
+  const m = o.manifest ?? null;
+  const why: string[] = [];
+  if (!o.schema.length) why.push("No application form was read on this posting.");
+  if (o.family === "workday") why.push("Workday applications are sent card by card by you, not in a batch.");
+  if (o.challenge) why.push("A verification check is on the page. Trainee never answers one, so this one is yours to send.");
+  for (const n of o.plan.needs) {
+    why.push(o.schema.some((f) => f.label === n.label && isCoverLetterFile(f))
+      ? `"${n.label}" asks for a cover letter file: only you attach one (Trainee never sends your resume as one), so this one is yours to send.`
+      : `"${n.label}" needs your answer first.`);
+  }
+  for (const f of o.plan.identity.filter((x) => x.required)) why.push(`"${f.label}" is an identity number: only you type it, so this one is yours to send.`);
+  for (const f of o.plan.ambiguous.filter((x) => x.required)) why.push(`"${f.label}" is asked twice on the form: only you can tell which is which.`);
+  const answers: BatchAnswer[] = [], ledger: LedgerRow[] = [];
+  for (const p of o.plan.fill) {
+    const f = o.schema.find((x) => x.name === p.name);
+    if (!f) continue;
+    const kind = kindOf(f, listed);
+    if (kind === "file" && !o.resume) {
+      why.push(`"${p.label}" needs your resume file in Trainee first.`);
+      continue;
+    }
+    const a = answerOf(f, p, kind, o.resume);
+    if (m) {
+      // WO-102: every answer stands on a trusted fact, by a rule that keeps its meaning; an attestation or a personal
+      // choice only on his own answer to that question. Otherwise a required question is asked; an optional one is left empty.
+      const j = judge(f, a, m, o.schema, o.jobId);
+      if ("problem" in j) {
+        if (f.required) why.push(`"${p.label}": ${j.problem}; it needs your answer first.`);
+        continue;
+      }
+      ledger.push({ application_id: o.jobId, field_id: p.name, question_hash: sha256Hex(canonicalJson({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options })),
+        answer_hash: sha256Hex(canonicalJson({ value: a.value, shown: a.shown, file: a.file })), fact_refs: [j.tf.factId], source_refs: [j.tf.provenance],
+        confirmation_event_id: j.tf.event, derivation_rule: j.rule });
+    }
+    answers.push(a);
+  }
+  // A required question nothing answers is asked (WO-102: never sent blank, never guessed).
+  const said = new Set(why.join("\n").match(/"[^"]+"/g) ?? []);
+  for (const f of o.schema) {
+    if (!f.required || answers.some((a) => a.name === f.name) || fileAlternative(f, o.schema) || isIdentityField(f) || f.personal) continue;
+    if (!said.has(`"${f.label}"`) && !why.some((w) => w.startsWith(`"${f.label}"`))) why.push(`"${f.label}" needs your answer first.`);
+  }
+  if (why.length) return { ok: false, why };
+  answers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const sent = new Set(answers.map((a) => a.name));
+  const blank = [...new Set(o.schema.filter((f) => !sent.has(f.name)).map((f) => f.label))].sort();
+  ledger.sort((a, b) => (a.field_id < b.field_id ? -1 : a.field_id > b.field_id ? 1 : 0));
+  const question_set_hash = sha256Hex(canonicalJson([...o.schema].sort((a, b) => (a.name < b.name ? -1 : 1))
+    .map((f) => ({ name: f.name, label: f.label, type: f.type, required: f.required, options: f.options }))));
+  return { ok: true, posting: { jobId: o.jobId, company: o.company, url: o.url, answers, blank, ledger, question_set_hash,
+    manifest_hash: m ? m.hash : null, quarantine_version: m ? m.version : null } };
+}
+function answerOf(f: FormField, p: PlannedField, kind: BatchKind, resume: { filename: string; sha256: string } | null): BatchAnswer {
+  const opt = kind === "select" || kind === "choice" || (kind === "listed" && f.options.length) ? optionText(f, p.value) : null;
+  const shown = kind === "file" ? resume?.filename ?? "" : kind === "checkbox" ? (YES.test(p.value) ? "Yes (checked)" : NO_UNCHECKED) : opt ? opt.shown : p.value;
+  return { name: p.name, label: p.label, value: opt ? opt.value : p.value, shown, kind, factId: p.factId, file: kind === "file" ? resume?.sha256 ?? null : null };
+}
+function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], jobId?: string): { rule: string; tf: TrustedFact } | { problem: string } {
+  const tf = m.byFactId[a.factId];
+  if (a.kind === "file" && isCoverLetterFile(f)) return { problem: "it asks for a cover letter, and Trainee never attaches your resume as one" };
+  if (!tf) return { problem: "its answer is not from a fact you gave" };
+  // Equal spelling cannot make a full name a legal-name assertion. Recheck the source's question meaning even
+  // when a caller presents a stale/forged plan; a saved answer stands only on this exact legal-name question.
+  if (classifyField(f.label, f.type) === "legal_name" || mapQuestion(f).fact === "legal_name") {
+    let legal = tf.table === "answers" && tf.key === "legal_name" && m.answers?.legal_name?.factId === tf.factId;
+    if (!legal && tf.table === "saved") {
+      const again = planBatch({ userId: "contract-legal-name", postings: [{ job_id: jobId ?? "contract-legal-name", company: "", title: "", fields: [f] }],
+        answers: {}, saved: { [tf.key]: { value: tf.value, factId: tf.factId } }, log: [], now: 0 }).ready[0]?.fields.find(p => p.name === f.name);
+      legal = !!again && again.factId === a.factId && again.label === a.label && again.value === a.value;
+    }
+    if (!legal) return { problem: "a legal name needs your stated legal name or your own answer to this exact question" };
+  }
+  if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
+  const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf)) ||
+    (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
+  return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
+}
+function savedRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest, jobId?: string): string | null {
+  const key = rowAnswerKey(f, jobId);
+  if (!key || tf.table !== "saved" || tf.key !== key || m.saved[key]?.factId !== tf.factId || m.saved[key]?.value !== tf.value) return null;
+  const plan = planBatch({ userId: "contract-row-answer", postings: [{ job_id: jobId!, company: "", title: "", fields: [f] }],
+    answers: {}, saved: { [key]: { value: tf.value, factId: tf.factId } }, log: [], now: 0 });
+  const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+  if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+  const expected = answerOf(f, p, a.kind, null);
+  return expected.value === a.value && expected.shown === a.shown ? "row-answer-exact" : null;
+}
+// Re-derive a work row from the original, trusted JSON through the same planner and actual row/anchor schema.
+// A substring somewhere in the history, an answer cached under a label, or another property's value is not proof.
+function workRowRule(f: FormField, a: BatchAnswer, tf: TrustedFact, m: Manifest, schema: FormField[]): string | null {
+  if (tf.table !== "answers" || tf.key !== "work_history" || m.answers.work_history?.factId !== tf.factId ||
+    m.answers.work_history?.value !== tf.value || !f.section || f.section.row < 1) return null;
+  const fields = schema.filter((x) => x.section?.kind === "work");
+  if (new Set(fields.map((x) => x.name)).size !== fields.length) return null;
+  const plan = planBatch({ userId: "contract-rederive", postings: [{ job_id: "contract-rederive", company: "", title: "", fields: fields.map((x) => ({ ...x, required: false })) }],
+    answers: { work_history: { value: tf.value, factId: tf.factId } }, saved: {}, log: [], now: 0 });
+  const p = plan.ready[0]?.fields.find((x) => x.name === f.name);
+  if (!p || p.factId !== a.factId || p.label !== a.label) return null;
+  const expected = answerOf(f, p, a.kind, null);
+  if (f.options.length && !optionText(f, p.value)) return null;
+  return expected.value === a.value && expected.shown === a.shown ? `work-history-row:${f.section.row}:${f.section.part}` : null;
+}
+// WO-102, in every path before anything is filled: the planner's answers that the contract allows, and the questions it
+// turns back to the person (required ones are asked; optional ones are left empty).
+export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof planForm>; manifest: Manifest; listed?: string[]; resume: { filename: string; sha256: string } | null; jobId?: string }) {
+  const listed = new Set(o.listed ?? []);
+  const askedNames = new Set<string>();
+  const fill: PlannedField[] = [], asks: { label: string; type: string; options: string[]; why: string; field_name?: string }[] = [], dropped: string[] = [];
+  for (const p of o.plan.fill) {
+    const f = o.schema.find((x) => x.name === p.name);
+    if (!f) continue;
+    const kind = kindOf(f, listed);
+    if (kind === "file" && !o.resume && !isCoverLetterFile(f)) {
+      fill.push(p);
+      continue;
+    }
+    const jobId = o.jobId ?? o.plan.jobId;
+    const j = judge(f, answerOf(f, p, kind, o.resume), o.manifest, o.schema, jobId);
+    if (!("problem" in j)) fill.push(p);
+    else if (f.required) {
+      askedNames.add(f.name);
+      const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+      asks.push({ label: rowQuestionLabel(f), type: rowQuestionType(f, jobId, questionFieldType(f)), options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: j.problem,
+        ...(f.section ? { field_name: f.name } : {}) });
+    } else dropped.push(f.label);
+  }
+  for (const f of o.schema) {
+    if (!f.section || !f.required || f.personal || isIdentityField(f) || fill.some((p) => p.name === f.name) || askedNames.has(f.name)) continue;
+    const opts = (f.options || []).filter((x) => x.label && !/^select\b/i.test(x.label.trim()));
+    asks.push({ label: rowQuestionLabel(f), type: rowQuestionType(f, o.jobId ?? o.plan.jobId, questionFieldType(f)),
+      options: opts.length <= 60 ? opts.map((x) => String(x.label)) : [], why: "this row has no matching confirmed answer", field_name: f.name });
+  }
+  return { fill, asks, dropped };
+}
+// Batch 1's rules from a fact to an answer: the same words; the employer's option that is those words; a yes or no put
+// on the employer's yes or no option or box; the resume he picked. Anything else changes meaning and is asked.
+// A widget (`listed`) is a select: by its option when its list is known; else the fact's own words now, and the option it
+// opens on is held to the same rules when clicked (chooseWidgetOption) and at the send (batchMatch).
+function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFact): string | null {
+  const n = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
+  const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
+  if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
+  if (kind === "checkbox") return yn && (yn === "yes") === YES.test(a.value) ? "checkbox-yes-no" : null;
+  if (kind === "select" || kind === "choice") {
+    if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
+    return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
+  }
+  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+  if (kind === "listed") return n(a.value) === n(tf.value) ? (SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option") : null;
+  return n(a.value) === n(tf.value) ? "verbatim" : null;
+}
+// What the batch approval is bound to: the same canonical SHA-256 as the one-tap approval (hashApplyPayload).
+export const batchHash = (p: BatchPosting) => hashApplyPayload({ version: 1, kind: "agent-batch", ...p });
+
+// At the send: code approves the card itself only when the page holds exactly what the person approved for this posting.
+// The planner, run again on the live form, must give the same entry; every answer on the card must be Trainee's own, with
+// the approved fact, value and label (a select by its option value, a file by its bytes' hash); nothing more, nothing
+// missing, nothing open, no blocker. Anything else stops this posting for the person, with what differs.
+const norm = (s: string) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+export function batchMatch(o: { approved: BatchPosting; now: BatchPlan; card: SnapField[]; openRequired: string[]; blockers: string[] }): { ok: boolean; diffs: string[] } {
+  const diffs: string[] = [];
+  if (!o.now.ok) diffs.push(...o.now.why);
+  else {
+    // WO-102: the approval binds the facts behind the answers, the quarantine rules and the questions asked.
+    if (o.now.posting.manifest_hash !== o.approved.manifest_hash) diffs.push("The facts behind your answers changed since you approved (a fact was added, changed or withdrawn).");
+    if (o.now.posting.quarantine_version !== o.approved.quarantine_version) diffs.push("The quarantine rules changed since you approved.");
+    if (o.now.posting.question_set_hash !== o.approved.question_set_hash) diffs.push("The form's questions changed since you approved.");
+    if (canonicalJson(o.now.posting.ledger ?? []) !== canonicalJson(o.approved.ledger ?? [])) diffs.push("The sources behind your answers changed since you approved.");
+    const at = new Map(o.now.posting.answers.map((a) => [a.name, a]));
+    for (const a of o.approved.answers) {
+      const n = at.get(a.name);
+      if (!n) diffs.push(`"${a.label}": Trainee would no longer answer it.`);
+      else if (n.value !== a.value || n.shown !== a.shown || n.label !== a.label || n.factId !== a.factId || n.file !== a.file) {
+        diffs.push(`"${a.label}": Trainee would now answer "${n.shown}", not the approved "${a.shown}".`);
+      }
+    }
+    for (const n of o.now.posting.answers) if (!o.approved.answers.some((a) => a.name === n.name)) diffs.push(`"${n.label}": a new answer not approved.`);
+    const labels = (p: BatchPosting) => new Set([...p.blank, ...p.answers.map((a) => a.label)]);
+    const was = labels(o.approved), is = labels(o.now.posting);
+    const added = [...is].filter((l) => !was.has(l)), gone = [...was].filter((l) => !is.has(l));
+    if (added.length || gone.length) {
+      diffs.push(`The form's fields changed since the batch was approved: ${[...added.map((l) => `"${l}" is new`), ...gone.map((l) => `"${l}" is gone`)].join("; ")}.`);
+    }
+  }
+  const want = new Map(o.approved.answers.map((a) => [a.name, a]));
+  for (const c of o.card) {
+    const a = want.get(c.name);
+    if (c.source !== "trainee") {
+      diffs.push(`"${c.label}" was ${c.source === "page" || c.source === "fixed" ? "set by the page" : "typed on the page"}, not approved in the batch.`);
+      continue;
+    }
+    if (!a) {
+      diffs.push(`"${c.label}" is on the form but not in the approved answers.`);
+      continue;
+    }
+    const detailOk = a.kind === "file" ? String(c.detail ?? "").startsWith(`${a.file}:`) && !String(c.detail).includes(",")
+      : a.kind === "select" ? c.detail === `value=${a.value}` : true;
+    // A listed field's page text is the employer's own entry Trainee picked for the approved answer (the planner's answer
+    // itself is checked above against the approval); any other field's must be the approved text.
+    // WO-102 (FRS): the option the widget holds must derive from the approved answer by the rule approved with it: a place
+    // or school search's entry names it (its first word); any other widget's option is it, or its yes or no.
+    const rule = o.approved.ledger?.find((l) => l.field_id === a.name)?.derivation_rule;
+    const searched = rule ? rule === "listed-name" : SEARCHED.has(classifyField(a.label, "input_text")) || /^(school|college|university)\b/i.test(a.label);
+    const dial = (x: string) => String(x ?? "").replace(/\s\+\d{1,4}$/, "");
+    const valueOk = a.kind === "listed" ? norm(c.value) !== "" && !!optionRule(dial(c.value), dial(a.shown), searched) : norm(c.value) === norm(a.shown);
+    if (c.label !== a.label || c.factId !== a.factId || !valueOk || !detailOk) {
+      diffs.push(`"${a.label}": the page holds "${c.value}", not the approved "${a.shown}".`);
+    }
+  }
+  for (const a of o.approved.answers) if (!o.card.some((c) => c.name === a.name)) diffs.push(`"${a.label}" was not filled.`);
+  for (const l of o.openRequired) diffs.push(`"${l}" is required and not answered yet.`);
+  diffs.push(...o.blockers);
+  return { ok: diffs.length === 0, diffs };
+}
+
+// The receipt after each agent submission (WO-101, A8): one line the person reads, from the recorded outcome. A page's
+// confirmation counts only with its picture after the click (as on the card); the employer's email makes it final.
+// `proof` false: stopped before anything was recorded, so no proof was kept and none is claimed.
+export function agentReceiptLine(o: { company: string; url: string; state: string; confirmation_id: string | null; reason?: string; proved: boolean; proof?: boolean }): string {
+  const c = o.company || "the employer";
+  const why = (o.reason || "").replace(/[.\s]+$/, "");
+  const says = o.state === "confirmed" && o.proved
+    ? `Sent to ${c}: the employer confirmed it on the page${o.confirmation_id ? ` (${o.confirmation_id})` : ""}. Their email makes it final.`
+    : o.state === "confirmed" || o.state === "submitted_unconfirmed" || o.state === "unknown_outcome"
+    ? `Sent to ${c}; their answer could not be captured. Watch your email for their confirmation.`
+    : o.state === "needs_user" ? `Sent to ${c}, and the page now asks you for something (a check or a code). Finish it yourself there.`
+    : o.state === "not_submitted" ? `Not sent to ${c}: ${why || BEFORE_CLICK}. Nothing was sent.`
+    : `Sent to ${c}, but it was not confirmed: ${why || "the page did not say"}.`;
+  return `${says}${o.proof === false ? "" : " The proof (answers, pictures, times) is on this computer."} ${o.url}`;
+}
+
+// D-007: the 47 agent-invented "confirmed" facts (F-027..F-079, entered from the owner's answer-all delegation of
+// 2026-10-17) never reach a real application. They are not deleted (the owner's bank is his); every import leaves them
+// out, by id and by that provenance, and counts them so the panel can say so.
+export function quarantinedFact(value: unknown): boolean {
+  return sharedQuarantinedFact(value);
 }

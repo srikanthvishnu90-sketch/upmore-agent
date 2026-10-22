@@ -6,6 +6,7 @@ const send = (m) => chrome.runtime.sendMessage(m);
 const params = new URLSearchParams(location.search);
 let tabId = params.has("tab") ? Number(params.get("tab")) : null;
 let last = null;
+let factImport = null, factImportSeq = 0;
 
 async function targetTab() {
   if (params.has("tab")) return tabId;
@@ -26,6 +27,7 @@ async function render() {
   await targetTab();
   const st = await send({ type: "status", tabId });
   if (mine !== renderSeq) return;
+  if (factImport && (!st.signedIn || st.email !== factImport.account || st.user_id !== factImport.actor)) clearFactImport();
   last = st;
   $("signin").hidden = st.signedIn;
   $("setup").hidden = !st.signedIn;
@@ -34,7 +36,7 @@ async function render() {
   $("signout").hidden = !st.signedIn;
   text($("who"), st.signedIn ? st.email : "");
   text($("resume-name"), st.resume ? st.resume.name : "none yet");
-  text($("facts-count"), st.importedFacts ? `${st.importedFacts} confirmed facts imported for this browser session.` : "");
+  text($("facts-count"), st.importedFacts ? `${st.importedFacts} imported answers available for this browser session.` : "");
   const card = st.card;
   const list = $("card");
   list.textContent = "";
@@ -73,6 +75,7 @@ async function render() {
   const done = q.items.filter((x) => !["waiting", "open"].includes(x.state)).length;
   text($("queue-progress"), q.items.length ? `${done} of ${q.items.length} done${st.timing.avg_ms ? `; average ${(st.timing.avg_ms / 1000).toFixed(1)} s from card to confirmed` : ""}` : "");
   renderAnswerOnce(st.answerOnce);
+  renderAgent(st.agent);
 }
 
 // ------------------------------------------------------------------------------------------------ answer once (WO-054)
@@ -143,6 +146,87 @@ $("ao-save").onclick = async (e) => {
   if (!answers.length) return text($("ao-msg"), "Nothing chosen yet; skipped questions stay for their cards.");
   const r = await send({ type: "answer-once-save", answers });
   if (r && r.ok === false && r.message) text($("ao-msg"), r.message, true);
+  render();
+};
+
+// ------------------------------------------------------------------------------------------------ the agent sends (WO-101)
+// Shown only with agentSubmits on (config.js, the owner's call). Every answer per posting exactly as it will be sent,
+// what is left blank, and why any posting is left out; one tap approves the postings shown, by their hashes; "Stop
+// applying" ends it. A receipt line after each submission.
+function renderAgent(ag) {
+  $("agent-box").hidden = !ag;
+  if (!ag) return;
+  const b = ag.batch, ready = b?.ready || [], approved = new Set(b?.approved || []);
+  const pending = ready.filter((e) => !approved.has(e.hash));
+  const ol = $("agent-ready");
+  ol.textContent = "";
+  for (const e of ready) {
+    const li = document.createElement("li");
+    const head = document.createElement("b");
+    head.textContent = `${e.company}${approved.has(e.hash) ? " (approved)" : ""}`;
+    const url = document.createElement("p");
+    url.textContent = e.url;
+    const answers = document.createElement("ul");
+    for (const a of e.posting.answers) {
+      const x = document.createElement("li");
+      x.textContent = `${a.label.replace(/\s*[*✱]+\s*$/, "")}: ${a.shown}${a.kind === "listed" ? " (Trainee picks the employer's own entry for this from their list; the receipt's proof shows which)" : ""}`;
+      answers.append(x);
+    }
+    li.append(head, url, answers);
+    if (e.posting.blank.length) {
+      const blank = document.createElement("p");
+      blank.textContent = `Left blank: ${e.posting.blank.join("; ")}`;
+      li.append(blank);
+    }
+    ol.append(li);
+  }
+  $("agent-approve").hidden = !pending.length;
+  $("agent-rehearse").hidden = !pending.length;
+  $("agent-rehearse").dataset.hashes = JSON.stringify(pending.map((e) => e.hash));
+  const reh = $("agent-rehearsals");
+  reh.textContent = "";
+  for (const x of ag.rehearsals || []) {
+    const li = document.createElement("li");
+    li.textContent = x.matched
+      ? `${x.company}: ${x.answers} answers, ${x.supported_pct}% from facts you gave, ${x.quarantined_dependencies} quarantined, ${x.unanswered_required} unanswered. Nothing was sent.`
+      : `${x.company}: differs from what you approved. ${(x.diffs || []).slice(0, 3).join(" ")} Nothing was sent.`;
+    reh.append(li);
+  }
+  $("agent-approve").dataset.hashes = JSON.stringify(pending.map((e) => e.hash));
+  $("agent-approve").textContent = `Approve these answers for ${pending.length} posting${pending.length === 1 ? "" : "s"}; Trainee sends them`;
+  const out = $("agent-out");
+  out.textContent = "";
+  for (const o of b?.out || []) {
+    const li = document.createElement("li");
+    li.textContent = `Not in the batch: ${o.company || o.url} (${o.url}). ${o.why.join(" ")}`;
+    out.append(li);
+  }
+  const rec = $("agent-receipts");
+  rec.textContent = "";
+  for (const r of ag.receipts || []) {
+    const li = document.createElement("li");
+    li.textContent = r.line;
+    rec.append(li);
+  }
+  if (!b) text($("agent-msg"), "Press Prepare to read the queue's postings and see every answer Trainee would send.");
+  else if (!$("agent-msg").textContent) text($("agent-msg"), `${ready.length} posting${ready.length === 1 ? "" : "s"} ready to approve; ${(b.out || []).length} left out (they need you first). ${ag.approved} approved and waiting to send.`);
+}
+$("agent-approve").onclick = async (e) => {
+  if (!e.isTrusted) return; // only the person's own tap approves
+  const r = await send({ type: "batch-approve", hashes: JSON.parse(e.target.dataset.hashes || "[]") });
+  text($("agent-msg"), r?.ok ? `Approved ${r.approved}. Press Start: Trainee sends each one that still matches exactly, and stops for anything else.` : r?.message || "Not approved.", !r?.ok);
+  render();
+};
+$("agent-rehearse").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const r = await send({ type: "batch-rehearse", hashes: JSON.parse(e.target.dataset.hashes || "[]"), tabId: await targetTab() });
+  text($("agent-msg"), r?.ok ? "Rehearsing: each posting is filled and checked; nothing is sent." : r?.message || "Not started.", !r?.ok);
+  render();
+};
+$("agent-stop").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const r = await send({ type: "batch-stop" });
+  text($("agent-msg"), r?.message || "Stopped.", !r?.ok);
   render();
 };
 
@@ -300,12 +384,153 @@ $("resume").onchange = async (e) => {
   render();
 };
 $("facts").onchange = async (e) => {
+  // Selecting a file only shows local draft data. The confirmation that writes an answer requires its own trusted tap.
   const f = e.target.files[0];
   if (!f) return;
-  const r = await send({ type: "import-facts", json: await f.text() });
-  text($("status"), r.ok ? "Your confirmed facts are loaded for this browser session." : r.message, !r.ok);
-  render();
+  const mine = ++factImportSeq, account = last?.signedIn ? last.email : null;
+  factImport = null;
+  $("fact-import-list").textContent = "";
+  $("fact-import-review").hidden = true;
+  text($("fact-import-msg"), "Reading the file for review. Nothing is imported yet.");
+  try {
+    if (!account) throw Error("Sign in before reviewing your answers.");
+    const parsed = parseFactImport(await f.text());
+    if (mine !== factImportSeq || !last?.signedIn || last.email !== account) return;
+    factImport = { ...parsed, account, actor: last.user_id, file: f.name, confirmed: new Set(), receipts: new Map(), rejected: new Map(), attempts: new Map(), busy: false };
+    renderFactImport();
+    text($("fact-import-msg"), `${parsed.items.length} draft answer${parsed.items.length === 1 ? "" : "s"} ready to review. Nothing is imported yet.`);
+  } catch (error) {
+    if (mine === factImportSeq) text($("fact-import-msg"), error instanceof SyntaxError ? "That file is not valid JSON. Nothing was imported." : error.message || "That file could not be read. Nothing was imported.", true);
+  } finally { e.target.value = ""; }
 };
+// This is the existing session-only confirmed-facts file contract, not a raw resume/profile import API. Its original
+// confirmed flags are file data, never the person's review. Only an explicit click on the row below supplies that yes.
+function parseFactImport(raw) {
+  const doc = JSON.parse(raw), record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  if (!record(doc) || (!Object.hasOwn(doc, "answers") && !Object.hasOwn(doc, "saved"))) throw Error("Choose an answers/saved facts JSON file. Raw profiles and resumes are not supported here. Nothing was imported.");
+  if ((doc.format !== undefined && doc.format !== "trainee-facts") || (doc.version !== undefined && doc.version !== 1)) throw Error("That facts format or version is not supported. Nothing was imported.");
+  const owners = new Set(), items = [];
+  const owner = (v) => {
+    if (v === undefined || v === null || v === "") return;
+    if (typeof v !== "string") throw Error("The file's account owner is invalid. Nothing was imported.");
+    owners.add(v);
+  };
+  owner(doc.user_id);
+  for (const group of ["answers", "saved"]) {
+    const values = doc[group] === undefined ? {} : doc[group];
+    if (!record(values)) throw Error("Each answers/saved section must contain named answers. Nothing was imported.");
+    for (const [key, a] of Object.entries(values)) {
+      if (["__proto__", "constructor", "prototype"].includes(key) || !record(a) || typeof a.value !== "string" || !a.value.trim() || typeof a.factId !== "string" || !a.factId.trim() || a.factId.length > 200) throw Error("Every answer needs text and a valid file fact reference. Nothing was imported.");
+      owner(a.user_id);
+      items.push({ group, key, value: a.value, factId: a.factId, raw: structuredClone(a), ...(a.user_id ? { user_id: a.user_id } : {}) });
+    }
+  }
+  if (owners.size > 1) throw Error("That file contains answers from different accounts. Nothing was imported.");
+  if (!items.length) throw Error("That file has no answers to review. Nothing was imported.");
+  return { owner: [...owners][0], items };
+}
+function clearFactImport() {
+  factImportSeq++;
+  factImport = null;
+  $("fact-import-list").textContent = "";
+  $("fact-import-review").hidden = true;
+  $("facts").disabled = false;
+  $("fact-import-cancel").disabled = false;
+  text($("fact-import-msg"), "");
+}
+function renderFactImport() {
+  const preview = factImport, list = $("fact-import-list");
+  list.textContent = "";
+  $("fact-import-review").hidden = !preview;
+  $("facts").disabled = !!preview?.busy;
+  $("fact-import-cancel").disabled = !!preview?.busy;
+  if (!preview) return;
+  text($("fact-import-file"), preview.file);
+  preview.items.forEach((item, index) => {
+    const li = document.createElement("li"), label = document.createElement("b"), value = document.createElement("p"), reference = document.createElement("p");
+    const confirmed = preview.confirmed.has(index);
+    const rejection = preview.rejected.get(index);
+    li.dataset.state = confirmed ? "confirmed" : rejection ? "rejected" : "draft";
+    label.textContent = `${item.group === "saved" ? "Saved answer" : "Answer"}: ${item.key}`;
+    value.className = "fact-import-value";
+    value.textContent = item.value;
+    reference.className = "small";
+    reference.textContent = `File reference: ${item.factId}`;
+    li.append(label, value, reference);
+    if (confirmed) {
+      const done = document.createElement("span");
+      done.dataset.importState = "confirmed";
+      done.textContent = `Confirmed for this browser session. Receipt: ${preview.receipts.get(index).confirmation_event_id}`;
+      li.append(done);
+    } else if (rejection) {
+      const why = document.createElement("p");
+      why.className = "msg warn";
+      why.textContent = `Not imported: ${rejection}`;
+      li.append(why);
+    } else {
+      const button = document.createElement("button");
+      button.textContent = preview.uncertain === index ? "Retry this exact answer" : "Confirm this answer";
+      button.disabled = preview.busy || (preview.uncertain !== undefined && preview.uncertain !== index);
+      button.onclick = (e) => confirmImportedAnswer(e, preview, index);
+      li.append(button);
+    }
+    list.append(li);
+  });
+}
+async function confirmImportedAnswer(e, preview, index) {
+  if (!e.isTrusted || factImport !== preview || preview.busy || preview.confirmed.has(index) || (preview.uncertain !== undefined && preview.uncertain !== index)) return;
+  preview.busy = true;
+  renderFactImport();
+  try {
+    const active = await send({ type: "status", tabId: await targetTab() });
+    if (factImport !== preview) return;
+    if (!active.signedIn || active.email !== preview.account || !active.user_id || active.user_id !== preview.actor) { clearFactImport(); return; }
+    const item = preview.items[index];
+    let attempt = preview.attempts.get(index);
+    if (!attempt) {
+      const doc = { format: "trainee-facts", version: 1, user_id: preview.owner || active.user_id, answers: {}, saved: {} };
+      doc[item.group][item.key] = item.raw;
+      const json = JSON.stringify(doc), offered = await send({ type: "import-facts", phase: "preview", json });
+      if (factImport !== preview) return;
+      const receipt = offered?.receipt;
+      const candidate = receipt?.needs_review?.find((r) => r.table === item.group && r.key === item.key && r.factId === item.factId);
+      if (!offered?.ok || receipt?.actor_id !== active.user_id || !receipt?.review_token || !candidate) {
+        const why = receipt?.rejected?.find((r) => r.table === item.group && r.key === item.key)?.reason;
+        if (why) preview.rejected.set(index, why);
+        text($("fact-import-msg"), why || offered?.message || "No exact-row review receipt was returned. Nothing was confirmed.", true);
+        return;
+      }
+      attempt = { type: "import-facts", phase: "confirm", json, actor_id: active.user_id, review_token: receipt.review_token, payload_hash: receipt.payload_hash,
+        row: { table: candidate.table, key: candidate.key, factId: candidate.factId, value_hash: candidate.value_hash } };
+      preview.attempts.set(index, attempt);
+    }
+    const r = await send(attempt);
+    if (factImport !== preview) return;
+    const accepted = r?.receipt?.accepted?.find((a) => a.table === item.group && a.key === item.key && a.factId === item.factId && a.value_hash === attempt.row.value_hash && a.actor_id === active.user_id && a.confirmation_event_id);
+    if (!r?.ok || !accepted) {
+      preview.attempts.delete(index);
+      const why = r?.receipt?.rejected?.find((a) => a.table === item.group && a.key === item.key)?.reason;
+      if (why) preview.rejected.set(index, why);
+      text($("fact-import-msg"), why || r?.message || "The server did not confirm this exact answer. Nothing was marked confirmed.", true); return;
+    }
+    preview.confirmed.add(index);
+    preview.receipts.set(index, accepted);
+    delete preview.uncertain;
+    text($("fact-import-msg"), `${preview.confirmed.size} answer${preview.confirmed.size === 1 ? "" : "s"} confirmed for this browser session. No application was approved.`);
+    render();
+  } catch {
+    if (factImport === preview) {
+      // The write may have landed before its reply was lost. Replacing the file with a different subset now could
+      // silently drop that answer; the same reviewed payload is safe to retry because this API replaces session data.
+      preview.uncertain = index;
+      text($("fact-import-msg"), "The import could not be confirmed. Retry this exact answer before confirming another.", true);
+    }
+  } finally {
+    preview.busy = false;
+    if (factImport === preview) renderFactImport();
+  }
+}
+$("fact-import-cancel").onclick = (e) => { if (e.isTrusted && !factImport?.busy) clearFactImport(); };
 $("fill").onclick = async () => {
   text($("status"), "Reading the form and filling what Trainee knows...");
   const r = await send({ type: "prepare", tabId: await targetTab() });
@@ -335,8 +560,43 @@ $("q-start").onclick = async () => (qmsg(await send({ type: "queue-start", tabId
 $("q-skip").onclick = async () => (qmsg(await send({ type: "queue-skip" })), render());
 $("q-stop").onclick = async () => (qmsg(await send({ type: "queue-stop" })), render());
 $("q-clear").onclick = async () => (qmsg(await send({ type: "queue-clear" })), render());
+// FRS stated facts: Read shows what Trainee read from the text, each with the words it came from, and what it could not
+// read; only the person's own Confirm tap makes the checked ones facts (extension/src/stated_facts.ts).
+$("stated-read").onclick = async () => {
+  const r = await send({ type: "import-text", text: $("stated-text").value });
+  $("stated-list").replaceChildren();
+  $("stated-confirm").disabled = !r.ok || !r.facts.length;
+  if (!r.ok) return text($("stated-msg"), r.message, true);
+  $("stated-confirm").dataset.id = r.id;
+  r.facts.forEach((f, i) => {
+    const li = document.createElement("li"), box = document.createElement("input");
+    Object.assign(box, { type: "checkbox", checked: true });
+    box.dataset.i = String(i);
+    li.append(box, ` ${f.label}: ${f.field === "work_history" ? f.span : f.value} (from "${f.span}")`);
+    $("stated-list").append(li);
+  });
+  text($("stated-msg"), r.leftover.length ? `Not read, so not used: ${r.leftover.join(" | ")}` : "", r.leftover.length > 0);
+};
+$("stated-confirm").onclick = async (e) => {
+  if (!e.isTrusted) return;
+  const keep = [...$("stated-list").querySelectorAll("input:checked")].map((x) => Number(x.dataset.i));
+  const r = await send({ type: "confirm-stated", id: $("stated-confirm").dataset.id, keep });
+  text($("stated-msg"), r.ok ? `${r.kept} fact${r.kept === 1 ? "" : "s"} confirmed as yours.` : r.message, !r.ok);
+  if (r.ok) ($("stated-list").replaceChildren(), ($("stated-confirm").disabled = true), ($("stated-text").value = ""));
+  render();
+};
 
-chrome.storage.onChanged.addListener(() => render());
+// 50-in-30: while several lanes send, storage changes many times a second, and each render asks the worker for the whole
+// status (the batch, every posting's answers, among it). One render per RENDER_EVERY_MS is enough to read.
+const RENDER_EVERY_MS = 250;
+let renderTimer = null;
+chrome.storage.onChanged.addListener(() => {
+  if (renderTimer) return;
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    render();
+  }, RENDER_EVERY_MS);
+});
 chrome.tabs.onActivated?.addListener(() => render());
 chrome.tabs.onUpdated?.addListener((id) => id === tabId && render());
 render();

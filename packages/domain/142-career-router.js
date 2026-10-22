@@ -359,14 +359,19 @@ const CareerRouter = (() => {
     const deduped = Jobs && Jobs.dedupe ? Jobs.dedupe(adapted) : adapted;
     const sp = scoringProfile(profile);
     const excluded = [], scored = [];
+    // MUSE-F-006: where the asked families' own postings went, filter by filter, so an empty answer can say the true
+    // reason instead of "none of them are <family> roles" when the list holds them (the live wrong zero: 48 Data/ML).
+    const famSet = o.askFamilies && o.askFamilies.length ? new Set(o.askFamilies) : null;
+    const inFam = (p) => !!famSet && famSet.has(p && p.role_family);
+    const family = { onList: famSet ? deduped.filter(inFam).length : null, hard: 0, scoredOut: 0, company: 0, location: 0, band: 0, firstHardReason: null };
     for (const posting of deduped) {
       const pre = preCheck(posting, profile, now);
-      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); continue; }
+      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); if (inFam(posting)) { family.hard++; family.firstHardReason = family.firstHardReason || pre[0]; } continue; }
       // A6: when the caller carries the ASK's role families, 121's opt-in
       // exclusion drops cross-family postings here — they can never surface
       // as a "closest fit" for a different-domain ask (SC-065).
       const fit = Jobs.scoreFit(posting, sp, null, o.askFamilies && o.askFamilies.length ? { askFamilies: o.askFamilies } : undefined);
-      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); continue; }
+      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); if (inFam(posting)) family.scoredOut++; continue; }
       const jdSkills = Tailor ? Tailor.parseJD(posting.jd_text || "") : { mustHaveSkills: [] };
       const proven = provenSkillNames(profile).map(lc);
       // A skill the posting explicitly negates ("No Java requirement stated",
@@ -379,16 +384,18 @@ const CareerRouter = (() => {
     let kept = scored;
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
-      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
+      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
       item.caveat = caveatFor(item, profile);
       return item;
     });
-    if (o.company) rows = rows.filter((r) => lc(r.company).includes(o.company));
-    if (o.locations && o.locations.size) rows = rows.filter((r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
-    if (o.bands) rows = rows.filter((r) => o.bands.has(r.posting.seniority_band));
+    const famRows = () => rows.filter((r) => inFam(r.posting)).length;
+    const dropped = (key, keep) => { const before = famRows(); rows = rows.filter(keep); family[key] += before - famRows(); };
+    if (o.company) dropped("company", (r) => lc(r.company).includes(o.company));
+    if (o.locations && o.locations.size) dropped("location", (r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
+    if (o.bands) dropped("band", (r) => o.bands.has(r.posting.seniority_band));
     rows.sort((a, b) => (b.score - a.score) || s(a.deadline || "9999").localeCompare(s(b.deadline || "9999")) || s(a.title).localeCompare(s(b.title)));
-    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length };
+    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length, family };
   }
 
   // H-12 (02): every reply ends with one concrete next action or a
@@ -407,10 +414,18 @@ const CareerRouter = (() => {
     const c = Reply.composeResult(result);
     return ensureNextStepText(c.bubbles.join("\n"));
   }
+  // MUSE-F-001: a role is named with the posting's own link, so the person can open it. Only a link the posting itself
+  // carries (its url or its source url), and only http(s); a role with none is named without one, never given an invented one.
+  function postingUrlOf(p) {
+    const c = [p && p.url, ...((p && Array.isArray(p.source_urls)) ? p.source_urls : [])].map(s).find((u) => /^https?:\/\/\S+$/i.test(u));
+    return c || null;
+  }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
-    return `${item.title} at ${item.company} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    const url = item.url || postingUrlOf(item.posting);
+    // The link rides inside the role's own sentence: the composer keeps one sentence per role.
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -436,7 +451,7 @@ const CareerRouter = (() => {
     const countM = t.match(/(\d+)\s*(?:roles|jobs|internships)/);
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
-    const { ranked, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    const { ranked, excluded, dedupedTo, family } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
     // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
     // a follow-up ("remote ones too", "I meant data science", "what
     // did you find") is answered against THIS record by the delta
@@ -458,8 +473,8 @@ const CareerRouter = (() => {
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
     const publicFacts = {
-      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
-      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
+      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
+      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {
@@ -471,6 +486,22 @@ const CareerRouter = (() => {
       if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
       const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
+    }
+    if (!top.length && fams && fams.length && family && family.onList > 0) {
+      // MUSE-F-006: the list DOES hold the asked family's roles; the rest of the ask (or the profile's hard filters)
+      // emptied it. Say which, with the counts, never "none of them are <family> roles". Still no cross-family padding.
+      const label = fams.map(familyLabel).join(" or ");
+      const BAND_WORDS = { intern: "internships", new_grad: "new-grad roles", junior: "junior roles", mid: "mid-level roles", senior: "senior roles", staff: "staff roles", manager: "manager roles", director: "director roles" };
+      const bandWords = o.bands ? Array.from(o.bands).map((b) => BAND_WORDS[b] || b).join(" or ") : "";
+      const places = o.locations && o.locations.size ? Array.from(o.locations).join(" or ") : "";
+      const facts = [`The current list holds ${family.onList} ${label} role${family.onList === 1 ? "" : "s"} (of ${dedupedTo} scored), but none of them fit everything you asked for.`];
+      if (family.band) facts.push(`${family.band} ${family.band === 1 ? "is" : "are"} not ${bandWords || "at the level you asked for"}.`);
+      if (family.location) facts.push(`${family.location} ${family.location === 1 ? "is" : "are"} outside ${places || "the places you named"}.`);
+      if (family.company) facts.push(`${family.company} ${family.company === 1 ? "is" : "are"} at other companies than the one you named.`);
+      if (family.hard) facts.push(`${family.hard} miss one of your profile's hard requirements${family.firstHardReason ? ` (for example: ${family.firstHardReason})` : ""}.`);
+      if (family.scoredOut) facts.push(`${family.scoredOut} ${family.scoredOut === 1 ? "was" : "were"} screened out on fit.`);
+      const reply = compose({ headline: `I have ${label} roles, but none that match all of your ask.`, facts, nextStep: "Want me to widen the level or the location and show the closest ones?" });
+      return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams, family_counts: family }, publicFacts);
     }
     if (!top.length && fams && fams.length) {
       // A6 honest-empty: a family ask with no family roles in the pool gets
@@ -4515,7 +4546,24 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      // ROUND 2 (judge blocker, PR #151): the union is by IDENTITY,
+      // not by kind+value. A keyed fact (kind+key) or a single-value
+      // kind whose identity the working set already holds is a
+      // REPLACED fact — the mirror's older value is a stale copy of
+      // the same fact, and pushing it re-enters the replaced value
+      // as a second fact under the same identity (the old thread's
+      // mirror resurrecting the goal another thread replaced, from
+      // where the write-back would commit it as a duplicate slot).
+      // Mirror facts whose identity the working set lacks entirely
+      // still join (the shallow-copy harness case the mirror exists
+      // for); multi-value kinds keep the kind+value union.
+      const factIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${lc(f.key)}` : (f && FACT_SINGLE_KINDS.has(f.kind) ? `kind:${f.kind}` : null);
+      for (const f of mirrored.facts) {
+        if (!f) continue;
+        const id = factIdOf(f);
+        if (id) { if (!primary.facts.some((x) => x && factIdOf(x) === id)) primary.facts.push(f); }
+        else if (!primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      }
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
@@ -8643,6 +8691,46 @@ const CareerRouter = (() => {
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
   }
 
+  // ---------- LOOP TASK 1: the natural-language batch status ----------
+  // The apply reply itself invites the user to "ask me for the batch
+  // status", and the only readback that existed was the STRUCTURED
+  // career_batch request — a plain chat surface (Telegram, web) sends
+  // words, and both recorded wordings ("what's the batch status",
+  // "where is my batch" — Telegram baseline, 2026-10-20 19:23 CDT)
+  // fell to the generic fallback while the worker's run record sat
+  // readable one layer down. This route resolves the user's own
+  // batch — the host's fresh worker-written record
+  // (ctx.batchRunRecord) first, the thread's standing run state
+  // second — and speaks it through 155's own speaker: the same words,
+  // the same run object, on every surface.
+  function handleBatchStatus(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    const t = lc(text);
+    if (!/\bbatch\b/.test(t)) return null;
+    if (!/\b(status|where|progress|standing|update|happened|doing|stand|check)\b/.test(t) && !/^(where|what|how)\b/.test(t)) return null;
+    const rec = c.batchRunRecord && typeof c.batchRunRecord === "object" ? c.batchRunRecord : null;
+    const recRun = rec && rec.run ? BatchApply.restoreRun(rec.run) : null;
+    if (recRun) {
+      return { intent: "career_batch_apply", resultStatus: recRun.status, batchRun: BatchApply.summarizeRun(recRun), card: recRun.card || null, sends: 0,
+        reply: BatchApply.speakSummary(recRun).join("\n") };
+    }
+    const standing = c.batchApplyState || null;
+    if (standing && standing.id) {
+      const run = BatchApply.restoreRun(standing);
+      if (run) {
+        if (run.status === "queued_prepare") {
+          return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), sends: 0,
+            reply: `Your batch of ${run.requested} ${run.familyText} roles is with the browser worker being prepared — nothing has been filled or submitted yet. Ask me again shortly and I'll read back exactly where it stands.` };
+        }
+        return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card || null, sends: 0,
+          reply: BatchApply.speakSummary(run).join("\n") };
+      }
+    }
+    return { intent: "career_batch_apply", resultStatus: "awaiting_user", sends: 0,
+      reply: `You don't have a batch in flight right now — no application batch has been queued on this account that I can read back. Say "apply to N <role> roles" and I'll start one.` };
+  }
+
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     const rawText = text;
@@ -8709,6 +8797,10 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // MUSE-F-002: a plain-words batch status ask ("what's the batch status", "where is my batch") is answered from the
+    // batch's own record, never the generic fallback. Read only: it approves, prepares and submits nothing.
+    const batchStatus = handleBatchStatus(text, c);
+    if (batchStatus) return batchStatus;
     // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED): a LINK ask for a named
     // role is served the posting itself (with its URL) here, before
     // the apply machinery and the company-intel branch — the apply
@@ -8739,6 +8831,14 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // GOAL FRAME (spine): a goal declaration is a RECORD turn and
+    // its recall a read of that record — claimed here, beside the
+    // early recall claim, ahead of recommendations, the pending-mock
+    // capture and the discovery tail (which read the declaration's
+    // internship/summer words as a search ask on v247 and answered
+    // with a list verdict; the goal itself was never stored).
+    const goalTurn = handleGoalFrame(text, c);
+    if (goalTurn) return goalTurn;
     // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its
@@ -10008,6 +10108,26 @@ const CareerRouter = (() => {
     if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
     return false;
   };
+  // A present-tense career target is the person's own goal even without
+  // the noun "goal". Keep one assertion-only parser for capture and the
+  // early claim, so a pending mock cannot grade a new target as an answer.
+  // Labeled answers, requests, quotes and hypothetical/question turns do
+  // not enter this frame; the target must actually name a career opening.
+  function statedCareerTargetOf(text) {
+    if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
+    for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
+      const clause = stripLead(sentence);
+      if (!clauseIsAssertion(clause)) continue;
+      const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
+      if (!m) continue;
+      const value = m[1].trim();
+      if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
+      if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
+      if (value.length > 200) continue;
+      return { value, evidence: clause.replace(/[.!]$/, "").trim() };
+    }
+    return null;
+  }
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -10308,6 +10428,21 @@ const CareerRouter = (() => {
       // in <City>".
       if ((m = u.match(new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+roles?\\s+in\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)`, "i"))) && asserted(m.index)) {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
+      }
+      // Career goal: "my (career) goal is ..." — the user's target
+      // in their own words, recorded VERBATIM as a keyed fact (kind
+      // "goal", key "career") on the same stated-facts record, so it
+      // takes the keyed carriage past the account validator and
+      // folds back into every later thread's working set (the
+      // spine: stated -> recorded -> recallable). One slot: a later
+      // goal statement REPLACES the earlier one under the same
+      // kind+key, never accumulates a contradiction. The clause is
+      // captured to the end of its own sentence only.
+      if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
+        pushKeyed("goal", "career", m[1], m[0]);
+      } else {
+        const target = statedCareerTargetOf(raw);
+        if (target) pushKeyed("goal", "career", target.value, target.evidence);
       }
     }
     // (1) Per-clause declarative capture. WO-095: gated — a request
@@ -10616,7 +10751,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen" }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -10647,6 +10782,43 @@ const CareerRouter = (() => {
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],
     };
+  }
+  // GOAL FRAME (spine fix, 2026-10-21): a first-person goal
+  // declaration ("my career goal is ...") is a RECORD turn, and
+  // "what's my (career) goal?" is a read of that record. On v247
+  // the declaration was unowned until the discovery tail, which
+  // read its internship/summer words as a search ask and answered
+  // with a list verdict — the goal was never acknowledged, and the
+  // next turn's recall fell to the generic fallback (battery
+  // scenarios 4-5). Capture lives in captureStatedFacts (kind
+  // "goal", keyed carriage — see the frame there); this claim is
+  // dispatched beside the early conversation-recall claim, ahead
+  // of recommendations, the pending-mock capture and the
+  // discovery tail, and the discovery tail never sees a
+  // declaration. Both halves answer from the record in the user's
+  // own words: the clause is quoted VERBATIM, never paraphrased.
+  // The recall stands down when no goal is recorded (the existing
+  // fall-through is unchanged), and a declaration shape under a
+  // question is not claimed here (capture's assertion gate has
+  // already recorded nothing from it — BUG-169 discipline).
+  function handleGoalFrame(text, ctx) {
+    const t = lc(text);
+    const goal = statedFactsOf(ctx).find((f) => f.kind === "goal");
+    // Recall: resolve against the recorded kind-"goal" fact.
+    if (/\bwhat'?s\s+my\s+(?:career\s+)?goal\b/.test(t) || /\bwhat\s+is\s+my\s+(?:career\s+)?goal\b/.test(t)) {
+      if (!goal) return null;
+      const reply = compose({ headline: `Your career goal, in your words: ${goal.value}.`, facts: ["That is the goal on your record — stated by you, stored verbatim, and the target your searches, drafts, and prep are aimed at."], nextStep: "Want the search run against it, or the goal restated first?" });
+      return { intent: "career_goal_recall", reply, resultStatus: "answered", sends: 0, stated_facts: statedFactsOf(ctx) };
+    }
+    // Declaration: captureStatedFacts recorded this turn's
+    // statement at the head of dispatch; answer with the record
+    // surface, quoting the recorded clause verbatim.
+    if (/\?/.test(s(text))) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t) && !statedCareerTargetOf(text)) return null;
+    if (!goal) return null;
+    const all = statedFactsOf(ctx);
+    const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
+    return { intent: "career_goal_record", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;

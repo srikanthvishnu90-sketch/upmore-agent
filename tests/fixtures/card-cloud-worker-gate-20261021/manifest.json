@@ -1,0 +1,65 @@
+{
+  "base_commit": "01401cb456bc2982d67316165e183bbd275581c9",
+  "review_commit": "6efca1a2b844b402579bfcf4238f3e53a33d0f90",
+  "scope": "TESTS_ONLY; production unchanged; no SQL/migrations applied",
+  "worker_baseline": {
+    "tests": 9,
+    "passing_controls": 5,
+    "behavioral_regressions": 4,
+    "skipped": 0,
+    "regressions": [
+      "denied authority before engine ignored",
+      "revoked authority during resume ignored",
+      "consistently rehashed company differs frozen card Hq",
+      "consistently rehashed page URL differs frozen card Hq"
+    ]
+  },
+  "worker_command": "DENO_BIN=/tmp/case2-test-tools/node_modules/.bin/deno CARD_BRIDGE_MEASUREMENTS=/tmp/card-cloud-worker-014-measurements.json node --test tests/career-cloud-worker-card-bridge.test.cjs",
+  "browser_status": "BLOCKED_AT_PREPARE_DRIVER_ERROR; no captured-form delivery verdict or regression count claimed",
+  "pre_effect_transport_status": "NOT_RUN; acceptance spec only; actual parent/child transport awaits design PASS and implementation",
+  "test_source_lines": 262,
+  "new_cost_usd": 0,
+  "prior_known_usd": "8.503100",
+  "prior_unresolved_held_usd": "0.070743",
+  "files": [
+    {
+      "path": "tests/career-cloud-worker-card-bridge-lever.test.cjs",
+      "bytes": 10529,
+      "sha256": "9ffc8dfd4dfb15363d18d317bfdcc30733a789d42bd0e7ba0a4443983ef41f5f"
+    },
+    {
+      "path": "tests/career-cloud-worker-card-bridge.test.cjs",
+      "bytes": 11101,
+      "sha256": "0d6a5ba4718a96983ad1da13fb31c005c1ba23b5dd0521c6d7ed43874cd11d1d"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/lever-014-local-blocked.log.gz",
+      "bytes": 810,
+      "sha256": "15a14d8c9c5fb0ba63366d88aafbd112971360ff39caa641e198194e39a97d7c"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/worker-014-before.log.gz",
+      "bytes": 1692,
+      "sha256": "528984dace90f6a8b353bd956c97d3bf1381d888f5ec1075de2a8989585538a3"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/worker-014-measurements.json",
+      "bytes": 10809,
+      "sha256": "6b572d3644cda63f560a71efc2aabd4d9db65eb2adde4debc3ddb7a031fa7fcb"
+    }
+  ],
+  "raw_tap": [
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/lever-014-local-blocked.log.gz",
+      "encoding": "gzip; decompress to exact raw TAP",
+      "uncompressed_sha256": "d9a3de4a2d033f83a0a3303eed67c891433d5eb1762127d11357272bc524c751",
+      "uncompressed_bytes": 1587
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/worker-014-before.log.gz",
+      "encoding": "gzip; decompress to exact raw TAP",
+      "uncompressed_sha256": "491ca9d838019ed76d79ad40d11918affbbfedbc008cd51ce151b8a16e727e83",
+      "uncompressed_bytes": 8015
+    }
+  ]
+}

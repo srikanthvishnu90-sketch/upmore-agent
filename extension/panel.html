@@ -20,6 +20,19 @@
   <section id="setup" hidden>
     <div class="row"><span>Resume: <b id="resume-name">none yet</b></span><label class="file">Choose file<input id="resume" type="file" accept=".pdf,.doc,.docx,.txt"></label></div>
     <div class="row"><span class="small">Your confirmed answers come from what you told Trainee. <span id="facts-count"></span></span><label class="file small">Import facts file<input id="facts" type="file" accept=".json"></label></div>
+    <div id="fact-import-review" hidden>
+      <div class="row"><b>Review imported answers</b><button id="fact-import-cancel" class="link">Close preview</button></div>
+      <p id="fact-import-file" class="small"></p>
+      <p class="small">Every answer starts as a draft. Confirm each answer only if it is your own correct information. This does not approve an application.</p>
+      <p class="small">A confirmed answer is added to this browser session, replacing only the same answer key. Other imported answers are kept. Nothing is saved to your account's fact bank here.</p>
+      <ol id="fact-import-list"></ol>
+    </div>
+    <p id="fact-import-msg" class="msg" role="status" aria-live="polite"></p>
+    <details id="stated"><summary class="small">Type or paste facts about you</summary>
+      <textarea id="stated-text" rows="4" placeholder="Name, city, phone, email, school and years, jobs, skills, work authorization"></textarea>
+      <div class="row"><button id="stated-read">Read</button><button id="stated-confirm" disabled>Confirm the checked facts</button></div>
+      <ul id="stated-list"></ul><p id="stated-msg" class="msg"></p>
+    </details>
   </section>
 
   <section id="page" hidden>
@@ -61,6 +74,19 @@
     <p id="ao-msg" class="msg"></p>
     <ol id="ao-list"></ol>
     <button id="ao-save" class="primary" hidden>Save my answers</button>
+    <div id="agent-box" hidden>
+      <div class="row"><b>Trainee sends</b><button id="agent-stop">Stop applying</button></div>
+      <p class="small">After Prepare: every answer Trainee will send to each posting below, exactly. Approve them once and Trainee sends each one itself with the site's own Submit, only if the page holds exactly these answers; anything different waits for you. A receipt after each.</p>
+      <p id="agent-msg" class="msg"></p>
+      <ol id="agent-ready" class="small"></ol>
+      <button id="agent-approve" class="primary" hidden>Approve these answers; Trainee sends them</button>
+      <button id="agent-rehearse" hidden>Rehearse these first (fills and checks every page; sends nothing)</button>
+      <b class="small">Rehearsals</b>
+      <ol id="agent-rehearsals" class="small"></ol>
+      <ol id="agent-out" class="small"></ol>
+      <b class="small">Receipts</b>
+      <ol id="agent-receipts" class="small"></ol>
+    </div>
   </section>
 
   <footer class="small">Not in the Chrome Web Store: loaded unpacked. <button id="signout" class="link" hidden>Sign out</button>

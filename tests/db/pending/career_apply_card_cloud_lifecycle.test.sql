@@ -1,0 +1,234 @@
+-- TESTS ONLY / WRITTEN / NOT_RUN. Not discovered by run.sh. No migration application here.
+-- Requires reviewed bridge implementation and explicit disposable-database authorization.
+\if :{?card_cloud_tests_authorized}
+\else
+ \echo 'NOT_RUN: pass explicit card_cloud_tests_authorized=true on an authorized disposable DB'
+ \quit 3
+\endif
+\if :card_cloud_tests_authorized
+\else
+ \quit 3
+\endif
+\set ON_ERROR_STOP on
+begin;
+reset role;
+\ir ../../fixtures/card-cloud-db-20261021/fixture.sql
+insert into auth.users(id,email) values
+ ('00000000-0000-4000-8000-00000000cb01','lifecycle-a@example.test'),
+ ('00000000-0000-4000-8000-00000000cb02','lifecycle-b@example.test');
+insert into profiles(id) values('00000000-0000-4000-8000-00000000cb01'),('00000000-0000-4000-8000-00000000cb02');
+insert into agent_threads(id,user_id,title) values
+ ('00000000-0000-4000-8000-00000000cba1','00000000-0000-4000-8000-00000000cb01','Synthetic lifecycle');
+insert into career_watch_kv(user_id,key,value) values
+ ('00000000-0000-4000-8000-00000000cb01','career:account','{"epoch":1,"version":1,"paused":false}');
+insert into career_message_approval_private.test_users(user_id) values('00000000-0000-4000-8000-00000000cb01');
+insert into career_apply_cloud_resumes(user_id,sha256,filename,bytes,privacy_epoch)
+ values('00000000-0000-4000-8000-00000000cb01',encode(sha256(convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8')),'hex'),
+ 'synthetic.pdf',convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8'),1);
+-- Exact profile/question rows used by the offline engineInput/current-source proof; no fact flags invented here.
+select pg_temp.cc_seed_sources();
+create temp table cc_state(k text primary key,v jsonb);
+grant all on cc_state to authenticated,service_role;
+create function pg_temp.cc_hash(p jsonb) returns text language sql as $$
+ select encode(sha256(convert_to(public.career_apply_canonical(p),'UTF8')),'hex') $$;
+create function pg_temp.cc_show(tag text) returns jsonb language sql as $$
+ select public.career_apply_message_cloud_card_show_as('00000000-0000-4000-8000-00000000cb01',
+ '00000000-0000-4000-8000-00000000cba1',jsonb_build_array(pg_temp.cc_full_item(tag))) $$;
+
+-- Atomic batch: a real last-item duplicate must undo the first enqueue and all permission consumption.
+insert into cc_state values('duplicate-item',pg_temp.cc_full_item('atomic-last'));
+select career_apply_enqueue((select v->'payload' from cc_state where k='duplicate-item'),
+ (select v->>'hash' from cc_state where k='duplicate-item'),(select v->>'hash' from cc_state where k='duplicate-item'),25);
+insert into cc_state values('atomic-card',career_apply_message_cloud_card_show_as(
+ '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
+ jsonb_build_array(pg_temp.cc_full_item('atomic-first'),(select v from cc_state where k='duplicate-item'))));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+select t.must_fail($$select career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='atomic-card'),(select v->>'hash' from cc_state where k='atomic-card'))$$,
+ 'duplicate','atomic_last_failure: duplicate final posting rolls back entire tap');
+reset role;
+select t.ok(not exists(select 1 from career_apply_jobs where job_id='lever:veeva:synthetic-atomic-first')
+ and (select count(*)=1 from career_apply_jobs where job_id='lever:veeva:synthetic-atomic-last'),
+ 'atomic_no_partial_jobs: original duplicate alone survives');
+select t.ok((select approved_at is null from career_apply_message_cards where id=(select (v->>'id')::uuid from cc_state where k='atomic-card'))
+ and not exists(select 1 from career_message_approval_private.cloud_bound_jobs where card_id=(select (v->>'id')::uuid from cc_state where k='atomic-card'))
+ and not exists(select 1 from career_message_approval_private.cloud_bound_approvals where card_id=(select (v->>'id')::uuid from cc_state where k='atomic-card')),
+ 'atomic_card_open_no_used_permission: failed tap leaves no binding or consumed approval');
+
+-- Unknown-key attacks consistently rehash P; exact producer shape, not caller hash, is decisive.
+do $$ declare item jsonb;p jsonb;kind text;begin
+ for kind in select unnest(array['top','field']) loop
+  item:=pg_temp.cc_full_item('unknown-'||kind);p:=item->'payload';
+  if kind='top' then p:=p||'{"unexpected_authority":"yes"}'::jsonb;
+  else p:=jsonb_set(p,'{fields,0,unexpected_authority}','"yes"');end if;
+  item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+  perform t.must_fail(format('select career_apply_message_cloud_card_show_as(%L,%L,%L::jsonb)',
+   '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item)),
+   'unknown|unexpected|invalid','unknown_'||kind||'_key_refused_even_rehashed');
+ end loop;
+end $$;
+
+-- Explicit BANK factId is quarantined. Raw chat id:F-033 is a separate fixture/control, never relabelled bank proof.
+do $$ declare item jsonb;p jsonb;begin
+ item:=pg_temp.cc_full_item('bank-quarantined');p:=jsonb_set(item->'payload','{fields,0,factId}','"F-033"');
+ item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+ perform t.must_fail(format('select career_apply_message_cloud_card_show_as(%L,%L,%L::jsonb)',
+  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item)),
+  'quarantin|D-007|d007','bank_factId_F033_refused');
+end $$;
+-- Actual raw id:F033 -> engine_input normalization is Claude-owned and NOT_RUN; see fixture evidence.
+-- This positive proves only that a full canonical P without bank factId F033 is structurally admitted.
+insert into cc_state values('own-chat-card',pg_temp.cc_show('own-chat-f033'));
+select t.ok((select v->>'id' is not null from cc_state where k='own-chat-card'),'canonical_own_source_positive');
+
+-- A P already expired before display is not offered as valid permission.
+do $$ declare item jsonb;p jsonb;deadline jsonb;begin
+ item:=pg_temp.cc_full_item('expired');deadline:=to_jsonb((clock_timestamp()-interval '1 second')::text);
+ p:=jsonb_set(jsonb_set(item->'payload','{expires_at}',deadline),'{approved_snapshot,original,expires_at}',deadline);
+ item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+ perform t.must_fail(format('select career_apply_message_cloud_card_show_as(%L,%L,%L::jsonb)',
+  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item)),
+  'expired|stale','expired_before_display_refused');
+end $$;
+
+-- Exact same P on a later card cannot renew the old queued job or create a replacement approval.
+insert into cc_state values('renew-item',pg_temp.cc_full_item('renewal'));
+insert into cc_state values('renew-card',career_apply_message_cloud_card_show_as(
+ '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
+ jsonb_build_array((select v from cc_state where k='renew-item'))));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+insert into cc_state values('renew-receipt',career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='renew-card'),(select v->>'hash' from cc_state where k='renew-card')));
+reset role;
+create temp table cc_original as select b.job_row_id,b.approval_id,a.approved_at,a.expires_at from
+ career_message_approval_private.cloud_bound_jobs b join career_message_approval_private.cloud_bound_approvals a on a.approval_id=b.approval_id
+ where b.card_id=(select (v->>'id')::uuid from cc_state where k='renew-card');
+insert into cc_state values('later-card',career_apply_message_cloud_card_show_as(
+ '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
+ jsonb_build_array((select v from cc_state where k='renew-item'))));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+select t.must_fail($$select career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='later-card'),(select v->>'hash' from cc_state where k='later-card'))$$,
+ 'duplicate','later_same_entry_cannot_renew_original');
+reset role;
+select t.ok((select count(*)=1 and bool_and(b.approval_id=o.approval_id and a.expires_at=o.expires_at and a.approved_at=o.approved_at)
+ from cc_original o join career_message_approval_private.cloud_bound_jobs b on b.job_row_id=o.job_row_id
+ join career_message_approval_private.cloud_bound_approvals a on a.approval_id=b.approval_id),'original_approval_id_and_deadline_unchanged');
+
+-- Short owned permissions exercise REAL clock expiry, never fake p_now as authority.
+-- Construct/refingerprint BEFORE show; no private marker/approval deadline is edited after tap.
+select career_apply_cloud_optin_as('00000000-0000-4000-8000-00000000cb01',true,'Synthetic expiry terms');
+insert into career_apply_cloud_gate_waivers(user_id,portal,max_sends,expires_at,note)
+ values('00000000-0000-4000-8000-00000000cb01','lever',5,clock_timestamp()+interval '1 hour','Synthetic expiry waiver');
+insert into career_cloud_settings(key,value) values('CAREER_CLOUD_APPLY','on'),('CAREER_AGENT_SUBMIT','on')
+ on conflict(key) do update set value=excluded.value;
+do $$ declare tag text;item jsonb;p jsonb;deadline jsonb;card jsonb;receipt jsonb;begin
+ for tag in select unnest(array['expired']) loop
+  item:=pg_temp.cc_full_item(tag);deadline:=to_jsonb((clock_timestamp()+interval '2 seconds')::text);
+  p:=jsonb_set(jsonb_set(item->'payload','{expires_at}',deadline),'{approved_snapshot,original,expires_at}',deadline);
+  item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+  card:=career_apply_message_cloud_card_show_as('00000000-0000-4000-8000-00000000cb01',
+   '00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item));
+  insert into cc_state values(tag||'-card',card);
+ end loop;
+end $$;
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+insert into cc_state values('expiry-driving-receipt',career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='expired-card'),(select v->>'hash' from cc_state where k='expired-card')));
+reset role;
+-- created_at defaults to transaction now(): UUID tie order must not be assumed.
+create temp table cc_all_claimed as select * from career_apply_cloud_claim_at(6,clock_timestamp());
+select t.ok((select count(*)=2 and bool_and(job_id in ('lever:veeva:synthetic-renewal','lever:veeva:synthetic-expired')) from cc_all_claimed),
+ 'expiry_fixture_real_claim: both known live bindings claimed, no UUID-order assumption');
+create temp table cc_short_claim as select * from cc_all_claimed where job_id='lever:veeva:synthetic-expired';
+-- Create the unattempted expiry case AFTER claiming earlier live bindings.
+do $$ declare item jsonb;p jsonb;deadline jsonb;card jsonb;begin
+ item:=pg_temp.cc_full_item('expired-queued');deadline:=to_jsonb((clock_timestamp()+interval '2 seconds')::text);
+ p:=jsonb_set(jsonb_set(item->'payload','{expires_at}',deadline),'{approved_snapshot,original,expires_at}',deadline);
+ item:=jsonb_set(jsonb_set(item,'{payload}',p),'{hash}',to_jsonb(pg_temp.cc_hash(p)));
+ card:=career_apply_message_cloud_card_show_as('00000000-0000-4000-8000-00000000cb01',
+  '00000000-0000-4000-8000-00000000cba1',jsonb_build_array(item));
+ perform career_apply_message_card_approve_own((card->>'id')::uuid,card->>'hash');
+end $$;
+-- Wait to the measured P deadline; this is time-expiry evidence, not concurrency/race evidence.
+select pg_sleep(greatest(0,extract(epoch from (max((payload->>'expires_at')::timestamptz)-clock_timestamp())))+0.02)
+ from career_apply_jobs where job_id in ('lever:veeva:synthetic-expired','lever:veeva:synthetic-expired-queued');
+select t.ok(not exists(select 1 from career_apply_cloud_claim_at(6,clock_timestamp()) where job_id='lever:veeva:synthetic-expired-queued'),
+ 'expired_at_claim: unattempted short permission never becomes driving');
+select t.ok((select state='queued' and attempts=0 from career_apply_jobs where job_id='lever:veeva:synthetic-expired-queued'),
+ 'expired_at_claim_no_attempt');
+grant select on cc_short_claim to service_role;
+set role service_role;
+select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_short_claim),
+ (select lease_token from cc_short_claim),(select payload_hash from cc_short_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest'))$$,'expired|stale','expired_at_effect_refused');
+select t.ok((career_apply_cloud_finish((select id from cc_short_claim),(select lease_token from cc_short_claim),
+ 'not_submitted','{"reason":"permission_expired"}','not_sent',null)).state='not_submitted','expired_terminal_receipt_recordable');
+reset role;
+
+-- The person's actual Stop RPC must revoke already-consumed cloud permission, not only unused legacy approvals.
+-- One of two fresh jobs is claimed; the other remains queued. No ordering of equal created_at rows is assumed.
+insert into cc_state values('stop-card',career_apply_message_cloud_card_show_as(
+ '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
+ jsonb_build_array(pg_temp.cc_full_item('ordinary-scope'),pg_temp.cc_full_item('ordinary-thread'))));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+insert into cc_state values('stop-receipt',career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='stop-card'),(select v->>'hash' from cc_state where k='stop-card')));
+reset role;
+create temp table cc_stop_claim as select * from career_apply_cloud_claim_at(1,clock_timestamp());
+create temp table cc_stop_queued as select * from career_apply_jobs where state='queued'
+ and job_id in ('lever:veeva:synthetic-ordinary-scope','lever:veeva:synthetic-ordinary-thread');
+select t.ok((select count(*)=1 and bool_and(job_id in ('lever:veeva:synthetic-ordinary-scope','lever:veeva:synthetic-ordinary-thread')) from cc_stop_claim)
+ and (select count(*)=1 from cc_stop_queued),'stop_fixture_one_live_lease_and_one_unattempted_job');
+grant select on cc_stop_claim,cc_stop_queued to authenticated,service_role;
+set role service_role;
+select t.ok((career_apply_message_cloud_authorize((select id from cc_stop_claim),
+ (select lease_token from cc_stop_claim),(select payload_hash from cc_stop_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest')))->>'authorized'='true',
+ 'stop_fixture_real_pre_effect_authorization_was_live');
+reset role;
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+select t.ok(career_apply_batch_revoke_own()>0,'owned_Stop_API_revokes_consumed_cloud_permission');
+reset role;
+select t.ok((select count(*)=2 and bool_and(a.used_at is not null and a.revoked_at is not null)
+ from career_message_approval_private.cloud_bound_jobs b join career_apply_batch_approvals a on a.id=b.approval_id
+ where b.card_id=(select (v->>'id')::uuid from cc_state where k='stop-card')),
+ 'Stop_marks_exact_consumed_approvals_not_a_private_superuser_flag');
+select t.ok(not exists(select 1 from career_apply_cloud_claim_at(6,clock_timestamp()) where id=(select id from cc_stop_queued)),
+ 'Stop_prevents_remaining_queued_claim');
+select t.ok((select state='not_submitted' and attempts=0 and reason='cloud approval revoked'
+ from career_apply_jobs where id=(select id from cc_stop_queued)),
+ 'Stop_truthfully_terminates_queued_job_without_spending_attempt');
+set role service_role;
+select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_stop_claim),
+ (select lease_token from cc_stop_claim),(select payload_hash from cc_stop_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest'))$$,
+ '^cloud permission disabled or expired$','owned_Stop_prevents_effect_on_existing_lease');
+select t.ok((career_apply_cloud_finish((select id from cc_stop_claim),(select lease_token from cc_stop_claim),
+ 'not_submitted','{"reason":"owner_stopped"}','not_sent',null)).state='not_submitted',
+ 'Stop_does_not_block_truthful_terminal_receipt');
+reset role;
+
+-- Ordinary account grant is separate from TEST eligibility. Columns confirmed by owner before implementation.
+delete from career_message_approval_private.test_users where user_id='00000000-0000-4000-8000-00000000cb01';
+select t.must_fail($$select pg_temp.cc_show('ordinary')$$,'enroll|eligible|disabled|TEST','ordinary_without_grant_refused');
+insert into career_message_approval_private.cloud_card_enrollments(user_id,purpose,created_at,expires_at,approval_ref)
+ values('00000000-0000-4000-8000-00000000cb01','first-real-card-cloud',clock_timestamp(),clock_timestamp()+interval '1 hour','SYNTHETIC operator approval');
+insert into cc_state values('ordinary-card',pg_temp.cc_show('ordinary'));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+select t.ok(not career_apply_message_card_test_enabled_own(),'ordinary_enrollment_does_not_enable_v1_TEST_mode');
+select t.ok((career_apply_message_card_read_own((select (v->>'id')::uuid from cc_state where k='ordinary-card')))->>'id' is not null,
+ 'ordinary_exact_grant_reads_cloud_card');
+reset role;
+update career_message_approval_private.cloud_card_enrollments set revoked_at=clock_timestamp()
+ where user_id='00000000-0000-4000-8000-00000000cb01';
+select t.must_fail($$select pg_temp.cc_show('ordinary-revoked')$$,'revok|eligible|disabled|enroll','revoked_ordinary_grant_refused');
+update career_message_approval_private.cloud_card_enrollments set revoked_at=null,created_at=clock_timestamp()-interval '2 hours',expires_at=clock_timestamp()-interval '1 hour'
+ where user_id='00000000-0000-4000-8000-00000000cb01';
+select t.must_fail($$select pg_temp.cc_show('ordinary-expired')$$,'expired|eligible|disabled|enroll','expired_ordinary_grant_refused');
+set role authenticated;
+select t.must_fail($$insert into career_message_approval_private.cloud_card_enrollments(user_id,purpose,created_at,expires_at,approval_ref)
+ values('00000000-0000-4000-8000-00000000cb02','first-real-card-cloud',clock_timestamp(),clock_timestamp()+interval '1 hour','fake client')$$,
+ 'permission denied','client_cannot_self_enroll');
+reset role;
+rollback;

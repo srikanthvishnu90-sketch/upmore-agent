@@ -121,7 +121,7 @@ if (!vm.SourceTextModule) {
   });
 } else {
 // ---------------- the staged real handler (reachability pattern) ----
-async function stagedApp(db, user, workerEnv) {
+async function stagedApp(db, user, workerEnv, executorEnv = workerEnv) {
   if (!vm.SourceTextModule) throw new Error("run with --experimental-vm-modules");
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), "career-batch-delegation-"));
   execFileSync(process.execPath, [path.join(root, "scripts/career/stage-career.cjs"), stage, "--json"]);
@@ -160,7 +160,7 @@ async function stagedApp(db, user, workerEnv) {
     setTimeout, clearTimeout,
     console: { log() {}, error() {}, warn() {} },
     fetch() { networkCalls++; throw new Error("external network forbidden in staged handler"); },
-    Deno: { env: { get: (name) => ({ SUPABASE_URL: "https://supabase.example.test", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service", UPMORE_CAREER_WORKER_URL: workerEnv ? WORKER_URL : undefined, UPMORE_CAREER_WORKER_SECRET: workerEnv ? SECRET : undefined })[name] } },
+    Deno: { env: { get: (name) => ({ SUPABASE_URL: "https://supabase.example.test", SUPABASE_ANON_KEY: "mock-anon", SUPABASE_SERVICE_ROLE_KEY: "mock-service", UPMORE_CAREER_WORKER_URL: workerEnv ? WORKER_URL : undefined, UPMORE_CAREER_WORKER_SECRET: workerEnv ? SECRET : undefined, CAREER_BATCH_EXECUTOR: executorEnv ? "on" : undefined })[name] } },
   });
   const modules = new Map();
   function load(id) {
@@ -397,6 +397,26 @@ test("degradation: with no worker configured there is no delegation — the hone
     assert.ok(!ask.body.batch, "no batch intent is attached — nothing was delegated");
     assert.ok(!db.batchIntents || db.batchIntents.size === 0, "no intent was committed");
     assert.match(ask.body.reply, /Found 0/, "the in-turn path ran against the handler's (empty) hosted pool and said so — no worker was invented to fill it");
+  } finally { app.close(); }
+});
+
+// ---------------- WO-106 (F5): a worker URL but no executor deployed ---------------
+// Live 2026-10-21: production has the worker URL and secret but nothing drains career_batch_intent, so "I've handed this
+// batch to the browser worker" was false. Without CAREER_BATCH_EXECUTOR=on there is no handoff claim and no intent.
+test("WO-106/F5 a worker URL without a deployed executor: no handoff claim, no intent, and the reply says nothing was searched, prepared or sent", { timeout: 120000 }, async (t) => {
+  const db = freshDb();
+  const app = await stagedApp(db, USER, true, false);
+  try {
+    const ask = await app.chat("apply to 15 software engineering intern roles", "dk-noexec-1");
+    assert.equal(ask.status, 200, JSON.stringify(ask.body));
+    assert.doesNotMatch(ask.body.reply, /browser worker|handed/, ask.body.reply);
+    assert.match(ask.body.reply, /nothing was searched, prepared or sent/, ask.body.reply);
+    assert.ok(!ask.body.batch, "no batch intent rides the reply");
+    assert.ok(!db.batchIntents || db.batchIntents.size === 0, "no intent was committed");
+    t.diagnostic(`person: apply to 15 software engineering intern roles  ->  Trainee: ${ask.body.reply}`);
+    const status = await app.chat("what's my batch status", "dk-noexec-2");
+    t.diagnostic(`person: what's my batch status  ->  Trainee: ${status.body.reply}`);
+    assert.doesNotMatch(status.body.reply, /queued_prepare|browser worker|handed/, `no phantom batch reads back: ${status.body.reply}`);
   } finally { app.close(); }
 });
 

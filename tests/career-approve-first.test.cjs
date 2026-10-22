@@ -73,10 +73,10 @@ before(async () => {
   const facts = {
     user_id: "TEST-OWNER",
     answers: {
-      first_name: { value: "Mary Jane", factId: "TEST-1", confirmed: true },
-      email: { value: "synthetic@example.test", factId: "TEST-2", confirmed: true },
+      first_name: { value: "Mary Jane", factId: "TEST-1", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST" },
+      email: { value: "synthetic@example.test", factId: "TEST-2", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST" },
     },
-    saved: { "are you authorized to work in the united states": { value: "Yes", factId: "TEST-3", confirmed: true } },
+    saved: { "are you authorized to work in the united states": { value: "Yes", factId: "TEST-3", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST" } },
   };
   fs.writeFileSync(path.join(root, "facts.json"), JSON.stringify(facts));
   fs.writeFileSync(path.join(root, "synthetic.pdf"), "%PDF-1.4 SYNTHETIC TEST RESUME\n");

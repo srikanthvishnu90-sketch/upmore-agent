@@ -41,9 +41,15 @@ Deno.test("WO-061/4 a run already at the cap runs nothing", async () => {
   if (!r.stopped) throw new Error("not stopped");
 });
 
-Deno.test("WO-061/5 the workflow passes the cap and never reads a stopped run as a score", async () => {
+// Owner, 2026-10-21: "It scores 95% or better on the held-out evaluation set" with "Two independent judges"; the bar moved
+// from the official set (D-027) to the held-out set, both judges must pass an item, and every run is logged.
+Deno.test("WO-061/5 the workflow passes the cap, never reads a stopped run as a score, judges twice and logs every run", async () => {
   const wf = await Deno.readTextFile(".github/workflows/brain-eval.yml");
-  if (!/EVAL_BUDGET_USD: "15"/.test(wf)) throw new Error("the $15 cap is not set");
-  if (!/r\.stopped \|\| a\.stopped/.test(wf)) throw new Error("the verdict reads a stopped run");
-  if (!/a\.pass_rate >= 0\.95 && gap >= 40/.test(wf)) throw new Error("the owner's bar (D-027) is not the verdict");
+  { const m = wf.match(/EVAL_BUDGET_USD: "([0-9.]+)"/); if (!m || !(Number(m[1]) > 0 && Number(m[1]) <= 16.535)) throw new Error("no spend limit at or under the owner's ceiling ($15 tonight on top of $1.535 recorded before tonight) is set"); }
+  if (!/a\.stopped/.test(wf) || !/judge error/.test(wf)) throw new Error("the verdict reads a stopped run or a run whose judge errored");
+  if (!/>= 0\.95/.test(wf) || !/--set heldout/.test(wf)) throw new Error("the owner's bar (95% on the held-out set) is not the verdict");
+  if (!/for p in 1 2 3 4 5;/.test(wf)) throw new Error("fewer than five passes decide whether a fix helped (second judge, 2026-10-21: three passes cannot resolve a change under about 5 points)");
+  if (!/Instinct/.test(wf) || !/both-pass/.test(wf)) throw new Error("one judge alone decides (Instinct is the second judge, both must pass)");
+  if (!/score-log\.ts/.test(wf)) throw new Error("the run is not logged");
+  if (!/EVAL_JUDGE_MODEL_2: gpt-4\.1-mini/.test(wf)) throw new Error("gpt-4.1-mini does not judge every run (owner, 2026-10-21: a judge that runs only sometimes makes runs incomparable)");
 });

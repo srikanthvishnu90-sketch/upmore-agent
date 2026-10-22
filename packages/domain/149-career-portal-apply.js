@@ -73,8 +73,58 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
+  // The EEO decline MEANING CLASS (DECLINE-VOCAB lane, 2026-10-21; the
+  // doctrine is D8 / BUG-067 in the browser helper): the decline default
+  // is ONE semantic choice worded a dozen ways across boards — the
+  // dropdown-measure lane (cc2932c9) recorded the boards' own renderings
+  // on 24 verified fills: "I don't wish to answer" x19, "Decline To Self
+  // Identify" x4, "I prefer not to say" x1. The class is DATA in the
+  // WO-020 question_map shape — ordered named pattern rules over
+  // normalized text; the first that matches names why — so it can fold
+  // into the shared meaning map verbatim when that lands on this line
+  // (seam: docs/career/decline-vocab-2026-10-21.md). ONE home: this
+  // module's export. Patterns are regex SOURCES (serializable data);
+  // they are written against normMeaningText below, which is the
+  // helper's normOpt verbatim (lowercase, curly quotes dropped,
+  // punctuation -> space, spaces collapsed) — the same normalization
+  // the on-page matcher (scripts/career/portal-browser-helper.cjs,
+  // isDeclineText) evaluates, and the class's union is semantically
+  // identical to that matcher's vocabulary, pinned by
+  // tests/career-decline-vocab.test.cjs.
+  const EEO_DECLINE_MEANING = [
+    { name: "decline_word", pattern: "decline" },
+    { name: "prefer_not", pattern: "prefer not" },
+    { name: "wish_not", pattern: "do not wish|don t wish|dont wish" },
+    { name: "not_answer", pattern: "not (to )?answer" },
+    { name: "not_disclose", pattern: "not (to )?disclose" },
+    { name: "no_answer", pattern: "no answer" },
+    // F-024 / one-class audit (2026-10-22): the browser helper learned Lever's "I do not want to answer" while this
+    // list did not, so the gate would refuse the fill the helper chose. The helper now reads THIS list (no copy), and
+    // the phrasings the answer-option matcher already knew are part of the class.
+    { name: "want_not", pattern: "do not want to answer|dont want to answer|don t want to answer" },
+    { name: "rather_not", pattern: "rather not" },
+    { name: "choose_not", pattern: "choose not" },
+    { name: "not_identify", pattern: "not (to )?(self identify|identify|specify|say)" },
+  ];
+  // One regex source over normMeaningText's output, for callers that cannot import a module (the in-page matcher).
+  const EEO_DECLINE_SOURCE = EEO_DECLINE_MEANING.map((r) => "(?:" + r.pattern + ")").join("|");
+  const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
+  // The first rule that matches names why the text is decline-class
+  // (WO-020: each rule names why it matched); null when it is not.
+  function eeoDeclineMatch(text) {
+    const t = normMeaningText(text);
+    if (!t) return null;
+    for (const r of EEO_DECLINE_RULES) if (r.re.test(t)) return r.name;
+    return null;
+  }
+  const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
+  // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
+  const EMPTY_FORM_RESCAN_MAX_READS = 5;
+  const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -234,6 +284,41 @@ const CareerPortalApply = (() => {
     research: "research record — fellowship/essay material, not a portal screening answer",
     metric: "company metrics — essay/profile material, not a screening answer",
   };
+  // MUSE-F-007: the person's saved answers to application questions
+  // (application_answer; application_text, the long ones) are read ONLY
+  // through the WO-102 answer contract (extension/src/apply_core.ts:
+  // trustedManifest + ownAnswerOnly, passed in as the bundle — never
+  // copied here). Kept answers fill only the question they were given to
+  // (savedAnswerFor in prepareRound). A contract of another quarantine
+  // version is not read until this consumer is reviewed against it.
+  const SAVED_ANSWER_KINDS = ["application_answer", "application_text"];
+  const SAVED_ANSWER_CONTRACT = "d007-v1";
+  const normQuestion = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  function savedAnswersOf(bank, contract, owner) {
+    const facts = bank.facts.filter((f) => f && SAVED_ANSWER_KINDS.indexOf(f.kind) >= 0);
+    if (!facts.length || !owner || !contract || contract.QUARANTINE_VERSION !== SAVED_ANSWER_CONTRACT
+      || typeof contract.trustedManifest !== "function" || typeof contract.ownAnswerOnly !== "function") return [];
+    const str = (v) => (v === undefined || v === null ? "" : String(v));
+    const saved = {};
+    for (const f of facts) {
+      saved[str(f.id)] = Object.assign({ value: str(f.value), factId: str(f.id), confirmed: f.status === "confirmed" && f.needs_confirmation !== true,
+        provenance: f.provenance, confirmation_event_id: f.confirmation_event_id, authorizes: f.authorizes === true },
+      f.user_id ? { user_id: f.user_id } : {}, Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {});
+    }
+    const m = contract.trustedManifest({ owner, file: { user_id: owner, saved }, rows: [], resume: null });
+    if (!m || m.version !== SAVED_ANSWER_CONTRACT || !m.byFactId) return [];
+    const out = [];
+    for (const f of facts) {
+      const tf = m.byFactId[str(f.id)];
+      const question = normQuestion(f.question);
+      if (!tf || tf.value !== str(f.value) || !question) continue;
+      if (f.kind === "application_text" && !f.company) continue; // a long answer is written for one employer
+      if ((contract.ownAnswerOnly(str(f.question)) || contract.ownAnswerOnly(question)) && tf.authorizes !== true) continue;
+      out.push({ question, kind: f.kind, value: tf.value, company: f.company ? str(f.company) : null, factId: tf.factId,
+        confirmation_event_id: tf.event, provenance: tf.provenance, manifest_hash: m.hash, quarantine_version: m.version });
+    }
+    return out;
+  }
   const US_STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia" };
   // City -> IANA zone for the bank's own residence only. A residence
   // outside this table derives NO time-zone answer (the field stays an
@@ -275,9 +360,12 @@ const CareerPortalApply = (() => {
   // country, date_of_birth, and the education block in the F-001
   // contract shape). Nothing here invents: a source fact that is
   // absent or unconfirmed yields no entry, and the field stays an ask.
-  function deriveAnswers(bank, now) {
-    const out = { answers: {}, profileFields: {}, traces: {} };
+  // opts.contract + opts.owner (MUSE-F-007): the WO-102 bundle and whose
+  // bank this is; without them `savedAnswers` stays empty.
+  function deriveAnswers(bank, now, opts) {
+    const out = { answers: {}, profileFields: {}, traces: {}, savedAnswers: [] };
     if (!bank || !Array.isArray(bank.facts)) return out;
+    out.savedAnswers = savedAnswersOf(bank, opts && opts.contract, opts && opts.owner);
     const nowMs = tsMs(now);
     const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
     const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
@@ -360,6 +448,7 @@ const CareerPortalApply = (() => {
     if (bank && bank.basics && Object.keys(bank.basics).length) kinds.add("basics");
     const consumedKinds = new Set([].concat(...Object.values(ANSWER_KEY_SOURCES)));
     consumedKinds.add("basics"); // preferred_name / location corroboration derive from the basics block
+    for (const k of SAVED_ANSWER_KINDS) consumedKinds.add(k); // savedAnswersOf, through the WO-102 contract
     const consumed = [], exempt = [], uncovered = [];
     for (const k of kinds) {
       if (consumedKinds.has(k)) consumed.push(k);
@@ -367,6 +456,145 @@ const CareerPortalApply = (() => {
       else uncovered.push(k);
     }
     return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
+  }
+
+  // ---------- the executor's input writer: bank -> portal inputs (LOOP-INPUT) ----------
+  // The batch executor (and the in-turn batch seam) drives 149 from a
+  // 149-shaped profile + an attestations map. Until this composition
+  // existed, NO product code produced either from the user's record:
+  // the stored master carried basics null / answers null /
+  // attestations null on the live account, every prepare stopped at
+  // the same uncovered questions, and the loop could not move
+  // (LOOP-INPUT-NO-WRITER, final set Doc 1 A3). This is the missing
+  // pipeline stage — derivation, built once, keyed only to the
+  // user's own stored bank. Its layers mirror the saved-answers
+  // composition the extension serves (extension_sync.js
+  // composeSavedAnswers — the same layers in the same order, so the
+  // surfaces cannot disagree about what a bank answers):
+  //   1. identity from the bank's basics, verbatim (no derivation);
+  //   2. the bank's stored answers with confirmed === true, verbatim;
+  //   3. deriveAnswers over the bank (confirmed facts only, each
+  //      entry carrying its factId trace);
+  //   4. the constraints/defaults seam for keys still unanswered
+  //      (sponsorship / work authorization from the constraints the
+  //      sensitive-correction path writes; pronouns from defaults;
+  //      located_in_us from the residence the bank carries);
+  //   5. the resume as { filename, sha256 } metadata, only when the
+  //      record carries one with its sha256.
+  // Attestations are NEVER derived from facts. They come from exactly
+  // two sources, both the user's own explicit acts: an attestation
+  // already stored on the record (explicit === true, passed through
+  // verbatim), and — for certify_true — the batch approval act
+  // itself, passed in as opts.approvalAct { runId, cardSha256 } by
+  // the caller that holds the user's committed "Approve batch
+  // <runId>" intent. No approval act, no certify_true: the field
+  // stays an ask at prepare and the batch waits at its card.
+  function workAuthorizationToken(text) {
+    const t = String(text || "").trim();
+    if (/^yes\b/i.test(t)) return "Yes";
+    if (/^no\b/i.test(t)) return "No";
+    if (/not authorized|not eligible to work|no work authorization/i.test(t)) return "No";
+    if (/citizen|permanent resident|green card|lawful permanent|authorized to work|eligible to work|employment authorization|work permit/i.test(t)) return "Yes";
+    return t;
+  }
+  function portalInputsFromBank(bank, opts) {
+    const o = opts || {};
+    const out = { profile: null, attestations: {}, traces: {} };
+    if (!bank || typeof bank !== "object") return out;
+    const nowMs = tsMs(o.now != null ? o.now : Date.now());
+    // Derivation reads the 122 fact shape (status / needs_confirmation).
+    // A looser stored shape (confirmed: true, no status) is normalized
+    // on a CLONE — the stored record is never mutated, and a fact that
+    // carries an explicit draft status is never promoted.
+    const normBank = cloneBankForDerivation(bank);
+    const b = (bank.basics && typeof bank.basics === "object") ? bank.basics : {};
+    const links = (b.links && typeof b.links === "object") ? b.links : {};
+    const profile = { answers: {} };
+    const setP = (k, v) => { if (v !== undefined && v !== null && String(v) !== "") profile[k] = v; };
+    setP("name", b.name || b.full_name || bank.name);
+    setP("email", b.email || bank.email);
+    setP("phone", b.phone);
+    setP("location", b.location);
+    setP("linkedin", links.linkedin || b.linkedin);
+    setP("github", links.github || b.github);
+    setP("website", links.portfolio || links.website || b.website);
+    setP("current_company", b.current_company || b.currentCompany);
+    const derived = deriveAnswers(normBank, Number.isFinite(nowMs) ? nowMs : Date.now());
+    for (const [k, v] of Object.entries(derived.profileFields || {})) setP(k, v);
+    for (const [k, t] of Object.entries(derived.traces || {})) out.traces[k] = t;
+    const r = bank.resume || b.resume || null;
+    if (r && r.sha256) profile.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+
+    const answers = {};
+    const stored = (bank.answers && typeof bank.answers === "object") ? bank.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        answers[k] = JSON.parse(JSON.stringify(a));
+        if (a.factId) out.traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
+      }
+    }
+    for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = a;
+
+    const c = (bank.constraints && typeof bank.constraints === "object") ? bank.constraints : {};
+    const dfl = (bank.defaults && typeof bank.defaults === "object") ? bank.defaults : {};
+    const seam = (key, value, factId, how) => {
+      if (answers[key] || value === undefined || value === null || String(value) === "") return;
+      answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
+      seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");
+    }
+    if (!answers.located_in_us) {
+      const hometown = (normBank.facts || []).find((f) => f.kind === "profile" && /hometown/i.test(f.name || f.title || "") && f.status === "confirmed" && f.needs_confirmation !== true);
+      const residence = (hometown && hometown.value) || b.location || "";
+      const tail = String(residence).split(",").pop().trim().replace(/\s*\(.*?\)\s*$/, "");
+      const isUs = (/^[A-Za-z]{2}$/.test(tail) && US_STATE_CODES.has(tail.toUpperCase()))
+        || US_STATE_NAMES_LOWER.has(tail.toLowerCase());
+      if (isUs || /^united states$/i.test(String(profile.country || ""))) {
+        seam("located_in_us", "Yes", hometown ? hometown.id : "basics.location",
+          "the residence the record carries is in a US state (the same source deriveAnswers reads for state_of_residence)");
+      }
+    }
+    profile.answers = answers;
+    out.profile = profile;
+
+    const storedAtt = (bank.attestations && typeof bank.attestations === "object") ? bank.attestations : {};
+    for (const [k, a] of Object.entries(storedAtt)) {
+      if (a && a.explicit === true && a.value !== undefined) {
+        out.attestations[k] = JSON.parse(JSON.stringify(a));
+        out.traces[`attestation:${k}`] = { factId: "profile.attestations", how: "the user's own stored explicit attestation, passed through verbatim" };
+      }
+    }
+    if (o.approvalAct && o.approvalAct.runId) {
+      out.attestations.certify_true = {
+        value: true, explicit: true, source: "batch_approval",
+        runId: o.approvalAct.runId, cardSha256: o.approvalAct.cardSha256 || null,
+      };
+      out.traces["attestation:certify_true"] = { factId: "batch_approval", how: "the user's own approval of this batch's card is the attestation act — derived only under a committed approve intent for this run and card" };
+    }
+    return out;
+  }
+  const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+  const US_STATE_NAMES_LOWER = new Set(Object.values(US_STATE_NAMES).map((n) => n.toLowerCase()).concat(["district of columbia"]));
+  function cloneBankForDerivation(bank) {
+    const clone = JSON.parse(JSON.stringify(bank));
+    if (Array.isArray(clone.facts)) {
+      for (const f of clone.facts) {
+        if (!f || typeof f !== "object") continue;
+        if (f.status == null && f.confirmed === true) f.status = "confirmed";
+        if (f.needs_confirmation == null && typeof f.needsConfirmation === "boolean") f.needs_confirmation = f.needsConfirmation;
+      }
+    }
+    return clone;
   }
 
   // ---------- §6.1 step 3: form analysis ----------
@@ -754,7 +982,39 @@ const CareerPortalApply = (() => {
     }
 
     // steps 3+4: analyze, then fill from confirmed facts only
-    const formDef = board.form();
+    // MUSE-F-025 (bounded re-scan): the first form read can land before
+    // the board's client-rendered form has mounted on a slow first paint;
+    // that instantaneous read legitimately returns zero fields on a
+    // healthy posting, and the D2 stop below then fired on a form that
+    // was not reached YET (live: batch-7ac6d3b30fa5, bracketed by drives
+    // returning 27/34 fields through the same stack). A zero-field read
+    // is therefore re-scanned — bounded by EMPTY_FORM_RESCAN_MAX_READS
+    // total reads AND EMPTY_FORM_RESCAN_BUDGET_MS wall-clock, whichever
+    // binds first; each re-read is a complete fresh discover on the
+    // board, so the loop observes later paints. There is no synthetic
+    // delay and no unbounded wait. inp.emptyFormRescan === false is the
+    // kill switch: the exact pre-fix single read. Root cause:
+    // docs/apply/ROOT-CAUSE-F025-2026-10-22.md.
+    const rescanOff = inp.emptyFormRescan === false;
+    const rescanT0 = Date.now();
+    let formDef = board.form();
+    let rescanReads = 1;
+    while ((!formDef.fields || formDef.fields.length === 0) && !rescanOff
+      && rescanReads < EMPTY_FORM_RESCAN_MAX_READS
+      && Date.now() - rescanT0 < EMPTY_FORM_RESCAN_BUDGET_MS) {
+      formDef = board.form();
+      rescanReads += 1;
+      logStep("empty_form_rescan", { read: rescanReads, fieldCount: (formDef.fields || []).length, elapsedMs: Date.now() - rescanT0 });
+    }
+    const rescanElapsedMs = Date.now() - rescanT0;
+    const rescan = rescanReads > 1
+      ? { reads: rescanReads, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: (formDef.fields || []).length ? "fields_found" : "exhausted" }
+      : (rescanOff && (!formDef.fields || formDef.fields.length === 0))
+        ? { reads: 1, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: "disabled" }
+        : null;
+    if (rescan && rescan.outcome === "fields_found") {
+      logStep("empty_form_rescan_recovered", { reads: rescanReads, fieldCount: formDef.fields.length, elapsedMs: rescanElapsedMs });
+    }
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -762,13 +1022,46 @@ const CareerPortalApply = (() => {
     // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
+    // F-025: the stop now consumes the bounded re-scan above; a form
+    // still empty when the bound is exhausted stops exactly as before.
     if (!formDef.fields || formDef.fields.length === 0) {
-      logStep("empty_form_stop", { fieldCount: 0 });
-      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+      // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
+      // fields — the review page after a Next click carries the
+      // challenge, a submit button, and no fields at all, so this stop
+      // fired before the review-stage captcha check could ever run and
+      // a challenge was misreported as an empty form. A captcha present
+      // on any step outranks EMPTY_FORM: probe the board's review state
+      // (the helper's review command checks the challenge before any
+      // click) and honor a challenge before naming the form empty.
+      let rv = null;
+      try { rv = typeof board.atReview === "function" ? board.atReview() : null; } catch (e) { rv = null; }
+      if (rv && rv.captcha) {
+        logStep("captcha_stop", { at: continued ? "review" : "form" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      }
+      logStep("empty_form_stop", { fieldCount: 0, rescanReads });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis, rescan });
     }
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    // MUSE-F-007: a field that would otherwise be asked takes a saved answer the contract kept, only for its exact
+    // question (and, when the answer names an employer, only there); kept answers that disagree leave it asked.
+    const savedAnswerFor = (f) => {
+      const q = normQuestion(f.label);
+      const hits = (Array.isArray(profile.savedAnswers) ? profile.savedAnswers : []).filter((s) => s && q && s.question === q
+        && s.quarantine_version === SAVED_ANSWER_CONTRACT && s.factId && s.confirmation_event_id
+        && (!s.company || normQuestion(s.company) === normQuestion(posting.company)));
+      return hits.length && hits.every((s) => s.value === hits[0].value) ? hits[0] : null;
+    };
+    const fillSaved = (f, entry) => {
+      const s = savedAnswerFor(f);
+      if (!s) return false;
+      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
+      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+        derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
+      return true;
+    };
     for (const f of formDef.fields) {
       const entry = { field_id: f.field_id, category: f.kind };
       if (f.kind === "standard") {
@@ -782,7 +1075,19 @@ const CareerPortalApply = (() => {
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
           logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+      } else if (f.kind === "question") {
+        // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed): a
+        // board question with no canonical mapping (module 150 keys
+        // it by its label's slug) is answered under the screening
+        // contract verbatim — a confirmed stored answer or an ask.
+        // Nothing is derived here either; an unanswered question
+        // still stops the run, named by its field.
+        const a = answers[f.question_key];
+        if (a && a.confirmed === true && a.value !== undefined) {
+          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         // WO-094: in card-approval mode a note DRAFTED for this application
@@ -793,7 +1098,7 @@ const CareerPortalApply = (() => {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
           logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
@@ -813,7 +1118,7 @@ const CareerPortalApply = (() => {
           else session.pendingAttestations.push({ field_id: f.field_id, text, value });
           logStep("attestation_pending_card", Object.assign({}, entry, { text }));
         } else { asks.push({ field_id: f.field_id, reason: "attestation_requires_explicit_confirmation" }); }
-      } else {
+      } else if (!fillSaved(f, entry)) {
         asks.push({ field_id: f.field_id, reason: "unknown_field_category" });
       }
     }
@@ -827,6 +1132,52 @@ const CareerPortalApply = (() => {
     const observed = board.answers();
     if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    // F-027 (2026-10-22): per-key value equivalence at this compare
+    // ONLY (the payload is never altered). A phone input is a scalar
+    // fill, so the FR-395 renderedValues hatch (widget fills only)
+    // never fires for it — yet boards normalize phone values on their
+    // own (Lever's mask renders the US national form, dropping the
+    // "+1" country prefix), and the exact compare stopped a correct
+    // fill as drift (live: batch-8ef4497b16db). For fields whose
+    // profile key is "phone", digit sequences are compared with a
+    // single leading country "1" tolerated on either side; a
+    // genuinely different number (different subscriber digits, or a
+    // different country prefix) still differs and still stops. The
+    // equivalence is keyed by the field's profile key — it does not
+    // apply to any other key, however digit-shaped its values look.
+    const digitsOf = (v) => String(v).replace(/\D+/g, "");
+    const phoneDigitsEquivalent = (a, b) => {
+      const strip = (d) => (d.length === 11 && d.startsWith("1") ? d.slice(1) : d);
+      const da = strip(digitsOf(a)), db = strip(digitsOf(b));
+      return da.length >= 7 && da === db;
+    };
+    // F-028 (2026-10-22): the same benign-render class on the
+    // "location" profile key. A location control is a places pick —
+    // scalar from this gate's perspective, so the FR-395 hatch again
+    // carries nothing — and the board canonicalizes the picked place
+    // by appending the country ("Chicago, IL" -> "Chicago, IL, USA";
+    // live: batch-29ea020da986). The equivalence: strip ONE trailing
+    // country suffix from the closed named set below, from BOTH
+    // sides, after the gate's own norm; the remaining place text must
+    // then match EXACTLY and be non-empty. A different city, the same
+    // city name in a different state, or a longer different place
+    // that merely starts with the expected text leaves a different
+    // remainder and still stops. Named data, not a posting literal:
+    // the set names country renderings, never places.
+    const LOCATION_COUNTRY_SUFFIXES = ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america"];
+    const stripLocationCountry = (v) => {
+      const n = norm(v);
+      for (const s of LOCATION_COUNTRY_SUFFIXES) {
+        if (n.endsWith(", " + s)) return n.slice(0, n.length - s.length - 2);
+      }
+      return n;
+    };
+    const locationEquivalent = (a, b) => {
+      const ra = stripLocationCountry(a), rb = stripLocationCountry(b);
+      return ra.length > 0 && ra === rb;
+    };
+    const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
+      || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
       // Composed at the v224 combine: an EMPTY readback (absent or
@@ -842,13 +1193,68 @@ const CareerPortalApply = (() => {
       // "United States"), the readback is compared against that
       // rendering, not the profile text. A board that renders
       // differently from BOTH is still drift and still stops here.
-      const rendered = board.renderedValues && board.renderedValues[id];
+      // FDSE-MISMATCH (2026-10-21): the rendered value is read through
+      // the board's renderedValue(fieldId) METHOD when the board
+      // offers one. The property channel is a getter on the production
+      // boards (150 / the worker bridge), and any wrapper that
+      // snapshots own properties (an observation/logging wrapper that
+      // copies non-function props once) freezes the getter at its
+      // initial {} — the hatch then silently never fires and a correct
+      // fill stops as drift (live: batch-5ab08dedd45c, the university
+      // field). Methods survive delegation wrappers; the property
+      // remains the fallback for boards that only carry it.
+      const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
+        : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+      // DECLINE-VOCAB (2026-10-21): an EEO fill whose intended value is
+      // decline-class is the SAME answer when the board renders it in
+      // any decline-class wording (EEO_DECLINE_MEANING above — the
+      // measured forms are "I don't wish to answer" x19, "Decline To
+      // Self Identify" x4, "I prefer not to say" x1; the old inline
+      // regex lacked the wish forms and blocked 6 of 8 measured drives
+      // with every fill correct). Class-vs-class ONLY, and only for EEO
+      // fills (the default or the user's own EEO choice): a decline
+      // intent rendered as a substantive answer — or any non-decline
+      // value rendered as anything else — still mismatches below, and
+      // acceptance of every non-EEO answer is exactly what it was.
+      let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+          || ((planned.source === "eeo_default_decline" || planned.source === "user_eeo_choice") && isEeoDeclineText(expected) && isEeoDeclineText(actual));
+      // F-027: when the exact channels fail, the per-key equivalence
+      // gets its say — keyed by the field's profile key, strings
+      // only, and recorded in the run record when it carries the
+      // acceptance (the same evidentiary standard as the hatch).
+      // F-028 adds the "location" branch to this SAME block (one
+      // mechanism, per-key shapes): a board-appended trailing
+      // country suffix on the same place is a benign render.
+      if (!same && typeof expected !== "object" && typeof actual !== "object") {
+        const fd = fieldDefOf(id);
+        if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        } else if (fd && fd.profile_key === "location" && locationEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "location_country_suffix", expected, observed: actual });
+        }
+      }
+      // FR-395: hatch use is recorded in the run record — that the
+      // board's rendered value was consulted as the expectation, and
+      // whether the acceptance was hatch-ONLY (the raw profile value
+      // alone would have mismatched the readback).
+      if (rendered !== undefined) {
+        logStep("answer_observation_rendered", { field_id: id, matched: !!same,
+          hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
+            && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
+      }
+      if (!same) {
+        // The stop record names the field AND carries both values —
+        // a record that says only "the observed value differs" cannot
+        // be diagnosed without re-driving the board (live:
+        // batch-5ab08dedd45c's stored record named nothing).
+        logStep("answer_observation_mismatch", { field_id: id, expected, observed: actual });
+        return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, expected, observed: actual, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      }
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled
@@ -1035,6 +1441,184 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
     }
     return prepared;
+  }
+
+  // ---------- session reuse: resume a live prepared session (chunk 50%) ----------
+  // A prepare drive's board session can outlive the drive: the board
+  // service holds the filled page, still at the final review, under
+  // its idle TTL. resumeApply VERIFIES that live state against the
+  // stored doorstep instead of re-driving — no open() (a navigation
+  // would reload the form and destroy the fills) and no fills. The
+  // verification anchors, in order: the stored record must hash to
+  // its own recorded hash before the board is touched at all; the
+  // live board must still expose the prepared form's fields and read
+  // back values that rebuild — through the SAME buildPayload MI-116
+  // uses, with the session's preparation state seeded from the stored
+  // payload (live answers win, exactly as at the doorstep) — to the
+  // stored payload hash; and the board must still stand at the final
+  // review. Success sets session.doorstep exactly as prepareRound
+  // does; submitDoorstep then re-verifies the live payload hash at
+  // click time, and the driver re-verifies the armed payload against
+  // the live fields before the click — resume adds no trust those
+  // gates do not re-check. Failures are named for the caller's
+  // fallback discipline: SESSION_NOT_LIVE (the session is gone,
+  // expired, or not this user's), SESSION_STATE_MISMATCH (the live
+  // state differs from the prepared payload), SESSION_BINDING_INVALID
+  // (the stored record is internally inconsistent). Any other stop
+  // (captcha, caps, a board code) is the application's result, as a
+  // fresh drive would produce it.
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function resumeApply(session, input) {
+    const inp = input || {};
+    const posting = inp.posting || {};
+    const profile = inp.profile || {};
+    const log = inp.log || { records: [] };
+    const stepLog = [];
+    const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
+    const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+
+    // session binding: a session serves exactly its own user (§6.3 isolation)
+    if (inp.userId && inp.userId !== session.userId) {
+      logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
+      return blocked("SESSION_USER_MISMATCH");
+    }
+    const board = session.board;
+    // The stored doorstep must be internally consistent BEFORE the
+    // board is addressed: a payload that does not hash to its own
+    // recorded hash is never verified against and never trusted.
+    const stored = inp.doorstep || null;
+    if (!stored || !stored.payload || typeof stored.payload !== "object" || Array.isArray(stored.payload)
+      || typeof stored.payloadSha256 !== "string"
+      || sha256(JSON.stringify(stored.payload)) !== stored.payloadSha256) {
+      logStep("session_binding_invalid", {});
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    // target rules (§6.3): the same gates prepare applies before any board use
+    const target = classifyTarget(posting.url || "");
+    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
+    }
+    if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
+      return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
+    }
+    if (posting.status && posting.status !== "open") {
+      logStep("eligibility_stop", { reason: "posting_not_open", status: posting.status });
+      return blocked("JOB_CLOSED");
+    }
+    const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
+    if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    // §11(F): the name on the board account must be the person applying
+    if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
+      logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
+      return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
+    }
+    try {
+      // NO open(): the page is already there, filled. form() is a
+      // read (discovery); answers() is a read (live readback).
+      const formDef = board.form();
+      const formAnalysis = analyzeForm(formDef);
+      if (!formDef.fields || formDef.fields.length === 0) {
+        logStep("session_state_mismatch", { cause: "empty_form" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
+      }
+      // The resumed board must still be the prepared form's board:
+      // its live field set or its live readback must carry the
+      // payload's fields. A board carrying NONE of them is a
+      // different page, whatever its session id claims.
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
+      const observed = board.answers() || {};
+      const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
+      if (payloadIds.length && covered.length === 0) {
+        logStep("session_state_mismatch", { cause: "no_payload_fields_on_board" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board carries none of the prepared payload's fields — it is not the prepared page", formAnalysis });
+      }
+      // Rebuild the would-submit payload from the board's CURRENT
+      // answers (buildPayload — the MI-116 construction), with the
+      // session's preparation state seeded from the stored payload so
+      // the rebuild is the same union prepare hashed at the doorstep.
+      session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
+      session.preparationPayload = {};
+      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = buildPayload(board, session);
+      const liveHash = sha256(JSON.stringify(livePayload));
+      if (liveHash !== stored.payloadSha256) {
+        const changedFields = [], addedFields = [], removedFields = [];
+        for (const k of Object.keys(livePayload)) {
+          if (!(k in stored.payload)) addedFields.push(k);
+          else if (JSON.stringify(livePayload[k]) !== JSON.stringify(stored.payload[k])) changedFields.push(k);
+        }
+        for (const k of Object.keys(stored.payload)) if (!(k in livePayload)) removedFields.push(k);
+        logStep("session_state_mismatch", { changedFields, addedFields, removedFields });
+        return blocked("SESSION_STATE_MISMATCH", { changedFields, addedFields, removedFields, formAnalysis,
+          reason: `the resumed board's current answers differ from the prepared payload — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; the session is discarded and a fresh drive prepares the application again` });
+      }
+      logStep("session_state_verified", { payloadSha256: stored.payloadSha256 });
+      // Still standing at the final review? (cmdReview is read-only on
+      // a page already at final review — it clicks only a "next"
+      // control, and a prepared page at its doorstep has none.)
+      const review = board.atReview();
+      if (review && review.code) {
+        logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+        return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null, formAnalysis });
+      }
+      if (review.captcha) {
+        logStep("captcha_stop", { at: "review" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step", formAnalysis });
+      }
+      if (review.needsFields || review.advanced) {
+        logStep("session_state_mismatch", { cause: "not_at_prepared_step" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed page is no longer at the prepared step — it asks for fields or advanced past the doorstep", formAnalysis });
+      }
+      if (review.atFinalReview === false) {
+        logStep("session_state_mismatch", { cause: "not_at_final_review" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
+      }
+      // §8.3 collision + §6.4 caps, the same re-checks prepare makes
+      if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+      const collision = collisionCheck(session.manualApplications, posting);
+      if (collision.collision) {
+        const c0 = collision.collision;
+        logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+        return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+          reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+      }
+      const caps = capCheck(log, session.userId, posting, inp.now, board);
+      if (!caps.ok) {
+        const sc = caps.stops[0];
+        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
+        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
+          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+      }
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+        requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
+      return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
+        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+    } catch (e) {
+      if (e && SESSION_DEATH_CODES.has(e.code)) {
+        logStep("session_not_live", { cause: e.code });
+        return blocked("SESSION_NOT_LIVE", { cause: e.code, reason: "the board session the prepare drive left is no longer live (expired, closed, or not this user's) — a fresh drive prepares the application again" });
+      }
+      throw e;
+    }
+  }
+
+  // continueApply: a prepare round CONTINUED on the session's live
+  // page (prepareRound's continued entry — it skips open(), so the
+  // page's existing fills survive). The attestation-completion seam:
+  // an application that stopped at awaiting_user for its certification
+  // alone is sitting filled on its board; when the certification
+  // arrives, the round continues on THAT page instead of a fresh
+  // board re-driving the whole form.
+  function continueApply(session, input) {
+    if (!session.preparationPayload) session.preparationPayload = {};
+    if (!session.preparationFields) session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, true, 0, []);
   }
 
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
@@ -1284,6 +1868,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

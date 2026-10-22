@@ -1,0 +1,43 @@
+{
+  "renderer_baseline": "d894403fd106275d64c6a7f973463cc935f11d52",
+  "producer_pin": "c5aa1d226b8df1d401a4e0003cd33ebdfc9f1cb4",
+  "baseline": {
+    "tests": 10,
+    "pass": 7,
+    "fail": 3,
+    "skip": 0
+  },
+  "distinct_mechanisms": 2,
+  "failed_expiry_state_assertion": "companion positive blocked by same employer-fields ABI mismatch; not an independent expiry bug",
+  "scope": "Node DOM/event stand-ins, actual producer generated full P/R with scripted dry evidence. Not real browser/SQL/submission.",
+  "new_cost_usd": 0,
+  "files": [
+    {
+      "path": "tests/career-cloud-card-render-producer-qa.test.cjs",
+      "sha256": "ccc655a24f5b7f7443793944ef6c9e0e9eb91e9e64f6f20c26e0575f936bedf7",
+      "bytes": 7333
+    },
+    {
+      "path": "tests/fixtures/card-cloud-render-20261022/actual-producer-item.json",
+      "sha256": "e6b55968b05ba384c5c494a6309e01d73f3c8edfa3d8ae63207044a52661f7f7",
+      "bytes": 35483
+    },
+    {
+      "path": "tests/fixtures/card-cloud-render-20261022/evidence/baseline-d894.tap",
+      "sha256": "5781bd5a0c7bdcb71dac38846391a607cba0004eab7f0388eaf01185e70d1d28",
+      "bytes": 4149
+    },
+    {
+      "path": "tests/fixtures/card-cloud-render-20261022/evidence/candidate-0334.tap",
+      "sha256": "1e171676fe313e49b5553303b89385c73324518df2acec3cd3b3bbe36a55bd70",
+      "bytes": 2226
+    }
+  ],
+  "candidate_renderer": "0334ea59a388bb95f3d6d9f7d5ef495e4f2f9638",
+  "candidate": {
+    "tests": 10,
+    "pass": 10,
+    "fail": 0,
+    "skip": 0
+  }
+}

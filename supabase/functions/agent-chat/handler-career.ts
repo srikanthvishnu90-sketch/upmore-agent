@@ -36,6 +36,7 @@ import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
+import { linkChecker } from "../_shared/link_check.ts";
 import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
@@ -73,6 +74,8 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
   if (error) console.error("outreach turn cost not recorded:", error.message);
 }
 
+// WO-106 (F5): the reply to a batch ask the router would have "handed to the browser worker": what happened, nothing more.
+export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
@@ -246,6 +249,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const workerSecret = Deno.env.get("UPMORE_CAREER_WORKER_SECRET") ?? "";
     const boardFor = createCareerBoardFor(createWorkerBoardProvider({ workerUrl, secret: workerSecret, userId: user.id }));
     const delegateBatch = workerUrl !== "" && workerSecret !== "";
+    // WO-106 (F5): set only where a batch executor runs and drains career_batch_intent; unset, a batch ask is never "handed".
+    const batchExecutorLive = Deno.env.get("CAREER_BATCH_EXECUTOR") === "on";
     const host = CareerHost.createCareerHost({ CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, boardFor, delegateBatch });
     let careerTask;
     try { careerTask = normalizeCareerTaskRequest(body.career_task); }
@@ -311,7 +316,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           }
         }
       } catch { /* the window pool stands on its own */ }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings }) as ReturnType<typeof host.createTurnCtx> & {
+      // MUSE-F-002: the thread's batch, if it has one, read back from the worker's own record so a plain-words status ask
+      // answers with its true state. Read only; a failed read leaves the thread's standing state to answer.
+      let batchRunRecord: unknown = null;
+      const batchRunId = (loaded.snapshot as any)?.stores?.batchApplyState?.id;
+      if (typeof batchRunId === "string" && batchRunId) {
+        try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
+      }
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
@@ -456,6 +468,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
           // goes only on its card's tap.
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
+          // WO-106 (F4): each job link is checked against its board just before it is shown.
+          linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
@@ -493,10 +507,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           turnKey, requestHash, ctx, accountVersion: loaded.accountVersion, account: loaded.account, persistence,
           summarizeRun: (run: unknown) => { const r = CareerBatchApply.restoreRun(run); return r ? CareerBatchApply.speakSummary(r).join("\n") : null; } });
         out = plan.out; batchIntent = plan.intent;
-      } else if (delegateBatch && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
+      } else if (delegateBatch && batchExecutorLive && !careerBatch && out.intent === "career_batch_apply" && out.result && out.result.batchDelegate && ctx.batchApplyState) {
         const plan = await planCareerBatchPrepare({ run: ctx.batchApplyState, userId: user.id, threadId: tid,
           turnKey, requestHash, accountVersion: loaded.accountVersion, account: loaded.account });
         if (plan) { batchIntent = plan.intent; out = { ...out, batch: plan.batch }; }
+      } else if (!careerBatch && out.intent === "career_batch_apply" && ((out as any).result?.batchDelegate || (out as any).batchDelegate)) {
+        // WO-106 (F5; live 2026-10-21, MUSE-F-001/005): "I've handed this to the browser worker" committed a prepare intent
+        // that no deployed process runs (batch-executor.cjs is reached only from tests; the worker's run.cjs never loads
+        // it), so the batch sat "queued" forever. Until CAREER_BATCH_EXECUTOR=on says an executor drains the intents,
+        // nothing is committed, the run is not kept, and the reply says exactly what happened and where applying runs.
+        delete (ctx as any).batchApplyState;
+        out = { ...out, reply: BATCH_NOT_STARTED_REPLY, resultStatus: "not_started" };
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored

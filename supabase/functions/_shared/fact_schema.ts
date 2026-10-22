@@ -511,6 +511,12 @@ export const FACT_SCHEMA = {
    "group": "essay",
    "note": "describe a project, a hard problem, an achievement, fit"
   },
+  "essay_cover_letter": {
+   "kind": "essay",
+   "type": "text",
+   "group": "essay",
+   "note": "a cover letter typed into a text box; an upload is cover_letter"
+  },
   "essay_other": {
    "kind": "essay",
    "type": "text",

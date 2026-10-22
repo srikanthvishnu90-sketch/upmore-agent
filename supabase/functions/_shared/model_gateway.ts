@@ -65,8 +65,13 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
     if (parts.length) messages.push({ role: "user", content: parts.every(p => p.type === "text") ? parts.map(p => p.text).join("") : parts });
   }
   // A reasoning model spends part of max_completion_tokens thinking; the headroom keeps a forced tool call from being cut off.
-  const body: any = { model: cfg.model, messages, max_completion_tokens: (payload.max_tokens || 1024) + (cfg.reasoningEffort ? REASONING_HEADROOM : 0) };
-  if (cfg.reasoningEffort) body.reasoning_effort = cfg.reasoningEffort;
+  // WO-061: decided by the model this request names, never by the config it was copied from. Callers write
+  // { ...modelConfig(env), model: X }, so the effort chosen for the default model rode along to X: gpt-4.1-mini got
+  // reasoning_effort and answered HTTP 400 on every call (run 39541224991), and a gpt-5 model under a non-reasoning default
+  // got a temperature and no headroom.
+  const effort = reasoningModel(cfg.model) ? (cfg.reasoningEffort || "minimal") : null;
+  const body: any = { model: cfg.model, messages, max_completion_tokens: (payload.max_tokens || 1024) + (effort ? REASONING_HEADROOM : 0) };
+  if (effort) body.reasoning_effort = effort;
   else if (typeof payload.temperature === "number") body.temperature = payload.temperature;
   if (Array.isArray(payload.tools) && payload.tools.length) {
     body.tools = payload.tools.map((t: any) => ({ type: "function", function: { name: t.name, description: t.description || "", parameters: t.input_schema || { type: "object", properties: {} } } }));
@@ -81,21 +86,25 @@ export function toOpenAI(payload: any, cfg: ModelConfig): any {
   return body;
 }
 
-// OpenAI chat completion -> Anthropic message. A malformed tool call is a provider failure, never a guess.
+// OpenAI chat completion -> Anthropic message. Malformed completed tool calls fail; truncated calls are discarded.
 export function fromOpenAI(body: any): any {
   const choice = body && Array.isArray(body.choices) ? body.choices[0] : null;
   if (!choice || !choice.message) throw new ModelUnavailableError(502, "bad_response", "OpenAI returned no message");
   const msg = choice.message, content: any[] = [];
+  const truncated = choice.finish_reason === "length";
   const text = typeof msg.content === "string" ? msg.content : msg.refusal ? String(msg.refusal) : "";
   if (text) content.push({ type: "text", text });
-  for (const c of msg.tool_calls || []) {
+  // Truncation can cut JSON arguments mid-value. None of that response's calls are executable, including calls
+  // that happen to parse before the cut: retain its usage and let the caller handle max_tokens without decoding them.
+  for (const c of truncated ? [] : msg.tool_calls || []) {
     if (!c || c.type !== "function" || !c.function) continue;
     let input: any;
     try { input = JSON.parse(c.function.arguments || "{}"); } catch (_) { throw new ModelUnavailableError(502, "bad_tool_call", `OpenAI returned unreadable arguments for ${c.function.name}`); }
     content.push({ type: "tool_use", id: c.id, name: c.function.name, input });
   }
   const used = content.some(b => b.type === "tool_use");
-  const stop_reason = used ? "tool_use" : choice.finish_reason === "length" ? "max_tokens" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
+  // A parsed call does not override the provider saying the generation was cut off; the loop must repair without effects.
+  const stop_reason = truncated ? "max_tokens" : used ? "tool_use" : choice.finish_reason === "content_filter" ? "refusal" : "end_turn";
   const u = body.usage || {};
   const cached = Number(u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || 0;
   const usage = { input_tokens: Math.max(0, (Number(u.prompt_tokens) || 0) - cached), output_tokens: Number(u.completion_tokens) || 0, cache_read_input_tokens: cached, cache_creation_input_tokens: 0 };
@@ -106,9 +115,13 @@ export function fromOpenAI(body: any): any {
 // (usagepricing.com, g2.com) as of 2026-10-11, because OpenAI's pricing page cannot be reached from the build machine.
 // Update here when the invoice disagrees; the cost is an estimate until it is reconciled with the provider's bill.
 export const PRICES: Record<string, { input: number; cached: number; cache_write: number; output: number; source: string }> = {
+  "gpt-5": { input: 1.25, cached: 0.125, cache_write: 0, output: 10.00, source: "https://developers.openai.com/api/docs/models/gpt-5 (verified 2026-10-21)" },
   "gpt-5-nano": { input: 0.05, cached: 0.005, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
   "gpt-5-mini": { input: 0.25, cached: 0.025, cache_write: 0, output: 2.00, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
   "gpt-4.1-nano": { input: 0.10, cached: 0.025, cache_write: 0, output: 0.40, source: "third-party tables 2026-10-11 (OpenAI page unreachable)" },
+  // WO-061: the second, independent eval judge (owner, 2026-10-21: two judges, both must pass). OpenAI's published
+  // gpt-4.1-mini rates as known at its launch; not re-checked from here (OpenAI's page is unreachable from this sandbox).
+  "gpt-4.1-mini": { input: 0.40, cached: 0.10, cache_write: 0, output: 1.60, source: "OpenAI published pricing at gpt-4.1 launch (not re-checked 2026-10-21)" },
   "claude-haiku-4-5-20251001": { input: 1.00, cached: 0.10, cache_write: 1.25, output: 5.00, source: "Anthropic published pricing" },
 };
 // Cost of one call in micro-dollars (1e-6 USD), from the tokens the provider reported. null when the model has no price.

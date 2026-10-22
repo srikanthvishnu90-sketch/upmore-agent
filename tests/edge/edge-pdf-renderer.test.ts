@@ -20,6 +20,17 @@
 // Node's zlib): the bytes under test come from the bundle's renderer
 // through the host, never from the oracle.
 //
+// MUSE-F-011 (2026-10-21): the test above runs in THIS realm, where
+// Deno 2.9.7 exposes a Buffer global — the exact mask that hid the
+// defect (module 148 read the bare global in ~30 places; the
+// production edge runtime, Deno 2.1.4, has none, so every live tailor
+// render threw ReferenceError and containment served the generic
+// failure). The second test below spawns
+// tests/edge/lib/render-shadow-child.ts, which evaluates module 148's
+// source with globalThis.Buffer removed and renders the fixture
+// resume (the PolicyMe tailor output, frozen as JSON) through
+// renderPdf + renderDocx + parseCheck in that realm.
+//
 // Bug law: BUG-PENDING-ALLOCATION (edge-pdf-renderer) +
 // FR-PENDING-ALLOCATION (edge-pdf-renderer) — requested from Crew A.
 // @ts-ignore: plain-JS production module, composed as handler-career.ts composes it
@@ -98,6 +109,24 @@ Deno.test("staged bundle tailor turn emits a real, valid, hash-bound PDF artifac
   // The reply's claim is now true, and the parse check passed on the edge.
   assert(out.reply.includes("attached for your review"), `reply does not claim the attachment: ${out.reply.slice(0, 200)}`);
   assert(out.reply.includes("parse check PASS"), `parse check did not pass on the edge: ${out.reply.slice(0, 300)}`);
+});
+
+Deno.test("Buffer-shadowed realm: module 148 source renders the fixture resume (MUSE-F-011)", async () => {
+  const child = new URL("./lib/render-shadow-child.ts", import.meta.url).pathname;
+  const out = await new Deno.Command(Deno.execPath(), { args: ["run", "-A", child], stdout: "piped", stderr: "piped" }).output();
+  const stdout = new TextDecoder().decode(out.stdout).trim();
+  const stderr = new TextDecoder().decode(out.stderr).trim();
+  const line = stdout.split("\n").filter(Boolean).pop() || "";
+  let v: any = null;
+  try { v = JSON.parse(line); } catch { /* asserted below */ }
+  assert(v && !v.stage, `render-shadow child produced no verdict (exit ${out.code}): ${stderr.slice(0, 400)}`);
+  assert(v.pdfOk === true, "renderPdf refused in the Buffer-free realm — MUSE-F-011");
+  assertEqStr(v.pdfHead, "%PDF-", "Buffer-free realm PDF header");
+  assert(v.pdfBytes > 500, `Buffer-free realm PDF suspiciously small: ${v.pdfBytes}`);
+  assert(v.docxOk === true, "renderDocx refused in the Buffer-free realm — MUSE-F-011");
+  assertEqStr(v.parseStatus, "PASS", `Buffer-free realm parse check: ${JSON.stringify(v.parseReasons)}`);
+  assert(typeof v.artifactSha === "string" && v.artifactSha.length === 64, `Buffer-free realm artifact sha256 missing: ${v.artifactSha}`);
+  assertEqNum(v.artifactBytes, v.pdfBytes, "Buffer-free realm artifact byte count");
 });
 
 function assertEqStr(a: unknown, b: unknown, msg = "") {

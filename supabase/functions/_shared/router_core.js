@@ -20619,6 +20619,7 @@ const CareerJobs = (() => {
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
   const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  const locationIsStated = (v) => !!s(v).trim() && lc(v).trim() !== "location not stated";
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -20678,9 +20679,24 @@ const CareerJobs = (() => {
     if (/\banalyst/.test(t)) return "Finance";
     return "Other";
   }
+  // MUSE-F-006 (DISCO-QUALITY root cause 583cc918): band tokens were matched as exact surface words between hard
+  // boundaries, so "internships", "entry-level" and "early careers" bound nothing and fell to "mid" (15/30 cells of the
+  // phrase matrix). One normalizer for every site: lowercase, hyphens/slashes/dashes to spaces, and a plural band word
+  // to its stem. Then one intern matcher serves the title and the JD head (they had drifted: only one knew "co-op").
+  // Precedence is unchanged.
+  const BAND_STEMS = new Set(["intern", "internship", "op", "grad", "graduate", "career", "program", "apprenticeship", "traineeship", "fellowship", "university"]);
+  function bandText(x) {
+    // Separators become ONE space ("Co / op" -> "co op"), so a spaced slash or dash still binds.
+    return lc(x).replace(/\s*[-‐‑–—_/]+\s*/g, " ").replace(/\s+/g, " ").replace(/[a-z]+/g, (w) => {
+      if (w.length > 3 && w.endsWith("ies") && BAND_STEMS.has(w.slice(0, -3) + "y")) return w.slice(0, -3) + "y";
+      if (w.length > 2 && w.endsWith("s") && BAND_STEMS.has(w.slice(0, -1))) return w.slice(0, -1);
+      return w;
+    });
+  }
+  const INTERN_BAND = /\b(intern|internship|co op)\b/;
   function seniorityBand(title, jd) {
-    const t = lc(title), j = lc(jd);
-    if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    const t = bandText(title), j = bandText(jd);
+    if (INTERN_BAND.test(t)) return "intern";
     // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
     // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
     // winter forms) ARE the finance/consulting internship titles and carry no
@@ -20697,9 +20713,9 @@ const CareerJobs = (() => {
     if (/\bmanager\b/.test(t)) return "manager";
     if (/\b(staff|principal)\b/.test(t)) return "staff";
     if (/\b(senior|sr\.?)\b/.test(t)) return "senior";
-    if (/\b(new grad|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
+    if (/\b(new grad|new graduate|recent graduate|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
     if (/\b(junior|jr\.?|associate)\b/.test(t)) return "junior";
-    if (/\b(intern|internship)\b/.test(j.slice(0, 300))) return "intern";
+    if (INTERN_BAND.test(j.slice(0, 300))) return "intern";
     return "mid";
   }
   function remoteOf(location, jd) {
@@ -20994,6 +21010,29 @@ const CareerJobs = (() => {
   // marker), per the owner's TN-1a ruling — never invented.
   const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
 
+  // F-013: retain location text from the ATS's stated primary/secondary values.
+  // Never stringify an object into a location or substitute the company/board as geography.
+  function locationText(value) {
+    const out = [], seen = new Set();
+    const plain = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+    const add = (v) => { const t = plain(v), key = t.toLowerCase(); if (t && !seen.has(key)) { seen.add(key); out.push(t); } return !!t; };
+    function read(v, depth) {
+      if (depth > 6 || v == null) return false;
+      if (typeof v === "string") return add(v);
+      if (Array.isArray(v)) { let found = false; for (const item of v) found = read(item, depth + 1) || found; return found; }
+      if (typeof v !== "object") return false;
+      let named = false;
+      for (const name of ["location", "locationName", "name"]) if (v[name] !== undefined) named = read(v[name], depth + 1) || named;
+      // A named location is the source's own label; its address is only a fallback.
+      if (named) return true;
+      const address = v.postalAddress || (v.address && (v.address.postalAddress || v.address)) || v;
+      const parts = [address.city || address.addressLocality, address.region || address.state || address.addressRegion, address.country || address.addressCountry].map(plain).filter(Boolean);
+      return parts.length ? add([...new Set(parts)].join(", ")) : false;
+    }
+    read(value, 0);
+    return out.join("; ");
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
@@ -21039,7 +21078,7 @@ const CareerJobs = (() => {
   function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
       source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
-      location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
+      location: locationText([j.location, j.locationName, j.locations, j.secondaryLocations]) || "Location not stated", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
@@ -21281,9 +21320,13 @@ const CareerJobs = (() => {
     // location
     const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
     if (wantLocs.length && posting.remote !== "remote") {
-      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(locationIsStated(posting.location)
+        ? `location: posting is in ${posting.location}; you want ${[...(c.locations || prefs.locations)].join(", ")}`
+        : `location: posting does not state a location; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
     }
-    if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
+    if (prefs.remote_only && posting.remote === "onsite") fails.push(locationIsStated(posting.location)
+      ? `location: posting is on-site in ${posting.location}; you want remote`
+      : "location: posting does not confirm remote work; you want remote");
     // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
     const needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization));
     const citizenOnly = /\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/.test(jd);
@@ -21333,6 +21376,7 @@ const CareerJobs = (() => {
   function locationMatches(postingLoc, wantsRaw) {
     const wants = (wantsRaw || []).map(normLoc).filter(Boolean);
     if (!wants.length) return true;
+    if (!locationIsStated(postingLoc)) return false;
     const segments = s(postingLoc).split(/[;•|]/).map((x) => x.replace(/^\s*(hybrid|remote|on-site|onsite|in-office)\s*[-–—:]\s*/i, "").trim()).filter(Boolean);
     const candidates = new Set();
     for (const seg of segments) {
@@ -21567,7 +21611,7 @@ const CareerJobs = (() => {
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     detectKnockouts, evaluateKnockouts, evidencedFullTimeYears,
-    roleFamily, seniorityBand, stripHtml, hash };
+    roleFamily, seniorityBand, locationText, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
 
@@ -21606,7 +21650,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs
    Pure: no I/O. The caller passes CSV / resume text in. UMD like the other
    domain modules. */
 const CareerProfile = (() => {
-  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+  // WO-106: "goal" and "location" are kinds the agent saves (its add_profile_fact offers them); without them every stated
+  // goal and place was kept as "other" and could not be found again.
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "goal", "location", "eligibility", "profile", "other"];
 
   function nextId(profile) {
     profile._seq = (profile._seq || 0) + 1;
@@ -21631,6 +21677,8 @@ const CareerProfile = (() => {
       connections: [],
       _seq: 0,
     };
+    // Preserve an explicitly supplied owner for the source-bound application adapter; never infer one.
+    if (typeof s.user_id === "string") p.user_id = s.user_id;
     for (const f of s.facts || []) addFact(p, f, { keepId: true });
     for (const c of s.connections || []) p.connections.push(Object.assign({}, c));
     return p;
@@ -21696,7 +21744,21 @@ const CareerProfile = (() => {
     f.needs_confirmation = false; f.status = "confirmed";
     return f;
   }
-  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation); }
+  // D-007 (docs/architect/DECISIONS.md): the 47 agent-invented "confirmed" facts from the owner's answer-all delegation
+  // never feed anything written for a person (essay, resume, cover letter, cold email, form answer). One reader decides,
+  // the same rule as the extension's contract (extension/src/apply_core.ts quarantinedFact): a fact flagged quarantined,
+  // or one whose provenance/source names the delegation, or the bank's own ids F-027..F-079 — read only from the bank's id
+  // field (factId), because every chat profile numbers its own facts F-001 up and those are the person's own.
+  const QUARANTINE_VERSION = "d007-v1";
+  const DELEGATED = /owner-delegated|answer-all|delegated[- _]answers|mi-038/i;
+  function quarantinedFact(f) {
+    if (!f || typeof f !== "object") return false;
+    if (f.quarantine || f.quarantined) return true;
+    if (["provenance", "source", "origin"].some((k) => DELEGATED.test(String(f[k] == null ? "" : f[k])))) return true;
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    return !!m && Number(m[1]) >= 27 && Number(m[1]) <= 79;
+  }
+  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation && !quarantinedFact(f)); }
   function unprovenSkills(profile) { refreshSkillFlags(profile); return (profile.facts || []).filter((f) => f.kind === "skill" && f.unproven); }
   function skillEvidence(profile, skillName) {
     const name = String(skillName || "").toLowerCase();
@@ -21973,7 +22035,7 @@ const CareerProfile = (() => {
     return receipt;
   }
 
-  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
+  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, quarantinedFact, QUARANTINE_VERSION, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
 
@@ -22012,6 +22074,46 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerProf
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // Same negative D-007 predicate as _shared/fact_quarantine.ts; Node tests bundle that pure TS module and
+  // compare this consumer at the ID boundaries and provenance cases. No source row is changed or deleted.
+  const quarantinedFact = (f) => {
+    if (!f || typeof f !== "object" || Array.isArray(f)) return false;
+    // F-033 ruling (2026-10-21): the bank range is read from factId only. A chat profile numbers its own facts
+    // F-001 up in id, and those are the person's own, so an id alone never quarantines a fact.
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
+    return /owner-delegated|answer-all/i.test(String(f.provenance == null ? "" : f.provenance));
+  };
+  const sourceLabel = (v) => typeof v === "string" ? v.trim().toLowerCase().replace(/[\s_]+/g, "-") : "";
+  const deniedLabel = (v) => /^(?:agent|assistant|model|llm|ai|inferred|generated|(?:agent|assistant|model|ai)-generated|quarantined|rejected)$/.test(sourceLabel(v));
+  const record = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  const deniedRecord = (v) => v.unproven === true || v.quarantined === true || v.rejected === true ||
+    sourceLabel(v.status) === "rejected" || deniedLabel(v.source) || deniedLabel(v.origin);
+  // Negative metadata mirrors personal_fact_source.ts; it is never inferred from title/text/skills.
+  const contentSourceDenied = (v) => record(v) && (quarantinedFact(v) || deniedRecord(v) || deniedLabel(v.provenance) || record(v.provenance) && deniedRecord(v.provenance));
+  function contentProfile(profile) {
+    const facts = profile && Array.isArray(profile.facts) ? profile.facts : [];
+    const idsOf = (f) => [f && f.id, f && f.factId].filter((id) => typeof id === "string" && id.trim());
+    const denied = new Set(), deniedIds = new Set(), known = new Set(facts.flatMap(idsOf));
+    const deny = (f) => { denied.add(f); for (const id of idsOf(f)) deniedIds.add(id); };
+    for (const f of facts) if (contentSourceDenied(profile) || !f || typeof f !== "object" || contentSourceDenied(f) ||
+      f.needs_confirmation || f.status !== undefined && f.status !== "confirmed") deny(f);
+    // A reference is bad when its parent is absent or denied by its own row; a bare id in the D-007 range is not a bank id.
+    const badRef = (id) => typeof id !== "string" || !id.trim() || !known.has(id) || deniedIds.has(id);
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const f of facts) {
+        if (denied.has(f)) continue;
+        // Both stored derivation spellings are dependency declarations; a confirmed child cannot erase its source.
+        // Domain skill evidence entries are fact-ID links too, not independent permission to repeat an excluded claim.
+        const fields = ["derived_from", "derivedFrom", ...(f.kind === "skill" ? ["evidence"] : [])];
+        const bad = idsOf(f).some((id) => deniedIds.has(id)) || fields.some((key) => Object.prototype.hasOwnProperty.call(f, key) &&
+          (!Array.isArray(f[key]) || f[key].some(badRef)));
+        if (bad) { deny(f); changed = true; }
+      }
+    }
+    return Object.assign({}, profile || {}, { facts: facts.filter((f) => !denied.has(f)) });
+  }
   // CA-02 document renderer (148) is loaded lazily, only when render()
   // runs — same global-or-require pattern as Profile above.
   let _renderMod;
@@ -22314,6 +22416,7 @@ const CareerTailor = (() => {
     return { factId: fact.id, relevance: Math.round(relevance * 100) / 100, recency: Math.round(recency * 100) / 100, impact, total: Math.round((relevance * 10 + recency + impact) * 100) / 100 };
   }
   function selectFacts(profile, jd, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
     const scored = pool.map((f) => ({ fact: f, score: scoreFact(f, jd) }));
@@ -22431,6 +22534,7 @@ const CareerTailor = (() => {
     return false;
   }
   function provenSkills(profile, jd) {
+    profile = contentProfile(profile);
     const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
     const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
     const byName = new Map();
@@ -22522,6 +22626,32 @@ const CareerTailor = (() => {
     return { text: base, factIds: [fact.id] };
   }
 
+  // Fact selection picks a role/project; a posting also needs the most relevant evidence WITHIN that entry.
+  // Rank the person's own bullet strings without rewriting, dropping, or borrowing words from the employer.
+  // Explicit requirements lead preferences, then task-word overlap; equal scores retain the source order.
+  function bulletsForPosting(bullets, jd) {
+    const must = new Set((jd.mustHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const nice = new Set((jd.niceToHaveSkills || []).map((s) => String(s).toLowerCase()));
+    const tokens = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9+#]+/g, " ").split(/\s+/).filter((w) => w.length > 4);
+    const generic = new Set("requirements qualifications responsibilities experience required preferred skills ability minimum candidate applicants company people position years opportunities".split(" "));
+    const taskWords = new Set(jdSegments(jd.rawText || "").filter((sg) => sg.kind !== "example" && sg.kind !== "boilerplate")
+      .flatMap((sg) => tokens(sg.text)).filter((w) => !generic.has(w)));
+    const scored = bullets.map((text, index) => {
+      const skills = new Set(skillsInText(text).map((s) => s.toLowerCase()));
+      const words = new Set(tokens(text));
+      return { text, index, score: [
+        [...must].filter((s) => skills.has(s)).length,
+        [...nice].filter((s) => skills.has(s)).length,
+        [...taskWords].filter((w) => words.has(w)).length,
+      ] };
+    });
+    scored.sort((a, b) => {
+      for (let i = 0; i < a.score.length; i++) if (a.score[i] !== b.score[i]) return b.score[i] - a.score[i];
+      return a.index - b.index;
+    });
+    return scored.map((s) => s.text);
+  }
+
   // ---- entry dates (BUG-2026-10-14-NDER) ----
   // An entry line prints its fact's date range, in the one-pager's proven
   // shape ("Title, Org, 2025–2029" / "…, 2025–Present" / single year when
@@ -22546,6 +22676,7 @@ const CareerTailor = (() => {
   }
 
   function assemble(profile, jd, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const family = o.family || jd.family || "swe";
     const fam = FAMILIES[family] || FAMILIES.swe;
@@ -22639,7 +22770,7 @@ const CareerTailor = (() => {
       return out;
     };
     const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => {
-      const bullets = (f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
+      const bullets = bulletsForPosting(f.bullets && f.bullets.length ? f.bullets : [f.text], jd).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" });
       return [{ text: entryTextFor(f), factIds: [f.id], type: "entry" }, ...bullets, ...operativeClauses(f, [entryTextFor(f), ...bullets.map((b) => b.text)])];
     }) } : null;
     // consulting: one structured bullet per fact replaces the raw bullets
@@ -22690,6 +22821,7 @@ const CareerTailor = (() => {
 
   // ---- TRUTH AUDIT — hard gate (APPE-002) ----
   function auditResume(resume, profile) {
+    const usable = contentProfile(profile), usableFacts = new Set(usable.facts);
     const lines = Array.isArray(resume) ? resume : (resume && resume.lines) || [];
     const violations = [];
     for (const line of lines) {
@@ -22700,6 +22832,7 @@ const CareerTailor = (() => {
       const facts = factIds.map((id) => Profile.getFact(profile, id));
       if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
+      if (facts.some((f) => !usableFacts.has(f))) violations.push({ line: text, reason: "supported by quarantined, unavailable or excluded-source evidence", factIds });
       // The fact's start/end fields are part of its support corpus: entry
       // lines print the date range from exactly those fields
       // (assemble/entryTextFor), so the years must trace here — and ONLY
@@ -22728,9 +22861,9 @@ const CareerTailor = (() => {
         return corpus.includes(` ${nm} `);
       };
       for (const skill of skillsInText(text)) {
-        const ev = Profile.skillEvidence(profile, skill);
+        const ev = Profile.skillEvidence(usable, skill);
         const nm = skill.toLowerCase();
-        const proven = ev.proven || (profile.facts || []).some((f) => factEvidencesSkill(f, nm));
+        const proven = ev.proven || usable.facts.some((f) => factEvidencesSkill(f, nm));
         const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill || factEvidencesSkill(Profile.getFact(profile, id), nm));
         const inSupport = supportText.includes(nm) && proven;
         if (!proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
@@ -22994,6 +23127,7 @@ const CareerTailor = (() => {
     return null;
   }
   function computeGaps(profile, jd) {
+    profile = contentProfile(profile);
     const gaps = [];
     const skillRows = provenSkills(profile, jd);
     const provenNames = new Set(skillRows.filter((s) => s.proven).map((s) => s.name.toLowerCase()));
@@ -23073,6 +23207,7 @@ const CareerTailor = (() => {
   // ---- main entry: tailor with the hard gate ----
   let versionSeq = 0;
   function tailorResume(profile, jdInput, opts) {
+    profile = contentProfile(profile);
     const o = opts || {};
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     const cir = o.cir || null;
@@ -24395,7 +24530,12 @@ const CareerOutreach = (() => {
   // Gmail transport shape: wraps a caller-supplied Gmail API client (OAuth held by the host, never here).
   function buildGmailRaw(msg) {
     const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
-    return Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    // F-015: no bare Buffer (the edge runtime has none, the F-011 class). TextEncoder and btoa exist in Node, Deno and
+    // the edge runtime alike; the bytes and the base64url text are the same as Buffer's.
+    const bytes = new TextEncoder().encode(raw);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
   function createGmailTransport(gmailApi) {
     if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };
@@ -28645,7 +28785,7 @@ const CareerApply = (() => {
       const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
       if (seen.has(key)) continue; seen.add(key);
       const fit = i.fit != null ? i.fit : null;
-      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null, url: i.url || null });
     }
     const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };
@@ -31603,7 +31743,7 @@ const CareerReply = (() => {
     if (sentenceCount(t) > MAX_SENTENCES_PER_BUBBLE) violations.push(`more than ${MAX_SENTENCES_PER_BUBBLE} sentences`);
     if (t.includes("```")) violations.push("code fence");
     if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
-    if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (UUID_RE.test(t.replace(/https?:\/\/\S+/g, " "))) violations.push("raw UUID"); // MUSE-F-001: a link's own id is not a raw UUID
     if (HASH_RE.test(t.replace(/https?:\/\/\S+/g, " ")) || HASH_WORD_RE.test(t)) violations.push("raw content hash");
     if (FACT_ID_RE.test(t)) violations.push("fact ID");
     if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
@@ -31697,7 +31837,6 @@ const CareerReply = (() => {
     s = s.replace(/https?:\/\/\S+/g, (u) => { urls.push(u); return `\u0001${urls.length - 1}\u0001`; });
     s = s.replace(HASH_WORD_RE, " ");
     s = s.replace(HASH_RE, " ");
-    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     // Bare https links SURVIVE: an action link (the connect tap, a step's
     // destination) is the step itself, and the owner's standing rule is
     // that every step carries its exact raw URL (SC-286 contract). Only
@@ -31716,6 +31855,9 @@ const CareerReply = (() => {
     s = s.replace(/\(\s*\)/g, " ");
     s = s.replace(/\s{2,}/g, " ").trim();
     s = s.replace(/^[\s\-•·]+/, "").trim();
+    // MUSE-F-001: the links go back only now, after every machine-token rule: a job link's own path carries a UUID
+    // (Lever, Ashby) or an id, and stripping it from the link broke the link the person was given.
+    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     return s;
   }
 
@@ -31724,7 +31866,7 @@ const CareerReply = (() => {
   function sentenceIsClean(cleaned) {
     if (!cleaned || cleaned.length < 3) return false;
     if (!/[a-zA-Z]/.test(cleaned)) return false;
-    const low = cleaned.toLowerCase();
+    const low = cleaned.replace(/https?:\/\/\S+/g, " ").toLowerCase(); // MUSE-F-001: a link's path is not jargon
     for (const w of JARGON_WORDS) if (new RegExp(`\\b${w}\\b`).test(low)) return false;
     // A bare URL is an opaque token, not prose: its underscores/slashes
     // must not trip the snake_case rule (SC-286's connect link carries one).
@@ -36318,14 +36460,19 @@ const CareerRouter = (() => {
     const deduped = Jobs && Jobs.dedupe ? Jobs.dedupe(adapted) : adapted;
     const sp = scoringProfile(profile);
     const excluded = [], scored = [];
+    // MUSE-F-006: where the asked families' own postings went, filter by filter, so an empty answer can say the true
+    // reason instead of "none of them are <family> roles" when the list holds them (the live wrong zero: 48 Data/ML).
+    const famSet = o.askFamilies && o.askFamilies.length ? new Set(o.askFamilies) : null;
+    const inFam = (p) => !!famSet && famSet.has(p && p.role_family);
+    const family = { onList: famSet ? deduped.filter(inFam).length : null, hard: 0, scoredOut: 0, company: 0, location: 0, band: 0, firstHardReason: null };
     for (const posting of deduped) {
       const pre = preCheck(posting, profile, now);
-      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); continue; }
+      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); if (inFam(posting)) { family.hard++; family.firstHardReason = family.firstHardReason || pre[0]; } continue; }
       // A6: when the caller carries the ASK's role families, 121's opt-in
       // exclusion drops cross-family postings here — they can never surface
       // as a "closest fit" for a different-domain ask (SC-065).
       const fit = Jobs.scoreFit(posting, sp, null, o.askFamilies && o.askFamilies.length ? { askFamilies: o.askFamilies } : undefined);
-      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); continue; }
+      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); if (inFam(posting)) family.scoredOut++; continue; }
       const jdSkills = Tailor ? Tailor.parseJD(posting.jd_text || "") : { mustHaveSkills: [] };
       const proven = provenSkillNames(profile).map(lc);
       // A skill the posting explicitly negates ("No Java requirement stated",
@@ -36338,16 +36485,18 @@ const CareerRouter = (() => {
     let kept = scored;
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
-      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
+      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
       item.caveat = caveatFor(item, profile);
       return item;
     });
-    if (o.company) rows = rows.filter((r) => lc(r.company).includes(o.company));
-    if (o.locations && o.locations.size) rows = rows.filter((r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
-    if (o.bands) rows = rows.filter((r) => o.bands.has(r.posting.seniority_band));
+    const famRows = () => rows.filter((r) => inFam(r.posting)).length;
+    const dropped = (key, keep) => { const before = famRows(); rows = rows.filter(keep); family[key] += before - famRows(); };
+    if (o.company) dropped("company", (r) => lc(r.company).includes(o.company));
+    if (o.locations && o.locations.size) dropped("location", (r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
+    if (o.bands) dropped("band", (r) => o.bands.has(r.posting.seniority_band));
     rows.sort((a, b) => (b.score - a.score) || s(a.deadline || "9999").localeCompare(s(b.deadline || "9999")) || s(a.title).localeCompare(s(b.title)));
-    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length };
+    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length, family };
   }
 
   // H-12 (02): every reply ends with one concrete next action or a
@@ -36366,10 +36515,18 @@ const CareerRouter = (() => {
     const c = Reply.composeResult(result);
     return ensureNextStepText(c.bubbles.join("\n"));
   }
+  // MUSE-F-001: a role is named with the posting's own link, so the person can open it. Only a link the posting itself
+  // carries (its url or its source url), and only http(s); a role with none is named without one, never given an invented one.
+  function postingUrlOf(p) {
+    const c = [p && p.url, ...((p && Array.isArray(p.source_urls)) ? p.source_urls : [])].map(s).find((u) => /^https?:\/\/\S+$/i.test(u));
+    return c || null;
+  }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
-    return `${item.title} at ${item.company} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    const url = item.url || postingUrlOf(item.posting);
+    // The link rides inside the role's own sentence: the composer keeps one sentence per role.
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -36395,7 +36552,7 @@ const CareerRouter = (() => {
     const countM = t.match(/(\d+)\s*(?:roles|jobs|internships)/);
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
-    const { ranked, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    const { ranked, excluded, dedupedTo, family } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
     // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
     // a follow-up ("remote ones too", "I meant data science", "what
     // did you find") is answered against THIS record by the delta
@@ -36417,8 +36574,8 @@ const CareerRouter = (() => {
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
     const publicFacts = {
-      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
-      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
+      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
+      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {
@@ -36430,6 +36587,22 @@ const CareerRouter = (() => {
       if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
       const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
+    }
+    if (!top.length && fams && fams.length && family && family.onList > 0) {
+      // MUSE-F-006: the list DOES hold the asked family's roles; the rest of the ask (or the profile's hard filters)
+      // emptied it. Say which, with the counts, never "none of them are <family> roles". Still no cross-family padding.
+      const label = fams.map(familyLabel).join(" or ");
+      const BAND_WORDS = { intern: "internships", new_grad: "new-grad roles", junior: "junior roles", mid: "mid-level roles", senior: "senior roles", staff: "staff roles", manager: "manager roles", director: "director roles" };
+      const bandWords = o.bands ? Array.from(o.bands).map((b) => BAND_WORDS[b] || b).join(" or ") : "";
+      const places = o.locations && o.locations.size ? Array.from(o.locations).join(" or ") : "";
+      const facts = [`The current list holds ${family.onList} ${label} role${family.onList === 1 ? "" : "s"} (of ${dedupedTo} scored), but none of them fit everything you asked for.`];
+      if (family.band) facts.push(`${family.band} ${family.band === 1 ? "is" : "are"} not ${bandWords || "at the level you asked for"}.`);
+      if (family.location) facts.push(`${family.location} ${family.location === 1 ? "is" : "are"} outside ${places || "the places you named"}.`);
+      if (family.company) facts.push(`${family.company} ${family.company === 1 ? "is" : "are"} at other companies than the one you named.`);
+      if (family.hard) facts.push(`${family.hard} miss one of your profile's hard requirements${family.firstHardReason ? ` (for example: ${family.firstHardReason})` : ""}.`);
+      if (family.scoredOut) facts.push(`${family.scoredOut} ${family.scoredOut === 1 ? "was" : "were"} screened out on fit.`);
+      const reply = compose({ headline: `I have ${label} roles, but none that match all of your ask.`, facts, nextStep: "Want me to widen the level or the location and show the closest ones?" });
+      return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams, family_counts: family }, publicFacts);
     }
     if (!top.length && fams && fams.length) {
       // A6 honest-empty: a family ask with no family roles in the pool gets
@@ -40474,7 +40647,24 @@ const CareerRouter = (() => {
     const mirrored = (m.facts && Array.isArray(m.facts.facts)) ? m.facts : null;
     if (mirrored && !primary) c.statedFacts = mirrored;
     else if (mirrored && primary && mirrored !== primary) {
-      for (const f of mirrored.facts) if (f && !primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      // ROUND 2 (judge blocker, PR #151): the union is by IDENTITY,
+      // not by kind+value. A keyed fact (kind+key) or a single-value
+      // kind whose identity the working set already holds is a
+      // REPLACED fact — the mirror's older value is a stale copy of
+      // the same fact, and pushing it re-enters the replaced value
+      // as a second fact under the same identity (the old thread's
+      // mirror resurrecting the goal another thread replaced, from
+      // where the write-back would commit it as a duplicate slot).
+      // Mirror facts whose identity the working set lacks entirely
+      // still join (the shallow-copy harness case the mirror exists
+      // for); multi-value kinds keep the kind+value union.
+      const factIdOf = (f) => (f && typeof f.key === "string" && f.key) ? `key:${f.kind}:${lc(f.key)}` : (f && FACT_SINGLE_KINDS.has(f.kind) ? `kind:${f.kind}` : null);
+      for (const f of mirrored.facts) {
+        if (!f) continue;
+        const id = factIdOf(f);
+        if (id) { if (!primary.facts.some((x) => x && factIdOf(x) === id)) primary.facts.push(f); }
+        else if (!primary.facts.some((x) => x && x.kind === f.kind && lc(x.value) === lc(f.value))) primary.facts.push(f);
+      }
     }
     if (c.statedFacts) m.facts = c.statedFacts;
     if (!c.plan && m.plan) c.plan = m.plan; else if (c.plan) m.plan = c.plan;
@@ -44602,6 +44792,46 @@ const CareerRouter = (() => {
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
   }
 
+  // ---------- LOOP TASK 1: the natural-language batch status ----------
+  // The apply reply itself invites the user to "ask me for the batch
+  // status", and the only readback that existed was the STRUCTURED
+  // career_batch request — a plain chat surface (Telegram, web) sends
+  // words, and both recorded wordings ("what's the batch status",
+  // "where is my batch" — Telegram baseline, 2026-10-20 19:23 CDT)
+  // fell to the generic fallback while the worker's run record sat
+  // readable one layer down. This route resolves the user's own
+  // batch — the host's fresh worker-written record
+  // (ctx.batchRunRecord) first, the thread's standing run state
+  // second — and speaks it through 155's own speaker: the same words,
+  // the same run object, on every surface.
+  function handleBatchStatus(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    const t = lc(text);
+    if (!/\bbatch\b/.test(t)) return null;
+    if (!/\b(status|where|progress|standing|update|happened|doing|stand|check)\b/.test(t) && !/^(where|what|how)\b/.test(t)) return null;
+    const rec = c.batchRunRecord && typeof c.batchRunRecord === "object" ? c.batchRunRecord : null;
+    const recRun = rec && rec.run ? BatchApply.restoreRun(rec.run) : null;
+    if (recRun) {
+      return { intent: "career_batch_apply", resultStatus: recRun.status, batchRun: BatchApply.summarizeRun(recRun), card: recRun.card || null, sends: 0,
+        reply: BatchApply.speakSummary(recRun).join("\n") };
+    }
+    const standing = c.batchApplyState || null;
+    if (standing && standing.id) {
+      const run = BatchApply.restoreRun(standing);
+      if (run) {
+        if (run.status === "queued_prepare") {
+          return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), sends: 0,
+            reply: `Your batch of ${run.requested} ${run.familyText} roles is with the browser worker being prepared — nothing has been filled or submitted yet. Ask me again shortly and I'll read back exactly where it stands.` };
+        }
+        return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card || null, sends: 0,
+          reply: BatchApply.speakSummary(run).join("\n") };
+      }
+    }
+    return { intent: "career_batch_apply", resultStatus: "awaiting_user", sends: 0,
+      reply: `You don't have a batch in flight right now — no application batch has been queued on this account that I can read back. Say "apply to N <role> roles" and I'll start one.` };
+  }
+
   function dispatchChat(text, ctx) {
     const c = ctx || {};
     const rawText = text;
@@ -44668,6 +44898,10 @@ const CareerRouter = (() => {
     // continuation run the apply loop itself (see handleBatchApply).
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
+    // MUSE-F-002: a plain-words batch status ask ("what's the batch status", "where is my batch") is answered from the
+    // batch's own record, never the generic fallback. Read only: it approves, prepares and submits nothing.
+    const batchStatus = handleBatchStatus(text, c);
+    if (batchStatus) return batchStatus;
     // FIX LANE T1 (TG-GUSTO-LINK-NOT-SERVED): a LINK ask for a named
     // role is served the posting itself (with its URL) here, before
     // the apply machinery and the company-intel branch — the apply
@@ -44698,6 +44932,14 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // GOAL FRAME (spine): a goal declaration is a RECORD turn and
+    // its recall a read of that record — claimed here, beside the
+    // early recall claim, ahead of recommendations, the pending-mock
+    // capture and the discovery tail (which read the declaration's
+    // internship/summer words as a search ask on v247 and answered
+    // with a list verdict; the goal itself was never stored).
+    const goalTurn = handleGoalFrame(text, c);
+    if (goalTurn) return goalTurn;
     // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its
@@ -45967,6 +46209,26 @@ const CareerRouter = (() => {
     if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
     return false;
   };
+  // A present-tense career target is the person's own goal even without
+  // the noun "goal". Keep one assertion-only parser for capture and the
+  // early claim, so a pending mock cannot grade a new target as an answer.
+  // Labeled answers, requests, quotes and hypothetical/question turns do
+  // not enter this frame; the target must actually name a career opening.
+  function statedCareerTargetOf(text) {
+    if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
+    for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
+      const clause = stripLead(sentence);
+      if (!clauseIsAssertion(clause)) continue;
+      const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
+      if (!m) continue;
+      const value = m[1].trim();
+      if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
+      if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
+      if (value.length > 200) continue;
+      return { value, evidence: clause.replace(/[.!]$/, "").trim() };
+    }
+    return null;
+  }
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -46267,6 +46529,21 @@ const CareerRouter = (() => {
       // in <City>".
       if ((m = u.match(new RegExp(`\\bfor\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?I\\s+only\\s+want\\s+([A-Za-z][A-Za-z /&-]{2,40}?)\\s+roles?\\s+in\\s+([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)`, "i"))) && asserted(m.index)) {
         pushKeyed("company_preference", cleanCo(m[1]), `${m[2].trim()} roles in ${m[3].trim()}`, m[0]);
+      }
+      // Career goal: "my (career) goal is ..." — the user's target
+      // in their own words, recorded VERBATIM as a keyed fact (kind
+      // "goal", key "career") on the same stated-facts record, so it
+      // takes the keyed carriage past the account validator and
+      // folds back into every later thread's working set (the
+      // spine: stated -> recorded -> recallable). One slot: a later
+      // goal statement REPLACES the earlier one under the same
+      // kind+key, never accumulates a contradiction. The clause is
+      // captured to the end of its own sentence only.
+      if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
+        pushKeyed("goal", "career", m[1], m[0]);
+      } else {
+        const target = statedCareerTargetOf(raw);
+        if (target) pushKeyed("goal", "career", target.value, target.evidence);
       }
     }
     // (1) Per-clause declarative capture. WO-095: gated — a request
@@ -46575,7 +46852,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen" }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -46606,6 +46883,43 @@ const CareerRouter = (() => {
       facts: facts.map((f, i) => ({ id: `stated-${f.kind}-${i}`, kind: f.kind, text: factLine(f), value: f.value, evidence: f.evidence || null })),
       connections: [],
     };
+  }
+  // GOAL FRAME (spine fix, 2026-10-21): a first-person goal
+  // declaration ("my career goal is ...") is a RECORD turn, and
+  // "what's my (career) goal?" is a read of that record. On v247
+  // the declaration was unowned until the discovery tail, which
+  // read its internship/summer words as a search ask and answered
+  // with a list verdict — the goal was never acknowledged, and the
+  // next turn's recall fell to the generic fallback (battery
+  // scenarios 4-5). Capture lives in captureStatedFacts (kind
+  // "goal", keyed carriage — see the frame there); this claim is
+  // dispatched beside the early conversation-recall claim, ahead
+  // of recommendations, the pending-mock capture and the
+  // discovery tail, and the discovery tail never sees a
+  // declaration. Both halves answer from the record in the user's
+  // own words: the clause is quoted VERBATIM, never paraphrased.
+  // The recall stands down when no goal is recorded (the existing
+  // fall-through is unchanged), and a declaration shape under a
+  // question is not claimed here (capture's assertion gate has
+  // already recorded nothing from it — BUG-169 discipline).
+  function handleGoalFrame(text, ctx) {
+    const t = lc(text);
+    const goal = statedFactsOf(ctx).find((f) => f.kind === "goal");
+    // Recall: resolve against the recorded kind-"goal" fact.
+    if (/\bwhat'?s\s+my\s+(?:career\s+)?goal\b/.test(t) || /\bwhat\s+is\s+my\s+(?:career\s+)?goal\b/.test(t)) {
+      if (!goal) return null;
+      const reply = compose({ headline: `Your career goal, in your words: ${goal.value}.`, facts: ["That is the goal on your record — stated by you, stored verbatim, and the target your searches, drafts, and prep are aimed at."], nextStep: "Want the search run against it, or the goal restated first?" });
+      return { intent: "career_goal_recall", reply, resultStatus: "answered", sends: 0, stated_facts: statedFactsOf(ctx) };
+    }
+    // Declaration: captureStatedFacts recorded this turn's
+    // statement at the head of dispatch; answer with the record
+    // surface, quoting the recorded clause verbatim.
+    if (/\?/.test(s(text))) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t) && !statedCareerTargetOf(text)) return null;
+    if (!goal) return null;
+    const all = statedFactsOf(ctx);
+    const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
+    return { intent: "career_goal_record", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
   function handleStatedFactsReply(text, ctx) {
     const added = ctx._factsAddedThisTurn;
@@ -48405,7 +48719,142 @@ const CareerRender = (() => {
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+    // ================= byte layer (MUSE-F-011) =================
+  // This module's byte plumbing used to read the bare Node Buffer
+  // global in ~30 places (alloc / from / concat / isBuffer, the
+  // write/read UInt accessors, copy, toString encodings). In the Deno
+  // ESM bundle that global does not exist (Supabase Edge Runtime,
+  // Deno 2.1.4), so the first render on every tailor turn threw
+  // "ReferenceError: Buffer is not defined" (first executed read:
+  // renderPdf) and module 143's containment served the generic
+  // failure — while Node and Deno 2.9.7, which both expose a Buffer
+  // global, masked it in every local test. The fix is ONE module-local
+  // byte type over Uint8Array/DataView — bundle-legal primitives
+  // only, no require, no node:buffer — selected once, here: where a
+  // Buffer global exists (Node), Bytes IS the platform Buffer, so the
+  // Node path's bytes and types stay exactly what they were
+  // (golden-pinned in tests/career-render-edge-pdf.test.cjs); where
+  // none exists, Bytes is the shim below, whose instances carry the
+  // semantics this module uses.
+  const B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const B64_LOOKUP = (() => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < B64_ALPHABET.length; i++) t[B64_ALPHABET.charCodeAt(i)] = i; return t; })();
+  function b64Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      out += B64_ALPHABET[a >> 2] + B64_ALPHABET[((a & 3) << 4) | (b >> 4)];
+      out += i + 1 < bytes.length ? B64_ALPHABET[((b & 15) << 2) | (c >> 6)] : "=";
+      out += i + 2 < bytes.length ? B64_ALPHABET[c & 63] : "=";
+    }
+    return out;
+  }
+  function b64Decode(text) {
+    const clean = String(text).replace(/[^A-Za-z0-9+/=]/g, "");
+    const out = [];
+    for (let i = 0; i < clean.length; i += 4) {
+      const a = B64_LOOKUP[clean.charCodeAt(i)], b = B64_LOOKUP[clean.charCodeAt(i + 1)];
+      const c = clean[i + 2] === "=" || clean[i + 2] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 2)];
+      const d = clean[i + 3] === "=" || clean[i + 3] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 3)];
+      out.push(((a << 2) | (b >> 4)) & 0xff);
+      if (c >= 0) out.push((((b & 15) << 4) | (c >> 2)) & 0xff);
+      if (d >= 0) out.push((((c & 3) << 6) | d) & 0xff);
+    }
+    return out;
+  }
+  // Manual UTF-8 codec: the byte layer depends on nothing beyond
+  // Uint8Array/DataView — not even TextEncoder, which a sandboxed
+  // realm is not guaranteed to expose.
+  function utf8Encode(text) {
+    const out = [];
+    for (const ch of String(text)) {
+      const cp = ch.codePointAt(0);
+      if (cp < 0x80) out.push(cp);
+      else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f));
+      else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+      else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    }
+    return out;
+  }
+  function utf8Decode(bytes) {
+    let out = "";
+    const cps = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const b = bytes[i];
+      if (b < 0x80) { cps.push(b); i += 1; }
+      else if ((b & 0xe0) === 0xc0 && i + 1 < bytes.length) { cps.push(((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f)); i += 2; }
+      else if ((b & 0xf0) === 0xe0 && i + 2 < bytes.length) { cps.push(((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)); i += 3; }
+      else if ((b & 0xf8) === 0xf0 && i + 3 < bytes.length) { cps.push(((b & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f)); i += 4; }
+      else { cps.push(0xfffd); i += 1; }
+    }
+    for (let j = 0; j < cps.length; j += 8192) out += String.fromCodePoint(...cps.slice(j, j + 8192));
+    return out;
+  }
+  class ByteBuf extends Uint8Array {
+    static alloc(size) { return new ByteBuf(size); }
+    static from(input, enc) {
+      if (typeof input === "string") {
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "hex") {
+          const out = new ByteBuf(input.length >> 1);
+          for (let i = 0; i < out.length; i++) out[i] = parseInt(input.slice(i * 2, i * 2 + 2), 16) || 0;
+          return out;
+        }
+        if (e === "latin1" || e === "binary") {
+          const out = new ByteBuf(input.length);
+          for (let i = 0; i < input.length; i++) out[i] = input.charCodeAt(i) & 0xff;
+          return out;
+        }
+        if (e === "base64") { const arr = b64Decode(input); const out = new ByteBuf(arr.length); for (let i = 0; i < arr.length; i++) out[i] = arr[i]; return out; }
+        const encoded = utf8Encode(input);
+        const out = new ByteBuf(encoded.length);
+        for (let i = 0; i < encoded.length; i++) out[i] = encoded[i];
+        return out;
+      }
+      if (input instanceof Uint8Array) { const out = new ByteBuf(input.length); out.set(input); return out; }
+      if (input instanceof ArrayBuffer) return new ByteBuf(new Uint8Array(input));
+      const arr = Array.from(input || []);
+      const out = new ByteBuf(arr.length);
+      for (let i = 0; i < arr.length; i++) out[i] = arr[i] & 0xff;
+      return out;
+    }
+    static concat(list) {
+      let total = 0;
+      for (const part of list) total += part.length;
+      const out = new ByteBuf(total);
+      let off = 0;
+      for (const part of list) { out.set(part, off); off += part.length; }
+      return out;
+    }
+    static isBuffer(x) { return x instanceof Uint8Array; }
+    _view() { return new DataView(this.buffer, this.byteOffset, this.byteLength); }
+    writeUInt16LE(value, offset) { this._view().setUint16(offset, value, true); return offset + 2; }
+    writeUInt32LE(value, offset) { this._view().setUint32(offset, value, true); return offset + 4; }
+    writeUInt32BE(value, offset) { this._view().setUint32(offset, value, false); return offset + 4; }
+    readUInt16LE(offset) { return this._view().getUint16(offset, true); }
+    readUInt32LE(offset) { return this._view().getUint32(offset, true); }
+    copy(target, targetStart = 0, sourceStart = 0, sourceEnd = this.length) {
+      const n = Math.max(0, Math.min(sourceEnd - sourceStart, target.length - targetStart));
+      if (n > 0) target.set(this.subarray(sourceStart, sourceStart + n), targetStart);
+      return n;
+    }
+    toString(enc, start, end) {
+      const e = String(enc || "utf8").toLowerCase();
+      const view = this.subarray(start == null ? 0 : start, end == null ? this.length : end);
+      if (e === "latin1" || e === "binary") {
+        let out = "";
+        for (let i = 0; i < view.length; i += 8192) out += String.fromCharCode(...view.subarray(i, i + 8192));
+        return out;
+      }
+      if (e === "base64") return b64Encode(view);
+      if (e === "hex") { let out = ""; for (const b of view) out += b.toString(16).padStart(2, "0"); return out; }
+      return utf8Decode(view);
+    }
+  }
+  // Merge of WO-028/WO-060 (injectable runtime) with MUSE-F-011 (no bare Buffer global): the host's Buffer when it
+  // supplies one, otherwise the module-local ByteBuf, so the Deno edge runtime never reads an undefined global.
+  const Buffer = rt.Buffer || ByteBuf;
+  const Bytes = Buffer;
   // ================= pure-JS zlib + SHA-256 (edge fallback) =================
   // LANE F (the CHANNEL-DOC-1 blocker; Lane B record
   // docs/career/channel-doc-1-record-2026-10-20.md §5): in the Deno ESM
@@ -48438,18 +48887,18 @@ const CareerRender = (() => {
     let off = 0;
     do {
       const len = Math.min(65535, data.length - off);
-      const head = Buffer.alloc(5);
+      const head = Bytes.alloc(5);
       head[0] = off + len >= data.length ? 1 : 0; // BFINAL, BTYPE=00, then byte-aligned
       head.writeUInt16LE(len, 1);
       head.writeUInt16LE((~len) & 0xffff, 3);
-      chunks.push(head, Buffer.from(data.subarray(off, off + len)));
+      chunks.push(head, Bytes.from(data.subarray(off, off + len)));
       off += len;
     } while (off < data.length);
-    return Buffer.concat(chunks);
+    return Bytes.concat(chunks);
   }
   function zlibDeflate(data) {
     const body = deflateStored(data);
-    const out = Buffer.alloc(2 + body.length + 4);
+    const out = Bytes.alloc(2 + body.length + 4);
     out[0] = 0x78; out[1] = 0x01; // CMF/FLG: deflate, 32K window; (0x78*256+0x01) % 31 === 0
     body.copy(out, 2);
     out.writeUInt32BE(adler32(data), 2 + body.length);
@@ -48548,7 +48997,7 @@ const CareerRender = (() => {
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
-    return { buffer: Buffer.from(out), end: pos - (bitcnt >> 3) };
+    return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
   function zlibInflate(data) {
     if (data.length < 6) throw new Error("zlib stream too short");
@@ -48605,10 +49054,10 @@ const CareerRender = (() => {
   const pureCrypto = {
     createHash: (alg) => {
       if (alg !== "sha256") throw new Error(`pure crypto fallback supports sha256 only, not ${alg}`);
-      let buf = Buffer.alloc(0);
+      let buf = Bytes.alloc(0);
       return {
-        update(data) { buf = Buffer.concat([buf, Buffer.from(data)]); return this; },
-        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Buffer.from(hex, "hex"); },
+        update(data) { buf = Bytes.concat([buf, Bytes.from(data)]); return this; },
+        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Bytes.from(hex, "hex"); },
       };
     },
   };
@@ -48700,17 +49149,17 @@ const CareerRender = (() => {
   function zipBuffer(entries) {
     const chunks = []; const central = []; let offset = 0;
     for (const entry of entries) {
-      const nameBuf = Buffer.from(entry.name, "utf8");
-      const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
+      const nameBuf = Bytes.from(entry.name, "utf8");
+      const data = Bytes.isBuffer(entry.data) ? entry.data : Bytes.from(String(entry.data), "utf8");
       const compressed = zlib.deflateRawSync(data);
       const crc = crc32(data);
-      const local = Buffer.alloc(30);
+      const local = Bytes.alloc(30);
       local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
       local.writeUInt16LE(8, 8); local.writeUInt16LE(DOS_TIME, 10); local.writeUInt16LE(DOS_DATE, 12);
       local.writeUInt32LE(crc, 14); local.writeUInt32LE(compressed.length, 18); local.writeUInt32LE(data.length, 22);
       local.writeUInt16LE(nameBuf.length, 26); local.writeUInt16LE(0, 28);
       chunks.push(local, nameBuf, compressed);
-      const cd = Buffer.alloc(46);
+      const cd = Bytes.alloc(46);
       cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0x0800, 8);
       cd.writeUInt16LE(8, 10); cd.writeUInt16LE(DOS_TIME, 12); cd.writeUInt16LE(DOS_DATE, 14);
       cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(compressed.length, 20); cd.writeUInt32LE(data.length, 24);
@@ -48719,16 +49168,16 @@ const CareerRender = (() => {
       offset += local.length + nameBuf.length + compressed.length;
     }
     const cdSize = central.reduce((n, b) => n + b.length, 0);
-    const eocd = Buffer.alloc(22);
+    const eocd = Bytes.alloc(22);
     eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
     eocd.writeUInt32LE(cdSize, 12); eocd.writeUInt32LE(offset, 16);
-    return Buffer.concat([...chunks, ...central, eocd]);
+    return Bytes.concat([...chunks, ...central, eocd]);
   }
-  // Central-directory reader: part name -> inflated Buffer. Independent of
+  // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
   function unzipParts(buf) {
     const parts = new Map();
-    if (!Buffer.isBuffer(buf) || buf.length < 22) return parts;
+    if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
@@ -48746,7 +49195,7 @@ const CareerRender = (() => {
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw); } catch { data = null; }
+      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
       if (data && crc32(data) === crc) parts.set(name, data);
       p += 46 + nameLen + extraLen + commentLen;
     }
@@ -48816,7 +49265,7 @@ const CareerRender = (() => {
       else if (WINANSI_EXTRA.has(ch)) bytes.push(WINANSI_EXTRA.get(ch));
       else { bytes.push(0x3f); if (unencodable && !unencodable.includes(ch)) unencodable.push(ch); }
     }
-    return Buffer.from(bytes);
+    return Bytes.from(bytes);
   }
   function decodeWinAnsi(buf) {
     let out = "";
@@ -48907,27 +49356,27 @@ const CareerRender = (() => {
     if (!blocks.length) return { ok: false, refused: true, reason: "resume has no renderable lines", buffer: null, contentType: PDF_CONTENT_TYPE, filename: null };
     const unencodable = [];
     const pages = paginate(blocks);
-    const objects = []; // [id, Buffer]
+    const objects = []; // [id, Bytes]
     const pageIds = pages.map((_, i) => 5 + i * 2);
     const contentIds = pages.map((_, i) => 6 + i * 2);
-    objects.push([1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>")]);
-    objects.push([2, Buffer.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
-    objects.push([3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
-    objects.push([4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
+    objects.push([1, Bytes.from("<< /Type /Catalog /Pages 2 0 R >>")]);
+    objects.push([2, Bytes.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
+    objects.push([3, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
+    objects.push([4, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
     pages.forEach((lines, i) => {
-      objects.push([pageIds[i], Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
+      objects.push([pageIds[i], Bytes.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
       const ops = lines.map((l) => `BT /${l.font} ${l.size} Tf 1 0 0 1 ${l.x} ${l.y} Tm ${pdfLiteral(encodeWinAnsi(l.text, unencodable))} Tj ET`).join("\n");
-      const stream = zlib.deflateSync(Buffer.from(ops, "latin1"));
-      const head = Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
-      objects.push([contentIds[i], Buffer.concat([head, stream, Buffer.from("\nendstream", "latin1")])]);
+      const stream = zlib.deflateSync(Bytes.from(ops, "latin1"));
+      const head = Bytes.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+      objects.push([contentIds[i], Bytes.concat([head, stream, Bytes.from("\nendstream", "latin1")])]);
     });
     objects.sort((a, b) => a[0] - b[0]);
-    const chunks = [Buffer.from("%PDF-1.4\n", "latin1")];
+    const chunks = [Bytes.from("%PDF-1.4\n", "latin1")];
     const offsets = new Map();
     let pos = chunks[0].length;
     for (const [id, body] of objects) {
-      const head = Buffer.from(`${id} 0 obj\n`, "latin1");
-      const tail = Buffer.from("\nendobj\n", "latin1");
+      const head = Bytes.from(`${id} 0 obj\n`, "latin1");
+      const tail = Bytes.from("\nendobj\n", "latin1");
       offsets.set(id, pos);
       chunks.push(head, body, tail);
       pos += head.length + body.length + tail.length;
@@ -48937,8 +49386,8 @@ const CareerRender = (() => {
     let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
     for (let id = 1; id <= maxId; id++) xref += `${String(offsets.get(id)).padStart(10, "0")} 00000 n \n`;
     xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
-    chunks.push(Buffer.from(xref, "latin1"));
-    const buffer = Buffer.concat(chunks);
+    chunks.push(Bytes.from(xref, "latin1"));
+    const buffer = Bytes.concat(chunks);
     return { ok: true, buffer, contentType: PDF_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "pdf"), bytes: buffer.length, pages: pages.length, unencodable };
   }
 
@@ -48978,13 +49427,13 @@ const CareerRender = (() => {
       else if (c === ")") { depth--; if (depth > 0) bytes.push(41); i++; }
       else { bytes.push(s.charCodeAt(i) & 0xff); i++; }
     }
-    return [decodeWinAnsi(Buffer.from(bytes)), i];
+    return [decodeWinAnsi(Bytes.from(bytes)), i];
   }
   // Full operator walk: returns [{ text, x, y, size, font, page }] in
   // reading order (page order, then y descending, then x ascending).
   function extractPdfRuns(buf) {
     const runs = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return runs;
+    if (!Bytes.isBuffer(buf) || !zlib) return runs;
     const streams = pdfStreams(buf);
     streams.forEach((streamBuf, page) => {
       const s = streamBuf.toString("latin1");
@@ -49010,7 +49459,7 @@ const CareerRender = (() => {
   // Parser B: raw string scan of every inflated stream, operator-blind.
   function extractPdfStrings(buf) {
     const out = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return out;
+    if (!Bytes.isBuffer(buf) || !zlib) return out;
     for (const streamBuf of pdfStreams(buf)) {
       const s = streamBuf.toString("latin1");
       let i = 0;
@@ -49022,14 +49471,14 @@ const CareerRender = (() => {
     return out;
   }
   function pdfStructure(buf) {
-    const s = Buffer.isBuffer(buf) ? buf.toString("latin1") : "";
+    const s = Bytes.isBuffer(buf) ? buf.toString("latin1") : "";
     const fonts = [...new Set([...s.matchAll(/\/BaseFont\s*\/([A-Za-z0-9-]+)/g)].map((m) => m[1].replace(/^[A-Z]{6}\+/, "")))];
     const images = (s.match(/\/Subtype\s*\/Image/g) || []).length;
     const pages = (s.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
     const runs = extractPdfRuns(buf);
     const sizes = [...new Set(runs.map((r) => r.size).filter(Boolean))].sort((a, b) => a - b);
     const xs = [...new Set(runs.map((r) => Math.round(r.x)))];
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
   }
   // External parser B (poppler) — used when the caller opts in.
   function extractPdfPoppler(buf) {
@@ -49078,8 +49527,8 @@ const CareerRender = (() => {
   }
   function docxStructure(buf) {
     const parts = unzipParts(buf);
-    const docXml = (parts.get("word/document.xml") || Buffer.alloc(0)).toString("utf8");
-    const stylesXml = (parts.get("word/styles.xml") || Buffer.alloc(0)).toString("utf8");
+    const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
+    const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
     const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
@@ -49087,7 +49536,7 @@ const CareerRender = (() => {
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
     const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.
   function extractDocxPython(buf) {
@@ -49350,8 +49799,58 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
+  // The EEO decline MEANING CLASS (DECLINE-VOCAB lane, 2026-10-21; the
+  // doctrine is D8 / BUG-067 in the browser helper): the decline default
+  // is ONE semantic choice worded a dozen ways across boards — the
+  // dropdown-measure lane (cc2932c9) recorded the boards' own renderings
+  // on 24 verified fills: "I don't wish to answer" x19, "Decline To Self
+  // Identify" x4, "I prefer not to say" x1. The class is DATA in the
+  // WO-020 question_map shape — ordered named pattern rules over
+  // normalized text; the first that matches names why — so it can fold
+  // into the shared meaning map verbatim when that lands on this line
+  // (seam: docs/career/decline-vocab-2026-10-21.md). ONE home: this
+  // module's export. Patterns are regex SOURCES (serializable data);
+  // they are written against normMeaningText below, which is the
+  // helper's normOpt verbatim (lowercase, curly quotes dropped,
+  // punctuation -> space, spaces collapsed) — the same normalization
+  // the on-page matcher (scripts/career/portal-browser-helper.cjs,
+  // isDeclineText) evaluates, and the class's union is semantically
+  // identical to that matcher's vocabulary, pinned by
+  // tests/career-decline-vocab.test.cjs.
+  const EEO_DECLINE_MEANING = [
+    { name: "decline_word", pattern: "decline" },
+    { name: "prefer_not", pattern: "prefer not" },
+    { name: "wish_not", pattern: "do not wish|don t wish|dont wish" },
+    { name: "not_answer", pattern: "not (to )?answer" },
+    { name: "not_disclose", pattern: "not (to )?disclose" },
+    { name: "no_answer", pattern: "no answer" },
+    // F-024 / one-class audit (2026-10-22): the browser helper learned Lever's "I do not want to answer" while this
+    // list did not, so the gate would refuse the fill the helper chose. The helper now reads THIS list (no copy), and
+    // the phrasings the answer-option matcher already knew are part of the class.
+    { name: "want_not", pattern: "do not want to answer|dont want to answer|don t want to answer" },
+    { name: "rather_not", pattern: "rather not" },
+    { name: "choose_not", pattern: "choose not" },
+    { name: "not_identify", pattern: "not (to )?(self identify|identify|specify|say)" },
+  ];
+  // One regex source over normMeaningText's output, for callers that cannot import a module (the in-page matcher).
+  const EEO_DECLINE_SOURCE = EEO_DECLINE_MEANING.map((r) => "(?:" + r.pattern + ")").join("|");
+  const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
+  // The first rule that matches names why the text is decline-class
+  // (WO-020: each rule names why it matched); null when it is not.
+  function eeoDeclineMatch(text) {
+    const t = normMeaningText(text);
+    if (!t) return null;
+    for (const r of EEO_DECLINE_RULES) if (r.re.test(t)) return r.name;
+    return null;
+  }
+  const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
+  // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
+  const EMPTY_FORM_RESCAN_MAX_READS = 5;
+  const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -49511,6 +50010,41 @@ const CareerPortalApply = (() => {
     research: "research record — fellowship/essay material, not a portal screening answer",
     metric: "company metrics — essay/profile material, not a screening answer",
   };
+  // MUSE-F-007: the person's saved answers to application questions
+  // (application_answer; application_text, the long ones) are read ONLY
+  // through the WO-102 answer contract (extension/src/apply_core.ts:
+  // trustedManifest + ownAnswerOnly, passed in as the bundle — never
+  // copied here). Kept answers fill only the question they were given to
+  // (savedAnswerFor in prepareRound). A contract of another quarantine
+  // version is not read until this consumer is reviewed against it.
+  const SAVED_ANSWER_KINDS = ["application_answer", "application_text"];
+  const SAVED_ANSWER_CONTRACT = "d007-v1";
+  const normQuestion = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  function savedAnswersOf(bank, contract, owner) {
+    const facts = bank.facts.filter((f) => f && SAVED_ANSWER_KINDS.indexOf(f.kind) >= 0);
+    if (!facts.length || !owner || !contract || contract.QUARANTINE_VERSION !== SAVED_ANSWER_CONTRACT
+      || typeof contract.trustedManifest !== "function" || typeof contract.ownAnswerOnly !== "function") return [];
+    const str = (v) => (v === undefined || v === null ? "" : String(v));
+    const saved = {};
+    for (const f of facts) {
+      saved[str(f.id)] = Object.assign({ value: str(f.value), factId: str(f.id), confirmed: f.status === "confirmed" && f.needs_confirmation !== true,
+        provenance: f.provenance, confirmation_event_id: f.confirmation_event_id, authorizes: f.authorizes === true },
+      f.user_id ? { user_id: f.user_id } : {}, Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {});
+    }
+    const m = contract.trustedManifest({ owner, file: { user_id: owner, saved }, rows: [], resume: null });
+    if (!m || m.version !== SAVED_ANSWER_CONTRACT || !m.byFactId) return [];
+    const out = [];
+    for (const f of facts) {
+      const tf = m.byFactId[str(f.id)];
+      const question = normQuestion(f.question);
+      if (!tf || tf.value !== str(f.value) || !question) continue;
+      if (f.kind === "application_text" && !f.company) continue; // a long answer is written for one employer
+      if ((contract.ownAnswerOnly(str(f.question)) || contract.ownAnswerOnly(question)) && tf.authorizes !== true) continue;
+      out.push({ question, kind: f.kind, value: tf.value, company: f.company ? str(f.company) : null, factId: tf.factId,
+        confirmation_event_id: tf.event, provenance: tf.provenance, manifest_hash: m.hash, quarantine_version: m.version });
+    }
+    return out;
+  }
   const US_STATE_NAMES = { AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming", DC: "District of Columbia" };
   // City -> IANA zone for the bank's own residence only. A residence
   // outside this table derives NO time-zone answer (the field stays an
@@ -49552,9 +50086,12 @@ const CareerPortalApply = (() => {
   // country, date_of_birth, and the education block in the F-001
   // contract shape). Nothing here invents: a source fact that is
   // absent or unconfirmed yields no entry, and the field stays an ask.
-  function deriveAnswers(bank, now) {
-    const out = { answers: {}, profileFields: {}, traces: {} };
+  // opts.contract + opts.owner (MUSE-F-007): the WO-102 bundle and whose
+  // bank this is; without them `savedAnswers` stays empty.
+  function deriveAnswers(bank, now, opts) {
+    const out = { answers: {}, profileFields: {}, traces: {}, savedAnswers: [] };
     if (!bank || !Array.isArray(bank.facts)) return out;
+    out.savedAnswers = savedAnswersOf(bank, opts && opts.contract, opts && opts.owner);
     const nowMs = tsMs(now);
     const confirmed = (f) => f && f.status === "confirmed" && f.needs_confirmation !== true;
     const byKindName = (kind, nameRe) => bank.facts.find((f) => f.kind === kind && nameRe.test(f.name || f.title || ""));
@@ -49637,6 +50174,7 @@ const CareerPortalApply = (() => {
     if (bank && bank.basics && Object.keys(bank.basics).length) kinds.add("basics");
     const consumedKinds = new Set([].concat(...Object.values(ANSWER_KEY_SOURCES)));
     consumedKinds.add("basics"); // preferred_name / location corroboration derive from the basics block
+    for (const k of SAVED_ANSWER_KINDS) consumedKinds.add(k); // savedAnswersOf, through the WO-102 contract
     const consumed = [], exempt = [], uncovered = [];
     for (const k of kinds) {
       if (consumedKinds.has(k)) consumed.push(k);
@@ -49644,6 +50182,145 @@ const CareerPortalApply = (() => {
       else uncovered.push(k);
     }
     return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
+  }
+
+  // ---------- the executor's input writer: bank -> portal inputs (LOOP-INPUT) ----------
+  // The batch executor (and the in-turn batch seam) drives 149 from a
+  // 149-shaped profile + an attestations map. Until this composition
+  // existed, NO product code produced either from the user's record:
+  // the stored master carried basics null / answers null /
+  // attestations null on the live account, every prepare stopped at
+  // the same uncovered questions, and the loop could not move
+  // (LOOP-INPUT-NO-WRITER, final set Doc 1 A3). This is the missing
+  // pipeline stage — derivation, built once, keyed only to the
+  // user's own stored bank. Its layers mirror the saved-answers
+  // composition the extension serves (extension_sync.js
+  // composeSavedAnswers — the same layers in the same order, so the
+  // surfaces cannot disagree about what a bank answers):
+  //   1. identity from the bank's basics, verbatim (no derivation);
+  //   2. the bank's stored answers with confirmed === true, verbatim;
+  //   3. deriveAnswers over the bank (confirmed facts only, each
+  //      entry carrying its factId trace);
+  //   4. the constraints/defaults seam for keys still unanswered
+  //      (sponsorship / work authorization from the constraints the
+  //      sensitive-correction path writes; pronouns from defaults;
+  //      located_in_us from the residence the bank carries);
+  //   5. the resume as { filename, sha256 } metadata, only when the
+  //      record carries one with its sha256.
+  // Attestations are NEVER derived from facts. They come from exactly
+  // two sources, both the user's own explicit acts: an attestation
+  // already stored on the record (explicit === true, passed through
+  // verbatim), and — for certify_true — the batch approval act
+  // itself, passed in as opts.approvalAct { runId, cardSha256 } by
+  // the caller that holds the user's committed "Approve batch
+  // <runId>" intent. No approval act, no certify_true: the field
+  // stays an ask at prepare and the batch waits at its card.
+  function workAuthorizationToken(text) {
+    const t = String(text || "").trim();
+    if (/^yes\b/i.test(t)) return "Yes";
+    if (/^no\b/i.test(t)) return "No";
+    if (/not authorized|not eligible to work|no work authorization/i.test(t)) return "No";
+    if (/citizen|permanent resident|green card|lawful permanent|authorized to work|eligible to work|employment authorization|work permit/i.test(t)) return "Yes";
+    return t;
+  }
+  function portalInputsFromBank(bank, opts) {
+    const o = opts || {};
+    const out = { profile: null, attestations: {}, traces: {} };
+    if (!bank || typeof bank !== "object") return out;
+    const nowMs = tsMs(o.now != null ? o.now : Date.now());
+    // Derivation reads the 122 fact shape (status / needs_confirmation).
+    // A looser stored shape (confirmed: true, no status) is normalized
+    // on a CLONE — the stored record is never mutated, and a fact that
+    // carries an explicit draft status is never promoted.
+    const normBank = cloneBankForDerivation(bank);
+    const b = (bank.basics && typeof bank.basics === "object") ? bank.basics : {};
+    const links = (b.links && typeof b.links === "object") ? b.links : {};
+    const profile = { answers: {} };
+    const setP = (k, v) => { if (v !== undefined && v !== null && String(v) !== "") profile[k] = v; };
+    setP("name", b.name || b.full_name || bank.name);
+    setP("email", b.email || bank.email);
+    setP("phone", b.phone);
+    setP("location", b.location);
+    setP("linkedin", links.linkedin || b.linkedin);
+    setP("github", links.github || b.github);
+    setP("website", links.portfolio || links.website || b.website);
+    setP("current_company", b.current_company || b.currentCompany);
+    const derived = deriveAnswers(normBank, Number.isFinite(nowMs) ? nowMs : Date.now());
+    for (const [k, v] of Object.entries(derived.profileFields || {})) setP(k, v);
+    for (const [k, t] of Object.entries(derived.traces || {})) out.traces[k] = t;
+    const r = bank.resume || b.resume || null;
+    if (r && r.sha256) profile.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+
+    const answers = {};
+    const stored = (bank.answers && typeof bank.answers === "object") ? bank.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        answers[k] = JSON.parse(JSON.stringify(a));
+        if (a.factId) out.traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
+      }
+    }
+    for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = a;
+
+    const c = (bank.constraints && typeof bank.constraints === "object") ? bank.constraints : {};
+    const dfl = (bank.defaults && typeof bank.defaults === "object") ? bank.defaults : {};
+    const seam = (key, value, factId, how) => {
+      if (answers[key] || value === undefined || value === null || String(value) === "") return;
+      answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
+      seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");
+    }
+    if (!answers.located_in_us) {
+      const hometown = (normBank.facts || []).find((f) => f.kind === "profile" && /hometown/i.test(f.name || f.title || "") && f.status === "confirmed" && f.needs_confirmation !== true);
+      const residence = (hometown && hometown.value) || b.location || "";
+      const tail = String(residence).split(",").pop().trim().replace(/\s*\(.*?\)\s*$/, "");
+      const isUs = (/^[A-Za-z]{2}$/.test(tail) && US_STATE_CODES.has(tail.toUpperCase()))
+        || US_STATE_NAMES_LOWER.has(tail.toLowerCase());
+      if (isUs || /^united states$/i.test(String(profile.country || ""))) {
+        seam("located_in_us", "Yes", hometown ? hometown.id : "basics.location",
+          "the residence the record carries is in a US state (the same source deriveAnswers reads for state_of_residence)");
+      }
+    }
+    profile.answers = answers;
+    out.profile = profile;
+
+    const storedAtt = (bank.attestations && typeof bank.attestations === "object") ? bank.attestations : {};
+    for (const [k, a] of Object.entries(storedAtt)) {
+      if (a && a.explicit === true && a.value !== undefined) {
+        out.attestations[k] = JSON.parse(JSON.stringify(a));
+        out.traces[`attestation:${k}`] = { factId: "profile.attestations", how: "the user's own stored explicit attestation, passed through verbatim" };
+      }
+    }
+    if (o.approvalAct && o.approvalAct.runId) {
+      out.attestations.certify_true = {
+        value: true, explicit: true, source: "batch_approval",
+        runId: o.approvalAct.runId, cardSha256: o.approvalAct.cardSha256 || null,
+      };
+      out.traces["attestation:certify_true"] = { factId: "batch_approval", how: "the user's own approval of this batch's card is the attestation act — derived only under a committed approve intent for this run and card" };
+    }
+    return out;
+  }
+  const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+  const US_STATE_NAMES_LOWER = new Set(Object.values(US_STATE_NAMES).map((n) => n.toLowerCase()).concat(["district of columbia"]));
+  function cloneBankForDerivation(bank) {
+    const clone = JSON.parse(JSON.stringify(bank));
+    if (Array.isArray(clone.facts)) {
+      for (const f of clone.facts) {
+        if (!f || typeof f !== "object") continue;
+        if (f.status == null && f.confirmed === true) f.status = "confirmed";
+        if (f.needs_confirmation == null && typeof f.needsConfirmation === "boolean") f.needs_confirmation = f.needsConfirmation;
+      }
+    }
+    return clone;
   }
 
   // ---------- §6.1 step 3: form analysis ----------
@@ -50031,7 +50708,39 @@ const CareerPortalApply = (() => {
     }
 
     // steps 3+4: analyze, then fill from confirmed facts only
-    const formDef = board.form();
+    // MUSE-F-025 (bounded re-scan): the first form read can land before
+    // the board's client-rendered form has mounted on a slow first paint;
+    // that instantaneous read legitimately returns zero fields on a
+    // healthy posting, and the D2 stop below then fired on a form that
+    // was not reached YET (live: batch-7ac6d3b30fa5, bracketed by drives
+    // returning 27/34 fields through the same stack). A zero-field read
+    // is therefore re-scanned — bounded by EMPTY_FORM_RESCAN_MAX_READS
+    // total reads AND EMPTY_FORM_RESCAN_BUDGET_MS wall-clock, whichever
+    // binds first; each re-read is a complete fresh discover on the
+    // board, so the loop observes later paints. There is no synthetic
+    // delay and no unbounded wait. inp.emptyFormRescan === false is the
+    // kill switch: the exact pre-fix single read. Root cause:
+    // docs/apply/ROOT-CAUSE-F025-2026-10-22.md.
+    const rescanOff = inp.emptyFormRescan === false;
+    const rescanT0 = Date.now();
+    let formDef = board.form();
+    let rescanReads = 1;
+    while ((!formDef.fields || formDef.fields.length === 0) && !rescanOff
+      && rescanReads < EMPTY_FORM_RESCAN_MAX_READS
+      && Date.now() - rescanT0 < EMPTY_FORM_RESCAN_BUDGET_MS) {
+      formDef = board.form();
+      rescanReads += 1;
+      logStep("empty_form_rescan", { read: rescanReads, fieldCount: (formDef.fields || []).length, elapsedMs: Date.now() - rescanT0 });
+    }
+    const rescanElapsedMs = Date.now() - rescanT0;
+    const rescan = rescanReads > 1
+      ? { reads: rescanReads, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: (formDef.fields || []).length ? "fields_found" : "exhausted" }
+      : (rescanOff && (!formDef.fields || formDef.fields.length === 0))
+        ? { reads: 1, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: "disabled" }
+        : null;
+    if (rescan && rescan.outcome === "fields_found") {
+      logStep("empty_form_rescan_recovered", { reads: rescanReads, fieldCount: formDef.fields.length, elapsedMs: rescanElapsedMs });
+    }
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -50039,13 +50748,46 @@ const CareerPortalApply = (() => {
     // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
+    // F-025: the stop now consumes the bounded re-scan above; a form
+    // still empty when the bound is exhausted stops exactly as before.
     if (!formDef.fields || formDef.fields.length === 0) {
-      logStep("empty_form_stop", { fieldCount: 0 });
-      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+      // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
+      // fields — the review page after a Next click carries the
+      // challenge, a submit button, and no fields at all, so this stop
+      // fired before the review-stage captcha check could ever run and
+      // a challenge was misreported as an empty form. A captcha present
+      // on any step outranks EMPTY_FORM: probe the board's review state
+      // (the helper's review command checks the challenge before any
+      // click) and honor a challenge before naming the form empty.
+      let rv = null;
+      try { rv = typeof board.atReview === "function" ? board.atReview() : null; } catch (e) { rv = null; }
+      if (rv && rv.captcha) {
+        logStep("captcha_stop", { at: continued ? "review" : "form" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      }
+      logStep("empty_form_stop", { fieldCount: 0, rescanReads });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis, rescan });
     }
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    // MUSE-F-007: a field that would otherwise be asked takes a saved answer the contract kept, only for its exact
+    // question (and, when the answer names an employer, only there); kept answers that disagree leave it asked.
+    const savedAnswerFor = (f) => {
+      const q = normQuestion(f.label);
+      const hits = (Array.isArray(profile.savedAnswers) ? profile.savedAnswers : []).filter((s) => s && q && s.question === q
+        && s.quarantine_version === SAVED_ANSWER_CONTRACT && s.factId && s.confirmation_event_id
+        && (!s.company || normQuestion(s.company) === normQuestion(posting.company)));
+      return hits.length && hits.every((s) => s.value === hits[0].value) ? hits[0] : null;
+    };
+    const fillSaved = (f, entry) => {
+      const s = savedAnswerFor(f);
+      if (!s) return false;
+      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
+      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+        derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
+      return true;
+    };
     for (const f of formDef.fields) {
       const entry = { field_id: f.field_id, category: f.kind };
       if (f.kind === "standard") {
@@ -50059,7 +50801,19 @@ const CareerPortalApply = (() => {
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
           logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+      } else if (f.kind === "question") {
+        // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed): a
+        // board question with no canonical mapping (module 150 keys
+        // it by its label's slug) is answered under the screening
+        // contract verbatim — a confirmed stored answer or an ask.
+        // Nothing is derived here either; an unanswered question
+        // still stops the run, named by its field.
+        const a = answers[f.question_key];
+        if (a && a.confirmed === true && a.value !== undefined) {
+          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         // WO-094: in card-approval mode a note DRAFTED for this application
@@ -50070,7 +50824,7 @@ const CareerPortalApply = (() => {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
           logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
-        } else { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
@@ -50090,7 +50844,7 @@ const CareerPortalApply = (() => {
           else session.pendingAttestations.push({ field_id: f.field_id, text, value });
           logStep("attestation_pending_card", Object.assign({}, entry, { text }));
         } else { asks.push({ field_id: f.field_id, reason: "attestation_requires_explicit_confirmation" }); }
-      } else {
+      } else if (!fillSaved(f, entry)) {
         asks.push({ field_id: f.field_id, reason: "unknown_field_category" });
       }
     }
@@ -50104,6 +50858,52 @@ const CareerPortalApply = (() => {
     const observed = board.answers();
     if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    // F-027 (2026-10-22): per-key value equivalence at this compare
+    // ONLY (the payload is never altered). A phone input is a scalar
+    // fill, so the FR-395 renderedValues hatch (widget fills only)
+    // never fires for it — yet boards normalize phone values on their
+    // own (Lever's mask renders the US national form, dropping the
+    // "+1" country prefix), and the exact compare stopped a correct
+    // fill as drift (live: batch-8ef4497b16db). For fields whose
+    // profile key is "phone", digit sequences are compared with a
+    // single leading country "1" tolerated on either side; a
+    // genuinely different number (different subscriber digits, or a
+    // different country prefix) still differs and still stops. The
+    // equivalence is keyed by the field's profile key — it does not
+    // apply to any other key, however digit-shaped its values look.
+    const digitsOf = (v) => String(v).replace(/\D+/g, "");
+    const phoneDigitsEquivalent = (a, b) => {
+      const strip = (d) => (d.length === 11 && d.startsWith("1") ? d.slice(1) : d);
+      const da = strip(digitsOf(a)), db = strip(digitsOf(b));
+      return da.length >= 7 && da === db;
+    };
+    // F-028 (2026-10-22): the same benign-render class on the
+    // "location" profile key. A location control is a places pick —
+    // scalar from this gate's perspective, so the FR-395 hatch again
+    // carries nothing — and the board canonicalizes the picked place
+    // by appending the country ("Chicago, IL" -> "Chicago, IL, USA";
+    // live: batch-29ea020da986). The equivalence: strip ONE trailing
+    // country suffix from the closed named set below, from BOTH
+    // sides, after the gate's own norm; the remaining place text must
+    // then match EXACTLY and be non-empty. A different city, the same
+    // city name in a different state, or a longer different place
+    // that merely starts with the expected text leaves a different
+    // remainder and still stops. Named data, not a posting literal:
+    // the set names country renderings, never places.
+    const LOCATION_COUNTRY_SUFFIXES = ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america"];
+    const stripLocationCountry = (v) => {
+      const n = norm(v);
+      for (const s of LOCATION_COUNTRY_SUFFIXES) {
+        if (n.endsWith(", " + s)) return n.slice(0, n.length - s.length - 2);
+      }
+      return n;
+    };
+    const locationEquivalent = (a, b) => {
+      const ra = stripLocationCountry(a), rb = stripLocationCountry(b);
+      return ra.length > 0 && ra === rb;
+    };
+    const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
+      || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
       // Composed at the v224 combine: an EMPTY readback (absent or
@@ -50119,13 +50919,68 @@ const CareerPortalApply = (() => {
       // "United States"), the readback is compared against that
       // rendering, not the profile text. A board that renders
       // differently from BOTH is still drift and still stops here.
-      const rendered = board.renderedValues && board.renderedValues[id];
+      // FDSE-MISMATCH (2026-10-21): the rendered value is read through
+      // the board's renderedValue(fieldId) METHOD when the board
+      // offers one. The property channel is a getter on the production
+      // boards (150 / the worker bridge), and any wrapper that
+      // snapshots own properties (an observation/logging wrapper that
+      // copies non-function props once) freezes the getter at its
+      // initial {} — the hatch then silently never fires and a correct
+      // fill stops as drift (live: batch-5ab08dedd45c, the university
+      // field). Methods survive delegation wrappers; the property
+      // remains the fallback for boards that only carry it.
+      const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
+        : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+      // DECLINE-VOCAB (2026-10-21): an EEO fill whose intended value is
+      // decline-class is the SAME answer when the board renders it in
+      // any decline-class wording (EEO_DECLINE_MEANING above — the
+      // measured forms are "I don't wish to answer" x19, "Decline To
+      // Self Identify" x4, "I prefer not to say" x1; the old inline
+      // regex lacked the wish forms and blocked 6 of 8 measured drives
+      // with every fill correct). Class-vs-class ONLY, and only for EEO
+      // fills (the default or the user's own EEO choice): a decline
+      // intent rendered as a substantive answer — or any non-decline
+      // value rendered as anything else — still mismatches below, and
+      // acceptance of every non-EEO answer is exactly what it was.
+      let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+          || ((planned.source === "eeo_default_decline" || planned.source === "user_eeo_choice") && isEeoDeclineText(expected) && isEeoDeclineText(actual));
+      // F-027: when the exact channels fail, the per-key equivalence
+      // gets its say — keyed by the field's profile key, strings
+      // only, and recorded in the run record when it carries the
+      // acceptance (the same evidentiary standard as the hatch).
+      // F-028 adds the "location" branch to this SAME block (one
+      // mechanism, per-key shapes): a board-appended trailing
+      // country suffix on the same place is a benign render.
+      if (!same && typeof expected !== "object" && typeof actual !== "object") {
+        const fd = fieldDefOf(id);
+        if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        } else if (fd && fd.profile_key === "location" && locationEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "location_country_suffix", expected, observed: actual });
+        }
+      }
+      // FR-395: hatch use is recorded in the run record — that the
+      // board's rendered value was consulted as the expectation, and
+      // whether the acceptance was hatch-ONLY (the raw profile value
+      // alone would have mismatched the readback).
+      if (rendered !== undefined) {
+        logStep("answer_observation_rendered", { field_id: id, matched: !!same,
+          hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
+            && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
+      }
+      if (!same) {
+        // The stop record names the field AND carries both values —
+        // a record that says only "the observed value differs" cannot
+        // be diagnosed without re-driving the board (live:
+        // batch-5ab08dedd45c's stored record named nothing).
+        logStep("answer_observation_mismatch", { field_id: id, expected, observed: actual });
+        return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, expected, observed: actual, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      }
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled
@@ -50312,6 +51167,184 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
     }
     return prepared;
+  }
+
+  // ---------- session reuse: resume a live prepared session (chunk 50%) ----------
+  // A prepare drive's board session can outlive the drive: the board
+  // service holds the filled page, still at the final review, under
+  // its idle TTL. resumeApply VERIFIES that live state against the
+  // stored doorstep instead of re-driving — no open() (a navigation
+  // would reload the form and destroy the fills) and no fills. The
+  // verification anchors, in order: the stored record must hash to
+  // its own recorded hash before the board is touched at all; the
+  // live board must still expose the prepared form's fields and read
+  // back values that rebuild — through the SAME buildPayload MI-116
+  // uses, with the session's preparation state seeded from the stored
+  // payload (live answers win, exactly as at the doorstep) — to the
+  // stored payload hash; and the board must still stand at the final
+  // review. Success sets session.doorstep exactly as prepareRound
+  // does; submitDoorstep then re-verifies the live payload hash at
+  // click time, and the driver re-verifies the armed payload against
+  // the live fields before the click — resume adds no trust those
+  // gates do not re-check. Failures are named for the caller's
+  // fallback discipline: SESSION_NOT_LIVE (the session is gone,
+  // expired, or not this user's), SESSION_STATE_MISMATCH (the live
+  // state differs from the prepared payload), SESSION_BINDING_INVALID
+  // (the stored record is internally inconsistent). Any other stop
+  // (captcha, caps, a board code) is the application's result, as a
+  // fresh drive would produce it.
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function resumeApply(session, input) {
+    const inp = input || {};
+    const posting = inp.posting || {};
+    const profile = inp.profile || {};
+    const log = inp.log || { records: [] };
+    const stepLog = [];
+    const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
+    const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+
+    // session binding: a session serves exactly its own user (§6.3 isolation)
+    if (inp.userId && inp.userId !== session.userId) {
+      logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
+      return blocked("SESSION_USER_MISMATCH");
+    }
+    const board = session.board;
+    // The stored doorstep must be internally consistent BEFORE the
+    // board is addressed: a payload that does not hash to its own
+    // recorded hash is never verified against and never trusted.
+    const stored = inp.doorstep || null;
+    if (!stored || !stored.payload || typeof stored.payload !== "object" || Array.isArray(stored.payload)
+      || typeof stored.payloadSha256 !== "string"
+      || sha256(JSON.stringify(stored.payload)) !== stored.payloadSha256) {
+      logStep("session_binding_invalid", {});
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    // target rules (§6.3): the same gates prepare applies before any board use
+    const target = classifyTarget(posting.url || "");
+    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
+    }
+    if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
+      return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
+    }
+    if (posting.status && posting.status !== "open") {
+      logStep("eligibility_stop", { reason: "posting_not_open", status: posting.status });
+      return blocked("JOB_CLOSED");
+    }
+    const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
+    if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    // §11(F): the name on the board account must be the person applying
+    if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
+      logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
+      return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
+    }
+    try {
+      // NO open(): the page is already there, filled. form() is a
+      // read (discovery); answers() is a read (live readback).
+      const formDef = board.form();
+      const formAnalysis = analyzeForm(formDef);
+      if (!formDef.fields || formDef.fields.length === 0) {
+        logStep("session_state_mismatch", { cause: "empty_form" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
+      }
+      // The resumed board must still be the prepared form's board:
+      // its live field set or its live readback must carry the
+      // payload's fields. A board carrying NONE of them is a
+      // different page, whatever its session id claims.
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
+      const observed = board.answers() || {};
+      const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
+      if (payloadIds.length && covered.length === 0) {
+        logStep("session_state_mismatch", { cause: "no_payload_fields_on_board" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board carries none of the prepared payload's fields — it is not the prepared page", formAnalysis });
+      }
+      // Rebuild the would-submit payload from the board's CURRENT
+      // answers (buildPayload — the MI-116 construction), with the
+      // session's preparation state seeded from the stored payload so
+      // the rebuild is the same union prepare hashed at the doorstep.
+      session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
+      session.preparationPayload = {};
+      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = buildPayload(board, session);
+      const liveHash = sha256(JSON.stringify(livePayload));
+      if (liveHash !== stored.payloadSha256) {
+        const changedFields = [], addedFields = [], removedFields = [];
+        for (const k of Object.keys(livePayload)) {
+          if (!(k in stored.payload)) addedFields.push(k);
+          else if (JSON.stringify(livePayload[k]) !== JSON.stringify(stored.payload[k])) changedFields.push(k);
+        }
+        for (const k of Object.keys(stored.payload)) if (!(k in livePayload)) removedFields.push(k);
+        logStep("session_state_mismatch", { changedFields, addedFields, removedFields });
+        return blocked("SESSION_STATE_MISMATCH", { changedFields, addedFields, removedFields, formAnalysis,
+          reason: `the resumed board's current answers differ from the prepared payload — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; the session is discarded and a fresh drive prepares the application again` });
+      }
+      logStep("session_state_verified", { payloadSha256: stored.payloadSha256 });
+      // Still standing at the final review? (cmdReview is read-only on
+      // a page already at final review — it clicks only a "next"
+      // control, and a prepared page at its doorstep has none.)
+      const review = board.atReview();
+      if (review && review.code) {
+        logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+        return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null, formAnalysis });
+      }
+      if (review.captcha) {
+        logStep("captcha_stop", { at: "review" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step", formAnalysis });
+      }
+      if (review.needsFields || review.advanced) {
+        logStep("session_state_mismatch", { cause: "not_at_prepared_step" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed page is no longer at the prepared step — it asks for fields or advanced past the doorstep", formAnalysis });
+      }
+      if (review.atFinalReview === false) {
+        logStep("session_state_mismatch", { cause: "not_at_final_review" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
+      }
+      // §8.3 collision + §6.4 caps, the same re-checks prepare makes
+      if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+      const collision = collisionCheck(session.manualApplications, posting);
+      if (collision.collision) {
+        const c0 = collision.collision;
+        logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+        return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+          reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+      }
+      const caps = capCheck(log, session.userId, posting, inp.now, board);
+      if (!caps.ok) {
+        const sc = caps.stops[0];
+        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
+        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
+          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+      }
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+        requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
+      return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
+        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+    } catch (e) {
+      if (e && SESSION_DEATH_CODES.has(e.code)) {
+        logStep("session_not_live", { cause: e.code });
+        return blocked("SESSION_NOT_LIVE", { cause: e.code, reason: "the board session the prepare drive left is no longer live (expired, closed, or not this user's) — a fresh drive prepares the application again" });
+      }
+      throw e;
+    }
+  }
+
+  // continueApply: a prepare round CONTINUED on the session's live
+  // page (prepareRound's continued entry — it skips open(), so the
+  // page's existing fills survive). The attestation-completion seam:
+  // an application that stopped at awaiting_user for its certification
+  // alone is sitting filled on its board; when the certification
+  // arrives, the round continues on THAT page instead of a fresh
+  // board re-driving the whole form.
+  function continueApply(session, input) {
+    if (!session.preparationPayload) session.preparationPayload = {};
+    if (!session.preparationFields) session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, true, 0, []);
   }
 
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
@@ -50561,7 +51594,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -51447,8 +52480,29 @@ const CareerAssign = (() => {
     const text = s(posting.jd_text || "");
     const m = text.match(/(applications? (?:close|deadline)|apply by|deadline|closing date)\s*(?:is|:|on)?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i);
     if (!m) return null;
-    const at = Date.parse(m[2]);
-    return { text: m[0].trim(), at: isNaN(at) ? null : new Date(at).toISOString() };
+    return { text: m[0].trim(), at: deadlineDayUtc(m[2]) };
+  }
+
+  // A posted deadline is a calendar day, not an instant on this server's clock. Date.parse read "2026-11-02" as UTC
+  // midnight but "November 2, 2026" and "11/2/2026" as the HOST's local midnight, so the same deadline moved by the
+  // server's offset (06:00Z on a Chicago host, 00:00Z on a UTC one). Every form becomes that day at 00:00Z.
+  const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  function deadlineDayUtc(raw) {
+    const t = String(raw).trim();
+    let y, mo, d;
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t))) { mo = +m[1]; d = +m[2]; y = +m[3]; }
+    else if ((m = /^([A-Za-z]+) (\d{1,2}),? (\d{4})$/.exec(t))) {
+      const i = MONTHS.findIndex((name) => name.startsWith(m[1].toLowerCase()) && m[1].length >= 3);
+      if (i < 0) return null;
+      mo = i + 1; d = +m[2]; y = +m[3];
+    } else return null;
+    const at = Date.UTC(y, mo - 1, d);
+    const back = new Date(at);
+    // A day that does not exist ("February 30") is no deadline at all, never a rolled-over one.
+    if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
+    return back.toISOString();
   }
 
   // One posting x one interest. Returns { matched, reasons[], fit } — reasons
@@ -52061,7 +53115,8 @@ const CareerBatchApply = (() => {
     if (!run.apps[key]) {
       run.apps[key] = {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
-        url: posting.url || null, stage: "selected", stop: null, payloadSha256: null,
+        // MUSE-F-001: the posting's own link (its url, else its first http(s) source url), never an invented one.
+        url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
       };
     }
@@ -52079,6 +53134,64 @@ const CareerBatchApply = (() => {
   function runtimeFor(run) {
     if (!RUNTIME.has(run.id)) RUNTIME.set(run.id, { sessions: {}, profiles: {} });
     return RUNTIME.get(run.id);
+  }
+
+  // F-035 (bench-60 fix round, 2026-10-22): resolve a fresh board
+  // for one application, or record its stop and return null. A
+  // boardFor that resolves through the worker bridge records the
+  // worker's coded refusal on itself (careerBoardFor.lastRefusal)
+  // when it returns null; a boardFor that throws a coded error
+  // directly is treated the same. The naming rule (stopForRefusal):
+  // an ANSWERED refusal — the service heard the ask and decided
+  // (SESSION_LIMIT, DRIVER_HOST_REFUSED, FAMILY_NOT_DRIVEABLE, …) —
+  // names the stop by its own code, with the code also carried as
+  // workerRefusal. A TRANSPORT-family failure — no answer ever
+  // arrived (WORKER_UNREACHABLE, WORKER_TRANSPORT_TIMEOUT,
+  // WORKER_TRANSPORT_CLOSED, WORKER_PROTOCOL) — is the not-wired
+  // degradation the loop has always named BOARD_NOT_WIRED
+  // (loop-acceptance's standing guard: a down worker stops every
+  // drive BOARD_NOT_WIRED); its code is still carried as
+  // workerRefusal evidence. BOARD_NOT_WIRED without a workerRefusal
+  // means no board adapter exists for this posting's family at all.
+  const TRANSPORT_REFUSAL_CODES = new Set(["WORKER_UNREACHABLE", "WORKER_TRANSPORT_TIMEOUT", "WORKER_TRANSPORT_CLOSED", "WORKER_PROTOCOL"]);
+  function stopForRefusal(run, app, code, message) {
+    if (TRANSPORT_REFUSAL_CODES.has(code)) {
+      stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run", { workerRefusal: code });
+      return;
+    }
+    stopApp(run, app, code, message || `the board worker refused this session (${code})`, { workerRefusal: code });
+  }
+  function boardOrStop(run, app, d, posting) {
+    let board = null;
+    try { board = typeof d.boardFor === "function" ? d.boardFor(posting) : null; }
+    catch (e) {
+      if (e && e.code) { stopForRefusal(run, app, e.code, String((e && e.message) || e).slice(0, 300)); return null; }
+      board = null;
+    }
+    if (board) return board;
+    const refusal = (typeof d.boardFor === "function" && d.boardFor.lastRefusal) || null;
+    if (refusal && refusal.code) { stopForRefusal(run, app, refusal.code, refusal.message); return null; }
+    stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run");
+    return null;
+  }
+
+  // F-036 (bench-60 fix round, 2026-10-22): a board throw mid-drive
+  // (measured signature: module 150's coded DRIVER_ERROR, "Target
+  // crashed") becomes THIS application's named stop — never an
+  // escape that blocks the intent and erases the run record. The
+  // stop carries the verbatim error and the fills the board had
+  // already rendered (its own renderedValues — preserved, never
+  // reconstructed).
+  function stopDriveThrow(run, app, board, e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    const detail = { error: msg };
+    try {
+      const rv = board && board.renderedValues;
+      if (rv && typeof rv === "object" && !Array.isArray(rv) && Object.keys(rv).length) {
+        detail.fills = JSON.parse(JSON.stringify(rv));
+      }
+    } catch (_) { /* a board that cannot report its fills loses nothing else */ }
+    stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the portal drive threw before it could name an outcome: ${msg}`, detail);
   }
 
   // ---------------- prepare: discover -> screen -> tailor -> doorsteps ----
@@ -52158,14 +53271,22 @@ const CareerBatchApply = (() => {
       }
       const profile = profileFor(d, posting);
       rt.profiles[key] = profile;
-      const board = d.boardFor ? d.boardFor(posting) : null;
-      if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      // WO-094: no standing attestation rides into a drive (deps.attestations
-      // is not read). In card-approval mode 149 leaves a certification
-      // PENDING on the doorstep; the card's yes is the attestation act.
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      const board = boardOrStop(run, app, d, posting);
+      if (!board) continue;
+      let res = null;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        // WO-094: no standing attestation rides into a drive (deps.attestations
+        // is not read). In card-approval mode 149 leaves a certification
+        // PENDING on the doorstep; the card's yes is the attestation act.
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      } catch (e) {
+        // F-036: the throw is this application's outcome — stop it
+        // named, keep the run record, drive the next application.
+        stopDriveThrow(run, app, board, e);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
     }
 
@@ -52173,7 +53294,7 @@ const CareerBatchApply = (() => {
     // stops and defers are reported beside it, never hidden inside it.
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
     if (Apply && Apply.batchCard && doorstepApps.length) {
-      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, url: a.url, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
       // WO-094: the card shows each application's certification text — the
       // words the yes signs, for that application only (inside its hash).
       run.card.certifications = [];
@@ -52228,8 +53349,22 @@ const CareerBatchApply = (() => {
       event(run, "captcha_handoff", { postingKey: app.postingKey });
       return;
     }
-    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped"); return; }
+    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped", stopDetailOf(res)); return; }
     stopApp(run, app, res.code || "UNEXPECTED_RESULT", `unexpected portal result: ${res.resultStatus || "unknown"}`);
+  }
+
+  // FDSE-MISMATCH (2026-10-21): a portal stop's diagnostic detail
+  // (the field an observation mismatch names, and the expected /
+  // observed values) must survive into the stored app record — the
+  // generic blocked paths used to forward only code + reason, so the
+  // live record for batch-5ab08dedd45c could not name the field 149
+  // had already identified. Carriage is whitelisted to these three
+  // keys: arbitrary portal extras do not leak into the run record.
+  function stopDetailOf(res) {
+    if (!res) return undefined;
+    const d = {};
+    for (const k of ["field_id", "expected", "observed"]) if (res[k] !== undefined) d[k] = res[k];
+    return Object.keys(d).length ? d : undefined;
   }
 
   function stopApp(run, app, code, reason, extra) {
@@ -52318,8 +53453,9 @@ const CareerBatchApply = (() => {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
           // that a changed payload stops (APPROVAL_PAYLOAD_MISMATCH).
-          const board = d.boardFor ? d.boardFor(posting) : null;
-          if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+          // F-035: a coded worker refusal is named, not flattened to BOARD_NOT_WIRED.
+          const board = boardOrStop(run, app, d, posting);
+          if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
@@ -52368,7 +53504,7 @@ const CareerBatchApply = (() => {
       return;
     }
     if (out && out.resultStatus === "blocked") {
-      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application");
+      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application", stopDetailOf(out));
       return;
     }
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
@@ -52380,7 +53516,7 @@ const CareerBatchApply = (() => {
     const submitted = apps.filter((a) => a.stage === "submitted");
     const stops = [];
     for (const a of apps) {
-      if (a.stage === "stopped" && a.stop) stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason });
+      if (a.stage === "stopped" && a.stop) stops.push(Object.assign({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason }, a.stop.field_id !== undefined ? { field_id: a.stop.field_id } : {}));
       if (a.stage === "captcha_handoff") stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: "CAPTCHA_HANDOFF", reason: a.stop ? a.stop.reason : "a captcha appeared", handoffUrl: a.stop ? a.stop.handoffUrl : a.url });
     }
     return {
@@ -52403,6 +53539,22 @@ const CareerBatchApply = (() => {
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
+    // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
+    const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
+    if (selApps.length) {
+      lines.push(`The ${selApps.length} selected:`);
+      for (const a of selApps) {
+        const stage = a.stage === "doorstep" ? "ready at the final review screen"
+          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
+          : a.stage === "stopped" ? "stopped (named below)"
+          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "selected" ? "selected, not prepared yet"
+          : a.stage;
+        lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
+      }
+    }
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
       lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
       // WO-094: the certification each form asks for is signed by this yes,

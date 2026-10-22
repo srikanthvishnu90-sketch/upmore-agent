@@ -1,0 +1,46 @@
+{
+  "scope": "Real planner/prepare and runCloudJob with scripted effect; third argument awaited when supplied; actual process transport verified separately. SQL written NOT_RUN.",
+  "baseline_source": "01401cb456bc2982d67316165e183bbd275581c9",
+  "candidate_source": "a9a328ae773ea09cf32a38048ec3c78fa2fd8839",
+  "baseline": {
+    "tests": 9,
+    "pass": 5,
+    "fail": 4,
+    "skip": 0
+  },
+  "candidate": {
+    "tests": 9,
+    "pass": 9,
+    "fail": 0,
+    "skip": 0
+  },
+  "new_cost_usd": 0,
+  "sql": "NOT_RUN",
+  "files": [
+    {
+      "path": "tests/career-cloud-worker-card-bridge.test.cjs",
+      "sha256": "f2a535972209ee0c1a14258ec48198f65723284202dce13a2a67aa18bdd1f21d",
+      "bytes": 11235
+    },
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_concurrency.py",
+      "sha256": "1b5c605e969c9f004929cd3ce594f56de83b6772a9b6a3a2b85bc8273f19fd78",
+      "bytes": 20277
+    },
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql",
+      "sha256": "f00232659afc4f250cc6e3a7a8fbe42ddd6b15c4a87162db48e6a637378f390d",
+      "bytes": 14698
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/authorization-followup/candidate.tap",
+      "sha256": "eeddc9d4111f0e1791b2eb9a9eb679c3794e7a92e6d21d945795ae21e457b644",
+      "bytes": 1081
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/authorization-followup/baseline.tap",
+      "sha256": "2eb62717be94563483d5b6d178d9872d65825a6c4607800c192b5b40a51d2c1b",
+      "bytes": 8012
+    }
+  ]
+}

@@ -73,16 +73,19 @@ KB_ROWS[16] = kbRow(17, { text_excerpt: "Software engineering intern role. An ac
 
 // The user's stored record: agent_flow_state snapshot career stores
 // (the 122 master the chat itself maintains) + the account KV row.
+// WO-102 (contract change): a fact reaches an application only with the owner's own provenance and the event that
+// confirmed it, so the basics and the screening facts carry both.
+const OWN = (id) => ({ provenance: "owner stated in chat (TEST)", confirmation_event_id: "evt-" + id });
 const STORED_MASTER = {
-  basics: { name: "Alex Testcase (TEST)", email: "alex.testcase@example.test", phone: "+1 000 555 0100", location: "Chicago, IL" },
+  basics: { name: "Alex Testcase (TEST)", email: "alex.testcase@example.test", phone: "+1 000 555 0100", location: "Chicago, IL", ...OWN("basics") },
   facts: [
     { id: "F-T-001", kind: "skill", text: "JavaScript and Node.js development", confirmed: true },
     { id: "F-T-002", kind: "experience", text: "Built web applications as a student developer", confirmed: true },
     { id: "F-T-003", kind: "education", text: "Computer Science student", confirmed: true },
     // WO-094: screening answers are DERIVED from confirmed facts (149's
     // deriveAnswers), not copied from a stored `answers` block.
-    { id: "F-T-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes" },
-    { id: "F-T-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No" },
+    { id: "F-T-020", kind: "eligibility", status: "confirmed", name: "Work authorization (US)", value: "Yes", ...OWN("F-T-020") },
+    { id: "F-T-021", kind: "eligibility", status: "confirmed", name: "Sponsorship requirement", value: "No", ...OWN("F-T-021") },
   ],
   resume: { filename: "alex-testcase-resume.pdf", sha256: "a".repeat(64) },
   // A stored answers block and a standing attestation: WO-094 reads neither.

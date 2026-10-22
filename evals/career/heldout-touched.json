@@ -1,0 +1,1010 @@
+{
+ "note": "WO-061 (owner, 2026-10-21: \"do not read held-out item text beyond failure reasons and log every item you read in a committed touched list\"). Every held-out item the builder has seen, with the run and what was read. An item listed here is not sealed for the builder and is flagged for replacement by items the builder never sees.",
+ "set_is_not_sealed_from_the_builder": "The architect (the builder of the brain) wrote all 38 items in WO-059, and before this rule, eval summaries in this session showed it per-item results (ids, judge notes, some replies) for the 33 items under earlier_sessions, after runs 39454760318, 39456603956, 39458269838, 39535880905 and 39538248995. A held-out score on this set is therefore not a sealed-sample score. A truly sealed set needs items written by someone else (the owner or Instinct) that the builder never reads.",
+ "never_shown": [
+  "H008",
+  "H009",
+  "H016",
+  "H017",
+  "H024"
+ ],
+ "earlier_sessions": [
+  "H001",
+  "H002",
+  "H003",
+  "H004",
+  "H005",
+  "H006",
+  "H007",
+  "H010",
+  "H011",
+  "H012",
+  "H013",
+  "H014",
+  "H015",
+  "H018",
+  "H019",
+  "H020",
+  "H021",
+  "H022",
+  "H023",
+  "H025",
+  "H026",
+  "H027",
+  "H028",
+  "H029",
+  "H030",
+  "H031",
+  "H032",
+  "H033",
+  "H034",
+  "H035",
+  "H036",
+  "H037",
+  "H038"
+ ],
+ "items": [
+  {
+   "id": "H006",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: offers career help instead",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H030",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says honestly there is no match to book with",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H031",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says no research resume is on file and asks them to add it",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H032",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says there is no intro on record",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H037",
+   "run": "39541224991",
+   "read": "gpt-5-mini failure reason only: says Fieldnote Software",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H011",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: gives honest feedback on that answer, with at least one concrete improvement",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H014",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says no applications have been attempted for them yet, or asks which ones they mean",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H026",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: confirms it will track it, or says exactly what it needs",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H029",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says nothing has been prepared yet",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H036",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: names the few things it needs (e.g. resume, target roles, work rights) plainly",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H006",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: offers career help instead",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H030",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says honestly there is no match to book with",
+   "at": "2026-10-21"
+  },
+  {
+   "id": "H031",
+   "run": "39542849277",
+   "read": "gpt-5-mini failure reason only: says no research resume is on file and asks them to add it",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H006",
+    "H012",
+    "H023",
+    "H025",
+    "H026",
+    "H029",
+    "H030",
+    "H031",
+    "H032"
+   ],
+   "run": "Instinct's report, 2026-10-21",
+   "read": "named by the owner's second judge in chat with the failure pattern, and for H026 pass 3 one quoted line of the reply (quiet hours inverted); no item text read from the set",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H006",
+    "H010",
+    "H011",
+    "H019",
+    "H028",
+    "H029",
+    "H030",
+    "H031",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39545335380",
+   "read": "gpt-5-mini failure reasons (failed rubric lines and judge notes) only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H012",
+    "H014",
+    "H020",
+    "H023",
+    "H025",
+    "H026",
+    "H029",
+    "H030",
+    "H031",
+    "H032",
+    "H034",
+    "H036",
+    "H037"
+   ],
+   "run": "Instinct's per-item verdicts for 39541224991, 39542849277, 39543405447 p1-p3",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H002",
+    "H005",
+    "H006",
+    "H007",
+    "H009",
+    "H011",
+    "H012",
+    "H018",
+    "H025",
+    "H026",
+    "H027",
+    "H030",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39546674445",
+   "read": "failing ids per judge; failure reasons for H030, H031, H036 only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H026",
+    "H031",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39548093320",
+   "read": "failure reasons (failed rubric lines and judge notes) only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H006"
+   ],
+   "run": "prompt pass 188d8116 (2026-10-20)",
+   "read": "FLAG: the words 'check the weather' in prompt.ts came from this held-out item before the read rule; removed in the H006 fix",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H005",
+    "H006",
+    "H012",
+    "H018",
+    "H023",
+    "H025",
+    "H026",
+    "H027",
+    "H028",
+    "H029",
+    "H030",
+    "H031",
+    "H032",
+    "H034",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39545335380, 39545926640, 39546674445 (p1-p3)",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H007",
+    "H010",
+    "H011",
+    "H013",
+    "H015",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39548869025",
+   "read": "failing ids per judge only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H004",
+    "H006",
+    "H013",
+    "H025",
+    "H031",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39548093320 and 39548869025 (p1-p3), plus its H035 finding",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H006",
+    "H009",
+    "H011",
+    "H027",
+    "H031",
+    "H033",
+    "H034",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39549570017",
+   "read": "failing ids per judge only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H018"
+   ],
+   "run": "rubric edit, owner-directed (\"Tighten the H018 judge note so the model judges score this the way the second judge does\")",
+   "read": "H018 full line read (turn, must, must_not) to add one must_not",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H019",
+    "H020",
+    "H021",
+    "H022",
+    "H023",
+    "H024",
+    "H025",
+    "H026"
+   ],
+   "run": "builder's grep while locating H018, 2026-10-21",
+   "read": "FULL ITEM TEXT (turns and rubric) shown by mistake (grep -A8 printed the following lines). These items are fully read by the builder; flag for replacement.",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H018"
+   ],
+   "run": "39551229537 p1",
+   "read": "the brain's reply for H018 (its output, read to trace the safety guard's gap) and both judges' notes",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H011",
+    "H033",
+    "H034",
+    "H035",
+    "H038"
+   ],
+   "run": "39551229537",
+   "read": "failing ids per judge only",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H004",
+    "H006",
+    "H013",
+    "H018",
+    "H025",
+    "H028",
+    "H031",
+    "H034",
+    "H035"
+   ],
+   "run": "Instinct's verdicts for 39551229537 (p1-p3) and its H028/H035 injection-framing finding",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H004",
+    "H026",
+    "H027",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39552801613",
+   "read": "failing ids per judge only; every reply scanned by code for waiver/save-offer wording (no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H035"
+   ],
+   "run": "39551229537 p2, 39552801613 p1",
+   "read": "the brain's reply opening (260 chars) and both CI judges' notes, to trace the injection-framed opener",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H004",
+    "H007",
+    "H013",
+    "H025",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39552801613 (p1-p3) and its injection-opener finding",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H010",
+    "H011",
+    "H015",
+    "H018",
+    "H026",
+    "H031"
+   ],
+   "run": "39554573965",
+   "read": "failing ids per judge; H018 p1 reply and judge notes (to trace the broken reply); every reply scanned by code for injection framing",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H009",
+    "H010",
+    "H013",
+    "H026",
+    "H034",
+    "H036"
+   ],
+   "run": "39556113702",
+   "read": "failing ids per judge; every reply scanned by code for injection framing, waiver wording, dangling confirm prompts and the refusal (no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H010",
+    "H025",
+    "H031",
+    "H034",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39556113702 (p1-p3)",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H006",
+    "H007",
+    "H010",
+    "H011",
+    "H018",
+    "H026",
+    "H033",
+    "H034",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39557753503",
+   "read": "failing ids per judge; failure reasons for H003 (p1, p2) and H018 (p2); every reply scanned by code (no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H005",
+    "H006",
+    "H025",
+    "H026",
+    "H031",
+    "H034",
+    "H036",
+    "H037"
+   ],
+   "run": "Instinct's verdicts for 39557753503 (p1-p3) and its H004/H005 defect notes",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H003",
+    "H004",
+    "H010",
+    "H017",
+    "H026",
+    "H031",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "39558487629",
+   "read": "failing ids per judge; H004 replies scanned by code for invented specifics; every reply scanned for injection framing and waiver wording (no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H009",
+    "H010",
+    "H011",
+    "H024",
+    "H026",
+    "H027",
+    "H031",
+    "H033",
+    "H034",
+    "H036"
+   ],
+   "run": "39560112467",
+   "read": "failing ids per judge; H027 failure reasons (p2, p3); H002/H003/H004/H005/H037 replies scanned by code for bare confirm prompts and 'not on file' (no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H025",
+    "H027",
+    "H031",
+    "H034",
+    "H036"
+   ],
+   "run": "Instinct's verdicts for 39560112467 (p1-p3)",
+   "read": "the second judge's failure notes, posted in chat; no item text",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [],
+   "run": "close of 2026-10-21",
+   "read": "nothing further; eval line closed",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H024",
+    "H026",
+    "H031",
+    "H037"
+   ],
+   "run": "39582229542",
+   "read": "failing ids per judge; the three H031 replies (420 chars each) to check the fix did the task",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H005",
+    "H010",
+    "H011",
+    "H026",
+    "H027",
+    "H031",
+    "H033",
+    "H036",
+    "H038"
+   ],
+   "run": "39583493501",
+   "read": "failing ids per judge; every reply scanned by code for the conversation layer's error text and for empty replies, across this and every stored run (ids only, no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H030",
+    "H031",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39584579483",
+   "read": "failing ids per judge; the three H031 replies (420 chars each) to check the fix did the task; every reply scanned by code for the new refusal's wording, error text and empty replies (ids only)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002"
+   ],
+   "run": "39584579483, 39583493501, 39556113702",
+   "read": "H002 failure reasons (both CI judges, three passes); H002 last replies (400 chars) in three runs; H002's two user turns tested by code against the confirmation yes/no patterns (lengths and booleans only, no text printed)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H006",
+    "H010",
+    "H011",
+    "H018",
+    "H026",
+    "H031",
+    "H035",
+    "H036",
+    "H037"
+   ],
+   "run": "39586066852 (control)",
+   "read": "failing ids per judge; H018 failure reasons (p2, p3); every reply scanned by code for error, step-limit and empty replies (ids only)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H026",
+    "H031",
+    "H034",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39586807128",
+   "read": "failing ids per judge; the three H002 last replies (300 chars) to check the task; H004 p3 replies (200 chars each) and judge notes, because its turn 2 is the step-limit text; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H009",
+    "H010",
+    "H026",
+    "H033",
+    "H034",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39588330975 (kept-brain reference, traced)",
+   "read": "failing ids per judge; H009 and H002 traces (tool names, ok, errors) and failing last replies (250 chars)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H014",
+    "H026",
+    "H027",
+    "H033",
+    "H036",
+    "H038"
+   ],
+   "run": "39589683291",
+   "read": "failing ids per judge; traces, judge notes and last replies (260 chars) of H027 p2/p3, H036 p2, H003 p2; every reply in this run and in 39588330975 scanned by code for short confirm questions (counts only)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H007",
+    "H010",
+    "H011",
+    "H027",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39590964501",
+   "read": "failing ids per judge; H027 traces p1/p2, p2 judge note and last replies (160 chars); every reply in this run and the two before scanned by code for error, step-limit and empty replies and for no-tool turns of 2+ steps (ids only)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H006",
+    "H009",
+    "H018",
+    "H026",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39592260931",
+   "read": "failing ids per judge; H009 traces, stored row (stage_detail) and last replies (200 chars) in three passes; H018 p1 trace and last reply (flagged by the dangling-question scan); every reply scanned by code for error and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H015",
+    "H018",
+    "H026",
+    "H027",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39593068532 (5-pass control)",
+   "read": "failing ids per judge; H004 p2 trace and replies (120 chars); H004 traces, failure notes and replies (140 chars) in 39588330975, 39589683291, 39590964501, 39592260931; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H010",
+    "H011",
+    "H022",
+    "H025",
+    "H026",
+    "H027",
+    "H029",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39593783917",
+   "read": "failing ids per judge; the five H006 last replies (230 chars) to check the task; H029 traces and replies (90 chars) here and in the control 39593068532 p1-p2; every reply scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H018",
+    "H026",
+    "H027",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39594869110 + H034 reads",
+   "read": "failing ids per judge; H004 p1 trace and replies (110 chars); every trace scanned for model errors; H006 judge marks; H034 traces, failure notes and last replies (200 chars) in 39593068532 and 39593783917",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H013",
+    "H018",
+    "H024",
+    "H026",
+    "H027",
+    "H033",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39595726808",
+   "read": "failing ids per judge; the five H018 last replies (240 chars); traces and error replies (70 chars) of H002 p1/p2 and H004 p1/p3; H034 last replies (420 chars) in 39593068532 p2/p4 and 39594786298 p1/p2",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H009",
+    "H011",
+    "H026",
+    "H027",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "39596499844",
+   "read": "failing ids per judge; H004 p2 trace, judge notes and replies (130 chars); every reply and trace scanned by code for error, step-limit and empty replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H018",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39597370231",
+   "read": "failing ids per judge; H018 p1 last reply (600 chars, flagged by the dangling scan); H004 p1/p3/p4 traces and last replies (100 chars); every trace scanned for stage refusals and error replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H018",
+    "H026",
+    "H033",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39598175332",
+   "read": "failing ids per judge; every trace scanned by code for repeated identical refusals and error replies (counts only)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H001",
+    "H002",
+    "H004",
+    "H007",
+    "H009",
+    "H010",
+    "H011",
+    "H018",
+    "H025",
+    "H034",
+    "H035",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39599518668 (stacked build)",
+   "read": "failing ids per judge; H018 p1 judge note and last reply (500 chars); H011 failure reasons in five passes; every reply scanned by code for mid-thread re-introductions, '[your skill]' and error replies (ids only); H036 replies with brackets in six runs (200 chars); bracket placeholders in all stored replies (ids and 160 chars of context)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H003",
+    "H004",
+    "H010",
+    "H018",
+    "H026",
+    "H033",
+    "H034",
+    "H036",
+    "H037",
+    "H038"
+   ],
+   "run": "39601021457 (stacked build 2)",
+   "read": "failing ids per judge; the five H018 last lines (140 chars) and a code check for save words; every reply scanned by code for error replies",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H010",
+    "H011",
+    "H013",
+    "H018",
+    "H019",
+    "H025",
+    "H026",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39602408286 (stacked rerun, parity harness)",
+   "read": "failing ids per judge; H004 traces and last replies (150 chars) in five passes; H018 p2/p4 judge notes and last replies (420 chars); H036 judge notes in five passes",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H008",
+    "H009",
+    "H010",
+    "H011",
+    "H013",
+    "H015",
+    "H021",
+    "H026",
+    "H030",
+    "H033",
+    "H034",
+    "H035",
+    "H036"
+   ],
+   "run": "39603731114",
+   "read": "failing ids per judge; H004 and H003 last replies (120 chars) in five passes; H004 p1 traces and replies (80 chars)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H006",
+    "H009",
+    "H010",
+    "H011",
+    "H015",
+    "H017",
+    "H026",
+    "H034",
+    "H036",
+    "H038"
+   ],
+   "run": "39604511712",
+   "read": "failing ids per judge; the five H034 last replies (260 chars)",
+   "at": "2026-10-21"
+  },
+  {
+   "ids": [
+    "H002",
+    "H003",
+    "H004",
+    "H007",
+    "H013",
+    "H023",
+    "H026",
+    "H027",
+    "H033",
+    "H034",
+    "H035",
+    "H036",
+    "H038"
+   ],
+   "run": "39606066270 (final stacked build)",
+   "read": "failing ids per judge; H004 traces (track_application calls per turn, how each turn stopped) and last replies (120 chars) in five passes; H034 judge marks",
+   "at": "2026-10-21"
+  }
+ ],
+ "ids_only": [
+  {
+   "runs": [
+    "39542849277",
+    "39543405447"
+   ],
+   "read": "pass/fail ids and scores only, no item text, no failure reasons",
+   "at": "2026-10-21"
+  }
+ ]
+}

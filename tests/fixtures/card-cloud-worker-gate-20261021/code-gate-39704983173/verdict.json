@@ -1,0 +1,26 @@
+{
+  "status": "VERIFIED_RED",
+  "run_id": 39704983173,
+  "source_pin": "8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3",
+  "raw_job_sha256": "c8eff2f9ab992ba8155ab742f37eead8f15de7d7e97a73df35b006c7d4e23f11",
+  "architect": {
+    "pass": 1227,
+    "fail": 12
+  },
+  "node": {
+    "pass": 2462,
+    "fail": 9,
+    "skip": 24
+  },
+  "edge": {
+    "pass": 151,
+    "fail": 0
+  },
+  "launcher_mocks": {
+    "pass": 6,
+    "fail": 0
+  },
+  "database_job": "ABSENT: verified separately in PG16 run39707070816",
+  "new_provider_cost_usd": 0,
+  "limit": "No release PASS; no tests edited or suppressed here. Failure mechanism/classification requires separate QA handoff."
+}

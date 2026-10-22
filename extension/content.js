@@ -98,6 +98,13 @@
     if (n && form.bindings[n]?.widget) personEdit(n);
   }, true);
 
+  // An Ashby yes/no press: a click on the page's own button; its hidden box gets no input or change (a No leaves it
+  // unchecked), so the person's press is caught here and the card is read again.
+  document.addEventListener("click", (e) => {
+    if (!e.isTrusted || !form || !D.yesNoPress(e.target)) return;
+    const n = D.fieldNameFor(e.target, form);
+    if (n) setTimeout(() => personEdit(n), 0);
+  }, true);
   const scheduleRefresh = () => {
     if (!reviewed && !plan) return;
     clearTimeout(refreshTimer);
@@ -145,15 +152,32 @@
     ...fields.filter((f) => f.masked).map((f) => f.selector),
     ...form.schema.filter((s) => C.isIdentityField(s)).map((s) => form.bindings[s.name]?.selector),
   ].filter(Boolean);
+  // WO-101: the fields whose options exist only on the page (a dropdown widget, a place search): the planner's answer is
+  // put on the employer's own entry for it when the list opens.
+  const listedNames = (f) => f.schema.filter((s) => {
+    const b = f.bindings[s.name];
+    return b && (b.widget || D.isPlaceSearch(D.element(b.selector)));
+  }).map((s) => s.name);
+  // WO-102: the planner's answers through the contract (TraineeCore.contractFill): unsupported required answers become
+  // questions (asked once, and open on the card); unsupported optional ones are left empty.
+  function contractPlan(plan, f, c = ctx) {
+    if (!c?.manifest) return { ...plan, fill: [] }; // no manifest, no trusted facts: nothing is filled
+    const r = C.contractFill({ schema: f.schema, plan, manifest: c.manifest, listed: listedNames(f), resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null });
+    const asked = new Set(plan.needs.map((n) => n.label));
+    return { ...plan, fill: r.fill, needs: [...plan.needs, ...r.asks.filter((q) => !asked.has(q.label)).map((q) => ({ label: q.label, type: q.type, options: q.options }))] };
+  }
   function openRequired(fields) {
     const have = new Set(fields.map((f) => f.name));
-    return form.schema.filter((s) => s.required && !have.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
+    // FRS: a cover letter pasted (or drafted and used) in the upload's own text box answers the upload.
+    const pasted = new Set(C.coverLetterFiles({ schema: form.schema, fields }).filter((c) => c.pasted).map((c) => c.name));
+    return form.schema.filter((s) => s.required && !have.has(s.name) && !pasted.has(s.name) && !C.fileAlternative(s, form.schema)).map((s) => C.shortLabel(s.label));
   }
   const payloadOf = (fields) =>
     C.reviewPayload({
       userId: ctx.userId, jobId, company, url: location.href, family: portal.family, fields,
       resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null,
       account: { epoch: Number(ctx.account?.epoch ?? 0), version: Number(ctx.account?.version ?? 0) }, expiresAt,
+      manifest: ctx.manifest ? { hash: ctx.manifest.hash, version: ctx.manifest.version } : null,
     });
 
   // The card: rebuilt whenever the form changes before the tap, so the person always approves what is there now.
@@ -176,7 +200,8 @@
     // WO-054: what Trainee filled from an answer the person gave in the panel before the session is marked on the card.
     const before = C.beforeSession(fields, ctx.before || []);
     const lines = C.cardLines({ company, family: portal.family, payload, openRequired: open.filter((l) => !ambiguous.some((a) => C.shortLabel(a.label) === l)),
-      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday, before });
+      identity: plan?.identity || [], blockers: block, verification, ambiguous: ambiguous.filter((a) => ambiguousNames.has(a.name)), workday,
+      coverFiles: C.coverLetterFiles({ schema: form.schema, fields }), before });
     reviewed = { fields, payload, hash, text: C.payloadText(payload) };
     timing.card = Date.now();
     timing.first_card ??= timing.card;
@@ -189,7 +214,13 @@
     }
     const essays = portal.family === "workday" ? [] : C.essayQuestions({ schema: form.schema, fields, maxLength });
     const formLabels = [...new Set(form.schema.map((s) => String(s.label || "")).filter(Boolean))].slice(0, 200);
-    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before,
+    // WO-101: the planner run again on the live form, for the check against the person's batch approval (background.js).
+    const batch = ctx.agentSubmits && ctx.queued && !wd && portal.family !== "workday"
+      ? C.batchPlan({ jobId, company, url: location.href, family: portal.family, schema: form.schema, challenge: !!D.fnDetectChallenge(),
+        plan: C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }),
+        resume: ctx.resume ? { filename: ctx.resume.name, sha256: ctx.resume.sha256 } : null, listed: listedNames(form), manifest: ctx.manifest })
+      : undefined;
+    await send({ type: "card", card: { jobId, company, family: portal.family, url: location.href, lines, hash, payload, blockers: block, openRequired: open, timing: { ...timing }, essays, formLabels, before, batch,
       ...(workday ? { action: workday.action, step: workday.step } : {}),
       status: block.length ? "blocked" : "ready", message: block.length ? "Not ready to approve yet." : "Read every answer, then approve.", shown_at: shownAt, approved: false } });
   }
@@ -233,6 +264,8 @@
       where = D.fnPostingLocation(); // WO-053: where the job is, as its page shows it
       expiresAt = new Date(Date.now() + 2 * 3600_000).toISOString();
       plan = C.planForm({ userId: ctx.userId, jobId, company, family: portal.family, schema: form.schema, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where });
+      // WO-102: only answers the submission-quality contract allows are filled; the rest go back to the person as questions.
+      plan = contractPlan(plan, form);
       timing.plan = Date.now();
       timing.fields = form.schema.length;
       timing.widgets = Object.values(form.bindings).filter((b) => b.widget).length;
@@ -247,9 +280,19 @@
         // them, with the whole form beside it (an education end date is one only beside its school).
         const s = form.schema.find((x) => x.name === p.name);
         const listed = b.widget || D.isPlaceSearch(D.element(b.selector));
-        const choose = listed && s ? (labels) => C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where }) : undefined;
+        // FRS: only an option that derives from the approved fact is clicked (chooseWidgetOption); a list on which none does
+        // leaves a required widget to the person, asked like any question the contract turns back.
+        let refused = null;
+        const choose = listed && s ? (labels) => {
+          const v = C.chooseWidgetOption({ userId: ctx.userId, jobId, company, family: portal.family, field: s, form: form.schema, labels, answers: ctx.answers, saved: ctx.saved, now: Date.now(), location: where, factId: p.factId });
+          refused = v === null ? labels : null;
+          return v;
+        } : undefined;
         const t0 = Date.now();
         const ok = await D.fill(b, p.value, resume, choose);
+        if (!ok && refused && s.required && !plan.needs.some((n) => n.label === s.label)) {
+          plan.needs.push({ label: s.label, type: String(s.type || "input_text"), options: refused.length <= 60 ? refused : [] });
+        }
         await sleep(20);
         // WO-042: the fields that take time (over 300 ms), named, for the benchmark's slowest-step list.
         if (Date.now() - t0 > 300) (timing.slow ??= {})[p.name] = Date.now() - t0;
@@ -299,8 +342,14 @@
     if (!f.schema.length) return send({ type: "survey", ok: false, why: "no application form on the page" });
     const id = C.postingKey(location.href) || C.postingKey(document.referrer || "") || location.origin + location.pathname;
     const at = D.fnPostingLocation();
-    const p = C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at });
-    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs });
+    const p = contractPlan(C.planForm({ userId: c.userId, jobId: id, company: C.tenantOf(id) || location.hostname, family: portal.family, schema: f.schema, answers: c.answers, saved: c.saved, now: Date.now(), location: at }), f, c);
+    // WO-101: with agent submits on, this posting's batch entry: every answer exactly as the fill will send it, or why it
+    // is left out of a batch (anything the person must answer or do first).
+    const batch = c.agentSubmits ? C.batchPlan({ jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, family: portal.family, schema: f.schema, plan: p,
+      challenge: false, resume: c.resume ? { filename: c.resume.name, sha256: c.resume.sha256 } : null, listed: listedNames(f), manifest: c.manifest }) : undefined;
+    // 50-in-30: the form as read goes with it, so the background can plan it again after the person's answers.
+    return send({ type: "survey", ok: true, jobId: id, company: C.tenantOf(id) || location.hostname, url: location.href, location: at, needs: p.needs, batch,
+      schema: f.schema, listed: listedNames(f), family: portal.family });
   }
   function formReady(ms) {
     return new Promise((resolve) => {
@@ -479,6 +528,9 @@
   const changedMsg = (changed) =>
     `A value changed after you reviewed it (${changed.map(C.shortLabel).join("; ") || "the form"}). Nothing was sent. Press Fill this application to read the form again.`;
   const ABORTED = "You changed the form after approving, so it was not sent. Press Fill this application to read it again.";
+  // Person-submits mode: how long Trainee waits for the person's own press before it closes the application as not sent.
+  const PERSON_WAIT_MS = 20 * 60_000;
+  const PERSON_TIMEOUT = "You did not press Submit within 20 minutes, so nothing was sent. Press Fill this application to start again.";
 
   // Is the page still exactly the approved application? Every answer, its source, what the browser sends for it (option
   // values, checked states, the attached file's bytes), compared as the whole payload. No await: usable next to the click.
@@ -526,6 +578,8 @@
       submitting = false;
       return;
     }
+    // Person-submits mode (config personSubmits, off by default): Trainee presses nothing; the person does.
+    if (ctx?.personSubmits) return armForPerson(button, steps, planned);
     // The last look and the click, in one task: no page script and no person can act between them (WO-031 review).
     const last = stillApproved();
     const challenge = !!D.fnDetectChallenge();
@@ -539,6 +593,56 @@
     globalThis.__traineeClicked = true; // tells the background this page is the one that clicked, not the page after it
     button.click();
     send({ type: "clicked", at: Date.now(), errorsBefore, steps });
+    await watchAfterClick(errorsBefore, before, planned, last);
+  }
+
+  // Person-submits mode: everything up to the click has passed (the approved card, the unchanged form, no verification
+  // showing, the picture, the recorded start). Trainee presses nothing. The person reads the filled page and presses the
+  // site's own Submit; that trusted press is caught first, on window, before any page script, and the form must still be
+  // exactly the approved one with no verification showing, or the press is stopped and nothing is sent. No press within
+  // PERSON_WAIT_MS: nothing was sent, and the started application is closed as stopped before the click.
+  function armForPerson(button, steps, planned) {
+    const form = button.form || button.closest("form");
+    let done = false;
+    const disarm = () => {
+      done = true;
+      clearTimeout(timer);
+      removeEventListener("click", onPress, true);
+      removeEventListener("submit", onPress, true);
+    };
+    const onPress = (e) => {
+      if (done || sent || !e.isTrusted) return;
+      if (e.type === "click" ? !button.contains(e.target) : e.target !== form) return;
+      const last = stillApproved();
+      const challenge = !!D.fnDetectChallenge();
+      if (personAbort || !last.ok || challenge || !button.isConnected) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        disarm();
+        const why = personAbort ? ABORTED : challenge ? HANDOFF : last.ok ? "The page's Submit button changed. Nothing was sent." : changedMsg(last.changed);
+        stop(why, { finishPending: true, reason: C.BEFORE_CLICK, beforeClick: true });
+        return;
+      }
+      disarm();
+      const errorsBefore = D.visibleErrors(), before = location.href;
+      steps.begun = Date.now();
+      sent = true;
+      globalThis.__traineeClicked = true;
+      send({ type: "clicked", at: Date.now(), errorsBefore, steps, byPerson: true });
+      watchAfterClick(errorsBefore, before, planned, last);
+    };
+    const timer = setTimeout(() => {
+      if (done || sent) return;
+      disarm();
+      stop(PERSON_TIMEOUT, { finishPending: true, reason: C.BEFORE_CLICK, beforeClick: true });
+    }, PERSON_WAIT_MS);
+    addEventListener("click", onPress, true);
+    addEventListener("submit", onPress, true);
+    send({ type: "awaiting-person" });
+  }
+
+  // After the site's own Submit (pressed by Trainee after the one tap, or by the person in person-submits mode).
+  async function watchAfterClick(errorsBefore, before, planned, last) {
     // A page that answers in place (Greenhouse, Ashby) is read here; one that moves away is read by the service worker.
     // The wait ends only when the form is gone, a new error appears, or the page asks for something; otherwise after 30
     // seconds the outcome is unknown, counted as applied, never resent.
@@ -618,6 +722,12 @@
     if (m?.type === "prepare") {
       prepare().then(reply);
       return true;
+    }
+    if (m?.type === "agent-stop") {
+      // WO-101: the person's "Stop applying": a send in progress stops at its next check before the click.
+      if (submitting && !sent) personAbort = true;
+      reply({ ok: true });
+      return false;
     }
     if (m?.type === "submit") {
       // Answered at once: the submit may move the page away, which would close a reply still waiting (WO-031 review).

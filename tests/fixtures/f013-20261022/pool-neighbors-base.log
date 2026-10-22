@@ -1,0 +1,18 @@
+(node:455521) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:455521) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ mapper: a KB row becomes the corpus shape rankedShortlist consumes (14.305261ms)
+✔ mapper: HTML/entities in the excerpt are stripped, remote is read from the row's own text (0.717619ms)
+✔ mapper: a company-less row stays company-less (TN-1a) and an unusable row is dropped, never repaired (0.679556ms)
+✔ loader: reads career_kb_postings bounded + recency-ordered and reports the pool's fetched_on (0.829915ms)
+✔ loader: a failing KB read degrades to an empty pool — never a throw, never an invented role (1.288644ms)
+✔ handler: a discovery ask ranks a real role from the KB pool (the §8 gap, closed) (2685.662379ms)
+✔ handler: with the KB read failing, the same ask degrades to the honest-empty reply (no crash, no invented role) (1620.477323ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4522.841749

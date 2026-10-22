@@ -23,6 +23,46 @@ set -euo pipefail
 : "${SUPABASE_DB_URL:?set SUPABASE_DB_URL (Project Settings > Database > Connection string)}"
 cd "$(dirname "$0")/../.."
 run() { echo "== $1"; psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$1"; sha256sum "$1"; }
+# This reviewed bridge owns BEGIN/COMMIT and cannot share an enclosing transaction.
+# Every other file retains the existing ordered, transactional ledger batch behavior.
+STANDALONE_BRIDGE="20261024130000_career_apply_card_cloud_bridge.sql"
+run_legacy_migration_group() {
+  local ledger="$1"; shift
+  local path name; local args=() names=()
+  for path in "$@"; do
+    name="$(basename "$path")"; names+=("$name"); args+=(-f "$path")
+    if [[ "$ledger" == true ]]; then
+      args+=(-c "insert into public.upmore_migration_ledger(filename,sha256) values ('$name','$(sha256sum "$path" | cut -d' ' -f1)')")
+    fi
+  done
+  if [[ "$ledger" == true ]]; then
+    echo "== pending migrations, one transaction: ${names[*]}"
+  else
+    echo "== legacy migration group, one transaction: ${names[*]}"
+  fi
+  "${P[@]}" --single-transaction "${args[@]}"
+}
+run_ordered_migration_groups() {
+  local ledger="$1"; shift
+  local path name; local group=()
+  for path in "$@"; do
+    name="$(basename "$path")"
+    if [[ "$name" != "$STANDALONE_BRIDGE" ]]; then group+=("$path"); continue; fi
+    if (( ${#group[@]} )); then run_legacy_migration_group "$ledger" "${group[@]}"; group=(); fi
+    echo "== standalone bridge migration: $name"
+    "${P[@]}" -f "$path"
+    # The file has already committed. If recording fails, stop; do not retry it or run later files.
+    # A later explicit invocation can replay this idempotent file before recording its ledger row.
+    if [[ "$ledger" == true ]]; then
+      "${P[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$name','$(sha256sum "$path" | cut -d' ' -f1)')" || {
+        local ledger_status=$?
+        echo "STOP: $name committed, but its ledger write failed; no later file or automatic retry ran" >&2
+        return "$ledger_status"
+      }
+    fi
+  done
+  if (( ${#group[@]} )); then run_legacy_migration_group "$ledger" "${group[@]}"; fi
+}
 # --pending (the default for every run after the first go-live): a ledger table records each applied file, and only the
 # files missing from it are applied, in ONE transaction, each with its ledger row. A re-run with nothing new applies
 # nothing. The first time, the ledger is backfilled with every file up to BASELINE, the last file the 2026-10-11 19:01 UTC
@@ -39,22 +79,35 @@ if [[ "${1:-}" == "--pending" ]]; then
     echo "== ledger backfilled up to $BASELINE"
   fi
   applied="$("${P[@]}" -tAc "select filename from public.upmore_migration_ledger")"
-  args=(); names=()
+  args=(); names=(); pending_files=()
   for f in supabase/migrations/*.sql; do b="$(basename "$f")"
     grep -qxF "$b" <<<"$applied" && continue
-    args+=(-f "$f" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$b','$(sha256sum "$f" | cut -d' ' -f1)')"); names+=("$b")
+    args+=(-f "$f" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$b','$(sha256sum "$f" | cut -d' ' -f1)')"); names+=("$b"); pending_files+=("$f")
   done
   if (( ${#names[@]} == 0 )); then echo "== no pending migrations"; exit 0; fi
-  echo "== pending migrations, one transaction: ${names[*]}"
-  "${P[@]}" --single-transaction "${args[@]}"
+  if [[ " ${names[*]} " == *" $STANDALONE_BRIDGE "* ]]; then
+    echo "== pending migrations, ordered groups with standalone bridge: ${names[*]}"
+    run_ordered_migration_groups true "${pending_files[@]}"
+  else
+    echo "== pending migrations, one transaction: ${names[*]}"
+    "${P[@]}" --single-transaction "${args[@]}"
+  fi
   echo "== applied ${#names[@]}"
   exit 0
 fi
 if [[ "${1:-}" == "--all" ]]; then
-  files=()
-  for f in supabase/migrations/*.sql; do b="$(basename "$f")"; [[ "$b" > "20261008_000005_~" ]] && files+=(-f "$f"); done
-  echo "== all pending migrations, one transaction: $(( ${#files[@]} / 2 )) files"
-  psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 --single-transaction "${files[@]}"
+  files=(); ordered_files=(); standalone=false
+  for f in supabase/migrations/*.sql; do b="$(basename "$f")"; if [[ "$b" > "20261008_000005_~" ]]; then
+    files+=(-f "$f"); ordered_files+=("$f"); [[ "$b" == "$STANDALONE_BRIDGE" ]] && standalone=true
+  fi; done
+  if [[ "$standalone" == true ]]; then
+    echo "== all pending migrations, ordered groups with standalone bridge: ${#ordered_files[@]} files"
+    P=(psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1)
+    run_ordered_migration_groups false "${ordered_files[@]}"
+  else
+    echo "== all pending migrations, one transaction: $(( ${#files[@]} / 2 )) files"
+    psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 --single-transaction "${files[@]}"
+  fi
   for ((i = 1; i < ${#files[@]}; i += 2)); do sha256sum "${files[$i]}"; done
   run scripts/launch/seed-gauntlet-test-user.sql
   echo "== proof (read-only, rolled back)"

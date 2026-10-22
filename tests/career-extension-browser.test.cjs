@@ -281,7 +281,13 @@ test("accuracy: report (precision and coverage per family; dev and held-out)", a
   // Every wrong fill is listed in the report and shown on the card, where the person reads it before the one tap.
   // WO-052: lever 0.96 -> 0.95. Two Lever answers the key had as fills are the person's (an agreement beyond the
   // standing privacy consent; a pay box with its own format), so 73/76 became 71/74 with the same three misses.
-  const FLOOR = { greenhouse: [1, 1], lever: [1, 0.95], ashby: [1, 0.95] };
+  // WO-102 (the second judge's submission-quality contract, 2026-10-21): answers that are an inference or an
+  // attestation are asked, not filled. Precision stays 1 in every family; coverage drops by exactly these 11 fields,
+  // measured against the previous build on the same captures: "End date year" twice (a date fact reformatted), "What's
+  // your citizenship / employment eligibility?" (an option mapped from another wording), Lyra, Crusoe, Snowflake and
+  // PwC "have you worked here" (inferred from the employer list), "native Basque translator" (inferred), and the
+  // Snowflake privacy notice, Crusoe's text-message consent and Airwallex's AI statement (attestations: his own answer).
+  const FLOOR = { greenhouse: [1, 0.94], lever: [1, 0.9], ashby: [1, 0.8] };
   for (const [fam, r] of Object.entries(report.families)) {
     assert.ok(r.all.precision >= FLOOR[fam][0], `${fam} precision ${r.all.precision} fell below ${FLOOR[fam][0]}: ${JSON.stringify(r.wrong)}`);
     assert.ok(r.excluding_widgets.coverage >= FLOOR[fam][1], `${fam} coverage ${r.excluding_widgets.coverage} fell below ${FLOOR[fam][1]}`);
@@ -317,11 +323,29 @@ async function personAnswers(form, values = {}, skip = new Set()) {
 }
 async function readyCard(form) {
   let card = await fill(form);
+  if (card.status === "blocked") card = await answeredByText(form, card);
   if (card.status === "blocked") {
     await personAnswers(form);
     card = await waitCard(form.tabId, (c) => c.status === "ready" || c.status === "stopped", 10000);
   }
   return card;
+}
+// WO-102: a required choice Trainee may not infer (has the person worked here, a yes or no the page cannot show a "No"
+// for) is answered by the TEST person by text ("No" where offered), under the key the extension asks it by
+// (TraineeCore.questionsForTrainee), as the ask-once path does; then the form is read again and Trainee fills the
+// person's own answer. Typed fields stay the person's to type (personAnswers).
+async function answeredByText(form, card) {
+  const now = await formNow(form.tabId);
+  const yesNo = (f) => f.b.inputType === "checkbox" || (f.options || []).some((o) => /^no\b/i.test(String(o.label)));
+  const needs = now.filter((f) => f.required && !f.value && !f.b.widget && yesNo(f))
+    .map((f) => ({ label: f.label, type: f.type || "input_text", options: (f.options || []).map((o) => String(o.label)) }));
+  if (!needs.length) return card;
+  const rows = await sw.evaluate((o) => globalThis.TraineeCore.questionsForTrainee({ ...o, answers: {}, answered: new Set() }).questions, { jobId: card.jobId, company: card.company, needs });
+  if (!rows.length) return card;
+  for (const q of rows) world.answer(q.key, q.kind, (q.options || []).find((o) => /^no\b/i.test(o)) ?? "No");
+  const at = Date.now();
+  await form.panel.click("#fill");
+  return await waitCard(form.tabId, (c) => c.updated_at > at && ["ready", "blocked", "stopped"].includes(c.status) && (c.payload || c.status === "stopped"), 20000);
 }
 const fresh = () => {
   world.state.jobs = [];
@@ -1197,7 +1221,14 @@ const ESSAY_FORM = "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d";
 const WHY_NAME = "why_test";
 const essayEl = (sel) => `.essay[data-name="${WHY_NAME}"] ${sel}`;
 const fieldOf = (card, name = WHY_NAME) => (card.payload?.fields || []).find((f) => f.name === name) || null;
+// WO-102: a drafted answer goes only when every fact behind it is one the person gave. The essay stand-in drafts from
+// TEST-F1 and TEST-F2, so the TEST person holds both as owner-stated facts (an imported confirmed-facts file).
+const ownEssayFacts = () => sw.evaluate((uid) => chrome.storage.session.set({ imported_file: { user_id: uid, saved: {}, answers: {
+  essay_fact_one: { value: "TEST fact one", factId: "TEST-F1", confirmed: true, user_id: uid, provenance: "owner stated in chat (TEST)", confirmation_event_id: "evt-TEST-F1" },
+  essay_fact_two: { value: "TEST fact two", factId: "TEST-F2", confirmed: true, user_id: uid, provenance: "owner stated in chat (TEST)", confirmation_event_id: "evt-TEST-F2" },
+} } }), world.userId);
 async function essayForm(k, variant = "essay") {
+  await ownEssayFacts();
   const form = await openForm(world.cloneUrl(ESSAY_FORM, k) + "?trainee_test=" + variant);
   await fill(form);
   // The person answers everything else themselves and leaves the written question for the card.

@@ -56,6 +56,7 @@ function drive(specs) {
   fs.writeFileSync(driver, `
 import { prepare } from ${JSON.stringify("file://" + repo + "/workers/career-browser/approve-first.ts")};
 import { cloudEngineRunner, cloudLoop } from ${JSON.stringify("file://" + repo + "/workers/career-cloud/worker.ts")};
+import { hashApplyPayload } from ${JSON.stringify("file://" + repo + "/supabase/functions/_shared/career_apply_store.ts")};
 const specs = JSON.parse(Deno.env.get("SPECS")!);
 const dir = ${JSON.stringify(dir)};
 const resume = dir + "/resume.pdf";
@@ -67,12 +68,12 @@ const jobs = [];
 for (const s of specs) {
   const facts = dir + "/facts-" + s.user + ".json";
   await Deno.writeTextFile(facts, JSON.stringify({ user_id: "TEST-" + s.user, answers: {
-    first_name: { value: "TEST " + s.user, factId: "TEST-" + s.user + "-1", confirmed: true },
-    email: { value: s.user.toLowerCase() + "@example.test", factId: "TEST-" + s.user + "-2", confirmed: true } }, saved: {} }));
+    first_name: { value: "TEST " + s.user, factId: "TEST-" + s.user + "-1", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-" + s.user + "-1" },
+    email: { value: s.user.toLowerCase() + "@example.test", factId: "TEST-" + s.user + "-2", confirmed: true, provenance: "owner stated (TEST)", confirmation_event_id: "evt-TEST-" + s.user + "-2" } }, saved: {} }));
   const p = await prepare({ url: s.url, factsPath: facts, resumePath: resume, account: { epoch: 1, version: 1 }, now: Date.now(), runEngine: engine });
   if (!p.ready) throw Error("not prepared: " + JSON.stringify(p.result));
   if (s.tamper) p.payload.fields[0].value = "TEST changed after approval";
-  jobs.push({ id: "job-" + s.user, lease_token: "lease-" + s.user, user_id: "TEST-" + s.user, company: p.payload.company, url: s.url, payload: p.payload });
+  jobs.push({ id: "job-" + s.user, lease_token: "lease-" + s.user, user_id: "TEST-" + s.user, company: p.payload.company, url: s.url, payload: p.payload, payload_hash: await hashApplyPayload(p.payload), approval_hash: await hashApplyPayload(p.payload) });
 }
 console.log("PREPARED");
 const finished = [], tmpRoot = dir + "/tmp";
@@ -83,6 +84,8 @@ const queue = {
   resume: async () => ({ filename: "resume.pdf", sha256: jobs[0].payload.resume_sha256, b64: btoa(String.fromCharCode(...bytes)) }),
   finish: async (j, state, evidence, outcome, errorKind) => { finished.push({ id: j.id, state, outcome, errorKind, reason: evidence.reason }); },
   gatePresent: async () => true,
+  // 20261024130000: the card-bound worker authorizes with the queue before the engine and before the effect.
+  authorize: async () => {},
 };
 await cloudLoop({ queue, runEngine: engine, contexts: 2, idleMs: 50, tmpRoot, stop: () => finished.length === jobs.length, log: () => {} });
 console.log("FINISHED " + JSON.stringify({ finished, left: [...Deno.readDirSync(tmpRoot)].length }));

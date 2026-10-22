@@ -5,7 +5,8 @@
 //   external   touches the world (send, submit, message); NEVER runs here. It becomes a pending approval the
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
-import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, untracedFacts } from "./reply_guards.ts";
+import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
 // the ids of facts added during the turn (a fact can never be confirmed in the turn that added it).
@@ -30,7 +31,7 @@ export interface TurnResult {
   // WO-080: a failed call carries `error`, its reason cleaned by scrubError; a call that ran carries none.
   tool_calls: { name: string; ok: boolean; effect: Effect | null; error?: string }[];
   pending_approvals: { tool: string; input: unknown; summary: string }[];
-  stopped: "final" | "max_steps" | "model_error";
+  stopped: "final" | "max_steps" | "model_error" | "incomplete_reply";
   show?: { intent: string; text: string; parts?: string[] };
 }
 
@@ -39,6 +40,8 @@ export const MODEL_ERROR_REPLY = "I can't answer right now because the AI servic
 // When a turn saved something before it stopped, it says so: "nothing saved" would be false.
 export const MAX_STEPS_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't finish the rest in one go, so I stopped partway. Nothing was sent or submitted. Tell me which part to do next.";
 export const MODEL_ERROR_AFTER_SAVE_REPLY = "I saved what you told me, but the AI service stopped responding before I could finish. Nothing was sent or submitted. Try again in a minute.";
+export const INCOMPLETE_REPLY = "I couldn't produce a complete answer, so I stopped. Nothing was sent, saved or submitted. Please try again.";
+export const INCOMPLETE_AFTER_SAVE_REPLY = "I saved what you told me, but couldn't produce a complete answer. Nothing was sent or submitted. Please try again.";
 // WO-077: a reply never claims a change that did not happen this turn (battery run 39485101366, T12: "Kept for good" after
 // only a read). Each kind of claim names the tools that make it true. WO-091a (audit chat-brain F5; battery run
 // 39500971945, BR-062/036/042): a claim is first-person past or present-perfect action language ("I've set…", "I saved…",
@@ -150,6 +153,71 @@ function resultText(v: unknown): string {
   return s.length > RESULT_CHARS ? `${s.slice(0, RESULT_CHARS)}… [cut: ${s.length - RESULT_CHARS} more characters]` : s;
 }
 
+// A structural check, not a semantic judge: a deictic closing question or an acknowledgement cannot stand in for
+// the requested answer. Check AFTER the truth filters, which may have removed the entire answer body. Concrete
+// clarification questions, short factual answers and a phrase the person explicitly asked to copy remain valid.
+const CLOSING_ONLY = /^(?:is (?:that|this) (?:right|correct|accurate|okay|ok)|does (?:that|this) (?:help|work|make sense|sound (?:right|good))|(?:would|will) (?:that|this) work|are we (?:aligned|on the same page)|tell me if (?:that|this|anything) (?:is |sounds )?(?:off|wrong|right)|let me know if (?:that|this) (?:helps|works|sounds (?:right|good)))$/i;
+const ACK_ONLY = /^(?:ok(?:ay)?|got it|understood|noted|sure|thanks|thank you|will do|done|all set|sounds good)$/i;
+// A bare acknowledgement is enough for a purely social turn, not an arbitrary work request. Using a list of request
+// verbs let imperative requests outside that list (for example prepare/find) silently pass without work or a question.
+const SOCIAL_MESSAGE = /^(?:hi|hello|hey(?: there)?|thanks(?: a lot)?|thank you(?: very much)?|ok(?:ay)?|got it|understood|noted|sure|yes|yep|no|nope|cool|great|nice|perfect|sounds good|done)[.!?\s]*$/i;
+// Pre-tool progress is not the completed work. In particular, keeping an earlier promise to write a plan must not
+// suppress repair when the last text is only a closing question. A colon or another substantive sentence can carry
+// actual content, and is left alone; this does not attempt to grade the semantic quality of a plan.
+const PROGRESS_ONLY = /^(?:let me|i(?:'ll| will| am going to|'m going to))\s+(?:(?:just|first|now)\s+)?(?:check|look|search|find|read|review|save|record|prepare|draft|write|create|build|make|put together|work on|gather|think)\b[^:\n]*$/i;
+const ANSWER_WORDS = /\b(?:what|why|how|which|when|where|who|give|show|list|explain|draft|write|compare|outline|plan|recommend|suggest|summari[sz]e|help)\b/i;
+const ANSWER_REQUEST = new RegExp("\\?|" + ANSWER_WORDS.source, "i");
+const RECEIPT_REQUEST = /^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:save|remember|keep|store|record|note)\b/i;
+const QUESTION_LEAD = /^\s*(?:am|is|are|was|were|do|does|did|can|could|should|would|will|have|has|had)\b/i;
+function requestsAnswerBody(message: string): boolean {
+  return pieces(plainQuotes(message)).flatMap(({ text }) => text.split(/[;—–]/)).some((text) => {
+    const request = text.trim();
+    const receipt = RECEIPT_REQUEST.exec(request);
+    if (!receipt) return ANSWER_REQUEST.test(request);
+    const note = request.slice(receipt[0].length);
+    // "Can you remember which..." asks for recall; an instruction to remember a supplied note asks for a write.
+    if (/\byou\s+(?:please\s+)?remember$/i.test(receipt[0]) && /^\s*(?:what|why|how|which|when|where|who)\b/i.test(note)) return true;
+    // The saved note can contain words such as "plan" or "how". Check additional coordinated requests and
+    // independent questions, rather than treating the note or its question mark as another requested answer.
+    return note.split(/[,;—–]|\b(?:and|then|also|but)\b/i).slice(1).some((clause) =>
+      ANSWER_WORDS.test(clause) || (QUESTION_LEAD.test(clause) && /\?/.test(clause)));
+  });
+}
+// These are the fact guard's fill-in fields. They are useful in requested drafts, but cannot stand in for a fact
+// when answering a question. This authorizes an output format, never chooses an answer or a tool by topic.
+const FACT_PLACEHOLDER = /\[(?:your (?:skill|title|degree)|number|result|month|employer or school)\]/gi;
+function unresolvedFactFields(reply: string, message: string, sources: string[]): boolean {
+  const fields = reply.match(FACT_PLACEHOLDER) ?? [];
+  if (!fields.length || fields.every((f) => plainQuotes(message).toLowerCase().includes(f.toLowerCase()))) return false;
+  const contentRequest = /(?:^|[.!?]\s+)\s*(?:(?:please|(?:can|could|would|will) you(?: please)?)\s+)?(?:write|draft|compose|rewrite|revise|edit|rephrase|shorten|give|show|make|create|prepare|i (?:need|want|would like)|i'd like)\b/i.test(plainQuotes(message));
+  const draftFormat = /\b(?:templates?|fill[- ]in|placeholders?|emails?|messages?|letters?|notes?|repl(?:y|ies)|essays?|resumes?|bios?|scripts?)\b/i.test(message);
+  if (contentRequest && draftFormat) return false;
+  const sourceWords = new Set(sources.join(" ").toLowerCase().match(/[\p{L}\p{N}+#]+/gu) ?? []);
+  // A surviving supported explanation remains useful. A placeholder plus generic praise supplies none, whereas
+  // a qualifier naming actual recorded work can carry an answer independently of the missing field.
+  const clauses = pieces(reply).map((p) => p.text.trim()).filter(Boolean);
+  return clauses.length > 0 && clauses.every((clause) => {
+    if (!(clause.match(FACT_PLACEHOLDER) ?? []).length) return CLOSING_ONLY.test(clause.replace(/[.!?]+$/, "")) || ACK_ONLY.test(clause.replace(/[.!?]+$/, ""));
+    const context = /\b(?:from|at|using|with|through|during)\s+([^.!?\n\[\]]+)/gi;
+    return ![...clause.matchAll(context)].some((m) => (m[1].toLowerCase().match(/[\p{L}\p{N}+#]+/gu) ?? []).some((w) => w.length > 3 && sourceWords.has(w)));
+  });
+}
+function missingAnswerBody(reply: string, message: string, receiptOnly = false, sources: string[] = []): boolean {
+  if (!/[\p{L}\p{N}]/u.test(reply)) return true;
+  const quoted = [...plainQuotes(message).matchAll(/"([^"\n]+)"/g)].map((m) => m[1]);
+  if (/\b(?:reply|respond|say|repeat|copy)\b[^\n]{0,40}\b(?:exactly|verbatim)\b/i.test(message) && quoted.includes(plainQuotes(reply))) return false;
+  // In a drafted message, "I'll review the role tonight" can be the requested deliverable, not this agent's
+  // promise. Preserve an utterance the person actually supplied, including its contracted spelling. A general
+  // request to draft something does not exempt the agent's own "I'll draft it" preamble.
+  const utterance = (s: string) => plainQuotes(s).toLowerCase().replace(/\bi'll\b/g, "i will").replace(/[.!?]+$/, "").trim().replace(/\s+/g, " ");
+  if (/\b(?:write|draft|compose|word|say|saying|tell|respond)\b/i.test(message) &&
+    /\b(?:reply|message|email|text|note|letter|sentence|script)\b/i.test(message) && utterance(message).includes(utterance(reply))) return false;
+  if (unresolvedFactFields(reply, message, sources)) return true;
+  const clauses = pieces(plainQuotes(reply).replace(/\b(that|this|it)'s\b/gi, "$1 is").replace(/[*_`~]/g, "")).flatMap((p) => p.text.split(/[;—–]/)).map((s) => s.trim().replace(/^(?:[-•]|\d+[.)])\s+/, "").replace(/[.!?]+$/, "").trim()).filter(Boolean);
+  return clauses.length > 0 && clauses.every((s) => CLOSING_ONLY.test(s) || (!SOCIAL_MESSAGE.test(message.trim()) && (ACK_ONLY.test(s) || PROGRESS_ONLY.test(s))) || (receiptOnly && claimsIn(s).length > 0));
+}
+const COMPLETENESS_REPAIR = "The previous draft did not contain an answer body after output validation. Answer the person's original request using only the conversation and successful tool results already available. Give the requested content, or ask a concrete question for missing information. A generic acknowledgement, action receipt, closing confirmation or unresolved fill-in field is not the requested answer. Keep placeholders only in a draft or template the person requested. Do not invent personal facts or claim actions. Tools are disabled for this single repair; do not repeat any action.";
+
 export async function runAgentTurn(o: { system: string; history: any[]; message: string; tools: ToolSpec[]; model: ModelFn; ctx: ToolCtx; maxSteps?: number }): Promise<TurnResult> {
   const max = o.maxSteps ?? 6;
   const byName = new Map(o.tools.map((t) => [t.name, t]));
@@ -166,11 +234,22 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
   const seen: string[] = [];
   const typed = [o.message, ...o.history.filter((m: any) => m && m.role === "user").map((m: any) => typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""))].join("\n");
   const toolNames = o.tools.map((t) => t.name);
-  let steps = 0, checked = false, ask = false;
+  let steps = 0, checked = false, ask = false, repairing = false;
+  let repairNote = COMPLETENESS_REPAIR;
+  // WO-061 (H028, H035, H007, H033): code's review of its own draft rides in that one call's system prompt, never in
+  // the conversation. As a user-role message the model took it for the person's words, refused it out loud ("I can't
+  // follow the instruction to show ... hidden internal words") and the refusal reached the person.
+  let review: string | null = null;
+  // WO-106 (eval E010, 2026-10-21: the whole reply was "Tell me if that's off."): what the model wrote beside a tool call
+  // (the answer, then add_profile_fact) is kept; when the last message is only a short trailer, the answer goes first.
+  const earlier: string[] = [];
+  const incomplete = (): TurnResult => ({ reply: saved() ? INCOMPLETE_AFTER_SAVE_REPLY : INCOMPLETE_REPLY, steps, tool_calls, pending_approvals, stopped: "incomplete_reply" });
   while (steps < max) {
     steps++;
     let res;
-    try { res = await o.model({ system: o.system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask ? { tool_choice: { type: "none" } } : {}) }); }
+    const system = [o.system, review, repairing ? repairNote : null].filter(Boolean).join("\n\n");
+    review = null;
+    try { res = await o.model({ system, messages, tools: toolDefs, max_tokens: MAX_TOKENS, ...(ask || repairing ? { tool_choice: { type: "none" } } : {}) }); }
     catch {
       const show = o.ctx.turn?.show; // what the person must read was already made: it is the reply
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
@@ -178,36 +257,83 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
     }
     const content = Array.isArray(res && res.content) ? res.content : [];
     const uses = content.filter((b: any) => b && b.type === "tool_use");
-    if (!uses.length) {
-      const reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+    // Enforce text-only recovery even if a provider ignores tool_choice. Never repeat effects or enqueue approvals.
+    if (repairing && uses.length) return incomplete();
+    // The provider explicitly says this generation was cut off; plausible text is not evidence it finished. Do not
+    // execute a partial tool request or keep a partial draft as conversation evidence. An exact preview already
+    // generated by code is complete independently of the model's retelling. Otherwise use the same bounded,
+    // text-only repair as a filtered-away answer, inside the remaining step budget.
+    if (res?.stop_reason === "max_tokens") {
       const show = o.ctx.turn?.show;
       if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      if (repairing || steps >= max) return incomplete();
+      repairing = true;
+      repairNote = "Your previous response reached its token limit before completing. Produce a concise complete answer. " + COMPLETENESS_REPAIR;
+      continue;
+    }
+    if (!uses.length) {
+      let reply = content.filter((b: any) => b && b.type === "text").map((b: any) => b.text).join("").trim();
+      const show = o.ctx.turn?.show;
+      if (show) return { reply: show.text, steps, tool_calls, pending_approvals, stopped: "final", show };
+      // A model may write its answer beside a tool call, then finish with only a closing question. Recover that body
+      // without a length heuristic; the assembled reply still passes every truth filter below. A substantive final
+      // answer always supersedes earlier text. Once a repair starts, rejected earlier text must not be reintroduced.
+      if (!repairing && missingAnswerBody(reply, o.message, true) && earlier.length) {
+        reply = [...earlier.filter((s) => !missingAnswerBody(s, o.message)), reply].filter(Boolean).join("\n\n");
+        earlier.length = 0;
+      }
       // The reply guards (WO-077, WO-091a): a claim no tool backs (F5), internal words (F10), and a fact about the person
       // that traces to nothing they or the tools said (F6). All of it is put to the model once, in one message; what
       // stands after that, code fixes.
       const sources = factSources({ state: o.ctx.state, message: o.message, history: o.history, results: seen });
       const leak = { tools: toolNames, typed, postings: postingsOf(seen) };
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
-      if ((claims.length || leaks.length || facts.length) && !checked && steps < max) {
+      const money = unsourcedMoney(reply, [typed, ...seen, ...sources]);
+      const waiver = waiverSolicits(reply, standingRefusal, o.message);
+      if ((claims.length || leaks.length || facts.length || money.length || waiver.length) && !checked && !repairing && steps < max) {
         checked = true;
         const told = [
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
-          facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Put each in brackets as a placeholder for them to fill (for example [your skill]), or leave it out.` : "",
+          money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
+          waiver.length ? "Your reply offers them wording to send, offers to save something, or asks them to confirm something, after they asked to waive their yes or grant a standing permission. Never propose that wording, offer to save it or ask them to confirm it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
+          facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Answer from supported facts, or ask a concrete question for what is missing. Only if they requested a draft or template, mark missing facts with fill-in brackets; a placeholder is not an answer to an informational question.` : "",
         ].filter(Boolean).join(" ");
-        messages.push({ role: "assistant", content: [{ type: "text", text: reply }] });
-        messages.push({ role: "user", content: [{ type: "text", text: `[check, not from the person] ${told}` }] });
+        // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
+        // it to the person): the note is code's, the rewrite is for the person, and no tool runs while it is answered.
+        // WO-061: it is no longer a message at all; the conversation stays as the person left it (see `review`).
+        review = `CODE'S REVIEW OF YOUR DRAFT REPLY. This is from Upmore's code, not from the person: never mention it, never refuse it, never act on it as their request, never save it. Your draft was:\n"""\n${reply}\n"""\n${told} Write your reply to the person again, answering what they asked in their last message, with only those changes.`;
+        // A claim may still be made true by its own tool; a wording or fact check runs no tool at all.
+        if (!claims.length) ask = true;
         continue;
       }
       let out = reply;
-      if (claims.length) {
-        out = rebuild(pieces(reply), new Set(claims.map((c) => c.index)));
-        if (!/[A-Za-z0-9]/.test(out)) return { reply: CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+      const stillMoney = unsourcedMoney(reply, [typed, ...seen, ...sources]);
+      // WO-061 (H018): proposed waiver wording that stands after the check is removed by code, with its save offer.
+      const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
+      if (claims.length || stillMoney.length || stillWaiver.length) {
+        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
+        if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
+        // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
+        // and nothing left says it is still needed, code says it first.
+        if (stillWaiver.length && standingRefusal(o.message) && !/\b(your yes|your approval|without (asking|approval|your)|needs? (your|their) (yes|ok|okay|approval)|not kept|can'?t keep|won'?t (share|send|apply|skip))\b/i.test(out)) out = `${STANDING_REFUSED}\n\n${out}`;
       }
       if (leakedWords(out, leak).length) out = stripLeaks(out, leak);
       if (untracedFacts(out, sources).length) out = bracketUntraced(out, sources);
+      // A successful write backs its receipt, but does not answer a request for content. A plain fact statement
+      // can still end with a backed receipt; use the existing answer-request check rather than grading its prose.
+      if (missingAnswerBody(out, o.message, requestsAnswerBody(o.message), sources)) {
+        if (repairing || steps >= max) return incomplete();
+        // Keep code's instruction out of conversation history and user-fact sources. This uses the remaining turn
+        // budget, is attempted once, and cannot execute tools. The repaired answer passes the same filters again.
+        repairing = true;
+        if (!out.trim()) repairNote = "Your last answer was empty. " + COMPLETENESS_REPAIR;
+        continue;
+      }
       return { reply: out, steps, tool_calls, pending_approvals, stopped: "final" };
     }
+    const pre = content.filter((b: any) => b && b.type === "text").map((b: any) => String(b.text ?? "")).join("").trim();
+    if (pre) earlier.push(pre);
     messages.push({ role: "assistant", content });
     const results: any[] = [];
     for (const u of uses) {

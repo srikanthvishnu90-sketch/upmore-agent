@@ -25,7 +25,7 @@ step() {
     details+=("--- $label, its failed tests:" "$(awk '/=> [^ ]+:[0-9]+:[0-9]+/ { print; next }
       /^[[:space:]]*not ok / { block = 1 }
       block { print }
-      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | head -n 200)")
+      block && /^[[:space:]]*\.\.\.[[:space:]]*$/ { block = 0 }' "$out" | sed -n '1,200p')")
     details+=("--- $label, its last 20 lines:" "$(tail -n 20 "$out")")
     failed=1
   fi
@@ -64,6 +64,8 @@ shared_tests=(
   tests/career-bundle-data.test.cjs
   tests/depth-CAREER-WRITING.test.cjs
   tests/extension-package.test.cjs
+  tests/extension-package-agent.test.cjs
+  tests/edge-runtime-globals.test.cjs
 )
 # Architect ruling: historical external-file evidence stays archived, not
 # edited or deleted. Every other career test remains in the automatic selection.
@@ -118,6 +120,7 @@ edge_tests=(
   tests/edge/career-compare.test.ts
   tests/edge/career-ask-once.test.ts
   tests/edge/control-state.test.ts
+  tests/edge/fact-quarantine.test.ts
 )
 
 portable_test_paths() {

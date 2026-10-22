@@ -50,6 +50,11 @@ function ackShaped(q: Question, t: string): boolean {
   return (onlyAck || statement || (q.type === "checkbox" && t.length > 100 && !t.includes("?"))) && !/on-?site|in-?office|in office|relocat|days (a|per) week/.test(t);
 }
 
+// Where the person lives, as a location question asks it.
+const RESIDENCE = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+// The same sentence asking where the person is and their right to work there (FRS QA bug 4).
+const RESIDENCE_ASKED = /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/;
+const WORK_RIGHTS = /\bright to work\b|\bauthori[sz](ed|ation)\b|\beligib\w*\b|\bwork permit\b|\bvisa\b|\bsponsor/;
 // Ordered: files, then identity and contact, address, links, work, availability, pay, education, skills, authorization,
 // legal, consent, application, job screens, essays. A rule's `when` narrows it (a type, a shape of options).
 const RULES: Rule[] = [
@@ -61,6 +66,9 @@ const RULES: Rule[] = [
   ["writing_sample", /\bwriting sample\b/, isFile],
   ["unknown", /.*/, isFile],
   ["resume", /^(resume|résumé|cv)( ?\/ ?(cv|resume))?$/],
+  // FRS: a cover letter typed into a text box is a written answer (drafted on the card from confirmed facts, kept for
+  // this posting only); "in lieu of a cover letter, share ..." is read by the essay rules below.
+  ["essay_cover_letter", /\bcover letter|lettre de motivation|motivatiebrief\b/, (q, t) => LONG_TYPES.has(String(q.type)) && !/\b(in lieu of|instead of)\b/.test(t)],
 
   // A statement the person accepts (its only answers are acknowledgements, or a long checkbox with no question) is a
   // consent only when it is one a standing consent covers: privacy and data, certifying the answers are true, the
@@ -108,7 +116,10 @@ const RULES: Rule[] = [
   // U.S?" names two. Only about the person ("you ... located in"), never compound with authorization, a move or a distance.
   ["country", /\byou (are )?(currently |presently |now )?(live|living|reside|residing|based|located) in (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk)( or (the )?(united states( of america)?|u\.s\.a\.?|u\.s\.?|usa|us|canada|united kingdom|uk))?(?![a-z])/, (q, t) => !/authori|sponsor|visa|able to work|right to work|willing|relocat|commut|eligib|permit|miles|within \d|citizen/.test(t)],
   ["country", /\b(what|which|in which|in what) country\b.*\b(live|reside|resident|based|currently)\b|\bcountry (where you|of residence)\b|^country\b|^select country\b|^pays\b/, (q, t) => !/citizen|nationality|right to work|authori[sz]ed|anticipate/.test(t)],
-  ["location", /\bwhere (are|do) you (currently )?(located|live|reside|based)\b|\bcurrent(ly)? located\b|\bcity and state\b|\bcurrent location\b|^your location\b|^location\b|\bwhere are you located\b|\bare you (currently )?(based|located|local) in\b|\bdo you (currently )?(live|reside) in\b|\bplease confirm that you are based\b/, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
+  // FRS QA bug 4 (Prolific): "Are you currently based in and can verify right to work from one of the following
+  // countries?" asks where the person is AND their right to work there: never the location fact alone (one half). Asked.
+  ["unknown", RESIDENCE, (q, t) => t.split(/(?<=[.?!])\s+/).some((x) => RESIDENCE_ASKED.test(x) && WORK_RIGHTS.test(x))],
+  ["location", RESIDENCE, (q, t) => !/relocat|office|on-?site|hybrid|commut|in person|in-person/.test(t)],
 
   ["how_heard", /\bhoe ben je\b.*\b(gekomen|terechtgekomen)\b|\bhow did you (first |initially )?(hear|come across|find|learn|come to know)\b/, (q, t) => !/\breferring (employee|person)\b|\bname of (the )?(person|employee) who referred\b|\bwho referred you\b/.test(t)],
   ["unknown", /\bconsecutive weeks\b|\binternship\/co-?op duration\b/],
@@ -320,7 +331,7 @@ export const NAMES_US = /\bu\.?s\.?a?\b|united states|\bamerica\b/i;
 export const AUTH_FACTS = new Set(["work_authorization", "sponsorship", "us_person"]);
 // WO-053: work rights "in the country where this job is located" (or "...in which you are applying") are the person's US
 // ones only when the posting's own location is in the US; abroad or unsettled, asked.
-export const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
+export const RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b|\bin this country\b/i;
 export function answerKey(q: Question, jobId: string, o: { haveFact?: boolean; here?: boolean } = {}): string {
   const m = mapQuestion(q);
   const words = norm(q.label);

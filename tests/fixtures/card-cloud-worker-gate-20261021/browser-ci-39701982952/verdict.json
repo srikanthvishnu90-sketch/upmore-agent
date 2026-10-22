@@ -1,0 +1,66 @@
+{
+  "workflow_pin": "da6a6636782a318966601987936cd5f1c81adc11",
+  "workflow_run": 39701982952,
+  "url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39701982952",
+  "scope": "Isolated NEVER_MERGE CI ref omitted main ci.yml only on test ref. Sandboxed Chrome actual captured synthetic Veeva form, loopback HTTP server; no DB/SQL, providers, flags, real actors or employers. Not main product CI or deployed TEST proof.",
+  "test_pin": "68e70bbcaaeadc2c650ef1fc895f96d587a6450d",
+  "test_sha256": "eb9ca02c28dae213b28ddf7443bc24fa121ab7476efa4e5e54d16a70d9f1eed3",
+  "baseline": {
+    "source": "01401cb456bc2982d67316165e183bbd275581c9",
+    "job": 119573129213,
+    "tests": 7,
+    "pass": 4,
+    "fail": 3,
+    "skip": 0,
+    "mechanisms": {
+      "company": "rehashed full queue/card hash gap entered engine and produced one local POST with originally approved answers",
+      "page_url": "entered engine once; existing engine denied and outcome not_sent; NOT a sent mutation",
+      "pre_effect_denial": "old worker never requested queue authorization; acceptance failed"
+    }
+  },
+  "candidate": {
+    "source": "dff3dfc1bc5c34ff177df65cddfff212abebd676",
+    "job": 119573129508,
+    "tests": 7,
+    "pass": 7,
+    "fail": 0,
+    "skip": 0,
+    "allow": "exact owned prepared answers and resume -> one engine, one local POST, submitted receipt",
+    "denial": "actual parent/child before_effect authorization denied -> one engine, two before_engine calls +one before_effect call, zero local POST, not_submitted/not_sent",
+    "mutations": "answer, resume, destination, rehashed company and rehashed page URL refused with zero engine/POST"
+  },
+  "raw_evidence": "Exact TAP copied from decoded immutable Actions job logs, removing only timestamp prefixes; no test output rewritten. Artifact archive digests below are GitHub attestations, not local recomputations.",
+  "artifacts": [
+    {
+      "id": 12393566066,
+      "name": "card-cloud-candidate-39701982952",
+      "github_sha256": "ffa74781c33b069a523e6d0d3a1f80ecf860d598e8b07dfc316db796eaa3b15f",
+      "size_bytes": 1238
+    },
+    {
+      "id": 12392454221,
+      "name": "card-cloud-baseline-39701982952",
+      "github_sha256": "f635a05cc880678a7a0ea863fb7ff2e30e8ce8919fde4708784c5d9f9fae4613",
+      "size_bytes": 3483
+    }
+  ],
+  "files": [
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/browser-ci-39701982952/baseline.tap",
+      "bytes": 13473,
+      "sha256": "cfc6c81d91c4c518d178b316140132a17d8ac134eab1207256fb1c8873417b5d"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-worker-gate-20261021/browser-ci-39701982952/candidate.tap",
+      "bytes": 1996,
+      "sha256": "e89d24b629685243d6fe469e92a481eee7d46628d487864c69972d7d8c90a420"
+    }
+  ],
+  "sql_lifecycle_cap_Stop_races_rollback": "WRITTEN_NOT_RUN; still requires separate explicit authorization",
+  "ledger": {
+    "new_usd": "0.000000",
+    "known_usd": "8.503100",
+    "unknown_held_usd": "0.070743",
+    "status": "UNRECONCILED"
+  }
+}

@@ -19,3 +19,6 @@ supabase/.temp/
 
 # WO-086: the Chrome Web Store zip (scripts/launch/extension-package.sh); built, never committed
 /dist/
+
+# npm ci installs the pinned tools here (package.json); never committed
+tools/node_modules/

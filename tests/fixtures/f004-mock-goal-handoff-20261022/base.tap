@@ -1,0 +1,146 @@
+TAP version 13
+# Subtest: F004: a new own career target escapes a pending mock: I want a software engineering internship.
+not ok 1 - F004: a new own career target escapes a pending mock: I want a software engineering internship.
+  ---
+  duration_ms: 215.92218
+  type: 'test'
+  location: '/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:50:4'
+  failureType: 'testCodeFailure'
+  error: |-
+    a goal change must not be rubric-scored as an interview answer
+    + actual - expected
+    
+    + 'prep_mock_followup'
+    - 'career_goal_record'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'career_goal_record'
+  actual: 'prep_mock_followup'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:53:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+not ok 2 - F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+  ---
+  duration_ms: 12.801205
+  type: 'test'
+  location: '/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:50:4'
+  failureType: 'testCodeFailure'
+  error: |-
+    a goal change must not be rubric-scored as an interview answer
+    + actual - expected
+    
+    + 'prep_mock_followup'
+    - 'career_goal_record'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'career_goal_record'
+  actual: 'prep_mock_followup'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:53:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+not ok 3 - F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+  ---
+  duration_ms: 48.185357
+  type: 'test'
+  location: '/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:50:4'
+  failureType: 'testCodeFailure'
+  error: |-
+    a goal change must not be rubric-scored as an interview answer
+    + actual - expected
+    
+    + null
+    - 'career_goal_record'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'career_goal_record'
+  actual: ~
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-f004-20261022/tests/career-f004-mock-goal-handoff.test.cjs:53:10)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  ...
+# Subtest: F004 control: the already-fixed explicit career goal keeps its early claim
+ok 4 - F004 control: the already-fixed explicit career goal keeps its early claim
+  ---
+  duration_ms: 9.427251
+  type: 'test'
+  ...
+# Subtest: F004 control: a labeled mock answer is session content even when it names a desired role
+ok 5 - F004 control: a labeled mock answer is session content even when it names a desired role
+  ---
+  duration_ms: 4.741656
+  type: 'test'
+  ...
+# Subtest: F004 control: ordinary past-tense narrative is still scored in the pending mock
+ok 6 - F004 control: ordinary past-tense narrative is still scored in the pending mock
+  ---
+  duration_ms: 5.604398
+  type: 'test'
+  ...
+# Subtest: F004 control: a multi-sentence labeled answer never changes the goal
+ok 7 - F004 control: a multi-sentence labeled answer never changes the goal
+  ---
+  duration_ms: 5.099071
+  type: 'test'
+  ...
+# Subtest: F004 control: an instruction to find roles is not saved as a personal goal
+ok 8 - F004 control: an instruction to find roles is not saved as a personal goal
+  ---
+  duration_ms: 4.72808
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+ok 9 - F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+  ---
+  duration_ms: 27.827897
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+ok 10 - F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+  ---
+  duration_ms: 3.662595
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+ok 11 - F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+  ---
+  duration_ms: 5.325087
+  type: 'test'
+  ...
+# Subtest: F004 control: an explicit new task remains discovery rather than becoming a goal record
+ok 12 - F004 control: an explicit new task remains discovery rather than becoming a goal record
+  ---
+  duration_ms: 6.269869
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 9
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 496.738034

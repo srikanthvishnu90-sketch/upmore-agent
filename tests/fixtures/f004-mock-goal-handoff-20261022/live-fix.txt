@@ -1,0 +1,15 @@
+running 11 tests from ./tests/career-f004-live-mock-handoff.test.ts
+F004 live hook: own target reaches the downstream goal owner: My career goal is a data analyst internship for summer 2027. ... ok (102ms)
+F004 live hook: own target reaches the downstream goal owner: I want a software engineering internship. ... ok (5ms)
+F004 live hook: own target reaches the downstream goal owner: I am aiming for a product design internship. ... ok (1ms)
+F004 live hook: own target reaches the downstream goal owner: I'm aiming for a healthcare operations role. ... ok (5ms)
+F004 live control: contextual interview content stays an answer: My answer: I want a software engineering internship. ... ok (12ms)
+F004 live control: contextual interview content stays an answer: My answer: I built the fixture tracker. I want a software engineering internship. ... ok (12ms)
+F004 live control: contextual interview content stays an answer: I built the synthetic tracker and reduced review time from ten minutes to five. ... ok (13ms)
+F004 live control: contextual interview content stays an answer: If I want a software engineering internship, what should I do? ... ok (1ms)
+F004 live control: contextual interview content stays an answer: My friend said, "I want a software engineering internship." ... ok (37ms)
+F004 live control: contextual interview content stays an answer: I want a software engineering internship? ... ok (34ms)
+F004 live control: discovery task already passes through without saving a mock answer ... ok (3ms)
+
+ok | 11 passed | 0 failed (262ms)
+

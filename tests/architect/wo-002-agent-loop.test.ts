@@ -197,3 +197,26 @@ Deno.test("WO-002/11 a turn that saved something and then stopped says it saved;
     assert(/Nothing was sent or submitted/.test(s), "and still nothing went out");
   }
 });
+
+Deno.test("WO-061/R1 code's review of its draft never enters the conversation; the person's message stays last", async () => {
+  // A draft with a tool name in it (a leak) triggers the review; the retry must answer the person, not the review.
+  const m = scripted([text("I used get_profile to check: you're set."), text("You're set.")]);
+  const r = await runAgentTurn(base(m, { message: "is everything set on my profile?" }));
+  eq(m.payloads.length, 2, "one retry");
+  const retry = m.payloads[1];
+  assert(!/REVIEW|check from code|get_profile to check/.test(JSON.stringify(retry.messages)), "no review text or draft in the conversation");
+  eq(retry.messages.at(-1), { role: "user", content: [{ type: "text", text: "is everything set on my profile?" }] }, "the person's message is last");
+  assert(/CODE'S REVIEW OF YOUR DRAFT/.test(retry.system) && /never refuse it/.test(retry.system), "the review is in that call's system prompt");
+  assert(!/REVIEW/.test(m.payloads[0].system), "the first call's system prompt is untouched");
+  eq(r.reply, "You're set.");
+});
+
+Deno.test("WO-061/H027 an empty answer is asked for once more, tools off; the person never gets an empty reply", async () => {
+  const m = scripted([{ content: [], stop_reason: "end_turn" }, text("Here's a prep plan for your interview.")]);
+  const r = await runAgentTurn(base(m, { message: "help me prep for my interview" }));
+  eq(r.reply, "Here's a prep plan for your interview.", "the second answer is the reply");
+  eq(m.payloads.length, 2, "one retry");
+  eq(m.payloads[1].tool_choice, { type: "none" }, "the retry runs no tool");
+  assert(/Your last answer was empty/.test(m.payloads[1].system), "the note is in the retry's system prompt");
+  eq(m.payloads[1].messages.at(-1), { role: "user", content: [{ type: "text", text: "help me prep for my interview" }] }, "the person's message stays last");
+});

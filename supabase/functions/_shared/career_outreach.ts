@@ -19,6 +19,7 @@
 import { type EventStore, dayIn, localMidnight, recordEvent } from "./agent/timeline.ts";
 import { normalizeFirm, sameFirm } from "./career_contacts.ts";
 import { factLock } from "./essay_draft.ts";
+import { CareerProfile } from "./router_core.career.js";
 
 export type ModelFn = (payload: any) => Promise<any>;
 export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[] }
@@ -87,8 +88,9 @@ function strings(v: unknown, out: string[] = [], depth = 0): string[] {
   return out;
 }
 export const factText = (f: any) => [...new Set(strings(f).map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean))].join("; ");
+// Confirmed facts only, never a D-007 quarantined one (122's shared reader).
 export const confirmed = (facts: unknown[]): any[] =>
-  (Array.isArray(facts) ? facts : []).filter((f: any) => f && typeof f === "object" && !f.needs_confirmation && (!f.status || f.status === "confirmed"));
+  (Array.isArray(facts) ? facts : []).filter((f: any) => f && typeof f === "object" && !f.needs_confirmation && (!f.status || f.status === "confirmed") && !CareerProfile.quarantinedFact(f));
 
 export interface Shared { kind: "school" | "firm"; value: string; fact: string; field: "school" | "firm" | "prior_firm" }
 // A firm is named in a fact when the fact's words carry it under any of its spellings ("J.P. Morgan" is JPMorgan).

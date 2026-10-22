@@ -68,11 +68,11 @@ select pg_temp.rb_seed_ok((select count(*)=2 and bool_and(user_id='00000000-0000
  from rb_seed_claims),'two actual leases; no UUID/order assumption');
 -- A genuine database authorization fence runs before each simulated terminal receipt.
 -- This is fixture creation, not evidence that an engine or employer saw any submission.
-do $$declare j record;ordinal integer:=0;state text;outcome text;authorization jsonb;begin
+do $$declare j record;ordinal integer:=0;state text;outcome text;authorization_result jsonb;begin
  for j in select * from rb_seed_claims order by id loop
-  authorization:=public.career_apply_message_cloud_authorize(j.id,j.lease_token,j.payload_hash,
+  authorization_result:=public.career_apply_message_cloud_authorize(j.id,j.lease_token,j.payload_hash,
    public.career_apply_message_cloud_sources(j.user_id)->>'digest');
-  perform pg_temp.rb_seed_ok(authorization->>'authorized'='true','actual current lease/source fence');
+  perform pg_temp.rb_seed_ok(authorization_result->>'authorized'='true','actual current lease/source fence');
   ordinal:=ordinal+1;
   state:=case ordinal when 1 then 'submitted_unconfirmed' else 'unknown_outcome' end;
   outcome:=case ordinal when 1 then 'submitted' else 'interrupted' end;

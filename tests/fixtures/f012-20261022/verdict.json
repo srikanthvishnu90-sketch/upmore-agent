@@ -1,0 +1,48 @@
+{
+  "bug": "F-012",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source": "a7640db51810c001008a01f7cd4f05455848ed5f",
+  "new_checks": {
+    "base": {
+      "pass": 2,
+      "fail": 7
+    },
+    "branch": {
+      "pass": 9,
+      "fail": 0
+    }
+  },
+  "neighbors": {
+    "base": {
+      "pass": 41,
+      "fail": 0
+    },
+    "branch": {
+      "pass": 41,
+      "fail": 0
+    }
+  },
+  "edge_guards": {
+    "pass": 4,
+    "fail": 0
+  },
+  "cause": "The existing owner-scoped erase path was reachable, but the stored-profile phrase advertised by export was not routed.",
+  "behavior": "Preview records the exact active state in the owned snapshot for ten minutes. Only the explicit confirmation on unchanged state invokes the preexisting erase/paused patch. Generic yes, changed/expired/malformed/foreign previews do not authorize erase.",
+  "existing_tests": "unchanged",
+  "raw_log_sha256": {
+    "base-family": "48c945be715c521a378d4ced84b330dc4b8a1c8e778cbe8a1f235fe8e85387e2",
+    "fix-family": "c3f79c042a35e9ff19086f835049dea0272041e786e6454890df5cb6f92b9c0a",
+    "edge-guards": "384ef30cf72af73c81d24c5fe61bf1f6c69a047ce97944d00cc00d5136d1a971"
+  },
+  "limits": [
+    "No SQL/migration changes",
+    "No submit-path or flag edits",
+    "Live/real-PG deletion and GitHub CI NOT_RUN",
+    "No deployment, merge, dispatch, or spend"
+  ],
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

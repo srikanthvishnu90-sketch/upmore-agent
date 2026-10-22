@@ -22350,8 +22350,11 @@ const CareerPortalApply = (() => {
       captchaAt: o.captchaAt || null,
       accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
       codeStep: o.codeStep || null, codeAccepted: false, codeTries: 0,
+      extraFields: Array.isArray(o.extraFields) ? o.extraFields : [], fillFailures: [],
     };
     const calls = { open: 0, fill: 0, submit: 0 };
+    const optNorm = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ").toLowerCase();
+    const allFields = () => SANDBOX_FIELDS.concat(state.extraFields);
     return {
       kind: "sandbox", sandbox: true, atsFamily: "greenhouse",
       host: "sandbox.greenhouse-like.test",
@@ -22359,8 +22362,18 @@ const CareerPortalApply = (() => {
       get accountName() { return state.accountName; },
       setSubmitOutcome(v) { state.submitOutcome = v; },
       open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
-      form() { return { fields: SANDBOX_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
-      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      form() { return { fields: allFields().map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      get fillFailures() { return state.fillFailures.slice(); },
+      fill(fieldId, value) {
+        calls.fill += 1;
+        const def = state.extraFields.find((f) => f.field_id === fieldId);
+        if (def && Array.isArray(def.options) && def.options.length) {
+          const hit = def.options.find((op) => optNorm(op.label) && (optNorm(op.label) === optNorm(value) || optNorm(op.value) === optNorm(value)));
+          if (!hit) { state.fillFailures.push({ field_id: fieldId, reason: "option_not_found", wanted: String(value) }); return undefined; }
+          state.answers[fieldId] = hit.label; return hit.label;
+        }
+        state.answers[fieldId] = value; return value;
+      },
       answers() { return Object.assign({}, state.answers); },
       atReview() {
         if (state.captchaAt === "review") return { ok: true, captcha: "challenge" };
@@ -22901,10 +22914,30 @@ const CareerPortalApply = (() => {
     }
   }
 
+  function fieldCoverage(session, payload, asks) {
+    const askReason = {};
+    for (const a of [...((session && session.preparationAsks) || []), ...(asks || [])]) {
+      if (a && a.field_id && !askReason[a.field_id]) askReason[a.field_id] = a.reason;
+    }
+    const pending = new Set(((session && session.pendingAttestations) || []).map((a) => a.field_id));
+    const seen = new Set();
+    let filled = 0;
+    const unfilled = [];
+    for (const f of (session && session.preparationFields) || []) {
+      if (!f || seen.has(f.field_id)) continue;
+      seen.add(f.field_id);
+      if (pending.has(f.field_id)) { unfilled.push({ field_id: f.field_id, reason: "attestation_pending_card" }); continue; }
+      if (!payloadValueMissing(payload && payload[f.field_id])) { filled += 1; continue; }
+      unfilled.push({ field_id: f.field_id, reason: askReason[f.field_id] || "not_read_back" });
+    }
+    return { filled, total: seen.size, unfilled };
+  }
+
   function runApply(session, input) {
     session.preparationPayload = {};
     session.preparationFields = [];
     session.pendingAttestations = [];
+    session.preparationAsks = [];
     session.doorstep = null;
     session.codeFilledAts = null;
     return prepareRound(session, input, false, 0, []);
@@ -23019,11 +23052,27 @@ const CareerPortalApply = (() => {
         && (!s.company || normQuestion(s.company) === normQuestion(posting.company)));
       return hits.length && hits.every((s) => s.value === hits[0].value) ? hits[0] : null;
     };
+    const PERSISTENCE_FAILURE = /^(value_did_not_persist|file_input_not_mounted|fill_error:)/;
+    const failuresFor = (id) => (Array.isArray(board.fillFailures) ? board.fillFailures : []).filter((x) => x && x.field_id === id);
+    const attemptFill = (f, value, source, stepData) => {
+      const before = failuresFor(f.field_id).length;
+      const r = board.fill(f.field_id, value);
+      const fresh = failuresFor(f.field_id).slice(before);
+      const lastReason = fresh.length ? String(fresh[fresh.length - 1].reason || "fill_failed") : null;
+      if ((r === null || (r === undefined && fresh.length)) && !(lastReason && PERSISTENCE_FAILURE.test(lastReason))) {
+        const refusal = lastReason || "fill_returned_no_value";
+        logStep("fill_refused", Object.assign({}, stepData, { refusal }));
+        if (!asks.some((a) => a.field_id === f.field_id)) asks.push({ field_id: f.field_id, reason: "fill_refused", refusal });
+        return false;
+      }
+      filled[f.field_id] = { value, source };
+      logStep("fill", stepData);
+      return true;
+    };
     const fillSaved = (f, entry) => {
       const s = savedAnswerFor(f);
       if (!s) return false;
-      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
-      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+      attemptFill(f, s.value, "saved_answer", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
         derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
       return true;
     };
@@ -23033,39 +23082,33 @@ const CareerPortalApply = (() => {
         const raw = profileValue(profile, f.profile_key);
         if (raw === undefined || raw === null || raw === "") { asks.push({ field_id: f.field_id, reason: "no_confirmed_fact" }); continue; }
         const value = f.profile_key === "resume" ? { filename: raw.filename, sha256: raw.sha256 } : raw;
-        board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
-        logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
+        attemptFill(f, value, "profile", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          attemptFill(f, a.value, "user_confirmed_answer", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "question") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          attemptFill(f, a.value, "user_confirmed_answer", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         const onCard = !!(a && a.draft === true && a.onCard === true && inp.cardApproval === true && typeof a.value === "string" && a.value.trim());
         if (a && a.draft === true && (a.confirmed === true || onCard)) {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
-          logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
+          attemptFill(f, a.value, source, Object.assign({}, entry, { source, question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
-        board.fill(f.field_id, value);
-        filled[f.field_id] = { value, source: chosen ? "user_eeo_choice" : "eeo_default_decline" };
-        logStep("fill", Object.assign({}, entry, { source: chosen ? "user_eeo_choice" : "eeo_default_decline" }));
+        const source = chosen ? "user_eeo_choice" : "eeo_default_decline";
+        attemptFill(f, value, source, Object.assign({}, entry, { source }));
       } else if (f.kind === "attestation") {
         const att = (inp.attestations || {})[f.field_id];
         if (att && att.explicit === true && att.value !== undefined) {
-          board.fill(f.field_id, att.value); filled[f.field_id] = { value: att.value, source: "user_explicit_attestation" };
-          logStep("fill", Object.assign({}, entry, { source: "user_explicit_attestation" }));
+          attemptFill(f, att.value, "user_explicit_attestation", Object.assign({}, entry, { source: "user_explicit_attestation" }));
         } else if (inp.cardApproval === true && attestationValue(f) !== undefined) {
           if (!session.pendingAttestations) session.pendingAttestations = [];
           const text = attestationText(f), value = attestationValue(f);
@@ -23151,7 +23194,7 @@ const CareerPortalApply = (() => {
     });
     if (requiredAsks.length) {
       logStep("awaiting_user", { asks: requiredAsks.map((a) => a.field_id) });
-      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis });
+      return Object.assign(base(), { resultStatus: "awaiting_user", asks, formAnalysis, coverage: fieldCoverage(session, session.preparationPayload, asks) });
     }
 
     if (inp.manualApplications) session.manualApplications = inp.manualApplications;
@@ -23186,6 +23229,7 @@ const CareerPortalApply = (() => {
     if (codeStep) return codeStep;
     if (review.needsFields || review.advanced) {
       if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+      session.preparationAsks = (session.preparationAsks || []).concat(asks);
       return prepareRound(session, inp, true, round + 1, stepLog);
     }
     if (review.atFinalReview === false && !reviewValidationPending) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -23227,6 +23271,7 @@ const CareerPortalApply = (() => {
       if (recheckCode) return recheckCode;
       if (recheck && (recheck.needsFields || recheck.advanced)) {
         if (round >= 7) return blocked("FORM_STEP_LIMIT", { reason: "conditional form did not stabilize within 8 observed rounds" });
+        session.preparationAsks = (session.preparationAsks || []).concat(asks);
         return prepareRound(session, inp, true, round + 1, stepLog);
       }
       if (!recheck || recheck.atFinalReview !== true) return blocked("FINAL_REVIEW_NOT_OBSERVED");
@@ -23239,7 +23284,7 @@ const CareerPortalApply = (() => {
     if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => Object.assign({}, a));
     logStep("doorstep_reached", { payloadSha256 });
     const prepared = Object.assign(base(), {
-      resultStatus: "prepared", asks, formAnalysis,
+      resultStatus: "prepared", asks, formAnalysis, coverage: fieldCoverage(session, payload, asks),
       doorstep: Object.assign({ atFinalReview: true, payload, payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => Object.assign({}, a)) } : {}),
     });
     if (session.codeFilledAts) {
@@ -24903,7 +24948,9 @@ const CareerBatchApply = (() => {
     run.cardSha256 = cardSha(run);
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
-    event(run, "prepared", { doorstep: doorstepApps.length, status: run.status });
+    const acc = run.summary.accounting;
+    event(run, "prepared", { doorstep: doorstepApps.length, status: run.status, coverage: `${acc.through}/${acc.total}`,
+      outcomes: acc.outcomes.map((o) => ({ postingKey: o.postingKey, stage: o.stage, code: o.code })) });
     return run;
   }
 
@@ -24919,6 +24966,7 @@ const CareerBatchApply = (() => {
 
   function absorbPrepareResult(run, app, res) {
     if (!res) { stopApp(run, app, "NO_RESULT", "the portal run returned nothing"); return; }
+    if (res.coverage && typeof res.coverage.total === "number") app.coverage = { filled: res.coverage.filled, total: res.coverage.total, unfilled: (res.coverage.unfilled || []).slice() };
     if (res.resultStatus === "prepared" && res.doorstep) {
       app.stage = "doorstep";
       app.payloadSha256 = res.doorstep.payloadSha256;
@@ -25093,6 +25141,58 @@ const CareerBatchApply = (() => {
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
   }
 
+  const PENDING_REASONS = {
+    selected: { code: "NOT_PREPARED", reason: "selected, but the drive to the final review has not run yet" },
+    doorstep: { code: "NOT_SUBMITTED", reason: "it reached the final review, but it was not in the approved set, so it was not submitted" },
+  };
+  function accountRun(run) {
+    const afterYes = !!run.approvalRef;
+    const capByKey = {};
+    for (const x of run.deferred || []) if (x && x.code === "CAP_REACHED") capByKey[x.postingKey] = x;
+    const outcomes = [];
+    let through = 0;
+    for (const key of run.selected || []) {
+      const a = (run.apps || {})[key] || { postingKey: key, stage: "missing" };
+      const o = { postingKey: key, company: a.company || null, role: a.role || null, stage: a.stage, through: false, code: null, reason: null };
+      if (a.coverage) o.fields = { filled: a.coverage.filled, total: a.coverage.total };
+      if (a.stage === "submitted" || (!afterYes && a.stage === "doorstep")) { o.through = true; through += 1; }
+      else if ((a.stage === "stopped" || a.stage === "captcha_handoff") && a.stop) { o.code = a.stop.code; o.reason = a.stop.reason; }
+      else if (a.stage === "deferred_cap") {
+        const c = capByKey[key];
+        o.code = "CAP_REACHED";
+        o.reason = `${(c && c.reason) || "the daily application cap is reached"} — queued for ${(c && c.resumeOn) || "tomorrow"}`;
+      } else if (PENDING_REASONS[a.stage]) { o.code = PENDING_REASONS[a.stage].code; o.reason = PENDING_REASONS[a.stage].reason; }
+      else { o.code = "NO_RECORD"; o.reason = "the run holds no application record for this selection"; }
+      outcomes.push(o);
+    }
+    return { total: outcomes.length, through, phase: afterYes ? "submitted" : "ready", outcomes };
+  }
+
+  function checkAccounted(run, summary) {
+    const sm = summary || run.summary || summarizeRun(run);
+    const seen = new Map();
+    const note = (k) => seen.set(k, (seen.get(k) || 0) + 1);
+    for (const x of sm.ready || []) note(x.postingKey);
+    for (const x of sm.confirmations || []) note(x.postingKey);
+    for (const x of sm.stops || []) note(x.postingKey);
+    for (const x of sm.deferred || []) if (x.code !== "COUNT_DEFERRED") note(x.postingKey);
+    for (const x of sm.pending || []) note(x.postingKey);
+    const selected = new Set(run.selected || []);
+    const missing = [...selected].filter((k) => !seen.has(k));
+    const duplicated = [...seen].filter(([k, n]) => selected.has(k) && n > 1).map(([k]) => k);
+    const unknown = [...seen.keys()].filter((k) => !selected.has(k));
+    return { ok: !missing.length && !duplicated.length && !unknown.length, missing, duplicated, unknown };
+  }
+  function assertAccounted(run, summary) {
+    const r = checkAccounted(run, summary);
+    if (!r.ok) {
+      const e = new Error(`batch run ${run && run.id} does not account for every selected application exactly once — missing: [${r.missing.join(", ")}], duplicated: [${r.duplicated.join(", ")}], not selected: [${r.unknown.join(", ")}]`);
+      e.code = "ACCOUNTING_BROKEN"; e.detail = r;
+      throw e;
+    }
+    return r;
+  }
+
   function summarizeRun(run) {
     const apps = run.selected.map((k) => run.apps[k]).filter(Boolean);
     const submitted = apps.filter((a) => a.stage === "submitted");
@@ -25109,15 +25209,29 @@ const CareerBatchApply = (() => {
       eligible: run.eligible, selected: run.selected.length,
       doorstep: apps.filter((a) => a.stage === "doorstep").length,
       submitted: submitted.length,
-      confirmations: submitted.map((a) => ({ company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      confirmations: submitted.map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
       stops,
       deferred: run.deferred.slice(),
+      ready: apps.filter((a) => a.stage === "doorstep").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
+      pending: apps.filter((a) => a.stage === "selected").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, code: "NOT_PREPARED" })),
+      accounting: accountRun(run),
     };
+  }
+
+  function coverageLines(run) {
+    const acc = accountRun(run);
+    const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
+    const lines = [`${acc.through}/${acc.total} applications ${verb}.`];
+    for (const o of acc.outcomes) {
+      if (o.through) continue;
+      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
+    }
+    return lines;
   }
 
   function speakSummary(run) {
     const sm = run.summary || summarizeRun(run);
-    const lines = [];
+    const lines = coverageLines(run);
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
@@ -25156,7 +25270,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

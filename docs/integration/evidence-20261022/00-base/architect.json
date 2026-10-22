@@ -1,0 +1,30 @@
+{
+  "head": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "suite": "architect",
+  "command": [
+    "/tmp/case2-test-tools/node_modules/.bin/deno",
+    "test",
+    "--cached-only",
+    "--import-map=/tmp/f009-deps/import-map.json",
+    "--allow-read",
+    "--allow-write=/tmp",
+    "--allow-run",
+    "--allow-env",
+    "--allow-net=127.0.0.1,localhost",
+    "--no-check",
+    "--ignore=tests/architect/pending",
+    "tests/architect"
+  ],
+  "cwd": "/tmp/upmore-integration-verified-20261022",
+  "exit_code": 1,
+  "seconds": 201.329,
+  "provider_credentials": "not inherited",
+  "deno_network": "loopback only",
+  "node_files": 0,
+  "new_spend_usd": 0,
+  "log_sha256": "be8898a5497c7b17394910ee60341674e1fc375b3d6fc98b776efabf4876a0d3",
+  "node_summary": [],
+  "deno_summary": [
+    "FAILED | 1262 passed | 2 failed (3m20s)"
+  ]
+}

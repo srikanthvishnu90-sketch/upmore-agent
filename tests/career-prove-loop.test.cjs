@@ -1,7 +1,7 @@
 "use strict";
 // P0: the proven apply loop (scripts/career/prove-loop.cjs) on a captured real Greenhouse form, offline: the synthetic
 // TEST persona's confirmed facts, the screen, the engine's dry run through the cloud worker's engine runner, one question
-// asked once and answered from the persona, the card answered "yes" through cardTurn, the approved payload proven equal
+// asked once and answered from the persona, the card shown through cardTurn and approved by the person's tap, the approved payload proven equal
 // to a freshly filled page, stopped before the submit click, and a receipt stored with every field. Three runs, all
 // identical, 0 wrong and 0 missed against the independent answer key. Nothing is sent: the local employer receives no
 // POST. A posting the screen excludes stops there unless overridden, and a form asking what the persona never stated
@@ -72,7 +72,7 @@ test("captured Greenhouse form, 3 of 3: filled and read back, 0 wrong, approved 
     assert.equal(rc.coverage.filled + rc.coverage.unfilled.length, rc.coverage.fields_on_form);
     for (const u of rc.coverage.unfilled) assert.ok(u.reason, "every unfilled field carries its reason: " + u.id);
     assert.match(rc.payload_sha256, /^[0-9a-f]{64}$/);
-    assert.equal(rc.approval.said, "yes");
+    assert.equal(rc.approval.by, "tap", "approved by the person's tap on the card, never a text yes (Option A #162; bound text yes #165)");
     assert.equal(rc.approval.payload_hash, rc.payload_sha256, "the card's hash is the approved payload's");
     assert.match(rc.card.reply, /^1 approved exactly as shown\. Nothing has gone to an employer yet\./);
     assert.deepEqual(rc.steps.map((s) => s.step), ["prepare", "asked_once", "prepare_again", "card", "verify_approved_equals_page"]);

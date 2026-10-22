@@ -97,16 +97,17 @@ if(mutation==="answer")p.payload.fields.find(f=>f.name==="email").value="changed
 if(mutation==="resume")p.payload.resume_sha256="b".repeat(64);
 if(mutation==="destination")p.payload.destination=url+"?changed-destination";
 if(mutation==="company")p.payload.company="Changed Employer After Tap";
+if(mutation==="page-url")p.payload.url=url+"?changed-page";
 const queueHash=await hashApplyPayload(p.payload);
-const job={id:"TEST-BRIDGE-JOB",lease_token:"TEST-BRIDGE-LEASE",user_id:${JSON.stringify(OWNER)},company:p.payload.company,url,payload:p.payload,payload_hash:queueHash,approval_hash:queueHash,execution_mode:"cloud",card_id:"TEST-CARD",card_hash:"c".repeat(64),approval_id:"TEST-APPROVAL"};
-let final,engineCalls=0;const argsSeen=[];
-const queue={claim:async()=>[],gatePresent:async()=>true,authorize:async j=>{if(j.id!==job.id||j.lease_token!==job.lease_token)throw Error("CARD_CLOUD_LEASE_MISMATCH");if(await hashApplyPayload(j.payload)!==approvedHash)throw Error("APPROVED_APPLICATION_CHANGED");},resume:async()=>({filename:"resume.pdf",sha256:"overridden-by-owned-byte-digest",b64:btoa(String.fromCharCode(...bytes))}),ask:async()=>{throw Error("unexpected question");},finish:async(j,state,evidence,outcome)=>{final={state,evidence,outcome};}};
+const job={id:"TEST-BRIDGE-JOB",lease_token:"TEST-BRIDGE-LEASE",user_id:${JSON.stringify(OWNER)},company:p.payload.company,url:p.payload.url,payload:p.payload,payload_hash:queueHash,approval_hash:queueHash,execution_mode:"cloud",card_id:"TEST-CARD",card_hash:"c".repeat(64),approval_id:"TEST-APPROVAL"};
+let final,engineCalls=0;const argsSeen=[],authorizationPhases=[];
+const queue={claim:async()=>[],gatePresent:async()=>true,authorize:async(j,phase)=>{authorizationPhases.push(phase);if(j.id!==job.id||j.lease_token!==job.lease_token)throw Error("CARD_CLOUD_LEASE_MISMATCH");if(await hashApplyPayload(j.payload)!==approvedHash)throw Error("APPROVED_APPLICATION_CHANGED");if(mutation==="effect-denied"&&phase==="before_effect")throw Error("SYNTHETIC_LEASE_REVOKED_AT_EFFECT");},resume:async()=>({filename:"resume.pdf",sha256:"overridden-by-owned-byte-digest",b64:btoa(String.fromCharCode(...bytes))}),ask:async()=>{throw Error("unexpected question");},finish:async(j,state,evidence,outcome)=>{final={state,evidence,outcome};}};
 // The stored resume's hash is independent from the possibly edited payload.
 const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map(n=>n.toString(16).padStart(2,"0")).join("");
 queue.resume=async()=>({filename:"resume.pdf",sha256:digest,b64:btoa(String.fromCharCode(...bytes))});
 const tmpRoot=dir+"/tmp";await Deno.mkdir(tmpRoot);
 await runCloudJob(job,{queue,tmpRoot,log:()=>{},runEngine:async(...args)=>{engineCalls++;argsSeen.push(args[0]);return await engine(...args);}});
-console.log("BRIDGE_RESULT "+JSON.stringify({prepared:true,fields:p.payload.fields,pageNames:p.payload.page_field_names,approvedHash,currentHash:await hashApplyPayload(p.payload),originalCompany,engineApproval,engineCalls,argsSeen,final,left:[...Deno.readDirSync(tmpRoot)].length}));
+console.log("BRIDGE_RESULT "+JSON.stringify({prepared:true,fields:p.payload.fields,pageNames:p.payload.page_field_names,approvedHash,currentHash:await hashApplyPayload(p.payload),originalCompany,engineApproval,engineCalls,argsSeen,authorizationPhases,final,left:[...Deno.readDirSync(tmpRoot)].length}));
 `);
   return new Promise(resolve => {
     const child=spawn(process.env.DENO_BIN||"deno",["run","-A","--no-check",driver],{env:{...process.env,HOME:run},stdio:["ignore","pipe","pipe"]});
@@ -127,6 +128,11 @@ test("CONTROL captured Veeva: exact approved answers and resume produce one loca
 for(const [kind,reason]of [["answer","APPROVED_APPLICATION_CHANGED"],["resume","APPROVED_MANIFEST_CHANGED"],["destination","APPROVED_APPLICATION_CHANGED"]])test("CONTROL captured Veeva: post-tap "+kind+" mutation refuses without engine or local POST",async()=>{
  const from=requests.length,r=await drive(kind);prepared(r);assert.equal(r.done.engineCalls,0);assert.equal(posts(from).length,0);assert.equal(r.done.final.evidence.reason,reason);assert.equal(r.done.left,0);
 });
-test("ACCEPTANCE captured Veeva (browser verdict pending): rehashed company/Hq must not run the unchanged approved engine He",async()=>{
- const from=requests.length,r=await drive("company");prepared(r);assert.notEqual(r.done.currentHash,r.done.approvedHash);assert.equal(r.done.engineCalls,0,JSON.stringify(r.done));assert.equal(posts(from).length,0);assert.equal(r.done.final.evidence.reason,"APPROVED_APPLICATION_CHANGED");
+for(const kind of ["company","page-url"])test("ACCEPTANCE captured Veeva (browser verdict pending): rehashed "+kind+"/Hq must not run the unchanged approved engine He",async()=>{
+ const from=requests.length,r=await drive(kind);prepared(r);assert.notEqual(r.done.currentHash,r.done.approvedHash);assert.equal(r.done.engineCalls,0,JSON.stringify(r.done));assert.equal(posts(from).length,0);assert.equal(r.done.final.evidence.reason,"APPROVED_APPLICATION_CHANGED");
+});
+test("ACCEPTANCE actual parent/child pre-effect lease denial prevents the local employer POST",async()=>{
+ const from=requests.length,r=await drive("effect-denied");prepared(r);
+ assert.equal(r.done.engineCalls,1);assert.deepEqual(r.done.authorizationPhases,["before_engine","before_engine","before_effect"]);
+ assert.equal(posts(from).length,0);assert.equal(r.done.final.state,"not_submitted");assert.equal(r.done.final.outcome,"not_sent");assert.equal(r.done.left,0);
 });

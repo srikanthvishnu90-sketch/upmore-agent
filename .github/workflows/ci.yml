@@ -48,7 +48,7 @@ jobs:
           test -f "$RUNNER_TEMP/gate.log" || exit 0
           summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
           [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
-          failed=$(grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //' | sort -u | head -40)
+          failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
           [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done

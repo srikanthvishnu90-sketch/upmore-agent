@@ -2,14 +2,16 @@
 
 Entries in the canonical FAILURES.md format, filed by the FDSE mismatch lane on branch
 muse/2026-10-21-fdse-mismatch for merge into FAILURES.md (canonical copy lives on
-muse/2026-10-20-failures-backlog, PR #143). IDs are PROPOSED (F-019..F-023, continuing
-the program numbering past F-018, the widget readback-scan fix); the backlog owner
-confirms allocation at merge. Root-cause note:
+muse/2026-10-20-failures-backlog, PR #143). IDs are PROPOSED (F-021..F-025, continuing
+the program numbering past the widget lane's F-018/F-019/F-020, committed @ 6c1929e3
+on muse/2026-10-21-widget-attach the same night); the backlog owner confirms
+allocation at merge. (First committed as F-019..F-023; renumbered by the follow-up
+commit when the widget lane's same-night allocations were seen.) Root-cause note:
 docs/apply/ROOT-CAUSE-FDSE-MISMATCH-2026-10-21.md.
 
 ---
 
-[ID: MUSE-F-019 (proposed)] [Status: FIXING]
+[ID: MUSE-F-021 (proposed)] [Status: FIXING]
 Found: 2026-10-21 ~22:58 CDT, Muse (O5 live re-prepare, batch-5ab08dedd45c)
 Area: shared
 Input: live prepare of Palantir FDSE Chicago for the TEST profile through the production executor (155 → 149 → board service → Lever), flag OFF.
@@ -21,7 +23,7 @@ Root cause: PINNED — two seams drop the diagnosis: (1) 149's blocked result at
 Fix: branch muse/2026-10-21-fdse-mismatch (149 + 155), applied to the live host tree 2026-10-21 (backups *.bak-20261022T041715Z). Guard: tests/career-observation-stop-record.test.cjs (a) tests — red pre-fix, green post-fix.
 Verified by: guard suite (record shape at 149 + 155 + summary). A fresh REAL run proving the new record shape live is still owed — the round's re-drive (batch-02b162b8a829) stopped at a Lever captcha at open, before the gate; entry stays FIXING until a clean-window drive produces a named stop or a card.
 
-[ID: MUSE-F-020 (proposed)] [Status: FIXING]
+[ID: MUSE-F-022 (proposed)] [Status: FIXING]
 Found: 2026-10-21 ~22:58 CDT, Muse (O5 live re-prepare, batch-5ab08dedd45c)
 Area: shared
 Input: same live FDSE prepare; the university field filled from the confirmed fact "DePaul University (Driehaus College of Business)".
@@ -33,7 +35,7 @@ Root cause: PINNED — 149 reads the rendered value from board.renderedValues (1
 Fix: branch muse/2026-10-21-fdse-mismatch (149 + 150 + bridge), applied to the live host tree 2026-10-21 (backups *.bak-20261022T041715Z; board service restarted; gate probes green). Guard: tests/career-observation-stop-record.test.cjs (b) tests — 149 composed over a provider board wrapped in the harness's exact snapshot shape: red pre-fix (stopped as drift), green post-fix (prepared); drift negative control still stops.
 Verified by: guard suite + the diagnostic drive on the live posting. Entry stays FIXING until a fresh full batch drive on a clean (captcha-free) window passes the gate live end-to-end.
 
-[ID: MUSE-F-021 (proposed)] [Status: OPEN]
+[ID: MUSE-F-023 (proposed)] [Status: OPEN]
 Found: 2026-10-21 ~22:58 CDT, Muse (batch-5ab08dedd45c; reproduced in the diagnostic drive)
 Area: brain
 Input: live FDSE form field what_is_your_major_please_choose_the_closest_res… (REQUIRED, kind standard, profile_key education_discipline), confirmed fact value is a degree string ("of Science in Computer Science and Finance").
@@ -45,7 +47,7 @@ Root cause: PINNED to the seam — the helper's fill matches the requested text 
 Fix:
 Verified by:
 
-[ID: MUSE-F-022 (proposed)] [Status: OPEN]
+[ID: MUSE-F-024 (proposed)] [Status: OPEN]
 Found: 2026-10-21 ~22:58 CDT, Muse (batch-5ab08dedd45c; reproduced in the diagnostic drive)
 Area: shared
 Input: live FDSE EEO disability field (eeo_disability, optional), filled with 149's EEO_DECLINE text "Decline to self-identify" — the same text the sibling eeo_veteran field accepted (rendered "I decline to self-identify for protected veteran status").
@@ -57,7 +59,7 @@ Root cause: PINNED to the seam — the fill side of the decline vocabulary on Le
 Fix:
 Verified by:
 
-[ID: MUSE-F-023 (proposed)] [Status: OPEN]
+[ID: MUSE-F-025 (proposed)] [Status: OPEN]
 Found: 2026-10-21 ~22:54 CDT, Muse (O5 live re-prepare attempt 1, batch-7ac6d3b30fa5)
 Area: shared
 Input: live prepare of both Palantir postings through the production executor.

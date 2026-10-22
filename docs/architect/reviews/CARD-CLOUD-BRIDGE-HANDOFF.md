@@ -6,9 +6,11 @@ remain exactly those tested at `dff3dfc1bc5c34ff177df65cddfff212abebd676`; the o
 production-file change since that pin is the migration launcher integration described below.
 Branch: `wo/card-cloud-bridge-20261021`. Later handoff/evidence commits do not change production code.
 
-The bridge is BUILT, with local checks VERIFIED. It is **not release-approved or live**.
-No migration was applied, no account was enrolled, no switches or opt-ins were changed,
-and no employer was contacted. C10's rule is owner-approved; actual enrollment remains
+The bridge is BUILT. Local checks and the owner-authorized disposable PG16 suite are
+VERIFIED. It is **not release-approved or live**. No live migration was applied, no real
+account was enrolled, and no production switches or opt-ins changed. Temporary synthetic
+flags/grants existed only inside the disposable instances, all destroyed afterward.
+No employer was contacted. C10's rule is owner-approved; actual enrollment remains
 separately authorized and empty. Cloud-only effective opt-in/queue/claim/effect cap is
 **15/day**, including an existing opt-in row whose stored value is 25. Global/extension
 limits and the waiver table are unchanged. The waiver row still waits on the owner's
@@ -53,8 +55,10 @@ not a substitute for that release gate, and its CI configuration must never be m
 | SQL outer/function syntax + original-body preservation | VERIFIED offline | 68 up/44 down statements; all **10/10** rollback definitions match their exact baseline; original extension guard suffix preserved |
 | Migration launcher standalone/ledger dispatch | VERIFIED **2/6 → 6/6** | recording psql executable only; before/after legacy groups preserved, migration/ledger failures stop subsequent work; no SQL executed |
 | Captured sandboxed browser baseline/candidate | VERIFIED **4/7 → 7/7**, zero skips | [run 39701982952](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39701982952); frozen test 68e70bbc, baseline 01401cb4 versus candidate dff3 |
-| SQL runtime, grants/RLS, up twice/down twice/up, actual DB races | **NOT_RUN** | written pending tests; explicit no-apply instruction remains in force |
-| Full product CI, second-judge release PASS, live send | **NOT_RUN / NOT_GRANTED** | no such claim is made by the local or isolated-browser results |
+| Disposable PG16 main/lifecycle/cloud cap | VERIFIED **30/30 + 29/29 + 14/14** | source `f33e76c6`; no production code change from the frozen migration |
+| Disposable PG16 replay/rollback + four actual DB races + full historical DB integration | VERIFIED **9/9 jobs overall** | [run 39707070816](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39707070816); rollback **685** checks across 24 processes, up/up/down/down/up; four races; full runner **2069** labeled checks, including main/lifecycle/cap; **9/9 instances destroyed**, zero cleanup errors |
+| Whole-product code gate | VERIFIED **RED** | [run 39704983173](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39704983173): architect 1227 pass/12 fail; Node 2462 pass/9 fail/24 skips; Edge 151/151 pass. No architect tests edited or checks suppressed |
+| Second-judge release PASS and live send | **NOT_GRANTED / NOT_RUN** | disposable SQL success does not satisfy the remaining release gate |
 
 The SQL source audit is reproducible without a database using pinned `pglast==7.21`:
 `tests/fixtures/card-cloud-db/static_audit.py`. Its JSON records the complete per-function
@@ -63,16 +67,19 @@ bodies from `20261024120000`. Migration: **764 lines / 64,768 bytes**; rollback:
 **370 lines / 29,476 bytes**. This exceeds the original line budget under the owner's
 explicit readability exception. Syntax/source equality is not runtime behavior proof.
 
-The complete SQL runtime proposal is retained as an **inert fixture**, not an active
-workflow: `tests/fixtures/card-cloud-db-20261021/pending-disposable-pg16-workflow.yml`.
-It pins acceptance `8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3` and exact up/down hashes.
-Eight independent fresh PG16 cases cover main, lifecycle, cap, rollback, tap race,
-claim race, maintenance race and flag-write race; a ninth runs the complete DB runner.
-Each uses new local sockets, synthetic data and retained raw evidence. The proposed
-isolated QA ref is never merged. Its unresolved `OWNER_APPROVAL_REF=NOT_AUTHORIZED`
-refuses before SQL. It has not been pushed or launched; a separate owner yes is required
-for disposable migration execution and temporary synthetic fixture switches/grants.
-No hosted database, real C10 enrollment, provider call or employer is in that scope.
+The owner explicitly authorized the disposable PG16 scope. First run
+[39706333198](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39706333198)
+was **1/9 PASS**, retained under `tests/fixtures/card-cloud-db-20261021/pg16-first-run-39706333198/`.
+Four test-only faults caused the eight red jobs: unparenthesized fixture CASE, a reserved
+PL/pgSQL variable, synthetic history incorrectly claiming email-confirmed status, and
+an overly narrow Stop refusal matcher after actual revocation had already passed.
+The exact corrections are pinned in `f33e76c6a3cc5f8601b5e96f204594f51113a71f`;
+all production code and both migration hashes stayed unchanged. The corrected run
+passed all nine jobs. Each run used nine independent fresh local PG16 instances;
+all **18/18 destruction receipts** verify server/data/socket removal with no cleanup
+errors. No hosted database, real C10 enrollment, provider or employer was in scope.
+The isolated runtime and read-only artifact-export CI configurations must never be merged.
+The original unlaunched workflow fixture is historical proposal evidence only.
 
 The browser baseline's rehashed company mutation ran the engine and produced one synthetic local POST. The
 rehashed page-URL mutation started the engine but its existing engine guard refused the POST; the regression is
@@ -83,7 +90,8 @@ browser protections remain controls. This isolated CI used no database or employ
 The updated DB runner preserves all historical tests against their existing migration phases. Its temporary
 pending-migration view defers only the bridge; it applies the bridge twice, standalone, after those phases and runs
 the new main/lifecycle/cloud-cap tests last. This prevents an old rollback test from dropping a bridge dependency or
-silently replacing the new claim guard. This runner integration is WRITTEN and shell-syntax checked, **not executed**.
+silently replacing the new claim guard. This complete runner integration executed successfully in the
+owner-authorized disposable PG16 run; it is not evidence of a production migration.
 The launcher runs exactly the bridge file outside legacy transaction groups and records its ledger only after
 successful commit. A ledger-write failure stops without retrying or proceeding; the file may already be committed,
 so the operator must inspect that state before an explicit idempotent replay. The ordered run is not globally atomic
@@ -94,17 +102,13 @@ across the standalone boundary. Runs with no bridge retain the original one-tran
 1. Review this branch against 01401cb4, including the frozen source pin and the SQL
    function diffs. Reconcile with the architect's landing head; do not assume that a
    matching branch name proves the deployed prerequisite signatures.
-2. Obtain separate authorization for a named disposable-local database test scope.
-   Run pending positive/negative, repeat-up, rollback and real multi-client race tests
-   there; retain raw outputs and verify no hosted connection. Nothing here authorizes
-   executing those files. The pending test directory prevents test autodiscovery, but
-   **does not prevent migration application**: the existing DB runner invokes
-   `scripts/launch/apply-rails-and-seed.sh --pending`, which globs every migration and
-   previously used one enclosing transaction. Broad push/PR CI remains held with
-   `[skip ci]` while the no-apply instruction stands. The new launcher and DB-runner
-   integration implement the standalone convention; their SQL runtime remains an open
-   gate. The disposable fail-first bootstrap must use the pinned baseline tree, then
-   the reviewed bridge file in its own psql session.
+2. Review the retained first-run failures, test-only corrections and final disposable
+   runtime evidence. Verify the final landing migration/worker hashes still equal the
+   tested code; repeat only if implementation changes warrant it. The disposable
+   authorization is complete and does not authorize a live database, enrollment,
+   merge, deployment or flag change. The standalone launcher and final-schema DB
+   integration are now runtime-tested. Do not merge the isolated QA workflow refs.
+
 3. Require both judges' PASS and green CI on the final landing commit. Merge/deployment
    and live migration execution still require the owner's explicit word. On authorized
    live application, first verify both switches OFF and no active cloud drive. Stop/drain

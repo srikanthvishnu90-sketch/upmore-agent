@@ -24,7 +24,7 @@
 | 11 | 20261022120000_career_control_state | `career_user_quiet`, `career_quiet_users`; replaces `career_outreach_claim` | pause and quiet control | kept; restore the snapshot |
 | 12 | 20261022120500_career_deploy_ledger | `career_deploy_ledger` (deploy provenance) | records this deploy | kept |
 | 13 | 20261023100000_career_events_apply_queued | widens `career_events_kind_check` (apply_queued) | event kinds the code writes | kept; never narrowed again |
-| 14 | 20261024140000_career_batch_approve_exclude | **only if #165 is in the frozen SHA.** Exclusions in a card-bound batch approval | the bound text-yes path | kept |
+| 14 | 20261024140000_career_batch_approve_exclude | `career_batch_turn_commit_v1` accepts `exclude_keys` only when every key is a doorstep application of the stored run at the named hash and at least one application remains. Pure approval path; no audience, certification or submit-switch change. | P1 text yes (#165, on trunk `a1931183`); the 10-minute window comes with `fix/text-yes-10min` @`a321df3d`, merged before the freeze | rows kept; rollback restores the previous `career_batch_turn_commit_v1` from the snapshot (an approval with `exclude_keys` then fails closed) |
 
 ## ALREADY LIVE (live check true; nothing is applied; read by effect)
 - **20261024090000_career_apply_agent_submit:** batch approvals of exact entries. The agent begin runs only with `CAREER_AGENT_SUBMIT` on. Live rows: 0.

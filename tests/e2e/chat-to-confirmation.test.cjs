@@ -471,15 +471,24 @@ test("H4 cloud worker -> board and H5 board -> confirmation (mock employer, tier
   const resumeBytes = fs.readFileSync(resumePath);
   const factsPath = path.join(dir, "facts.json");
   const mkFacts = (withDoorstep) => {
+    // Provenance shape is load-bearing (2026-10-22, H4 needs_answers root
+    // cause — docs/e2e/H4-NEEDS-ANSWERS-ROOT-CAUSE.md): the product's
+    // trust allowlist (extension/src/apply_core.ts trustedManifest) keeps
+    // only facts with a positive provenance ("owner stated ..."). The old
+    // "synthetic TEST profile" shape was excluded wholesale, so the
+    // full-facts drive stopped at needs_answers on every required field.
+    // The facts stay synthetic and TEST-marked; only the shape is real.
+    // The attestation fact deliberately carries NO authorizes flag: an
+    // attestation is authorized by the card tap, never by a fixture.
     const answers = {
-      first_name: { value: "TEST", factId: "TEST-1", confirmed: true, provenance: "synthetic TEST profile", confirmation_event_id: "evt-e2e-1" },
-      last_name: { value: "Person", factId: "TEST-2", confirmed: true, provenance: "synthetic TEST profile", confirmation_event_id: "evt-e2e-2" },
-      email: { value: "e2e@example.test", factId: "TEST-3", confirmed: true, provenance: "synthetic TEST profile", confirmation_event_id: "evt-e2e-3" },
-      phone: { value: "2246029341", factId: "TEST-4", confirmed: true, provenance: "synthetic TEST profile", confirmation_event_id: "evt-e2e-4" },
+      first_name: { value: "TEST", factId: "TEST-1", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-1" },
+      last_name: { value: "Person", factId: "TEST-2", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-2" },
+      email: { value: "e2e@example.test", factId: "TEST-3", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-3" },
+      phone: { value: "2246029341", factId: "TEST-4", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-4" },
     };
     if (withDoorstep) {
-      answers.gender = { value: "I don't wish to answer", factId: "TEST-5", confirmed: true, provenance: "synthetic TEST profile (EEO decline)", confirmation_event_id: "evt-e2e-5" };
-      answers.attestation = { value: "Yes", factId: "TEST-6", confirmed: true, provenance: "synthetic TEST profile", confirmation_event_id: "evt-e2e-6" };
+      answers.gender = { value: "I don't wish to answer", factId: "TEST-5", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-5" };
+      answers.attestation = { value: "Yes", factId: "TEST-6", confirmed: true, provenance: "owner stated (synthetic TEST profile)", confirmation_event_id: "evt-e2e-6" };
     }
     return { user_id: "TEST-E2E", answers, saved: {} };
   };

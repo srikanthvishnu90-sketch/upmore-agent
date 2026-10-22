@@ -142,3 +142,97 @@ Chromium memory), not taken here.
   driven in the TEST world (zero submits); `executeRun`'s integration
   (resume → `submitDoorstep` on the resumed session, fallback on
   mismatch/expiry) is proven in unit tests on board doubles.
+
+## Build + guard results (2026-10-22)
+
+Built as designed above: 149 `resumeApply` + `continueApply`, 155
+binding record + resume-first seams, bridge `boardFor` resume option
+(shared `boardFromSession` constructor). Commit `9f12507f` on
+`muse/2026-10-22-session-reuse`, pushed + ls-remote-verified.
+
+- New guard `tests/career-session-reuse.test.cjs`: **13/13 pass**;
+  fail-first on the pre-change sources: **0/13** (every test red).
+  Coverage: resume happy path (zero opens, zero fills, submits
+  through the resumed session); tampered stored payload refused
+  BEFORE the board is addressed; drifted live value refused with the
+  changed field named; dead session → SESSION_NOT_LIVE; cross-user →
+  SESSION_USER_MISMATCH with the board unread; captcha at review →
+  CAPTCHA_HANDOFF and explicitly NOT a fallback code; page not at
+  final review → SESSION_STATE_MISMATCH; 155 binding record (TTL
+  stamp, session id absent from all events); cross-invocation execute
+  = one drive (one session creation, resumed handle opens 0 / fills 0
+  / submits 1); drift, dead-session, expired-binding, and tampered
+  fallbacks each named and each still submitting only the approved
+  payload via the fresh drive; attestation completion on the same
+  live page (no new session, no re-open); real board service +
+  bridge: resume creates NO new service session, a foreign user's
+  resume is refused at the first call (WORKER_SESSION_FORBIDDEN), a
+  malformed resume id is refused by the bridge itself.
+- Guard family on the branch: phone equivalence 5/5 · location 7/7 ·
+  decline-vocab 12/12 · question-kind 6/6 · observation-stop-record
+  5/5 · loop-acceptance 10/10 · board-provider 17/17 · portal-apply +
+  submit-integrity — combined run **115 pass / 0 fail**. Router bundle
+  rebuilt + `--check` verified.
+
+## Measurement attempts log (TEST user, solo drives, live board service)
+
+- FDSE Chicago prepare ×3 (labels before1/2/3; runs
+  batch-abe8a4dc0209 / batch-0ced0573da0d / batch-42510afc5c4a):
+  39,236ms / 87,060ms / 18,842ms — ALL stopped CAPTCHA_HANDOFF at the
+  final step. Windows for this posting: 3/3 used.
+- Palantir SWE NY prepare (sweny-before, batch-eca36fd9f293):
+  23,060ms — stopped UNCOVERED_QUESTION (7 asks the TEST profile
+  carries no confirmed fact for; nothing invented). Not a
+  doorstep-reaching posting for the TEST profile.
+- Stripe SWE Intern (gh-before1, batch-e6915f2196e3): 367ms —
+  BOARD_NOT_WIRED (employer-site gh_jid URL; only direct ATS-host
+  URLs resolve — correct behavior, no drive).
+- FDSE New York prepare #1 (fdny-before, batch-fd7e34afdf5e):
+  25,011ms — CAPTCHA_HANDOFF at the final step; the form itself was
+  fully covered (fills completed; no uncovered stop). Window 1/3 for
+  this posting.
+- FDSE New York prepare #2 (fdny-before2, batch-abcc7216306e), after
+  a 28-minute cool-down: 23,694ms — CAPTCHA_HANDOFF at the final step.
+  Window 2/3.
+- CertiK Security Research Internship prepare (certik-before,
+  batch-2e03a06f305c): 179ms — removed by the family filter at
+  discovery (not an SWE-family posting); no drive.
+- FDSE New York prepare #3 (fdny-before3, batch-28e5f296375f):
+  19,096ms — stopped EMPTY_FORM, but this window was consumed by OUR
+  OWN HOST, not the posting: the VM was replaced at 07:47Z mid-drive
+  (system boot 07:47Z; the drive's open() took 18,548ms into the dying
+  board service and the form read came back empty). The F8 watchdog
+  restored the worker host by ~07:53Z (units active; gate probes
+  green: 401/401/example.com 403/Ashby 403/Lever 201+close 200).
+- FDSE New York AFTER-world prepare (fdny-after, batch-d7b28b81d215),
+  new code host-applied: 6,223ms — CAPTCHA_HANDOFF at OPEN.
+
+## Measurement verdict
+
+The paired live measurement did NOT complete: no Lever prepare
+reached a doorstep in any window tonight (captcha at the final step
+×5, captcha at open ×1, one window consumed by the VM replacement),
+so neither approve leg could be driven live. Greenhouse alternates
+were unavailable (Gusto stops on the owner's five unanswered
+class-(c) asks; Stripe's employer-site URL is not a driveable ATS
+URL). Chunk 50%'s success bar — a measured after-run at one drive
+per application — is therefore NOT claimed.
+
+What stands as proof instead, stated at its own tier: the guard
+suite exercises the REAL board service + REAL bridge + production
+149/155 composition (in-process transport) and proves the resumed
+leg creates no session, performs zero opens and zero fills, submits
+only the verified payload, and refuses cross-user / expired /
+tampered / drifted state (13/13, fail-first 0/13). The mechanism is
+host-applied on the TEST worker host (149 sha c97fef53…, 155
+38ea7e0d…, bridge 3d7b2eef…; .bak-20261022T074858Z-session-reuse
+taken first; probes green after the VM replacement + watchdog
+restore), so the first captcha-free window completes the pair with
+the harness as-is (`sr-prepare.cjs <label>` then
+`sr-approve-after.cjs <label>`).
+
+Before-world cost basis (recorded tonight): a full FDSE prepare
+drive costs 18.8–87.1s of board time; the old approval leg was by
+construction a second such drive. The reuse eliminates that second
+drive inside the 10-minute window; the exact paired saving awaits
+the first captcha-free window.

@@ -22,5 +22,16 @@
   "raw_log_sha256": "3b65ef96c5a7eb5e83d51107e54e72dac42004b9c0e887d8e887bd590af20190",
   "production_files_changed": 0,
   "push_side": "NOT_RUN",
-  "status": "FAIL_FIRST_BASELINE_ONLY"
+  "status": "FAIL_FIRST_BASELINE_ONLY",
+  "unchanged_neighbors": {
+    "passed": 28,
+    "total": 28,
+    "failed": 0,
+    "files": [
+      "tests/edge/telegram-present.test.ts",
+      "tests/edge/whatsapp-present.test.ts",
+      "tests/edge/channel-present.test.ts"
+    ],
+    "raw_log_sha256": "240597c57791f23dbe8fc9b35913a19b8cdc4bf26c6b740e4c122822d467e651"
+  }
 }

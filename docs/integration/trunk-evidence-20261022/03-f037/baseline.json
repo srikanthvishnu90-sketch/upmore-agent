@@ -1,0 +1,26 @@
+{
+  "base": "b7d02be231036d542a6b20f1820046758f2b436b",
+  "test_file": "tests/edge/f037-channel-delivery.test.ts",
+  "command": [
+    "/tmp/case2-test-tools/node_modules/.bin/deno",
+    "test",
+    "--cached-only",
+    "--import-map=/tmp/f009-deps/import-map.json",
+    "--allow-read",
+    "--allow-env",
+    "--no-check",
+    "tests/edge/f037-channel-delivery.test.ts"
+  ],
+  "deno": "deno 2.9.6 (stable, release, x86_64-unknown-linux-gnu)\nv8 15.0.245.2-rusty\ntypescript 6.0.3",
+  "exit_code": 1,
+  "passed": 10,
+  "total": 12,
+  "failed": 2,
+  "new_spend_usd": 0,
+  "scope": "documented Part B batch-run read side; NOT UUID-card compatibility or push delivery proof",
+  "test_source_sha256": "8d173fa3a745432e3d6867ef7fd4c2dc4c6fe356ea2de5961cd729ffcc389450",
+  "raw_log_sha256": "3b65ef96c5a7eb5e83d51107e54e72dac42004b9c0e887d8e887bd590af20190",
+  "production_files_changed": 0,
+  "push_side": "NOT_RUN",
+  "status": "FAIL_FIRST_BASELINE_ONLY"
+}

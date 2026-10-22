@@ -1,0 +1,46 @@
+{
+  "00-base/architect.json": {
+    "bytes": 830,
+    "sha256": "b3cdb611db4eb705e59306e138a10ebb7f0f4670f2fefa5203bbe0c9ecce9876"
+  },
+  "00-base/architect.log.gz": {
+    "bytes": 46652,
+    "sha256": "c70194a0c89ab6548eb8b0a1ab6f54938c9cfd44896774a8533d731f4fea2234"
+  },
+  "00-base/edge.json": {
+    "bytes": 774,
+    "sha256": "1080008cdc5189ced1f164835571568b20606cbc15d12f0e7daf88727cac7faf"
+  },
+  "00-base/edge.log.gz": {
+    "bytes": 35573,
+    "sha256": "f8e63b8037e2904be459d5ba66ee5b4c8c52438ac792ef57ac0aee04f6f33ef2"
+  },
+  "00-base/extension-cleanup.json": {
+    "bytes": 374,
+    "sha256": "286a50cd56799fec646dcbc35f89164c47b814589bdb0039b6b1ee5565e16daa"
+  },
+  "00-base/failure-names.json": {
+    "bytes": 3473,
+    "sha256": "5e301941de7fd9046af75beeb160eb4720cf8194c6080ae0b09f496507176eb4"
+  },
+  "00-base/node.json": {
+    "bytes": 18013,
+    "sha256": "6aa603ac8c88c07850f8e846b8410d5ff9076ba221a7696d68472646c5d259d3"
+  },
+  "00-base/node.log.gz": {
+    "bytes": 413632,
+    "sha256": "577390290a1fe7c775bd1bcc999b02767cb4b09f35eb6bcc7f21d8d5540eaacf"
+  },
+  "compare-local.py": {
+    "bytes": 1633,
+    "sha256": "3903cf39ef0b7d57a037917665418d0e7c0641be7abf136712981ad85257b085"
+  },
+  "environment.json": {
+    "bytes": 970,
+    "sha256": "2876b9e2e02e4e86524abfec072481c351bb08397b9168955af204f13cade942"
+  },
+  "run-local.py": {
+    "bytes": 2587,
+    "sha256": "0baca92c3f41ed13a1f9917de70ac3d72c952557cc619574c12571ca16701dbb"
+  }
+}

@@ -470,7 +470,7 @@ const CareerPortalBrowser = (() => {
     const gate = hostAllowed(o.url);
     const state = {
       opened: false, closed: false, defs: null, bindings: null,
-      filledValues: {}, renderedValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
+      filledValues: {}, renderedValues: {}, fillWaits: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
@@ -520,6 +520,13 @@ const CareerPortalBrowser = (() => {
       // channel when present (contract symmetry with the worker
       // bridge board, which serves the production path).
       renderedValue(fieldId) { return state.renderedValues[fieldId]; },
+      // The event-driven waits behind each fill (chunk 60%, 2026-10-22):
+      // per wait { name, outcome: event|timeout|ladder, ms } — a timeout
+      // is a named event in the record, never a silent longer sleep.
+      // Same method/getter discipline as renderedValues (a snapshotting
+      // wrapper must not freeze these either).
+      get fillWaits() { return Object.assign({}, state.fillWaits); },
+      fillWait(fieldId) { return state.fillWaits[fieldId]; },
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
       get submitArmed() { return state.armed; },
@@ -610,7 +617,8 @@ const CareerPortalBrowser = (() => {
             return undefined;
           }
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
-          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null });
+          if (fr && fr.waits) state.fillWaits[fieldId] = fr.waits;
+          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null, waits: (fr && fr.waits) || undefined });
           return value;
         }
         // Non-file fills DEGRADE, never abort: a widget that times out or
@@ -641,12 +649,14 @@ const CareerPortalBrowser = (() => {
         }
         if (r && r.filled === false) {
           state.fillFailures.push({ field_id: fieldId, reason: r.reason || "fill_failed", wanted: r.wanted || String(value) });
-          log("fill_failed", { field_id: fieldId, reason: r.reason || "fill_failed" });
+          if (r.waits) state.fillWaits[fieldId] = r.waits;
+          log("fill_failed", { field_id: fieldId, reason: r.reason || "fill_failed", waits: r.waits || undefined });
           return undefined;
         }
         state.filledValues[fieldId] = value;
         if (r && r.rendered !== undefined) state.renderedValues[fieldId] = r.rendered;
-        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null });
+        if (r && r.waits) state.fillWaits[fieldId] = r.waits;
+        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null, waits: (r && r.waits) || undefined });
         return value;
       },
       answers() {

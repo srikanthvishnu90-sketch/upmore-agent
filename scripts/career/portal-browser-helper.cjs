@@ -18,6 +18,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
+const { pollUntil, waitForDom, ladderForced } = require("./wait-primitives.cjs");
+// Event-driven waits (chunk 60%, 2026-10-22 — docs/apply/EVENT-DRIVEN-FILLS-2026-10-22.md):
+// each converted wait proceeds on its observable instead of sleeping a
+// fixed budget, bounded by the same budget the sleep used. The kill
+// switch is named config data: env UPMORE_EVENT_WAITS — unset/"all" =
+// event-driven everywhere, "off" = every converted wait runs its old
+// ladder form, a comma list forces only the named waits back.
+const EVENT_WAIT_LADDER = (name) => ladderForced(process.env.UPMORE_EVENT_WAITS, name);
+const noteWait = (waits, name, outcome, ms) => { if (Array.isArray(waits)) waits.push({ name, outcome, ms: Math.round(ms) }); };
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -149,6 +158,14 @@ function fnDetectChallenge() {
   const txt = ((document.body && document.body.innerText) || "").slice(0, 4000);
   if (/verify you are human|are you a robot|unusual traffic|press and hold|checking your browser/i.test(txt)) return "challenge";
   return null;
+}
+/* Open-render observable (W7/W8): the form's fields have rendered, or
+ * a challenge stands in their place. Self-contained for waitForFunction. */
+function fnFormPresent() {
+  if (document.querySelectorAll("input, select, textarea").length > 0) return true;
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const sels = [".g-recaptcha", ".h-captcha", "iframe[src*='recaptcha']", "iframe[src*='hcaptcha']", "#challenge-form"];
+  return sels.some((s) => vis(document.querySelector(s)));
 }
 function fnCaptchaTech() {
   const srcs = Array.from(document.querySelectorAll("script[src], iframe[src]")).map((e) => e.src || "");
@@ -289,7 +306,13 @@ async function cmdOpen(board, cmd) {
     return { ok: true, captcha: null, finalUrl: board.blockedNav, blockedNavigation: board.blockedNav, fieldCount: 0, captchaTech: [], navSteps };
   }
   await page.waitForLoadState("domcontentloaded", { timeout: 30000 }).catch(() => {});
-  await page.waitForTimeout(1200);
+  // W7: the 1200 ms settle waited for the form to render; wait ON the
+  // render (fields present, or a challenge) at the same cap instead.
+  if (EVENT_WAIT_LADDER("open_render")) { await page.waitForTimeout(1200); navSteps.push("open-wait:ladder"); }
+  else {
+    const r = await waitForDom(page, fnFormPresent, null, { timeoutMs: 1200 }).catch(() => ({ timedOut: true, waitedMs: 1200 }));
+    navSteps.push("open-wait:" + (r.timedOut ? "timeout" : "event") + ":" + Math.round(r.waitedMs));
+  }
   board.url = page.url();
   navSteps.push("goto:" + board.url);
   let captcha = await page.evaluate(fnDetectChallenge);
@@ -307,7 +330,9 @@ async function cmdOpen(board, cmd) {
               if (el) el.click();
             }, apply),
           ]);
-          await page.waitForTimeout(800);
+          // W8: same conversion as W7 at the post-click cap.
+          if (EVENT_WAIT_LADDER("open_render")) await page.waitForTimeout(800);
+          else await waitForDom(page, fnFormPresent, null, { timeoutMs: 800 }).catch(() => {});
           board.url = page.url();
           navSteps.push("apply-click:" + board.url);
           captcha = await page.evaluate(fnDetectChallenge);
@@ -540,7 +565,10 @@ async function fillOnceHandles(board, cmd) {
  * cleared search — never retypes into a widget that is still loading
  * (a retype restarts its search), and a pick that already landed is
  * detected before any further typing so it is never overwritten. */
-async function driveWidget(board, cmd) {
+/* This original form is PRESERVED VERBATIM as driveWidgetLadder: it is
+ * the kill-switch fallback for the widget_option wait (UPMORE_EVENT_WAITS
+ * naming widget_option, or "off"), so a revert needs no code change. */
+async function driveWidgetLadder(board, cmd) {
   const page = board.page;
   const b = cmd.binding;
   const wanted = String(cmd.value);
@@ -685,6 +713,201 @@ async function driveWidget(board, cmd) {
   await page.fill(b.selector, wanted, { timeout: 5000 }).catch(() => {});
   return { expect: wanted, chosenText: null, via: undefined };
 }
+/* The widget option scan, extracted VERBATIM from the ladder's inline
+ * evaluate (same pools, same match classes in the same strength order,
+ * same data-upmore-opt marking) so the event-driven drive can run it
+ * inside waitForFunction. One addition: `emptyMenu` reports that the
+ * board has rendered a definitive "no options" answer for the current
+ * search with no option element present — the signal that the current
+ * search text can never match (the decline option token-filters itself
+ * out of its own menu this way). Self-contained: serialized into the
+ * page by Playwright, so it may reference nothing outside itself. */
+function fnScanWidgetOptions(arg) {
+  const tok = arg.tok, full = arg.full;
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  document.querySelectorAll("[data-upmore-opt]").forEach((e) => e.removeAttribute("data-upmore-opt"));
+  const pools = [".select__option", '[role="option"]', '[role="listbox"] *', ".pac-item", '[class*="suggestion"] *', '[class*="autocomplete"] *'];
+  // Match strength, strongest first: exact normalized; then the
+  // wanted value's own first segment; then decline-class (only
+  // when the WANTED value is itself decline-class — D8/BUG-067);
+  // then first-token containment; then an option that is a
+  // normalized PREFIX of the wanted value. Weaker hits are used
+  // only when nothing stronger exists anywhere in the list.
+  const seg = full.split(/\s*[-–—,]\s*/)[0].trim();
+  let segHit = null, tokenHit = null, prefixHit = null, declineHit = null, sawOption = false;
+  const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
+  const wantedDecline = isDecline(full);
+  for (const sel of pools) {
+    for (const el of Array.from(document.querySelectorAll(sel))) {
+      if (!vis(el)) continue;
+      const t = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+      if (!t || t.length >= 90) continue;
+      sawOption = true;
+      if (norm(t) === norm(full)) { el.setAttribute("data-upmore-opt", "1"); return { matched: t, emptyMenu: false }; }
+      if (!segHit && seg && norm(t) === norm(seg)) segHit = { el, t };
+      if (!declineHit && wantedDecline && isDecline(t)) declineHit = { el, t };
+      if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
+      if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
+    }
+  }
+  const hit = segHit || declineHit || tokenHit || prefixHit;
+  if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return { matched: hit.t, emptyMenu: false }; }
+  let emptyMenu = false;
+  if (!sawOption) {
+    const notices = Array.from(document.querySelectorAll('[class*="menu-notice"], [class*="no-options"]'));
+    emptyMenu = notices.some((el) => vis(el) && /no options|no results|nothing found/i.test(el.textContent || ""));
+    if (!emptyMenu) {
+      const menus = Array.from(document.querySelectorAll('[class*="select__menu"], [role="listbox"]'));
+      emptyMenu = menus.some((el) => vis(el) && /^no options/i.test((el.innerText || el.textContent || "").replace(/\s+/g, " ").trim()));
+    }
+  }
+  return { matched: null, emptyMenu };
+}
+/* The wait state for one widget stage, composed from the scan and the
+ * widget-value reader (both self-contained; composed by source because
+ * waitForFunction serializes its predicate into the page). Resolves
+ * with { matched } when the scan finds a pick, { landed } when the
+ * widget already renders a pick satisfying the ladder's own shortcut
+ * rule (stages after the first only — the ladder checks it from its
+ * second tick), or { emptyMenu } when the board has answered the
+ * current search with nothing. False while none of those holds. */
+const fnWidgetWaitState = new Function("arg",
+  "const scan = " + fnScanWidgetOptions.toString() + ";\n" +
+  "const wv = " + fnWidgetValue.toString() + ";\n" +
+  "const normP = (x) => String(x == null ? '' : x).replace(/\\s+/g, ' ').trim();\n" +
+  "const s = scan(arg);\n" +
+  "if (s && s.matched) return { matched: s.matched };\n" +
+  "if (arg.allowLanded) { const existing = wv(arg.selector); if (existing) { const g = normP(existing), w = normP(arg.full); if (g === w || (g.length >= 4 && w.startsWith(g)) || w.endsWith(g)) return { landed: existing }; } }\n" +
+  "if (s && s.emptyMenu) return { emptyMenu: true };\n" +
+  "return false;");
+/* The widget's single-value as a wait predicate: the rendered text, or
+ * false while the pick has not landed as a value. */
+const fnWidgetValueOrFalse = new Function("sel",
+  "const wv = " + fnWidgetValue.toString() + ";\n" +
+  "const v = wv(sel);\n" +
+  "return v ? v : false;");
+
+/* The event-driven widget drive: the ladder's actions, stage order,
+ * pick semantics and tail — but each stage WAITS ON the board (the
+ * scan inside waitForFunction, mutation polling) instead of ticking
+ * at 500 ms. Stage budgets are the ladder's own tick schedule
+ * (retype segment at ~2.5 s, word at ~5 s, clear search at ~8 s, the
+ * 34-tick cap ≈ 17 s). A stage also advances early on the menu's
+ * definitive "no options" answer: the board has answered this search,
+ * and waiting out the slot cannot change the answer — the advance
+ * changes WHEN a stage starts, never what a stage does or what may
+ * be picked. Every wait's outcome lands in `waits`. */
+async function driveWidget(board, cmd) {
+  const page = board.page;
+  const b = cmd.binding;
+  const wanted = String(cmd.value);
+  const tok = wanted.split(",")[0].trim().toLowerCase();
+  const waits = [];
+  // One drive, one bounded patience budget — the same engagement
+  // actions and timeouts as the ladder (widget/attach fix, 2026-10-21).
+  await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+  await page.fill(b.selector, "", { timeout: 5000 }).catch(() => {});
+  await page.type(b.selector, wanted, { delay: 25, timeout: 5000 }).catch(() => {});
+  let retyped = false;
+  let wordRetyped = false;
+  let clearedSearch = false;
+  const widgetLoading = () => page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return false;
+    const control = el.closest('[class*="select__control"]');
+    const scope = (control && control.parentElement) || document;
+    return !!scope.querySelector('[class*="loading-indicator"], [class*="loadingIndicator"]');
+  }, b.selector).catch(() => false);
+  const stageBudgets = [2500, 2500, 3000, 9000];
+  let chosen = null;
+  let landedExisting = null;
+  for (let stage = 0; stage < stageBudgets.length && !chosen && !landedExisting; stage++) {
+    if (stage === 1) {
+      const expanded = await page.evaluate((sel) => { const el = document.querySelector(sel); return el ? el.getAttribute("aria-expanded") : null; }, b.selector).catch(() => null);
+      if (expanded !== "true") await page.click(b.selector, { timeout: 3000 }).catch(() => {});
+      const seg = wanted.split(/\s+[-–—,]\s+/)[0].trim();
+      if (!retyped && seg && seg !== wanted && !(await widgetLoading())) {
+        retyped = true;
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, seg, { delay: 25, timeout: 5000 }).catch(() => {});
+      }
+    }
+    if (stage === 2 && !wordRetyped) {
+      const word = wanted.split(/\s+/)[0].trim();
+      if (word && word.length >= 3 && word !== wanted && !(await widgetLoading())) {
+        wordRetyped = true;
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, word, { delay: 25, timeout: 5000 }).catch(() => {});
+      }
+    }
+    if (stage === 3 && !clearedSearch) {
+      clearedSearch = true;
+      if (!(await widgetLoading())) {
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        // No 400 ms sleep here (the ladder's W11): the stage wait
+        // below observes the re-rendered full list directly.
+      }
+    }
+    const r = await waitForDom(page, fnWidgetWaitState, { tok, full: wanted, selector: b.selector, allowLanded: stage > 0 }, { timeoutMs: stageBudgets[stage] });
+    noteWait(waits, "widget_option", r.timedOut ? "timeout" : "event", r.waitedMs);
+    if (r.value && r.value.matched) chosen = r.value.matched;
+    else if (r.value && r.value.landed) landedExisting = r.value.landed;
+    // emptyMenu or timeout: advance — the next stage's actions run at
+    // the top of the loop, under the same conditions as the ladder's.
+  }
+  if (landedExisting) return { expect: landedExisting, chosenText: wanted, via: "widget_option_pick", waits };
+  let landed = null;
+  for (let pickTry = 0; pickTry < 2 && chosen && !landed; pickTry++) {
+    if (pickTry > 0) {
+      // The ladder keeps polling after a pick that did not land; one
+      // re-scan under a fresh budget is that behavior's event form.
+      const r = await waitForDom(page, fnWidgetWaitState, { tok, full: wanted, selector: b.selector, allowLanded: true }, { timeoutMs: 2500 });
+      noteWait(waits, "widget_option", r.timedOut ? "timeout" : "event", r.waitedMs);
+      if (r.value && r.value.landed) { landed = { expect: r.value.landed, chosenText: wanted, via: "widget_option_pick" }; break; }
+      if (!(r.value && r.value.matched)) break;
+      chosen = r.value.matched;
+    }
+    const clicked = await page.click('[data-upmore-opt="1"]', { timeout: 5000 }).then(() => true).catch(() => false);
+    if (!clicked) {
+      // React re-creates the option nodes between the marking
+      // evaluate and the click — the marked node is gone. Fall back
+      // to a pick executed in ONE evaluate turn: find the option
+      // fresh and dispatch the pointer sequence on it directly
+      // (react-select selects on mousedown).
+      await page.evaluate((t) => {
+        const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+        const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+        const pools = [".select__option", '[role="option"]', '[role="listbox"] *'];
+        for (const sel of pools) {
+          for (const el of Array.from(document.querySelectorAll(sel))) {
+            if (!vis(el)) continue;
+            const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+            if (txt === t || norm(txt) === norm(t)) {
+              for (const type of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+              return true;
+            }
+          }
+        }
+        return false;
+      }, chosen).catch(() => false);
+    }
+    // The readback expectation is the widget's OWN rendering of the
+    // pick. Wait on the single-value itself (the ladder slept 300 ms
+    // and polled it up to 4 x 300 ms) at the same ~1.5 s cap.
+    const sv = await waitForDom(page, fnWidgetValueOrFalse, b.selector, { timeoutMs: 1500 });
+    noteWait(waits, "widget_value", sv.timedOut ? "timeout" : "event", sv.waitedMs);
+    if (sv.value) landed = { expect: sv.value || chosen, chosenText: chosen, via: "widget_option_pick" };
+  }
+  if (landed) return { expect: landed.expect, chosenText: landed.chosenText, via: landed.via, waits };
+  // No option list arrived: close the widget's open menu before the
+  // plain fill stands as page state (an open menu overlaying the form
+  // degraded later fills on the live boards). The verification in
+  // cmdFill judges it — search text alone never counts as a value.
+  await page.keyboard.press("Escape").catch(() => {});
+  await page.fill(b.selector, wanted, { timeout: 5000 }).catch(() => {});
+  return { expect: wanted, chosenText: null, via: undefined, waits };
+}
 function widgetPersisted(got, driven) {
   if (got === undefined || normPersist(got) === "") return false;
   if (normPersist(got) === normPersist(driven.expect)) return true;
@@ -813,6 +1036,22 @@ async function rediscoverFileSelector(page, identity) {
  * mechanism the browser's own file picker uses). Returns
  * { ok, selectorUsed } — only a board that still shows no input after
  * all of that earns a not-mounted report. */
+/* File-mount presence as a wait predicate: the identity's live input
+ * state (fnFileInputState composed by source — it is self-contained),
+ * or false while no input resolves for the identity. */
+const fnFileInputPresent = new Function("identity",
+  "const st = " + fnFileInputState.toString() + ";\n" +
+  "const r = st(identity);\n" +
+  "return r ? r : false;");
+/* The mount ladder's pacing step (W6): the ladder slept 600 ms between
+ * re-discovery passes; the event form waits on the input's presence at
+ * the same 600 ms cadence cap — a mount is acted on the moment it
+ * renders instead of at the next tick. */
+async function paceFileMount(page, identity, ms) {
+  if (EVENT_WAIT_LADDER("file_mount")) { await page.waitForTimeout(ms); return; }
+  await waitForDom(page, fnFileInputPresent, identity, { timeoutMs: ms }).catch(() => {});
+}
+
 async function attachFilePageLevel(board, cmd) {
   const page = board.page;
   const b = cmd.binding;
@@ -822,7 +1061,7 @@ async function attachFilePageLevel(board, cmd) {
     const l = document.querySelector('[class*="file-upload"], label[for="resume"], [data-testid*="resume" i]');
     if (l) l.scrollIntoView({ block: "center" });
   }).catch(() => {});
-  await page.waitForTimeout(400);
+  await paceFileMount(page, identity, 400);
   let attached = await page.waitForSelector(selector, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
   if (!attached) {
     const fresh = await rediscoverFileSelector(page, identity);
@@ -841,7 +1080,7 @@ async function attachFilePageLevel(board, cmd) {
   // hunt below remains the next stage for boards that mount the
   // input only on engagement.
   for (let t = 0; t < 10 && !attached; t++) {
-    await page.waitForTimeout(600);
+    await paceFileMount(page, identity, 600);
     const again = await rediscoverFileSelector(page, identity);
     if (again) {
       attached = await page.waitForSelector(again, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
@@ -874,7 +1113,7 @@ async function attachFilePageLevel(board, cmd) {
     if (marked) {
       await page.click('[data-upmore-attach="1"]', { timeout: 8000 }).catch(() => {});
       for (let t = 0; t < 10 && !attached; t++) {
-        await page.waitForTimeout(600);
+        await paceFileMount(page, identity, 600);
         const fresh2 = await rediscoverFileSelector(page, identity);
         if (fresh2) {
           attached = await page.waitForSelector(fresh2, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
@@ -912,6 +1151,7 @@ async function attachFilePageLevel(board, cmd) {
 async function cmdFill(board, cmd) {
   const b = cmd.binding, value = cmd.value;
   const settleMs = [450, 650, 1000];
+  const waits = [];
   if (b.widget === "react-select") {
     // A widget fill is ONE complete drive (click, type, option poll,
     // pick). Re-driving it verbatim when the board's option service
@@ -919,13 +1159,28 @@ async function cmdFill(board, cmd) {
     // degrade the page until later fields' inputs leave the DOM
     // (probe-bisected 2026-10-15). Single drive; the readback verdict
     // stands as reported.
-    const driven = await driveWidget(board, cmd);
-    await board.page.waitForTimeout(settleMs[0]);
-    const rendered = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
-    if (widgetPersisted(rendered === null ? undefined : rendered, driven)) {
-      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined, rendered: driven.expect };
+    const driven = EVENT_WAIT_LADDER("widget_option") ? await driveWidgetLadder(board, cmd) : await driveWidget(board, cmd);
+    if (driven && Array.isArray(driven.waits)) waits.push(...driven.waits);
+    // W2: the settle before this verification read is now a wait ON
+    // the single-value (deadline = the same settle budget); the
+    // verdict (widgetPersisted) is unchanged.
+    let rendered;
+    if (EVENT_WAIT_LADDER("widget_value")) {
+      await board.page.waitForTimeout(settleMs[0]);
+      rendered = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+      noteWait(waits, "widget_value", "ladder", settleMs[0]);
+    } else {
+      const r = await pollUntil(async () => {
+        const v = await board.page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+        return v ? v : null;
+      }, { deadlineMs: settleMs[0], intervalMs: 40 });
+      noteWait(waits, "widget_value", r.timedOut ? "timeout" : "event", r.waitedMs);
+      rendered = r.value;
     }
-    return { filled: false, reason: "value_did_not_persist", wanted: String(value) };
+    if (widgetPersisted(rendered === null || rendered === undefined ? undefined : rendered, driven)) {
+      return { filled: true, verified: true, attempts: 1, via: driven.via || undefined, rendered: driven.expect, waits };
+    }
+    return { filled: false, reason: "value_did_not_persist", wanted: String(value), waits };
   }
   if (b.inputType === "file") {
     const bytes = fs.readFileSync(cmd.filePath);
@@ -970,7 +1225,6 @@ async function cmdFill(board, cmd) {
         // die" guard). Its negative verdict returns at once.
         if (!attached) return { filled: false, reason: "file_input_not_mounted" };
       }
-      await board.page.waitForTimeout(settleMs[attempt - 1]);
       // Verified = the live input still holds the file. When the
       // discovered node is still the board's input, the handle
       // readback (name + sha256 of the attached bytes) decides. When
@@ -986,42 +1240,76 @@ async function cmdFill(board, cmd) {
       // probes by file IDENTITY, not by the ladder's last selector
       // (which the remount may have retired or the old identity-blind
       // rediscovery may have pointed at the cover field).
-      let got;
-      try { got = await readbackBindingFresh(board, b); } catch (e) { got = undefined; }
-      if (got && got.sha256 === value.sha256) return { filled: true, verified: true, attempts: attempt };
-      if (got === undefined) {
-        const st = await board.page.evaluate(fnFileInputState, fileIdentityOf(board, b)).catch(() => null);
-        if (st && st.files > 0) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
-        // Uploaded-state truth: the board replaced the input with
-        // the attached file's name. This session's attach record +
-        // the board displaying exactly that filename is the
-        // verification — the input's absence is the board's success
-        // state here, not a failed attach.
-        const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
-        if (rec0 && rec0.sha256 === value.sha256) {
-          const chip = await board.page.evaluate(fnUploadedChip, fileIdentityOf(board, b)).catch(() => null);
-          if (chip && chip.filename === value.filename) return { filled: true, verified: true, attempts: attempt, via: "file_uploaded_state" };
+      // W5: this verification round used to run ONCE after a fixed
+      // settle sleep; it now runs until it verifies or the same
+      // settle budget passes — the round itself is unchanged, so the
+      // verdict is unchanged; only its timing is event-driven.
+      const verifyFileOnce = async () => {
+        let got;
+        try { got = await readbackBindingFresh(board, b); } catch (e) { got = undefined; }
+        if (got && got.sha256 === value.sha256) return { via: undefined };
+        if (got === undefined) {
+          const st = await board.page.evaluate(fnFileInputState, fileIdentityOf(board, b)).catch(() => null);
+          if (st && st.files > 0) return { via: "file_rediscovered" };
+          // Uploaded-state truth: the board replaced the input with
+          // the attached file's name. This session's attach record +
+          // the board displaying exactly that filename is the
+          // verification — the input's absence is the board's success
+          // state here, not a failed attach.
+          const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
+          if (rec0 && rec0.sha256 === value.sha256) {
+            const chip = await board.page.evaluate(fnUploadedChip, fileIdentityOf(board, b)).catch(() => null);
+            if (chip && chip.filename === value.filename) return { via: "file_uploaded_state" };
+          }
         }
+        return null;
+      };
+      let verified = null;
+      if (EVENT_WAIT_LADDER("file_verify")) {
+        await board.page.waitForTimeout(settleMs[attempt - 1]);
+        verified = await verifyFileOnce();
+        noteWait(waits, "file_verify", "ladder", settleMs[attempt - 1]);
+      } else {
+        const r = await pollUntil(verifyFileOnce, { deadlineMs: settleMs[attempt - 1], intervalMs: 50 });
+        noteWait(waits, "file_verify", r.timedOut ? "timeout" : "event", r.waitedMs);
+        verified = r.value;
       }
+      if (verified) return { filled: true, verified: true, attempts: attempt, via: verified.via, waits };
     }
-    return { filled: false, reason: "value_did_not_persist", wanted: value.filename };
+    return { filled: false, reason: "value_did_not_persist", wanted: value.filename, waits };
   }
   let last = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     last = await fillOnceHandles(board, cmd);
     if (!last.filled) return last; // e.g. option_not_found — retrying cannot invent an option
-    await board.page.waitForTimeout(settleMs[attempt - 1]);
-    let got;
     // The verification readback re-observes on stale (readbackBindingFresh):
     // a node the board remounted mid-drive reads as its CURRENT value —
     // on a never-persist board that is "absent", which is the truth this
     // loop exists to judge, not an error that aborts the fill.
-    try { got = await readbackBindingFresh(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
-    if (persistedMatches(got, last.expect, b.inputType)) {
-      return { filled: true, verified: true, attempts: attempt, rendered: last.expect };
+    // W1: the readback used to run ONCE after a fixed settle sleep; it
+    // now polls until the value persists or the same settle budget
+    // passes. A STALE_OBSERVATION still propagates immediately (it is
+    // a verdict, not a retry) in both forms.
+    const readbackOnce = async () => {
+      let got;
+      try { got = await readbackBindingFresh(board, b); } catch (e) { if (e.code === "STALE_OBSERVATION") throw e; got = undefined; }
+      return persistedMatches(got, last.expect, b.inputType);
+    };
+    if (EVENT_WAIT_LADDER("persist_verify")) {
+      await board.page.waitForTimeout(settleMs[attempt - 1]);
+      noteWait(waits, "persist_verify", "ladder", settleMs[attempt - 1]);
+      if (await readbackOnce()) {
+        return { filled: true, verified: true, attempts: attempt, rendered: last.expect, waits };
+      }
+    } else {
+      const r = await pollUntil(async () => ((await readbackOnce()) ? true : null), { deadlineMs: settleMs[attempt - 1], intervalMs: 40 });
+      noteWait(waits, "persist_verify", r.timedOut ? "timeout" : "event", r.waitedMs);
+      if (r.value) {
+        return { filled: true, verified: true, attempts: attempt, rendered: last.expect, waits };
+      }
     }
   }
-  return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value) };
+  return { filled: false, reason: "value_did_not_persist", wanted: String(value && value.filename ? value.filename : value), waits };
 }
 // Re-observe ONE binding in place (v224 combine): a board that
 // remounts a node between the drive and the readback (the Greenhouse

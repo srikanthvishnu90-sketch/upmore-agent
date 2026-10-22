@@ -140,28 +140,43 @@ const CareerJobs = (() => {
     if (/\banalyst/.test(t)) return "Finance";
     return "Other";
   }
+  // F-006: normalize only known band lexemes, then use the same bounded phrase matcher
+  // for titles, asks and JD heads. Arbitrary prefix matching would turn "internal" into "intern".
+  const BAND_TERMS = {
+    intern: ["intern", "co op"],
+    seasonal: ["summer analyst", "summer associate", "summer business analyst", "winter analyst", "winter associate", "winter business analyst"],
+    director: ["director", "vp", "vice president", "head of", "chief"],
+    manager: ["manager"], staff: ["staff", "principal"], senior: ["senior", "sr"],
+    new_grad: ["new grad", "early career", "entry level", "grad program", "rotational", "university"],
+    junior: ["junior", "jr", "associate"],
+  };
+  const BAND_LEXEMES = new Map(Object.values(BAND_TERMS).flatMap((terms) => terms.flatMap((term) => term.split(" "))).map((word) => [word, word]));
+  BAND_LEXEMES.set("internship", "intern");
+  BAND_LEXEMES.set("graduate", "grad");
+  function bandText(value) {
+    const words = lc(value).replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+    return " " + words.map((word) => {
+      if (BAND_LEXEMES.has(word)) return BAND_LEXEMES.get(word);
+      // Inflection is admitted only when its singular is in the controlled lexicon.
+      const singulars = [word.replace(/s$/, ""), word.replace(/es$/, ""), word.replace(/ies$/, "y")];
+      for (const singular of singulars) if (singular !== word && BAND_LEXEMES.has(singular)) return BAND_LEXEMES.get(singular);
+      return word;
+    }).join(" ") + " ";
+  }
+  const hasBandTerm = (normalized, band) => BAND_TERMS[band].some((term) => normalized.includes(" " + term + " "));
   function seniorityBand(title, jd) {
-    const t = lc(title), j = lc(jd);
-    if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
-    // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
-    // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
-    // winter forms) ARE the finance/consulting internship titles and carry no
-    // intern token; without this they fell through to "mid" and intern-band
-    // watches silently missed them (witness: Lane A seed LA-0043). The
-    // analyst-track noun is required — seasonal titles without it are
-    // seasonal JOBS (customer service, housekeeping), never internships. A
-    // title that also names a management role ("Summer Analyst Program
-    // Manager") is the manager's posting and falls through to the checks
-    // below.
-    if (/\b(summer|winter)\s+(business\s+)?(analyst|associate)\b/.test(t)
-        && !/\b(manager|director|vp|vice president|head of|chief)\b/.test(t)) return "intern";
-    if (/\b(director|vp|vice president|head of|chief)\b/.test(t)) return "director";
-    if (/\bmanager\b/.test(t)) return "manager";
-    if (/\b(staff|principal)\b/.test(t)) return "staff";
-    if (/\b(senior|sr\.?)\b/.test(t)) return "senior";
-    if (/\b(new grad|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
-    if (/\b(junior|jr\.?|associate)\b/.test(t)) return "junior";
-    if (/\b(intern|internship)\b/.test(j.slice(0, 300))) return "intern";
+    const t = bandText(title), j = lc(jd);
+    if (hasBandTerm(t, "intern")) return "intern";
+    // BUG-229 (MI-094): seasonal analyst/associate titles are internships, while
+    // their program managers and unrelated seasonal jobs retain their own bands.
+    if (hasBandTerm(t, "seasonal") && !hasBandTerm(t, "manager") && !hasBandTerm(t, "director")) return "intern";
+    if (hasBandTerm(t, "director")) return "director";
+    if (hasBandTerm(t, "manager")) return "manager";
+    if (hasBandTerm(t, "staff")) return "staff";
+    if (hasBandTerm(t, "senior")) return "senior";
+    if (hasBandTerm(t + bandText(j.slice(0, 400)), "new_grad")) return "new_grad";
+    if (hasBandTerm(t, "junior")) return "junior";
+    if (hasBandTerm(bandText(j.slice(0, 300)), "intern")) return "intern";
     return "mid";
   }
   function remoteOf(location, jd) {

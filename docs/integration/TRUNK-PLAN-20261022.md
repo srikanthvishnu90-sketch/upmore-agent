@@ -164,3 +164,28 @@ New order after step 1, replacing steps 2–9:
 - **An MCP/CLI surface.** Cheap distribution, but a new external surface before the loop closes is breadth; reconsider after the first measured session.
 - **Workday and more ATSes.** Coverage of Greenhouse, Lever and Ashby to a receipt comes first.
 - **"Watch it fill" live view.** After C.
+
+## 8. Assignments after the full competitor doc (Vishnu 4:58: speed matters)
+
+**Corrections to the doc** (checked today):
+- "18/60 with 12 wrong answers" is WO-042 **run 0**, the baseline as built. Later offline runs on the extension path measure precision 100% (195/195) and coverage about 96% (WO-042, runs 13–17). The doc's speed paragraph is stale. What *is* still unmeasured is applications per 30 minutes, live, end to end.
+- "Zero applications ever submitted live": see section 7. One extension employer-confirmation row exists live (2026-10-20); the owner confirms whether it was real.
+
+**One decision for the owner (it changes everything below):**
+- The 10-21 cloud-worker-only decision drops the path the measurements above come from.
+- The doc itself lists a bot-check at Submit on every portal, and captcha solving is forbidden. So a cloud worker cannot finish a submission on those portals without the person.
+- The extension path ends with the person clicking Submit in their own Chrome. That clears the bot-check honestly, needs no submit switch, and its receipt backend is live.
+- **Recommendation:** reopen the extension as the first proven loop. Keep the cloud worker for the portals it can finish.
+
+**Codex (backend and integration), in order:**
+1. Merge `wo/integration-verified-20261022` into `trunk`, then Option A `9568596d`. Report SHAs and CI.
+2. F-037: the approval card reaches Telegram and WhatsApp, read side and push side, with the five guards in nine-gap-specs Part B.
+3. Receipts: one message per confirmed application, carrying the employer, the role and the employer's confirmation id from `extension_submission_reports` or the apply receipts. Never sent without a confirmation id.
+4. A per-application meter: wall time from approve to confirmation, and model cost. Stored on the application record, with a report script. No new spend to test it.
+
+**Muse (frontend and end-to-end), in order:**
+1. Cause 5: H1–H6 green locally against the mock employer, running on every merge (in progress; `c4136bd9` 3/8).
+2. Lane B web approval card `5ffab100` rebased onto `trunk`: per-application review, approve by tap. "Submit when complete" is a submit-path switch: build it disabled, and it stays off without the owner's words.
+3. A tracker page in the web app: each application with its status, its receipt (confirmation id, time) and its time and cost. Read-only. Build the screens from the app's real components, not mockups.
+
+**The architect:** reviews every merge (SHAs, no test deleted or loosened, CI green on trunk), keeps trunk green, and writes the one-page MCP/CLI design (read-only first: roles, status, receipts) to start after the loop closes once.

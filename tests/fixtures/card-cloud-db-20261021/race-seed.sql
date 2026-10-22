@@ -120,7 +120,7 @@ insert into card_cloud_qa.scenarios(case_name,owner,source_digest)
  select 'flag-write',(v->>'owner')::uuid,v->>'source_digest' from cc_race_state where k='sources';
 do $$ declare chosen text:=current_setting('cc_qa.case'); n integer; begin
  select count(*) into n from public.career_apply_jobs;
- if n<>case when chosen in ('claim','maintenance') then 1 else 0 end then
+ if n<>(case when chosen in ('claim','maintenance') then 1 else 0 end) then
   raise exception 'fixture setup failed: expected exactly selected synthetic queued job'; end if;
  if exists(select 1 from public.career_apply_jobs where state<>'queued' or attempts<>0 or source is not null)
   or exists(select 1 from public.career_cloud_settings where value<>'off')

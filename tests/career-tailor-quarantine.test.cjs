@@ -20,13 +20,14 @@ test('tailoring quarantine: actual profile and resume path excludes reserved inv
 });
 
 test('tailoring quarantine: direct truth audit cannot bless quarantined or derived citations',()=>{
- const p=profile([fact('F-033'),fact('SYN-DERIVED',{derivedFrom:['F-033']}),own]);
+ // A bank fact carries its D-007 id in factId (F-033 ruling, 2026-10-21); a bare chat id in that range is the person's own.
+ const p=profile([fact('F-033',{factId:'F-033'}),fact('SYN-DERIVED',{derivedFrom:['F-033']}),own]);
  for(const id of ['F-033','SYN-DERIVED'])assert.equal(Tailor.auditResume([{text:'Built SQL dashboards for 5 synthetic teams.',factIds:[id],type:'bullet'}],p).ok,false,id);
  assert.equal(Tailor.auditResume([{text:own.text,factIds:[own.id],type:'bullet'}],p).ok,true,'own confirmed positive control');
 });
 
 test('tailoring quarantine: skill evidence cannot launder an excluded source',()=>{
- const p=profile([fact('F-033',{text:'Built Excel reporting for 12 synthetic teams.',skills:['Excel']}),own,{id:'SYN-SKILL',kind:'skill',name:'Excel',text:'Skill: Excel',skills:['Excel'],evidence:['F-033'],status:'confirmed',needs_confirmation:false}]);
+ const p=profile([fact('F-033',{factId:'F-033',text:'Built Excel reporting for 12 synthetic teams.',skills:['Excel']}),own,{id:'SYN-SKILL',kind:'skill',name:'Excel',text:'Skill: Excel',skills:['Excel'],evidence:['F-033'],status:'confirmed',needs_confirmation:false}]);
  const r=tailored(p);assert.ok(r.resume.lines.every(l=>!l.factIds.includes('SYN-SKILL')&&!l.factIds.includes('F-033')));assert.ok(r.resume.lines.every(l=>!l.text.includes('Excel')));
 });
 

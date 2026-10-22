@@ -127,6 +127,7 @@ MIGRATIONS=(
   20261024100000_career_apply_agent_contract.sql
   20261024110000_career_apply_cloud_ask.sql
   20261024120000_career_apply_cloud_gate_waiver.sql
+  20261024130000_career_apply_card_cloud_bridge.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -173,6 +174,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_extension_begin_agent_own' and prosrc like '%agent contract%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_ask')"
   "to_regclass('public.career_apply_cloud_gate_waivers') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_message_cloud_authorize')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

@@ -37,10 +37,10 @@ const CareerTailor = (() => {
   // compare this consumer at the ID boundaries and provenance cases. No source row is changed or deleted.
   const quarantinedFact = (f) => {
     if (!f || typeof f !== "object" || Array.isArray(f)) return false;
-    for (const id of [f.factId, f.id]) {
-      const m = /^F-0*(\d+)$/.exec(String(id == null ? "" : id).trim());
-      if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-    }
+    // F-033 ruling (2026-10-21): the bank range is read from factId only. A chat profile numbers its own facts
+    // F-001 up in id, and those are the person's own, so an id alone never quarantines a fact.
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
     return /owner-delegated|answer-all/i.test(String(f.provenance == null ? "" : f.provenance));
   };
   const sourceLabel = (v) => typeof v === "string" ? v.trim().toLowerCase().replace(/[\s_]+/g, "-") : "";
@@ -57,7 +57,8 @@ const CareerTailor = (() => {
     const deny = (f) => { denied.add(f); for (const id of idsOf(f)) deniedIds.add(id); };
     for (const f of facts) if (contentSourceDenied(profile) || !f || typeof f !== "object" || contentSourceDenied(f) ||
       f.needs_confirmation || f.status !== undefined && f.status !== "confirmed") deny(f);
-    const badRef = (id) => typeof id !== "string" || !id.trim() || quarantinedFact({ id }) || !known.has(id) || deniedIds.has(id);
+    // A reference is bad when its parent is absent or denied by its own row; a bare id in the D-007 range is not a bank id.
+    const badRef = (id) => typeof id !== "string" || !id.trim() || !known.has(id) || deniedIds.has(id);
     for (let changed = true; changed;) {
       changed = false;
       for (const f of facts) {

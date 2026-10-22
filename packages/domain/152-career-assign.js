@@ -202,8 +202,29 @@ const CareerAssign = (() => {
     const text = s(posting.jd_text || "");
     const m = text.match(/(applications? (?:close|deadline)|apply by|deadline|closing date)\s*(?:is|:|on)?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i);
     if (!m) return null;
-    const at = Date.parse(m[2]);
-    return { text: m[0].trim(), at: isNaN(at) ? null : new Date(at).toISOString() };
+    return { text: m[0].trim(), at: deadlineDayUtc(m[2]) };
+  }
+
+  // A posted deadline is a calendar day, not an instant on this server's clock. Date.parse read "2026-11-02" as UTC
+  // midnight but "November 2, 2026" and "11/2/2026" as the HOST's local midnight, so the same deadline moved by the
+  // server's offset (06:00Z on a Chicago host, 00:00Z on a UTC one). Every form becomes that day at 00:00Z.
+  const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  function deadlineDayUtc(raw) {
+    const t = String(raw).trim();
+    let y, mo, d;
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t))) { mo = +m[1]; d = +m[2]; y = +m[3]; }
+    else if ((m = /^([A-Za-z]+) (\d{1,2}),? (\d{4})$/.exec(t))) {
+      const i = MONTHS.findIndex((name) => name.startsWith(m[1].toLowerCase()) && m[1].length >= 3);
+      if (i < 0) return null;
+      mo = i + 1; d = +m[2]; y = +m[3];
+    } else return null;
+    const at = Date.UTC(y, mo - 1, d);
+    const back = new Date(at);
+    // A day that does not exist ("February 30") is no deadline at all, never a rolled-over one.
+    if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
+    return back.toISOString();
   }
 
   // One posting x one interest. Returns { matched, reasons[], fit } — reasons

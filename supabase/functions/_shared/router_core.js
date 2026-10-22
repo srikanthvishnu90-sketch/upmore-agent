@@ -22034,10 +22034,10 @@ const CareerTailor = (() => {
   // compare this consumer at the ID boundaries and provenance cases. No source row is changed or deleted.
   const quarantinedFact = (f) => {
     if (!f || typeof f !== "object" || Array.isArray(f)) return false;
-    for (const id of [f.factId, f.id]) {
-      const m = /^F-0*(\d+)$/.exec(String(id == null ? "" : id).trim());
-      if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
-    }
+    // F-033 ruling (2026-10-21): the bank range is read from factId only. A chat profile numbers its own facts
+    // F-001 up in id, and those are the person's own, so an id alone never quarantines a fact.
+    const m = /^F-0*(\d+)$/.exec(String(f.factId == null ? "" : f.factId).trim());
+    if (m && Number(m[1]) >= 27 && Number(m[1]) <= 79) return true;
     return /owner-delegated|answer-all/i.test(String(f.provenance == null ? "" : f.provenance));
   };
   const sourceLabel = (v) => typeof v === "string" ? v.trim().toLowerCase().replace(/[\s_]+/g, "-") : "";
@@ -22054,7 +22054,8 @@ const CareerTailor = (() => {
     const deny = (f) => { denied.add(f); for (const id of idsOf(f)) deniedIds.add(id); };
     for (const f of facts) if (contentSourceDenied(profile) || !f || typeof f !== "object" || contentSourceDenied(f) ||
       f.needs_confirmation || f.status !== undefined && f.status !== "confirmed") deny(f);
-    const badRef = (id) => typeof id !== "string" || !id.trim() || quarantinedFact({ id }) || !known.has(id) || deniedIds.has(id);
+    // A reference is bad when its parent is absent or denied by its own row; a bare id in the D-007 range is not a bank id.
+    const badRef = (id) => typeof id !== "string" || !id.trim() || !known.has(id) || deniedIds.has(id);
     for (let changed = true; changed;) {
       changed = false;
       for (const f of facts) {
@@ -52283,8 +52284,29 @@ const CareerAssign = (() => {
     const text = s(posting.jd_text || "");
     const m = text.match(/(applications? (?:close|deadline)|apply by|deadline|closing date)\s*(?:is|:|on)?\s*([A-Z][a-z]+ \d{1,2},? \d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i);
     if (!m) return null;
-    const at = Date.parse(m[2]);
-    return { text: m[0].trim(), at: isNaN(at) ? null : new Date(at).toISOString() };
+    return { text: m[0].trim(), at: deadlineDayUtc(m[2]) };
+  }
+
+  // A posted deadline is a calendar day, not an instant on this server's clock. Date.parse read "2026-11-02" as UTC
+  // midnight but "November 2, 2026" and "11/2/2026" as the HOST's local midnight, so the same deadline moved by the
+  // server's offset (06:00Z on a Chicago host, 00:00Z on a UTC one). Every form becomes that day at 00:00Z.
+  const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  function deadlineDayUtc(raw) {
+    const t = String(raw).trim();
+    let y, mo, d;
+    let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t))) { mo = +m[1]; d = +m[2]; y = +m[3]; }
+    else if ((m = /^([A-Za-z]+) (\d{1,2}),? (\d{4})$/.exec(t))) {
+      const i = MONTHS.findIndex((name) => name.startsWith(m[1].toLowerCase()) && m[1].length >= 3);
+      if (i < 0) return null;
+      mo = i + 1; d = +m[2]; y = +m[3];
+    } else return null;
+    const at = Date.UTC(y, mo - 1, d);
+    const back = new Date(at);
+    // A day that does not exist ("February 30") is no deadline at all, never a rolled-over one.
+    if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d) return null;
+    return back.toISOString();
   }
 
   // One posting x one interest. Returns { matched, reasons[], fit } — reasons

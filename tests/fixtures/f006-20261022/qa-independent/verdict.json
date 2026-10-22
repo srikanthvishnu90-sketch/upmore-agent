@@ -1,0 +1,91 @@
+{
+  "bug": "MUSE-F-006",
+  "verdict": "SCOPED_PASS",
+  "base_pin": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "fix_pin": "4ce83caf9f60737b04f51398157a65b0101d4f28",
+  "same_guard_sha256": "8168143b7aebca68c7bdafe3646e121118537107cee9494329cd4d607ce0c259",
+  "results": {
+    "new55": {
+      "base": {
+        "pass": 28,
+        "fail": 27,
+        "skip": 0
+      },
+      "fix": {
+        "pass": 55,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    "original30": {
+      "base": 15,
+      "fix": 30,
+      "total": 30,
+      "unchanged_except_require_source": true
+    },
+    "neighbors37": {
+      "base": 37,
+      "fix": 37,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "mechanism": "Controlled seniority lexeme normalization plus one bounded phrase matcher replaces word-boundary morphology misses in title/ask/JD; existing seasonal-manager and unrelated-word controls pass. Public API unchanged.",
+  "scope": "Repo-only synthetic scenario/unit tests; no discovery DB/provider/live deployment or user outcome claim. F005 may reuse unchanged classifier API; must be verified independently.",
+  "fixture_read_scope": [
+    "packages/career-data/fixtures/test-persona.json",
+    "packages/career-data/fixtures/gauntlet/jobs/scored-corpus.json"
+  ],
+  "fixture_access": "Only existing37 neighbor runner read exact named historical fixtures; no fixture contents opened in model, no frozen320 files read.",
+  "sources": [
+    {
+      "pin": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+      "path": "packages/domain/121-career-jobs.js",
+      "sha256": "fd63d6f36638b621b1fbd87c99aa12049d14d87a1146b1e9f6383267dd797012"
+    },
+    {
+      "pin": "4ce83caf9f60737b04f51398157a65b0101d4f28",
+      "path": "packages/domain/121-career-jobs.js",
+      "sha256": "539fcb34ee519506538c25dad5f5faadcd864ba9b99da5d83bc266f374bb65f5"
+    }
+  ],
+  "ledger": {
+    "new_usd": "0.000000",
+    "known_comparison_usd": "8.503100",
+    "held_unknown_usd": "0.070743",
+    "status": "UNRECONCILED"
+  },
+  "evidence": {
+    "guard-base.tap.gz": {
+      "sha256": "04c43665998e276f99a44db63f7b98104c4d9c27ebb3fdbf0cfde6ca756cc26e",
+      "uncompressed_sha256": "37596924e3cc6a9e1fc05ddd46c854bc3522ea96ae00c5c67dbd89cef1c660ff",
+      "bytes": 33662
+    },
+    "guard-fix.tap.gz": {
+      "sha256": "e13b217e7325d514386098d972fae97ebce92eb0eb820adf512280371202ca90",
+      "uncompressed_sha256": "bff3518eaf7ef66dd4035177da021e2171ff1a9031de8e2b13b08db5e5dc2d63",
+      "bytes": 10789
+    },
+    "original30-base.log.gz": {
+      "sha256": "fbfb4868cdbfe6d008697dceac3ce0447670b4997cf7793b81c4330483f14a71",
+      "uncompressed_sha256": "4cbdef527176c7ca80b3943db9c9b4acac49f65bb162352e1b66e0267cbd323f",
+      "bytes": 2512
+    },
+    "original30-fix.log.gz": {
+      "sha256": "211c4c241263c1edf9fa29bb951e2fbc7216ecef2666b2c055384b6a072853a2",
+      "uncompressed_sha256": "c9e9109b64bc4b6415cd6797c9dc87facce411bc223583337004f89c1033e2ac",
+      "bytes": 2572
+    },
+    "neighbors-base.tap.gz": {
+      "sha256": "9ceef3f887261008cfc45f2b0499c181ddec9159b4ddb847661966d7bcfdcc00",
+      "uncompressed_sha256": "bfb1970806da195d9047d8df54c43ee6f5de9bc1d7cd80248f77385e6a532a8f",
+      "bytes": 8518
+    },
+    "neighbors-fix.tap.gz": {
+      "sha256": "842a0b69d918c84553c3e42ccdc5600993acb6aa8b432e2a0808f3271a2140c5",
+      "uncompressed_sha256": "55122e54fa3c0134a48e91449cf346823757c34f6ad339632e3d269e14fc0253",
+      "bytes": 8516
+    }
+  },
+  "raw_retention": "Deterministic gzip preserves original test output bytes, including TAP trailing whitespace; no output lines edited."
+}

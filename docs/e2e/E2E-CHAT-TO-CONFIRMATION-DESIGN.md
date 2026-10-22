@@ -119,7 +119,7 @@ catches. Status column = the skeleton's measured result on 2026-10-22
 |---|---|---|---|---|
 | A1.1 | The apply ask parses to (count, family) | module 155 `parseApplyAsk`, in-process | ask-parsing regressions | PASS |
 | A1.2 | A plain-text turn carries NO structured batch request | `career_task_bridge.normalizeCareerBatchRequest(undefined) === null` (handler-career.ts builds `careerBatch` only from `body.career_batch`) | the structural root of the Telegram fallback | measured |
-| A1.3 | After a plain ask, no card artifact exists and no run is readable; the status readback answers "No batch run is readable" | `planCareerBatchIntent` (status) against an empty persistence | **F-037** (the Telegram card is structurally unreachable on v248) / **F-002** (status turns fall to the generic fallback; reproduced live 2026-10-22) | **FAIL — F-037/F-002** |
+| A1.3 | After a plain ask, no card artifact exists and no run is readable; the status readback answers "No batch run is readable" | `planCareerBatchIntent` (status) against an empty persistence | **F-037** (the Telegram card is structurally unreachable on v248) / **F-002** (status turns fall to the generic fallback; reproduced live 2026-10-22) | **FAIL — F-037/F-002** on this branch's base; **PASS on `muse/2026-10-22-e2e-h1-card`** — the H1 leg there drives the fixed composition (bridge card readback; design `docs/e2e/H1-CARD-DELIVERY-DESIGN.md`, guards `tests/edge/channel-card-readback.test.ts`). The negatives in this row still hold there: a plain call carries no `career_batch`, and an unwritten run still reads as nothing. |
 
 ### H2 — card → approval
 | # | Assertion | Where | Catches | Status |

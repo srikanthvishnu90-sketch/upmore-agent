@@ -20619,6 +20619,7 @@ const CareerJobs = (() => {
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
   const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  const locationIsStated = (v) => !!s(v).trim() && lc(v).trim() !== "location not stated";
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -20994,6 +20995,29 @@ const CareerJobs = (() => {
   // marker), per the owner's TN-1a ruling — never invented.
   const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
 
+  // F-013: retain location text from the ATS's stated primary/secondary values.
+  // Never stringify an object into a location or substitute the company/board as geography.
+  function locationText(value) {
+    const out = [], seen = new Set();
+    const plain = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+    const add = (v) => { const t = plain(v), key = t.toLowerCase(); if (t && !seen.has(key)) { seen.add(key); out.push(t); } return !!t; };
+    function read(v, depth) {
+      if (depth > 6 || v == null) return false;
+      if (typeof v === "string") return add(v);
+      if (Array.isArray(v)) { let found = false; for (const item of v) found = read(item, depth + 1) || found; return found; }
+      if (typeof v !== "object") return false;
+      let named = false;
+      for (const name of ["location", "locationName", "name"]) if (v[name] !== undefined) named = read(v[name], depth + 1) || named;
+      // A named location is the source's own label; its address is only a fallback.
+      if (named) return true;
+      const address = v.postalAddress || (v.address && (v.address.postalAddress || v.address)) || v;
+      const parts = [address.city || address.addressLocality, address.region || address.state || address.addressRegion, address.country || address.addressCountry].map(plain).filter(Boolean);
+      return parts.length ? add([...new Set(parts)].join(", ")) : false;
+    }
+    read(value, 0);
+    return out.join("; ");
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
@@ -21039,7 +21063,7 @@ const CareerJobs = (() => {
   function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
       source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
-      location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
+      location: locationText([j.location, j.locationName, j.locations, j.secondaryLocations]) || "Location not stated", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
@@ -21281,9 +21305,13 @@ const CareerJobs = (() => {
     // location
     const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
     if (wantLocs.length && posting.remote !== "remote") {
-      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(locationIsStated(posting.location)
+        ? `location: posting is in ${posting.location}; you want ${[...(c.locations || prefs.locations)].join(", ")}`
+        : `location: posting does not state a location; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
     }
-    if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
+    if (prefs.remote_only && posting.remote === "onsite") fails.push(locationIsStated(posting.location)
+      ? `location: posting is on-site in ${posting.location}; you want remote`
+      : "location: posting does not confirm remote work; you want remote");
     // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
     const needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization));
     const citizenOnly = /\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/.test(jd);
@@ -21333,6 +21361,7 @@ const CareerJobs = (() => {
   function locationMatches(postingLoc, wantsRaw) {
     const wants = (wantsRaw || []).map(normLoc).filter(Boolean);
     if (!wants.length) return true;
+    if (!locationIsStated(postingLoc)) return false;
     const segments = s(postingLoc).split(/[;•|]/).map((x) => x.replace(/^\s*(hybrid|remote|on-site|onsite|in-office)\s*[-–—:]\s*/i, "").trim()).filter(Boolean);
     const candidates = new Set();
     for (const seg of segments) {
@@ -21567,7 +21596,7 @@ const CareerJobs = (() => {
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     detectKnockouts, evaluateKnockouts, evidencedFullTimeYears,
-    roleFamily, seniorityBand, stripHtml, hash };
+    roleFamily, seniorityBand, locationText, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
 

@@ -276,6 +276,13 @@ const CareerHost = (() => {
     // asynchronous worker execution, not a wired in-turn drive, and
     // no WIRED claim is made for it.
     const delegateBatch = !!(deps && deps.delegateBatch === true);
+    // CHUNK 40% (module 176, 2026-10-22): the composition root may
+    // likewise signal that an approved batch's BEGIN belongs to the
+    // agent-submit path (module 176's begin-caller at the async seam,
+    // behind CAREER_AGENT_SUBMIT) instead of an in-turn executeRun.
+    // Same carriage as delegateBatch: a runtime signal on batchDeps,
+    // never persisted, never a capability claim.
+    const agentBegin = !!(deps && deps.agentBegin === true);
     const workerCapabilities = boardFor
       ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
           portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
@@ -316,7 +323,7 @@ const CareerHost = (() => {
         if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
         else delete ctx.alertWatchState;
       }
-      if (o.batchDeps || boardFor || delegateBatch) {
+      if (o.batchDeps || boardFor || delegateBatch || agentBegin) {
         // J8: per-turn batch deps (module 155's seam inputs — the
         // submissions log and attestations today). The composition
         // root's boardFor outranks any per-turn boardFor value; other
@@ -325,7 +332,8 @@ const CareerHost = (() => {
         // J10: the root's delegateBatch likewise outranks any per-turn
         // value — the execution mode is the composition root's call,
         // never a per-turn caller's.
-        ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {});
+        // CHUNK 40%: agentBegin rides the same rule.
+        ctx.batchDeps = Object.assign({}, o.batchDeps || {}, boardFor ? { boardFor } : {}, delegateBatch ? { delegateBatch: true } : {}, agentBegin ? { agentBegin: true } : {});
       }
       // DEPTH LANE A (MI-013): seed the account's stated facts into
       // the turn. ROUND 2 (PR #151): the account record is

@@ -1,0 +1,37 @@
+{
+  "commit": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "sources": {
+    "packages/domain/149-career-portal-apply.js": "721736cf006332c51c7d2ba2fe0e75c00b73eca86595e0c0bd65051adfce2c30",
+    "packages/domain/150-career-portal-browser.js": "5e726e6dbbe55aa7670b0ac7c4a4d4622adf5e9f2402b17b20f246bb6c4e4610",
+    "packages/domain/121-career-jobs.js": "fd63d6f36638b621b1fbd87c99aa12049d14d87a1146b1e9f6383267dd797012",
+    "workers/career-browser/production-sources.cjs": "fe828b408df32729a16e796ef87375d9634c83493f30f4e7be23d6d05da48da0",
+    "supabase/functions/_shared/career_pool.js": "2c11623bd1e2f61bcdfa54a80460a3d4b45b4c06698bb71801459981865b2e93",
+    "extension/lib/trainee-core.js": "9876d005fe25d6d64d0852b7b4a37354ce4bca20c6b3b9152f7db9edc0f8b0bd"
+  },
+  "tests": {
+    "tests/career-portal-answer-map.test.cjs": "f78d769a3bd99a39aaebe81ca658f2b1fb806aca7ba926f656340b97ba17dac5",
+    "tests/career-f007-saved-answer-consumption.test.cjs": "667b1d4944ae278d12227c68fc3c3da714478966bf73eb41dfdb9e4efcca16f3"
+  },
+  "results": [
+    {
+      "test": "tests/career-portal-answer-map.test.cjs",
+      "exit_code": 0,
+      "log": "career-portal-answer-map.test.cjs.log.gz",
+      "raw_log_sha256": "64d1a3817f414b76cca18eaec427d168b35334754f710abd90ed743318f06842",
+      "pass": 12,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "test": "tests/career-f007-saved-answer-consumption.test.cjs",
+      "exit_code": 0,
+      "log": "career-f007-saved-answer-consumption.test.cjs.log.gz",
+      "raw_log_sha256": "11169f9b15f9738f1368a2adde6ee85f07c615e2c1321fee223c7beeeb9de280",
+      "pass": 11,
+      "fail": 0,
+      "skipped": 0
+    }
+  ],
+  "synthetic_only": true,
+  "paid_cost": 0
+}

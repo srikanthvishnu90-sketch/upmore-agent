@@ -1,0 +1,115 @@
+{
+  "bug": "F-023 silent-fill-refusal",
+  "verdict": "VERIFIED_REPO_SCOPED",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "source_fix": "f3c35a20a8ea02d2c811cc671aae69d2ecdd785c",
+  "bundle_head": "d253e00212b638aeda4ec3692f4cb32e9764dc41",
+  "root_cause_reference": "muse/2026-10-22-fix-f023 b67e1ae1 docs/apply/ROOT-CAUSE-F023-2026-10-22.md",
+  "mechanism": "All six prepareRound fill sites ignored null/undefined board verdicts and unconditionally entered the success ledger. A shared attemptFill now only records accepted values; refusal logs source metadata and a current-attempt diagnostic and surfaces fill_refused asks. Required asks block; optional asks remain visible.",
+  "counts": {
+    "new_guard_file": {
+      "base": {
+        "passed": 11,
+        "failed": 20,
+        "skipped": 0
+      },
+      "fix": {
+        "passed": 31,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "unchanged_pure_neighbors": {
+      "base": {
+        "passed": 55,
+        "failed": 0,
+        "skipped": 0
+      },
+      "fix": {
+        "passed": 55,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "test_sha256": "1412dda23a4b98f2950dbda613a10434ed6d300571c274cd706f32254de63bc6",
+  "files": {
+    "packages/domain/149-career-portal-apply.js": {
+      "base_sha256": "721736cf006332c51c7d2ba2fe0e75c00b73eca86595e0c0bd65051adfce2c30",
+      "fix_sha256": "a605795c55035938417d802813e4077fea38d4db1148d762f1f52b8255899edf"
+    },
+    "supabase/functions/_shared/router_core.career.js": {
+      "base_sha256": "ca1fd026a6b9367b50419521ae89ec03326b96a859d18a020b4dafe680df6740",
+      "fix_sha256": "f4f517c8f1226764c113a819579823233dceec3728374d6b3471ec3a2086f5a4"
+    },
+    "supabase/functions/_shared/router_core.js": {
+      "base_sha256": "33ab095deb65d2ed539d0d430f28818da184e2d734de3882633666c9e104ba1e",
+      "fix_sha256": "425fb59aa32fbf2958f8f2eb20cc28dcc15a633193e9d9af2a76e89586243353"
+    }
+  },
+  "submit_and_repair_suffix_byte_identical": true,
+  "canonical_parity": "career-only and full --check PASS",
+  "artifacts": {
+    "tests/fixtures/f023-20261022/base-new.tap.gz": {
+      "raw_sha256": "b9728939b44964fdc4797aa07b1b8d61a77ab04fbcb5ad161c592f7cd250d873",
+      "gzip_sha256": "da636d822ce0a57d3c6de174380df45e4b5cc69dec1271d3ef34ce6df71fd371",
+      "raw_bytes": 23884
+    },
+    "tests/fixtures/f023-20261022/fix-final.tap.gz": {
+      "raw_sha256": "cde389b4751cc15ce8dbc4f3f6859a2bcd0012d0edd479c382e190837471772c",
+      "gzip_sha256": "25fd12ed831997fdad8a824dcea66a4cb7c8efdf94cc6ebb60ed1cdd97c98dd1",
+      "raw_bytes": 6677
+    },
+    "tests/fixtures/f023-20261022/base-pure-neighbors.tap.gz": {
+      "raw_sha256": "3c30f04113b02c3e0233e8ade657f932cdeac14d62b39840dcb76e6e4ffb70c5",
+      "gzip_sha256": "c804c1b78103a32ce419ccff0e8cc1bf91011045087ba31293e29c2163785df1",
+      "raw_bytes": 15218
+    },
+    "tests/fixtures/f023-20261022/fix-pure-neighbors.tap.gz": {
+      "raw_sha256": "15f9c168a0237c686c0f39da96faa2c4f7ad4036bdaeb4e87f49c18bddb5ddb8",
+      "gzip_sha256": "f166608a48ba6e1df39620521bbccc91be5eabaffd57595990cf9d761b57301f",
+      "raw_bytes": 15211
+    },
+    "tests/fixtures/f023-20261022/base-neighbors.tap.gz": {
+      "raw_sha256": "84dbf0c915c4749684b9a6bdcff54108d34fb7bba793485a6d895517d528ffca",
+      "gzip_sha256": "d7176d4132df5ed1f7ff8ccf234166eb08f8118f848d6b6d982d6929f4cba9b6",
+      "raw_bytes": 16455
+    },
+    "tests/fixtures/f023-20261022/fix-neighbors.tap.gz": {
+      "raw_sha256": "2cfb4ffd968fc039576e2bcf105e06d047fef87007c7daa5b26f0369a6980e74",
+      "gzip_sha256": "e32142c9cdcf504c0ff968d05d5b5fb0e076ae8a44b4208e91df2a8f8f2d034e",
+      "raw_bytes": 16637
+    },
+    "tests/fixtures/f023-20261022/base-neighbors-final.tap.gz": {
+      "raw_sha256": "b0155c9fc041124fc6ae418289487118f6e5944103e3d339d329626ade782aca",
+      "gzip_sha256": "18b9783becd4f153992d91a709766dca4e0a10d25c344026a717b39f7b55bf56",
+      "raw_bytes": 18143
+    },
+    "tests/fixtures/f023-20261022/fix-neighbors-final.tap.gz": {
+      "raw_sha256": "858287769260611edf65f64bbd37950b9f031c2069aad7ffe80077ce67c823a4",
+      "gzip_sha256": "fe00b51a86712b4312bf3223f03961e9518132980c72b9e5b438ea3c3e0462a1",
+      "raw_bytes": 18285
+    },
+    "tests/fixtures/f023-20261022/parity-career.log.gz": {
+      "raw_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "gzip_sha256": "1123568bf3e6355d2760771a2f322082b0a38f49b1b307587dee3c88d64ffded",
+      "raw_bytes": 23
+    },
+    "tests/fixtures/f023-20261022/parity-full.log.gz": {
+      "raw_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "gzip_sha256": "1123568bf3e6355d2760771a2f322082b0a38f49b1b307587dee3c88d64ffded",
+      "raw_bytes": 23
+    }
+  },
+  "limits": [
+    "No employer vocabulary was invented; closest-option derivation still needs the actual options and user confirmation.",
+    "Initial broad neighbor run had missing sparse-checkout helper/extension dependencies; raw logs retained and not counted.",
+    "Broad browser neighbor rerun interrupted at the same 110s harness limit on both pins; incomplete, not counted as green.",
+    "No live drive, apply, deployment, migration, flag change, or paid call. Whole-product CI is not asserted green."
+  ],
+  "spend": {
+    "new_usd": "0.00",
+    "known_plus_held_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

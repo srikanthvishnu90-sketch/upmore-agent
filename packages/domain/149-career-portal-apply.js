@@ -857,6 +857,31 @@ const CareerPortalApply = (() => {
       const da = strip(digitsOf(a)), db = strip(digitsOf(b));
       return da.length >= 7 && da === db;
     };
+    // F-028 (2026-10-22): the same benign-render class on the
+    // "location" profile key. A location control is a places pick —
+    // scalar from this gate's perspective, so the FR-395 hatch again
+    // carries nothing — and the board canonicalizes the picked place
+    // by appending the country ("Chicago, IL" -> "Chicago, IL, USA";
+    // live: batch-29ea020da986). The equivalence: strip ONE trailing
+    // country suffix from the closed named set below, from BOTH
+    // sides, after the gate's own norm; the remaining place text must
+    // then match EXACTLY and be non-empty. A different city, the same
+    // city name in a different state, or a longer different place
+    // that merely starts with the expected text leaves a different
+    // remainder and still stops. Named data, not a posting literal:
+    // the set names country renderings, never places.
+    const LOCATION_COUNTRY_SUFFIXES = ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america"];
+    const stripLocationCountry = (v) => {
+      const n = norm(v);
+      for (const s of LOCATION_COUNTRY_SUFFIXES) {
+        if (n.endsWith(", " + s)) return n.slice(0, n.length - s.length - 2);
+      }
+      return n;
+    };
+    const locationEquivalent = (a, b) => {
+      const ra = stripLocationCountry(a), rb = stripLocationCountry(b);
+      return ra.length > 0 && ra === rb;
+    };
     const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
       || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
@@ -891,15 +916,21 @@ const CareerPortalApply = (() => {
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
           || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      // F-027: when the exact channels fail, the phone digit
-      // equivalence gets its say — keyed by the field's profile key,
-      // strings only, and recorded in the run record when it carries
-      // the acceptance (the same evidentiary standard as the hatch).
+      // F-027: when the exact channels fail, the per-key equivalence
+      // gets its say — keyed by the field's profile key, strings
+      // only, and recorded in the run record when it carries the
+      // acceptance (the same evidentiary standard as the hatch).
+      // F-028 adds the "location" branch to this SAME block (one
+      // mechanism, per-key shapes): a board-appended trailing
+      // country suffix on the same place is a benign render.
       if (!same && typeof expected !== "object" && typeof actual !== "object") {
         const fd = fieldDefOf(id);
         if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
           same = true;
           logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        } else if (fd && fd.profile_key === "location" && locationEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "location_country_suffix", expected, observed: actual });
         }
       }
       // FR-395: hatch use is recorded in the run record — that the

@@ -1,0 +1,29 @@
+{
+  "tested_source": "5f2b49646d09283f7d9cbc4aedc7df6873ac0479",
+  "current_trunk_base": "b7d02be2",
+  "ci_runtime": {
+    "deno": "2.9.6",
+    "edge": "895/895",
+    "architect": "1270/1270"
+  },
+  "proposed_runtime": {
+    "deno": "2.1.4",
+    "edge": "895/895",
+    "config": "unapplied pin proposal plus committed source; frozen test graph only"
+  },
+  "focused": "21/21: 8 active lifecycle guards + 7 proposed pin tests + 6 inherited timezone controls",
+  "fail_first_base_source_identity": {
+    "packages/domain/69-agent-router.js": {
+      "eb57e812": "3a3a5103059e5a288f4028553712152bcef749c1",
+      "b7d02be2": "3a3a5103059e5a288f4028553712152bcef749c1"
+    },
+    "evals/apply/workday-fill.cjs": {
+      "eb57e812": "009ff67d0e8f4efb8632a2e717a3073cfe63b17d",
+      "b7d02be2": "009ff67d0e8f4efb8632a2e717a3073cfe63b17d"
+    }
+  },
+  "full_node": "NOT_RUN on this refreshed source",
+  "ci": "PENDING",
+  "pinned_environment": "NOT_COMPLETE: architect import compatibility, full SDK graph, hosted runtime metadata unresolved",
+  "new_spend_usd": 0
+}

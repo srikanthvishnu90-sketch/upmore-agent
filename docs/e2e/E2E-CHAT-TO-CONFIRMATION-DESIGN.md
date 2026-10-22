@@ -262,5 +262,32 @@ written and run wherever the browser tier works — on the production
 board host's user, or any non-root shell), A3.5/A4.4/A6.4 at skeleton
 scale (they point at S3/S2 harnesses by design).
 
+**H4/H5 addendum (Lane H4, 2026-10-22, branch
+`muse/2026-10-22-e2e-h4-browser`):** the ENVIRONMENT classification
+above was re-diagnosed from scratch — full evidence in
+`docs/e2e/H4-DRIVER-ERROR-ROOT-CAUSE.md`. Verdict: environment, with
+two product defects inside it, both fixed on that branch. (1) The
+skeleton's "unprivileged route cannot be staged" was wrong: the drive
+is now staged by `tests/e2e/stage-unpriv-run.sh` into a world-readable
+tree and run as `nobody`; on this VM it executes end to end and stops
+at the product's own named gate — `E2E-DOORSTEP … "reason":
+"BROWSER_SANDBOX_REQUIRED"` — because the cloud seam refuses to run
+unsandboxed and this host cannot initialize a sandboxed Chromium for
+any user (AppArmor userns restriction for the unprivileged; root
+refused by Chromium; the SUID helper neutered by `NoNewPrivs: 1` set
+at PID 1; Chrome inside a root-created user namespace dies in its
+crashpad handshake). H4/H5 therefore still record ENVIRONMENT here,
+but with the terminal reason measured instead of inferred, and the
+same test records PASS — posture named in the line — on any host
+whose sandbox initializes. (2) The generic DRIVER_ERROR was partly a
+product misnomer: the helper's sandbox-failure classifier missed
+Playwright's "Chromium sandboxing failed!" wording (now
+`classifyDriverError`, guarded), and `ENGINE_ENV_KEYS` silently
+dropped the operator's `UPMORE_CHROMIUM_SANDBOX` posture before the
+engine child (now forwarded, guarded; credentials and job data still
+never cross). A4.1's doorstep shape is now partially measured: the
+prepare stops before any fill, with the sandbox refusal as its reason,
+on both the facts-minus-doorstep and full-facts drives.
+
 Real completions: **0.** This lane built and ran a test; it submitted
 nothing anywhere real.

@@ -134,9 +134,12 @@ async function runScenario(workerCount) {
     for (let w = 0; w < workerCount; w++) workers.push(spawnHelper("s1-shard-worker.cjs", [baseUrl], { S1_DRIVE_MS: "250" }));
     const outputs = await Promise.all(workers.map(waitExit));
     const wallMs = Date.now() - t0;
-    const drained = outputs.map((o) => JSON.parse(o.trim().split("\n").pop()).drained);
+    const reports = outputs.map((o) => JSON.parse(o.trim().split("\n").pop()));
+    const drained = reports.map((r) => r.drained);
+    const stubCalls = reports.reduce((n, r) => n + (r.stubCalls || 0), 0);
+    const stubMs = reports.reduce((n, r) => n + (r.stubMs || 0), 0);
     const state = await getState(baseUrl);
-    return { wallMs, drained, state };
+    return { wallMs, drained, stubCalls, stubMs, state };
   } finally {
     backendProc.child.kill();
   }
@@ -161,6 +164,18 @@ test("S-1 prototype: one approved batch, sharded per posting, drained in paralle
   console.log(`S-1 walls: serial ${serial.wallMs}ms (1 worker, drained ${serial.drained.join("+")}) -> parallel ${parallel.wallMs}ms (2 workers, drained ${parallel.drained.join("+")})`);
   assertConsistent(parallel, "parallel");
   assert.ok(parallel.drained.every((d) => d >= 1), `both workers carried shards (drained ${parallel.drained.join(" + ")})`);
+  // STUB ENGAGEMENT GATE — asserted BEFORE any wall is trusted. The
+  // first version of the worker's sleep passed the delay as
+  // Atomics.wait's expected-value argument, so the stub never slept
+  // and two "passing" wall comparisons were overhead noise
+  // (retracted 2026-10-22). Workers now measure and report their
+  // stubbed time; unless the measured stub time covers at least one
+  // 250ms call per shard (at 80% timing tolerance), this test fails
+  // HERE and the walls below mean nothing.
+  for (const [label, s] of [["serial", serial], ["parallel", parallel]]) {
+    assert.ok(s.stubCalls >= 6, `${label}: the drive stub engaged on every shard (${s.stubCalls} stubbed calls)`);
+    assert.ok(s.stubMs >= 6 * 250 * 0.8, `${label}: measured stub time ${s.stubMs}ms proves the latency was real (expected >= ${6 * 250 * 0.8}ms across 6 shards)`);
+  }
   assert.ok(parallel.wallMs < serial.wallMs * 0.8,
-    `parallel wall ${parallel.wallMs}ms must beat serial ${serial.wallMs}ms by >20% (same work, same declared drive latency)`);
+    `parallel wall ${parallel.wallMs}ms must beat serial ${serial.wallMs}ms by >20% (same work, same measured drive latency)`);
 });

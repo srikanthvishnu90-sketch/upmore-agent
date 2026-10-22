@@ -50,7 +50,21 @@ async function call(name, args) {
   return data;
 }
 
-function sleepSync(ms) { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, ms); }
+const stub = { calls: 0, ms: 0 };
+function sleepSync(ms) {
+  if (ms <= 0) return;
+  // Atomics.wait(ta, index, EXPECTED VALUE, timeout) — the timeout is
+  // the FOURTH argument. The first version of this helper passed ms
+  // as the expected value; the array holds 0, so it returned
+  // "not-equal" instantly and the stub never slept (retracted
+  // 2026-10-22). Elapsed time is measured and reported so the test
+  // can prove engagement instead of trusting the wrap.
+  const ta = new Int32Array(new SharedArrayBuffer(4));
+  const t0 = Date.now();
+  Atomics.wait(ta, 0, 0, ms);
+  stub.calls += 1;
+  stub.ms += Date.now() - t0;
+}
 function boardFor(posting) {
   const base = Portal.createSandboxBoard({});
   const board = Object.assign({}, base, { atsFamily: posting.atsFamily });
@@ -99,7 +113,7 @@ async function main() {
       await store.finish({ userId: shard.userId, intentId: shard.intentId, state: "uncertain", result: { code: "SHARD_EXECUTION_UNCERTAIN", message: String((e && e.message) || e).slice(0, 300) } });
     }
   }
-  console.log(JSON.stringify({ worker: process.pid, drained }));
+  console.log(JSON.stringify({ worker: process.pid, drained, stubCalls: stub.calls, stubMs: stub.ms }));
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

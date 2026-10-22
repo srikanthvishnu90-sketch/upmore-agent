@@ -1,0 +1,505 @@
+{
+ "artifact": "/home/hatch/workspace/bench60-harness/bench/bench-cards.txt",
+ "sha256": "7dfe08d1e7108909e3b2570de827cfc7f5037403b770f50d40d7dc3970273cd7",
+ "legs": 84,
+ "rendered": 0,
+ "notRendered": {
+  "NO_CARD_HASH": 36,
+  "NO_RUN_RECORD": 48
+ },
+ "module175Sha256": "e71d98dc8c6447baf3b79205ef270fe5766b06ac0d8435ebfb9b717fb9e59601",
+ "perLeg": [
+  {
+   "idx": 0,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 1,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 2,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 3,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": null,
+   "stopCode": null
+  },
+  {
+   "idx": 4,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 5,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 6,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 7,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 8,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 9,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 10,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 11,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 12,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 13,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 14,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 15,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 16,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 17,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 18,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 19,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 20,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 21,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 22,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 23,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 24,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 25,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 26,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 27,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 28,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 29,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 30,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 31,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 32,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 33,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 34,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 35,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 36,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 37,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 38,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 39,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 40,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 41,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 42,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 43,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 44,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 45,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 46,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 47,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 48,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 49,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 50,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 51,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 52,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 53,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 54,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 55,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 56,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 57,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 58,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 59,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 60,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 61,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 62,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 63,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 64,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 65,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 66,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 67,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 68,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 69,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 70,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 71,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 72,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 73,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 74,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "captcha_handoff",
+   "stopCode": "CAPTCHA_HANDOFF"
+  },
+  {
+   "idx": 75,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "UNCOVERED_QUESTION"
+  },
+  {
+   "idx": 76,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 77,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 78,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 79,
+   "rendered": false,
+   "code": "NO_RUN_RECORD"
+  },
+  {
+   "idx": 80,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "BOARD_NOT_WIRED"
+  },
+  {
+   "idx": 81,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "BOARD_NOT_WIRED"
+  },
+  {
+   "idx": 82,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "BOARD_NOT_WIRED"
+  },
+  {
+   "idx": 83,
+   "rendered": false,
+   "code": "NO_CARD_HASH",
+   "stage": "stopped",
+   "stopCode": "BOARD_NOT_WIRED"
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "label": "bench60",
+ "startedAt": "2026-10-22T10:22:52.746Z",
+ "endedAt": "2026-10-22T10:40:16.177Z",
+ "wallMs": 1043424,
+ "finishReason": "list_exhausted",
+ "target": 60,
+ "bootIdAtStart": "a3355744-1cba-42b9-a163-5ee46d070a5b",
+ "bootIdAtEnd": "a3355744-1cba-42b9-a163-5ee46d070a5b",
+ "bootChanged": false,
+ "launched": 84,
+ "droveCompleted": 31,
+ "appsPerMinOverWall": 1.78,
+ "appsPerMinDriveWindow": 1.78,
+ "drainMsMedianDrove": 89919,
+ "drainMsMinDrove": 24691,
+ "drainMsMaxDrove": 207257,
+ "slices": [
+  {
+   "sliceMin": "0-5",
+   "launched": 19,
+   "droveCompleted": 12,
+   "crashed": 2
+  },
+  {
+   "sliceMin": "5-10",
+   "launched": 29,
+   "droveCompleted": 6,
+   "crashed": 23
+  },
+  {
+   "sliceMin": "10-15",
+   "launched": 20,
+   "droveCompleted": 9,
+   "crashed": 11
+  },
+  {
+   "sliceMin": "15-20",
+   "launched": 16,
+   "droveCompleted": 4,
+   "crashed": 12
+  },
+  {
+   "sliceMin": "20-25",
+   "launched": 0,
+   "droveCompleted": 0,
+   "crashed": 0
+  },
+  {
+   "sliceMin": "25-30",
+   "launched": 0,
+   "droveCompleted": 0,
+   "crashed": 0
+  }
+ ],
+ "outcomeMix": {
+  "drove:stopped:UNCOVERED_QUESTION": 30,
+  "no_drive:screened_out": 1,
+  "crashed:DRIVER_ERROR": 48,
+  "drove:captcha_handoff": 1,
+  "no_drive:board_not_wired": 4
+ },
+ "probes": {
+  "n": 8561,
+  "p50": 4,
+  "p99": 132,
+  "max": 23911,
+  "timeouts": 0,
+  "errors": 0
+ },
+ "cpu": {
+  "samples": 208,
+  "avgPct": 81,
+  "p95Pct": 99,
+  "maxPct": 100
+ },
+ "captchaLegs": 1
+}

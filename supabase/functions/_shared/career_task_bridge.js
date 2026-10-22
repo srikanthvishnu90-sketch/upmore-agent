@@ -70,22 +70,47 @@ export async function planCareerTaskIntent({ taskRequest, message, userId, threa
 //
 // Fail-closed, always: no provider, a provider whose boardFor throws
 // (worker unreachable), a provider that returns nothing, or a returned
-// object missing any of 149's board methods all resolve to null — the
-// drive stops named BOARD_NOT_WIRED and no board is ever faked into
-// existence. A bare UPMORE_CAREER_WORKER_URL is NOT a provider: it
+// object missing any of 149's board methods all resolve to null and no
+// board is ever faked into existence. The stop's NAME follows the
+// reason (F-035): a provider throw is recorded on the wrapper
+// (careerBoardFor.lastRefusal) and module 155 names the stop by that
+// code; BOARD_NOT_WIRED is reserved for the no-adapter case. A bare UPMORE_CAREER_WORKER_URL is NOT a provider: it
 // addresses the worker's asynchronous task API (the intent path at the
 // top of this file); it cannot vend synchronous board sessions and is
 // never treated as one.
 const BOARD_METHODS = ["open", "form", "fill", "answers", "atReview", "submit"];
 export function createCareerBoardFor(provider) {
   if (!provider || typeof provider.boardFor !== "function") return null;
-  return function careerBoardFor(posting) {
+  // F-035 (bench-60 fix round, 2026-10-22): the catch below used to
+  // erase the provider's coded refusal (SESSION_LIMIT 409,
+  // DRIVER_HOST_REFUSED 403, shard_unavailable 502,
+  // WORKER_UNREACHABLE…) into a bare null, and module 155 could only
+  // name the resulting stop BOARD_NOT_WIRED — a saturation refusal
+  // was indistinguishable from a genuinely unwired family. The
+  // wrapper still fails closed to null (every composition root
+  // relies on that contract), but the refusal is RECORDED on the
+  // wrapper itself — careerBoardFor.lastRefusal = {code, message},
+  // cleared at the start of every call and set only when that call
+  // threw — so the caller can name the stop by the refusal's own
+  // code. The constructed-without-transport case never reaches this
+  // function (the factory above returns null), so it records
+  // nothing and BOARD_NOT_WIRED keeps its one meaning.
+  const careerBoardFor = function (posting) {
+    careerBoardFor.lastRefusal = null;
     let board = null;
-    try { board = provider.boardFor(posting); } catch (_) { return null; }
+    try { board = provider.boardFor(posting); } catch (e) {
+      careerBoardFor.lastRefusal = {
+        code: (e && e.code) || "WORKER_BOARD_REFUSED",
+        message: String((e && e.message) || e).slice(0, 300),
+      };
+      return null;
+    }
     if (!board || typeof board !== "object") return null;
     for (const m of BOARD_METHODS) if (typeof board[m] !== "function") return null;
     return board;
   };
+  careerBoardFor.lastRefusal = null;
+  return careerBoardFor;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,10 +269,54 @@ export function createWorkerBoardProvider(opts) {
     if (!res || typeof res.status !== "number") throw codedError("WORKER_UNREACHABLE", "the career worker board service answered with no readable status");
     return res;
   }
+  // WORKER RECOVERY (2026-10-21; root-cause note
+  // docs/career/worker-unreachable-root-cause-2026-10-21.md): bounded
+  // retry at the SESSION-CREATE seam only. The sync pump transport
+  // intermittently loses a create whose answer is stuck behind a long
+  // board call in the single-threaded board service. Re-asking a create
+  // is safe: if it never arrived, no session exists; if it landed but
+  // its answer was lost, the extra idle session is reaped by the
+  // service's TTL. Board CALLS are never retried — a lost call answer
+  // is ambiguous (the call may have executed) and the terminal rule in
+  // call() stands. Answered refusals (any HTTP response) and
+  // WORKER_TRANSPORT_TIMEOUT (which already waited out the transport's
+  // full budget) are never retried either.
+  const retryCfg = (o.createRetry && typeof o.createRetry === "object") ? o.createRetry : {};
+  const CREATE_MAX_ATTEMPTS = Math.max(1, Math.min(8, retryCfg.maxAttempts || 4));
+  // The ladder is deliberately short (0.75s -> 1.5s -> 3s): the retry
+  // rides out seconds-scale contention on a LIVE service — each attempt
+  // may itself wait behind the blocking call — it does not resurrect a
+  // dead worker (the executor's next tick owns that). A long ladder
+  // would be paid once per application by a whole batch before the
+  // batch could name the worker down.
+  const CREATE_BASE_DELAY_MS = Math.max(0, Math.min(10000, retryCfg.baseDelayMs != null ? retryCfg.baseDelayMs : 750));
+  const CREATE_DEADLINE_MS = Math.max(0, retryCfg.deadlineMs != null ? retryCfg.deadlineMs : 30000);
+  const nowFn = typeof o.now === "function" ? o.now : () => Date.now();
+  const sleepSync = typeof o.sleepSync === "function" ? o.sleepSync : (ms) => {
+    if (!(ms > 0)) return;
+    try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); }
+    catch (_) { const end = Date.now() + ms; while (Date.now() < end) { /* bounded fallback spin (retry sleeps are seconds) */ } }
+  };
+  function createSessionWithRetry(body) {
+    const startedAt = nowFn();
+    let attempt = 0;
+    for (;;) {
+      attempt += 1;
+      try { return callService("/board-sessions", body); }
+      catch (e) {
+        if (!e || e.code !== "WORKER_UNREACHABLE" || attempt >= CREATE_MAX_ATTEMPTS) throw e;
+        const remaining = CREATE_DEADLINE_MS - (nowFn() - startedAt);
+        if (remaining <= 0) throw e;
+        const ladder = CREATE_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        const jittered = ladder * (0.75 + Math.random() * 0.5);
+        sleepSync(Math.min(jittered, remaining));
+      }
+    }
+  }
   function boardFor(posting) {
     const url = posting && typeof posting.url === "string" ? posting.url : null;
     if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
-    const res = callService("/board-sessions", resumeSha256 ? { userId, url, resumeSha256 } : { userId, url });
+    const res = createSessionWithRetry(resumeSha256 ? { userId, url, resumeSha256 } : { userId, url });
     if (res.status !== 201) {
       const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
       const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;
@@ -258,6 +327,12 @@ export function createWorkerBoardProvider(opts) {
     if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
     let terminal = null; // {code, message} — once dead, the board stays dead
     let closedBoard = false;
+    // FR-395: the service-side board's rendered values (the widget's own
+    // rendering of each fill), carried on call responses by the board
+    // service and merged here so module 149's answer-observation hatch
+    // can read board.renderedValues on the production path exactly as
+    // it does on a local board.
+    const renderedState = {};
     function call(method, args) {
       if (closedBoard) throw codedError("BOARD_CLOSED", "this worker board session is closed");
       if (terminal) throw codedError(terminal.code, terminal.message);
@@ -269,6 +344,9 @@ export function createWorkerBoardProvider(opts) {
       if (r.status === 404) { terminal = { code: "WORKER_SESSION_GONE", message: "the worker no longer holds this board session — it stops here rather than being silently recreated" }; throw codedError(terminal.code, terminal.message); }
       if (r.status !== 200 || !r.body) throw codedError("WORKER_PROTOCOL", `the career worker answered a board call with status ${r.status}`);
       if (r.body.ok === false) throw codedError(r.body.code || "BOARD_ERROR", r.body.message || "the worker board refused the call");
+      if (r.body.renderedValues && typeof r.body.renderedValues === "object" && !Array.isArray(r.body.renderedValues)) {
+        for (const [k, v] of Object.entries(r.body.renderedValues)) renderedState[k] = v;
+      }
       return r.body.result;
     }
     return {
@@ -277,6 +355,15 @@ export function createWorkerBoardProvider(opts) {
       host: created.host || "",
       accountName: created.accountName || null,
       workerSessionId: sessionId,
+      get renderedValues() { return Object.assign({}, renderedState); },
+      // FDSE-MISMATCH (2026-10-21): the same renderings through a
+      // METHOD. The getter above is frozen at {} by any wrapper that
+      // snapshots own properties (the drive harness's observation
+      // wrapper did exactly that, and module 149's FR-395 hatch
+      // silently never fired — a correct fill stopped as drift).
+      // Methods survive delegation wrappers, so 149 prefers this
+      // channel when present.
+      renderedValue(fieldId) { return renderedState[fieldId]; },
       open() { return call("open", []); },
       form() { return call("form", []); },
       fill(fieldId, value) { return call("fill", [fieldId, value]); },

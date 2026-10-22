@@ -48569,7 +48569,142 @@ const CareerRender = (() => {
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+    // ================= byte layer (MUSE-F-011) =================
+  // This module's byte plumbing used to read the bare Node Buffer
+  // global in ~30 places (alloc / from / concat / isBuffer, the
+  // write/read UInt accessors, copy, toString encodings). In the Deno
+  // ESM bundle that global does not exist (Supabase Edge Runtime,
+  // Deno 2.1.4), so the first render on every tailor turn threw
+  // "ReferenceError: Buffer is not defined" (first executed read:
+  // renderPdf) and module 143's containment served the generic
+  // failure — while Node and Deno 2.9.7, which both expose a Buffer
+  // global, masked it in every local test. The fix is ONE module-local
+  // byte type over Uint8Array/DataView — bundle-legal primitives
+  // only, no require, no node:buffer — selected once, here: where a
+  // Buffer global exists (Node), Bytes IS the platform Buffer, so the
+  // Node path's bytes and types stay exactly what they were
+  // (golden-pinned in tests/career-render-edge-pdf.test.cjs); where
+  // none exists, Bytes is the shim below, whose instances carry the
+  // semantics this module uses.
+  const B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const B64_LOOKUP = (() => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < B64_ALPHABET.length; i++) t[B64_ALPHABET.charCodeAt(i)] = i; return t; })();
+  function b64Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      out += B64_ALPHABET[a >> 2] + B64_ALPHABET[((a & 3) << 4) | (b >> 4)];
+      out += i + 1 < bytes.length ? B64_ALPHABET[((b & 15) << 2) | (c >> 6)] : "=";
+      out += i + 2 < bytes.length ? B64_ALPHABET[c & 63] : "=";
+    }
+    return out;
+  }
+  function b64Decode(text) {
+    const clean = String(text).replace(/[^A-Za-z0-9+/=]/g, "");
+    const out = [];
+    for (let i = 0; i < clean.length; i += 4) {
+      const a = B64_LOOKUP[clean.charCodeAt(i)], b = B64_LOOKUP[clean.charCodeAt(i + 1)];
+      const c = clean[i + 2] === "=" || clean[i + 2] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 2)];
+      const d = clean[i + 3] === "=" || clean[i + 3] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 3)];
+      out.push(((a << 2) | (b >> 4)) & 0xff);
+      if (c >= 0) out.push((((b & 15) << 4) | (c >> 2)) & 0xff);
+      if (d >= 0) out.push((((c & 3) << 6) | d) & 0xff);
+    }
+    return out;
+  }
+  // Manual UTF-8 codec: the byte layer depends on nothing beyond
+  // Uint8Array/DataView — not even TextEncoder, which a sandboxed
+  // realm is not guaranteed to expose.
+  function utf8Encode(text) {
+    const out = [];
+    for (const ch of String(text)) {
+      const cp = ch.codePointAt(0);
+      if (cp < 0x80) out.push(cp);
+      else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f));
+      else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+      else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    }
+    return out;
+  }
+  function utf8Decode(bytes) {
+    let out = "";
+    const cps = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const b = bytes[i];
+      if (b < 0x80) { cps.push(b); i += 1; }
+      else if ((b & 0xe0) === 0xc0 && i + 1 < bytes.length) { cps.push(((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f)); i += 2; }
+      else if ((b & 0xf0) === 0xe0 && i + 2 < bytes.length) { cps.push(((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)); i += 3; }
+      else if ((b & 0xf8) === 0xf0 && i + 3 < bytes.length) { cps.push(((b & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f)); i += 4; }
+      else { cps.push(0xfffd); i += 1; }
+    }
+    for (let j = 0; j < cps.length; j += 8192) out += String.fromCodePoint(...cps.slice(j, j + 8192));
+    return out;
+  }
+  class ByteBuf extends Uint8Array {
+    static alloc(size) { return new ByteBuf(size); }
+    static from(input, enc) {
+      if (typeof input === "string") {
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "hex") {
+          const out = new ByteBuf(input.length >> 1);
+          for (let i = 0; i < out.length; i++) out[i] = parseInt(input.slice(i * 2, i * 2 + 2), 16) || 0;
+          return out;
+        }
+        if (e === "latin1" || e === "binary") {
+          const out = new ByteBuf(input.length);
+          for (let i = 0; i < input.length; i++) out[i] = input.charCodeAt(i) & 0xff;
+          return out;
+        }
+        if (e === "base64") { const arr = b64Decode(input); const out = new ByteBuf(arr.length); for (let i = 0; i < arr.length; i++) out[i] = arr[i]; return out; }
+        const encoded = utf8Encode(input);
+        const out = new ByteBuf(encoded.length);
+        for (let i = 0; i < encoded.length; i++) out[i] = encoded[i];
+        return out;
+      }
+      if (input instanceof Uint8Array) { const out = new ByteBuf(input.length); out.set(input); return out; }
+      if (input instanceof ArrayBuffer) return new ByteBuf(new Uint8Array(input));
+      const arr = Array.from(input || []);
+      const out = new ByteBuf(arr.length);
+      for (let i = 0; i < arr.length; i++) out[i] = arr[i] & 0xff;
+      return out;
+    }
+    static concat(list) {
+      let total = 0;
+      for (const part of list) total += part.length;
+      const out = new ByteBuf(total);
+      let off = 0;
+      for (const part of list) { out.set(part, off); off += part.length; }
+      return out;
+    }
+    static isBuffer(x) { return x instanceof Uint8Array; }
+    _view() { return new DataView(this.buffer, this.byteOffset, this.byteLength); }
+    writeUInt16LE(value, offset) { this._view().setUint16(offset, value, true); return offset + 2; }
+    writeUInt32LE(value, offset) { this._view().setUint32(offset, value, true); return offset + 4; }
+    writeUInt32BE(value, offset) { this._view().setUint32(offset, value, false); return offset + 4; }
+    readUInt16LE(offset) { return this._view().getUint16(offset, true); }
+    readUInt32LE(offset) { return this._view().getUint32(offset, true); }
+    copy(target, targetStart = 0, sourceStart = 0, sourceEnd = this.length) {
+      const n = Math.max(0, Math.min(sourceEnd - sourceStart, target.length - targetStart));
+      if (n > 0) target.set(this.subarray(sourceStart, sourceStart + n), targetStart);
+      return n;
+    }
+    toString(enc, start, end) {
+      const e = String(enc || "utf8").toLowerCase();
+      const view = this.subarray(start == null ? 0 : start, end == null ? this.length : end);
+      if (e === "latin1" || e === "binary") {
+        let out = "";
+        for (let i = 0; i < view.length; i += 8192) out += String.fromCharCode(...view.subarray(i, i + 8192));
+        return out;
+      }
+      if (e === "base64") return b64Encode(view);
+      if (e === "hex") { let out = ""; for (const b of view) out += b.toString(16).padStart(2, "0"); return out; }
+      return utf8Decode(view);
+    }
+  }
+  // Merge of WO-028/WO-060 (injectable runtime) with MUSE-F-011 (no bare Buffer global): the host's Buffer when it
+  // supplies one, otherwise the module-local ByteBuf, so the Deno edge runtime never reads an undefined global.
+  const Buffer = rt.Buffer || ByteBuf;
+  const Bytes = Buffer;
   // ================= pure-JS zlib + SHA-256 (edge fallback) =================
   // LANE F (the CHANNEL-DOC-1 blocker; Lane B record
   // docs/career/channel-doc-1-record-2026-10-20.md §5): in the Deno ESM
@@ -48602,18 +48737,18 @@ const CareerRender = (() => {
     let off = 0;
     do {
       const len = Math.min(65535, data.length - off);
-      const head = Buffer.alloc(5);
+      const head = Bytes.alloc(5);
       head[0] = off + len >= data.length ? 1 : 0; // BFINAL, BTYPE=00, then byte-aligned
       head.writeUInt16LE(len, 1);
       head.writeUInt16LE((~len) & 0xffff, 3);
-      chunks.push(head, Buffer.from(data.subarray(off, off + len)));
+      chunks.push(head, Bytes.from(data.subarray(off, off + len)));
       off += len;
     } while (off < data.length);
-    return Buffer.concat(chunks);
+    return Bytes.concat(chunks);
   }
   function zlibDeflate(data) {
     const body = deflateStored(data);
-    const out = Buffer.alloc(2 + body.length + 4);
+    const out = Bytes.alloc(2 + body.length + 4);
     out[0] = 0x78; out[1] = 0x01; // CMF/FLG: deflate, 32K window; (0x78*256+0x01) % 31 === 0
     body.copy(out, 2);
     out.writeUInt32BE(adler32(data), 2 + body.length);
@@ -48712,7 +48847,7 @@ const CareerRender = (() => {
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
-    return { buffer: Buffer.from(out), end: pos - (bitcnt >> 3) };
+    return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
   function zlibInflate(data) {
     if (data.length < 6) throw new Error("zlib stream too short");
@@ -48769,10 +48904,10 @@ const CareerRender = (() => {
   const pureCrypto = {
     createHash: (alg) => {
       if (alg !== "sha256") throw new Error(`pure crypto fallback supports sha256 only, not ${alg}`);
-      let buf = Buffer.alloc(0);
+      let buf = Bytes.alloc(0);
       return {
-        update(data) { buf = Buffer.concat([buf, Buffer.from(data)]); return this; },
-        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Buffer.from(hex, "hex"); },
+        update(data) { buf = Bytes.concat([buf, Bytes.from(data)]); return this; },
+        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Bytes.from(hex, "hex"); },
       };
     },
   };
@@ -48864,17 +48999,17 @@ const CareerRender = (() => {
   function zipBuffer(entries) {
     const chunks = []; const central = []; let offset = 0;
     for (const entry of entries) {
-      const nameBuf = Buffer.from(entry.name, "utf8");
-      const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
+      const nameBuf = Bytes.from(entry.name, "utf8");
+      const data = Bytes.isBuffer(entry.data) ? entry.data : Bytes.from(String(entry.data), "utf8");
       const compressed = zlib.deflateRawSync(data);
       const crc = crc32(data);
-      const local = Buffer.alloc(30);
+      const local = Bytes.alloc(30);
       local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
       local.writeUInt16LE(8, 8); local.writeUInt16LE(DOS_TIME, 10); local.writeUInt16LE(DOS_DATE, 12);
       local.writeUInt32LE(crc, 14); local.writeUInt32LE(compressed.length, 18); local.writeUInt32LE(data.length, 22);
       local.writeUInt16LE(nameBuf.length, 26); local.writeUInt16LE(0, 28);
       chunks.push(local, nameBuf, compressed);
-      const cd = Buffer.alloc(46);
+      const cd = Bytes.alloc(46);
       cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0x0800, 8);
       cd.writeUInt16LE(8, 10); cd.writeUInt16LE(DOS_TIME, 12); cd.writeUInt16LE(DOS_DATE, 14);
       cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(compressed.length, 20); cd.writeUInt32LE(data.length, 24);
@@ -48883,16 +49018,16 @@ const CareerRender = (() => {
       offset += local.length + nameBuf.length + compressed.length;
     }
     const cdSize = central.reduce((n, b) => n + b.length, 0);
-    const eocd = Buffer.alloc(22);
+    const eocd = Bytes.alloc(22);
     eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
     eocd.writeUInt32LE(cdSize, 12); eocd.writeUInt32LE(offset, 16);
-    return Buffer.concat([...chunks, ...central, eocd]);
+    return Bytes.concat([...chunks, ...central, eocd]);
   }
-  // Central-directory reader: part name -> inflated Buffer. Independent of
+  // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
   function unzipParts(buf) {
     const parts = new Map();
-    if (!Buffer.isBuffer(buf) || buf.length < 22) return parts;
+    if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
@@ -48910,7 +49045,7 @@ const CareerRender = (() => {
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw); } catch { data = null; }
+      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
       if (data && crc32(data) === crc) parts.set(name, data);
       p += 46 + nameLen + extraLen + commentLen;
     }
@@ -48980,7 +49115,7 @@ const CareerRender = (() => {
       else if (WINANSI_EXTRA.has(ch)) bytes.push(WINANSI_EXTRA.get(ch));
       else { bytes.push(0x3f); if (unencodable && !unencodable.includes(ch)) unencodable.push(ch); }
     }
-    return Buffer.from(bytes);
+    return Bytes.from(bytes);
   }
   function decodeWinAnsi(buf) {
     let out = "";
@@ -49071,27 +49206,27 @@ const CareerRender = (() => {
     if (!blocks.length) return { ok: false, refused: true, reason: "resume has no renderable lines", buffer: null, contentType: PDF_CONTENT_TYPE, filename: null };
     const unencodable = [];
     const pages = paginate(blocks);
-    const objects = []; // [id, Buffer]
+    const objects = []; // [id, Bytes]
     const pageIds = pages.map((_, i) => 5 + i * 2);
     const contentIds = pages.map((_, i) => 6 + i * 2);
-    objects.push([1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>")]);
-    objects.push([2, Buffer.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
-    objects.push([3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
-    objects.push([4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
+    objects.push([1, Bytes.from("<< /Type /Catalog /Pages 2 0 R >>")]);
+    objects.push([2, Bytes.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
+    objects.push([3, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
+    objects.push([4, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
     pages.forEach((lines, i) => {
-      objects.push([pageIds[i], Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
+      objects.push([pageIds[i], Bytes.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
       const ops = lines.map((l) => `BT /${l.font} ${l.size} Tf 1 0 0 1 ${l.x} ${l.y} Tm ${pdfLiteral(encodeWinAnsi(l.text, unencodable))} Tj ET`).join("\n");
-      const stream = zlib.deflateSync(Buffer.from(ops, "latin1"));
-      const head = Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
-      objects.push([contentIds[i], Buffer.concat([head, stream, Buffer.from("\nendstream", "latin1")])]);
+      const stream = zlib.deflateSync(Bytes.from(ops, "latin1"));
+      const head = Bytes.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+      objects.push([contentIds[i], Bytes.concat([head, stream, Bytes.from("\nendstream", "latin1")])]);
     });
     objects.sort((a, b) => a[0] - b[0]);
-    const chunks = [Buffer.from("%PDF-1.4\n", "latin1")];
+    const chunks = [Bytes.from("%PDF-1.4\n", "latin1")];
     const offsets = new Map();
     let pos = chunks[0].length;
     for (const [id, body] of objects) {
-      const head = Buffer.from(`${id} 0 obj\n`, "latin1");
-      const tail = Buffer.from("\nendobj\n", "latin1");
+      const head = Bytes.from(`${id} 0 obj\n`, "latin1");
+      const tail = Bytes.from("\nendobj\n", "latin1");
       offsets.set(id, pos);
       chunks.push(head, body, tail);
       pos += head.length + body.length + tail.length;
@@ -49101,8 +49236,8 @@ const CareerRender = (() => {
     let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
     for (let id = 1; id <= maxId; id++) xref += `${String(offsets.get(id)).padStart(10, "0")} 00000 n \n`;
     xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
-    chunks.push(Buffer.from(xref, "latin1"));
-    const buffer = Buffer.concat(chunks);
+    chunks.push(Bytes.from(xref, "latin1"));
+    const buffer = Bytes.concat(chunks);
     return { ok: true, buffer, contentType: PDF_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "pdf"), bytes: buffer.length, pages: pages.length, unencodable };
   }
 
@@ -49142,13 +49277,13 @@ const CareerRender = (() => {
       else if (c === ")") { depth--; if (depth > 0) bytes.push(41); i++; }
       else { bytes.push(s.charCodeAt(i) & 0xff); i++; }
     }
-    return [decodeWinAnsi(Buffer.from(bytes)), i];
+    return [decodeWinAnsi(Bytes.from(bytes)), i];
   }
   // Full operator walk: returns [{ text, x, y, size, font, page }] in
   // reading order (page order, then y descending, then x ascending).
   function extractPdfRuns(buf) {
     const runs = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return runs;
+    if (!Bytes.isBuffer(buf) || !zlib) return runs;
     const streams = pdfStreams(buf);
     streams.forEach((streamBuf, page) => {
       const s = streamBuf.toString("latin1");
@@ -49174,7 +49309,7 @@ const CareerRender = (() => {
   // Parser B: raw string scan of every inflated stream, operator-blind.
   function extractPdfStrings(buf) {
     const out = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return out;
+    if (!Bytes.isBuffer(buf) || !zlib) return out;
     for (const streamBuf of pdfStreams(buf)) {
       const s = streamBuf.toString("latin1");
       let i = 0;
@@ -49186,14 +49321,14 @@ const CareerRender = (() => {
     return out;
   }
   function pdfStructure(buf) {
-    const s = Buffer.isBuffer(buf) ? buf.toString("latin1") : "";
+    const s = Bytes.isBuffer(buf) ? buf.toString("latin1") : "";
     const fonts = [...new Set([...s.matchAll(/\/BaseFont\s*\/([A-Za-z0-9-]+)/g)].map((m) => m[1].replace(/^[A-Z]{6}\+/, "")))];
     const images = (s.match(/\/Subtype\s*\/Image/g) || []).length;
     const pages = (s.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
     const runs = extractPdfRuns(buf);
     const sizes = [...new Set(runs.map((r) => r.size).filter(Boolean))].sort((a, b) => a - b);
     const xs = [...new Set(runs.map((r) => Math.round(r.x)))];
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
   }
   // External parser B (poppler) — used when the caller opts in.
   function extractPdfPoppler(buf) {
@@ -49242,8 +49377,8 @@ const CareerRender = (() => {
   }
   function docxStructure(buf) {
     const parts = unzipParts(buf);
-    const docXml = (parts.get("word/document.xml") || Buffer.alloc(0)).toString("utf8");
-    const stylesXml = (parts.get("word/styles.xml") || Buffer.alloc(0)).toString("utf8");
+    const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
+    const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
     const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
@@ -49251,7 +49386,7 @@ const CareerRender = (() => {
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
     const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.
   function extractDocxPython(buf) {
@@ -49514,6 +49649,43 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
+  // The EEO decline MEANING CLASS (DECLINE-VOCAB lane, 2026-10-21; the
+  // doctrine is D8 / BUG-067 in the browser helper): the decline default
+  // is ONE semantic choice worded a dozen ways across boards — the
+  // dropdown-measure lane (cc2932c9) recorded the boards' own renderings
+  // on 24 verified fills: "I don't wish to answer" x19, "Decline To Self
+  // Identify" x4, "I prefer not to say" x1. The class is DATA in the
+  // WO-020 question_map shape — ordered named pattern rules over
+  // normalized text; the first that matches names why — so it can fold
+  // into the shared meaning map verbatim when that lands on this line
+  // (seam: docs/career/decline-vocab-2026-10-21.md). ONE home: this
+  // module's export. Patterns are regex SOURCES (serializable data);
+  // they are written against normMeaningText below, which is the
+  // helper's normOpt verbatim (lowercase, curly quotes dropped,
+  // punctuation -> space, spaces collapsed) — the same normalization
+  // the on-page matcher (scripts/career/portal-browser-helper.cjs,
+  // isDeclineText) evaluates, and the class's union is semantically
+  // identical to that matcher's vocabulary, pinned by
+  // tests/career-decline-vocab.test.cjs.
+  const EEO_DECLINE_MEANING = [
+    { name: "decline_word", pattern: "decline" },
+    { name: "prefer_not", pattern: "prefer not" },
+    { name: "wish_not", pattern: "do not wish|don t wish|dont wish" },
+    { name: "not_answer", pattern: "not (to )?answer" },
+    { name: "not_disclose", pattern: "not (to )?disclose" },
+    { name: "no_answer", pattern: "no answer" },
+  ];
+  const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
+  // The first rule that matches names why the text is decline-class
+  // (WO-020: each rule names why it matched); null when it is not.
+  function eeoDeclineMatch(text) {
+    const t = normMeaningText(text);
+    if (!t) return null;
+    for (const r of EEO_DECLINE_RULES) if (r.re.test(t)) return r.name;
+    return null;
+  }
+  const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
@@ -49847,6 +50019,145 @@ const CareerPortalApply = (() => {
       else uncovered.push(k);
     }
     return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
+  }
+
+  // ---------- the executor's input writer: bank -> portal inputs (LOOP-INPUT) ----------
+  // The batch executor (and the in-turn batch seam) drives 149 from a
+  // 149-shaped profile + an attestations map. Until this composition
+  // existed, NO product code produced either from the user's record:
+  // the stored master carried basics null / answers null /
+  // attestations null on the live account, every prepare stopped at
+  // the same uncovered questions, and the loop could not move
+  // (LOOP-INPUT-NO-WRITER, final set Doc 1 A3). This is the missing
+  // pipeline stage — derivation, built once, keyed only to the
+  // user's own stored bank. Its layers mirror the saved-answers
+  // composition the extension serves (extension_sync.js
+  // composeSavedAnswers — the same layers in the same order, so the
+  // surfaces cannot disagree about what a bank answers):
+  //   1. identity from the bank's basics, verbatim (no derivation);
+  //   2. the bank's stored answers with confirmed === true, verbatim;
+  //   3. deriveAnswers over the bank (confirmed facts only, each
+  //      entry carrying its factId trace);
+  //   4. the constraints/defaults seam for keys still unanswered
+  //      (sponsorship / work authorization from the constraints the
+  //      sensitive-correction path writes; pronouns from defaults;
+  //      located_in_us from the residence the bank carries);
+  //   5. the resume as { filename, sha256 } metadata, only when the
+  //      record carries one with its sha256.
+  // Attestations are NEVER derived from facts. They come from exactly
+  // two sources, both the user's own explicit acts: an attestation
+  // already stored on the record (explicit === true, passed through
+  // verbatim), and — for certify_true — the batch approval act
+  // itself, passed in as opts.approvalAct { runId, cardSha256 } by
+  // the caller that holds the user's committed "Approve batch
+  // <runId>" intent. No approval act, no certify_true: the field
+  // stays an ask at prepare and the batch waits at its card.
+  function workAuthorizationToken(text) {
+    const t = String(text || "").trim();
+    if (/^yes\b/i.test(t)) return "Yes";
+    if (/^no\b/i.test(t)) return "No";
+    if (/not authorized|not eligible to work|no work authorization/i.test(t)) return "No";
+    if (/citizen|permanent resident|green card|lawful permanent|authorized to work|eligible to work|employment authorization|work permit/i.test(t)) return "Yes";
+    return t;
+  }
+  function portalInputsFromBank(bank, opts) {
+    const o = opts || {};
+    const out = { profile: null, attestations: {}, traces: {} };
+    if (!bank || typeof bank !== "object") return out;
+    const nowMs = tsMs(o.now != null ? o.now : Date.now());
+    // Derivation reads the 122 fact shape (status / needs_confirmation).
+    // A looser stored shape (confirmed: true, no status) is normalized
+    // on a CLONE — the stored record is never mutated, and a fact that
+    // carries an explicit draft status is never promoted.
+    const normBank = cloneBankForDerivation(bank);
+    const b = (bank.basics && typeof bank.basics === "object") ? bank.basics : {};
+    const links = (b.links && typeof b.links === "object") ? b.links : {};
+    const profile = { answers: {} };
+    const setP = (k, v) => { if (v !== undefined && v !== null && String(v) !== "") profile[k] = v; };
+    setP("name", b.name || b.full_name || bank.name);
+    setP("email", b.email || bank.email);
+    setP("phone", b.phone);
+    setP("location", b.location);
+    setP("linkedin", links.linkedin || b.linkedin);
+    setP("github", links.github || b.github);
+    setP("website", links.portfolio || links.website || b.website);
+    setP("current_company", b.current_company || b.currentCompany);
+    const derived = deriveAnswers(normBank, Number.isFinite(nowMs) ? nowMs : Date.now());
+    for (const [k, v] of Object.entries(derived.profileFields || {})) setP(k, v);
+    for (const [k, t] of Object.entries(derived.traces || {})) out.traces[k] = t;
+    const r = bank.resume || b.resume || null;
+    if (r && r.sha256) profile.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+
+    const answers = {};
+    const stored = (bank.answers && typeof bank.answers === "object") ? bank.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        answers[k] = JSON.parse(JSON.stringify(a));
+        if (a.factId) out.traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
+      }
+    }
+    for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = a;
+
+    const c = (bank.constraints && typeof bank.constraints === "object") ? bank.constraints : {};
+    const dfl = (bank.defaults && typeof bank.defaults === "object") ? bank.defaults : {};
+    const seam = (key, value, factId, how) => {
+      if (answers[key] || value === undefined || value === null || String(value) === "") return;
+      answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
+      seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");
+    }
+    if (!answers.located_in_us) {
+      const hometown = (normBank.facts || []).find((f) => f.kind === "profile" && /hometown/i.test(f.name || f.title || "") && f.status === "confirmed" && f.needs_confirmation !== true);
+      const residence = (hometown && hometown.value) || b.location || "";
+      const tail = String(residence).split(",").pop().trim().replace(/\s*\(.*?\)\s*$/, "");
+      const isUs = (/^[A-Za-z]{2}$/.test(tail) && US_STATE_CODES.has(tail.toUpperCase()))
+        || US_STATE_NAMES_LOWER.has(tail.toLowerCase());
+      if (isUs || /^united states$/i.test(String(profile.country || ""))) {
+        seam("located_in_us", "Yes", hometown ? hometown.id : "basics.location",
+          "the residence the record carries is in a US state (the same source deriveAnswers reads for state_of_residence)");
+      }
+    }
+    profile.answers = answers;
+    out.profile = profile;
+
+    const storedAtt = (bank.attestations && typeof bank.attestations === "object") ? bank.attestations : {};
+    for (const [k, a] of Object.entries(storedAtt)) {
+      if (a && a.explicit === true && a.value !== undefined) {
+        out.attestations[k] = JSON.parse(JSON.stringify(a));
+        out.traces[`attestation:${k}`] = { factId: "profile.attestations", how: "the user's own stored explicit attestation, passed through verbatim" };
+      }
+    }
+    if (o.approvalAct && o.approvalAct.runId) {
+      out.attestations.certify_true = {
+        value: true, explicit: true, source: "batch_approval",
+        runId: o.approvalAct.runId, cardSha256: o.approvalAct.cardSha256 || null,
+      };
+      out.traces["attestation:certify_true"] = { factId: "batch_approval", how: "the user's own approval of this batch's card is the attestation act — derived only under a committed approve intent for this run and card" };
+    }
+    return out;
+  }
+  const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+  const US_STATE_NAMES_LOWER = new Set(Object.values(US_STATE_NAMES).map((n) => n.toLowerCase()).concat(["district of columbia"]));
+  function cloneBankForDerivation(bank) {
+    const clone = JSON.parse(JSON.stringify(bank));
+    if (Array.isArray(clone.facts)) {
+      for (const f of clone.facts) {
+        if (!f || typeof f !== "object") continue;
+        if (f.status == null && f.confirmed === true) f.status = "confirmed";
+        if (f.needs_confirmation == null && typeof f.needsConfirmation === "boolean") f.needs_confirmation = f.needsConfirmation;
+      }
+    }
+    return clone;
   }
 
   // ---------- §6.1 step 3: form analysis ----------
@@ -50243,6 +50554,20 @@ const CareerPortalApply = (() => {
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
     if (!formDef.fields || formDef.fields.length === 0) {
+      // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
+      // fields — the review page after a Next click carries the
+      // challenge, a submit button, and no fields at all, so this stop
+      // fired before the review-stage captcha check could ever run and
+      // a challenge was misreported as an empty form. A captcha present
+      // on any step outranks EMPTY_FORM: probe the board's review state
+      // (the helper's review command checks the challenge before any
+      // click) and honor a challenge before naming the form empty.
+      let rv = null;
+      try { rv = typeof board.atReview === "function" ? board.atReview() : null; } catch (e) { rv = null; }
+      if (rv && rv.captcha) {
+        logStep("captcha_stop", { at: continued ? "review" : "form" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      }
       logStep("empty_form_stop", { fieldCount: 0 });
       return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
     }
@@ -50275,6 +50600,18 @@ const CareerPortalApply = (() => {
         board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
         logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
+        const a = answers[f.question_key];
+        if (a && a.confirmed === true && a.value !== undefined) {
+          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+      } else if (f.kind === "question") {
+        // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed): a
+        // board question with no canonical mapping (module 150 keys
+        // it by its label's slug) is answered under the screening
+        // contract verbatim — a confirmed stored answer or an ask.
+        // Nothing is derived here either; an unanswered question
+        // still stops the run, named by its field.
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
@@ -50324,6 +50661,52 @@ const CareerPortalApply = (() => {
     const observed = board.answers();
     if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    // F-027 (2026-10-22): per-key value equivalence at this compare
+    // ONLY (the payload is never altered). A phone input is a scalar
+    // fill, so the FR-395 renderedValues hatch (widget fills only)
+    // never fires for it — yet boards normalize phone values on their
+    // own (Lever's mask renders the US national form, dropping the
+    // "+1" country prefix), and the exact compare stopped a correct
+    // fill as drift (live: batch-8ef4497b16db). For fields whose
+    // profile key is "phone", digit sequences are compared with a
+    // single leading country "1" tolerated on either side; a
+    // genuinely different number (different subscriber digits, or a
+    // different country prefix) still differs and still stops. The
+    // equivalence is keyed by the field's profile key — it does not
+    // apply to any other key, however digit-shaped its values look.
+    const digitsOf = (v) => String(v).replace(/\D+/g, "");
+    const phoneDigitsEquivalent = (a, b) => {
+      const strip = (d) => (d.length === 11 && d.startsWith("1") ? d.slice(1) : d);
+      const da = strip(digitsOf(a)), db = strip(digitsOf(b));
+      return da.length >= 7 && da === db;
+    };
+    // F-028 (2026-10-22): the same benign-render class on the
+    // "location" profile key. A location control is a places pick —
+    // scalar from this gate's perspective, so the FR-395 hatch again
+    // carries nothing — and the board canonicalizes the picked place
+    // by appending the country ("Chicago, IL" -> "Chicago, IL, USA";
+    // live: batch-29ea020da986). The equivalence: strip ONE trailing
+    // country suffix from the closed named set below, from BOTH
+    // sides, after the gate's own norm; the remaining place text must
+    // then match EXACTLY and be non-empty. A different city, the same
+    // city name in a different state, or a longer different place
+    // that merely starts with the expected text leaves a different
+    // remainder and still stops. Named data, not a posting literal:
+    // the set names country renderings, never places.
+    const LOCATION_COUNTRY_SUFFIXES = ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america"];
+    const stripLocationCountry = (v) => {
+      const n = norm(v);
+      for (const s of LOCATION_COUNTRY_SUFFIXES) {
+        if (n.endsWith(", " + s)) return n.slice(0, n.length - s.length - 2);
+      }
+      return n;
+    };
+    const locationEquivalent = (a, b) => {
+      const ra = stripLocationCountry(a), rb = stripLocationCountry(b);
+      return ra.length > 0 && ra === rb;
+    };
+    const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
+      || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
       // Composed at the v224 combine: an EMPTY readback (absent or
@@ -50339,13 +50722,68 @@ const CareerPortalApply = (() => {
       // "United States"), the readback is compared against that
       // rendering, not the profile text. A board that renders
       // differently from BOTH is still drift and still stops here.
-      const rendered = board.renderedValues && board.renderedValues[id];
+      // FDSE-MISMATCH (2026-10-21): the rendered value is read through
+      // the board's renderedValue(fieldId) METHOD when the board
+      // offers one. The property channel is a getter on the production
+      // boards (150 / the worker bridge), and any wrapper that
+      // snapshots own properties (an observation/logging wrapper that
+      // copies non-function props once) freezes the getter at its
+      // initial {} — the hatch then silently never fires and a correct
+      // fill stops as drift (live: batch-5ab08dedd45c, the university
+      // field). Methods survive delegation wrappers; the property
+      // remains the fallback for boards that only carry it.
+      const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
+        : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+      // DECLINE-VOCAB (2026-10-21): an EEO fill whose intended value is
+      // decline-class is the SAME answer when the board renders it in
+      // any decline-class wording (EEO_DECLINE_MEANING above — the
+      // measured forms are "I don't wish to answer" x19, "Decline To
+      // Self Identify" x4, "I prefer not to say" x1; the old inline
+      // regex lacked the wish forms and blocked 6 of 8 measured drives
+      // with every fill correct). Class-vs-class ONLY, and only for EEO
+      // fills (the default or the user's own EEO choice): a decline
+      // intent rendered as a substantive answer — or any non-decline
+      // value rendered as anything else — still mismatches below, and
+      // acceptance of every non-EEO answer is exactly what it was.
+      let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+          || ((planned.source === "eeo_default_decline" || planned.source === "user_eeo_choice") && isEeoDeclineText(expected) && isEeoDeclineText(actual));
+      // F-027: when the exact channels fail, the per-key equivalence
+      // gets its say — keyed by the field's profile key, strings
+      // only, and recorded in the run record when it carries the
+      // acceptance (the same evidentiary standard as the hatch).
+      // F-028 adds the "location" branch to this SAME block (one
+      // mechanism, per-key shapes): a board-appended trailing
+      // country suffix on the same place is a benign render.
+      if (!same && typeof expected !== "object" && typeof actual !== "object") {
+        const fd = fieldDefOf(id);
+        if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        } else if (fd && fd.profile_key === "location" && locationEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "location_country_suffix", expected, observed: actual });
+        }
+      }
+      // FR-395: hatch use is recorded in the run record — that the
+      // board's rendered value was consulted as the expectation, and
+      // whether the acceptance was hatch-ONLY (the raw profile value
+      // alone would have mismatched the readback).
+      if (rendered !== undefined) {
+        logStep("answer_observation_rendered", { field_id: id, matched: !!same,
+          hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
+            && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
+      }
+      if (!same) {
+        // The stop record names the field AND carries both values —
+        // a record that says only "the observed value differs" cannot
+        // be diagnosed without re-driving the board (live:
+        // batch-5ab08dedd45c's stored record named nothing).
+        logStep("answer_observation_mismatch", { field_id: id, expected, observed: actual });
+        return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, expected, observed: actual, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      }
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled
@@ -50532,6 +50970,184 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
     }
     return prepared;
+  }
+
+  // ---------- session reuse: resume a live prepared session (chunk 50%) ----------
+  // A prepare drive's board session can outlive the drive: the board
+  // service holds the filled page, still at the final review, under
+  // its idle TTL. resumeApply VERIFIES that live state against the
+  // stored doorstep instead of re-driving — no open() (a navigation
+  // would reload the form and destroy the fills) and no fills. The
+  // verification anchors, in order: the stored record must hash to
+  // its own recorded hash before the board is touched at all; the
+  // live board must still expose the prepared form's fields and read
+  // back values that rebuild — through the SAME buildPayload MI-116
+  // uses, with the session's preparation state seeded from the stored
+  // payload (live answers win, exactly as at the doorstep) — to the
+  // stored payload hash; and the board must still stand at the final
+  // review. Success sets session.doorstep exactly as prepareRound
+  // does; submitDoorstep then re-verifies the live payload hash at
+  // click time, and the driver re-verifies the armed payload against
+  // the live fields before the click — resume adds no trust those
+  // gates do not re-check. Failures are named for the caller's
+  // fallback discipline: SESSION_NOT_LIVE (the session is gone,
+  // expired, or not this user's), SESSION_STATE_MISMATCH (the live
+  // state differs from the prepared payload), SESSION_BINDING_INVALID
+  // (the stored record is internally inconsistent). Any other stop
+  // (captcha, caps, a board code) is the application's result, as a
+  // fresh drive would produce it.
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function resumeApply(session, input) {
+    const inp = input || {};
+    const posting = inp.posting || {};
+    const profile = inp.profile || {};
+    const log = inp.log || { records: [] };
+    const stepLog = [];
+    const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
+    const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+
+    // session binding: a session serves exactly its own user (§6.3 isolation)
+    if (inp.userId && inp.userId !== session.userId) {
+      logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
+      return blocked("SESSION_USER_MISMATCH");
+    }
+    const board = session.board;
+    // The stored doorstep must be internally consistent BEFORE the
+    // board is addressed: a payload that does not hash to its own
+    // recorded hash is never verified against and never trusted.
+    const stored = inp.doorstep || null;
+    if (!stored || !stored.payload || typeof stored.payload !== "object" || Array.isArray(stored.payload)
+      || typeof stored.payloadSha256 !== "string"
+      || sha256(JSON.stringify(stored.payload)) !== stored.payloadSha256) {
+      logStep("session_binding_invalid", {});
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    // target rules (§6.3): the same gates prepare applies before any board use
+    const target = classifyTarget(posting.url || "");
+    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
+    }
+    if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
+      return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
+    }
+    if (posting.status && posting.status !== "open") {
+      logStep("eligibility_stop", { reason: "posting_not_open", status: posting.status });
+      return blocked("JOB_CLOSED");
+    }
+    const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
+    if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    // §11(F): the name on the board account must be the person applying
+    if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
+      logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
+      return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
+    }
+    try {
+      // NO open(): the page is already there, filled. form() is a
+      // read (discovery); answers() is a read (live readback).
+      const formDef = board.form();
+      const formAnalysis = analyzeForm(formDef);
+      if (!formDef.fields || formDef.fields.length === 0) {
+        logStep("session_state_mismatch", { cause: "empty_form" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
+      }
+      // The resumed board must still be the prepared form's board:
+      // its live field set or its live readback must carry the
+      // payload's fields. A board carrying NONE of them is a
+      // different page, whatever its session id claims.
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
+      const observed = board.answers() || {};
+      const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
+      if (payloadIds.length && covered.length === 0) {
+        logStep("session_state_mismatch", { cause: "no_payload_fields_on_board" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board carries none of the prepared payload's fields — it is not the prepared page", formAnalysis });
+      }
+      // Rebuild the would-submit payload from the board's CURRENT
+      // answers (buildPayload — the MI-116 construction), with the
+      // session's preparation state seeded from the stored payload so
+      // the rebuild is the same union prepare hashed at the doorstep.
+      session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
+      session.preparationPayload = {};
+      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = buildPayload(board, session);
+      const liveHash = sha256(JSON.stringify(livePayload));
+      if (liveHash !== stored.payloadSha256) {
+        const changedFields = [], addedFields = [], removedFields = [];
+        for (const k of Object.keys(livePayload)) {
+          if (!(k in stored.payload)) addedFields.push(k);
+          else if (JSON.stringify(livePayload[k]) !== JSON.stringify(stored.payload[k])) changedFields.push(k);
+        }
+        for (const k of Object.keys(stored.payload)) if (!(k in livePayload)) removedFields.push(k);
+        logStep("session_state_mismatch", { changedFields, addedFields, removedFields });
+        return blocked("SESSION_STATE_MISMATCH", { changedFields, addedFields, removedFields, formAnalysis,
+          reason: `the resumed board's current answers differ from the prepared payload — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; the session is discarded and a fresh drive prepares the application again` });
+      }
+      logStep("session_state_verified", { payloadSha256: stored.payloadSha256 });
+      // Still standing at the final review? (cmdReview is read-only on
+      // a page already at final review — it clicks only a "next"
+      // control, and a prepared page at its doorstep has none.)
+      const review = board.atReview();
+      if (review && review.code) {
+        logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+        return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null, formAnalysis });
+      }
+      if (review.captcha) {
+        logStep("captcha_stop", { at: "review" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step", formAnalysis });
+      }
+      if (review.needsFields || review.advanced) {
+        logStep("session_state_mismatch", { cause: "not_at_prepared_step" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed page is no longer at the prepared step — it asks for fields or advanced past the doorstep", formAnalysis });
+      }
+      if (review.atFinalReview === false) {
+        logStep("session_state_mismatch", { cause: "not_at_final_review" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
+      }
+      // §8.3 collision + §6.4 caps, the same re-checks prepare makes
+      if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+      const collision = collisionCheck(session.manualApplications, posting);
+      if (collision.collision) {
+        const c0 = collision.collision;
+        logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+        return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+          reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+      }
+      const caps = capCheck(log, session.userId, posting, inp.now, board);
+      if (!caps.ok) {
+        const sc = caps.stops[0];
+        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
+        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
+          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+      }
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+        requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
+      return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
+        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+    } catch (e) {
+      if (e && SESSION_DEATH_CODES.has(e.code)) {
+        logStep("session_not_live", { cause: e.code });
+        return blocked("SESSION_NOT_LIVE", { cause: e.code, reason: "the board session the prepare drive left is no longer live (expired, closed, or not this user's) — a fresh drive prepares the application again" });
+      }
+      throw e;
+    }
+  }
+
+  // continueApply: a prepare round CONTINUED on the session's live
+  // page (prepareRound's continued entry — it skips open(), so the
+  // page's existing fills survive). The attestation-completion seam:
+  // an application that stopped at awaiting_user for its certification
+  // alone is sitting filled on its board; when the certification
+  // arrives, the round continues on THAT page instead of a fresh
+  // board re-driving the whole form.
+  function continueApply(session, input) {
+    if (!session.preparationPayload) session.preparationPayload = {};
+    if (!session.preparationFields) session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, true, 0, []);
   }
 
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
@@ -50781,7 +51397,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -52301,6 +52917,64 @@ const CareerBatchApply = (() => {
     return RUNTIME.get(run.id);
   }
 
+  // F-035 (bench-60 fix round, 2026-10-22): resolve a fresh board
+  // for one application, or record its stop and return null. A
+  // boardFor that resolves through the worker bridge records the
+  // worker's coded refusal on itself (careerBoardFor.lastRefusal)
+  // when it returns null; a boardFor that throws a coded error
+  // directly is treated the same. The naming rule (stopForRefusal):
+  // an ANSWERED refusal — the service heard the ask and decided
+  // (SESSION_LIMIT, DRIVER_HOST_REFUSED, FAMILY_NOT_DRIVEABLE, …) —
+  // names the stop by its own code, with the code also carried as
+  // workerRefusal. A TRANSPORT-family failure — no answer ever
+  // arrived (WORKER_UNREACHABLE, WORKER_TRANSPORT_TIMEOUT,
+  // WORKER_TRANSPORT_CLOSED, WORKER_PROTOCOL) — is the not-wired
+  // degradation the loop has always named BOARD_NOT_WIRED
+  // (loop-acceptance's standing guard: a down worker stops every
+  // drive BOARD_NOT_WIRED); its code is still carried as
+  // workerRefusal evidence. BOARD_NOT_WIRED without a workerRefusal
+  // means no board adapter exists for this posting's family at all.
+  const TRANSPORT_REFUSAL_CODES = new Set(["WORKER_UNREACHABLE", "WORKER_TRANSPORT_TIMEOUT", "WORKER_TRANSPORT_CLOSED", "WORKER_PROTOCOL"]);
+  function stopForRefusal(run, app, code, message) {
+    if (TRANSPORT_REFUSAL_CODES.has(code)) {
+      stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run", { workerRefusal: code });
+      return;
+    }
+    stopApp(run, app, code, message || `the board worker refused this session (${code})`, { workerRefusal: code });
+  }
+  function boardOrStop(run, app, d, posting) {
+    let board = null;
+    try { board = typeof d.boardFor === "function" ? d.boardFor(posting) : null; }
+    catch (e) {
+      if (e && e.code) { stopForRefusal(run, app, e.code, String((e && e.message) || e).slice(0, 300)); return null; }
+      board = null;
+    }
+    if (board) return board;
+    const refusal = (typeof d.boardFor === "function" && d.boardFor.lastRefusal) || null;
+    if (refusal && refusal.code) { stopForRefusal(run, app, refusal.code, refusal.message); return null; }
+    stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run");
+    return null;
+  }
+
+  // F-036 (bench-60 fix round, 2026-10-22): a board throw mid-drive
+  // (measured signature: module 150's coded DRIVER_ERROR, "Target
+  // crashed") becomes THIS application's named stop — never an
+  // escape that blocks the intent and erases the run record. The
+  // stop carries the verbatim error and the fills the board had
+  // already rendered (its own renderedValues — preserved, never
+  // reconstructed).
+  function stopDriveThrow(run, app, board, e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    const detail = { error: msg };
+    try {
+      const rv = board && board.renderedValues;
+      if (rv && typeof rv === "object" && !Array.isArray(rv) && Object.keys(rv).length) {
+        detail.fills = JSON.parse(JSON.stringify(rv));
+      }
+    } catch (_) { /* a board that cannot report its fills loses nothing else */ }
+    stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the portal drive threw before it could name an outcome: ${msg}`, detail);
+  }
+
   // ---------------- prepare: discover -> screen -> tailor -> doorsteps ----
   function prepareRun(run, deps) {
     const d = deps || {};
@@ -52378,14 +53052,22 @@ const CareerBatchApply = (() => {
       }
       const profile = profileFor(d, posting);
       rt.profiles[key] = profile;
-      const board = d.boardFor ? d.boardFor(posting) : null;
-      if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      // WO-094: no standing attestation rides into a drive (deps.attestations
-      // is not read). In card-approval mode 149 leaves a certification
-      // PENDING on the doorstep; the card's yes is the attestation act.
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      const board = boardOrStop(run, app, d, posting);
+      if (!board) continue;
+      let res = null;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        // WO-094: no standing attestation rides into a drive (deps.attestations
+        // is not read). In card-approval mode 149 leaves a certification
+        // PENDING on the doorstep; the card's yes is the attestation act.
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      } catch (e) {
+        // F-036: the throw is this application's outcome — stop it
+        // named, keep the run record, drive the next application.
+        stopDriveThrow(run, app, board, e);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
     }
 
@@ -52448,8 +53130,22 @@ const CareerBatchApply = (() => {
       event(run, "captcha_handoff", { postingKey: app.postingKey });
       return;
     }
-    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped"); return; }
+    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped", stopDetailOf(res)); return; }
     stopApp(run, app, res.code || "UNEXPECTED_RESULT", `unexpected portal result: ${res.resultStatus || "unknown"}`);
+  }
+
+  // FDSE-MISMATCH (2026-10-21): a portal stop's diagnostic detail
+  // (the field an observation mismatch names, and the expected /
+  // observed values) must survive into the stored app record — the
+  // generic blocked paths used to forward only code + reason, so the
+  // live record for batch-5ab08dedd45c could not name the field 149
+  // had already identified. Carriage is whitelisted to these three
+  // keys: arbitrary portal extras do not leak into the run record.
+  function stopDetailOf(res) {
+    if (!res) return undefined;
+    const d = {};
+    for (const k of ["field_id", "expected", "observed"]) if (res[k] !== undefined) d[k] = res[k];
+    return Object.keys(d).length ? d : undefined;
   }
 
   function stopApp(run, app, code, reason, extra) {
@@ -52538,8 +53234,9 @@ const CareerBatchApply = (() => {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
           // that a changed payload stops (APPROVAL_PAYLOAD_MISMATCH).
-          const board = d.boardFor ? d.boardFor(posting) : null;
-          if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+          // F-035: a coded worker refusal is named, not flattened to BOARD_NOT_WIRED.
+          const board = boardOrStop(run, app, d, posting);
+          if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
@@ -52588,7 +53285,7 @@ const CareerBatchApply = (() => {
       return;
     }
     if (out && out.resultStatus === "blocked") {
-      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application");
+      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application", stopDetailOf(out));
       return;
     }
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
@@ -52600,7 +53297,7 @@ const CareerBatchApply = (() => {
     const submitted = apps.filter((a) => a.stage === "submitted");
     const stops = [];
     for (const a of apps) {
-      if (a.stage === "stopped" && a.stop) stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason });
+      if (a.stage === "stopped" && a.stop) stops.push(Object.assign({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason }, a.stop.field_id !== undefined ? { field_id: a.stop.field_id } : {}));
       if (a.stage === "captcha_handoff") stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: "CAPTCHA_HANDOFF", reason: a.stop ? a.stop.reason : "a captcha appeared", handoffUrl: a.stop ? a.stop.handoffUrl : a.url });
     }
     return {

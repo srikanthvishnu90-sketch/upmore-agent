@@ -280,12 +280,25 @@ async function cmdDiscover(board) {
   board.fieldCount = fields.length;
   return { fields, observation: board.observation };
 }
+/* One meaning table per command (widget/attach fix, 2026-10-21 —
+ * docs/career/widget-attach-root-cause-2026-10-21.md): connected()
+ * used to run a FULL fnDiscoverFields scan on every ref check, so a
+ * readback over ~30 bindings (one check per option of a 60-option
+ * group) ran 100-225 scans and died at the caller's 30 s cap on live
+ * Lever pages. The meaning comparison only needs the field table as
+ * of THIS command: scan once, cache on the board, clear per command
+ * in execute(). Node liveness stays per-ref and live (the
+ * isConnected check below); only the meaning table is shared. */
+async function meaningFields(board) {
+  if (!board._snapshotFields) board._snapshotFields = await board.page.evaluate(fnDiscoverFields, true);
+  return board._snapshotFields;
+}
 async function connected(board, ref) {
   const h = board.handles && board.handles.get(ref);
   if (!h || !await h.evaluate((el) => el.isConnected)) throw Object.assign(new Error("the observed DOM node changed; re-observe"), { code: "STALE_OBSERVATION" });
   const previous = board.refMetadata && board.refMetadata.get(ref);
   if (previous) {
-    const fields = await board.page.evaluate(fnDiscoverFields, true);
+    const fields = await meaningFields(board);
     const current = fields.find((f) => f.selector === previous.selector);
     if (!current || ["label", "name", "inputType", "groupLabel"].some((key) => current[key] !== previous[key])) {
       throw Object.assign(new Error("the field meaning changed; re-observe"), { code: "STALE_OBSERVATION" });
@@ -371,20 +384,26 @@ async function readbackBinding(board, b) {
       return t || null;
     });
   }
-  else if (b.inputType === "name_pair") value = ((await nodes[0].inputValue()) + " " + (await nodes[1].inputValue())).trim();
+  else if (b.inputType === "name_pair") value = [(await nodes[0].inputValue()), (await nodes[1].inputValue())].map((v) => String(v || "").trim()).filter(Boolean).join(" ");
   else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
     const f = el.files && el.files[0]; if (!f) return null;
     const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
     return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
   });
   else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
-  else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
+  else if (b.inputType === "checkbox") value = (await nodes[0].isChecked()) ? true : undefined;
   else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
     const chosen = [];
     for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
-    value = b.inputType === "radio_group" ? chosen[0] : chosen;
+    value = b.inputType === "radio_group" ? chosen[0] : (chosen.length ? chosen : undefined);
   } else value = await nodes[0].inputValue();
-  if (value === null || value === undefined || value === "" || /^select/i.test(String(value))) return undefined;
+  // BUG-QA-2026-10-21-02: absent means absent. An untouched field reads
+  // back undefined — never " " (an empty name_pair joined naively), never
+  // false (an unticked checkbox: fillOnceHandles already expects
+  // "__absent__" for one), never a whitespace-only string. Consumers of
+  // answers() are written against absent ⇔ undefined; a truthy " " made
+  // a fresh board look like it held another board's values.
+  if (value === null || value === undefined || value === "" || (typeof value === "string" && !value.trim()) || /^select/i.test(String(value))) return undefined;
   return value;
 }
 
@@ -439,9 +458,16 @@ async function driveWidget(board, cmd) {
   const b = cmd.binding;
   const wanted = String(cmd.value);
   const tok = wanted.split(",")[0].trim().toLowerCase();
-  await page.click(b.selector, { timeout: 20000 }).catch(() => {});
-  await page.fill(b.selector, "", { timeout: 20000 }).catch(() => {});
-  await page.type(b.selector, wanted, { delay: 25, timeout: 20000 });
+  // One drive, one bounded patience budget (widget/attach fix,
+  // 2026-10-21): the action timeouts used to be 20 s apiece, stacked
+  // on top of the ~17 s option ladder — a never-actionable widget
+  // burned ~77 s for ONE field on the live Greenhouse drive. The
+  // engagement actions get 8/5/5 s, the in-ladder retries 3-5 s: a
+  // live widget answers in milliseconds, a dead one fails inside
+  // one bounded drive and the fill loop moves on.
+  await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+  await page.fill(b.selector, "", { timeout: 5000 }).catch(() => {});
+  await page.type(b.selector, wanted, { delay: 25, timeout: 5000 }).catch(() => {});
   let chosen = null;
   let retyped = false;
   let wordRetyped = false;
@@ -466,20 +492,20 @@ async function driveWidget(board, cmd) {
     }
     if (i === 5) {
       const expanded = await page.evaluate((sel) => { const el = document.querySelector(sel); return el ? el.getAttribute("aria-expanded") : null; }, b.selector).catch(() => null);
-      if (expanded !== "true") await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+      if (expanded !== "true") await page.click(b.selector, { timeout: 3000 }).catch(() => {});
       const seg = wanted.split(/\s+[-–—,]\s+/)[0].trim();
       if (!retyped && seg && seg !== wanted && !(await widgetLoading())) {
         retyped = true;
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
-        await page.type(b.selector, seg, { delay: 25, timeout: 20000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, seg, { delay: 25, timeout: 5000 }).catch(() => {});
       }
     }
     if (i === 10 && !wordRetyped) {
       const word = wanted.split(/\s+/)[0].trim();
       if (word && word.length >= 3 && word !== wanted && !(await widgetLoading())) {
         wordRetyped = true;
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
-        await page.type(b.selector, word, { delay: 25, timeout: 20000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, word, { delay: 25, timeout: 5000 }).catch(() => {});
       }
     }
     // When NO option shares a token with the wanted value, every
@@ -490,7 +516,7 @@ async function driveWidget(board, cmd) {
     if (i === 16 && !clearedSearch) {
       clearedSearch = true;
       if (!(await widgetLoading())) {
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(400);
       }
     }
@@ -569,7 +595,7 @@ async function driveWidget(board, cmd) {
   // degraded later fills on the live boards). The verification in
   // cmdFill judges it — search text alone never counts as a value.
   await page.keyboard.press("Escape").catch(() => {});
-  await page.fill(b.selector, wanted, { timeout: 20000 });
+  await page.fill(b.selector, wanted, { timeout: 5000 }).catch(() => {});
   return { expect: wanted, chosenText: null, via: undefined };
 }
 function widgetPersisted(got, driven) {
@@ -800,12 +826,27 @@ async function cmdFill(board, cmd) {
 async function reresolveBinding(board, b) {
   board.handles = board.handles || new Map();
   board.refMetadata = board.refMetadata || new Map();
+  // A re-resolution happens because the page changed under the
+  // observed refs — the per-command meaning snapshot may predate
+  // that change, so drop it: the next connected() in this command
+  // takes one fresh scan instead of judging against the stale table.
+  board._snapshotFields = null;
   const fields = await board.page.evaluate(fnDiscoverFields);
   const version = (board.observation && board.observation.version) || "re";
+  // Mint under a per-call namespace (widget/attach fix, 2026-10-21):
+  // refs are keyed version+domIndex, and a remount REORDERS the DOM —
+  // a re-minted ref could land on the exact key another binding's
+  // live ref already owns, silently swapping that binding's handle
+  // and metadata for this field's (measured: a remounted upload
+  // section made the resume read answer for the cover field and
+  // vice versa; both then read absent). Fresh refs must never
+  // clobber refs other bindings still hold.
+  board._reresolveSeq = (board._reresolveSeq || 0) + 1;
+  const mintNs = version + ":re" + board._reresolveSeq;
   const mint = async (f) => {
     const h = await resolveFieldHandle(board.page, f);
     if (!h) return null;
-    const ref = version + ":f:" + f.domIndex;
+    const ref = mintNs + ":f:" + f.domIndex;
     board.handles.set(ref, h);
     board.refMetadata.set(ref, f);
     return ref;
@@ -915,6 +956,7 @@ async function execute(boardId, cmd) {
   validateAction(cmd);
   if (cmd.type === "shutdown") { setTimeout(() => process.exit(0), 50); return { ok: true }; }
   const board = await getBoard(boardId);
+  board._snapshotFields = null; // meaning table is per-command (see meaningFields)
   if (["fill", "readback", "verify_payload", "review", "submit_and_capture"].includes(cmd.type)) assertObservation(cmd, board.observation, board.scope, board.page.url());
   switch (cmd.type) {
     case "open": return await cmdOpen(board, cmd);

@@ -92,6 +92,27 @@ function createBatchExecutor(deps) {
     };
   }
 
+  // #11-2 (S-2, the cap-ledger race): persist only the records THIS
+  // run added, through the store's append path when it has one. The
+  // v1 whole-array save let the last of two concurrent drains erase
+  // the other's submission records — and the ledger is the cap
+  // source. Where the store's append path reports itself not wired
+  // (the v2 RPC not yet applied), fall back to the v1 save: exactly
+  // today's behavior, never worse. Parallel drains (S-1) must run
+  // against a store whose append path is live — the fallback is a
+  // compatibility bridge, not a parallel-safe mode.
+  async function persistLedger(userId, log, baseRecords) {
+    const all = (log && log.records) || [];
+    if (typeof store.appendLedger === "function") {
+      const base = new Set(baseRecords || []);
+      const delta = all.filter((r) => !base.has(r));
+      if (!delta.length) return;
+      try { await store.appendLedger(userId, delta); return; }
+      catch (e) { if (!e || e.code !== "APPEND_LEDGER_NOT_WIRED") throw e; }
+    }
+    await store.saveLedger(userId, all);
+  }
+
   async function buildDeps(userId, postings) {
     const pack = (await d.profileFor(userId)) || {};
     const log = await store.ledgerFor(userId);
@@ -120,9 +141,10 @@ function createBatchExecutor(deps) {
     if (!run) throw coded("BATCH_RUN_INVALID", "the prepare intent's run skeleton does not restore");
     const postings = await d.postingsFor(intent.userId, binding.family_text || run.familyText, run.requested);
     const deps = await buildDeps(intent.userId, postings);
+    const baseRecords = ((deps.log && deps.log.records) || []).slice();
     Batch.prepareRun(run, deps);
     await store.saveRun(recordOf(run));
-    await store.saveLedger(intent.userId, deps.log.records);
+    await persistLedger(intent.userId, deps.log, baseRecords);
     return { runId: run.id, runStatus: run.status, doorstep: run.summary ? run.summary.doorstep : 0, submitted: 0 };
   }
 
@@ -145,9 +167,10 @@ function createBatchExecutor(deps) {
     const ap = Batch.approveRun(run, { approvedByUser: true });
     if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
     const deps = await buildDeps(intent.userId, []);
+    const baseRecords = ((deps.log && deps.log.records) || []).slice();
     Batch.executeRun(run, deps);
     await store.saveRun(recordOf(run));
-    await store.saveLedger(intent.userId, deps.log.records);
+    await persistLedger(intent.userId, deps.log, baseRecords);
     return { runId: run.id, runStatus: run.status, submitted: run.summary ? run.summary.submitted : 0, confirmations: run.summary ? run.summary.confirmations : [] };
   }
 
@@ -165,8 +188,12 @@ function createBatchExecutor(deps) {
           results.push({ intentId: intent.intentId, action: "prepare", status: "completed", ...result });
         } catch (e) {
           const code = (e && e.code) || "BATCH_PREPARE_FAILED";
-          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code } });
-          results.push({ intentId: intent.intentId, action: "prepare", status: "blocked", code });
+          // BUG-QA-2026-10-21-01: the record keeps the bounded message
+          // alongside the code — a code-only record made cold DRIVER_ERRORs
+          // undiagnosable from every log the seams keep.
+          const message = String((e && e.message) || e).slice(0, 300);
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code, message } });
+          results.push({ intentId: intent.intentId, action: "prepare", status: "blocked", code, message });
         }
       } else if (binding.action === "approve") {
         try {
@@ -182,8 +209,9 @@ function createBatchExecutor(deps) {
           // Claimed once, never re-driven: an execution crash leaves
           // outcomes unknown by definition (MI-115's posture).
           const code = (e && e.code) || "BATCH_EXECUTION_UNCERTAIN";
-          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "uncertain", result: { code } });
-          results.push({ intentId: intent.intentId, action: "approve", status: "uncertain", code });
+          const message = String((e && e.message) || e).slice(0, 300);
+          await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "uncertain", result: { code, message } });
+          results.push({ intentId: intent.intentId, action: "approve", status: "uncertain", code, message });
         }
       } else {
         await store.finish({ userId: intent.userId, intentId: intent.intentId, state: "blocked", result: { code: "BATCH_ACTION_UNKNOWN" } });
@@ -238,6 +266,26 @@ function createBatchRpcStore({ call }) {
     async readRun({ userId, runId }) { const data = await call("career_batch_result_v1", { p_user: userId, p_run: runId }); return (data && data.batch) || null; },
     async ledgerFor(userId) { const data = await call("career_batch_ledger_v1", { p_user: userId }); return { records: (data && data.records) || [] }; },
     async saveLedger(userId, records) { return call("career_batch_save_ledger_v1", { p_user: userId, p_records: records || [] }); },
+    // v2 append (migration 20261022010000, DRAFT — owner-run): merges
+    // only the new records under the per-user advisory lock, deduped
+    // by confirmation identity. While the RPC is absent the transport
+    // surfaces PGRST202; translate it to the coded refusal the
+    // executor's persistLedger falls back on.
+    async appendLedger(userId, records) {
+      try { return await call("career_batch_append_ledger_v2", { p_user: userId, p_records: records || [] }); }
+      catch (e) {
+        // Absence surfaces differently per transport: PostgREST's
+        // PGRST202, a message naming the function, or a stand-in's
+        // "unexpected RPC". All three mean the same thing here —
+        // the v2 write is not available on this backend — and the
+        // executor's fallback (the v1 save) is today's behavior.
+        const msg = String((e && e.message) || e);
+        if ((e && e.code === "PGRST202") || /career_batch_append_ledger_v2/.test(msg) || /unexpected RPC/i.test(msg)) {
+          throw coded("APPEND_LEDGER_NOT_WIRED", "career_batch_append_ledger_v2 is not available on this backend (draft migration 20261022010000 is owner-run)");
+        }
+        throw e;
+      }
+    },
   };
 }
 

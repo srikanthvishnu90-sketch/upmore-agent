@@ -21270,7 +21270,120 @@ const CareerRender = (() => {
   const NODE_RUNTIME = { zlib: nodeReq("zlib"), crypto: nodeReq("node:crypto"), cp: nodeReq("node:child_process"), fs: nodeReq("node:fs"), os: nodeReq("node:os"), Buffer: typeof Buffer !== "undefined" ? Buffer : null };
   function make(rt) {
   const { cp, fs, os } = rt;
-  const Buffer = rt.Buffer;
+  const B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const B64_LOOKUP = (() => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < B64_ALPHABET.length; i++) t[B64_ALPHABET.charCodeAt(i)] = i; return t; })();
+  function b64Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      out += B64_ALPHABET[a >> 2] + B64_ALPHABET[((a & 3) << 4) | (b >> 4)];
+      out += i + 1 < bytes.length ? B64_ALPHABET[((b & 15) << 2) | (c >> 6)] : "=";
+      out += i + 2 < bytes.length ? B64_ALPHABET[c & 63] : "=";
+    }
+    return out;
+  }
+  function b64Decode(text) {
+    const clean = String(text).replace(/[^A-Za-z0-9+/=]/g, "");
+    const out = [];
+    for (let i = 0; i < clean.length; i += 4) {
+      const a = B64_LOOKUP[clean.charCodeAt(i)], b = B64_LOOKUP[clean.charCodeAt(i + 1)];
+      const c = clean[i + 2] === "=" || clean[i + 2] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 2)];
+      const d = clean[i + 3] === "=" || clean[i + 3] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 3)];
+      out.push(((a << 2) | (b >> 4)) & 0xff);
+      if (c >= 0) out.push((((b & 15) << 4) | (c >> 2)) & 0xff);
+      if (d >= 0) out.push((((c & 3) << 6) | d) & 0xff);
+    }
+    return out;
+  }
+  function utf8Encode(text) {
+    const out = [];
+    for (const ch of String(text)) {
+      const cp = ch.codePointAt(0);
+      if (cp < 0x80) out.push(cp);
+      else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f));
+      else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+      else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    }
+    return out;
+  }
+  function utf8Decode(bytes) {
+    let out = "";
+    const cps = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const b = bytes[i];
+      if (b < 0x80) { cps.push(b); i += 1; }
+      else if ((b & 0xe0) === 0xc0 && i + 1 < bytes.length) { cps.push(((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f)); i += 2; }
+      else if ((b & 0xf0) === 0xe0 && i + 2 < bytes.length) { cps.push(((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)); i += 3; }
+      else if ((b & 0xf8) === 0xf0 && i + 3 < bytes.length) { cps.push(((b & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f)); i += 4; }
+      else { cps.push(0xfffd); i += 1; }
+    }
+    for (let j = 0; j < cps.length; j += 8192) out += String.fromCodePoint(...cps.slice(j, j + 8192));
+    return out;
+  }
+  class ByteBuf extends Uint8Array {
+    static alloc(size) { return new ByteBuf(size); }
+    static from(input, enc) {
+      if (typeof input === "string") {
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "hex") {
+          const out = new ByteBuf(input.length >> 1);
+          for (let i = 0; i < out.length; i++) out[i] = parseInt(input.slice(i * 2, i * 2 + 2), 16) || 0;
+          return out;
+        }
+        if (e === "latin1" || e === "binary") {
+          const out = new ByteBuf(input.length);
+          for (let i = 0; i < input.length; i++) out[i] = input.charCodeAt(i) & 0xff;
+          return out;
+        }
+        if (e === "base64") { const arr = b64Decode(input); const out = new ByteBuf(arr.length); for (let i = 0; i < arr.length; i++) out[i] = arr[i]; return out; }
+        const encoded = utf8Encode(input);
+        const out = new ByteBuf(encoded.length);
+        for (let i = 0; i < encoded.length; i++) out[i] = encoded[i];
+        return out;
+      }
+      if (input instanceof Uint8Array) { const out = new ByteBuf(input.length); out.set(input); return out; }
+      if (input instanceof ArrayBuffer) return new ByteBuf(new Uint8Array(input));
+      const arr = Array.from(input || []);
+      const out = new ByteBuf(arr.length);
+      for (let i = 0; i < arr.length; i++) out[i] = arr[i] & 0xff;
+      return out;
+    }
+    static concat(list) {
+      let total = 0;
+      for (const part of list) total += part.length;
+      const out = new ByteBuf(total);
+      let off = 0;
+      for (const part of list) { out.set(part, off); off += part.length; }
+      return out;
+    }
+    static isBuffer(x) { return x instanceof Uint8Array; }
+    _view() { return new DataView(this.buffer, this.byteOffset, this.byteLength); }
+    writeUInt16LE(value, offset) { this._view().setUint16(offset, value, true); return offset + 2; }
+    writeUInt32LE(value, offset) { this._view().setUint32(offset, value, true); return offset + 4; }
+    writeUInt32BE(value, offset) { this._view().setUint32(offset, value, false); return offset + 4; }
+    readUInt16LE(offset) { return this._view().getUint16(offset, true); }
+    readUInt32LE(offset) { return this._view().getUint32(offset, true); }
+    copy(target, targetStart = 0, sourceStart = 0, sourceEnd = this.length) {
+      const n = Math.max(0, Math.min(sourceEnd - sourceStart, target.length - targetStart));
+      if (n > 0) target.set(this.subarray(sourceStart, sourceStart + n), targetStart);
+      return n;
+    }
+    toString(enc, start, end) {
+      const e = String(enc || "utf8").toLowerCase();
+      const view = this.subarray(start == null ? 0 : start, end == null ? this.length : end);
+      if (e === "latin1" || e === "binary") {
+        let out = "";
+        for (let i = 0; i < view.length; i += 8192) out += String.fromCharCode(...view.subarray(i, i + 8192));
+        return out;
+      }
+      if (e === "base64") return b64Encode(view);
+      if (e === "hex") { let out = ""; for (const b of view) out += b.toString(16).padStart(2, "0"); return out; }
+      return utf8Decode(view);
+    }
+  }
+  const Buffer = rt.Buffer || ByteBuf;
+  const Bytes = Buffer;
   function adler32(data) {
     let a = 1, b = 0;
     for (let i = 0; i < data.length; i++) { a = (a + data[i]) % 65521; b = (b + a) % 65521; }
@@ -21281,18 +21394,18 @@ const CareerRender = (() => {
     let off = 0;
     do {
       const len = Math.min(65535, data.length - off);
-      const head = Buffer.alloc(5);
+      const head = Bytes.alloc(5);
       head[0] = off + len >= data.length ? 1 : 0;
       head.writeUInt16LE(len, 1);
       head.writeUInt16LE((~len) & 0xffff, 3);
-      chunks.push(head, Buffer.from(data.subarray(off, off + len)));
+      chunks.push(head, Bytes.from(data.subarray(off, off + len)));
       off += len;
     } while (off < data.length);
-    return Buffer.concat(chunks);
+    return Bytes.concat(chunks);
   }
   function zlibDeflate(data) {
     const body = deflateStored(data);
-    const out = Buffer.alloc(2 + body.length + 4);
+    const out = Bytes.alloc(2 + body.length + 4);
     out[0] = 0x78; out[1] = 0x01;
     body.copy(out, 2);
     out.writeUInt32BE(adler32(data), 2 + body.length);
@@ -21386,7 +21499,7 @@ const CareerRender = (() => {
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
-    return { buffer: Buffer.from(out), end: pos - (bitcnt >> 3) };
+    return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
   function zlibInflate(data) {
     if (data.length < 6) throw new Error("zlib stream too short");
@@ -21443,10 +21556,10 @@ const CareerRender = (() => {
   const pureCrypto = {
     createHash: (alg) => {
       if (alg !== "sha256") throw new Error(`pure crypto fallback supports sha256 only, not ${alg}`);
-      let buf = Buffer.alloc(0);
+      let buf = Bytes.alloc(0);
       return {
-        update(data) { buf = Buffer.concat([buf, Buffer.from(data)]); return this; },
-        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Buffer.from(hex, "hex"); },
+        update(data) { buf = Bytes.concat([buf, Bytes.from(data)]); return this; },
+        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Bytes.from(hex, "hex"); },
       };
     },
   };
@@ -21527,17 +21640,17 @@ const CareerRender = (() => {
   function zipBuffer(entries) {
     const chunks = []; const central = []; let offset = 0;
     for (const entry of entries) {
-      const nameBuf = Buffer.from(entry.name, "utf8");
-      const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
+      const nameBuf = Bytes.from(entry.name, "utf8");
+      const data = Bytes.isBuffer(entry.data) ? entry.data : Bytes.from(String(entry.data), "utf8");
       const compressed = zlib.deflateRawSync(data);
       const crc = crc32(data);
-      const local = Buffer.alloc(30);
+      const local = Bytes.alloc(30);
       local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
       local.writeUInt16LE(8, 8); local.writeUInt16LE(DOS_TIME, 10); local.writeUInt16LE(DOS_DATE, 12);
       local.writeUInt32LE(crc, 14); local.writeUInt32LE(compressed.length, 18); local.writeUInt32LE(data.length, 22);
       local.writeUInt16LE(nameBuf.length, 26); local.writeUInt16LE(0, 28);
       chunks.push(local, nameBuf, compressed);
-      const cd = Buffer.alloc(46);
+      const cd = Bytes.alloc(46);
       cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0x0800, 8);
       cd.writeUInt16LE(8, 10); cd.writeUInt16LE(DOS_TIME, 12); cd.writeUInt16LE(DOS_DATE, 14);
       cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(compressed.length, 20); cd.writeUInt32LE(data.length, 24);
@@ -21546,14 +21659,14 @@ const CareerRender = (() => {
       offset += local.length + nameBuf.length + compressed.length;
     }
     const cdSize = central.reduce((n, b) => n + b.length, 0);
-    const eocd = Buffer.alloc(22);
+    const eocd = Bytes.alloc(22);
     eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
     eocd.writeUInt32LE(cdSize, 12); eocd.writeUInt32LE(offset, 16);
-    return Buffer.concat([...chunks, ...central, eocd]);
+    return Bytes.concat([...chunks, ...central, eocd]);
   }
   function unzipParts(buf) {
     const parts = new Map();
-    if (!Buffer.isBuffer(buf) || buf.length < 22) return parts;
+    if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
@@ -21571,7 +21684,7 @@ const CareerRender = (() => {
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw); } catch { data = null; }
+      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
       if (data && crc32(data) === crc) parts.set(name, data);
       p += 46 + nameLen + extraLen + commentLen;
     }
@@ -21634,7 +21747,7 @@ const CareerRender = (() => {
       else if (WINANSI_EXTRA.has(ch)) bytes.push(WINANSI_EXTRA.get(ch));
       else { bytes.push(0x3f); if (unencodable && !unencodable.includes(ch)) unencodable.push(ch); }
     }
-    return Buffer.from(bytes);
+    return Bytes.from(bytes);
   }
   function decodeWinAnsi(buf) {
     let out = "";
@@ -21722,24 +21835,24 @@ const CareerRender = (() => {
     const objects = [];
     const pageIds = pages.map((_, i) => 5 + i * 2);
     const contentIds = pages.map((_, i) => 6 + i * 2);
-    objects.push([1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>")]);
-    objects.push([2, Buffer.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
-    objects.push([3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
-    objects.push([4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
+    objects.push([1, Bytes.from("<< /Type /Catalog /Pages 2 0 R >>")]);
+    objects.push([2, Bytes.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
+    objects.push([3, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
+    objects.push([4, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
     pages.forEach((lines, i) => {
-      objects.push([pageIds[i], Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
+      objects.push([pageIds[i], Bytes.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
       const ops = lines.map((l) => `BT /${l.font} ${l.size} Tf 1 0 0 1 ${l.x} ${l.y} Tm ${pdfLiteral(encodeWinAnsi(l.text, unencodable))} Tj ET`).join("\n");
-      const stream = zlib.deflateSync(Buffer.from(ops, "latin1"));
-      const head = Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
-      objects.push([contentIds[i], Buffer.concat([head, stream, Buffer.from("\nendstream", "latin1")])]);
+      const stream = zlib.deflateSync(Bytes.from(ops, "latin1"));
+      const head = Bytes.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+      objects.push([contentIds[i], Bytes.concat([head, stream, Bytes.from("\nendstream", "latin1")])]);
     });
     objects.sort((a, b) => a[0] - b[0]);
-    const chunks = [Buffer.from("%PDF-1.4\n", "latin1")];
+    const chunks = [Bytes.from("%PDF-1.4\n", "latin1")];
     const offsets = new Map();
     let pos = chunks[0].length;
     for (const [id, body] of objects) {
-      const head = Buffer.from(`${id} 0 obj\n`, "latin1");
-      const tail = Buffer.from("\nendobj\n", "latin1");
+      const head = Bytes.from(`${id} 0 obj\n`, "latin1");
+      const tail = Bytes.from("\nendobj\n", "latin1");
       offsets.set(id, pos);
       chunks.push(head, body, tail);
       pos += head.length + body.length + tail.length;
@@ -21749,8 +21862,8 @@ const CareerRender = (() => {
     let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
     for (let id = 1; id <= maxId; id++) xref += `${String(offsets.get(id)).padStart(10, "0")} 00000 n \n`;
     xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
-    chunks.push(Buffer.from(xref, "latin1"));
-    const buffer = Buffer.concat(chunks);
+    chunks.push(Bytes.from(xref, "latin1"));
+    const buffer = Bytes.concat(chunks);
     return { ok: true, buffer, contentType: PDF_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "pdf"), bytes: buffer.length, pages: pages.length, unencodable };
   }
 
@@ -21788,11 +21901,11 @@ const CareerRender = (() => {
       else if (c === ")") { depth--; if (depth > 0) bytes.push(41); i++; }
       else { bytes.push(s.charCodeAt(i) & 0xff); i++; }
     }
-    return [decodeWinAnsi(Buffer.from(bytes)), i];
+    return [decodeWinAnsi(Bytes.from(bytes)), i];
   }
   function extractPdfRuns(buf) {
     const runs = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return runs;
+    if (!Bytes.isBuffer(buf) || !zlib) return runs;
     const streams = pdfStreams(buf);
     streams.forEach((streamBuf, page) => {
       const s = streamBuf.toString("latin1");
@@ -21817,7 +21930,7 @@ const CareerRender = (() => {
   const extractPdfLines = (buf) => extractPdfRuns(buf).map((r) => r.text);
   function extractPdfStrings(buf) {
     const out = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return out;
+    if (!Bytes.isBuffer(buf) || !zlib) return out;
     for (const streamBuf of pdfStreams(buf)) {
       const s = streamBuf.toString("latin1");
       let i = 0;
@@ -21829,14 +21942,14 @@ const CareerRender = (() => {
     return out;
   }
   function pdfStructure(buf) {
-    const s = Buffer.isBuffer(buf) ? buf.toString("latin1") : "";
+    const s = Bytes.isBuffer(buf) ? buf.toString("latin1") : "";
     const fonts = [...new Set([...s.matchAll(/\/BaseFont\s*\/([A-Za-z0-9-]+)/g)].map((m) => m[1].replace(/^[A-Z]{6}\+/, "")))];
     const images = (s.match(/\/Subtype\s*\/Image/g) || []).length;
     const pages = (s.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
     const runs = extractPdfRuns(buf);
     const sizes = [...new Set(runs.map((r) => r.size).filter(Boolean))].sort((a, b) => a - b);
     const xs = [...new Set(runs.map((r) => Math.round(r.x)))];
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
   }
   function extractPdfPoppler(buf) {
     if (!cp || !fs || !os) return null;
@@ -21880,8 +21993,8 @@ const CareerRender = (() => {
   }
   function docxStructure(buf) {
     const parts = unzipParts(buf);
-    const docXml = (parts.get("word/document.xml") || Buffer.alloc(0)).toString("utf8");
-    const stylesXml = (parts.get("word/styles.xml") || Buffer.alloc(0)).toString("utf8");
+    const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
+    const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
     const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
@@ -21889,7 +22002,7 @@ const CareerRender = (() => {
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
     const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   function extractDocxPython(buf) {
     if (!cp || !fs || !os) return null;
@@ -22063,6 +22176,23 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
+  const EEO_DECLINE_MEANING = [
+    { name: "decline_word", pattern: "decline" },
+    { name: "prefer_not", pattern: "prefer not" },
+    { name: "wish_not", pattern: "do not wish|don t wish|dont wish" },
+    { name: "not_answer", pattern: "not (to )?answer" },
+    { name: "not_disclose", pattern: "not (to )?disclose" },
+    { name: "no_answer", pattern: "no answer" },
+  ];
+  const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
+  function eeoDeclineMatch(text) {
+    const t = normMeaningText(text);
+    if (!t) return null;
+    for (const r of EEO_DECLINE_RULES) if (r.re.test(t)) return r.name;
+    return null;
+  }
+  const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
@@ -22332,6 +22462,110 @@ const CareerPortalApply = (() => {
       else uncovered.push(k);
     }
     return { consumed: consumed.sort(), exempt: exempt.sort((a, b) => (a.kind < b.kind ? -1 : 1)), uncovered: uncovered.sort() };
+  }
+
+  function workAuthorizationToken(text) {
+    const t = String(text || "").trim();
+    if (/^yes\b/i.test(t)) return "Yes";
+    if (/^no\b/i.test(t)) return "No";
+    if (/not authorized|not eligible to work|no work authorization/i.test(t)) return "No";
+    if (/citizen|permanent resident|green card|lawful permanent|authorized to work|eligible to work|employment authorization|work permit/i.test(t)) return "Yes";
+    return t;
+  }
+  function portalInputsFromBank(bank, opts) {
+    const o = opts || {};
+    const out = { profile: null, attestations: {}, traces: {} };
+    if (!bank || typeof bank !== "object") return out;
+    const nowMs = tsMs(o.now != null ? o.now : Date.now());
+    const normBank = cloneBankForDerivation(bank);
+    const b = (bank.basics && typeof bank.basics === "object") ? bank.basics : {};
+    const links = (b.links && typeof b.links === "object") ? b.links : {};
+    const profile = { answers: {} };
+    const setP = (k, v) => { if (v !== undefined && v !== null && String(v) !== "") profile[k] = v; };
+    setP("name", b.name || b.full_name || bank.name);
+    setP("email", b.email || bank.email);
+    setP("phone", b.phone);
+    setP("location", b.location);
+    setP("linkedin", links.linkedin || b.linkedin);
+    setP("github", links.github || b.github);
+    setP("website", links.portfolio || links.website || b.website);
+    setP("current_company", b.current_company || b.currentCompany);
+    const derived = deriveAnswers(normBank, Number.isFinite(nowMs) ? nowMs : Date.now());
+    for (const [k, v] of Object.entries(derived.profileFields || {})) setP(k, v);
+    for (const [k, t] of Object.entries(derived.traces || {})) out.traces[k] = t;
+    const r = bank.resume || b.resume || null;
+    if (r && r.sha256) profile.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+
+    const answers = {};
+    const stored = (bank.answers && typeof bank.answers === "object") ? bank.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        answers[k] = JSON.parse(JSON.stringify(a));
+        if (a.factId) out.traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
+      }
+    }
+    for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = a;
+
+    const c = (bank.constraints && typeof bank.constraints === "object") ? bank.constraints : {};
+    const dfl = (bank.defaults && typeof bank.defaults === "object") ? bank.defaults : {};
+    const seam = (key, value, factId, how) => {
+      if (answers[key] || value === undefined || value === null || String(value) === "") return;
+      answers[key] = { value, confirmed: true, factId };
+      out.traces[key] = { factId, how };
+    };
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (the sensitive-correction record)");
+    }
+    if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
+      seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");
+    }
+    if (!answers.located_in_us) {
+      const hometown = (normBank.facts || []).find((f) => f.kind === "profile" && /hometown/i.test(f.name || f.title || "") && f.status === "confirmed" && f.needs_confirmation !== true);
+      const residence = (hometown && hometown.value) || b.location || "";
+      const tail = String(residence).split(",").pop().trim().replace(/\s*\(.*?\)\s*$/, "");
+      const isUs = (/^[A-Za-z]{2}$/.test(tail) && US_STATE_CODES.has(tail.toUpperCase()))
+        || US_STATE_NAMES_LOWER.has(tail.toLowerCase());
+      if (isUs || /^united states$/i.test(String(profile.country || ""))) {
+        seam("located_in_us", "Yes", hometown ? hometown.id : "basics.location",
+          "the residence the record carries is in a US state (the same source deriveAnswers reads for state_of_residence)");
+      }
+    }
+    profile.answers = answers;
+    out.profile = profile;
+
+    const storedAtt = (bank.attestations && typeof bank.attestations === "object") ? bank.attestations : {};
+    for (const [k, a] of Object.entries(storedAtt)) {
+      if (a && a.explicit === true && a.value !== undefined) {
+        out.attestations[k] = JSON.parse(JSON.stringify(a));
+        out.traces[`attestation:${k}`] = { factId: "profile.attestations", how: "the user's own stored explicit attestation, passed through verbatim" };
+      }
+    }
+    if (o.approvalAct && o.approvalAct.runId) {
+      out.attestations.certify_true = {
+        value: true, explicit: true, source: "batch_approval",
+        runId: o.approvalAct.runId, cardSha256: o.approvalAct.cardSha256 || null,
+      };
+      out.traces["attestation:certify_true"] = { factId: "batch_approval", how: "the user's own approval of this batch's card is the attestation act — derived only under a committed approve intent for this run and card" };
+    }
+    return out;
+  }
+  const US_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
+  const US_STATE_NAMES_LOWER = new Set(Object.values(US_STATE_NAMES).map((n) => n.toLowerCase()).concat(["district of columbia"]));
+  function cloneBankForDerivation(bank) {
+    const clone = JSON.parse(JSON.stringify(bank));
+    if (Array.isArray(clone.facts)) {
+      for (const f of clone.facts) {
+        if (!f || typeof f !== "object") continue;
+        if (f.status == null && f.confirmed === true) f.status = "confirmed";
+        if (f.needs_confirmation == null && typeof f.needsConfirmation === "boolean") f.needs_confirmation = f.needsConfirmation;
+      }
+    }
+    return clone;
   }
 
   function analyzeForm(formDef) {
@@ -22632,6 +22866,12 @@ const CareerPortalApply = (() => {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
     }
     if (!formDef.fields || formDef.fields.length === 0) {
+      let rv = null;
+      try { rv = typeof board.atReview === "function" ? board.atReview() : null; } catch (e) { rv = null; }
+      if (rv && rv.captcha) {
+        logStep("captcha_stop", { at: continued ? "review" : "form" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      }
       logStep("empty_form_stop", { fieldCount: 0 });
       return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
     }
@@ -22662,6 +22902,12 @@ const CareerPortalApply = (() => {
         board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
         logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
+        const a = answers[f.question_key];
+        if (a && a.confirmed === true && a.value !== undefined) {
+          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+        } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+      } else if (f.kind === "question") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
@@ -22705,17 +22951,56 @@ const CareerPortalApply = (() => {
     const observed = board.answers();
     if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    const digitsOf = (v) => String(v).replace(/\D+/g, "");
+    const phoneDigitsEquivalent = (a, b) => {
+      const strip = (d) => (d.length === 11 && d.startsWith("1") ? d.slice(1) : d);
+      const da = strip(digitsOf(a)), db = strip(digitsOf(b));
+      return da.length >= 7 && da === db;
+    };
+    const LOCATION_COUNTRY_SUFFIXES = ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america"];
+    const stripLocationCountry = (v) => {
+      const n = norm(v);
+      for (const s of LOCATION_COUNTRY_SUFFIXES) {
+        if (n.endsWith(", " + s)) return n.slice(0, n.length - s.length - 2);
+      }
+      return n;
+    };
+    const locationEquivalent = (a, b) => {
+      const ra = stripLocationCountry(a), rb = stripLocationCountry(b);
+      return ra.length > 0 && ra === rb;
+    };
+    const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
+      || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
       if (payloadValueMissing(observed[id])) continue;
       const wanted = planned.value, actual = observed[id];
-      const rendered = board.renderedValues && board.renderedValues[id];
+      const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
+        : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+      let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+          || ((planned.source === "eeo_default_decline" || planned.source === "user_eeo_choice") && isEeoDeclineText(expected) && isEeoDeclineText(actual));
+      if (!same && typeof expected !== "object" && typeof actual !== "object") {
+        const fd = fieldDefOf(id);
+        if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        } else if (fd && fd.profile_key === "location" && locationEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "location_country_suffix", expected, observed: actual });
+        }
+      }
+      if (rendered !== undefined) {
+        logStep("answer_observation_rendered", { field_id: id, matched: !!same,
+          hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
+            && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
+      }
+      if (!same) {
+        logStep("answer_observation_mismatch", { field_id: id, expected, observed: actual });
+        return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, expected, observed: actual, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      }
     }
     for (const field of formDef.fields || []) {
       if (field.required && observed[field.field_id] === undefined && !asks.some((a) => a.field_id === field.field_id)
@@ -22833,6 +23118,133 @@ const CareerPortalApply = (() => {
       return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
     }
     return prepared;
+  }
+
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function resumeApply(session, input) {
+    const inp = input || {};
+    const posting = inp.posting || {};
+    const profile = inp.profile || {};
+    const log = inp.log || { records: [] };
+    const stepLog = [];
+    const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
+    const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+
+    if (inp.userId && inp.userId !== session.userId) {
+      logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
+      return blocked("SESSION_USER_MISMATCH");
+    }
+    const board = session.board;
+    const stored = inp.doorstep || null;
+    if (!stored || !stored.payload || typeof stored.payload !== "object" || Array.isArray(stored.payload)
+      || typeof stored.payloadSha256 !== "string"
+      || sha256(JSON.stringify(stored.payload)) !== stored.payloadSha256) {
+      logStep("session_binding_invalid", {});
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    const target = classifyTarget(posting.url || "");
+    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
+    }
+    if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
+      return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
+    }
+    if (posting.status && posting.status !== "open") {
+      logStep("eligibility_stop", { reason: "posting_not_open", status: posting.status });
+      return blocked("JOB_CLOSED");
+    }
+    const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
+    if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
+      logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
+      return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
+    }
+    try {
+      const formDef = board.form();
+      const formAnalysis = analyzeForm(formDef);
+      if (!formDef.fields || formDef.fields.length === 0) {
+        logStep("session_state_mismatch", { cause: "empty_form" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
+      }
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
+      const observed = board.answers() || {};
+      const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
+      if (payloadIds.length && covered.length === 0) {
+        logStep("session_state_mismatch", { cause: "no_payload_fields_on_board" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board carries none of the prepared payload's fields — it is not the prepared page", formAnalysis });
+      }
+      session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
+      session.preparationPayload = {};
+      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = buildPayload(board, session);
+      const liveHash = sha256(JSON.stringify(livePayload));
+      if (liveHash !== stored.payloadSha256) {
+        const changedFields = [], addedFields = [], removedFields = [];
+        for (const k of Object.keys(livePayload)) {
+          if (!(k in stored.payload)) addedFields.push(k);
+          else if (JSON.stringify(livePayload[k]) !== JSON.stringify(stored.payload[k])) changedFields.push(k);
+        }
+        for (const k of Object.keys(stored.payload)) if (!(k in livePayload)) removedFields.push(k);
+        logStep("session_state_mismatch", { changedFields, addedFields, removedFields });
+        return blocked("SESSION_STATE_MISMATCH", { changedFields, addedFields, removedFields, formAnalysis,
+          reason: `the resumed board's current answers differ from the prepared payload — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; the session is discarded and a fresh drive prepares the application again` });
+      }
+      logStep("session_state_verified", { payloadSha256: stored.payloadSha256 });
+      const review = board.atReview();
+      if (review && review.code) {
+        logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+        return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null, formAnalysis });
+      }
+      if (review.captcha) {
+        logStep("captcha_stop", { at: "review" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step", formAnalysis });
+      }
+      if (review.needsFields || review.advanced) {
+        logStep("session_state_mismatch", { cause: "not_at_prepared_step" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed page is no longer at the prepared step — it asks for fields or advanced past the doorstep", formAnalysis });
+      }
+      if (review.atFinalReview === false) {
+        logStep("session_state_mismatch", { cause: "not_at_final_review" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
+      }
+      if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+      const collision = collisionCheck(session.manualApplications, posting);
+      if (collision.collision) {
+        const c0 = collision.collision;
+        logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+        return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+          reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+      }
+      const caps = capCheck(log, session.userId, posting, inp.now, board);
+      if (!caps.ok) {
+        const sc = caps.stops[0];
+        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
+        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
+          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+      }
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+        requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
+      return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
+        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+    } catch (e) {
+      if (e && SESSION_DEATH_CODES.has(e.code)) {
+        logStep("session_not_live", { cause: e.code });
+        return blocked("SESSION_NOT_LIVE", { cause: e.code, reason: "the board session the prepare drive left is no longer live (expired, closed, or not this user's) — a fresh drive prepares the application again" });
+      }
+      throw e;
+    }
+  }
+
+  function continueApply(session, input) {
+    if (!session.preparationPayload) session.preparationPayload = {};
+    if (!session.preparationFields) session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, true, 0, []);
   }
 
   function submitDoorstep(session, approval, ctx) {
@@ -23029,7 +23441,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 
@@ -24153,6 +24565,40 @@ const CareerBatchApply = (() => {
     return RUNTIME.get(run.id);
   }
 
+  const TRANSPORT_REFUSAL_CODES = new Set(["WORKER_UNREACHABLE", "WORKER_TRANSPORT_TIMEOUT", "WORKER_TRANSPORT_CLOSED", "WORKER_PROTOCOL"]);
+  function stopForRefusal(run, app, code, message) {
+    if (TRANSPORT_REFUSAL_CODES.has(code)) {
+      stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run", { workerRefusal: code });
+      return;
+    }
+    stopApp(run, app, code, message || `the board worker refused this session (${code})`, { workerRefusal: code });
+  }
+  function boardOrStop(run, app, d, posting) {
+    let board = null;
+    try { board = typeof d.boardFor === "function" ? d.boardFor(posting) : null; }
+    catch (e) {
+      if (e && e.code) { stopForRefusal(run, app, e.code, String((e && e.message) || e).slice(0, 300)); return null; }
+      board = null;
+    }
+    if (board) return board;
+    const refusal = (typeof d.boardFor === "function" && d.boardFor.lastRefusal) || null;
+    if (refusal && refusal.code) { stopForRefusal(run, app, refusal.code, refusal.message); return null; }
+    stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run");
+    return null;
+  }
+
+  function stopDriveThrow(run, app, board, e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    const detail = { error: msg };
+    try {
+      const rv = board && board.renderedValues;
+      if (rv && typeof rv === "object" && !Array.isArray(rv) && Object.keys(rv).length) {
+        detail.fills = JSON.parse(JSON.stringify(rv));
+      }
+    } catch (_) {   }
+    stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the portal drive threw before it could name an outcome: ${msg}`, detail);
+  }
+
   function prepareRun(run, deps) {
     const d = deps || {};
     const Portal = getPortal();
@@ -24220,11 +24666,17 @@ const CareerBatchApply = (() => {
       }
       const profile = profileFor(d, posting);
       rt.profiles[key] = profile;
-      const board = d.boardFor ? d.boardFor(posting) : null;
-      if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      const board = boardOrStop(run, app, d, posting);
+      if (!board) continue;
+      let res = null;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: {}, cardApproval: true });
+      } catch (e) {
+        stopDriveThrow(run, app, board, e);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
     }
 
@@ -24278,8 +24730,15 @@ const CareerBatchApply = (() => {
       event(run, "captcha_handoff", { postingKey: app.postingKey });
       return;
     }
-    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped"); return; }
+    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped", stopDetailOf(res)); return; }
     stopApp(run, app, res.code || "UNEXPECTED_RESULT", `unexpected portal result: ${res.resultStatus || "unknown"}`);
+  }
+
+  function stopDetailOf(res) {
+    if (!res) return undefined;
+    const d = {};
+    for (const k of ["field_id", "expected", "observed"]) if (res[k] !== undefined) d[k] = res[k];
+    return Object.keys(d).length ? d : undefined;
   }
 
   function stopApp(run, app, code, reason, extra) {
@@ -24351,8 +24810,8 @@ const CareerBatchApply = (() => {
       let session = rt.sessions[key];
       try {
         if (!session) {
-          const board = d.boardFor ? d.boardFor(posting) : null;
-          if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+          const board = boardOrStop(run, app, d, posting);
+          if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);
@@ -24396,7 +24855,7 @@ const CareerBatchApply = (() => {
       return;
     }
     if (out && out.resultStatus === "blocked") {
-      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application");
+      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application", stopDetailOf(out));
       return;
     }
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
@@ -24407,7 +24866,7 @@ const CareerBatchApply = (() => {
     const submitted = apps.filter((a) => a.stage === "submitted");
     const stops = [];
     for (const a of apps) {
-      if (a.stage === "stopped" && a.stop) stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason });
+      if (a.stage === "stopped" && a.stop) stops.push(Object.assign({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason }, a.stop.field_id !== undefined ? { field_id: a.stop.field_id } : {}));
       if (a.stage === "captcha_handoff") stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: "CAPTCHA_HANDOFF", reason: a.stop ? a.stop.reason : "a captcha appeared", handoffUrl: a.stop ? a.stop.handoffUrl : a.url });
     }
     return {

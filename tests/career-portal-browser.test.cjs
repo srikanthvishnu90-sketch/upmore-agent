@@ -23,6 +23,11 @@ function resolvePlaywright() {
   const tries = [];
   if (process.env.UPMORE_PLAYWRIGHT_PATH) tries.push(process.env.UPMORE_PLAYWRIGHT_PATH);
   tries.push("playwright");
+  // BUG-QA-2026-10-21-04: the helper's third try — the Sporv-clone
+  // sibling fallback (scripts/career/portal-browser-helper.cjs). Without
+  // it this gate was stricter than the driver it gates and the whole
+  // suite silently SKIPPED on machines where the driver resolves fine.
+  tries.push(path.join(__dirname, "..", "..", "sporve-agent-clone", "node_modules", "playwright"));
   for (const t of tries) { try { require.resolve(t); return t; } catch (e) { /* next */ } }
   return null;
 }

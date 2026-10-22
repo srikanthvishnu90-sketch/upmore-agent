@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<!-- TEST FIXTURE — NOT A REAL EMPLOYER PAGE, NOT GREENHOUSE.
+     A Greenhouse-SHAPED static application form for the Trainee
+     assisted-apply extension spike (packages/extension). It exists so the
+     extension's fill engine can be exercised end-to-end locally with the
+     Alex Testcase TEST persona. The markup mirrors the real Greenhouse
+     application form's shape (labelled fields, an education block with
+     start_year/end_year built-ins, a Degree level widget, EEO selects, an
+     attestation checkbox) — the same shapes module 150's classifier was
+     built against on real boards. No data leaves this page; its "submit"
+     is a local script that swaps in a Greenhouse-style confirmation view. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Example Corp (TEST) — Software Engineering Intern (TEST) — Application</title>
+<style>
+  body { font-family: sans-serif; margin: 2rem auto; max-width: 640px; color: #222; }
+  .test-banner { background: #fff3cd; border: 1px solid #d9a400; padding: 0.6rem 1rem; font-weight: bold; }
+  .field { margin: 1rem 0; }
+  .field label, .field legend { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+  .field input[type="text"], .field input[type="email"], .field input[type="tel"],
+  .field select, .field textarea { width: 100%; padding: 0.4rem; }
+  fieldset { border: 0; padding: 0; margin: 1rem 0; }
+  fieldset label { font-weight: normal; display: inline; }
+  .trainee-needs-user { outline: 3px solid #e07b00 !important; background: #fff8ec; }
+  #submit-error { color: #b00020; font-weight: 600; }
+</style>
+</head>
+<body data-employer="Example Corp (TEST)" data-role="Software Engineering Intern (TEST)">
+<div class="test-banner">TEST FIXTURE — NOT A REAL EMPLOYER PAGE. Local demo for the Trainee assisted-apply extension. All data is the synthetic Alex Testcase persona.</div>
+<h1>Software Engineering Intern (TEST)</h1>
+<p>Example Corp (TEST) — Chicago, IL (TEST)</p>
+
+<form id="application_form" novalidate>
+  <div class="field">
+    <label for="first_name">First Name *</label>
+    <input id="first_name" name="first_name" type="text" required>
+  </div>
+  <div class="field">
+    <label for="last_name">Last Name *</label>
+    <input id="last_name" name="last_name" type="text" required>
+  </div>
+  <div class="field">
+    <label for="preferred_name">Preferred First Name</label>
+    <input id="preferred_name" name="preferred_name" type="text">
+  </div>
+  <div class="field">
+    <label for="email">Email *</label>
+    <input id="email" name="email" type="email" required>
+  </div>
+  <div class="field">
+    <label for="phone">Phone</label>
+    <input id="phone" name="phone" type="tel">
+  </div>
+  <div class="field">
+    <label for="location">Location (City)</label>
+    <input id="location" name="location" type="text">
+  </div>
+  <div class="field">
+    <label for="linkedin">LinkedIn Profile</label>
+    <input id="linkedin" name="linkedin" type="text">
+  </div>
+  <div class="field">
+    <label for="website">Website</label>
+    <input id="website" name="website" type="text">
+  </div>
+  <div class="field">
+    <label for="resume">Resume/CV *</label>
+    <input id="resume" name="resume" type="file" required>
+    <div>Attach or upload your resume</div>
+  </div>
+  <div class="field">
+    <label for="cover_letter">Cover Letter</label>
+    <input id="cover_letter" name="cover_letter" type="file">
+    <div>Attach or upload your cover letter</div>
+  </div>
+  <div class="field">
+    <label for="school">School</label>
+    <input id="school" name="school" type="text">
+  </div>
+  <div class="field">
+    <label for="degree">Degree</label>
+    <select id="degree" name="degree" class="select__input">
+      <option value="">Select...</option>
+      <option value="High School Diploma">High School Diploma</option>
+      <option value="Associate's Degree">Associate's Degree</option>
+      <option value="Bachelor's Degree">Bachelor's Degree</option>
+      <option value="Master's Degree">Master's Degree</option>
+      <option value="PhD">PhD</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="discipline">Discipline</label>
+    <input id="discipline" name="discipline" type="text">
+  </div>
+  <div class="field">
+    <label for="start_year">Start date year</label>
+    <select id="start_year" name="start_year">
+      <option value="">Select...</option>
+      <option value="2023">2023</option>
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+      <option value="2026">2026</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="end_year">End date year</label>
+    <select id="end_year" name="end_year">
+      <option value="">Select...</option>
+      <option value="2027">2027</option>
+      <option value="2028">2028</option>
+      <option value="2029">2029</option>
+      <option value="2030">2030</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="gpa">GPA</label>
+    <input id="gpa" name="gpa" type="text">
+  </div>
+  <div class="field">
+    <label for="q_work_auth">Are you legally authorized to work in the United States? *</label>
+    <select id="q_work_auth" name="question_work_authorization" required>
+      <option value="">Select...</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="q_sponsorship">Will you now or in the future require visa sponsorship for employment? *</label>
+    <select id="q_sponsorship" name="question_sponsorship" required>
+      <option value="">Select...</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="q_located">Are you currently located in the United States?</label>
+    <select id="q_located" name="question_located">
+      <option value="">Select...</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="q_years">How many years of professional experience do you have?</label>
+    <select id="q_years" name="question_years_experience">
+      <option value="">Select...</option>
+      <option value="0">0</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5+">5+</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="q_age">Are you at least 18 years of age?</label>
+    <select id="q_age" name="question_age">
+      <option value="">Select...</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="eeo_pronouns">Pronouns</label>
+    <select id="eeo_pronouns" name="pronouns">
+      <option value="">Select...</option>
+      <option value="she/her">she/her</option>
+      <option value="he/him">he/him</option>
+      <option value="they/them (TEST)">they/them (TEST)</option>
+      <option value="I don't wish to answer">I don't wish to answer</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="eeo_gender">Gender</label>
+    <select id="eeo_gender" name="gender">
+      <option value="">Select...</option>
+      <option value="Female">Female</option>
+      <option value="Male">Male</option>
+      <option value="Non-binary">Non-binary</option>
+      <option value="I don't wish to answer">I don't wish to answer</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="eeo_race">Race/Ethnicity</label>
+    <select id="eeo_race" name="race">
+      <option value="">Select...</option>
+      <option value="Asian">Asian</option>
+      <option value="Black or African American">Black or African American</option>
+      <option value="Hispanic or Latino">Hispanic or Latino</option>
+      <option value="White">White</option>
+      <option value="I don't wish to answer">I don't wish to answer</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="eeo_veteran">Veteran Status</label>
+    <select id="eeo_veteran" name="veteran_status">
+      <option value="">Select...</option>
+      <option value="I am not a protected veteran">I am not a protected veteran</option>
+      <option value="I identify as one or more of the classifications of protected veterans">I identify as one or more of the classifications of protected veterans</option>
+      <option value="I don't wish to answer">I don't wish to answer</option>
+    </select>
+  </div>
+  <fieldset class="field">
+    <legend>Have you previously worked at Example Corp or any of its subsidiaries?</legend>
+    <label><input type="radio" name="question_prior_employer" value="Yes"> Yes</label>
+    <label><input type="radio" name="question_prior_employer" value="No"> No</label>
+  </fieldset>
+  <div class="field">
+    <label>
+      <input id="certify_true" name="certify_true" type="checkbox" required>
+      I certify that the information provided is true and complete to the best of my knowledge.
+    </label>
+  </div>
+  <p id="submit-error" hidden>Please complete the required fields and the certification before submitting.</p>
+  <button id="submit_app" type="submit">Submit application</button>
+</form>
+
+<div id="confirmation" hidden>
+  <h1>Thank you for applying</h1>
+  <p>Thank you for applying to Example Corp (TEST). We've received your application for the Software Engineering Intern (TEST) role.</p>
+  <p>Application ID: GH-DEMO-2026-0001</p>
+  <p>A confirmation email is on its way to the address you applied with. (Fixture text — no email exists or was sent.)</p>
+</div>
+
+<script>
+  // Fixture behaviour ONLY: mimics a board refusing an incomplete submit
+  // (required text fields empty, or the required certification unchecked),
+  // then swapping to the confirmation view. The extension never calls this;
+  // in the real flow the USER clicks Submit, exactly as the check does.
+  document.getElementById("application_form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var missing = ["first_name", "last_name", "email"].some(function (id) {
+      return !document.getElementById(id).value.trim();
+    });
+    var certified = document.getElementById("certify_true").checked;
+    if (missing || !certified) {
+      document.getElementById("submit-error").hidden = false;
+      return;
+    }
+    document.getElementById("application_form").hidden = true;
+    document.getElementById("confirmation").hidden = false;
+  });
+</script>
+</body>
+</html>

@@ -197,6 +197,9 @@ const CareerPortalBrowser = (() => {
         const def = { field_id: gid, label: gLabel, kind: kind.kind, required: members.some((m) => m.required) };
         if (kind.profile_key) def.profile_key = kind.profile_key;
         if (kind.question_key) def.question_key = kind.question_key;
+        // FDSE-QUESTION-KIND: a question-kind def is keyed by its
+        // label's slug (free_text's keying) so a stored answer binds.
+        if (kind.kind === "question" && !def.question_key) { const qk = slug(gLabel).slice(0, 40); if (qk) def.question_key = qk; }
         defs.push(def);
         bindings[gid] = {
           field_id: gid, inputType: f.inputType === "radio" ? "radio_group" : "checkbox_group",
@@ -212,6 +215,8 @@ const CareerPortalBrowser = (() => {
       const def = { field_id: uniqId(baseId), label: label || baseId, kind: kind.kind, required: !!f.required };
       if (kind.profile_key) def.profile_key = kind.profile_key;
       if (kind.question_key) def.question_key = kind.question_key;
+      // FDSE-QUESTION-KIND: same label-slug keying for single fields.
+      if (kind.kind === "question" && !def.question_key) { const qk = slug(label).slice(0, 40); if (qk) def.question_key = qk; }
       defs.push(def);
       bindings[def.field_id] = bindingFor(f, kind);
     }
@@ -222,9 +227,13 @@ const CareerPortalBrowser = (() => {
     // dates only when that education context is present on the form.
     if (defs.some((d) => d.profile_key && d.profile_key.startsWith("education_"))) {
       for (const d of defs) {
-        if (d.kind !== "unknown") continue;
-        if (/^start date year$|^start year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_start_date"; }
-        else if (/^end date year$|^end year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_end_date"; }
+        // FDSE-QUESTION-KIND: the contextual bind is the stronger
+        // signal — it promotes question-kind defs (the generic
+        // unbound class) exactly as it promoted unknown ones, and
+        // the label-slug question key goes away with the class.
+        if (d.kind !== "unknown" && d.kind !== "question") continue;
+        if (/^start date year$|^start year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_start_date"; delete d.question_key; }
+        else if (/^end date year$|^end year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_end_date"; delete d.question_key; }
       }
     }
     return { defs, bindings };
@@ -315,6 +324,22 @@ const CareerPortalBrowser = (() => {
     if (/location|city|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7)
     if (inputType === "textarea" || /cover letter|additional information|anything else/.test(eff)) return { kind: "free_text", question_key: /cover letter/.test(eff) ? "cover_note" : (slug(eff).slice(0, 40) || "free_text") };
     if (inputType === "checkbox" && /confirm|agree/.test(eff)) return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
+    // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed; root-cause
+    // note docs/apply/ROOT-CAUSE-FDSE-UNCOVERED-QUESTIONS-2026-10-21.md):
+    // a question CONTROL that matched no canonical rule — a native
+    // select, a radio/checkbox group, a lone radio, or a plain text
+    // input — is a board question, not an unclassifiable field. It
+    // classifies as kind "question" and classifyFields keys it by its
+    // label's slug (the keying free_text already uses), so a stored
+    // confirmed answer can bind to it and module 172 can ask it by
+    // that key. Before this, such fields fell to "unknown", module
+    // 149 asked unknown_field_category, and the ask was unanswerable
+    // BY CONSTRUCTION (no question_key exists for an answer to bind
+    // to) — on the live FDSE form 4 of 16 required fields sat in that
+    // class and every batch stopped UNCOVERED_QUESTION. File inputs
+    // (handled above) and single checkboxes (attestation-adjacent
+    // toggles, handled above) keep their existing verdicts.
+    if (inputType === "group" || inputType === "select" || inputType === "radio" || inputType === "text") return { kind: "question" };
     return { kind: "unknown" };
   }
   function bindingFor(f, kind) {
@@ -339,7 +364,40 @@ const CareerPortalBrowser = (() => {
   let helperDir = null, helperProc = null, cmdSeq = 0;
   const commandLimits = new Map();
   const liveBoards = new Set();
+  // WORKER RECOVERY (2026-10-21, root-cause note
+  // docs/career/worker-unreachable-root-cause-2026-10-21.md): the last
+  // board's close used to shut the helper down immediately, so every
+  // serial create -> ... -> close pattern paid a full helper + Chromium
+  // cold start inside the NEXT board's first call — the latency that,
+  // under load, pushed board-service calls past the point where the
+  // sync pump transport loses them (WORKER_UNREACHABLE). The helper now
+  // stays warm for an idle grace after the last board closes; the
+  // helper's own 15-minute idle self-exit remains the backstop.
+  let helperIdleGraceMs = (() => { const v = Number(process.env.UPMORE_HELPER_IDLE_GRACE_MS); return Number.isFinite(v) && v >= 0 ? v : 90000; })();
+  let helperIdleTimer = null;
+  let exitHookRegistered = false;
+  function cancelHelperIdleShutdown() {
+    if (helperIdleTimer) { clearTimeout(helperIdleTimer); helperIdleTimer = null; }
+  }
+  function shutdownHelperNow() {
+    cancelHelperIdleShutdown();
+    if (helperProc) { try { call("sys", { type: "shutdown" }, 5000); } catch (e) {} helperProc = null; }
+  }
+  function scheduleHelperIdleShutdown() {
+    cancelHelperIdleShutdown();
+    if (!helperProc) return;
+    helperIdleTimer = setTimeout(() => {
+      helperIdleTimer = null;
+      if (liveBoards.size === 0) shutdownHelperNow();
+    }, helperIdleGraceMs);
+    if (helperIdleTimer.unref) helperIdleTimer.unref();
+  }
   function ensureHelper() {
+    cancelHelperIdleShutdown();
+    // A helper that died on its own (crash, OOM) leaves a stale handle:
+    // detect it and respawn instead of writing commands into a dead
+    // seam directory until the call times out.
+    if (helperProc && (helperProc.exitCode !== null || helperProc.signalCode)) helperProc = null;
     if (helperProc) return;
     // Session scratch defaults to the OS temp dir; UPMORE_SEAM_TMP relocates
     // it (sandboxes whose /tmp is a small shared tmpfs would be exhausted by
@@ -359,7 +417,14 @@ const CareerPortalBrowser = (() => {
       if (Date.now() > deadline) throw coded("HELPER_TIMEOUT", "browser helper did not become ready in 20s");
       Atomics.wait(buf, 0, 0, 25);
     }
-    process.on("exit", () => { try { fs.writeFileSync(path.join(helperDir, "cmd-sys-exit.json"), JSON.stringify({ type: "shutdown", boardId: "sys" })); } catch (e) {} });
+    // Registered ONCE per factory: this used to be added on every spawn,
+    // so a churning helper leaked one process listener per respawn (the
+    // board service logged MaxListenersExceededWarning at 11 during the
+    // 2026-10-21 scan window).
+    if (!exitHookRegistered) {
+      exitHookRegistered = true;
+      process.on("exit", () => { try { if (helperDir) fs.writeFileSync(path.join(helperDir, "cmd-sys-exit.json"), JSON.stringify({ type: "shutdown", boardId: "sys" })); } catch (e) {} });
+    }
   }
   function call(boardId, cmd, timeoutMs) {
     ensureHelper();
@@ -389,11 +454,9 @@ const CareerPortalBrowser = (() => {
   }
   function shutdownAll() {
     for (const b of Array.from(liveBoards)) { try { b.close(); } catch (e) {} }
-    if (helperProc) {
-      try { call("sys", { type: "shutdown" }, 5000); } catch (e) {}
-      helperProc = null;
-    }
+    shutdownHelperNow();
   }
+  function setHelperIdleGraceMs(ms) { if (Number.isFinite(ms) && ms >= 0) helperIdleGraceMs = ms; }
 
   // ---------- the board ----------
   let boardSeq = 0;
@@ -407,7 +470,7 @@ const CareerPortalBrowser = (() => {
     const gate = hostAllowed(o.url);
     const state = {
       opened: false, closed: false, defs: null, bindings: null,
-      filledValues: {}, renderedValues: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
+      filledValues: {}, renderedValues: {}, fillWaits: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
@@ -450,6 +513,20 @@ const CareerPortalBrowser = (() => {
       // country dial code) — module 149's observation check compares
       // the readback against THIS, not against the profile text.
       get renderedValues() { return Object.assign({}, state.renderedValues); },
+      // FDSE-MISMATCH (2026-10-21): the same renderings through a
+      // METHOD — a property-snapshotting wrapper freezes the getter
+      // at {} and silently disables module 149's FR-395 hatch;
+      // methods survive delegation wrappers, so 149 prefers this
+      // channel when present (contract symmetry with the worker
+      // bridge board, which serves the production path).
+      renderedValue(fieldId) { return state.renderedValues[fieldId]; },
+      // The event-driven waits behind each fill (chunk 60%, 2026-10-22):
+      // per wait { name, outcome: event|timeout|ladder, ms } — a timeout
+      // is a named event in the record, never a silent longer sleep.
+      // Same method/getter discipline as renderedValues (a snapshotting
+      // wrapper must not freeze these either).
+      get fillWaits() { return Object.assign({}, state.fillWaits); },
+      fillWait(fieldId) { return state.fillWaits[fieldId]; },
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
       get submitArmed() { return state.armed; },
@@ -540,7 +617,8 @@ const CareerPortalBrowser = (() => {
             return undefined;
           }
           state.filledValues[fieldId] = { filename: value.filename, sha256: value.sha256 };
-          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null });
+          if (fr && fr.waits) state.fillWaits[fieldId] = fr.waits;
+          log("fill", { field_id: fieldId, source: "file_upload", filename: value.filename, verified: !!(fr && fr.verified), attempts: (fr && fr.attempts) || null, waits: (fr && fr.waits) || undefined });
           return value;
         }
         // Non-file fills DEGRADE, never abort: a widget that times out or
@@ -571,12 +649,14 @@ const CareerPortalBrowser = (() => {
         }
         if (r && r.filled === false) {
           state.fillFailures.push({ field_id: fieldId, reason: r.reason || "fill_failed", wanted: r.wanted || String(value) });
-          log("fill_failed", { field_id: fieldId, reason: r.reason || "fill_failed" });
+          if (r.waits) state.fillWaits[fieldId] = r.waits;
+          log("fill_failed", { field_id: fieldId, reason: r.reason || "fill_failed", waits: r.waits || undefined });
           return undefined;
         }
         state.filledValues[fieldId] = value;
         if (r && r.rendered !== undefined) state.renderedValues[fieldId] = r.rendered;
-        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null });
+        if (r && r.waits) state.fillWaits[fieldId] = r.waits;
+        log("fill", { field_id: fieldId, verified: !!(r && r.verified), attempts: (r && r.attempts) || null, rendered: (r && r.rendered) || null, waits: (r && r.waits) || undefined });
         return value;
       },
       answers() {
@@ -710,13 +790,13 @@ const CareerPortalBrowser = (() => {
         state.closed = true;
         liveBoards.delete(board);
         try { call(boardId, { type: "close" }, 15000); } catch (e) { /* helper may already be gone */ }
-        if (liveBoards.size === 0 && helperProc) { try { call("sys", { type: "shutdown" }, 5000); } catch (e) {} helperProc = null; }
+        if (liveBoards.size === 0 && helperProc) scheduleHelperIdleShutdown();
       },
     };
     liveBoards.add(board);
     return board;
   }
 
-  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, extractConfirmation, shutdownAll };
+  return { createBrowserBoard, classifyFields, hostAllowed, finalUrlGate, extractConfirmation, shutdownAll, setHelperIdleGraceMs };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalBrowser;

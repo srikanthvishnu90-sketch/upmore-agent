@@ -20619,6 +20619,7 @@ const CareerJobs = (() => {
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
   const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  const locationIsStated = (v) => !!s(v).trim() && lc(v).trim() !== "location not stated";
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -21008,6 +21009,29 @@ const CareerJobs = (() => {
   // marker), per the owner's TN-1a ruling — never invented.
   const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
 
+  // F-013: retain location text from the ATS's stated primary/secondary values.
+  // Never stringify an object into a location or substitute the company/board as geography.
+  function locationText(value) {
+    const out = [], seen = new Set();
+    const plain = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+    const add = (v) => { const t = plain(v), key = t.toLowerCase(); if (t && !seen.has(key)) { seen.add(key); out.push(t); } return !!t; };
+    function read(v, depth) {
+      if (depth > 6 || v == null) return false;
+      if (typeof v === "string") return add(v);
+      if (Array.isArray(v)) { let found = false; for (const item of v) found = read(item, depth + 1) || found; return found; }
+      if (typeof v !== "object") return false;
+      let named = false;
+      for (const name of ["location", "locationName", "name"]) if (v[name] !== undefined) named = read(v[name], depth + 1) || named;
+      // A named location is the source's own label; its address is only a fallback.
+      if (named) return true;
+      const address = v.postalAddress || (v.address && (v.address.postalAddress || v.address)) || v;
+      const parts = [address.city || address.addressLocality, address.region || address.state || address.addressRegion, address.country || address.addressCountry].map(plain).filter(Boolean);
+      return parts.length ? add([...new Set(parts)].join(", ")) : false;
+    }
+    read(value, 0);
+    return out.join("; ");
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
@@ -21053,7 +21077,7 @@ const CareerJobs = (() => {
   function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
       source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
-      location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
+      location: locationText([j.location, j.locationName, j.locations, j.secondaryLocations]) || "Location not stated", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
@@ -21295,9 +21319,13 @@ const CareerJobs = (() => {
     // location
     const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
     if (wantLocs.length && posting.remote !== "remote") {
-      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(locationIsStated(posting.location)
+        ? `location: posting is in ${posting.location}; you want ${[...(c.locations || prefs.locations)].join(", ")}`
+        : `location: posting does not state a location; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
     }
-    if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
+    if (prefs.remote_only && posting.remote === "onsite") fails.push(locationIsStated(posting.location)
+      ? `location: posting is on-site in ${posting.location}; you want remote`
+      : "location: posting does not confirm remote work; you want remote");
     // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
     const needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization));
     const citizenOnly = /\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/.test(jd);
@@ -21347,6 +21375,7 @@ const CareerJobs = (() => {
   function locationMatches(postingLoc, wantsRaw) {
     const wants = (wantsRaw || []).map(normLoc).filter(Boolean);
     if (!wants.length) return true;
+    if (!locationIsStated(postingLoc)) return false;
     const segments = s(postingLoc).split(/[;•|]/).map((x) => x.replace(/^\s*(hybrid|remote|on-site|onsite|in-office)\s*[-–—:]\s*/i, "").trim()).filter(Boolean);
     const candidates = new Set();
     for (const seg of segments) {
@@ -21581,7 +21610,7 @@ const CareerJobs = (() => {
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     detectKnockouts, evaluateKnockouts, evidencedFullTimeYears,
-    roleFamily, seniorityBand, stripHtml, hash };
+    roleFamily, seniorityBand, locationText, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
 
@@ -46174,6 +46203,26 @@ const CareerRouter = (() => {
     if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
     return false;
   };
+  // A present-tense career target is the person's own goal even without
+  // the noun "goal". Keep one assertion-only parser for capture and the
+  // early claim, so a pending mock cannot grade a new target as an answer.
+  // Labeled answers, requests, quotes and hypothetical/question turns do
+  // not enter this frame; the target must actually name a career opening.
+  function statedCareerTargetOf(text) {
+    if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
+    for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
+      const clause = stripLead(sentence);
+      if (!clauseIsAssertion(clause)) continue;
+      const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
+      if (!m) continue;
+      const value = m[1].trim();
+      if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
+      if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
+      if (value.length > 200) continue;
+      return { value, evidence: clause.replace(/[.!]$/, "").trim() };
+    }
+    return null;
+  }
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -46486,6 +46535,9 @@ const CareerRouter = (() => {
       // captured to the end of its own sentence only.
       if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
         pushKeyed("goal", "career", m[1], m[0]);
+      } else {
+        const target = statedCareerTargetOf(raw);
+        if (target) pushKeyed("goal", "career", target.value, target.evidence);
       }
     }
     // (1) Per-clause declarative capture. WO-095: gated — a request
@@ -46857,7 +46909,7 @@ const CareerRouter = (() => {
     // statement at the head of dispatch; answer with the record
     // surface, quoting the recorded clause verbatim.
     if (/\?/.test(s(text))) return null;
-    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t)) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t) && !statedCareerTargetOf(text)) return null;
     if (!goal) return null;
     const all = statedFactsOf(ctx);
     const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
@@ -49780,6 +49832,10 @@ const CareerPortalApply = (() => {
   const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
+  // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
+  const EMPTY_FORM_RESCAN_MAX_READS = 5;
+  const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -50637,7 +50693,39 @@ const CareerPortalApply = (() => {
     }
 
     // steps 3+4: analyze, then fill from confirmed facts only
-    const formDef = board.form();
+    // MUSE-F-025 (bounded re-scan): the first form read can land before
+    // the board's client-rendered form has mounted on a slow first paint;
+    // that instantaneous read legitimately returns zero fields on a
+    // healthy posting, and the D2 stop below then fired on a form that
+    // was not reached YET (live: batch-7ac6d3b30fa5, bracketed by drives
+    // returning 27/34 fields through the same stack). A zero-field read
+    // is therefore re-scanned — bounded by EMPTY_FORM_RESCAN_MAX_READS
+    // total reads AND EMPTY_FORM_RESCAN_BUDGET_MS wall-clock, whichever
+    // binds first; each re-read is a complete fresh discover on the
+    // board, so the loop observes later paints. There is no synthetic
+    // delay and no unbounded wait. inp.emptyFormRescan === false is the
+    // kill switch: the exact pre-fix single read. Root cause:
+    // docs/apply/ROOT-CAUSE-F025-2026-10-22.md.
+    const rescanOff = inp.emptyFormRescan === false;
+    const rescanT0 = Date.now();
+    let formDef = board.form();
+    let rescanReads = 1;
+    while ((!formDef.fields || formDef.fields.length === 0) && !rescanOff
+      && rescanReads < EMPTY_FORM_RESCAN_MAX_READS
+      && Date.now() - rescanT0 < EMPTY_FORM_RESCAN_BUDGET_MS) {
+      formDef = board.form();
+      rescanReads += 1;
+      logStep("empty_form_rescan", { read: rescanReads, fieldCount: (formDef.fields || []).length, elapsedMs: Date.now() - rescanT0 });
+    }
+    const rescanElapsedMs = Date.now() - rescanT0;
+    const rescan = rescanReads > 1
+      ? { reads: rescanReads, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: (formDef.fields || []).length ? "fields_found" : "exhausted" }
+      : (rescanOff && (!formDef.fields || formDef.fields.length === 0))
+        ? { reads: 1, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: "disabled" }
+        : null;
+    if (rescan && rescan.outcome === "fields_found") {
+      logStep("empty_form_rescan_recovered", { reads: rescanReads, fieldCount: formDef.fields.length, elapsedMs: rescanElapsedMs });
+    }
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -50645,6 +50733,8 @@ const CareerPortalApply = (() => {
     // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
+    // F-025: the stop now consumes the bounded re-scan above; a form
+    // still empty when the bound is exhausted stops exactly as before.
     if (!formDef.fields || formDef.fields.length === 0) {
       // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
       // fields — the review page after a Next click carries the
@@ -50660,8 +50750,8 @@ const CareerPortalApply = (() => {
         logStep("captcha_stop", { at: continued ? "review" : "form" });
         return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
       }
-      logStep("empty_form_stop", { fieldCount: 0 });
-      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+      logStep("empty_form_stop", { fieldCount: 0, rescanReads });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis, rescan });
     }
     const asks = [];
     const filled = {};

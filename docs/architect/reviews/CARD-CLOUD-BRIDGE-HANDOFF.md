@@ -1,8 +1,10 @@
 # Card tap → cloud job: review handoff
 
-Production code pin: **`dff3dfc1bc5c34ff177df65cddfff212abebd676`**, based on
-`01401cb456bc2982d67316165e183bbd275581c9`. Later commits containing this handoff and
-test artifacts do not change production code. Branch: `wo/card-cloud-bridge-20261021`.
+Production code pin: **`cf3ea60f5f57c36910b267f0f4ba7fce2e4fa62c`**, based on
+`01401cb456bc2982d67316165e183bbd275581c9`. The bridge worker/engine/SQL/render bytes
+remain exactly those tested at `dff3dfc1bc5c34ff177df65cddfff212abebd676`; the only
+production-file change since that pin is the migration launcher integration described below.
+Branch: `wo/card-cloud-bridge-20261021`. Later handoff/evidence commits do not change production code.
 
 The bridge is BUILT, with local checks VERIFIED. It is **not release-approved or live**.
 No migration was applied, no account was enrolled, no switches or opt-ins were changed,
@@ -49,6 +51,7 @@ not a substitute for that release gate, and its CI configuration must never be m
 | Source changed during card preparation | VERIFIED **1/3 → 3/3** | intermediate producer baseline; withdrawal and edit must block display |
 | Actual producer → renderer ABI | VERIFIED **7/10 → 10/10** | unchanged regression fixture, including nonempty employer fields |
 | SQL outer/function syntax + original-body preservation | VERIFIED offline | 68 up/44 down statements; all **10/10** rollback definitions match their exact baseline; original extension guard suffix preserved |
+| Migration launcher standalone/ledger dispatch | VERIFIED **2/6 → 6/6** | recording psql executable only; before/after legacy groups preserved, migration/ledger failures stop subsequent work; no SQL executed |
 | Captured sandboxed browser baseline/candidate | VERIFIED **4/7 → 7/7**, zero skips | [run 39701982952](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39701982952); frozen test 68e70bbc, baseline 01401cb4 versus candidate dff3 |
 | SQL runtime, grants/RLS, up twice/down twice/up, actual DB races | **NOT_RUN** | written pending tests; explicit no-apply instruction remains in force |
 | Full product CI, second-judge release PASS, live send | **NOT_RUN / NOT_GRANTED** | no such claim is made by the local or isolated-browser results |
@@ -66,6 +69,15 @@ earlier dispatch prevention, not a claimed baseline send. The new pre-effect aut
 parent/child channel reaches the browser boundary and a denied lease produces zero local POSTs. Four preexisting
 browser protections remain controls. This isolated CI used no database or employer destination.
 
+The updated DB runner preserves all historical tests against their existing migration phases. Its temporary
+pending-migration view defers only the bridge; it applies the bridge twice, standalone, after those phases and runs
+the new main/lifecycle/cloud-cap tests last. This prevents an old rollback test from dropping a bridge dependency or
+silently replacing the new claim guard. This runner integration is WRITTEN and shell-syntax checked, **not executed**.
+The launcher runs exactly the bridge file outside legacy transaction groups and records its ledger only after
+successful commit. A ledger-write failure stops without retrying or proceeding; the file may already be committed,
+so the operator must inspect that state before an explicit idempotent replay. The ordered run is not globally atomic
+across the standalone boundary. Runs with no bridge retain the original one-transaction behavior.
+
 ## Exact landing order, only after the remaining gates and owner authorization
 
 1. Review this branch against 01401cb4, including the frozen source pin and the SQL
@@ -77,11 +89,11 @@ browser protections remain controls. This isolated CI used no database or employ
    executing those files. The pending test directory prevents test autodiscovery, but
    **does not prevent migration application**: the existing DB runner invokes
    `scripts/launch/apply-rails-and-seed.sh --pending`, which globs every migration and
-   uses one enclosing transaction. Broad push/PR CI therefore remains held with
-   `[skip ci]`. Before release CI, integrate the standalone bridge execution convention
-   deliberately; do not run this new migration through that generic pending launcher.
-   The disposable test bootstrap must use the pinned baseline tree, then the reviewed
-   bridge file in its own psql session. This runner integration remains an open gate.
+   previously used one enclosing transaction. Broad push/PR CI remains held with
+   `[skip ci]` while the no-apply instruction stands. The new launcher and DB-runner
+   integration implement the standalone convention; their SQL runtime remains an open
+   gate. The disposable fail-first bootstrap must use the pinned baseline tree, then
+   the reviewed bridge file in its own psql session.
 3. Require both judges' PASS and green CI on the final landing commit. Merge/deployment
    and live migration execution still require the owner's explicit word. On authorized
    live application, first verify modern approval/contract/question/waiver prerequisites,

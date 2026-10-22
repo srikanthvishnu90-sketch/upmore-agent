@@ -76,11 +76,14 @@ filename to the `tests/db/run.sh` ledger once and its explicit final replay twic
 The migration checks required base signatures exist; no partially installed fallback. The new private metadata
 does not alter the existing extension approval deadline constraint.
 
-Implementation check found that run.sh's existing generic pending launcher globs all migration files and passes
+Implementation check found that run.sh's generic pending launcher globs all migration files and previously passed
 them through one enclosing transaction. Keeping the new tests in pending does not exclude the migration from that
-glob. Broad CI stays held while the no-apply instruction stands. Before release CI, its integration must run this
-up/down standalone rather than through the generic pending launcher; until that is implemented and authorized,
-D11 runtime/integration remains NOT_RUN. The isolated browser job does not invoke that launcher.
+glob. The launcher now gives exactly the bridge its own file/session, with its ledger write after commit; other
+migrations retain their existing ordered transaction groups. A ledger failure stops without auto-retry. run.sh's
+historical test phases defer only the bridge in a temporary pending view, retain all earlier assertions, then apply
+the bridge twice standalone and run the new main/lifecycle/cap tests last. Dispatch mocks improved2/6 to6/6; this is
+not SQL runtime proof. Broad CI stays held while the no-apply instruction stands. D11 SQL runtime/repeat-up remains
+NOT_RUN. The isolated browser job does not invoke the DB runner or launcher.
 
 All functions pin search_path to public,pg_temp and qualify private objects. Revoke function EXECUTE from PUBLIC,
 anon, authenticated and service_role first, then grant tap/read only to authenticated and producer only to

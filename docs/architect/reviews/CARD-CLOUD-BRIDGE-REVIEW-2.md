@@ -46,3 +46,19 @@ sequence. Update the expected sequence (a read-only eligibility call) or gate th
 - N3. Migration 764 lines vs the gate's 250 cap, not split; most of it re-creates existing functions whole. Accepted for
   review; noted.
 - N4. Live apply order: 20261021220430 (card, not live) then 20261024130000; the file checks its prerequisites and refuses.
+
+## Addendum: fixes prepared by the architect (branch `arch/bridge-authorize-tests` @ fcab4840, on 9850bcab)
+
+- **B1, B2 fixed in tests** (architect-owned): `tests/helpers/cloud_card_auth.ts` (cardBound, authorizer, effectAware) and the
+  9 test files; new cases: a queue that refuses authorize (before the engine, at the effect) or lacks it sends nothing.
+- **B3 (new, blocking, in bridge code)**: `workers/career-cloud/worker.ts` cloudEngineRunner returned null whenever the engine
+  exited non-zero (`!status.success`), but `scripts/apply.ts:1288-1289` prints RESULT and exits 1 on every refusal. So
+  FACT_OWNER_MISMATCH, a changed application and a refused card authorization became ENGINE_NO_RESULT: unknown_outcome,
+  never retried, counted as an error (feeds the pause throttle). Fixed: a RESULT line is the result; a sent state is
+  trusted only from a clean exit; no RESULT is no result. Fail-first: WO-039/refusal and Lever 4 fail on 9850bcab.
+- Results on fcab4840: architect 1241/0; all bridge, worker and card node suites green.
+- Trial merge of fcab4840 onto pin 8c36446f: one add/add conflict (`tests/career-cloud-engine-input.test.cjs`), the
+  bridge side is the pin's file plus these edits; architect 1264/0, edge 892/0, DB suite passes, bundles verified.
+
+With fcab4840, B1-B3 are closed. Remaining before landing: Codex accepts or amends the B3 change (its code); the owner
+rules on N1 (both switches). Landing itself waits on the owner's word.

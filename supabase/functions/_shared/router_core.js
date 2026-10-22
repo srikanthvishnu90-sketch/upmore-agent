@@ -46865,6 +46865,14 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRend
    on the same canonical job stops ALREADY_APPLIED_BY_USER naming the
    source of the knowledge (MI-108 / G3), at the doorstep and again at
    click time.
+   Submission-completion notification (owner commission 2026-10-21,
+   item #4): every point in this module where a submission becomes
+   EMPLOYER-CONFIRMED (the submit click, reconcile's board read-back,
+   the unknown-outcome resolver) emits exactly one completion
+   notification carrying the employer's own confirmation, via an
+   injected deliver sink — see emitCompletionNotification below. This
+   module owns no channel; the host wires the sink at composition
+   time, and unwired the emission is an honest no-op.
    Pure: no network, no clock except values passed in. UMD. */
 const CareerPortalApply = (() => {
   const crypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
@@ -47688,7 +47696,7 @@ const CareerPortalApply = (() => {
       // fields win) — returning the leg's bare object dropped the
       // audit trail, which hid the D11 doorstep repair from the run's
       // record (BUG-207 guards, ported from the submit-path lineage).
-      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications }));
+      return Object.assign(base(), submitDoorstep(session, inp.approval, { log, now: inp.now, posting, manualApplications: inp.manualApplications, notifyDeliver: inp.notifyDeliver }));
     }
     return prepared;
   }
@@ -47795,6 +47803,11 @@ const CareerPortalApply = (() => {
       session.submission = { status: "submitted", confirmationId: out.confirmationId, needsHuman: false, receiptBoard: board.kind, approvalRef, payloadSha256: approvedHash,
         confirmationText: out.confirmationText || null, screenshotRef: out.screenshotRef || null, confirmationUrl: out.finalUrl || null };
       log.records.push({ userId: session.userId, canonicalKey: session.doorstep.postingKey, status: "submitted", timestamp: c.now || null, confirmationId: out.confirmationId, vendor: caps.vendor, company: caps.company });
+      emitCompletionNotification({ deliver: c.notifyDeliver, ledger: log }, {
+        status: "submitted", userId: session.userId, canonicalKey: session.doorstep.postingKey,
+        company: caps.company || null, role: (c.posting && (c.posting.title || c.posting.role)) || null,
+        vendor: caps.vendor || null, confirmationId: out.confirmationId || null,
+        confirmationText: out.confirmationText || null, confirmationUrl: out.finalUrl || null, at: c.now || null });
       return { resultStatus: "completed", submission: session.submission, doorstep: session.doorstep };
     }
     // timeout (or any non-accept): the outcome is UNKNOWN — never spoken as sent (§8.3)
@@ -47805,13 +47818,87 @@ const CareerPortalApply = (() => {
       reason: "the board did not answer — the application may or may not have landed; check before any retry" };
   }
 
+  // ---------- submission-completion notification (owner commission 2026-10-21 #4) ----------
+  // When a submission becomes EMPLOYER-CONFIRMED, the applicant is
+  // notified — exactly once, carrying the employer's own confirmation
+  // (employer name, role, and the confirmation reference/text the
+  // employer returned). The emission lives HERE, at every point in
+  // this module where a submission turns confirmed — the submit
+  // click's accept, reconcile's board read-back, the unknown-outcome
+  // resolver — so no completion path can finish silently (before this
+  // build, none of them notified at all).
+  // Invariants, enforced in emitCompletionNotification itself:
+  //   - ONLY a confirmed submission notifies: any other status
+  //     (unknown_outcome, captcha handoff, prepared, blocked) emits
+  //     nothing — an unknown outcome is never worded as submitted;
+  //   - a "submitted" claim with NO employer confirmation attached
+  //     (no confirmation ID and no confirmation text) never
+  //     notifies — the BUG-208 lesson: an ID-less claim is not proof;
+  //   - exactly once per application: dedupe rides the submissions
+  //     ledger this module already writes — a marker record is
+  //     appended ONLY after the sink accepts the notification, and
+  //     any later completion path for the same application finds the
+  //     marker and stays silent. A sink that throws marks nothing,
+  //     so a later path with a healthy sink still delivers — once.
+  // This module owns no channel: delivery goes to an injected sink
+  // (ctx.notifyDeliver / inp.notifyDeliver). The host wires the sink
+  // to its outbox at composition time; unwired, the emission is an
+  // honest no-op (notify_not_wired) and the submit path behaves
+  // exactly as before. Tests wire a disposable in-memory sink only.
+  const COMPLETION_NOTIFICATION_KIND = "submission_completion_notification";
+  function completionNotifyKey(evt) {
+    const e = evt || {};
+    return `${e.userId || ""}::${e.canonicalKey || (e.confirmationId ? `conf:${e.confirmationId}` : "")}`;
+  }
+  function buildCompletionNotification(evt) {
+    const e = evt || {};
+    const company = e.company || null, role = e.role || null;
+    const confirmationId = e.confirmationId || null, confirmationText = e.confirmationText || null;
+    let message = `Application submitted${company ? ` to ${company}` : ""}${role ? ` for ${role}` : ""}.`;
+    if (confirmationId && confirmationText) message += ` Employer confirmation ${confirmationId}: "${confirmationText}"`;
+    else if (confirmationText) message += ` Employer confirmation: "${confirmationText}"`;
+    else if (confirmationId) message += ` Employer confirmation ID: ${confirmationId}`;
+    if (e.confirmationUrl) message += ` (${e.confirmationUrl})`;
+    return { kind: "submission_completed", userId: e.userId || null, canonicalKey: e.canonicalKey || null,
+      company, role, vendor: e.vendor || null, confirmationId, confirmationText,
+      confirmationUrl: e.confirmationUrl || null, at: e.at || null, message };
+  }
+  function emitCompletionNotification(deps, evt) {
+    const d = deps || {};
+    const e = evt || {};
+    if (e.status !== "submitted") return { notified: false, reason: "not_confirmed_submitted" };
+    if (!e.confirmationId && !e.confirmationText) return { notified: false, reason: "no_employer_confirmation" };
+    if (typeof d.deliver !== "function") return { notified: false, reason: "notify_not_wired" };
+    const ledger = d.ledger && Array.isArray(d.ledger.records) ? d.ledger : null;
+    const key = completionNotifyKey(e);
+    if (ledger && ledger.records.some((r) => r && r.kind === COMPLETION_NOTIFICATION_KIND && r.notifyKey === key)) {
+      return { notified: false, reason: "already_notified" };
+    }
+    const notification = buildCompletionNotification(e);
+    try { d.deliver(notification); } catch (err) { return { notified: false, reason: "deliver_failed" }; }
+    if (ledger) {
+      ledger.records.push({ userId: notification.userId, canonicalKey: notification.canonicalKey,
+        status: "notified", kind: COMPLETION_NOTIFICATION_KIND, notifyKey: key,
+        confirmationId: notification.confirmationId, timestamp: notification.at });
+    }
+    return { notified: true, notification };
+  }
+
   // ---------- reconciliation: truth is read from the board, never from memory ----------
-  function reconcile(session) {
+  function reconcile(session, ctx) {
+    const rc = ctx || {};
     const st = session.board.submissionState();
     if (st.submitted) {
       session.needsReconcile = false;
       session.submission = { status: "submitted", confirmationId: st.confirmationId, needsHuman: false, receiptBoard: session.board.kind, reconciled: true,
         confirmationText: st.confirmationText || null, screenshotRef: st.screenshotRef || null };
+      emitCompletionNotification({ deliver: rc.notifyDeliver, ledger: rc.log || rc.notifyLedger }, {
+        status: "submitted", userId: session.userId, canonicalKey: (session.doorstep && session.doorstep.postingKey) || null,
+        company: (session.doorstep && session.doorstep.company) || (rc.posting && rc.posting.company) || null,
+        role: (rc.posting && (rc.posting.title || rc.posting.role)) || null,
+        vendor: (session.doorstep && session.doorstep.vendor) || null,
+        confirmationId: st.confirmationId || null, confirmationText: st.confirmationText || null,
+        confirmationUrl: null, at: rc.now || null });
       return { resultStatus: "completed", submission: Object.assign({ onBoard: true }, session.submission) };
     }
     if (st.unverifiable === true) {
@@ -47907,6 +47994,11 @@ const CareerPortalApply = (() => {
         delete rec.userQuestion;
         attempt.result = "resolved_submitted";
         report.resolved.push({ id: recId(rec), to: "submitted", resolvedBy: rec.resolvedBy, confirmationId: outcome.confirmationId });
+        emitCompletionNotification({ deliver: inp.notifyDeliver, ledger: inp.notifyLedger || inp.log }, {
+          status: "submitted", userId: rec.userId || inp.userId || null, canonicalKey: rec.canonicalKey || rec.appId || null,
+          company: rec.company || null, role: rec.title || rec.role || null, vendor: rec.vendor || null,
+          confirmationId: outcome.confirmationId, confirmationText: outcome.confirmationText || null,
+          confirmationUrl: null, at: inp.now || null });
       } else if (outcome && outcome.state === "not_submitted") {
         rec.status = "not_submitted";
         rec.resolvedBy = "employer_verified_absent";
@@ -47928,7 +48020,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, buildCompletionNotification, emitCompletionNotification, COMPLETION_NOTIFICATION_KIND, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

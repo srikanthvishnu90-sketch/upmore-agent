@@ -1,0 +1,23 @@
+{
+  "merge_sha": "dfe4b907edc3d6a3d1c6e8b00a17a3b6fdb522e5",
+  "tested_sha": "dfe4b907edc3d6a3d1c6e8b00a17a3b6fdb522e5",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--career-only",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/build-router-core.py",
+        "--check"
+      ],
+      "exit_code": 0
+    }
+  ]
+}

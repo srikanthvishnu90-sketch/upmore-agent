@@ -1,0 +1,29 @@
+{
+  "head": "dfe4b907edc3d6a3d1c6e8b00a17a3b6fdb522e5",
+  "suite": "edge",
+  "command": [
+    "/tmp/case2-test-tools/node_modules/.bin/deno",
+    "test",
+    "--cached-only",
+    "--import-map=/tmp/f009-deps/import-map.json",
+    "--allow-read",
+    "--allow-write=/tmp",
+    "--allow-run",
+    "--allow-env",
+    "--allow-net=127.0.0.1,localhost",
+    "--no-check",
+    "tests/edge"
+  ],
+  "cwd": "/tmp/upmore-integration-verified-20261022",
+  "exit_code": 0,
+  "seconds": 80.753,
+  "provider_credentials": "not inherited",
+  "deno_network": "loopback only",
+  "node_files": 0,
+  "new_spend_usd": 0,
+  "log_sha256": "c44373ff8b39af0a8d8214248730aecca6ec8f0ef9225704655b0f978fe6b258",
+  "node_summary": [],
+  "deno_summary": [
+    "ok | 892 passed | 0 failed (1m20s)"
+  ]
+}

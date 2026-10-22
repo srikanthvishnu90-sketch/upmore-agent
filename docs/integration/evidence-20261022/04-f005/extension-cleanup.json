@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-22T20:57:19.806024+00:00",
+  "action": "SIGTERM test-owned browser after extension setup failed and every Workday test was skipped; unblock world.close cleanup only",
+  "browser_and_parent_pids": [
+    [
+      712729,
+      712716
+    ]
+  ],
+  "parent_test_file": "tests/career-extension-workday.test.cjs",
+  "outcome": "Workday cases remain NOT_RUN; no assertions changed"
+}

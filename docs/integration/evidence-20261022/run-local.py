@@ -1,9 +1,10 @@
-import argparse, hashlib, json, os, pathlib, re, subprocess, time
+import argparse, ctypes, hashlib, json, os, pathlib, re, subprocess, time
 
 p = argparse.ArgumentParser()
 p.add_argument('repo')
 p.add_argument('label')
 p.add_argument('suite', choices=['node', 'edge', 'architect'])
+p.add_argument('--node-concurrency', type=int, choices=[2, 4], default=4)
 a = p.parse_args()
 repo = pathlib.Path(a.repo)
 out = pathlib.Path('/tmp/integration-20261022-evidence') / a.label
@@ -22,7 +23,7 @@ env.update({
 pathlib.Path(env['HOME']).mkdir(exist_ok=True)
 if a.suite == 'node':
     files = sorted(str(x.relative_to(repo)) for x in (repo / 'tests').glob('*.cjs'))
-    cmd = ['node', '--experimental-vm-modules', '--test', '--test-concurrency=2', *files]
+    cmd = ['node', '--experimental-vm-modules', '--test', f'--test-concurrency={a.node_concurrency}', *files]
 else:
     cmd = [env['DENO_BIN'], 'test', '--cached-only', '--import-map=/tmp/f009-deps/import-map.json',
            '--allow-read', '--allow-write=/tmp', '--allow-run', '--allow-env',
@@ -31,14 +32,27 @@ else:
         cmd += ['--ignore=tests/architect/pending']
     cmd += ['tests/' + a.suite]
     files = []
+# Adopt and reap finished browser grandchildren; leave all live processes alone.
+# This prevents test-owned Chromium zombies accumulating under the container's PID 1.
+subreaper = ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0
 start = time.time()
 with (out / (a.suite + '.log')).open('w') as f:
     result = subprocess.run(cmd, cwd=repo, env=env, stdout=f, stderr=subprocess.STDOUT)
+reaped = 0
+if subreaper:
+    while True:
+        try:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+            if pid == 0:
+                break
+            reaped += 1
+        except ChildProcessError:
+            break
 log = (out / (a.suite + '.log')).read_text(errors='replace')
 record = {
     'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
     'suite': a.suite, 'command': cmd, 'cwd': str(repo), 'exit_code': result.returncode,
-    'seconds': round(time.time() - start, 3), 'provider_credentials': 'not inherited',
+    'seconds': round(time.time() - start, 3), 'completed_test_grandchildren_reaped': reaped, 'subreaper': subreaper, 'provider_credentials': 'not inherited',
     'deno_network': 'loopback only', 'node_files': len(files), 'new_spend_usd': 0,
     'log_sha256': hashlib.sha256(log.encode()).hexdigest(),
     'node_summary': re.findall(r'^# (?:tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) .*$', log, re.M)[-8:],

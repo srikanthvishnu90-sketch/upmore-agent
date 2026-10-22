@@ -80,6 +80,51 @@ const CareerPool = (() => {
       .replace(/\s+/g, " ").trim();
   }
 
+  // Probe only provider-owned public hosts. Unknown company domains stay
+  // unconfirmed; loading a KB row must not create an arbitrary-network proxy.
+  const PROBE_HOSTS = ["greenhouse.io", "lever.co", "ashbyhq.com", "smartrecruiters.com", "themuse.com", "arbeitnow.com", "remotive.com", "usajobs.gov", "adzuna.com", "recruitee.com", "teamtailor.com", "workable.com"];
+  function probeTarget(raw) {
+    try {
+      const u = new URL(raw);
+      return u.protocol === "https:" && !u.username && !u.password && (!u.port || u.port === "443") && PROBE_HOSTS.some((h) => u.hostname === h || u.hostname.endsWith("." + h)) ? u.href : null;
+    } catch { return null; }
+  }
+  function createFetchProbe(opts) {
+    const o = opts || {};
+    const fetchImpl = typeof o.fetchImpl === "function" ? o.fetchImpl : (typeof fetch === "function" ? fetch : null);
+    const timeout = Number.isSafeInteger(o.timeoutMs) && o.timeoutMs > 0 ? Math.min(o.timeoutMs, 5000) : 1500;
+    return async (raw) => {
+      let url = probeTarget(raw), method = "HEAD";
+      if (!url || !fetchImpl) return null;
+      const deadline = Date.now() + timeout;
+      for (let redirects = 0; redirects <= 3;) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) return null;
+        const ctl = typeof AbortController === "function" ? new AbortController() : null;
+        let timer;
+        try {
+          const pending = Promise.resolve().then(() => fetchImpl(url, { method, redirect: "manual", credentials: "omit", ...(ctl ? { signal: ctl.signal } : {}), ...(method === "GET" ? { headers: { Range: "bytes=0-0" } } : {}) }));
+          // Cancel bodies even if a transport ignores abort and resolves late.
+          pending.then((r) => { try { const c = r && r.body && r.body.cancel(); if (c && c.catch) c.catch(() => {}); } catch {} }, () => {});
+          const response = await Promise.race([pending, new Promise((_, reject) => { timer = setTimeout(() => { if (ctl) ctl.abort(); reject(new Error("probe timeout")); }, remaining); })]);
+          const status = response && response.status;
+          if (!Number.isSafeInteger(status)) return null;
+          if (status >= 300 && status < 400) {
+            const location = response.headers && response.headers.get("location");
+            url = location && probeTarget(new URL(location, url).href);
+            if (!url) return null;
+            redirects++;
+            continue;
+          }
+          if (method === "HEAD" && (status === 405 || status === 501)) { method = "GET"; continue; }
+          return status;
+        } catch { return null; }
+        finally { if (timer) clearTimeout(timer); }
+      }
+      return null;
+    };
+  }
+
   // One career_kb_postings row -> one corpus posting, or null when
   // the row cannot be carried honestly (no key or no title — the row
   // is dropped, never repaired by inventing the missing half).
@@ -129,6 +174,36 @@ const CareerPool = (() => {
     if (typeof d.readRows !== "function") throw new Error("career pool: a readRows(spec) function is required — the loader never invents a data source");
     const jobs = d.jobs || null;
     const limit = Number.isSafeInteger(d.limit) && d.limit > 0 ? d.limit : DEFAULT_LIMIT;
+    const probeUrl = typeof d.probeUrl === "function" ? d.probeUrl : null;
+    const concurrency = Number.isSafeInteger(d.probeConcurrency) && d.probeConcurrency > 0 ? Math.min(d.probeConcurrency, 8) : 8;
+    const budget = Number.isSafeInteger(d.probeBudgetMs) && d.probeBudgetMs > 0 ? Math.min(d.probeBudgetMs, 2000) : 2000;
+    const ttl = Number.isSafeInteger(d.probeCacheMs) && d.probeCacheMs > 0 ? Math.min(d.probeCacheMs, 60000) : 60000;
+    const now = typeof d.now === "function" ? d.now : Date.now;
+    const cache = new Map();
+    async function checked(postings) {
+      if (!probeUrl) return { postings };
+      const urls = [...new Set(postings.map((p) => p.url))], statuses = new Map();
+      const deadline = Date.now() + budget;
+      let next = 0, timer;
+      async function worker() {
+        while (next < urls.length && Date.now() < deadline) {
+          const url = urls[next++];
+          let entry = cache.get(url);
+          if (!entry || entry.expiresAt <= now()) {
+            if (cache.size >= 1024) cache.delete(cache.keys().next().value);
+            entry = { expiresAt: now() + ttl, value: Promise.resolve().then(() => probeUrl(url)).then((r) => typeof r === "number" ? r : r && r.status, () => null) };
+            cache.set(url, entry);
+          }
+          statuses.set(url, await entry.value);
+        }
+      }
+      try { await Promise.race([Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker)), new Promise((resolve) => { timer = setTimeout(resolve, budget); })]); }
+      finally { if (timer) clearTimeout(timer); }
+      // A status alone never proves page content is a live posting. Only a
+      // definitive 404/410 can exclude it; blocked/JS/network cases stay unknown.
+      const kept = postings.filter((p) => ![404, 410].includes(statuses.get(p.url)));
+      return { postings: kept, deadExcluded: postings.length - kept.length };
+    }
     async function loadPool() {
       let rows;
       try {
@@ -150,7 +225,7 @@ const CareerPool = (() => {
         postings.push(p);
         if (p.fetched_on && (!fetchedOn || p.fetched_on > fetchedOn)) fetchedOn = p.fetched_on;
       }
-      return { postings, fetchedOn, error: null };
+      return { ...await checked(postings), fetchedOn, error: null };
     }
     // V240 LIVE-FIX (probe f2): the recency window is a discovery
     // slice, not the shelf. When a turn names a specific company,
@@ -185,12 +260,12 @@ const CareerPool = (() => {
         const p = mapKbPosting(row, jobs);
         if (p) postings.push(p);
       }
-      return { postings, error: null };
+      return { ...await checked(postings), error: null };
     }
     return { loadPool, loadTargeted };
   }
 
-  return { mapKbPosting, createKbPoolLoader, KB_POSTINGS_TABLE, KB_POSTINGS_COLUMNS, DEFAULT_LIMIT };
+  return { mapKbPosting, createKbPoolLoader, createFetchProbe, KB_POSTINGS_TABLE, KB_POSTINGS_COLUMNS, DEFAULT_LIMIT };
 })();
 
 export { CareerPool };

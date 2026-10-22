@@ -4,13 +4,13 @@
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),vm=require('node:vm');
 const {execFileSync}=require('node:child_process');
 const {stripTypeScriptTypes}=require('node:module');
-module.exports=async function stagedEntry(root,client){
+module.exports=async function stagedEntry(root,client,options={}){
   if(!vm.SourceTextModule)throw Error('Run with --experimental-vm-modules');
   const stage=fs.mkdtempSync(path.join(os.tmpdir(),'career-real-pg-entry-'));
   execFileSync(process.execPath,[path.join(root,'scripts/career/stage-career.cjs'),stage,'--json']);
   let handle,networkCalls=0;
   const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,AbortController,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,
-    console:{log(){},error(){},warn(){}},fetch(){networkCalls++;throw Error('external network forbidden');},
+    console:{log(){},error(){},warn(){}},fetch(...args){if(typeof options.fetch==='function')return options.fetch(...args);networkCalls++;throw Error('external network forbidden');},
     Deno:{env:{get:name=>({SUPABASE_URL:'https://supabase.example.test',SUPABASE_ANON_KEY:'synthetic-anon',SUPABASE_SERVICE_ROLE_KEY:'synthetic-service'})[name]}}});
   const modules=new Map();
   function load(id){if(modules.has(id))return modules.get(id);let m;

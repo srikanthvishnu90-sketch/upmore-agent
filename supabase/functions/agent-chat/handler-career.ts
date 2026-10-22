@@ -278,6 +278,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // never an invented role. The worker's postingsFor reads through
     // the same loader, so the two pools cannot disagree.
     const poolLoader = CareerPool.createKbPoolLoader({
+      probeUrl: CareerPool.createFetchProbe(),
       readRows: async (spec: any) => {
         let q: any = admin.from(spec.table).select(spec.select)
           .order(spec.order.column, { ascending: spec.order.ascending, nullsFirst: spec.order.nullsFirst });

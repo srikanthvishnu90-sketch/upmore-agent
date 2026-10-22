@@ -134,6 +134,7 @@ function createProductionSources(deps) {
   const jobs = d.jobs || CareerJobs;
   const nowOf = typeof d.now === "function" ? d.now : () => Date.now();
   const loader = CareerPool.createKbPoolLoader({
+    probeUrl: typeof d.probeUrl === "function" ? d.probeUrl : CareerPool.createFetchProbe({ fetchImpl: d.fetchImpl }),
     readRows: (spec) => transport.readRows(spec),
     jobs,
     limit: d.poolLimit,

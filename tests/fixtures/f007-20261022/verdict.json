@@ -1,0 +1,59 @@
+{
+  "bug": "MUSE-F-007",
+  "base_pin": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "classification": "HISTORICAL_NO_CONSUMER_CLAIM_STALE_AT_THIS_PIN",
+  "source_changed": false,
+  "result": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0,
+    "skipped": 0
+  },
+  "f007_specific_tests": 4,
+  "test_command": "env -u UPMORE_FACT_BANK node --test --test-reporter=tap tests/career-portal-answer-map.test.cjs",
+  "synthetic_input_only": true,
+  "external_fact_bank": "UNSET",
+  "mechanism": {
+    "consumer": "149 savedAnswersOf lines247-273 consumes application_answer/application_text through actual canonical trustedManifest; deriveAnswers carries savedAnswers at318",
+    "production_caller": "production-sources.cjs119 passes actual contract+owner,121 carries kept savedAnswers",
+    "fill": "149 savedAnswerFor/fillSaved lines813ff fills only exact normalized question/company and records source ledger"
+  },
+  "proof_scope": "Existing portable12-test baseline, including4 saved-answer tests, all pass. Caller wiring read and hash-bound; no live worker/user data or deployment proof. No failing test or product change invented.",
+  "sources": [
+    {
+      "path": "packages/domain/149-career-portal-apply.js",
+      "sha256": "721736cf006332c51c7d2ba2fe0e75c00b73eca86595e0c0bd65051adfce2c30",
+      "bytes": 87600
+    },
+    {
+      "path": "packages/domain/150-career-portal-browser.js",
+      "sha256": "5e726e6dbbe55aa7670b0ac7c4a4d4622adf5e9f2402b17b20f246bb6c4e4610",
+      "bytes": 48977
+    },
+    {
+      "path": "workers/career-browser/production-sources.cjs",
+      "sha256": "fe828b408df32729a16e796ef87375d9634c83493f30f4e7be23d6d05da48da0",
+      "bytes": 10065
+    },
+    {
+      "path": "extension/lib/trainee-core.js",
+      "sha256": "9876d005fe25d6d64d0852b7b4a37354ce4bca20c6b3b9152f7db9edc0f8b0bd",
+      "bytes": 290964
+    },
+    {
+      "path": "tests/career-portal-answer-map.test.cjs",
+      "sha256": "f78d769a3bd99a39aaebe81ca658f2b1fb806aca7ba926f656340b97ba17dac5",
+      "bytes": 20669
+    }
+  ],
+  "raw_log": {
+    "path": "tests/fixtures/f007-20261022/baseline.tap",
+    "sha256": "c44a3b1df482809caa2bf211bdd6e6af0426067098c99b134c185745cfe24010"
+  },
+  "ledger": {
+    "new_usd": "0.000000",
+    "known_comparison_usd": "8.503100",
+    "held_unknown_usd": "0.070743",
+    "status": "UNRECONCILED"
+  }
+}

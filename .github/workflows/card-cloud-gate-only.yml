@@ -1,7 +1,8 @@
-name: ci
+name: Card cloud complete free gate only
+# Isolated QA ref ONLY. Never merge this configuration; no database job.
 on:
   push:
-  pull_request:
+    branches: [ci/card-cloud-gate-only-20261022]
 permissions:
   contents: read
 jobs:
@@ -12,6 +13,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: 8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with: { node-version: "22.23.3" }
       - uses: denoland/setup-deno@v2
@@ -33,11 +37,7 @@ jobs:
           echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
       - name: Allow sandboxed Chromium user namespaces for this gate job
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Six launcher dispatch controls (fake psql only; no SQL)
+        run: python3 tests/career-card-cloud-migration-launcher.test.py
       - name: Career gate
         run: bash scripts/gate.sh
-  database:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
-        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh

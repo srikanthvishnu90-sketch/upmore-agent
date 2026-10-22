@@ -117,6 +117,33 @@ Creating that cron job is a standing-infrastructure change for the
 coordinator/owner to make — this lane delivers the script + design,
 and does not schedule it.
 
+## INSTALLED (2026-10-21, owner approval)
+
+- Job: `f8-worker-watchdog-10m` in the Muse scheduler (first
+  installed 2026-10-21 16:35 CDT by the coordinator lane as a 10-min
+  hand-rolled variant; ALIGNED to this spec 2026-10-21 20:12 CDT on
+  the owner's explicit approval): every **5 minutes**, agent run =
+  kit `--dry-run`; DEGRADED increments
+  `/home/hatch/worker-config/watchdog-state.json`; **two consecutive**
+  DEGRADED verdicts trigger one `--execute` under the single-flight
+  lock `/home/hatch/worker-config/watchdog.lock` (stale > 15 min
+  ignored); healthy runs are silent; a restore (or a failed /
+  unrestorable one) is reported with the kit's gap list + probe
+  verdicts. Restore-only: the job never touches submit/cloud flags,
+  caps, or submissions, and never deploys.
+- Verified by simulated down-state 2026-10-21 20:13–20:17 CDT (units
+  removed, exactly the drill posture): run 1 DEGRADED, streak 1, no
+  restore; run 2 DEGRADED, streak 2, `--execute` at 01:16:48Z,
+  HEALTHY 01:16:49Z — **down-to-healthy 3m02s** with manual runs
+  back-to-back; on the natural cadence the envelope is ~10 min
+  detection (two ticks) + seconds of restore. Post-restore state
+  file reset to streak 0 / healthy, lock removed, flag read-back OFF.
+- **Rollback: remove the cron job** (`cron.remove` with id
+  `f8-worker-watchdog-10m`). Nothing else to unwind — the job
+  installs no files and changes no other state; the streak/lock
+  files under /home/hatch/worker-config may be deleted with it. The
+  kit itself stays (it is the manual restore path).
+
 ## Dry-run evidence (this lane, 2026-10-21)
 
 `restore-worker.sh --dry-run --log tools/worker-restore/dry-run-log.jsonl`

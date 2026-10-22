@@ -24485,7 +24485,11 @@ const CareerOutreach = (() => {
   // Gmail transport shape: wraps a caller-supplied Gmail API client (OAuth held by the host, never here).
   function buildGmailRaw(msg) {
     const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
-    return Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    // Web primitives are present in the Edge runtime; a Node Buffer global is not.
+    // Iterate bytes instead of spreading them so long draft bodies do not overflow arguments.
+    let binary = "";
+    for (const byte of new TextEncoder().encode(raw)) binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
   function createGmailTransport(gmailApi) {
     if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };

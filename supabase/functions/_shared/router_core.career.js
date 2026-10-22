@@ -24475,6 +24475,7 @@ const CareerAgentBegin = (() => {
   const RPC_APPROVE = "career_apply_batch_approve_own";
   const RPC_BEGIN = "career_apply_extension_begin_agent_own";
   const RPC_BEGIN_CLOUD = "career_apply_cloud_begin_agent_own";
+  const RPC_CARD_SHOW = "career_apply_message_cloud_card_show_as";
 
   const te = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
   function keyCmp(a, b) {
@@ -24688,10 +24689,115 @@ const CareerAgentBegin = (() => {
     return runBegin({ ...(input || {}), record, userId: (input && input.userId) || claim.userId || null }, deps);
   }
 
+  function refuseCard(message) { return { ok: false, code: "CARD_ITEM_MISMATCH", message }; }
+
+  async function checkCardItem(entry, item, userId) {
+    if (!item || typeof item !== "object" || !item.payload || typeof item.payload !== "object") {
+      return { ok: false, code: "CARD_ITEM_MISSING", message: "no engine-prepared card item was supplied for this posting — the card is never fabricated" };
+    }
+    const p = item.payload;
+    if (typeof item.hash !== "string" || item.hash !== await sha256Hex(canonicalApplyJson(p))) {
+      return refuseCard("the card item's hash does not recompute over its payload");
+    }
+    if (!item.readback || typeof item.readback !== "object") {
+      return refuseCard("the card item carries no readback — the DB would refuse it unseen");
+    }
+    if (p.user_id !== userId || p.job_id !== entry.jobId) {
+      return refuseCard("the card item is not this person's approved posting");
+    }
+    if (p.manifest_hash !== entry.manifest_hash || p.quarantine_version !== entry.quarantine_version) {
+      return refuseCard("the card item is not bound to the approved entry's manifest");
+    }
+    const destination = entry.destination != null ? entry.destination : entry.url;
+    if (p.destination !== destination || p.url !== entry.url) {
+      return refuseCard("the card item's destination is not the one the person approved");
+    }
+    const engineApproval = entry.engineApproval != null ? entry.engineApproval : entry.engine_approval;
+    if (p.engine_approval !== engineApproval) {
+      return refuseCard("the card item's engine approval is not the approved run's");
+    }
+    const answers = Array.isArray(entry.answers) ? entry.answers : [];
+    const ledger = Array.isArray(entry.ledger) ? entry.ledger : [];
+    const fields = Array.isArray(p.fields) ? p.fields : null;
+    if (!fields || sortedJson(fields.map((f) => f && f.name)) !== sortedJson(answers.map((a) => a && a.name))) {
+      return refuseCard("the card item's fields are not the approved answers");
+    }
+    for (const f of fields) {
+      const answer = answers.find((a) => a && a.name === f.name);
+      const row = ledger.find((l) => l && l.field_id === f.name);
+      const firstRef = row ? row.fact_refs[0] : null;
+      if (!answer || (f.factId != null ? f.factId : null) !== firstRef) {
+        return refuseCard("a card field cites a fact its ledger row does not name first");
+      }
+      const valueOk = f.value && typeof f.value === "object"
+        ? f.value.sha256 != null && f.value.sha256 === answer.file
+        : f.value === answer.value;
+      if (!valueOk) return refuseCard("a card field's value is not the approved answer");
+    }
+    return { ok: true };
+  }
+
+  async function beginCloudCardPostings(input, deps) {
+    const inp = input || {};
+    const d = deps || {};
+    const record = inp.record;
+    if (!record || record.kind !== "batch_approval_record" || record.approvedByUser !== true) {
+      return { ok: false, code: "NO_APPROVAL_RECORD", message: "no approval record exists for this batch — the card was never tapped", results: [] };
+    }
+    const flagEnabled = inp.flagEnabled !== undefined ? inp.flagEnabled : d.flagEnabled;
+    if (flagEnabled === false) return { ok: false, code: "AGENT_SUBMIT_OFF", message: "agent submit is off", results: [] };
+    if (typeof d.cardRpc !== "function") return { ok: false, code: "NO_CARD_RPC", message: "no service-role rpc client was injected — the card producer is not wired in this host", results: [] };
+    const userId = inp.userId || record.userId || null;
+    const threadId = inp.threadId || null;
+    if (!threadId) return { ok: false, code: "NO_THREAD", message: "no thread was supplied — a Messages card lives on the person's thread", results: [] };
+    const entries = Array.isArray(inp.entries) ? inp.entries : [];
+    if (!entries.length) return { ok: false, code: "NO_ENTRIES", message: "no approved postings were supplied", results: [] };
+    if (!inp.expiresAt) return { ok: false, code: "NO_EXPIRY", message: "no payload expiry was supplied — the account stamp would be refused as stale", results: [] };
+    if (!inp.account || typeof inp.account.epoch !== "number" || typeof inp.account.version !== "number") {
+      return { ok: false, code: "NO_ACCOUNT_STAMP", message: "no account stamp (epoch, version) was supplied — read career_apply_account_own first", results: [] };
+    }
+
+    const cardItems = inp.cardItems || {};
+    const items = [];
+    const results = [];
+    for (const entry of entries) {
+      const payload = buildBeginPayload({
+        entry, userId, door: "cloud",
+        family: (inp.familyByJobId && inp.familyByJobId[entry.jobId]) || inp.family || null,
+        account: inp.account, expiresAt: inp.expiresAt, resume: inp.resume || null,
+      });
+      const chk = checkContract(entry, payload, { answeredTextAnswerIds: inp.answeredTextAnswerIds || [] });
+      if (!chk.ok) { results.push({ jobId: entry.jobId, ok: false, code: chk.code, message: chk.message }); continue; }
+      const dchk = checkCloudDoor(payload);
+      if (!dchk.ok) { results.push({ jobId: entry.jobId, ok: false, code: dchk.code, message: dchk.message }); continue; }
+      const ichk = await checkCardItem(entry, cardItems[entry.jobId], userId);
+      if (!ichk.ok) { results.push({ jobId: entry.jobId, ok: false, code: ichk.code, message: ichk.message }); continue; }
+      items.push(cardItems[entry.jobId]);
+      results.push({ jobId: entry.jobId, ok: true, shown: true });
+    }
+    if (results.some((r) => !r.ok)) return { ok: false, code: "CARD_NOT_SHOWN", message: "a posting refused — the batch is shown whole or not at all", results };
+
+    let card;
+    try {
+      card = await d.cardRpc(RPC_CARD_SHOW, { p_user: userId, p_thread: threadId, p_items: items });
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      return { ok: false, code: "CARD_SHOW_REFUSED", message, results: [] };
+    }
+    const body = card && typeof card === "object" ? card.payload : null;
+    if (!body || typeof body !== "object" || typeof card.hash !== "string"
+      || card.hash !== await sha256Hex(canonicalApplyJson(body))
+      || body.user_id !== userId || body.thread_id !== threadId
+      || body.version !== 2 || body.execution_mode !== "cloud" || body.card_id !== card.id) {
+      return { ok: false, code: "CARD_RECEIPT_MISMATCH", message: "the shown card's receipt does not bind to this person, thread and payload", results: [] };
+    }
+    return { ok: true, cardId: card.id, hash: card.hash, messageId: card.message_id != null ? card.message_id : null, results };
+  }
+
   return {
-    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD,
+    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD, RPC_CARD_SHOW,
     canonicalApplyJson, sha256Hex, batchHashOf,
-    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim,
+    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim, beginCloudCardPostings,
   };
 })();
 

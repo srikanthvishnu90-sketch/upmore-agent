@@ -1,0 +1,48 @@
+{
+  "task": "B - CI fail-first check",
+  "verdict": "VERIFIED_LOCAL_SCOPED",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "counts": {
+    "base": {
+      "passed": 0,
+      "failed": 14,
+      "skipped": 0
+    },
+    "candidate": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "runtime_json_fail_first": {
+      "before_passed": 13,
+      "before_failed": 1,
+      "after_passed": 14
+    }
+  },
+  "test_sha256": "7867140c1768c236f16ace41ecc0363ab53438b23689bea979ed115bdda15b6b",
+  "checker_sha256": "d1241fd357fe70f7745719d5effa79329d8b49f9850aa815cbaf71e733c1acdc",
+  "workflow_sha256": "210f69ad1e2057177671b0b663b23b5d4434e38b08de6fd14651502af4846b53",
+  "workflow_base_selection": "PR actual base SHA; integration/default pushes use before SHA; other pushes use origin/trunk when present, otherwise repository default branch. Checker computes git merge-base.",
+  "mechanism": "Each changed test file runs on isolated head/base worktrees with the exact candidate test tree and helpers on both. Head must exit zero, base must exit nonzero without timing out. No changed tests, unsupported runner, bad ref or timeout fails closed. Runtime JSON/YAML changes are included; documentation, tests, evaluations and CI/review plumbing are not product changes.",
+  "credential_policy": "No production/provider/GitHub credential environment variables are passed to test commands; checkout persist-credentials is false.",
+  "proof_scope": "14 integration cases create temporary synthetic Git repos and run Node fixtures. No paid call, browser, SQL or live account. Python compile, YAML parse and CI shell syntax passed.",
+  "not_run": [
+    "Live GitHub CI execution of the new step before publication",
+    "Whole-product gate green claim"
+  ],
+  "artifacts": {
+    "tests/fixtures/fail-first-ci-20261022/base-final.tap.gz": {
+      "raw_sha256": "d1a99916512139f7050a5b0e7c95d66f05a980d00e4bd56a8b4e407cbcc93cad",
+      "gzip_sha256": "6c0243c4c76cc44d8fd4df3d23884a383c16452bf4ca5167f4c6cc5de72e7da3"
+    },
+    "tests/fixtures/fail-first-ci-20261022/config-before.tap.gz": {
+      "raw_sha256": "381590bba6b76a230af70cf5c925ca8b69d20cfd5774302d0b5a5cf6dcbae069",
+      "gzip_sha256": "f36f3c012fc5023990e2094683d208abc871ac3313e032dd1ff4b0fc25c39e1b"
+    },
+    "tests/fixtures/fail-first-ci-20261022/final.tap.gz": {
+      "raw_sha256": "74ef4ad67809e4c8e06b3f858e4dece7374e2a397e345a326e6b500ff029edd3",
+      "gzip_sha256": "b360bba350b7450ea6e7886d7b65375f9597ec65c3d6e953e359ffad9aa86215"
+    }
+  },
+  "new_spend_usd": 0
+}

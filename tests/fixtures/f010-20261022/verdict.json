@@ -1,0 +1,56 @@
+{
+  "bug": "F-010",
+  "base": "7e1443cd55626626a2931c2d532810935864298c",
+  "dependency": "F-003 finished branch; this branch includes it",
+  "tested_source": "42c27cf8ae25327549680887906b2cdd2fc1fb72",
+  "new_checks": {
+    "base": {
+      "pass": 2,
+      "fail": 13
+    },
+    "branch": {
+      "pass": 15,
+      "fail": 0
+    }
+  },
+  "existing_classifier_checks": {
+    "pass": 33,
+    "fail": 0
+  },
+  "f003_neighbors": {
+    "base": {
+      "pass": 70,
+      "fail": 0
+    },
+    "branch": {
+      "pass": 70,
+      "fail": 0
+    }
+  },
+  "edge_guards": {
+    "pass": 4,
+    "fail": 0
+  },
+  "cause": "166 had no loader or serve-side caller, leaving dataset endpoints and forum threads eligible for discovery.",
+  "fix": "Map-side filter shared by discovery/targeted/worker reads; actual Python build_postings invokes the exact classifier via stdin-only Node CLI before DB I/O, rejects known non-postings, flags unknown metadata, and reports per-source counts. Processed row fields now participate in the content hash.",
+  "guard_origin": "60f750ddf0304731eedc5e2b142aa3fdc508ab10; exact classification code preserved, wrapper adapted for generated named export",
+  "bundles": "full and career-only canonical --check PASS; compiled classifier export tested",
+  "raw_log_sha256": {
+    "wiring-base": "12b123517268cb5d5f98c5bf90edebb397d529759c5e8a4a3783f5a7d254169f",
+    "fix-family": "09665b213496ebab035446fe2fad2f9d8da88d09546d61771bf9cd099e1fd982",
+    "edge-guards": "99ce6ae9f7a41673ac448504a9625f5214cb6cfbd8168f85883959487e960f0d"
+  },
+  "excluded_attempts": "Initial hash fixture blocked the existing post-verification read. Final fixture mocks that exact SELECT only; every write and migration call remains an assertion failure. Same frozen wiring tests rerun on base.",
+  "limits": [
+    "Only imported KB builder and mocked apply_rows tested; loader main/load/watch/verify commands NOT_RUN",
+    "No migration SQL modified or executed; no live reads or writes",
+    "No submit-path or flag changes, deploy, merge, workflow dispatch, paid run or spend",
+    "Unknown URL shapes remain unknown; recognized shape is not liveness proof",
+    "Full product CI NOT_VERIFIED"
+  ],
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

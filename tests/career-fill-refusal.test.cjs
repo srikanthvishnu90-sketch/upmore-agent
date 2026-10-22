@@ -84,10 +84,17 @@ test("F023 a previous failure is not attributed to the current attempt", () => {
   const r = fixture(cases[0], { refuse: true, verdict: null, stale: true }).run();
   assert.equal(r.stepLog.find(s => s.action === "fill_refused").reason, "fill_returned_no_value");
 });
-test("F023 all refused required fields ask even when no value was observed", () => {
+test("F023 all refused fills remain EMPTY_FORM with refusal diagnostics", () => {
   const r = fixture(cases[0], { refuse: true, verdict: undefined, refuseAll: true }).run();
-  assert.equal(r.resultStatus, "awaiting_user"); assert.equal(r.asks.length, 2);
+  assert.equal(r.resultStatus, "blocked"); assert.equal(r.code, "EMPTY_FORM"); assert.equal(r.asks.length, 2);
   assert.ok(r.asks.every(a => a.reason === "fill_refused"));
+});
+test("F023 no attempted fill still asks for missing facts rather than EMPTY_FORM", () => {
+  const f = fixture(cases[0]);
+  f.board.form = () => ({ fields: [{ field_id: "unknown", kind: "standard", profile_key: "missing", required: true, label: "Missing confirmed fact" }] });
+  const r = f.run(); assert.equal(r.resultStatus, "awaiting_user");
+  assert.deepEqual(r.asks, [{ field_id: "unknown", reason: "no_confirmed_fact" }]);
+  assert.equal(f.attempts.length, 0);
 });
 for (const value of [false, 0]) test(`F023 successful falsy value ${value} remains a filled answer`, () => {
   const c = { ...cases[1], value }; const f = fixture(c); const r = f.run();

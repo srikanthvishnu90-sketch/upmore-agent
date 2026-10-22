@@ -50249,11 +50249,13 @@ const CareerPortalApply = (() => {
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    let attemptedFills = 0;
     // A refused browser fill returns undefined (null across the worker
     // bridge). It did not answer the field: keep it out of the successful
     // fill/repair ledger and expose an ask, rather than claiming it landed.
     const attemptFill = (f, value, entry) => {
       const before = Array.isArray(board.fillFailures) ? board.fillFailures.length : 0;
+      attemptedFills += 1;
       const verdict = board.fill(f.field_id, value);
       if (verdict === undefined || verdict === null) {
         const failures = Array.isArray(board.fillFailures) ? board.fillFailures : [];
@@ -50332,7 +50334,9 @@ const CareerPortalApply = (() => {
     // Check observations before moving pages: a successful tool call alone
     // does not prove a required answer landed on the destination.
     const observed = board.answers();
-    if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
+    // D2 counts attempts, including refusals: nothing landing is EMPTY_FORM.
+    // With no attempted fill, missing facts still take the normal ask path.
+    if (attemptedFills && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis, asks });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;

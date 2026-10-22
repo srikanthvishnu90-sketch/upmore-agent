@@ -22638,8 +22638,10 @@ const CareerPortalApply = (() => {
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    let attemptedFills = 0;
     const attemptFill = (f, value, entry) => {
       const before = Array.isArray(board.fillFailures) ? board.fillFailures.length : 0;
+      attemptedFills += 1;
       const verdict = board.fill(f.field_id, value);
       if (verdict === undefined || verdict === null) {
         const failures = Array.isArray(board.fillFailures) ? board.fillFailures : [];
@@ -22710,7 +22712,7 @@ const CareerPortalApply = (() => {
     if (qHits.length) { logStep("quality_gate_stop", { hits: qHits }); return blocked("QUALITY_GATE", { hits: qHits }); }
 
     const observed = board.answers();
-    if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
+    if (attemptedFills && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis, asks });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;

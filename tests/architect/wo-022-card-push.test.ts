@@ -117,7 +117,7 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then a
   eq(res.status, 200);
   eq(runs.map((r) => [r.cards, r.error]), [[1, null]]);
   const out = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store });
-  eq(out?.status, "needs_tap", "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
+  eq(out?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
   eq(approved, [], "a text yes approved nothing");
   await cardTurn({ message: "no", userId: "A", threadId: "TH", now: T + 60000, store });
   eq(approved, [[]], "a text no declines the pushed card");

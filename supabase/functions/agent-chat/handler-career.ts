@@ -406,8 +406,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
-      // Option A (owner 2026-10-22): a "yes" while the cloud card is the thread's last word only opens that card, read
-      // as the person; it never approves or sends (only the tap on the card does). Never on a channel's service-role turn.
+      // Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's
+      // tap on the exact payload does. A "yes" while the cloud card is the thread's last word only opens that card, read
+      // as the person. Never on a channel's service-role turn.
       const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudCardYesTurn({ message, threadId: tid, ownSession: !isBridgeCall, store: personCloudCardStore(supabase) })
         : null;

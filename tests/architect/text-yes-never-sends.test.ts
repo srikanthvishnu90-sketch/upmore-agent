@@ -1,9 +1,10 @@
-// Owner's standing rule (2026-10-22): a chat "yes" may only open a card or bind the cloud opt-in. It never approves or
-// fires a send: no approve, no queue, no claim, no finish. Every real send needs the person's tap on the exact
-// hash-bound payload. This drives the real chat turns with recording stores and every way a yes can be typed.
-// On the base (348c2d4a) the WO-022 card's text yes approves and queues (career_apply_card_answer_as ->
-// career_apply_enqueue, which the person's own-computer worker then claims and finishes), and the cloud card's yes turn
-// does not exist: both fail. Synthetic only; no network, no database.
+// Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
+// on the exact payload does. A chat "yes" may only open a card or bind the cloud opt-in. It never approves or fires a
+// send: no approve, no queue, no claim, no finish. Every real send needs the person's tap on the exact hash-bound
+// payload. This drives the real chat turns with recording stores and every way a yes can be typed. On the base
+// (348c2d4a) the WO-022 card's text yes approves and queues (career_apply_card_answer_as -> career_apply_enqueue, which
+// the person's own-computer worker then claims and finishes), and the cloud card's yes turn does not exist: both fail.
+// Synthetic only; no network, no database.
 import { CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 const ok = (v: unknown, why: string) => { if (!v) throw new Error(why); };
 const YES_FORMS = ["yes", "Yes!", "yep", "yeah", "y", "approve", "approve all", "yes please", "yes send them", "send them", "send all",

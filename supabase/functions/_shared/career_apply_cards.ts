@@ -171,8 +171,8 @@ export async function cardTurn(
       status: "expired",
     };
   }
-  // Owner's standing rule (2026-10-22, option A): a text yes never approves or sends an application; only the person's
-  // tap on the exact payload does (the card's Approve in the app). A text "no" still declines: declining sends nothing.
+  // Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
+  // on the exact payload does (the card's Approve in the app). A text "no" still declines: declining sends nothing.
   const approve = numbers.filter((n) => !leaveOut.includes(n));
   if (approve.length) {
     return {

@@ -1,6 +1,7 @@
-// Option A (owner, 2026-10-22 08:26) under the same morning's constraint: the card is the only cloud authorization route
-// (C9) and a chat "yes" only opens it. While the cloud card is the thread's last word, a yes reads that card back as the
-// person and points to its Approve button; the binding is minted only by the tap (cloud_tap). Synthetic only.
+// Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
+// on the exact payload does. The card is the only cloud authorization route (C9) and a chat "yes" only opens it. While
+// the cloud card is the thread's last word, a yes reads that card back as the person and points to its Approve button;
+// the binding is minted only by the tap (cloud_tap). Synthetic only.
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, parseCardYes, TAP_TO_SEND } from "../../supabase/functions/_shared/career_cloud_card_chat.ts";
 const ok = (v: unknown, why: string) => { if (!v) throw new Error(why); };
 const CARD = "11111111-2222-4333-8444-555555555555", THREAD = "99999999-8888-4777-8666-555555555555";

@@ -94,7 +94,7 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
 Deno.test("WO-027/E2 a card answer writes each line (approved, or why not sent); a receipt writes application_finished once", async () => {
   const events = memoryEventStore();
   const store = cardStore([{ n: 1, company: "Ramp", result: "declined" }, { n: 2, company: "Plaid", result: "declined" }]);
-  eq((await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events }))?.status, "needs_tap", "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
+  eq((await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events }))?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
   eq(events.dump().length, 0, "a text yes answers nothing, so writes nothing");
   const r = await cardTurn({ message: "no", userId: U, threadId: "TH", now: T, store, events });
   eq(r?.status, "answered");

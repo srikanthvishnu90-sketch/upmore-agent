@@ -111,8 +111,8 @@ Deno.test("WO-022/4 a text yes approves nothing (only the tap sends); a number n
   eq(bad?.status, "not_on_card");
   eq(m.answers.length, 0);
   const yes = await turn(m.store, "yes but not 2");
-  eq(yes?.status, "needs_tap", "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
-  eq(m.answers.length, 0, "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
+  eq(yes?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
+  eq(m.answers.length, 0, "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
   const old = memoryCards({ shownAt: T - 25 * 3600000 });
   await turn(old.store, "show my applications", T - 25 * 3600000);
   eq((await turn(old.store, "yes"))?.status, "expired");
@@ -207,7 +207,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
   };
   const shown = await turn(store, "show my applications");
   for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
-  eq((await turn(store, "yes but not 2"))?.status, "needs_tap", "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
+  eq((await turn(store, "yes but not 2"))?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
   eq(queue.length, 0, "a text yes queued nothing");
   await store.answer("TEST-USER", "C1", [1, 3]); // the person's tap on the card (career_apply_card_answer_own)
   eq(queue.map((j) => j.payload.company), ["TEST Employer 1", "TEST Employer 3"]);

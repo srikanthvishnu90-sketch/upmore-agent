@@ -1,9 +1,10 @@
-// Option A (owner, 2026-10-22 08:26; constraint the same morning): the card is the only cloud authorization route (C9),
-// and a "yes" typed in chat never approves or sends anything. While the cloud card is the thread's last word, a yes
-// only OPENS that card: it is read back as the person (career_apply_message_card_read_own) and the reply points them
-// to its Approve button, with the card's id so the app can open it. The binding is minted only by the person's tap on
-// the exact hash-bound card (career_apply_message_card_approve_own -> cloud_tap, 20261024130000), never from here.
-// This module holds no approve, begin, enqueue, claim or finish call: its store has no method that could make one.
+// Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
+// on the exact payload does. The card is the only cloud authorization route (C9). While the cloud card is the thread's
+// last word, a yes only OPENS that card: it is read back as the person (career_apply_message_card_read_own) and the
+// reply points them to its Approve button, with the card's id so the app can open it. The binding is minted only by the
+// person's tap on the exact hash-bound card (career_apply_message_card_approve_own -> cloud_tap, 20261024130000), never
+// from here. This module holds no approve, begin, enqueue, claim or finish call: its store has no method that could
+// make one.
 //
 // It answers only when all of these hold, else the turn goes on as before:
 //   - an explicit yes ("ok", "sure" and "y" are too easily a reply to something else);

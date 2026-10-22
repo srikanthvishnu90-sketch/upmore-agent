@@ -14,8 +14,9 @@
      (supabase/functions/_shared/career_pool.js) — the identical
      mapping the Edge handler passes into createTurnCtx, read here
      through the worker transport. The in-turn pool and the worker
-     pool can never disagree about what exists (checklist §8 step
-     2). A failed read throws BATCH_DISCOVERY_READ_FAILED: the
+     mapping stays shared; named batch asks also read the bounded
+     keyed supplement beyond the recency window (F-005). A failed
+     read throws BATCH_DISCOVERY_READ_FAILED: the
      intent finishes blocked with that name rather than preparing a
      run against a silently-empty pool dressed up as "no jobs".
      (The chat turn degrades to its honest-empty reply instead —
@@ -56,6 +57,7 @@ const path = require("node:path");
 const { CareerPool } = require(path.join(__dirname, "..", "..", "supabase", "functions", "_shared", "career_pool.js"));
 const CareerJobs = require(path.join(__dirname, "..", "..", "packages", "domain", "121-career-jobs.js"));
 const Portal = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
+const { createTargetedShelfRead, mergePostings } = require("./career-shelf-targeted.cjs");
 
 // WO-102: the second judge's submission-quality contract, the extension's own functions (extension/src/apply_core.ts
 // trustedManifest, bundled unchanged into extension/lib/trainee-core.js, which extension/build.ts --check keeps fresh).
@@ -138,14 +140,32 @@ function createProductionSources(deps) {
     jobs,
     limit: d.poolLimit,
   });
+  const targeted = createTargetedShelfRead({ readRows: (spec) => transport.readRows(spec), jobs });
 
-  async function postingsFor(/* userId, familyText, count */) {
-    // The pool is a shared snapshot source (not per-user state);
-    // family/count selection is module 155's own screening, exactly
-    // as the in-turn pool is consumed whole by 142.
+  async function postingsFor(_userId, familyText, _count) {
+    // This is shared posting data, never a profile read. The ask is converted only to 121's named classifier keys;
+    // raw user text never becomes an SQL pattern. 155 selects the requested count after this discovery projection.
     const pool = await loader.loadPool();
     if (pool.error) throw coded("BATCH_DISCOVERY_READ_FAILED", "the KB pool read failed on the worker — the batch stops named rather than preparing against an invented or silently-empty pool");
-    return pool.postings;
+    const ask = typeof familyText === "string" ? familyText : "";
+    const families = jobs.askRoleFamilies(ask);
+    const classifiedBand = jobs.seniorityBand(ask, "");
+    // mid is the classifier's fallback, so an unbanded ask must not accidentally exclude every other band.
+    const band = classifiedBand === "mid" ? null : classifiedBand;
+    if (!families.length && !band) return pool.postings;
+    let postings = pool.postings;
+    // Band is the scarce dimension. Its reviewed keys cover title and JD-head candidates; classification still
+    // rejects substring overfetch. Without a named band, read each named family, rather than guessing one.
+    const targets = band ? [{ band }] : families.map((family) => ({ family }));
+    for (const target of targets) {
+      const keyed = await targeted.loadKeyed(target);
+      if (keyed.error) throw coded("BATCH_DISCOVERY_READ_FAILED", "the keyed KB read failed on the worker — no partial shelf is reported as an empty eligible set");
+      postings = mergePostings(postings, keyed.postings);
+    }
+    // The production executor does not filter by family/band itself. Widening its pool alone would still choose
+    // the recent senior roles first. Keep 121's mapped classifications as the membership authority here.
+    return postings.filter((p) => (!band || p.seniority_band === band) &&
+      (!families.length || families.includes(p.role_family)));
   }
 
   async function readStoredMaster(userId) {

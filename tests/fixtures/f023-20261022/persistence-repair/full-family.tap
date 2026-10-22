@@ -1,0 +1,892 @@
+TAP version 13
+# Subtest: F023 a transient persistence refusal gets the existing bounded doorstep repair
+ok 1 - F023 a transient persistence refusal gets the existing bounded doorstep repair
+  ---
+  duration_ms: 7.283991
+  type: 'test'
+  ...
+# Subtest: F023 a refusal is never logged as a successful initial fill even when repair later recovers it
+ok 2 - F023 a refusal is never logged as a successful initial fill even when repair later recovers it
+  ---
+  duration_ms: 0.999848
+  type: 'test'
+  ...
+# Subtest: F023 permanent persistence loss ends INCOMPLETE_PAYLOAD after bounded repair, never a user-fact ask
+ok 3 - F023 permanent persistence loss ends INCOMPLETE_PAYLOAD after bounded repair, never a user-fact ask
+  ---
+  duration_ms: 0.75881
+  type: 'test'
+  ...
+# Subtest: F023 persistence refusal with contradictory readback blocks instead of approving a different answer
+ok 4 - F023 persistence refusal with contradictory readback blocks instead of approving a different answer
+  ---
+  duration_ms: 0.795249
+  type: 'test'
+  ...
+# Subtest: F023 option mismatch remains a user choice and is never retried as persistence repair
+ok 5 - F023 option mismatch remains a user choice and is never retried as persistence repair
+  ---
+  duration_ms: 0.62875
+  type: 'test'
+  ...
+# Subtest: F023 opaque real-driver refusal cannot turn a confirmed answer into an ask to restate it
+ok 6 - F023 opaque real-driver refusal cannot turn a confirmed answer into an ask to restate it
+  ---
+  duration_ms: 0.663172
+  type: 'test'
+  ...
+# Subtest: F023 a current-page persistence failure cannot reuse an earlier-page answer as current readback
+ok 7 - F023 a current-page persistence failure cannot reuse an earlier-page answer as current readback
+  ---
+  duration_ms: 2.863732
+  type: 'test'
+  ...
+# Subtest: F023 a repair that leaves a different answer cannot reach a prepared payload
+ok 8 - F023 a repair that leaves a different answer cannot reach a prepared payload
+  ---
+  duration_ms: 0.511044
+  type: 'test'
+  ...
+# Subtest: F023 standard major: undefined fill verdict asks instead of claiming success
+ok 9 - F023 standard major: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 9.021477
+  type: 'test'
+  ...
+# Subtest: F023 standard major: null fill verdict asks instead of claiming success
+ok 10 - F023 standard major: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.658757
+  type: 'test'
+  ...
+# Subtest: F023 standard major: accepted value still reaches review
+ok 11 - F023 standard major: accepted value still reaches review
+  ---
+  duration_ms: 2.292965
+  type: 'test'
+  ...
+# Subtest: F023 confirmed screening: undefined fill verdict asks instead of claiming success
+ok 12 - F023 confirmed screening: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 1.722586
+  type: 'test'
+  ...
+# Subtest: F023 confirmed screening: null fill verdict asks instead of claiming success
+ok 13 - F023 confirmed screening: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.887532
+  type: 'test'
+  ...
+# Subtest: F023 confirmed screening: accepted value still reaches review
+ok 14 - F023 confirmed screening: accepted value still reaches review
+  ---
+  duration_ms: 0.638158
+  type: 'test'
+  ...
+# Subtest: F023 confirmed draft: undefined fill verdict asks instead of claiming success
+ok 15 - F023 confirmed draft: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.642295
+  type: 'test'
+  ...
+# Subtest: F023 confirmed draft: null fill verdict asks instead of claiming success
+ok 16 - F023 confirmed draft: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.472397
+  type: 'test'
+  ...
+# Subtest: F023 confirmed draft: accepted value still reaches review
+ok 17 - F023 confirmed draft: accepted value still reaches review
+  ---
+  duration_ms: 0.708859
+  type: 'test'
+  ...
+# Subtest: F023 draft on exact card: undefined fill verdict asks instead of claiming success
+ok 18 - F023 draft on exact card: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.859916
+  type: 'test'
+  ...
+# Subtest: F023 draft on exact card: null fill verdict asks instead of claiming success
+ok 19 - F023 draft on exact card: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.333186
+  type: 'test'
+  ...
+# Subtest: F023 draft on exact card: accepted value still reaches review
+ok 20 - F023 draft on exact card: accepted value still reaches review
+  ---
+  duration_ms: 0.558482
+  type: 'test'
+  ...
+# Subtest: F023 saved exact question: undefined fill verdict asks instead of claiming success
+ok 21 - F023 saved exact question: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.925889
+  type: 'test'
+  ...
+# Subtest: F023 saved exact question: null fill verdict asks instead of claiming success
+ok 22 - F023 saved exact question: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.2578
+  type: 'test'
+  ...
+# Subtest: F023 saved exact question: accepted value still reaches review
+ok 23 - F023 saved exact question: accepted value still reaches review
+  ---
+  duration_ms: 0.25471
+  type: 'test'
+  ...
+# Subtest: F023 default EEO decline: undefined fill verdict asks instead of claiming success
+ok 24 - F023 default EEO decline: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.423321
+  type: 'test'
+  ...
+# Subtest: F023 default EEO decline: null fill verdict asks instead of claiming success
+ok 25 - F023 default EEO decline: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.141946
+  type: 'test'
+  ...
+# Subtest: F023 default EEO decline: accepted value still reaches review
+ok 26 - F023 default EEO decline: accepted value still reaches review
+  ---
+  duration_ms: 0.236673
+  type: 'test'
+  ...
+# Subtest: F023 user EEO choice: undefined fill verdict asks instead of claiming success
+ok 27 - F023 user EEO choice: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.144356
+  type: 'test'
+  ...
+# Subtest: F023 user EEO choice: null fill verdict asks instead of claiming success
+ok 28 - F023 user EEO choice: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.149656
+  type: 'test'
+  ...
+# Subtest: F023 user EEO choice: accepted value still reaches review
+ok 29 - F023 user EEO choice: accepted value still reaches review
+  ---
+  duration_ms: 0.462591
+  type: 'test'
+  ...
+# Subtest: F023 explicit attestation: undefined fill verdict asks instead of claiming success
+ok 30 - F023 explicit attestation: undefined fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.281605
+  type: 'test'
+  ...
+# Subtest: F023 explicit attestation: null fill verdict asks instead of claiming success
+ok 31 - F023 explicit attestation: null fill verdict asks instead of claiming success
+  ---
+  duration_ms: 0.666016
+  type: 'test'
+  ...
+# Subtest: F023 explicit attestation: accepted value still reaches review
+ok 32 - F023 explicit attestation: accepted value still reaches review
+  ---
+  duration_ms: 0.213973
+  type: 'test'
+  ...
+# Subtest: F023 optional refusal stays visible without blocking accepted required fields
+ok 33 - F023 optional refusal stays visible without blocking accepted required fields
+  ---
+  duration_ms: 0.664516
+  type: 'test'
+  ...
+# Subtest: F023 a bridge without diagnostics records an honest fallback reason
+ok 34 - F023 a bridge without diagnostics records an honest fallback reason
+  ---
+  duration_ms: 0.428286
+  type: 'test'
+  ...
+# Subtest: F023 a previous failure is not attributed to the current attempt
+ok 35 - F023 a previous failure is not attributed to the current attempt
+  ---
+  duration_ms: 0.200553
+  type: 'test'
+  ...
+# Subtest: F023 all refused fills remain EMPTY_FORM with refusal diagnostics
+ok 36 - F023 all refused fills remain EMPTY_FORM with refusal diagnostics
+  ---
+  duration_ms: 0.238079
+  type: 'test'
+  ...
+# Subtest: F023 no attempted fill still asks for missing facts rather than EMPTY_FORM
+ok 37 - F023 no attempted fill still asks for missing facts rather than EMPTY_FORM
+  ---
+  duration_ms: 0.301452
+  type: 'test'
+  ...
+# Subtest: F023 successful falsy value false remains a filled answer
+ok 38 - F023 successful falsy value false remains a filled answer
+  ---
+  duration_ms: 0.223962
+  type: 'test'
+  ...
+# Subtest: F023 successful falsy value 0 remains a filled answer
+ok 39 - F023 successful falsy value 0 remains a filled answer
+  ---
+  duration_ms: 0.135143
+  type: 'test'
+  ...
+# Subtest: F023 thrown resume or driver errors retain the existing throw contract
+ok 40 - F023 thrown resume or driver errors retain the existing throw contract
+  ---
+  duration_ms: 1.082289
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure file_input_not_mounted/undefined blocks instead of asking the user
+ok 41 - F023 required driver failure file_input_not_mounted/undefined blocks instead of asking the user
+  ---
+  duration_ms: 0.337087
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure file_input_not_mounted/null blocks instead of asking the user
+ok 42 - F023 required driver failure file_input_not_mounted/null blocks instead of asking the user
+  ---
+  duration_ms: 0.242758
+  type: 'test'
+  ...
+# Subtest: F023 optional driver failure file_input_not_mounted remains logged without blocking
+ok 43 - F023 optional driver failure file_input_not_mounted remains logged without blocking
+  ---
+  duration_ms: 0.355668
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure value_did_not_persist/undefined blocks instead of asking the user
+ok 44 - F023 required driver failure value_did_not_persist/undefined blocks instead of asking the user
+  ---
+  duration_ms: 0.348929
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure value_did_not_persist/null blocks instead of asking the user
+ok 45 - F023 required driver failure value_did_not_persist/null blocks instead of asking the user
+  ---
+  duration_ms: 0.174695
+  type: 'test'
+  ...
+# Subtest: F023 optional driver failure value_did_not_persist remains logged without blocking
+ok 46 - F023 optional driver failure value_did_not_persist remains logged without blocking
+  ---
+  duration_ms: 0.620049
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure fill_error:DRIVER_ERROR/undefined blocks instead of asking the user
+ok 47 - F023 required driver failure fill_error:DRIVER_ERROR/undefined blocks instead of asking the user
+  ---
+  duration_ms: 0.166387
+  type: 'test'
+  ...
+# Subtest: F023 required driver failure fill_error:DRIVER_ERROR/null blocks instead of asking the user
+ok 48 - F023 required driver failure fill_error:DRIVER_ERROR/null blocks instead of asking the user
+  ---
+  duration_ms: 0.08517
+  type: 'test'
+  ...
+# Subtest: F023 optional driver failure fill_error:DRIVER_ERROR remains logged without blocking
+ok 49 - F023 optional driver failure fill_error:DRIVER_ERROR remains logged without blocking
+  ---
+  duration_ms: 0.11456
+  type: 'test'
+  ...
+# Subtest: F023 all driver fills failing preserve the EMPTY_FORM priority
+ok 50 - F023 all driver fills failing preserve the EMPTY_FORM priority
+  ---
+  duration_ms: 0.223948
+  type: 'test'
+  ...
+# Subtest: F023 an unfamiliar driver diagnostic is blocked without guessing its meaning
+ok 51 - F023 an unfamiliar driver diagnostic is blocked without guessing its meaning
+  ---
+  duration_ms: 0.232511
+  type: 'test'
+  ...
+# Subtest: coverage: every fact kind in the bank is consumed or exempted with a reason — zero uncovered
+ok 52 - coverage: every fact kind in the bank is consumed or exempted with a reason — zero uncovered
+  ---
+  duration_ms: 4.064041
+  type: 'test'
+  ...
+# Subtest: forcing function: a confirmed fact kind nobody consumes FAILS coverage (the bank growing forces the wiring)
+ok 53 - forcing function: a confirmed fact kind nobody consumes FAILS coverage (the bank growing forces the wiring)
+  ---
+  duration_ms: 0.693327
+  type: 'test'
+  ...
+# Subtest: derivation: every bank-answered kind resolves, each answer traced to its fact ID
+ok 54 - derivation: every bank-answered kind resolves, each answer traced to its fact ID
+  ---
+  duration_ms: 3.019696
+  type: 'test'
+  ...
+# Subtest: declared-source law: every emitted answer key is declared in ANSWER_KEY_SOURCES with a fact-kind source
+ok 55 - declared-source law: every emitted answer key is declared in ANSWER_KEY_SOURCES with a fact-kind source
+  ---
+  duration_ms: 0.808604
+  type: 'test'
+  ...
+# Subtest: confirmed-only: an unconfirmed fact yields no answer (the DOB flipped unconfirmed -> the 18+ answer vanishes)
+ok 56 - confirmed-only: an unconfirmed fact yields no answer (the DOB flipped unconfirmed -> the 18+ answer vanishes)
+  ---
+  duration_ms: 0.336779
+  type: 'test'
+  ...
+# Subtest: classification: module 150 routes the new phrasings to the derived keys
+ok 57 - classification: module 150 routes the new phrasings to the derived keys
+  ---
+  duration_ms: 3.887849
+  type: 'test'
+  ...
+# Subtest: end to end: the 18+ field is FILLED from the DOB fact; an unmapped required field still stops the drive
+ok 58 - end to end: the 18+ field is FILLED from the DOB fact; an unmapped required field still stops the drive
+  ---
+  duration_ms: 5.004781
+  type: 'test'
+  ...
+# Subtest: end to end: remove the DOB fact and the SAME 18+ field stops the drive (nothing fills it)
+ok 59 - end to end: remove the DOB fact and the SAME 18+ field stops the drive (nothing fills it)
+  ---
+  duration_ms: 0.759566
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 coverage: the saved-answer kinds are consumed, not uncovered
+ok 60 - MUSE-F-007 coverage: the saved-answer kinds are consumed, not uncovered
+  ---
+  duration_ms: 0.232511
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 contract: only what trustedManifest keeps is a saved answer; no contract or another quarantine version, none
+ok 61 - MUSE-F-007 contract: only what trustedManifest keeps is a saved answer; no contract or another quarantine version, none
+  ---
+  duration_ms: 4.135199
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007 end to end: a trusted saved answer fills its exact question with a ledger row; everything else is asked
+ok 62 - MUSE-F-007 end to end: a trusted saved answer fills its exact question with a ledger row; everything else is asked
+  ---
+  duration_ms: 2.910251
+  type: 'test'
+  ...
+# Subtest: MUSE-F-007: application_text for one company never fills the same question at another
+ok 63 - MUSE-F-007: application_text for one company never fills the same question at another
+  ---
+  duration_ms: 2.46047
+  type: 'test'
+  ...
+# Subtest: §6.3: LinkedIn / Indeed apply targets are refused before any board is touched
+ok 64 - §6.3: LinkedIn / Indeed apply targets are refused before any board is touched
+  ---
+  duration_ms: 4.927685
+  type: 'test'
+  ...
+# Subtest: §6.3: untested / unknown ATS hosts are refused — only tested families + registered sandbox boards
+ok 65 - §6.3: untested / unknown ATS hosts are refused — only tested families + registered sandbox boards
+  ---
+  duration_ms: 1.057556
+  type: 'test'
+  ...
+# Subtest: §6.3: a session is bound to one user — another user's run is refused, answers never leak across sessions
+ok 66 - §6.3: a session is bound to one user — another user's run is refused, answers never leak across sessions
+  ---
+  duration_ms: 2.869602
+  type: 'test'
+  ...
+# Subtest: §6.1 step 3/4: fields are categorized; only confirmed facts are filled; unconfirmed + unknown become asks
+ok 67 - §6.1 step 3/4: fields are categorized; only confirmed facts are filled; unconfirmed + unknown become asks
+  ---
+  duration_ms: 1.364872
+  type: 'test'
+  ...
+# Subtest: §6.1 step 4 hard lines: attestation is never auto-answered without an explicit per-run confirmation; EEO defaults to decline
+ok 68 - §6.1 step 4 hard lines: attestation is never auto-answered without an explicit per-run confirmation; EEO defaults to decline
+  ---
+  duration_ms: 6.548611
+  type: 'test'
+  ...
+# Subtest: doorstep: a clean run stops at final review — payload snapshot is exact and hash-bound, zero submits without approval
+ok 69 - doorstep: a clean run stops at final review — payload snapshot is exact and hash-bound, zero submits without approval
+  ---
+  duration_ms: 0.976615
+  type: 'test'
+  ...
+# Subtest: §11(F) captcha: a challenge stops the run and hands the user the link — never solved, never submitted past
+ok 70 - §11(F) captcha: a challenge stops the run and hands the user the link — never solved, never submitted past
+  ---
+  duration_ms: 0.792182
+  type: 'test'
+  ...
+# Subtest: §11(F) name mismatch: the name on the board account differs from the profile — blocked before any submit
+ok 71 - §11(F) name mismatch: the name on the board account differs from the profile — blocked before any submit
+  ---
+  duration_ms: 0.858908
+  type: 'test'
+  ...
+# Subtest: submit leg: with explicit approval the doorstep submits exactly once and captures the confirmation
+ok 72 - submit leg: with explicit approval the doorstep submits exactly once and captures the confirmation
+  ---
+  duration_ms: 1.842603
+  type: 'test'
+  ...
+# Subtest: §11(F) timeout: a submit timeout reads unknown_outcome + needs_human; retry is refused until reconcile reads the board
+ok 73 - §11(F) timeout: a submit timeout reads unknown_outcome + needs_human; retry is refused until reconcile reads the board
+  ---
+  duration_ms: 1.641381
+  type: 'test'
+  ...
+# Subtest: §8.3 timeout with no receipt: reconcile says not submitted; only then may a fresh approval retry
+ok 74 - §8.3 timeout with no receipt: reconcile says not submitted; only then may a fresh approval retry
+  ---
+  duration_ms: 1.383419
+  type: 'test'
+  ...
+# Subtest: §6.1 step 1: a closed posting stops at eligibility; a second application to the same job is a duplicate block
+ok 75 - §6.1 step 1: a closed posting stops at eligibility; a second application to the same job is a duplicate block
+  ---
+  duration_ms: 1.145982
+  type: 'test'
+  ...
+# Subtest: §6.4 quality gate: a cover note naming the wrong company blocks the run before the doorstep
+ok 76 - §6.4 quality gate: a cover note naming the wrong company blocks the run before the doorstep
+  ---
+  duration_ms: 0.516048
+  type: 'test'
+  ...
+# Subtest: §6.4 caps: the run reports cap state as decided + enforced (MI-110 supersedes the report-only pin)
+ok 77 - §6.4 caps: the run reports cap state as decided + enforced (MI-110 supersedes the report-only pin)
+  ---
+  duration_ms: 0.393201
+  type: 'test'
+  ...
+# Subtest: §6.3: the driver itself refuses non-allowlisted hosts before any page opens
+ok 78 - §6.3: the driver itself refuses non-allowlisted hosts before any page opens
+  ---
+  duration_ms: 57.308774
+  type: 'test'
+  ...
+# Subtest: §6.3 captcha at open: run stops with CAPTCHA_HANDOFF, zero submits, stop on the step log
+ok 79 - §6.3 captcha at open: run stops with CAPTCHA_HANDOFF, zero submits, stop on the step log
+  ---
+  duration_ms: 2794.91453
+  type: 'test'
+  ...
+# Subtest: §6.3 captcha at review: the run fills, reaches review, stops — CAPTCHA_HANDOFF with zero submits
+ok 80 - §6.3 captcha at review: the run fills, reaches review, stops — CAPTCHA_HANDOFF with zero submits
+  ---
+  duration_ms: 3011.959297
+  type: 'test'
+  ...
+# Subtest: §6.3 isolation: two browser boards are two contexts — A's fills and storage never appear in B
+ok 81 - §6.3 isolation: two browser boards are two contexts — A's fills and storage never appear in B
+  ---
+  duration_ms: 11363.64955
+  type: 'test'
+  ...
+# Subtest: doorstep: attestation is never auto-answered through the browser driver; with explicit confirmation the run reaches final review and stops
+ok 82 - doorstep: attestation is never auto-answered through the browser driver; with explicit confirmation the run reaches final review and stops
+  ---
+  duration_ms: 19968.052072
+  type: 'test'
+  ...
+# Subtest: integrity: a resume file whose bytes do not match the profile sha is refused, never uploaded
+ok 83 - integrity: a resume file whose bytes do not match the profile sha is refused, never uploaded
+  ---
+  duration_ms: 6998.961798
+  type: 'test'
+  ...
+# Subtest: confirmation capture: an armed submit that lands on a confirmation page returns ID + text + screenshot
+ok 84 - confirmation capture: an armed submit that lands on a confirmation page returns ID + text + screenshot
+  ---
+  duration_ms: 9662.572889
+  type: 'test'
+  ...
+# Subtest: confirmation capture: an ambiguous landing page is unknown_outcome — never success — and reconcile keeps it unknown
+ok 85 - confirmation capture: an ambiguous landing page is unknown_outcome — never success — and reconcile keeps it unknown
+  ---
+  duration_ms: 10046.476557
+  type: 'test'
+  ...
+# Subtest: D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED — nothing filled, nothing submitted
+ok 86 - D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED — nothing filled, nothing submitted
+  ---
+  duration_ms: 394.454652
+  type: 'test'
+  ...
+# Subtest: D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses
+ok 87 - D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses
+  ---
+  duration_ms: 17200.546589
+  type: 'test'
+  ...
+# Subtest: D4 through the driver: education + country fields on a real form fill from the profile and land in the payload
+ok 88 - D4 through the driver: education + country fields on a real form fill from the profile and land in the payload
+  ---
+  duration_ms: 12777.647507
+  type: 'test'
+  ...
+# Subtest: D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'
+ok 89 - D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'
+  ---
+  duration_ms: 6983.617094
+  type: 'test'
+  ...
+# Subtest: D9 Lever custom card: the ask record quotes the human card question, not the machine field name
+ok 90 - D9 Lever custom card: the ask record quotes the human card question, not the machine field name
+  ---
+  duration_ms: 2206.400034
+  type: 'test'
+  ...
+# Subtest: submit stays unplugged unless armed: 149 approval alone does not enable a browser-board submit
+ok 91 - submit stays unplugged unless armed: 149 approval alone does not enable a browser-board submit
+  ---
+  duration_ms: 6201.860619
+  type: 'test'
+  ...
+# Subtest: MI-110: capReport tells the truth — the caps are decided and enforced, not decision-pending
+ok 92 - MI-110: capReport tells the truth — the caps are decided and enforced, not decision-pending
+  ---
+  duration_ms: 4.644617
+  type: 'test'
+  ...
+# Subtest: MI-110: the 16th same-day submission is refused by 149 itself — CAP_REACHED naming cap and count, zero board submits
+ok 93 - MI-110: the 16th same-day submission is refused by 149 itself — CAP_REACHED naming cap and count, zero board submits
+  ---
+  duration_ms: 2.231303
+  type: 'test'
+  ...
+# Subtest: MI-110: under the cap the same drive submits — the cap is a gate, not a wall
+ok 94 - MI-110: under the cap the same drive submits — the cap is a gate, not a wall
+  ---
+  duration_ms: 3.022998
+  type: 'test'
+  ...
+# Subtest: MI-110: vendor cap — 5 greenhouse submissions today stop a 6th greenhouse drive; a lever drive the same day proceeds
+ok 95 - MI-110: vendor cap — 5 greenhouse submissions today stop a 6th greenhouse drive; a lever drive the same day proceeds
+  ---
+  duration_ms: 3.926579
+  type: 'test'
+  ...
+# Subtest: MI-110: company cap — a submission to the same company 10 days ago stops a new drive; 31 days ago does not
+ok 96 - MI-110: company cap — a submission to the same company 10 days ago stops a new drive; 31 days ago does not
+  ---
+  duration_ms: 1.526844
+  type: 'test'
+  ...
+# Subtest: MI-110: day boundary — 15 submissions yesterday do not stop a drive today
+ok 97 - MI-110: day boundary — 15 submissions yesterday do not stop a drive today
+  ---
+  duration_ms: 1.250934
+  type: 'test'
+  ...
+# Subtest: MI-110: submitDoorstep re-checks at click time — a ledger filled to the cap after the doorstep refuses before arming
+ok 98 - MI-110: submitDoorstep re-checks at click time — a ledger filled to the cap after the doorstep refuses before arming
+  ---
+  duration_ms: 0.822689
+  type: 'test'
+  ...
+# Subtest: MI-108: a tracker row (user-reported) for the same canonical job stops the run — ALREADY_APPLIED_BY_USER naming the source, zero board submits
+ok 99 - MI-108: a tracker row (user-reported) for the same canonical job stops the run — ALREADY_APPLIED_BY_USER naming the source, zero board submits
+  ---
+  duration_ms: 7.958021
+  type: 'test'
+  ...
+# Subtest: MI-108: a user statement matches on company + title without a canonical key — source named as the user's statement
+ok 100 - MI-108: a user statement matches on company + title without a canonical key — source named as the user's statement
+  ---
+  duration_ms: 1.166576
+  type: 'test'
+  ...
+# Subtest: MI-108: a hand-filed application to a DIFFERENT role at the same company does not stop the run
+ok 101 - MI-108: a hand-filed application to a DIFFERENT role at the same company does not stop the run
+  ---
+  duration_ms: 2.936653
+  type: 'test'
+  ...
+# Subtest: MI-108: a tracker row that is only saved/interested (no application exists) does not stop the run
+ok 102 - MI-108: a tracker row that is only saved/interested (no application exists) does not stop the run
+  ---
+  duration_ms: 2.662515
+  type: 'test'
+  ...
+# Subtest: MI-108: a product-origin record passed in the manual list is not a collision — that is the caps' domain, not this check's
+ok 103 - MI-108: a product-origin record passed in the manual list is not a collision — that is the caps' domain, not this check's
+  ---
+  duration_ms: 0.67973
+  type: 'test'
+  ...
+# Subtest: MI-108: no manualApplications supplied — the check is silent and the drive is unaffected
+ok 104 - MI-108: no manualApplications supplied — the check is silent and the drive is unaffected
+  ---
+  duration_ms: 0.725936
+  type: 'test'
+  ...
+# Subtest: MI-108: submitDoorstep re-checks at click time — a manual application learned after the doorstep refuses before arming
+ok 105 - MI-108: submitDoorstep re-checks at click time — a manual application learned after the doorstep refuses before arming
+  ---
+  duration_ms: 1.114343
+  type: 'test'
+  ...
+# Subtest: Lever radio group: discovery survives a same-name radio group (no DRIVER_ERROR)
+ok 106 - Lever radio group: discovery survives a same-name radio group (no DRIVER_ERROR)
+  ---
+  duration_ms: 4825.20454
+  type: 'test'
+  ...
+# Subtest: Lever radio group: the confirmed answer is filled and read back (doorstep carries Yes)
+ok 107 - Lever radio group: the confirmed answer is filled and read back (doorstep carries Yes)
+  ---
+  duration_ms: 4196.199324
+  type: 'test'
+  ...
+# Subtest: MI-116 control: an approval bound to the shown payload, board untouched, submits exactly once
+ok 108 - MI-116 control: an approval bound to the shown payload, board untouched, submits exactly once
+  ---
+  duration_ms: 8.785429
+  type: 'test'
+  ...
+# Subtest: MI-116: one answer VALUE changed after approval — APPROVAL_PAYLOAD_MISMATCH, zero clicks, board never armed
+ok 109 - MI-116: one answer VALUE changed after approval — APPROVAL_PAYLOAD_MISMATCH, zero clicks, board never armed
+  ---
+  duration_ms: 1.526272
+  type: 'test'
+  ...
+# Subtest: MI-116: a form field GAINS an answer after approval (was unanswered at the doorstep) — mismatch, zero clicks
+ok 110 - MI-116: a form field GAINS an answer after approval (was unanswered at the doorstep) — mismatch, zero clicks
+  ---
+  duration_ms: 1.331166
+  type: 'test'
+  ...
+# Subtest: MI-116: an approved field's answer is REMOVED after approval — mismatch, zero clicks
+ok 111 - MI-116: an approved field's answer is REMOVED after approval — mismatch, zero clicks
+  ---
+  duration_ms: 2.237658
+  type: 'test'
+  ...
+# Subtest: MI-116: an approval carrying a FOREIGN payload hash (a different doorstep's) — mismatch, zero clicks
+ok 112 - MI-116: an approval carrying a FOREIGN payload hash (a different doorstep's) — mismatch, zero clicks
+  ---
+  duration_ms: 0.75403
+  type: 'test'
+  ...
+# Subtest: MI-116: a hashless approval against an existing doorstep no longer fires — the stop names the missing binding
+ok 113 - MI-116: a hashless approval against an existing doorstep no longer fires — the stop names the missing binding
+  ---
+  duration_ms: 0.771417
+  type: 'test'
+  ...
+# Subtest: MI-116: the same-run flow still submits — runApply binds the exercised approval to the payload it just built
+ok 114 - MI-116: the same-run flow still submits — runApply binds the exercised approval to the payload it just built
+  ---
+  duration_ms: 0.706864
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved
+ok 115 - D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved
+  ---
+  duration_ms: 57.039531
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD
+ok 116 - D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD
+  ---
+  duration_ms: 1.097128
+  type: 'test'
+  ...
+# Subtest: D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes
+ok 117 - D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes
+  ---
+  duration_ms: 1.861356
+  type: 'test'
+  ...
+# Subtest: D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval
+ok 118 - D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval
+  ---
+  duration_ms: 0.976292
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked
+ok 119 - D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked
+  ---
+  duration_ms: 4.44797
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): extractConfirmation is exported and mints NOTHING from posting prose, headers, or unrelated IDs
+ok 120 - D12 (BUG-208): extractConfirmation is exported and mints NOTHING from posting prose, headers, or unrelated IDs
+  ---
+  duration_ms: 0.904502
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): the exact Labelbox mint — the word after 'application' — is refused; a bare unlabeled number is refused; a digit-less token is refused
+ok 121 - D12 (BUG-208): the exact Labelbox mint — the word after 'application' — is refused; a bare unlabeled number is refused; a digit-less token is refused
+  ---
+  duration_ms: 0.33412
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): genuinely labeled confirmations still extract — the fix refuses prose, not evidence
+ok 122 - D12 (BUG-208): genuinely labeled confirmations still extract — the fix refuses prose, not evidence
+  ---
+  duration_ms: 0.200782
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): a still-open form vetoes EVERYTHING — labeled IDs and success wording on a page still showing the unsubmitted form mint nothing
+ok 123 - D12 (BUG-208): a still-open form vetoes EVERYTHING — labeled IDs and success wording on a page still showing the unsubmitted form mint nothing
+  ---
+  duration_ms: 0.214996
+  type: 'test'
+  ...
+# Subtest: D11 (BUG-207): on a form that remounts every field after its first fill, verified per-field fill persists — the doorstep payload is complete
+ok 124 - D11 (BUG-207): on a form that remounts every field after its first fill, verified per-field fill persists — the doorstep payload is complete
+  ---
+  duration_ms: 9213.451678
+  type: 'test'
+  ...
+# Subtest: D11 delayed-reset end-to-end (BUG-207): a board-wide reset after the resume upload wipes the early fields — the doorstep repair restores them and the payload is complete
+ok 125 - D11 delayed-reset end-to-end (BUG-207): a board-wide reset after the resume upload wipes the early fields — the doorstep repair restores them and the payload is complete
+  ---
+  duration_ms: 10195.273344
+  type: 'test'
+  ...
+# Subtest: D11 typeahead (BUG-207): a location widget that clears unpicked free text is filled by picking its own suggestion — the canonical place text persists to the doorstep
+ok 126 - D11 typeahead (BUG-207): a location widget that clears unpicked free text is filled by picking its own suggestion — the canonical place text persists to the doorstep
+  ---
+  duration_ms: 8324.704755
+  type: 'test'
+  ...
+# Subtest: D11 addendum (BUG-207): a resume input that vanishes after discovery ends the run at the gate — the fill reports it, the run does not die
+ok 127 - D11 addendum (BUG-207): a resume input that vanishes after discovery ends the run at the gate — the fill reports it, the run does not die
+  ---
+  duration_ms: 21918.758441
+  type: 'test'
+  ...
+# Subtest: D11 addendum (BUG-207): a resume input remounted under a fresh id after discovery is re-discovered at fill time and the upload lands
+ok 128 - D11 addendum (BUG-207): a resume input remounted under a fresh id after discovery is re-discovered at fill time and the upload lands
+  ---
+  duration_ms: 18462.888881
+  type: 'test'
+  ...
+# Subtest: D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked
+ok 129 - D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked
+  ---
+  duration_ms: 23880.181305
+  type: 'test'
+  ...
+# Subtest: D12 end-to-end (BUG-208): an armed submit landing on the still-open form (the Labelbox shape) is unknown_outcome — the prose token 'security' mints no SUBMITTED
+ok 130 - D12 end-to-end (BUG-208): an armed submit landing on the still-open form (the Labelbox shape) is unknown_outcome — the prose token 'security' mints no SUBMITTED
+  ---
+  duration_ms: 10815.328104
+  type: 'test'
+  ...
+# Subtest: D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep
+ok 131 - D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep
+  ---
+  duration_ms: 47490.232226
+  type: 'test'
+  ...
+# Subtest: D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands
+ok 132 - D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands
+  ---
+  duration_ms: 51487.288927
+  type: 'test'
+  ...
+# Subtest: D1 (BUG-060): 149 stops typed HOST_REDIRECT_REFUSED when the driver reports an off-allowlist final URL — zero form actions after it
+ok 133 - D1 (BUG-060): 149 stops typed HOST_REDIRECT_REFUSED when the driver reports an off-allowlist final URL — zero form actions after it
+  ---
+  duration_ms: 3.046427
+  type: 'test'
+  ...
+# Subtest: D1 (BUG-060): 150's final-URL gate allows only the ATS families + localhost and refuses everything else
+ok 134 - D1 (BUG-060): 150's final-URL gate allows only the ATS families + localhost and refuses everything else
+  ---
+  duration_ms: 2.025676
+  type: 'test'
+  ...
+# Subtest: D1 (BUG-060): a redirect refusal at the REVIEW step also stops 149 typed, before any submit
+ok 135 - D1 (BUG-060): a redirect refusal at the REVIEW step also stops 149 typed, before any submit
+  ---
+  duration_ms: 1.30343
+  type: 'test'
+  ...
+# Subtest: D2 (BUG-061): zero discovered fields -> blocked EMPTY_FORM, no doorstep, no prepared payload
+ok 136 - D2 (BUG-061): zero discovered fields -> blocked EMPTY_FORM, no doorstep, no prepared payload
+  ---
+  duration_ms: 0.438901
+  type: 'test'
+  ...
+# Subtest: D2 (BUG-061): a form whose fills all fail (payload would be resume-hash only) is also EMPTY_FORM, never prepared
+ok 137 - D2 (BUG-061): a form whose fills all fail (payload would be resume-hash only) is also EMPTY_FORM, never prepared
+  ---
+  duration_ms: 0.383608
+  type: 'test'
+  ...
+# Subtest: D4 (BUG-062): education + country answers flow from the profile (F-001 shape) into the payload
+ok 138 - D4 (BUG-062): education + country answers flow from the profile (F-001 shape) into the payload
+  ---
+  duration_ms: 1.535641
+  type: 'test'
+  ...
+# Subtest: D4 (BUG-062): a missing education/country fact is an ask — never invented, never filled
+ok 139 - D4 (BUG-062): a missing education/country fact is an ask — never invented, never filled
+  ---
+  duration_ms: 0.568409
+  type: 'test'
+  ...
+# Subtest: D4 (BUG-062): 150 classifies education + country DOM fields to the new profile keys
+ok 140 - D4 (BUG-062): 150 classifies education + country DOM fields to the new profile keys
+  ---
+  duration_ms: 3.032872
+  type: 'test'
+  ...
+# Subtest: D3 (BUG-063): submitDoorstep arms the board ONLY from an approval carrying an approvalRef, and records the ref on the submission
+ok 141 - D3 (BUG-063): submitDoorstep arms the board ONLY from an approval carrying an approvalRef, and records the ref on the submission
+  ---
+  duration_ms: 1.817236
+  type: 'test'
+  ...
+# Subtest: D6 (BUG-064): duplicate DOM fields (same label + semantic key) collapse to ONE def — asks are not doubled
+ok 142 - D6 (BUG-064): duplicate DOM fields (same label + semantic key) collapse to ONE def — asks are not doubled
+  ---
+  duration_ms: 0.667225
+  type: 'test'
+  ...
+# Subtest: D7 (BUG-065): a value is never bound from the DOM name alone when the label says something else; preferred_name is not the legal name
+ok 143 - D7 (BUG-065): a value is never bound from the DOM name alone when the label says something else; preferred_name is not the legal name
+  ---
+  duration_ms: 1.204918
+  type: 'test'
+  ...
+# Subtest: D7 (BUG-065): without a preferred_name fact the field stays EMPTY (ask, not a filled legal name)
+ok 144 - D7 (BUG-065): without a preferred_name fact the field stays EMPTY (ask, not a filled legal name)
+  ---
+  duration_ms: 0.652824
+  type: 'test'
+  ...
+# Subtest: D7 live-found exceptions (Arc doorstep run, 2026-10-14): a resume file labeled 'Attach' still binds the sha-bound resume, a cover-letter file never does, and EEO matches its machine name
+ok 145 - D7 live-found exceptions (Arc doorstep run, 2026-10-14): a resume file labeled 'Attach' still binds the sha-bound resume, a cover-letter file never does, and EEO matches its machine name
+  ---
+  duration_ms: 0.334485
+  type: 'test'
+  ...
+# Subtest: D4/D7 live refinements (Aquatic run, 2026-10-14): Greenhouse's start_year_<n>/end_year_<n> education fields bind the education dates; a location-preference question does not bind the location value
+ok 146 - D4/D7 live refinements (Aquatic run, 2026-10-14): Greenhouse's start_year_<n>/end_year_<n> education fields bind the education dates; a location-preference question does not bind the location value
+  ---
+  duration_ms: 0.953745
+  type: 'test'
+  ...
+# Subtest: D9 (BUG-066): a custom-card field with no <label> carries its human card label, not the machine field name
+ok 147 - D9 (BUG-066): a custom-card field with no <label> carries its human card label, not the machine field name
+  ---
+  duration_ms: 0.397674
+  type: 'test'
+  ...
+1..147
+# tests 147
+# suites 0
+# pass 147
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 202468.700566

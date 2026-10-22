@@ -1,0 +1,125 @@
+{
+  "bug": "F-023",
+  "branch": "wo/f023-fill-verdict-20261022",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "previous_head": "b3402d997fa95b648a1e24970c3372a1803d9d77",
+  "tested_source_pin": "758a6ec5bfdb16f52a9043630c6b6de1914e480c",
+  "verdict": "VERIFIED_LOCAL_FULL_FAMILY__OWNER_D3_EXCEPTION_NOT_REPRODUCED_AND_NOT_CLOSED",
+  "confirmed_mechanism": "F-023 removed refused persistence attempts from the successful-fill ledger but also discarded their confirmed plans, cutting off the preexisting bounded doorstep repair. Keep repairable confirmed plans separate from successful-fill claims; repair only value_did_not_persist, ask on option_not_found, block other driver failures. Compare repaired readback to the confirmed plan. Remove stale earlier-page values for failed current-page fields.",
+  "counts": {
+    "new_same_guards": {
+      "on_348_passed": 4,
+      "on_348_failed": 4,
+      "on_b340_passed": 2,
+      "on_b340_failed": 6,
+      "fix_passed": 8,
+      "fix_failed": 0
+    },
+    "combined_unit": {
+      "passed": 66,
+      "failed": 0
+    },
+    "whole_portal_family_plus_refusal_and_recovery": {
+      "passed": 147,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser_suites": {
+      "tests/career-portal-browser.test.cjs": {
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      "tests/career-portal-submit-integrity.test.cjs": {
+        "passed": 18,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "command": "UPMORE_PLAYWRIGHT_PATH=/tmp/case2-test-tools/node_modules/playwright UPMORE_CHROMIUM_PATH=/usr/bin/chromium node --test --test-reporter=tap tests/career-portal-*.test.cjs tests/career-fill-refusal.test.cjs tests/career-fill-persistence-recovery.test.cjs",
+  "owner_failure_reproduction": {
+    "b340_isolated_D3_and_D13": {
+      "passed": 2,
+      "failed": 0
+    },
+    "b340_full_family_with_existing_call_trace": {
+      "passed": 139,
+      "failed": 0
+    },
+    "D3_exception": "NOT_REPRODUCED. No change to module 150, its stale-field meaning checks, helper, or submitDoorstep. The owner-reported exception remains open pending the failing field/stack evidence; passing tests here do not negate the owner's failure.",
+    "D13_original_failure": "Owner's exact failing run not reproduced; the dropped-persistence-plan regression is separately reproduced by frozen guards."
+  },
+  "protected_test_sha256": {
+    "tests/career-fill-refusal.test.cjs": "efd81a899a7d5d2dbb0f1c2a51a81ecaede587180b3f1b7d8b9ac89d6ba13b0a",
+    "tests/career-portal-answer-map.test.cjs": "f78d769a3bd99a39aaebe81ca658f2b1fb806aca7ba926f656340b97ba17dac5",
+    "tests/career-portal-apply.test.cjs": "95dcbc6e1c4863fc63a7cd9b6bf3335eb3698364015bb768bc1099415134ced4",
+    "tests/career-portal-browser.test.cjs": "b12650b16447ca92c2a6db1403ee89327bab1880f79d0a7889baa8c22cb0e38c",
+    "tests/career-portal-caps.test.cjs": "4f811de2f547978cef8c686661a0d4a36e161557e706b7bf7dc36cf525046e35",
+    "tests/career-portal-collision.test.cjs": "ca71968efa845b1e956b12c66e50696837ab301b71d942937d1006ed8b16dd12",
+    "tests/career-portal-lever-radio.test.cjs": "758e87f8cd2201498af1615f5edaec708486b2698c8f04e4cf30edd80bac538b",
+    "tests/career-portal-payload-binding.test.cjs": "beb6639f2a784bec4a44ed4cba9155e85470196785cf99ed294346a8a7276dd4",
+    "tests/career-portal-submit-integrity.test.cjs": "77e08bdff78bf1fa03fce4642e0fc7504a109879717f6e71b10ca4cd2cc88e2b",
+    "tests/career-portal-submit-path.test.cjs": "b20d3e777ea39dd91e02a2e7724402a3b72f93d378ccec1975451a3a512d17ba"
+  },
+  "file_sha256": {
+    "packages/domain/149-career-portal-apply.js": "289883caacbc1ce839328cc6e011645adb4d59c19f26b47b55dcde4d424c71df",
+    "supabase/functions/_shared/router_core.career.js": "c121e609a160ef0971f2ab7477aebe38449778e5c8529c9d5d2f1ec967bf07ee",
+    "supabase/functions/_shared/router_core.js": "c5a095b96f5cb1fe474587112b1ccce36c676b630aa82efa6c35e66a1e871dd6",
+    "tests/career-fill-persistence-recovery.test.cjs": "d82a29ac6d111b0fe5bdd93cb68cebf81456cb12f0b2a884947d2a64aa5e7bcc"
+  },
+  "submit_and_following_source_sha256": "b0b0a619f10f04a9fa81ce523b8a1b830735a278ac4991d328880eb14822e797",
+  "canonical_bundles": "career-only and full rebuild + --check PASS",
+  "raw_logs": {
+    "full-family.tap": {
+      "raw_sha256": "768dc629383d7ba1667c68120161b6f28e88965d146d70d0e91123cb528d1982",
+      "gzip_sha256": "051a6995fac4e70f010e966cc3ed904e3c2c00ca62998b2169446076cbd0e77d"
+    },
+    "new-guards-b340.tap": {
+      "raw_sha256": "9be2c2a98e9a4a8ff080fa140dda893b3123549d1d327010d10f837e76493ced",
+      "gzip_sha256": "30a61631cedc74f0d3354a549edc7f43a2b4b647a7c62c0a697d2c8ae3a04b06"
+    },
+    "new-guards-base348.tap": {
+      "raw_sha256": "571fbbdeb00bdc8e7ee792405fd012eca204f0b0b9f90f02cdebe350e3863b14",
+      "gzip_sha256": "6e8d0d1b69f873eb72fa4419f771889ca282da8b2165caf532a1455591c772a3"
+    },
+    "depth-unit.tap": {
+      "raw_sha256": "45bfa552ebaf3590dd96dfbe658f61007ab26e601452b257e71ec3f7a697b164",
+      "gzip_sha256": "b391849e2d0a08e21350b96c79b1104a60ed301e32a2386f133470f99e20ef3a"
+    },
+    "owner-shape-isolated-base.tap": {
+      "raw_sha256": "e94938e7b251427a743fb0f9a5b043ceeb3a8befec2f9e7488b2920da740c2e3",
+      "gzip_sha256": "e27c197f698eddd5abedfd8dce568ff13aa26bc1413e0258371493e7ec58f106"
+    },
+    "owner-shape-isolated-b340.tap": {
+      "raw_sha256": "3d37b060e972a8a64362b5ec5cc4f2ce92379b0a4d884b4267f16ac4a9e9e14e",
+      "gzip_sha256": "e9436947c3d3cc6036141d57d0bb57c9d59f5c6e135d4d2deccf14d4c1991b35"
+    },
+    "b340-traced-full-family.tap": {
+      "raw_sha256": "04ce6e40640b1b373c35df194d1db55954ae24fd3ee47fa645947e3fab2e1798",
+      "gzip_sha256": "e5569fdcfa97f19a29d978434ba7d65d01a14e6433ce9f1708b241b07311e483"
+    },
+    "prototype-carried-value-repro.tap": {
+      "raw_sha256": "4e1dc3a14fa2f9023c8548e8172342e677b4f6f5725a8ef23ecdd30e363b5258",
+      "gzip_sha256": "4937d24e8621b7ffb77632c7d457814bd281030889993439bc0fe0969c9cc834"
+    },
+    "prototype-two-value-guards-repro.tap": {
+      "raw_sha256": "6d682724860014a9896a4da7dc52037bb541967c8b63df44c26954645a4ada46",
+      "gzip_sha256": "7a96532f1aec7541687a490df62794575a09a8b5b92e5aa266a48b56eb767b53"
+    }
+  },
+  "excluded_attempts": [
+    "First new six-case fixture used the wrong sandbox account name and failed NAME_MISMATCH; corrected before the frozen base comparisons.",
+    "Prototype runs with six new cases and local carried-value holes are diagnostic history, not the final source gate."
+  ],
+  "limits": [
+    "All existing tests unchanged; only the new persistence-recovery test file was added.",
+    "Chromium sandbox enabled; synthetic localhost fixtures only. No live drives, submits to employers, feature flags, migrations, deploys, or merges.",
+    "Full product CI NOT_RUN. This artifact does not close the owner's untraced D3 failure."
+  ],
+  "ledger": {
+    "new_spend_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

@@ -445,12 +445,425 @@ const CareerApprovalUi = (() => {
     };
   }
 
+  // ================= F2: the review card (BUILDER-PLAN-48H F2, 2026-10-22) =================
+  // The approval card the owner reviews, one model under two
+  // renderers. Where the batch card above binds ONE approval to a
+  // whole batch, this layer is the REVIEW surface over the same
+  // bindings: per application it shows the job, the company, the
+  // match reason and EVERY field answer that will be sent, each
+  // answer carrying its verification state; the reviewer approves,
+  // edits or rejects PER APPLICATION and batch-approves the
+  // reviewed set. Verification is derived from evidence already in
+  // the prepared payloads, never assumed:
+  //   - canonical field input: the caller's explicit state;
+  //   - trunk v1 message-card entry: a field is verified iff its
+  //     provenance-ledger row carries a confirmation event and names
+  //     the answer's own factId (the ledger IS the record of the
+  //     owner's confirmation);
+  //   - trunk v2 cloud item: a field is verified iff the prepared
+  //     field carries its confirmation_event_id.
+  // An edited answer is re-marked "edited" and never counts as
+  // verified — the original stays on the record beside it.
+  // The commit (tapReviewCommit) runs the EXISTING tap above (155's
+  // mint) unchanged, and only when the reviewed set is the WHOLE
+  // card: the mint binds the exact card payload, so a set changed
+  // by rejection or edit needs a fresh prepared card (173's
+  // supersession doctrine) — it is refused by name, never silently
+  // subset-approved. 'Submit when complete' exists on the card
+  // DISABLED and wired to nothing (owner decision pending; the
+  // submit path is untouched). Data shapes are the real ones; TEST
+  // data is labeled by the card's `world`, never implied live.
+  const REVIEW_STATES = ["pending", "approved", "rejected"];
+  const displayValue = (v) => (typeof v === "string" ? v : v == null ? "" : JSON.stringify(v));
+
+  function fieldFromCanonical(f) {
+    if (!f || !s(f.name) || !s(f.label)) return null;
+    return {
+      name: s(f.name), label: s(f.label),
+      value: f.value, shown: f.shown != null ? f.shown : displayValue(f.value),
+      kind: f.kind || "text", factId: f.factId || null,
+      verification: ["verified", "unverified", "edited"].includes(f.verification) ? f.verification : "unverified",
+      issues: Array.isArray(f.issues) ? f.issues.map((x) => s(x)).filter(Boolean) : [],
+      originalValue: f.originalValue != null ? f.originalValue : null,
+      editedAt: f.editedAt || null,
+    };
+  }
+  function appFromCanonical(a) {
+    if (!a || !s(a.id) || !s(a.company)) return null;
+    if (!Array.isArray(a.fields) || !a.fields.length) return { error: "NO_FIELDS", id: s(a.id) };
+    const fields = a.fields.map(fieldFromCanonical);
+    if (fields.some((f) => !f)) return { error: "BAD_FIELD", id: s(a.id) };
+    if (new Set(fields.map((f) => f.name)).size !== fields.length) return { error: "DUPLICATE_FIELD", id: s(a.id) };
+    return {
+      id: s(a.id), jobTitle: a.jobTitle ? s(a.jobTitle) : null, company: s(a.company),
+      location: a.location ? s(a.location) : null, url: a.url ? s(a.url) : null,
+      matchReason: a.matchReason ? s(a.matchReason) : null,
+      payloadSha256: a.payloadSha256 || null,
+      state: "pending", rejectReason: null, edited: false,
+      fields, blank: Array.isArray(a.blank) ? a.blank.map((x) => s(x)).filter(Boolean) : [],
+    };
+  }
+  function appFromV1Entry(item, meta) {
+    const e = item && item.entry;
+    if (!e || !Array.isArray(e.answers)) return null;
+    const ledger = Array.isArray(e.ledger) ? e.ledger : [];
+    const fields = e.answers.map((ans) => {
+      const row = ledger.find((r) => r && r.field_id === ans.name);
+      const verified = !!(row && row.confirmation_event_id && Array.isArray(row.fact_refs) && row.fact_refs[0] === ans.factId);
+      return {
+        name: s(ans.name), label: s(ans.label), value: ans.value,
+        shown: ans.shown != null ? ans.shown : displayValue(ans.value),
+        kind: ans.kind || "text", factId: ans.factId || null,
+        verification: verified ? "verified" : "unverified",
+        issues: [], originalValue: null, editedAt: null,
+      };
+    });
+    return appFromCanonical({
+      id: e.jobId, jobTitle: meta.jobTitle, company: e.company, location: meta.location,
+      url: e.url, matchReason: meta.matchReason, payloadSha256: item.hash || null,
+      fields, blank: e.blank || [],
+    });
+  }
+  function appFromV2Item(item, meta) {
+    const p = item && item.payload, r = item && item.readback;
+    if (!p || !Array.isArray(p.fields) || !r || !Array.isArray(r.answers)) return null;
+    const fields = p.fields.map((f) => {
+      const ans = r.answers.find((x) => x && x.name === f.name) || {};
+      return {
+        name: s(f.name), label: s(f.label), value: f.value,
+        shown: ans.shown != null ? ans.shown : displayValue(f.value),
+        kind: ans.kind || "text", factId: f.factId || null,
+        verification: f.confirmation_event_id ? "verified" : "unverified",
+        issues: [], originalValue: null, editedAt: null,
+      };
+    });
+    return appFromCanonical({
+      id: p.job_id, jobTitle: meta.jobTitle, company: p.company, location: meta.location,
+      url: p.url, matchReason: meta.matchReason, payloadSha256: item.hash || null,
+      fields, blank: r.blank || [],
+    });
+  }
+  function normalizeReviewApp(raw, appMeta) {
+    if (!raw || typeof raw !== "object") return null;
+    if (raw.entry) return appFromV1Entry(raw, (appMeta || {})[raw.entry.jobId] || {});
+    if (raw.item) return appFromV2Item(raw.item, (appMeta || {})[(raw.item.payload || {}).job_id] || {});
+    if (raw.payload && raw.readback) return appFromV2Item(raw, (appMeta || {})[(raw.payload || {}).job_id] || {});
+    return appFromCanonical(raw);
+  }
+
+  function buildReviewCard(input) {
+    const inp = input || {};
+    if (!s(inp.runId) || !s(inp.cardSha256)) {
+      return { ok: false, code: "NO_BINDING", reason: "a review card must bind to a prepared batch (runId + cardSha256) — an unbound card can never be approved" };
+    }
+    if (!Array.isArray(inp.applications) || !inp.applications.length) {
+      return { ok: false, code: "NO_APPLICATIONS", reason: "no applications were supplied for review" };
+    }
+    const apps = [];
+    for (const raw of inp.applications) {
+      const app = normalizeReviewApp(raw, inp.appMeta);
+      if (!app) return { ok: false, code: "BAD_APPLICATION", reason: "an application could not be read in any known shape (canonical, v1 entry, v2 cloud item)" };
+      if (app.error) return { ok: false, code: app.error, reason: `application ${app.id}: ${app.error === "NO_FIELDS" ? "it carries no field answers — there is nothing honest to review" : app.error}` };
+      apps.push(app);
+    }
+    if (new Set(apps.map((a) => a.id)).size !== apps.length) {
+      return { ok: false, code: "DUPLICATE_APPLICATION", reason: "two applications on this card share one id" };
+    }
+    const card = {
+      kind: "approval_review_card", version: VERSION,
+      runId: s(inp.runId), cardSha256: s(inp.cardSha256), eventId: inp.eventId || null,
+      title: inp.title || `Apply to ${apps.length} role${apps.length === 1 ? "" : "s"}?`,
+      world: inp.world || null,
+      applications: apps,
+      // Built DISABLED (plan decision 2, 2026-10-22): visible as an
+      // option, inert, no path wired; only the owner's words turn it on.
+      submitWhenComplete: {
+        label: "Submit when complete", enabled: false,
+        reason: "Off — submissions stay disabled until the owner turns them on.",
+      },
+    };
+    return { ok: true, card };
+  }
+
+  // Coverage as covered/total (plan rule 1) — computed from the
+  // model on every call, never stored, so it cannot drift.
+  function reviewCoverage(card) {
+    const apps = (card && card.applications) || [];
+    const fields = apps.flatMap((a) => a.fields || []);
+    return {
+      fieldsVerified: fields.filter((f) => f.verification === "verified").length,
+      fieldsEdited: fields.filter((f) => f.verification === "edited").length,
+      fieldsUnverified: fields.filter((f) => f.verification === "unverified").length,
+      fieldsTotal: fields.length,
+      applicationsReviewed: apps.filter((a) => a.state !== "pending").length,
+      applicationsTotal: apps.length,
+    };
+  }
+  const coverageLine = (card) => {
+    const c = reviewCoverage(card);
+    return `Answers verified: ${c.fieldsVerified}/${c.fieldsTotal} · Applications reviewed: ${c.applicationsReviewed}/${c.applicationsTotal}`;
+  };
+
+  function findApp(card, appId) {
+    return card && Array.isArray(card.applications) ? card.applications.find((a) => a.id === appId) || null : null;
+  }
+  function reviewApprove(card, appId) {
+    const app = findApp(card, appId);
+    if (!app) return { ok: false, code: "APP_NOT_ON_CARD", reason: `application "${appId}" is not on this card` };
+    if (app.state === "rejected") return { ok: false, code: "APP_REJECTED", reason: "this application was rejected on this card; a rejection is final here — a fresh card can carry it again" };
+    const next = clone(card);
+    findApp(next, appId).state = "approved";
+    return { ok: true, card: next };
+  }
+  function reviewReject(card, appId, reason) {
+    const app = findApp(card, appId);
+    if (!app) return { ok: false, code: "APP_NOT_ON_CARD", reason: `application "${appId}" is not on this card` };
+    if (!s(reason).trim()) return { ok: false, code: "REJECT_REASON_REQUIRED", reason: "a dropped application always carries its reason (plan rule 2) — supply one" };
+    const next = clone(card);
+    const target = findApp(next, appId);
+    target.state = "rejected";
+    target.rejectReason = s(reason).trim();
+    return { ok: true, card: next };
+  }
+  function editReviewField(card, appId, fieldName, newValue, opts) {
+    const o = opts || {};
+    const app = findApp(card, appId);
+    if (!app) return { ok: false, code: "APP_NOT_ON_CARD", reason: `application "${appId}" is not on this card` };
+    if (app.state === "rejected") return { ok: false, code: "APP_REJECTED", reason: "a rejected application is not edited on this card" };
+    const field = app.fields.find((f) => f.name === fieldName);
+    if (!field) return { ok: false, code: "FIELD_NOT_ON_CARD", reason: `field "${fieldName}" is not on application "${appId}"` };
+    const next = clone(card);
+    const targetApp = findApp(next, appId);
+    const target = targetApp.fields.find((f) => f.name === fieldName);
+    if (target.originalValue == null) target.originalValue = target.value;
+    target.value = newValue;
+    target.shown = displayValue(newValue);
+    target.verification = "edited"; // owner-typed on the card: no longer source-verified, and says so
+    target.editedAt = iso(o.now != null ? o.now : Date.now());
+    targetApp.edited = true;
+    if (targetApp.state === "approved") targetApp.state = "pending"; // approval was of the old answers
+    return { ok: true, card: next };
+  }
+  function approveAllPending(card) {
+    const next = clone(card);
+    for (const app of next.applications) if (app.state === "pending") app.state = "approved";
+    return { ok: true, card: next };
+  }
+
+  // Every application returns exactly once (plan rule 2): approved
+  // (committable, with the exact fields that will be sent), dropped
+  // (rejected, with its recorded reason), or held back (with the
+  // rule that holds it).
+  function reviewCommitSet(card) {
+    const approved = [], dropped = [], heldBack = [];
+    for (const app of (card && card.applications) || []) {
+      if (app.state === "rejected") { dropped.push({ id: app.id, reason: app.rejectReason }); continue; }
+      if (app.edited) { heldBack.push({ id: app.id, reason: "edited answers need a fresh prepared card before this application can be approved for sending" }); continue; }
+      if (app.state !== "approved") { heldBack.push({ id: app.id, reason: "not yet reviewed" }); continue; }
+      approved.push({
+        id: app.id,
+        fields: app.fields.map((f) => ({ name: f.name, label: f.label, value: f.value, verification: f.verification })),
+      });
+    }
+    return { approved, dropped, heldBack, binding: { runId: card ? card.runId : null, cardSha256: card ? card.cardSha256 : null } };
+  }
+
+  // The commit: the EXISTING tap (155's mint / stored-batch mint)
+  // over this card's binding, unchanged — reached only when the
+  // reviewed set is the whole card.
+  function tapReviewCommit(card, currentInput, opts) {
+    const set = reviewCommitSet(card);
+    if (!card || set.dropped.length || set.heldBack.length || set.approved.length !== (card.applications || []).length) {
+      return {
+        ok: false, code: "COMMIT_SET_INCOMPLETE",
+        reason: "the approval mint binds this card's exact payload; a set changed by rejection or edit, or still under review, needs a fresh prepared card — a subset is never silently approved",
+        partition: set,
+      };
+    }
+    const view = { kind: "batch_approval_card", runId: card.runId, cardSha256: card.cardSha256 };
+    return tapApprove(view, currentInput, opts || {});
+  }
+
+  // The bridge's button binding (channel_present): a button carries
+  // only { action, version, eventId, runId, cardSha256 } — never a
+  // payload, never the hash's authority.
+  function reviewChannelActions(card) {
+    return [{ action: "approve", version: VERSION, eventId: card.eventId || null, runId: card.runId, cardSha256: card.cardSha256 }];
+  }
+
+  // ---------------- renderer 1: the channel card (text) ----------------
+  // The numbered format the bridge already emits (WO-022): head line,
+  // one numbered section per application with indented field lines,
+  // the WO-022 reply footer. Unverified answers are loud here too.
+  function fieldTextLine(f) {
+    const val = displayValue(f.shown != null ? f.shown : f.value);
+    if (f.issues && f.issues.length) return `⚠ CHECK — ${f.label}: ${val} — ${f.issues.join("; ")}`;
+    if (f.verification === "edited") return `⚠ EDITED (UNVERIFIED) — ${f.label}: ${val} (was: ${displayValue(f.originalValue)})`;
+    if (f.verification !== "verified") return `⚠ UNVERIFIED — ${f.label}: ${val}`;
+    return `${f.label}: ${val}`;
+  }
+  function renderReviewText(card) {
+    const out = [];
+    out.push(card.title);
+    if (card.world) out.push(`(${card.world})`);
+    out.push(`${card.applications.length} application${card.applications.length === 1 ? " is" : "s are"} ready for your review. Every answer below goes exactly as shown.`);
+    out.push(`Payload hash (your tap binds to exactly this): ${card.cardSha256}`);
+    card.applications.forEach((a, i) => {
+      out.push("");
+      out.push(`${i + 1}. ${a.company} — ${a.jobTitle || a.id}${a.location ? ` (${a.location})` : ""}`);
+      out.push(`   Match: ${a.matchReason || "not recorded"}`);
+      if (a.url) out.push(`   Posting: ${a.url}`);
+      for (const f of a.fields) out.push(`   ${fieldTextLine(f)}`);
+      out.push(`   Left blank: ${a.blank.length ? a.blank.join("; ") : "none"}`);
+      out.push(`   Review: ${a.state === "approved" ? "approved" : a.state === "rejected" ? `rejected — ${a.rejectReason}` : "awaiting your review"}`);
+    });
+    out.push("");
+    out.push(coverageLine(card));
+    out.push(`[ ] ${card.submitWhenComplete.label} — OFF (disabled)`);
+    out.push(`Reply "yes" to approve the reviewed set exactly as shown, "yes but not N" to leave one out, or "no".`);
+    return out.join("\n");
+  }
+
+  // ---------------- renderer 2: the web card (HTML) ----------------
+  // Styled by src/trainee-design-tokens.css + src/career-approval-
+  // review.css. Every value is escaped; the DOM binder below renders
+  // only this string, and the disclosure it produces IS the review.
+  function fieldChip(f) {
+    if (f.issues && f.issues.length) return `<span class="f2-chip f2-chip--alert">⚠ CHECK</span>`;
+    if (f.verification === "edited") return `<span class="f2-chip f2-chip--alert">⚠ EDITED</span>`;
+    if (f.verification !== "verified") return `<span class="f2-chip f2-chip--alert">⚠ UNVERIFIED</span>`;
+    return `<span class="f2-chip">Verified</span>`;
+  }
+  const fieldAlert = (f) => (f.verification !== "verified" || (f.issues && f.issues.length)) ? " f2-field--alert" : "";
+  function renderReviewHtml(card) {
+    const apps = card.applications.map((a) => {
+      const fields = a.fields.map((f) => [
+        `<div class="f2-field${fieldAlert(f)}" data-field="${esc(f.name)}">`,
+        `<span class="f2-field-label">${esc(f.label)}</span>`,
+        `<span class="f2-field-value">${esc(displayValue(f.shown != null ? f.shown : f.value))}</span>`,
+        fieldChip(f),
+        `<button type="button" class="f2-edit-btn" data-f2-action="edit-field" data-app="${esc(a.id)}" data-field="${esc(f.name)}">Edit</button>`,
+        (f.issues || []).map((x) => `<p class="f2-issue">${esc(x)}</p>`).join(""),
+        f.originalValue != null ? `<p class="f2-was">Was: ${esc(displayValue(f.originalValue))}</p>` : "",
+        `<span class="f2-editor" hidden><input type="text" data-f2-edit-input value="${esc(displayValue(f.shown != null ? f.shown : f.value))}"><button type="button" data-f2-action="edit-save" data-app="${esc(a.id)}" data-field="${esc(f.name)}">Save answer</button></span>`,
+        `</div>`,
+      ].join("")).join("\n");
+      const stateLine = a.state === "approved"
+        ? `<p class="f2-app-state f2-app-state--approved">Approved</p>`
+        : a.state === "rejected"
+          ? `<p class="f2-app-state f2-app-state--rejected">Rejected — ${esc(a.rejectReason || "")}</p>`
+          : `<p class="f2-app-state">Awaiting your review</p>`;
+      return [
+        `<article class="f2-app" data-app-id="${esc(a.id)}" data-state="${esc(a.state)}">`,
+        `<h3 class="f2-app-title">${esc(a.jobTitle || a.id)}</h3>`,
+        `<p class="f2-company">${esc(a.company)}${a.location ? ` · ${esc(a.location)}` : ""}</p>`,
+        a.matchReason
+          ? `<p class="f2-match"><span>Match</span> ${esc(a.matchReason)}</p>`
+          : `<p class="f2-match f2-match--missing"><span>Match</span> Match reason: not recorded</p>`,
+        a.url ? `<p class="f2-url"><a href="${esc(a.url)}">${esc(a.url)}</a></p>` : "",
+        `<div class="f2-fields">${fields}</div>`,
+        `<p class="f2-blank">Left blank: ${a.blank.length ? esc(a.blank.join("; ")) : "none"}</p>`,
+        stateLine,
+        `<div class="f2-app-actions">`,
+        `<button type="button" data-f2-action="approve-app" data-app="${esc(a.id)}">Approve</button>`,
+        `<button type="button" data-f2-action="reject-app" data-app="${esc(a.id)}">Reject</button>`,
+        `<span class="f2-reject-box" hidden><input type="text" data-f2-reason placeholder="Reason (required)"><button type="button" data-f2-action="reject-confirm" data-app="${esc(a.id)}">Confirm reject</button></span>`,
+        `</div>`,
+        `</article>`,
+      ].join("\n");
+    }).join("\n");
+    return [
+      `<section class="f2-card" data-kind="approval_review_card" data-run-id="${esc(card.runId)}" data-card-sha256="${esc(card.cardSha256)}">`,
+      `<h2 class="f2-title">${esc(card.title)}</h2>`,
+      card.world ? `<p class="f2-world">${esc(card.world)}</p>` : "",
+      `<p class="f2-binding">Payload hash (your tap binds to exactly this): <code>${esc(card.cardSha256)}</code></p>`,
+      `<p class="f2-coverage">${esc(coverageLine(card))}</p>`,
+      apps,
+      `<div class="f2-actions">`,
+      `<button type="button" class="f2-primary" data-f2-action="approve-all">Approve all remaining</button>`,
+      `<button type="button" class="f2-primary" data-f2-action="commit">Record approval for the reviewed set</button>`,
+      `<button type="button" data-f2-action="submit-when-complete" disabled>${esc(card.submitWhenComplete.label)}</button>`,
+      `<span class="f2-submit-note">${esc(card.submitWhenComplete.label)}: OFF — ${esc(card.submitWhenComplete.reason)}</span>`,
+      `</div>`,
+      `<p class="f2-status" role="status" aria-live="polite"></p>`,
+      `</section>`,
+    ].filter((x) => x !== "").join("\n");
+  }
+
+  // The web wiring: renders the model into a host element and routes
+  // the card's own controls through the model ops — the surface a
+  // host page mounts. handlers.commit(set, card) is the host seam
+  // (in production the tapReviewCommit adapter; the seam receives
+  // the exact partition, every application once). The disabled
+  // submit-when-complete control has NO case here: it is wired to
+  // nothing, by construction.
+  function wireReviewCard(rootEl, initialCard, handlers) {
+    const doc = (typeof document !== "undefined" ? document : null);
+    if (!rootEl || !doc || typeof rootEl.addEventListener !== "function") {
+      return { ok: false, code: "NO_DOM", reason: "wireReviewCard needs a DOM element" };
+    }
+    const h = handlers || {};
+    let card = initialCard;
+    const render = () => { rootEl.innerHTML = renderReviewHtml(card); };
+    const setStatus = (msg) => {
+      const el = rootEl.querySelector(".f2-status");
+      if (el) el.textContent = msg;
+    };
+    const apply = (res, okMsg) => {
+      if (res && res.ok) { card = res.card; render(); if (typeof h.onChange === "function") h.onChange(card); if (okMsg) setStatus(okMsg); }
+      else if (res) setStatus(`Not done: ${res.code} — ${res.reason || ""}`);
+      return res;
+    };
+    rootEl.addEventListener("click", async (event) => {
+      const btn = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-f2-action]") : null;
+      if (!btn || btn.disabled) return;
+      const action = btn.getAttribute("data-f2-action");
+      const appId = btn.getAttribute("data-app");
+      const fieldName = btn.getAttribute("data-field");
+      const appEl = btn.closest(".f2-app");
+      if (action === "approve-app") apply(reviewApprove(card, appId), "Approved — it is in the reviewed set.");
+      else if (action === "approve-all") apply(approveAllPending(card), "Every remaining application is approved in the reviewed set.");
+      else if (action === "reject-app") {
+        const box = appEl && appEl.querySelector(".f2-reject-box");
+        if (box) box.hidden = false;
+      } else if (action === "reject-confirm") {
+        const input = appEl && appEl.querySelector("[data-f2-reason]");
+        apply(reviewReject(card, appId, input ? input.value : ""), "Rejected — recorded with its reason.");
+      } else if (action === "edit-field") {
+        const fieldEl = btn.closest(".f2-field");
+        const editor = fieldEl && fieldEl.querySelector(".f2-editor");
+        if (editor) editor.hidden = false;
+      } else if (action === "edit-save") {
+        const fieldEl = btn.closest(".f2-field");
+        const input = fieldEl && fieldEl.querySelector("[data-f2-edit-input]");
+        apply(editReviewField(card, appId, fieldName, input ? input.value : ""), "Answer updated — it is marked edited (unverified) and the application is back in review.");
+      } else if (action === "commit") {
+        if (typeof h.commit !== "function") { setStatus("Not done: NO_COMMIT_HANDLER — this surface has no approval seam wired."); return; }
+        const set = reviewCommitSet(card);
+        try {
+          const res = await h.commit(set, card);
+          if (res && res.ok) setStatus(res.text || "Approval recorded for the reviewed set exactly as shown. Nothing has been submitted to an employer.");
+          else setStatus(`Not recorded: ${(res && res.code) || "REFUSED"} — ${(res && res.reason) || "the approval seam refused."}`);
+        } catch (e) {
+          setStatus(`Not recorded: COMMIT_ERROR — ${e && e.message ? e.message.slice(0, 160) : "the approval seam errored."}`);
+        }
+      }
+      // "submit-when-complete" intentionally has no case: disabled in
+      // the markup and wired to nothing here.
+    });
+    render();
+    return { ok: true, getCard: () => card, refresh: render };
+  }
+
   return {
     VERSION,
     batchState,
     buildBatchCard, renderCardText, renderCardHtml,
     tapApprove, claimBatch,
     buildAskCard, renderAskCardText, renderAskCardHtml, tapAskCard,
+    buildReviewCard, reviewCoverage, reviewApprove, reviewReject, editReviewField,
+    approveAllPending, reviewCommitSet, tapReviewCommit, reviewChannelActions,
+    renderReviewText, renderReviewHtml, wireReviewCard,
     _sha256: sha256,
   };
 })();

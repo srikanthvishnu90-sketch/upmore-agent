@@ -1,0 +1,111 @@
+{
+  "bug": "MUSE-F-009",
+  "verdict": "VERIFIED_REPO_SCOPED",
+  "branch": "wo/f009-owned-quiet-hours-20261022",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source_pin": "de4760e5169694859ae45c3ab87bf55512ee252f",
+  "root_causes": [
+    "Legacy quiet-hours handling asks for hours even when the person supplied them; the text turn never updates the existing owned alert row.",
+    "Daily job reports use now instead of the same quiet-end schedule already used by instant job alerts."
+  ],
+  "fix": "A direct quiet-hours setting/query is handled before either brain or stale thread prompts, after host controls. Settings-only owner-scoped compare-and-set preserves counters and concurrent preference changes. Success requires a matching readback. Both job alerts and reports use quiet-end scheduling.",
+  "counts": {
+    "new_endpoint_same_test": {
+      "base_pass": 2,
+      "base_fail": 16,
+      "fix_pass": 18,
+      "fix_fail": 0
+    },
+    "new_report_same_test": {
+      "base_pass": 2,
+      "base_fail": 3,
+      "fix_pass": 5,
+      "fix_fail": 0
+    },
+    "unchanged_neighbors": {
+      "base_pass": 89,
+      "fix_pass": 89,
+      "fail": 0
+    },
+    "combined": {
+      "base_pass": 93,
+      "base_fail": 19,
+      "fix_pass": 112,
+      "fix_fail": 0,
+      "skipped": 0
+    }
+  },
+  "commands": {
+    "endpoint": "node --experimental-vm-modules --test --test-reporter=tap tests/career-f009-quiet-hours.test.cjs",
+    "deno": "DENO_DIR=/tmp/case2-deno-cache /tmp/case2-test-tools/node_modules/.bin/deno test --cached-only --allow-read=/tmp --allow-write=/tmp --allow-run --no-check tests/edge/f009-quiet-report.test.ts tests/edge/career-alerts.test.ts tests/edge/career-backlog-alerts.test.ts tests/architect/wo-007-alerts.test.ts tests/architect/wo-037-alerts.test.ts tests/edge/control-state.test.ts",
+    "node_neighbors": "node --test --test-reporter=tap tests/career-alert-watch.test.cjs tests/career-alerts-host-wiring.test.cjs tests/career-alerts-scheduler-cadence.test.cjs tests/career-alert-intents.test.cjs tests/career-alert-text-flow.test.cjs tests/career-alert-watch-scale.test.cjs tests/career-durability.test.cjs",
+    "types": "deno check --cached-only supabase/functions/_shared/career_quiet_hours.ts"
+  },
+  "file_sha256": {
+    "supabase/functions/_shared/career_alert_store.ts": "2004c92a852f0ec0de1008a5061ff1dbdb5d28d021a2e16f858216010fd07b76",
+    "supabase/functions/_shared/career_alerts.ts": "7a50e3bd76240a4609a8f00ae0fcf68432e305e17b277a9676bca1d31c623d1b",
+    "supabase/functions/_shared/career_quiet_hours.ts": "6f0287d4b227f641ef9baed223d6e1b6af996ce9ca998e91481d56011ef1ae2e",
+    "supabase/functions/agent-chat/handler-career.ts": "3ad433a07bd3bfc489d62edf60cd45e48672ccf2aca251c14877beae89c2ac2e",
+    "tests/career-f009-quiet-hours.test.cjs": "79b36662d40601056a24900c01a88119ba72da06bbb8e44555ab6dc1d6654b16",
+    "tests/edge/f009-quiet-report.test.ts": "875b8468174b97d93967fde39169904cf64e42e9ac61fa3428eeda49b58d869b"
+  },
+  "boundaries": {
+    "feature_flag_lines": "unchanged",
+    "unchanged": {
+      "packages/domain/149-career-portal-apply.js": "721736cf006332c51c7d2ba2fe0e75c00b73eca86595e0c0bd65051adfce2c30",
+      "supabase/functions/_shared/career_apply_cards.ts": "86cba8b5a70fc36cf8292e8716173a81cdec3e476369ccd0c84a9d264fffc9ad",
+      "supabase/functions/_shared/career_cloud_optin.ts": "42e9bb4a1f05d12a5192902c65540b158bce0c40f2013d5a20b1b5901e3b4959"
+    }
+  },
+  "raw_logs": {
+    "base-endpoint.tap": {
+      "raw_sha256": "1208082224e21b59b8ab09949365579f8d1b503c7f9ed1303863fd5e6dcd471b",
+      "gzip_sha256": "1a43fb1fabb058c7e0d9dd235b9693fc85454ac3b2cbd4ffb9511f4d6ae50578"
+    },
+    "fix-endpoint.tap": {
+      "raw_sha256": "e742788693cebb0c9c07c1f841364780b92962ec41f5818763fca817ed0d146e",
+      "gzip_sha256": "6875871e9cf9bec06c1a9b6218c26b7cdcd179fad238df9eeba1cd2a4e2282fe"
+    },
+    "base-deno.log": {
+      "raw_sha256": "ec8935b68148fb71e49c6499a878c0f6bde747575ec466b3dd8d341f416cfe48",
+      "gzip_sha256": "49f0eaf83c26ee211e963285c6fc531501442d340ee4990475b54763dd96ced0"
+    },
+    "fix-deno.log": {
+      "raw_sha256": "3009594f3658eb15c9e3f62d47bb21cf47c74030904b7f07fee8a1f31b1f50ca",
+      "gzip_sha256": "167dbb6a68cc435f4eeb6e6a6877b611a365afd3aefe6f82e74e4950b279ff83"
+    },
+    "base-node-neighbors.tap": {
+      "raw_sha256": "ba118be85dfe150b2a4b7fed378ffa534f538f28a8a2ee9cb5eba4eb479bf0e4",
+      "gzip_sha256": "feb99879657bf2f829cacd459e1f611e69e35296eddca399476a5ddd2cef59e6"
+    },
+    "fix-node-neighbors.tap": {
+      "raw_sha256": "d5853e3136b9e1b0785100218e1f62ece0a3e47c1bf2c5a5be73c2fff3cde9c6",
+      "gzip_sha256": "4c43df3b80c36aa19f0856375157d9bbbd9c30409b5ed382bb3264c49137833e"
+    },
+    "typecheck.log": {
+      "raw_sha256": "200904d5d295bde0d2db52f8b0ab7dc780c3b24efac11518acb05462fd3ae6ac",
+      "gzip_sha256": "d7c08b57d53f852385e7ea7f4db5609e5caf99b83bc3f9a8c14a07c5c4e739ec"
+    }
+  },
+  "limits": [
+    "Existing job-alert watches only. Without a saved watch, asks for job keywords/timezone rather than inventing a watch.",
+    "Whole-hour windows only; ambiguous times, nonzero minutes, equal endpoints and invalid zones ask without a write.",
+    "Endpoint is the actual staged production import graph with synthetic service transport; SQL/PostgREST server integration and live behavior NOT_RUN.",
+    "No feature flags, migration files, submit bodies, approval handlers, or cloud opt-in implementation changed. No deploy/apply/merge/send/spend.",
+    "Full product gate and GitHub CI NOT_RUN; scoped tests only."
+  ],
+  "excluded_setup_attempts": [
+    "Initial endpoint fake rejected the preexisting profiles upsert (HTTP 500); corrected before valid baseline.",
+    "Initial Deno neighbor command lacked read/write/run permissions for its local CLI fixture; final identical base/fix commands completed with permissions."
+  ],
+  "landing_steps": [
+    "Review source and frozen tests against the base; replay commands from this record.",
+    "Integrate this branch through the owner-controlled review/green-CI gate, resolving any other handler edits without changing account-control or approval behavior.",
+    "No migration is needed. No deploy or switch change is authorized by this artifact. Live quiet-hours validation remains with the deploy lane."
+  ],
+  "ledger": {
+    "new_spend_usd": "0.000000",
+    "recorded_cumulative_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

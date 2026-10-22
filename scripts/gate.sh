@@ -111,6 +111,8 @@ edge_tests=(
   tests/edge/channel.test.ts
   tests/edge/channel-delivery.test.ts tests/edge/channel-integrity.test.ts
   tests/edge/channel-inbound.test.ts
+  tests/edge/channel-card-readback.test.ts
+  tests/edge/channel-loop-receipt.test.ts
   tests/edge/capability-journey.test.ts
   tests/edge/eval-judge.test.ts
   tests/edge/career-apply-store.test.ts
@@ -148,6 +150,18 @@ step architect-tests deno test -A --no-check --ignore=tests/architect/pending te
 step apply-cli-typecheck deno check scripts/apply.ts
 step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
 step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
+# C5 (2026-10-22, BUILDER-PLAN-48H): the chat-to-confirmation E2E's
+# hermetic legs run on every merge — provisioning (trunk's migration
+# chain via tests/db/run.sh's order) + H1/H2/H3a/H3b/H3-drain/H6/H7
+# from tests/e2e/chat-to-confirmation.test.cjs, selected by title
+# pattern (H7 joined the same day with the receipts/loop-closure
+# port: it is the same hermetic class — PG rows + the in-process
+# bridge, no browser). The browser legs (H4/H5) stay nightly per the
+# merge/nightly split in docs/e2e/E2E-CHAT-TO-CONFIRMATION-DESIGN.md:
+# they need a host whose Chromium sandbox can initialize. The name
+# pattern must never match the H4/H5 title ("H4 cloud worker ->
+# board and H5 ...").
+step e2e-hermetic bash -c "node --test --test-name-pattern='^(H1|H2|H3|H6|H7)' tests/e2e/chat-to-confirmation.test.cjs && deno test -A --no-check tests/e2e/engine-env.test.ts"
 step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
 step career-bundle python3 scripts/build-router-core.py --career-only --check
 step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts

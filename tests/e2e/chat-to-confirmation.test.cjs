@@ -7,6 +7,7 @@
 //   H1 chat -> card            H4 cloud worker -> board
 //   H2 card -> approval        H5 board -> confirmation page
 //   H3 approval -> cloud worker H6 confirmation -> recorded state
+//   H7 confirmed -> receipt in chat + loop status closure (every stage)
 // Each handoff is PASS, FAIL (with its issue name — a failure without the
 // wiring reason is a bug in this file), or ENVIRONMENT (the VM could not
 // run the leg at all; never counted as a wiring result either way).
@@ -688,4 +689,165 @@ test("H6 confirmation -> recorded state: finish, then the employer's email confi
   assert.equal(markers.FINAL_ROW, "confirmed/cloud/email_confirmed=true/mail_hash=true");
   record("H6", "confirmation->recorded state", "PASS",
     "career_apply_cloud_finish(page_confirmation evidence) -> submitted_unconfirmed; career_apply_confirm_as('received') -> confirmed with email_confirmed_at + confirmation_mail_hash set (disposable PG; the finish leg's evidence carries the mock confirmation number when H5 ran)");
+});
+
+// ------------------------------------------------------------- H7
+// Chat-loop closure + receipts (lane muse/2026-10-22-e2e-h7-receipts;
+// guards: tests/edge/channel-loop-receipt.test.ts; root cause:
+// docs/e2e/H7-LOOP-CLOSURE-ROOT-CAUSE.md). The Route B row's REAL
+// recorded states — snapshotted from the disposable PG at each stage
+// by stages 3/4 (ROUTE_B_ROW_*_JSON) — are fed to the bridge's loop
+// readback, and a status turn at EVERY stage must answer with that
+// row's recorded state: the queued/driving state word, the honest
+// submitted_unconfirmed wording (page evidence only — NO receipt),
+// and at confirmed the full receipt composed from the row's own
+// evidence (company, job id, the employer's confirmation number,
+// payload hash, confirmed timestamp), rendered through the same
+// presentReply path the H1 card uses. The plain core double answers
+// the generic fallback, as the live brain did — the readback is what
+// must overcome it.
+test("H7 confirmed -> receipt in chat: status turns at every loop stage answer from the PG row", async () => {
+  const channelBridge = await import("file://" + path.join(ROOT, "supabase/functions/_shared/channel_bridge.ts"));
+  const receiptMod = await import("file://" + path.join(ROOT, "supabase/functions/_shared/career_apply_receipts.ts"));
+  const present = await import("file://" + path.join(ROOT, "supabase/functions/_shared/channel_present.ts"));
+
+  const USER = "00000000-0000-4000-8000-00000000cb01";
+  const THREAD = "00000000-0000-4000-8000-00000000cba1";
+  const SENDER = "6836694463";
+  const RUN_ID = "batch-e2e0000001";
+  const CARD_HASH = "a".repeat(64);
+  const FALLBACK = "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.";
+
+  const snaps = {};
+  for (const [stage, key] of [
+    ["queued", "ROUTE_B_ROW_QUEUED_JSON"],
+    ["driving", "ROUTE_B_ROW_DRIVING_JSON"],
+    ["submitted_unconfirmed", "ROUTE_B_ROW_SUBMITTED_JSON"],
+    ["confirmed", "ROUTE_B_ROW_CONFIRMED_JSON"],
+  ]) {
+    assert.ok(markers[key], `the PG snapshot ${key} exists (stages 3/4 emit it)`);
+    snaps[stage] = JSON.parse(markers[key]);
+    assert.equal(snaps[stage].state, stage, `the recorded PG row at this leg really is ${stage}`);
+    assert.equal(snaps[stage].user_id, USER, "the row is the chat user's own");
+    assert.equal(snaps[stage].job_id, "lever:veeva:synthetic-binding-negative");
+  }
+  const confirmed = snaps.confirmed;
+  assert.ok(confirmed.email_confirmed_at, "the confirmed row carries the employer's email stamp");
+  assert.ok(confirmed.evidence && confirmed.evidence.confirmation_number,
+    "the confirmed row's evidence carries the employer's confirmation number");
+
+  // The bridge world for one stage: the thread remembers the batch
+  // effort (a prepare intent), the stored run is past its card, and
+  // the apply table holds exactly this stage's PG row.
+  function world(row) {
+    const threads = new Map([[SENDER, { thread_id: THREAD, last_message_id: null }]]);
+    const intents = [{
+      user_id: USER, intent_id: "intent-h7", thread_id: THREAD, run_id: RUN_ID,
+      binding: { version: "career_batch_intent/v1", action: "prepare", run_id: RUN_ID },
+      created_at: "2026-10-22T10:00:00.000Z",
+    }];
+    const jobs = [row];
+    const runRecord = {
+      version: "career_batch_run/v1", runId: RUN_ID, userId: USER, status: "approved",
+      run: { id: RUN_ID, cardSha256: CARD_HASH }, summary: null,
+    };
+    function query(rows) {
+      const filters = {}; let lim = null; let ord = null;
+      const q = {
+        select() { return q; },
+        eq(c, v) { filters[c] = v; return q; },
+        order(c, o) { ord = { c, asc: !o || o.ascending !== false }; return q; },
+        limit(n) { lim = n; return q; },
+        then(resolve) {
+          let out = rows.filter((r) => Object.entries(filters).every(([c, v]) => r[c] === v));
+          if (ord) out = out.sort((a, b) => (String(a[ord.c]) < String(b[ord.c]) ? -1 : 1) * (ord.asc ? 1 : -1));
+          if (lim != null) out = out.slice(0, lim);
+          resolve({ data: out.map((r) => ({ ...r })), error: null });
+        },
+      };
+      return q;
+    }
+    const admin = {
+      from(table) {
+        if (table === "channel_threads") {
+          const filters = {};
+          const q = {
+            select() { return q; },
+            eq(c, v) { filters[c] = v; return q; },
+            async maybeSingle() { const r = threads.get(filters.sender_key); return { data: r ? { ...r } : null, error: null }; },
+            async upsert(r) {
+              const prev = threads.get(r.sender_key);
+              threads.set(r.sender_key, { thread_id: r.thread_id, last_message_id: r.last_message_id ?? prev?.last_message_id ?? null });
+              return { error: null };
+            },
+          };
+          return q;
+        }
+        if (table === "agent_threads") {
+          const q = { insert() { return q; }, select() { return q; }, async single() { return { data: { id: THREAD }, error: null }; } };
+          return q;
+        }
+        if (table === "career_batch_intents_v1") return query(intents);
+        if (table === "career_apply_jobs") return query(jobs);
+        throw new Error("unexpected table " + table);
+      },
+      async rpc(name, args) {
+        assert.equal(name, "career_batch_result_v1");
+        return { data: { batch: args.p_user === USER && args.p_run === RUN_ID ? runRecord : null }, error: null };
+      },
+    };
+    const wire = [];
+    const fetchFn = async (url, init) => {
+      wire.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ reply: FALLBACK, thread_id: THREAD }), { status: 200 });
+    };
+    const deps = {
+      env: (k) => ({ SUPABASE_URL: "https://e2e.fixture", SUPABASE_SERVICE_ROLE_KEY: "fixture-key" })[k],
+      fetchFn, createAdmin: () => admin, paceMs: 0,
+    };
+    return { deps, wire };
+  }
+
+  for (const stage of ["queued", "driving", "submitted_unconfirmed", "confirmed"]) {
+    const row = snaps[stage];
+    const { deps, wire } = world(row);
+    const outcome = await channelBridge.runChannelTurnRich(deps, {
+      channel: "telegram", senderKey: SENDER, userId: USER,
+      text: "What's the batch status?", messageId: "h7-" + stage,
+    });
+    assert.equal(outcome.kind, "done");
+    assert.notEqual(outcome.replyText, FALLBACK, `${stage}: the loop readback answers, not the fallback`);
+    assert.equal(outcome.replyText, receiptMod.applyLoopText(row),
+      `${stage}: the chat answer is the recorded row's own loop text`);
+    assert.ok(outcome.replyText.includes(stage), `${stage}: the answer carries the recorded state word`);
+    assert.ok(outcome.replyText.includes(row.company) && outcome.replyText.includes(row.job_id),
+      `${stage}: the answer names the row's company and job id`);
+    assert.equal(wire.length, 1, `${stage}: no extra core call — the readback reads the row itself`);
+  }
+
+  // The receipt itself, byte-bound to the PG row's recorded evidence.
+  const { deps } = world(confirmed);
+  const outcome = await channelBridge.runChannelTurnRich(deps, {
+    channel: "telegram", senderKey: SENDER, userId: USER,
+    text: "What's the batch status?", messageId: "h7-receipt",
+  });
+  for (const field of [confirmed.company, confirmed.job_id, confirmed.evidence.confirmation_number,
+    confirmed.payload_hash, confirmed.email_confirmed_at]) {
+    assert.ok(outcome.replyText.includes(field), `the receipt carries the recorded ${field}`);
+  }
+  const rendered = present.presentReply("telegram", outcome.replyText, 4096).join("\n");
+  for (const field of [confirmed.evidence.confirmation_number, confirmed.payload_hash, confirmed.email_confirmed_at]) {
+    assert.ok(rendered.includes(field), `the rendered channel parts carry ${field}`);
+  }
+  // And the stage before it earned NO receipt from the same evidence.
+  const sub = snaps.submitted_unconfirmed;
+  assert.equal(sub.evidence.page_confirmation, true, "the submitted row holds page evidence only");
+  assert.ok(!receiptMod.applyLoopText(sub).includes("Receipt"),
+    "submitted_unconfirmed (page evidence alone) produces no receipt");
+  assert.ok(!receiptMod.applyLoopText(sub).includes(sub.payload_hash),
+    "no payload hash is rendered before the employer's email");
+
+  record("H7", "confirmed->receipt + loop closure", "PASS",
+    "status turns at queued/driving/submitted_unconfirmed/confirmed answered from the Route B row's disposable-PG snapshots through runChannelTurnRich's loop readback — never the fallback; the confirmed answer is the receipt composed from the row's own evidence (company, job id, employer confirmation number " +
+    confirmed.evidence.confirmation_number + ", payload hash, email_confirmed_at), rendered via presentReply; submitted_unconfirmed (page evidence only) earned no receipt");
 });

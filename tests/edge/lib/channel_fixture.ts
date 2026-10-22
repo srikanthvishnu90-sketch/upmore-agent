@@ -119,12 +119,16 @@ export class FakeAdminApprovals extends FakeAdmin {
   approvals = new Map<string, any>(); // token -> channel_pending_approvals row
   batchRuns = new Map<string, any>(); // runId -> career_batch_run/v1 record
   batchIntents = new Map<string, any>(); // user_id:intent_id -> career_batch_intents_v1 row (F-037 readback)
+  applyJobs = new Map<string, any>(); // id -> career_apply_jobs row (H7 loop readback)
   override from(table: string) {
     if (table === "channel_pending_approvals") {
       return new FakeQuery(() => this.approvals, (row: any) => row.token);
     }
     if (table === "career_batch_intents_v1") {
       return new FakeQuery(() => this.batchIntents, (row: any) => `${row.user_id}:${row.intent_id}`);
+    }
+    if (table === "career_apply_jobs") {
+      return new FakeQuery(() => this.applyJobs, (row: any) => row.id);
     }
     return super.from(table);
   }

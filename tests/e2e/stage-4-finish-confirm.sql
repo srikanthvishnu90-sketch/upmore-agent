@@ -16,6 +16,9 @@ create temp table fin as
      'reason', 'the mock employer confirmation page was reached'),
    'submitted', null) as row_after;
 select 'FINISH_STATE', (row_after).state from fin;
+-- H7: the full row at the submitted_unconfirmed stage, for the chat-loop
+-- readback leg (page evidence only — it must NOT earn a receipt there).
+select 'ROUTE_B_ROW_SUBMITTED_JSON', coalesce((select to_jsonb(row_after)::text from fin), '');
 reset role;
 select 'CONFIRM_AS', career_apply_confirm_as(
   '00000000-0000-4000-8000-00000000cb01',
@@ -27,3 +30,6 @@ select 'FINAL_ROW', state || '/' || coalesce(source,'null') ||
   '/email_confirmed=' || (email_confirmed_at is not null)::text ||
   '/mail_hash=' || (confirmation_mail_hash is not null)::text
   from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative';
+-- H7: the full row at the confirmed stage — the receipt's evidence.
+select 'ROUTE_B_ROW_CONFIRMED_JSON', coalesce((select to_jsonb(j)::text from career_apply_jobs j
+  where j.job_id='lever:veeva:synthetic-binding-negative'), '');

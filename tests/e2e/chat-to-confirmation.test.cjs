@@ -106,37 +106,212 @@ after(async () => {
 });
 
 // ---------------------------------------------------------------- H1
-test("H1 chat -> card: a plain chat apply ask produces no card (F-037/F-002)", async () => {
+// F-037/F-002, fixed on branch muse/2026-10-22-e2e-h1-card (design:
+// docs/e2e/H1-CARD-DELIVERY-DESIGN.md; guards:
+// tests/edge/channel-card-readback.test.ts). The composition driven
+// here is the product's own at every seam: module 155 parses the ask,
+// planCareerBatchPrepare produces the ask turn's pending_batch_intent,
+// the core commits the prepare intent (career_batch_intents_v1 shape),
+// the worker's stored run lands in career_batch_result_v1's shape, and
+// the status turn goes THROUGH channel_bridge.runChannelTurnRich —
+// whose F-037 readback (runChannelStatus) is what now carries the card
+// into the outcome the handlers render via detectBatchCard /
+// offerApproval (channel_present.ts, unchanged). Doubles sit only at
+// the fetch (agent-chat wire) and supabase-js boundaries — the channel
+// lane's fixture pattern; the agent-chat double routes a structured
+// career_batch body to the REAL planCareerBatchIntent, exactly like
+// handler-career.ts, and answers plain text the way the live brain did
+// on 2026-10-22 (the generic fallback for a status ask).
+test("H1 chat -> card: plain ask -> prepare completes -> status turn through the bridge surfaces the card (F-037)", async () => {
   const Batch = require(path.join(ROOT, "packages/domain/155-career-batch-apply.js"));
-  const bridge = await import("file://" + path.join(ROOT, "supabase/functions/_shared/career_task_bridge.js"));
+  const core = await import("file://" + path.join(ROOT, "supabase/functions/_shared/career_task_bridge.js"));
+  const channelBridge = await import("file://" + path.join(ROOT, "supabase/functions/_shared/channel_bridge.ts"));
+  const present = await import("file://" + path.join(ROOT, "supabase/functions/_shared/channel_present.ts"));
 
-  // The ask itself parses — module 155 is not the gap.
-  const ask = Batch.parseApplyAsk("Apply to 3 data analyst roles for me");
+  const USER = "00000000-0000-4000-8000-00000000cb01";
+  const THREAD = "00000000-0000-4000-8000-00000000cba1";
+  const RUN_ID = "batch-e2e0000001";
+  const CARD_HASH = "a".repeat(64);
+  const ASK = "Apply to 3 data analyst roles for me";
+  const FALLBACK = "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.";
+
+  // The ask itself parses — module 155 was never the gap.
+  const ask = Batch.parseApplyAsk(ASK);
   assert.deepEqual([ask.count, ask.familyText], [3, "data analyst"], "the apply ask parses");
 
-  // What a plain-text turn carries: handler-career.ts builds careerBatch
-  // ONLY from body.career_batch, which channel bridges set only on the
-  // structured approve/status paths. Plain text -> null -> the planner
-  // branch is never entered, and no other chat code shows a cloud card
-  // (the only producer is the service-role Messages RPC, stage 3).
-  assert.equal(bridge.normalizeCareerBatchRequest(undefined), null,
+  // Negative that still holds: a plain-text turn carries NO structured
+  // batch request on its own call. The card now arrives via the
+  // bridge's readback call, not by changing what a plain turn carries.
+  assert.equal(core.normalizeCareerBatchRequest(undefined), null,
     "a plain chat turn carries no structured batch request");
 
-  // The status readback the user gets instead (measured live 2026-10-22
-  // as the generic fallback): the run a plain ask would have created is
-  // not readable, because nothing ever wrote it.
-  const plan = await bridge.planCareerBatchIntent({
+  // Negative that still holds: a run the worker never wrote is not
+  // readable — the planner against an empty persistence says so.
+  const unreadable = await core.planCareerBatchIntent({
     batchRequest: { action: "status", version: "career_batch_intent/v1", runId: "batch-e2e0000000" },
-    message: "What's the batch status?", userId: "00000000-0000-4000-8000-00000000cb01",
-    threadId: "00000000-0000-4000-8000-00000000cba1", turnKey: "e2e", requestHash: "e2e",
+    message: "What's the batch status?", userId: USER, threadId: THREAD, turnKey: "e2e", requestHash: "e2e",
     ctx: { workerCapabilities: [] }, accountVersion: 1, account: { epoch: 1 },
     persistence: { readBatchRun: async () => null },
   });
-  assert.match(plan.out.reply, /No batch run is readable/);
+  assert.match(unreadable.out.reply, /No batch run is readable/);
 
-  record("H1", "chat->card", "FAIL",
-    "F-037/F-002: planCareerBatchIntent is the only card-response producer and runs only on a structured career_batch body that a plain chat turn never carries (normalizeCareerBatchRequest(undefined)=null, measured in-process); the ask parses (155) but no card artifact is produced or readable");
-  assert.fail("H1 FAIL (expected today): F-037/F-002 — chat->card is not wired on the plain chat path");
+  // ---- the world: stored state in the product's own shapes --------
+  const intents = []; // career_batch_intents_v1 rows (binding = intent minus its run skeleton)
+  const threads = new Map(); // sender_key -> channel_threads row
+  const approvals = new Map(); // token -> channel_pending_approvals row
+  let runRecord = null; // career_batch_result_v1's batch record; null until the worker writes it
+  const readBatchRun = async ({ userId, runId }) =>
+    runRecord && runRecord.userId === userId && runRecord.runId === runId ? runRecord : null;
+
+  const admin = {
+    from(table) {
+      if (table === "channel_threads") {
+        const filters = {};
+        const q = {
+          select() { return q; },
+          eq(c, v) { filters[c] = v; return q; },
+          async maybeSingle() { const r = threads.get(filters.sender_key); return { data: r ? { ...r } : null, error: null }; },
+          async upsert(row) {
+            const prev = threads.get(row.sender_key);
+            threads.set(row.sender_key, {
+              thread_id: row.thread_id,
+              last_message_id: row.last_message_id ?? prev?.last_message_id ?? null,
+            });
+            return { error: null };
+          },
+        };
+        return q;
+      }
+      if (table === "agent_threads") {
+        const q = { insert() { return q; }, select() { return q; }, async single() { return { data: { id: THREAD }, error: null }; } };
+        return q;
+      }
+      if (table === "career_batch_intents_v1") {
+        const filters = {}; let lim = null; let ord = null;
+        const q = {
+          select() { return q; },
+          eq(c, v) { filters[c] = v; return q; },
+          order(c, o) { ord = { c, asc: !o || o.ascending !== false }; return q; },
+          limit(n) { lim = n; return q; },
+          then(resolve) {
+            let rows = intents.filter((r) => Object.entries(filters).every(([c, v]) => r[c] === v));
+            if (ord) rows = rows.sort((a, b) => (String(a[ord.c]) < String(b[ord.c]) ? -1 : 1) * (ord.asc ? 1 : -1));
+            if (lim != null) rows = rows.slice(0, lim);
+            resolve({ data: rows, error: null });
+          },
+        };
+        return q;
+      }
+      if (table === "channel_pending_approvals") {
+        const filters = []; const nullCols = []; let patch = null;
+        const q = {
+          insert(row) { approvals.set(row.token, { ...row }); return Promise.resolve({ data: null, error: null }); },
+          update(p) { patch = p; return q; },
+          eq(c, v) { filters.push([c, v]); return q; },
+          is(c, v) { if (v === null) nullCols.push(c); return q; },
+          select() { return q; },
+          then(resolve) {
+            if (patch) {
+              for (const r of approvals.values()) {
+                if (filters.every(([c, v]) => r[c] === v) && nullCols.every((c) => r[c] == null)) Object.assign(r, patch);
+              }
+              resolve({ data: null, error: null });
+            } else resolve({ data: [], error: null });
+          },
+        };
+        return q;
+      }
+      throw new Error("unexpected table " + table);
+    },
+    async rpc(name, args) {
+      assert.equal(name, "career_batch_result_v1");
+      // Owner-scoped, like the real RPC: a foreign run reads as nothing.
+      return { data: { batch: await readBatchRun({ userId: args.p_user, runId: args.p_run }) }, error: null };
+    },
+  };
+
+  // ---- the agent-chat wire double (handler-career.ts's contract) --
+  const wire = [];
+  const fetchFn = async (url, init) => {
+    assert.match(String(url), /\/functions\/v1\/agent-chat$/);
+    const body = JSON.parse(init.body);
+    wire.push(body);
+    if (body.career_batch) {
+      // The handler routes a structured body to the real planner.
+      const plan = await core.planCareerBatchIntent({
+        batchRequest: body.career_batch, message: body.message, userId: body.as_user_id,
+        threadId: body.thread_id, turnKey: body.turn_key ?? "e2e", requestHash: "e2e",
+        ctx: { workerCapabilities: [] }, accountVersion: 1, account: { epoch: 1 },
+        persistence: { readBatchRun },
+      });
+      return new Response(JSON.stringify({ reply: plan.out.reply, batch: plan.out.batch, thread_id: body.thread_id }), { status: 200 });
+    }
+    if (body.message === ASK) {
+      // The ask turn: delegate mode creates the run skeleton, the
+      // planner turns it into the prepare intent, and the core commits
+      // the intent transactionally with the reply (intents[] here).
+      const run = { id: RUN_ID, userId: USER, familyText: ask.familyText, requested: ask.count, status: "queued_prepare" };
+      const prep = await core.planCareerBatchPrepare({
+        run, userId: USER, threadId: THREAD, turnKey: "e2e-ask", requestHash: "e2e",
+        accountVersion: 1, account: { epoch: 1 },
+      });
+      const { run: _skeleton, ...binding } = prep.intent;
+      intents.push({
+        user_id: USER, intent_id: prep.intent.intent_id, thread_id: THREAD, run_id: RUN_ID,
+        binding, created_at: new Date().toISOString(),
+      });
+      return new Response(JSON.stringify({
+        reply: "I've handed this batch to the browser worker to prepare: it will find 3 data analyst roles, screen out the ones that don't fit, tailor each application, and bring the batch back here at the final review screen. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.",
+        batch: prep.batch, thread_id: THREAD,
+      }), { status: 200 });
+    }
+    // Any other plain text: the live brain's answer (the 2026-10-22
+    // fallback for a status ask — what the readback must overcome).
+    return new Response(JSON.stringify({ reply: FALLBACK, thread_id: THREAD }), { status: 200 });
+  };
+
+  const deps = {
+    env: (k) => ({ SUPABASE_URL: "http://e2e.local", SUPABASE_SERVICE_ROLE_KEY: "e2e-service-key" })[k],
+    fetchFn, createAdmin: () => admin, paceMs: 0,
+  };
+  const turnArgs = (text, messageId) => ({
+    channel: "telegram", senderKey: "6836694463", userId: USER, text, messageId,
+  });
+
+  // ---- turn 1: the plain ask ---------------------------------------
+  const askOutcome = await channelBridge.runChannelTurnRich(deps, turnArgs(ASK, "e2e-m1"));
+  assert.equal(askOutcome.kind, "done");
+  assert.equal(askOutcome.chat.batch.kind, "pending_batch_intent", "the ask turn queues the intent, as designed");
+  assert.equal(present.detectBatchCard(askOutcome.chat), null, "no card exists at ask time");
+  assert.equal(wire.length, 1, "the ask turn is one plain call");
+  assert.equal(wire[0].career_batch, undefined, "the ask call carries no structured body");
+
+  // ---- the worker finishes the prepare: the stored run lands -------
+  runRecord = {
+    version: "career_batch_run/v1", runId: RUN_ID, userId: USER, status: "awaiting_approval",
+    run: { id: RUN_ID, cardSha256: CARD_HASH }, summary: null,
+  };
+
+  // ---- turn 2: the status ask, THROUGH THE BRIDGE ------------------
+  const outcome = await channelBridge.runChannelTurnRich(deps, turnArgs("What's the batch status?", "e2e-m2"));
+  assert.equal(outcome.kind, "done");
+  assert.equal(outcome.replyText, `Batch ${RUN_ID}: status awaiting_approval.`,
+    "the outcome is the planner's status readback, not the fallback");
+  assert.equal(wire.length, 3, "ask + plain status turn + exactly one readback call");
+  assert.equal(wire[1].career_batch, undefined, "the status turn's own call is still a plain turn");
+  assert.deepEqual(wire[2].career_batch, { action: "status", version: "career_batch_intent/v1", runId: RUN_ID },
+    "the readback is the structured status request for the remembered run");
+  const card = present.detectBatchCard(outcome.chat);
+  assert.ok(card && card.runId === RUN_ID, "detectBatchCard fires on the bridge outcome (the handlers' offer path)");
+  const offer = await present.offerApproval(deps, {
+    channel: "telegram", senderKey: "6836694463", userId: USER, threadId: outcome.threadId, runId: card.runId,
+  });
+  assert.ok(offer && offer.token, "offerApproval mints a token for the surfaced card");
+  assert.equal(approvals.get(offer.token)?.card_sha256, CARD_HASH,
+    "the token is bound to the run's stored card hash — what is shown is what can be approved");
+
+  record("H1", "chat->card", "PASS",
+    "F-037/F-002 fixed on muse/2026-10-22-e2e-h1-card: plain ask -> pending_batch_intent (155 + planCareerBatchPrepare, in-process) and the core's committed intent remembers the run; prepare completes (stored awaiting_approval run, the product's persistence shape); the status turn THROUGH channel_bridge.runChannelTurnRich issues the structured status readback (runChannelStatus, wire-verified) and the outcome carries the batch_run card; detectBatchCard fires and offerApproval binds a single-use token to the stored cardSha256 — the handlers' existing offer path, unchanged; the negatives still hold (a plain call carries no career_batch; an unwritten run reads as nothing)");
 });
 
 // ------------------------------------------------------- H3 (Route A)

@@ -1,0 +1,24 @@
+{
+  "tested_head": "4824ab50fbc1da8b35696c5d8f4ffc39b418be25",
+  "tested_source_pin": "d79c74bad6551248aff07a86df822e250cc4409d",
+  "command": "UPMORE_PLAYWRIGHT_PATH=/tmp/case2-test-tools/node_modules/playwright UPMORE_CHROMIUM_PATH=/usr/bin/chromium node --test --test-reporter=tap tests/career-portal-browser.test.cjs tests/career-portal-submit-integrity.test.cjs",
+  "counts": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": "/usr/bin/chromium, sandbox enabled, synthetic localhost fixtures only",
+  "raw_log": "chromium.tap.gz",
+  "raw_sha256": "5c27c7d9e9e929442dd2177d815c74b725d5dd408055f54726527c3095f27794",
+  "gzip_sha256": "2f38b052084fa126b321adbd4f31428c53496e74eb706d78fe726903e3589301",
+  "protected_tests": {
+    "tests/career-portal-browser.test.cjs": "b12650b16447ca92c2a6db1403ee89327bab1880f79d0a7889baa8c22cb0e38c",
+    "tests/career-portal-submit-integrity.test.cjs": "77e08bdff78bf1fa03fce4642e0fc7504a109879717f6e71b10ca4cd2cc88e2b"
+  },
+  "limits": "No source or test changes in this recheck; no live drive, submit, deploy, migration or flags. Full product CI NOT_RUN.",
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

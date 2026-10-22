@@ -95,10 +95,12 @@ export function createCareerBoardFor(provider) {
   // code. The constructed-without-transport case never reaches this
   // function (the factory above returns null), so it records
   // nothing and BOARD_NOT_WIRED keeps its one meaning.
-  const careerBoardFor = function (posting) {
+  const careerBoardFor = function (posting, boardOpts) {
     careerBoardFor.lastRefusal = null;
     let board = null;
-    try { board = provider.boardFor(posting); } catch (e) {
+    // F-031: boardOpts.resumeSessionId binds to the prepare drive's live
+    // session instead of creating one (createWorkerBoardProvider below).
+    try { board = boardOpts ? provider.boardFor(posting, boardOpts) : provider.boardFor(posting); } catch (e) {
       careerBoardFor.lastRefusal = {
         code: (e && e.code) || "WORKER_BOARD_REFUSED",
         message: String((e && e.message) || e).slice(0, 300),
@@ -313,9 +315,23 @@ export function createWorkerBoardProvider(opts) {
       }
     }
   }
-  function boardFor(posting) {
+  function boardFor(posting, boardOpts) {
     const url = posting && typeof posting.url === "string" ? posting.url : null;
     if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
+    // F-031 session reuse: bind to the board-service session a prepare
+    // drive left live (the filled page, still at its final review)
+    // instead of creating one. No creation call is made. The id is
+    // session material — never logged — and the service enforces this
+    // provider's user on every call (a foreign session answers 403 →
+    // WORKER_SESSION_FORBIDDEN; an expired one 410 → SESSION_EXPIRED).
+    // The caller verifies the live page against the prepared payload
+    // (module 149 resumeApply) before anything proceeds.
+    if (boardOpts && boardOpts.resumeSessionId != null) {
+      if (typeof boardOpts.resumeSessionId !== "string" || !/^[a-f0-9]{32}$/.test(boardOpts.resumeSessionId)) {
+        throw codedError("WORKER_SESSION_ID_INVALID", "a resume session id must be the board service's session id");
+      }
+      return boardFromSession(boardOpts.resumeSessionId, { atsFamily: boardOpts.atsFamily || null, host: boardOpts.host || "", accountName: null });
+    }
     const res = createSessionWithRetry(resumeSha256 ? { userId, url, resumeSha256 } : { userId, url });
     if (res.status !== 201) {
       const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
@@ -325,6 +341,12 @@ export function createWorkerBoardProvider(opts) {
     const created = res.body || {};
     const sessionId = typeof created.sessionId === "string" && created.sessionId ? created.sessionId : null;
     if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
+    return boardFromSession(sessionId, created);
+  }
+  // One client board bound to one board-service session; the create
+  // path and the resume path share it, so a resumed board has the same
+  // call discipline and terminal death codes as a created one.
+  function boardFromSession(sessionId, created) {
     let terminal = null; // {code, message} — once dead, the board stays dead
     let closedBoard = false;
     // FR-395: the service-side board's rendered values (the widget's own

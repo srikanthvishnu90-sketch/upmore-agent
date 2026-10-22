@@ -22350,8 +22350,11 @@ const CareerPortalApply = (() => {
       captchaAt: o.captchaAt || null,
       accountName: o.accountName !== undefined ? o.accountName : "Alex Testcase (TEST)",
       codeStep: o.codeStep || null, codeAccepted: false, codeTries: 0,
+      extraFields: Array.isArray(o.extraFields) ? o.extraFields : [], fillFailures: [],
     };
     const calls = { open: 0, fill: 0, submit: 0 };
+    const optNorm = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ").toLowerCase();
+    const allFields = () => SANDBOX_FIELDS.concat(state.extraFields);
     return {
       kind: "sandbox", sandbox: true, atsFamily: "greenhouse",
       host: "sandbox.greenhouse-like.test",
@@ -22359,8 +22362,18 @@ const CareerPortalApply = (() => {
       get accountName() { return state.accountName; },
       setSubmitOutcome(v) { state.submitOutcome = v; },
       open() { calls.open += 1; return { ok: true, captcha: state.captchaAt === "open" ? "challenge" : null }; },
-      form() { return { fields: SANDBOX_FIELDS.map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
-      fill(fieldId, value) { calls.fill += 1; state.answers[fieldId] = value; return value; },
+      form() { return { fields: allFields().map((f) => Object.assign({}, f)), captchaAt: state.captchaAt }; },
+      get fillFailures() { return state.fillFailures.slice(); },
+      fill(fieldId, value) {
+        calls.fill += 1;
+        const def = state.extraFields.find((f) => f.field_id === fieldId);
+        if (def && Array.isArray(def.options) && def.options.length) {
+          const hit = def.options.find((op) => optNorm(op.label) && (optNorm(op.label) === optNorm(value) || optNorm(op.value) === optNorm(value)));
+          if (!hit) { state.fillFailures.push({ field_id: fieldId, reason: "option_not_found", wanted: String(value) }); return undefined; }
+          state.answers[fieldId] = hit.label; return hit.label;
+        }
+        state.answers[fieldId] = value; return value;
+      },
       answers() { return Object.assign({}, state.answers); },
       atReview() {
         if (state.captchaAt === "review") return { ok: true, captcha: "challenge" };
@@ -23019,11 +23032,27 @@ const CareerPortalApply = (() => {
         && (!s.company || normQuestion(s.company) === normQuestion(posting.company)));
       return hits.length && hits.every((s) => s.value === hits[0].value) ? hits[0] : null;
     };
+    const PERSISTENCE_FAILURE = /^(value_did_not_persist|file_input_not_mounted|fill_error:)/;
+    const failuresFor = (id) => (Array.isArray(board.fillFailures) ? board.fillFailures : []).filter((x) => x && x.field_id === id);
+    const attemptFill = (f, value, source, stepData) => {
+      const before = failuresFor(f.field_id).length;
+      const r = board.fill(f.field_id, value);
+      const fresh = failuresFor(f.field_id).slice(before);
+      const lastReason = fresh.length ? String(fresh[fresh.length - 1].reason || "fill_failed") : null;
+      if ((r === null || (r === undefined && fresh.length)) && !(lastReason && PERSISTENCE_FAILURE.test(lastReason))) {
+        const refusal = lastReason || "fill_returned_no_value";
+        logStep("fill_refused", Object.assign({}, stepData, { refusal }));
+        if (!asks.some((a) => a.field_id === f.field_id)) asks.push({ field_id: f.field_id, reason: "fill_refused", refusal });
+        return false;
+      }
+      filled[f.field_id] = { value, source };
+      logStep("fill", stepData);
+      return true;
+    };
     const fillSaved = (f, entry) => {
       const s = savedAnswerFor(f);
       if (!s) return false;
-      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
-      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+      attemptFill(f, s.value, "saved_answer", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
         derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
       return true;
     };
@@ -23033,39 +23062,33 @@ const CareerPortalApply = (() => {
         const raw = profileValue(profile, f.profile_key);
         if (raw === undefined || raw === null || raw === "") { asks.push({ field_id: f.field_id, reason: "no_confirmed_fact" }); continue; }
         const value = f.profile_key === "resume" ? { filename: raw.filename, sha256: raw.sha256 } : raw;
-        board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
-        logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
+        attemptFill(f, value, "profile", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          attemptFill(f, a.value, "user_confirmed_answer", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "question") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          attemptFill(f, a.value, "user_confirmed_answer", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         const onCard = !!(a && a.draft === true && a.onCard === true && inp.cardApproval === true && typeof a.value === "string" && a.value.trim());
         if (a && a.draft === true && (a.confirmed === true || onCard)) {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
-          logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
+          attemptFill(f, a.value, source, Object.assign({}, entry, { source, question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
-        board.fill(f.field_id, value);
-        filled[f.field_id] = { value, source: chosen ? "user_eeo_choice" : "eeo_default_decline" };
-        logStep("fill", Object.assign({}, entry, { source: chosen ? "user_eeo_choice" : "eeo_default_decline" }));
+        const source = chosen ? "user_eeo_choice" : "eeo_default_decline";
+        attemptFill(f, value, source, Object.assign({}, entry, { source }));
       } else if (f.kind === "attestation") {
         const att = (inp.attestations || {})[f.field_id];
         if (att && att.explicit === true && att.value !== undefined) {
-          board.fill(f.field_id, att.value); filled[f.field_id] = { value: att.value, source: "user_explicit_attestation" };
-          logStep("fill", Object.assign({}, entry, { source: "user_explicit_attestation" }));
+          attemptFill(f, att.value, "user_explicit_attestation", Object.assign({}, entry, { source: "user_explicit_attestation" }));
         } else if (inp.cardApproval === true && attestationValue(f) !== undefined) {
           if (!session.pendingAttestations) session.pendingAttestations = [];
           const text = attestationText(f), value = attestationValue(f);
@@ -23277,6 +23300,12 @@ const CareerPortalApply = (() => {
       logStep("session_binding_invalid", {});
       return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
     }
+    const pendingAtt = stored.attestations == null ? [] : stored.attestations;
+    if (!Array.isArray(pendingAtt) || pendingAtt.some((a) => !a || typeof a.field_id !== "string" || !a.field_id || typeof a.text !== "string" || a.value === undefined)) {
+      logStep("session_binding_invalid", { cause: "attestations" });
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep's pending certifications are malformed — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    const pendingIds = new Set(pendingAtt.map((a) => a.field_id));
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
     if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
@@ -23303,7 +23332,7 @@ const CareerPortalApply = (() => {
         logStep("session_state_mismatch", { cause: "empty_form" });
         return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
       }
-      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256" && !(pendingAtt.length && k === "attestation_text"));
       const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
       const observed = board.answers() || {};
       const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
@@ -23313,8 +23342,8 @@ const CareerPortalApply = (() => {
       }
       session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
       session.preparationPayload = {};
-      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
-      const livePayload = buildPayload(board, session);
+      for (const k of payloadIds) if (!pendingIds.has(k)) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = bindAttestations(buildPayload(board, session, overlayOf(pendingAtt)), pendingAtt);
       const liveHash = sha256(JSON.stringify(livePayload));
       if (liveHash !== stored.payloadSha256) {
         const changedFields = [], addedFields = [], removedFields = [];
@@ -23362,9 +23391,10 @@ const CareerPortalApply = (() => {
       }
       session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
       return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
-        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+        doorstep: Object.assign({ atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })) } : {}) });
     } catch (e) {
       if (e && SESSION_DEATH_CODES.has(e.code)) {
         logStep("session_not_live", { cause: e.code });
@@ -24699,9 +24729,62 @@ const CareerBatchApply = (() => {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
         url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
+        doorstep: null,
+        boardSession: null,
       };
     }
     return run.apps[key];
+  }
+
+  const SESSION_REUSE_TTL_MS = 10 * 60 * 1000;
+  const RESUME_FALLBACK_CODES = new Set(["SESSION_NOT_LIVE", "SESSION_STATE_MISMATCH", "SESSION_BINDING_INVALID"]);
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function recordBoardSession(run, app, board, res, now) {
+    if (app.stage !== "doorstep" || !res || !res.doorstep || !res.doorstep.payload) return;
+    if (!board || typeof board.workerSessionId !== "string" || !board.workerSessionId) return;
+    const nowMs = typeof now === "number" ? now : (Date.parse(now) || Date.now());
+    app.boardSession = {
+      sessionId: board.workerSessionId, atsFamily: board.atsFamily || null, host: board.host || null,
+      preparedAt: nowMs, expiresAt: nowMs + SESSION_REUSE_TTL_MS,
+    };
+    app.doorstep = {
+      payload: res.doorstep.payload, payloadSha256: res.doorstep.payloadSha256,
+      attestations: (res.doorstep.attestations || []).map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })),
+    };
+    event(run, "board_session_recorded", { postingKey: app.postingKey, expiresAt: app.boardSession.expiresAt });
+  }
+  function tryResume(run, app, d, posting, approvedSha, ctx) {
+    const Portal = ctx.Portal;
+    const b = app.boardSession;
+    if (!b || typeof b.sessionId !== "string" || !b.sessionId) return null;
+    if (typeof d.boardFor !== "function" || typeof Portal.resumeApply !== "function") return null;
+    const nowMs = typeof ctx.now === "number" ? ctx.now : Date.parse(ctx.now);
+    if (Number.isFinite(nowMs) && typeof b.expiresAt === "number" && nowMs >= b.expiresAt) return null;
+    const fallback = (code, cause) => { event(run, "session_resume_fallback", Object.assign({ postingKey: app.postingKey, code }, cause ? { cause } : {})); return null; };
+    if (!app.doorstep || app.doorstep.payloadSha256 !== approvedSha) return fallback("SESSION_BINDING_INVALID");
+    let board = null;
+    try { board = d.boardFor(posting, { resumeSessionId: b.sessionId, atsFamily: b.atsFamily || null, host: b.host || null }); }
+    catch (e) { return fallback("SESSION_NOT_LIVE", (e && e.code) || "RESUME_BOARD_REFUSED"); }
+    if (!board) return fallback("SESSION_NOT_LIVE", (d.boardFor.lastRefusal && d.boardFor.lastRefusal.code) || "RESUME_BOARD_UNAVAILABLE");
+    const discard = () => { try { if (typeof board.close === "function") board.close(); } catch (_) {   } };
+    let res = null;
+    try {
+      const session = Portal.createPortalSession({ userId: run.userId, board });
+      res = Portal.resumeApply(session, { posting, profile: ctx.profile, log: ctx.log, userId: run.userId, now: ctx.now, doorstep: app.doorstep });
+      if (res && res.resultStatus === "prepared" && res.doorstep && res.doorstep.payloadSha256 === approvedSha) {
+        event(run, "session_resumed", { postingKey: app.postingKey, via: "execute" });
+        return session;
+      }
+    } catch (e) {
+      discard();
+      if (e && SESSION_DEATH_CODES.has(e.code)) return fallback("SESSION_NOT_LIVE", e.code);
+      throw e;
+    }
+    discard();
+    if (res && res.resultStatus === "blocked" && RESUME_FALLBACK_CODES.has(res.code)) return fallback(res.code);
+    if (res && res.resultStatus === "prepared") return fallback("SESSION_BINDING_INVALID");
+    absorbPrepareResult(run, app, res);
+    return false;
   }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
@@ -24829,6 +24912,7 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      recordBoardSession(run, app, board, res, now);
     }
 
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
@@ -24961,6 +25045,12 @@ const CareerBatchApply = (() => {
       let session = rt.sessions[key];
       try {
         if (!session) {
+          const profile = rt.profiles[key] || profileFor(d, posting);
+          const resumed = tryResume(run, app, d, posting, approvedSha, { Portal, log, now, profile });
+          if (resumed === false) continue;
+          if (resumed) { session = resumed; rt.sessions[key] = session; }
+        }
+        if (!session) {
           const board = boardOrStop(run, app, d, posting);
           if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
@@ -25074,7 +25164,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

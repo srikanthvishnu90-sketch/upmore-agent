@@ -1,5 +1,6 @@
-// Restored 2026-10-22 (deleted in 1f4f0e8e). Subtests marked skip name what is not carried on consolidate/2026-10-22;
-// they stay as the specification of that behavior. Every other subtest guards code that is on this branch.
+// Restored 2026-10-22 (deleted in 1f4f0e8e). F-031 re-implemented on consolidate/2026-10-22's WO-094 design
+// (fix/f031-session-reuse-trunk-20261022): every subtest runs; the two that encoded the replaced
+// awaiting_attestation stage are adapted in place, each with a comment saying what changed and why.
 // SESSION REUSE (NIGHT PLAN chunk 50%, 2026-10-22) — prepare -> approve
 // in ONE drive per application. The board service holds a prepare
 // drive's filled page alive under its idle TTL; what died at the
@@ -69,7 +70,7 @@ function makeRegistry() {
   const sessions = new Map();
   const calls = [];
   function clientBoard(rec, posting, overrides = {}) {
-    const stats = { opens: 0, fills: 0, submits: 0, forms: 0 };
+    const stats = { opens: 0, fills: 0, submits: 0, forms: 0, filled: [] };
     const death = () => {
       if (!rec.alive) { const e = new Error("the worker board session expired"); e.code = "SESSION_EXPIRED"; throw e; }
     };
@@ -77,7 +78,7 @@ function makeRegistry() {
       sandbox: true, atsFamily: posting.atsFamily, workerSessionId: rec.id, accountName: null, stats,
       open(url) { death(); stats.opens += 1; return rec.page.open(url); },
       form() { death(); stats.forms += 1; return rec.page.form(); },
-      fill(fid, v) { death(); stats.fills += 1; return rec.page.fill(fid, v); },
+      fill(fid, v) { death(); stats.fills += 1; stats.filled.push(fid); return rec.page.fill(fid, v); },
       answers() { death(); return rec.page.answers(); },
       atReview() { death(); return rec.page.atReview(); },
       submit() { death(); stats.submits += 1; return rec.page.submit(); },
@@ -208,7 +209,7 @@ test("149 resume: a dead session is SESSION_NOT_LIVE; another user's session is 
   assert.equal(otherBoard.stats.forms, 0, "a foreign session's board is never read");
 });
 
-test("149 resume: captcha at the review is the application's result (CAPTCHA_HANDOFF), never a fallback trigger", { skip: "not carried on consolidate/2026-10-22: module 155's RESUME_FALLBACK_CODES (149's own CAPTCHA_HANDOFF result passes; the test stops at Batch.RESUME_FALLBACK_CODES)" }, () => {
+test("149 resume: captcha at the review is the application's result (CAPTCHA_HANDOFF), never a fallback trigger", () => {
   const reg = makeRegistry();
   const board1 = reg.boardFor(POSTING);
   const log = { records: [] };
@@ -238,7 +239,7 @@ test("149 resume: a page no longer at the final review is SESSION_STATE_MISMATCH
 
 // ---------------- 155: binding record + cross-invocation execution ----------------
 
-test("155: prepare records the session binding + doorstep payload on the run record — and never in the events", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+test("155: prepare records the session binding + doorstep payload on the run record — and never in the events", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg);
   const app = appOf(run);
@@ -250,7 +251,7 @@ test("155: prepare records the session binding + doorstep payload on the run rec
   assert.equal(eventsOf(run, "board_session_recorded").length, 1);
 });
 
-test("155 execute: cross-invocation approval resumes the SAME session — one drive, zero re-fills — and submits", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+test("155 execute: cross-invocation approval resumes the SAME session — one drive, zero re-fills — and submits", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg);
   const key = run.selected[0];
@@ -265,7 +266,12 @@ test("155 execute: cross-invocation approval resumes the SAME session — one dr
   const rec = reg.sessions.get(sessionId);
   assert.equal(rec.boards.length, 2, "exactly two handles: the prepare board and the resumed board — no third drive");
   assert.equal(rec.boards[1].stats.opens, 0, "the approval leg never re-opened the form");
-  assert.equal(rec.boards[1].stats.fills, 0, "the approval leg never re-filled the form");
+  // WO-094 adaptation (was: fills === 0 under the replaced
+  // awaiting_attestation design, where the certification was ticked
+  // before approval): the card's yes IS the certification, so
+  // submitDoorstep ticks exactly the carded certification on the
+  // resumed page — and nothing else is filled.
+  assert.deepEqual(rec.boards[1].stats.filled, ["certify_true"], "the approval leg never re-filled the form — its only fill is the card-approved certification tick");
   assert.equal(rec.boards[1].stats.submits, 1);
   assert.equal(reg.calls.filter((c) => !c.resume).length, 1, "one session creation for the whole application");
   assert.equal(reg.calls.filter((c) => c.resume).length, 1);
@@ -273,7 +279,7 @@ test("155 execute: cross-invocation approval resumes the SAME session — one dr
   assert.equal(eventsOf(restored, "session_resume_fallback").length, 0);
 });
 
-test("155 execute: a drifted page falls back to a fresh drive, named — and still submits the approved payload", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+test("155 execute: a drifted page falls back to a fresh drive, named — and still submits the approved payload", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg);
   const key = run.selected[0];
@@ -290,7 +296,7 @@ test("155 execute: a drifted page falls back to a fresh drive, named — and sti
   assert.equal(reg.calls.filter((c) => !c.resume).length, 2, "the fallback created a fresh session");
 });
 
-test("155 execute: a dead session falls back (SESSION_NOT_LIVE); an expired binding never attempts a resume", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+test("155 execute: a dead session falls back (SESSION_NOT_LIVE); an expired binding never attempts a resume", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg);
   const key = run.selected[0];
@@ -314,7 +320,7 @@ test("155 execute: a dead session falls back (SESSION_NOT_LIVE); an expired bind
   assert.equal(eventsOf(restored2, "session_resumed").length, 0);
 });
 
-test("155 execute: a tampered stored payload is never submitted — the binding is refused and the fresh drive re-verifies against the approval", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+test("155 execute: a tampered stored payload is never submitted — the binding is refused and the fresh drive re-verifies against the approval", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg);
   const key = run.selected[0];
@@ -330,23 +336,51 @@ test("155 execute: a tampered stored payload is never submitted — the binding 
   assert.equal(restored.approvals[key], approvedSha);
 });
 
-test("155 completeAttestations: the certification completes on the SAME live page — no new session, no re-open", { skip: "not carried on consolidate/2026-10-22: module 155's boardSession/doorstep binding (the run record carries no session binding or stored doorstep payload)" }, () => {
+// WO-094 adaptation of the former "155 completeAttestations" subtest:
+// trunk replaced the awaiting_attestation stage + completeAttestations
+// with a card that carries each application's certification. The
+// property is the same — the certification completes on the SAME live
+// page, with no new session and no re-open — reached through the
+// card's yes instead of a separate completion pass.
+test("155 WO-094: the carded certification completes on the SAME live page — no new session, no re-open", () => {
   const reg = makeRegistry();
   const run = preparedRun(reg, { attestations: {} });
   const key = run.selected[0];
-  assert.equal(run.apps[key].stage, "awaiting_attestation", JSON.stringify(run.apps[key].stop || run.summary));
-  assert.ok(run.apps[key].boardSession, "the attestation-pending application also leaves its binding");
+  assert.equal(run.apps[key].stage, "doorstep", JSON.stringify(run.apps[key].stop || run.summary));
+  assert.ok(run.apps[key].boardSession, "the certification-pending application leaves its binding");
+  assert.deepEqual(run.apps[key].doorstep.attestations.map((a) => a.field_id), ["certify_true"], "the binding carries the pending certification the card shows");
+  assert.ok(run.card.certifications.some((c) => c.postingKey === key && c.field_id === "certify_true"));
+  const prepRec = reg.sessions.get(run.apps[key].boardSession.sessionId);
+  assert.ok(!prepRec.boards[0].stats.filled.includes("certify_true"), "nothing is certified before the card's yes");
   const restored = crossInvocation(run);
-  const out = Batch.completeAttestations(restored, makeDeps(reg, { now: NOW + 60000 }));
-  assert.equal(out.completed, 1, JSON.stringify(restored.apps[key].stop || out));
-  assert.equal(restored.apps[key].stage, "doorstep");
-  assert.equal(reg.calls.filter((c) => !c.resume).length, 1, "no fresh session was created for the completion");
-  assert.equal(reg.calls.filter((c) => c.resume).length, 1, "the completion resumed the prepare session");
+  assert.equal(Batch.approveRun(restored, { approvedByUser: true }).ok, true);
+  Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
+  assert.equal(restored.apps[key].stage, "submitted", JSON.stringify(restored.apps[key].stop || restored.summary));
+  assert.equal(reg.calls.filter((c) => !c.resume).length, 1, "no fresh session was created for the certification");
+  assert.equal(reg.calls.filter((c) => c.resume).length, 1, "the approval resumed the prepare session");
   const rec = reg.sessions.get(restored.apps[key].boardSession.sessionId);
-  assert.equal(rec.boards[1].stats.opens, 0, "the completion never re-opened the form");
+  assert.equal(rec.boards[1].stats.opens, 0, "the certification never re-opened the form");
+  assert.deepEqual(rec.boards[1].stats.filled, ["certify_true"]);
   const resumed = eventsOf(restored, "session_resumed");
   assert.equal(resumed.length, 1);
-  assert.equal(resumed[0].via, "continue");
+  assert.equal(resumed[0].via, "execute");
+});
+
+test("155 resume: a binding whose stored hash differs from the approved hash is refused before the board is addressed", () => {
+  const reg = makeRegistry();
+  const run = preparedRun(reg);
+  const key = run.selected[0];
+  const restored = crossInvocation(run);
+  Batch.approveRun(restored, { approvedByUser: true });
+  // the stored payload is re-hashed consistently, so only the approval comparison can catch it
+  const forged = Object.assign({}, restored.apps[key].doorstep.payload, { email: "forged@example.test" });
+  restored.apps[key].doorstep = Object.assign({}, restored.apps[key].doorstep, { payload: forged, payloadSha256: crypto.createHash("sha256").update(JSON.stringify(forged)).digest("hex") });
+  Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
+  assert.equal(reg.calls.filter((c) => c.resume).length, 0, "a binding not matching the approved hash never addresses the session");
+  const fb = eventsOf(restored, "session_resume_fallback");
+  assert.equal(fb.length, 1);
+  assert.equal(fb[0].code, "SESSION_BINDING_INVALID");
+  assert.equal(restored.apps[key].stage, "submitted", "the fresh drive reproduced the APPROVED payload and submitted that");
 });
 
 // ---------------- bridge + real board service ----------------
@@ -361,7 +395,7 @@ function makeServiceBoardFactory() {
   };
 }
 
-test("bridge + service: boardFor with a resume id creates NO new session; a foreign user's resume is refused at the first call", { skip: "not carried on consolidate/2026-10-22: the board service's resume-by-id session reuse (boardFor with a resume id opens a new session), which depends on 155's boardSession binding" }, () => {
+test("bridge + service: boardFor with a resume id creates NO new session; a foreign user's resume is refused at the first call", () => {
   const service = createBoardService({ secret: SECRET, familyVerdicts: VERDICTS, boardFactory: makeServiceBoardFactory() });
   const transport = (req) => service.handle(req);
   const providerA = Bridge.createWorkerBoardProvider({ workerUrl: "http://127.0.0.1:0/board-service", secret: SECRET, userId: USER, transport });

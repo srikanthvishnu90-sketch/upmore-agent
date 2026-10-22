@@ -8658,6 +8658,19 @@ const CareerRouter = (() => {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
       }
+      if (depsIn.agentBegin === true) {
+        // CHUNK 40% (module 176): the agent-submit composition. The
+        // mint stands (155's approvalRef binds this exact card set),
+        // but the execution does NOT run in this turn: the begin
+        // belongs to module 176's begin-caller at the host's async
+        // seam, behind CAREER_AGENT_SUBMIT — the same delegation
+        // shape as J10's prepare. This turn begins nothing and
+        // submits nothing; the marker names the hand-off so the
+        // handler can plan it, and the reply says exactly that.
+        c.batchApplyState = BatchApply.serializeRun(run);
+        return { intent: "career_batch_apply", resultStatus: "approved", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "begin", runId: run.id, approvalRef: run.approvalRef }, sends: 0,
+          reply: `Approved — this batch is minted under its card hash. The start itself is handed to the agent-submit path, which begins an application only while its switch is on; nothing has been submitted yet. Ask me for the batch status and I'll read back exactly where it stands.` };
+      }
       const ex = BatchApply.executeRun(run, batchDepsFor(c, log, null));
       c.batchApplyState = BatchApply.serializeRun(run);
       const sm = ex.summary || BatchApply.summarizeRun(run);

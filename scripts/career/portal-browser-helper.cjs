@@ -1002,12 +1002,27 @@ async function pump() {
       const data = await execute(cmd.boardId || "sys", cmd);
       fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: true, data }));
     } catch (e) {
-      fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: false, error: { code: /SUID sandbox|sandbox.*abort|No usable sandbox/i.test(String(e.message)) ? "BROWSER_SANDBOX_UNAVAILABLE" : e.code || "DRIVER_ERROR", message: String(e.message || e) } }));
+      fs.writeFileSync(path.join(dir, respName + ".tmp"), JSON.stringify({ ok: false, error: { code: classifyDriverError(e), message: String(e.message || e) } }));
     }
     try { fs.renameSync(path.join(dir, respName + ".tmp"), path.join(dir, respName)); } catch (e) {}
     try { fs.unlinkSync(full); } catch (e) {}
   }
 }
+// Response error classification for pump(): a Chromium that cannot start
+// WITH its sandbox on a host that cannot initialize one is a host blocker
+// (BROWSER_SANDBOX_UNAVAILABLE), never a generic DRIVER_ERROR — misnaming
+// it sent lanes chasing a phantom driver bug (docs/e2e/
+// H4-DRIVER-ERROR-ROOT-CAUSE.md). Wordings are the measured ones:
+// Playwright's "Chromium sandboxing failed!" (root), the zygote's "No
+// usable sandbox!" (unprivileged user, AppArmor-restricted userns), and
+// the older SUID-helper texts. Sandbox text outranks a generic error code
+// for the same reason the original ternary checked it first.
+const SANDBOX_FAILURE_TEXT = /SUID sandbox|sandbox.*abort|No usable sandbox|Chromium sandboxing failed/i;
+function classifyDriverError(e) {
+  if (SANDBOX_FAILURE_TEXT.test(String((e && e.message) || e))) return "BROWSER_SANDBOX_UNAVAILABLE";
+  return (e && e.code) || "DRIVER_ERROR";
+}
+module.exports.classifyDriverError = classifyDriverError;
 // Trusted worker/terminal seam (WO-009b): same executor and widgets, one owned
 // context. A request can never choose another board or shut down its peers.
 // The same challenge check the drive uses, for a caller that must re-check a page without reloading it (the person

@@ -265,7 +265,7 @@ export async function cloudLoop(o: {
 
 // What the engine's process may see of the worker's environment: where its tools are, nothing else. The service key and
 // every other secret stay in the worker (clearEnv), so neither the engine nor Chromium nor a page can read them.
-export const ENGINE_ENV_KEYS = ["PATH", "HOME", "TMPDIR", "DENO_DIR", "PLAYWRIGHT_BROWSERS_PATH", "UPMORE_PLAYWRIGHT_PATH", "UPMORE_CHROMIUM_PATH"];
+export const ENGINE_ENV_KEYS = ["PATH", "HOME", "TMPDIR", "DENO_DIR", "PLAYWRIGHT_BROWSERS_PATH", "UPMORE_PLAYWRIGHT_PATH", "UPMORE_CHROMIUM_PATH", "UPMORE_CHROMIUM_SANDBOX"];
 export function engineEnv(from: (k: string) => string | undefined = (k) => Deno.env.get(k)) {
   const env: Record<string, string> = { UPMORE_MASK_SCREENSHOTS: "1", UPMORE_BROWSER_HEADED: "0" };
   for (const k of ENGINE_ENV_KEYS) {

@@ -1,0 +1,33 @@
+{
+  "source_pin": "dff3dfc1bc5c34ff177df65cddfff212abebd676",
+  "result": {
+    "mocked_dispatch_controls": 3,
+    "pass": 3,
+    "fail": 0
+  },
+  "scope": "Python subprocess.run replaced by unittest mock; psql path is NONEXECUTABLE sentinel; NO SQL/DB/provider executed. This checks command construction and stop conditions only, not migration correctness.",
+  "runtime_sql": "NOT_RUN; authorization not provided",
+  "new_cost_usd": 0,
+  "files": [
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_rollback_driver.py",
+      "bytes": 10103,
+      "sha256": "cb66179f900d3a3ca8eb5c0539e1512d7bd39731f8968d9cb8901e9de7d0c4ef"
+    },
+    {
+      "path": "tests/db/pending/career_apply_card_cloud_rollback.test.sql",
+      "bytes": 22252,
+      "sha256": "613ed902f76d68e45063b3b4d72da42630d541a370fe300411f1b60ef95b4203"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/mock-driver-proof.py",
+      "bytes": 3813,
+      "sha256": "78fe53b04d7f0e7a7c5a3a3885de3547eab93bcde660443296f4a9cf186b180b"
+    },
+    {
+      "path": "tests/fixtures/card-cloud-db-20261021/mock-driver-proof.log",
+      "bytes": 478,
+      "sha256": "a6bb8705a7fa7ba5e82477bd121354295102adfa4392e411707bae5577d82924"
+    }
+  ]
+}

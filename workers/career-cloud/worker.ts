@@ -60,6 +60,7 @@ const BY_DESIGN = new Set([
   "SUBMIT_DESTINATION_NOT_BOUND", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
   "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED", "FACT_OWNER_MISMATCH",
   "CARD_CLOUD_PERMISSION_REVOKED", "CARD_CLOUD_AUTH_REQUIRED", "CARD_CLOUD_AUTH_REFUSED", "CARD_CLOUD_AUTH_PROTOCOL", "CARD_CLOUD_AUTH_TIMEOUT",
+  "APPROVED_SOURCE_WITHDRAWN", "CARD_CLOUD_SOURCE_READ_FAILED", "CARD_CLOUD_AUTHORIZATION_REFUSED",
 ]);
 const BOT_CHECK = (state: string, reason: string) =>
   (state === "needs_user" && reason === "captcha") || (state === "not_submitted" && reason === "CAPTCHA_AT_SUBMIT");
@@ -334,9 +335,10 @@ export function cloudEngineRunner(o: { root: string; evidenceRoot: string; deno?
       let size = 0;
       for await (const chunk of child.stderr) { size += chunk.length; if (size > 2_000_000) { protocolFailed = true; kill(); break; } }
     })();
-    try { await Promise.all([stdout, stderr, child.status]); }
+    let status: Deno.CommandStatus;
+    try { [, , status] = await Promise.all([stdout, stderr, child.status]); }
     finally { clearTimeout(timer); await writer?.close().catch(() => {}); }
-    if (protocolFailed || !resultLine) return null;
+    if (protocolFailed || !status.success || !resultLine) return null;
     const result = JSON.parse(resultLine.slice(7));
     if (submitting && ["confirmed", "submitted_unconfirmed"].includes(result?.state) && !authorized) return null;
     let evidence = null;

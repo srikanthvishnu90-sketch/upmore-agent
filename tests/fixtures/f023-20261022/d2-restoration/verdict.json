@@ -1,0 +1,137 @@
+{
+  "bug": "F-023",
+  "verdict": "VERIFIED_REPO_SCOPED",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source_pin": "d79c74bad6551248aff07a86df822e250cc4409d",
+  "supersedes": [
+    "c1adbad855f3aa39d0e45b9b4da8dea087ba7886",
+    "57bf01cf6e4998e688e456a376f139646104952e"
+  ],
+  "root_cause": "Refusal handling stopped recording successful fills, which bypassed the historical all-fills-fail EMPTY_FORM check. It also classified explicit driver/persistence diagnostics as missing user facts. Separate attempted and accepted fill accounting preserves D2; option mismatches or absent diagnostics ask; known/unknown explicit driver failures on required fields block INCOMPLETE_PAYLOAD.",
+  "counts": {
+    "final_same_new_guards": {
+      "base_passed": 12,
+      "base_failed": 31,
+      "fix_passed": 43,
+      "fix_failed": 0
+    },
+    "unchanged_D2_submit_path": {
+      "base_passed": 15,
+      "fix_passed": 15,
+      "failed": 0
+    },
+    "unchanged_existing_portal_family": {
+      "base_passed": 96,
+      "fix_passed": 96,
+      "failed": 0
+    },
+    "full_final_command": {
+      "passed": 139,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "intermediate_fail_first": {
+    "existing_D2_on_c1adbad8": {
+      "passed": 0,
+      "failed": 1,
+      "scope": "targeted existing D2 case"
+    },
+    "diagnostic_guards_on_57bf01cf": {
+      "passed": 32,
+      "failed": 11
+    },
+    "full_family_on_57bf01cf": {
+      "passed": 126,
+      "failed": 2,
+      "skipped": 0
+    }
+  },
+  "final_command": "UPMORE_PLAYWRIGHT_PATH=<installed-playwright> UPMORE_CHROMIUM_PATH=/usr/bin/chromium node --test --test-concurrency=2 --test-reporter=tap tests/career-portal-*.test.cjs tests/career-fill-refusal.test.cjs",
+  "runtime": "Complete checkout; sandboxed Chromium; localhost synthetic fixtures only. Test command ran outside filesystem sandbox after startup preflight; Chromium sandbox remained enabled.",
+  "new_test_sha256": "efd81a899a7d5d2dbb0f1c2a51a81ecaede587180b3f1b7d8b9ac89d6ba13b0a",
+  "unchanged_existing_test_hashes": {
+    "tests/career-portal-answer-map.test.cjs": "f78d769a3bd99a39aaebe81ca658f2b1fb806aca7ba926f656340b97ba17dac5",
+    "tests/career-portal-apply.test.cjs": "95dcbc6e1c4863fc63a7cd9b6bf3335eb3698364015bb768bc1099415134ced4",
+    "tests/career-portal-browser.test.cjs": "b12650b16447ca92c2a6db1403ee89327bab1880f79d0a7889baa8c22cb0e38c",
+    "tests/career-portal-caps.test.cjs": "4f811de2f547978cef8c686661a0d4a36e161557e706b7bf7dc36cf525046e35",
+    "tests/career-portal-collision.test.cjs": "ca71968efa845b1e956b12c66e50696837ab301b71d942937d1006ed8b16dd12",
+    "tests/career-portal-lever-radio.test.cjs": "758e87f8cd2201498af1615f5edaec708486b2698c8f04e4cf30edd80bac538b",
+    "tests/career-portal-payload-binding.test.cjs": "beb6639f2a784bec4a44ed4cba9155e85470196785cf99ed294346a8a7276dd4",
+    "tests/career-portal-submit-integrity.test.cjs": "77e08bdff78bf1fa03fce4642e0fc7504a109879717f6e71b10ca4cd2cc88e2b",
+    "tests/career-portal-submit-path.test.cjs": "b20d3e777ea39dd91e02a2e7724402a3b72f93d378ccec1975451a3a512d17ba"
+  },
+  "unchanged_submit_and_repair_suffix_hashes": {
+    "function submitDoorstep(": "b0b0a619f10f04a9fa81ce523b8a1b830735a278ac4991d328880eb14822e797",
+    "// D11 doorstep repair": "aec6626da68eb76dea709477e8d5aafa953ee0029337c006e170fcfb6874e8b7"
+  },
+  "artifacts": {
+    "tests/fixtures/f023-20261022/d2-restoration/d2-before-target.tap.gz": {
+      "raw_bytes": 1162,
+      "raw_sha256": "d81d329fcd200adb0e4241db3d8e2065448d4f945566f0465313137e575ad5bf",
+      "gzip_sha256": "a3722aa5b6af7402298fd610aafd6e22885f1dcc514baf8412dd0ddb0ccdd95d"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/d2-before-guards.tap.gz": {
+      "raw_bytes": 7757,
+      "raw_sha256": "daf97130576302960cfc4f1e6b23aca73843b61cde7318ff687fe5930cd05241",
+      "gzip_sha256": "c4962fc65d5230c617928c765788c684aa73d943055be96be5b71ed08011abd8"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/d2-original-base-submit-path.tap.gz": {
+      "raw_bytes": 4691,
+      "raw_sha256": "c34e6b79edbc330bdb4598f1733b2612c44df4c291539a5386ff46bb758d71a0",
+      "gzip_sha256": "d7aaa7a3e901a74ec04a434892b39bf72f9c11fa6c695c58e79c700e3e90b9f7"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/d2-family-base-complete.tap.gz": {
+      "raw_bytes": 52124,
+      "raw_sha256": "35b1c64f83d80603c73c1650fb18e8ce69668d437b8b507b65a35aa562e03af1",
+      "gzip_sha256": "4cca34e18373b4206269cf8e13c5666cfb1cb3afadddd7024e9b5ba13abf88fd"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/d2-family-fix-complete.tap.gz": {
+      "raw_bytes": 36942,
+      "raw_sha256": "6a6f845a81cc172398ff83d2eb39e218ea4e0ee76a7ed0839f22213b92bace01",
+      "gzip_sha256": "4ef1509f8f830d260414c04ea8f8d546bc1846a83bd5b1e6d53769b177be8ef7"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/driver-before.tap.gz": {
+      "raw_bytes": 18843,
+      "raw_sha256": "83d8f43d8da7ba38710ab725eff9e87ba19dc9c161a0841b4b480e66cb5ff61a",
+      "gzip_sha256": "d7148a707d67237760ee8f456e64d2af98707c7f0e82f703d6d86d6d251ef460"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/driver-after-unit.tap.gz": {
+      "raw_bytes": 14140,
+      "raw_sha256": "6c8f91d0dd6c5f2ecb89e92bc9f6912e45be8336c502e3a239470f281e729ffa",
+      "gzip_sha256": "d201a59c6d136a6e4d7bf5481a2f98f53b79abede61811196ebc08aa02be0331"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/final-original-base-guards.tap.gz": {
+      "raw_bytes": 34209,
+      "raw_sha256": "27f86ace9fab64f7aaeacf2551744ac4c40f32be7c6b0f082fda6b264aa5d164",
+      "gzip_sha256": "96ee122fb361c7bca40386b4d430eff45162017b37bc9651df97917acede2b61"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/final-family.tap.gz": {
+      "raw_bytes": 38061,
+      "raw_sha256": "a52afd7994fff326e8ec1d0dc998c16a574faf29a4dd6207b55a3ac81f1e318c",
+      "gzip_sha256": "7b91fbe3553b4d375ed245f95aaa2b98294f76b06f5fae97a513d8eb7bfda707"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/final-parity-career.log.gz": {
+      "raw_bytes": 23,
+      "raw_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "gzip_sha256": "1123568bf3e6355d2760771a2f322082b0a38f49b1b307587dee3c88d64ffded"
+    },
+    "tests/fixtures/f023-20261022/d2-restoration/final-parity-full.log.gz": {
+      "raw_bytes": 23,
+      "raw_sha256": "a8e4e992af5df74db2c710faa98634996574374edc106b1bb1becc2dc9f81ff6",
+      "gzip_sha256": "1123568bf3e6355d2760771a2f322082b0a38f49b1b307587dee3c88d64ffded"
+    }
+  },
+  "canonical_parity": "career-only and full --check PASS",
+  "limits": [
+    "No live employer/browser drive, migration, flag change, deployment, or real submission.",
+    "An opaque nil result without a driver diagnostic still surfaces a refusal ask; it does not invent the missing failure classification.",
+    "The actual closest-response option vocabulary remains uncaptured; no mapping was invented.",
+    "Whole-product CI status is separate from the requested scoped family."
+  ],
+  "spend": {
+    "new_usd": 0,
+    "known_plus_held_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

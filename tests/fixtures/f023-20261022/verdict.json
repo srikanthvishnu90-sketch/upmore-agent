@@ -1,6 +1,6 @@
 {
   "bug": "F-023 silent-fill-refusal",
-  "verdict": "VERIFIED_REPO_SCOPED",
+  "verdict": "SUPERSEDED_D2_AND_DRIVER_REGRESSIONS",
   "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
   "source_fix": "f3c35a20a8ea02d2c811cc671aae69d2ecdd785c",
   "bundle_head": "d253e00212b638aeda4ec3692f4cb32e9764dc41",
@@ -111,5 +111,6 @@
     "new_usd": "0.00",
     "known_plus_held_usd": "8.573843",
     "status": "UNRECONCILED"
-  }
+  },
+  "superseded_by": "tests/fixtures/f023-20261022/d2-restoration/verdict.json"
 }

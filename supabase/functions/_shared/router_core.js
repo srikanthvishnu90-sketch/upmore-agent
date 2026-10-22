@@ -20678,9 +20678,23 @@ const CareerJobs = (() => {
     if (/\banalyst/.test(t)) return "Finance";
     return "Other";
   }
+  // MUSE-F-006 (DISCO-QUALITY root cause 583cc918): band tokens were matched as exact surface words between hard
+  // boundaries, so "internships", "entry-level" and "early careers" bound nothing and fell to "mid" (15/30 cells of the
+  // phrase matrix). One normalizer for every site: lowercase, hyphens/slashes/dashes to spaces, and a plural band word
+  // to its stem. Then one intern matcher serves the title and the JD head (they had drifted: only one knew "co-op").
+  // Precedence is unchanged.
+  const BAND_STEMS = new Set(["intern", "internship", "op", "grad", "career", "program", "apprenticeship", "traineeship", "fellowship", "university"]);
+  function bandText(x) {
+    return lc(x).replace(/[-‐‑–—_/]+/g, " ").replace(/[a-z]+/g, (w) => {
+      if (w.length > 3 && w.endsWith("ies") && BAND_STEMS.has(w.slice(0, -3) + "y")) return w.slice(0, -3) + "y";
+      if (w.length > 2 && w.endsWith("s") && BAND_STEMS.has(w.slice(0, -1))) return w.slice(0, -1);
+      return w;
+    });
+  }
+  const INTERN_BAND = /\b(intern|internship|co op)\b/;
   function seniorityBand(title, jd) {
-    const t = lc(title), j = lc(jd);
-    if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    const t = bandText(title), j = bandText(jd);
+    if (INTERN_BAND.test(t)) return "intern";
     // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
     // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
     // winter forms) ARE the finance/consulting internship titles and carry no
@@ -20699,7 +20713,7 @@ const CareerJobs = (() => {
     if (/\b(senior|sr\.?)\b/.test(t)) return "senior";
     if (/\b(new grad|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
     if (/\b(junior|jr\.?|associate)\b/.test(t)) return "junior";
-    if (/\b(intern|internship)\b/.test(j.slice(0, 300))) return "intern";
+    if (INTERN_BAND.test(j.slice(0, 300))) return "intern";
     return "mid";
   }
   function remoteOf(location, jd) {
@@ -36408,14 +36422,19 @@ const CareerRouter = (() => {
     const deduped = Jobs && Jobs.dedupe ? Jobs.dedupe(adapted) : adapted;
     const sp = scoringProfile(profile);
     const excluded = [], scored = [];
+    // MUSE-F-006: where the asked families' own postings went, filter by filter, so an empty answer can say the true
+    // reason instead of "none of them are <family> roles" when the list holds them (the live wrong zero: 48 Data/ML).
+    const famSet = o.askFamilies && o.askFamilies.length ? new Set(o.askFamilies) : null;
+    const inFam = (p) => !!famSet && famSet.has(p && p.role_family);
+    const family = { onList: famSet ? deduped.filter(inFam).length : null, hard: 0, scoredOut: 0, company: 0, location: 0, band: 0, firstHardReason: null };
     for (const posting of deduped) {
       const pre = preCheck(posting, profile, now);
-      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); continue; }
+      if (pre.length) { excluded.push({ id: posting.corpus_id, reasons: pre }); if (inFam(posting)) { family.hard++; family.firstHardReason = family.firstHardReason || pre[0]; } continue; }
       // A6: when the caller carries the ASK's role families, 121's opt-in
       // exclusion drops cross-family postings here — they can never surface
       // as a "closest fit" for a different-domain ask (SC-065).
       const fit = Jobs.scoreFit(posting, sp, null, o.askFamilies && o.askFamilies.length ? { askFamilies: o.askFamilies } : undefined);
-      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); continue; }
+      if (fit.excluded) { excluded.push({ id: posting.corpus_id, reasons: fit.reasons }); if (inFam(posting)) family.scoredOut++; continue; }
       const jdSkills = Tailor ? Tailor.parseJD(posting.jd_text || "") : { mustHaveSkills: [] };
       const proven = provenSkillNames(profile).map(lc);
       // A skill the posting explicitly negates ("No Java requirement stated",
@@ -36433,11 +36452,13 @@ const CareerRouter = (() => {
       item.caveat = caveatFor(item, profile);
       return item;
     });
-    if (o.company) rows = rows.filter((r) => lc(r.company).includes(o.company));
-    if (o.locations && o.locations.size) rows = rows.filter((r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
-    if (o.bands) rows = rows.filter((r) => o.bands.has(r.posting.seniority_band));
+    const famRows = () => rows.filter((r) => inFam(r.posting)).length;
+    const dropped = (key, keep) => { const before = famRows(); rows = rows.filter(keep); family[key] += before - famRows(); };
+    if (o.company) dropped("company", (r) => lc(r.company).includes(o.company));
+    if (o.locations && o.locations.size) dropped("location", (r) => o.locations.has(lc((r.location || "").split(",")[0].split("—")[0].trim())) || (o.locations.has("remote") && r.remote === "remote"));
+    if (o.bands) dropped("band", (r) => o.bands.has(r.posting.seniority_band));
     rows.sort((a, b) => (b.score - a.score) || s(a.deadline || "9999").localeCompare(s(b.deadline || "9999")) || s(a.title).localeCompare(s(b.title)));
-    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length };
+    return { ranked: rows, excluded, dedupedFrom: adapted.length, dedupedTo: deduped.length, family };
   }
 
   // H-12 (02): every reply ends with one concrete next action or a
@@ -36485,7 +36506,7 @@ const CareerRouter = (() => {
     const countM = t.match(/(\d+)\s*(?:roles|jobs|internships)/);
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
-    const { ranked, excluded, dedupedTo } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    const { ranked, excluded, dedupedTo, family } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
     // COMPLEXITY WAVE (BUG-173): remember the search's parameters —
     // a follow-up ("remote ones too", "I meant data science", "what
     // did you find") is answered against THIS record by the delta
@@ -36520,6 +36541,22 @@ const CareerRouter = (() => {
       if (fams && fams.length) facts.push(`Your ask is on record exactly as stated — ${fams.map(familyLabel).join(" + ")} — and this search runs first the moment matching roles land on the list.`);
       const reply = compose({ headline: o.headline || "Nothing to rank yet — the current list is empty.", facts, nextStep: o.nextStep || "Paste a posting you found, or name a company to watch, and we start from something real." });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
+    }
+    if (!top.length && fams && fams.length && family && family.onList > 0) {
+      // MUSE-F-006: the list DOES hold the asked family's roles; the rest of the ask (or the profile's hard filters)
+      // emptied it. Say which, with the counts, never "none of them are <family> roles". Still no cross-family padding.
+      const label = fams.map(familyLabel).join(" or ");
+      const BAND_WORDS = { intern: "internships", new_grad: "new-grad roles", junior: "junior roles", mid: "mid-level roles", senior: "senior roles", staff: "staff roles", manager: "manager roles", director: "director roles" };
+      const bandWords = o.bands ? Array.from(o.bands).map((b) => BAND_WORDS[b] || b).join(" or ") : "";
+      const places = o.locations && o.locations.size ? Array.from(o.locations).join(" or ") : "";
+      const facts = [`The current list holds ${family.onList} ${label} role${family.onList === 1 ? "" : "s"} (of ${dedupedTo} scored), but none of them fit everything you asked for.`];
+      if (family.band) facts.push(`${family.band} ${family.band === 1 ? "is" : "are"} not ${bandWords || "at the level you asked for"}.`);
+      if (family.location) facts.push(`${family.location} ${family.location === 1 ? "is" : "are"} outside ${places || "the places you named"}.`);
+      if (family.company) facts.push(`${family.company} ${family.company === 1 ? "is" : "are"} at other companies than the one you named.`);
+      if (family.hard) facts.push(`${family.hard} miss one of your profile's hard requirements${family.firstHardReason ? ` (for example: ${family.firstHardReason})` : ""}.`);
+      if (family.scoredOut) facts.push(`${family.scoredOut} ${family.scoredOut === 1 ? "was" : "were"} screened out on fit.`);
+      const reply = compose({ headline: `I have ${label} roles, but none that match all of your ask.`, facts, nextStep: "Want me to widen the level or the location and show the closest ones?" });
+      return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams, family_counts: family }, publicFacts);
     }
     if (!top.length && fams && fams.length) {
       // A6 honest-empty: a family ask with no family roles in the pool gets

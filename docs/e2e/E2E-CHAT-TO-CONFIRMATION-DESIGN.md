@@ -1,6 +1,10 @@
 # E2E: chat turn → employer-confirmed application — design + runnable skeleton
 
-Branch: `muse/2026-10-22-e2e-skeleton`, based on
+Branch: `muse/2026-10-22-e2e-green` — the integration of the skeleton
+(`muse/2026-10-22-e2e-skeleton` @ c4136bd9) with the three fix lanes:
+`muse/2026-10-22-e2e-h1-card` @ 81785985 (H1),
+`muse/2026-10-22-e2e-h3-claimer` @ c8843454 (H3a + drain),
+`muse/2026-10-22-e2e-h4-browser` @ 59ea1f32 (H4). Skeleton based on
 `origin/muse/2026-10-22-chat-begin-caller` @ cb56921a. Base rationale: it is
 the only tree that carries module 176 (the chat-side begin caller) **and**
 both door migrations in-tree (20261024130000 card-cloud bridge,
@@ -11,7 +15,8 @@ card bridge, and the cloud claim in one schema.
 Code: `tests/e2e/chat-to-confirmation.test.cjs` (orchestrator),
 `tests/e2e/mock-employer.cjs` (fixture), `tests/e2e/provision-pg.sh`
 (disposable PG16 in tests/db/run.sh's own migration order),
-`tests/e2e/stage-1..4-*.sql` (the DB legs).
+`tests/e2e/stage-*.sql` (the DB legs: 1 seed, 2 route A, 2b composed
+card route, 3 route B, 4 finish/confirm, 5/5b drain + verify).
 
 Run it:
 
@@ -111,15 +116,16 @@ driver's own claims.
 ## Assertions at every handoff
 
 Each assertion names what is checked, where, and the known issue it
-catches. Status column = the skeleton's measured result on 2026-10-22
-(this branch, this VM) — see "Measured vs claimed" below.
+catches. Status column = the integrated branch's measured result on
+2026-10-22 (`muse/2026-10-22-e2e-green`, this VM) — see
+"Measured vs claimed" below.
 
 ### H1 — chat → card
 | # | Assertion | Where | Catches | Status |
 |---|---|---|---|---|
 | A1.1 | The apply ask parses to (count, family) | module 155 `parseApplyAsk`, in-process | ask-parsing regressions | PASS |
 | A1.2 | A plain-text turn carries NO structured batch request | `career_task_bridge.normalizeCareerBatchRequest(undefined) === null` (handler-career.ts builds `careerBatch` only from `body.career_batch`) | the structural root of the Telegram fallback | measured |
-| A1.3 | After a plain ask, no card artifact exists and no run is readable; the status readback answers "No batch run is readable" | `planCareerBatchIntent` (status) against an empty persistence | **F-037** (the Telegram card is structurally unreachable on v248) / **F-002** (status turns fall to the generic fallback; reproduced live 2026-10-22) | **FAIL — F-037/F-002** on this branch's base; **PASS on `muse/2026-10-22-e2e-h1-card`** — the H1 leg there drives the fixed composition (bridge card readback; design `docs/e2e/H1-CARD-DELIVERY-DESIGN.md`, guards `tests/edge/channel-card-readback.test.ts`). The negatives in this row still hold there: a plain call carries no `career_batch`, and an unwritten run still reads as nothing. |
+| A1.3 | After a plain ask, no card artifact exists and no run is readable; the status readback answers "No batch run is readable" | `planCareerBatchIntent` (status) against an empty persistence | **F-037** (the Telegram card is structurally unreachable on v248) / **F-002** (status turns fall to the generic fallback; reproduced live 2026-10-22) | **PASS on the integrated branch** (was FAIL — F-037/F-002 on the skeleton base): the H1 leg drives the fixed composition end to end — plain ask → prepare completes → status turn through `channel_bridge.runChannelTurnRich` surfaces the card via the existing `detectBatchCard`/`offerApproval` path (bridge card readback; design `docs/e2e/H1-CARD-DELIVERY-DESIGN.md`, guards `tests/edge/channel-card-readback.test.ts` 5/0 measured on the integrated branch). The negatives in this row still hold: a plain call carries no `career_batch`, and an unwritten run still reads as nothing. |
 
 ### H2 — card → approval
 | # | Assertion | Where | Catches | Status |
@@ -134,7 +140,7 @@ catches. Status column = the skeleton's measured result on 2026-10-22
 | A3.1 | Route A: the chat begin enqueues a claim-shaped row (queued, source null, attempts 0, no lease) | `career_apply_cloud_begin_agent_own` (stage-2 SQL) | begin/claim shape drift (module 176 ↔ 20261024140000) | PASS |
 | A3.2 | Route A: the claim refuses that row, refusal exactly `not_card_approved` | `career_apply_cloud_refusal` + `career_apply_cloud_claim_at` | **F-030 seam** — a chat begin carries no card binding (C9: the card is the only cloud authorization route) | **PASS as the C9 control** (stage 2, still refused by design) — and the seam is closed by composition (A): stage 2b runs the same chat user through the card route (module 176's `beginCloudCardPostings` → show_as → the person's tap) and the claim takes that row. Root cause: `docs/apply/ROOT-CAUSE-F030-SEAM-CARD-BINDING-2026-10-22.md` |
 | A3.3 | Route B: the claim takes the card-bound row exactly once and stamps it `cloud` | `career_apply_cloud_claim_at` (stage-3 SQL) | claim predicate drift, double-claim | PASS |
-| A3.4 | A drain process exists that claims queued rows in a real deployment | `workers/career-cloud/drain.ts` (`runDrain` → `cloudLoop`) over `workers/career-cloud/pg-queue.ts` (the five cloud doors as direct PG, beside `restQueue`); unit source `scripts/career/systemd/trainee-cloud-drain.service` (in-tree, NOT installed) | **Missing cloud claimer** (submit-armed inventory 2026-10-22: "worker drain for cloud jobs ABSENT") | **PASS** (H3 lane, 2026-10-22: the drain claimed the stage-5 card-bound row from disposable PG and finished it `submitted_unconfirmed`, telemetry recorded; stub engine, tier 2. Design: `docs/e2e/H3-CLOUD-CLAIMER-DESIGN.md`) |
+| A3.4 | A drain process exists that claims queued rows in a real deployment | `workers/career-cloud/drain.ts` (`runDrain` → `cloudLoop`) over `workers/career-cloud/pg-queue.ts` (the five cloud doors as direct PG, beside `restQueue`); unit source `scripts/career/systemd/trainee-cloud-drain.service` (in-tree, NOT installed) | **Missing cloud claimer** (submit-armed inventory 2026-10-22: "worker drain for cloud jobs ABSENT") | **PASS** (H3 lane, 2026-10-22; re-measured PASS on the integrated branch the same day: the drain claimed the stage-5 card-bound row from disposable PG and finished it `submitted_unconfirmed`, telemetry recorded; stub engine, tier 2. Design: `docs/e2e/H3-CLOUD-CLAIMER-DESIGN.md`) |
 | A3.5 | Two concurrent drains racing the last cap slot never both submit; the ledger never silently loses a drain's record | S3's synchronized drain-pair harness (nightly — see split) | **F-034** — executor snapshot→execute→whole-ledger-replace; S3 measured 40/40 pairs over-submitting (16 vs cap 15) with the ledger afterwards reading a compliant 15 | OPEN (S3) |
 | A3.6 | Kill switches off ⇒ the claim takes nothing, either route | `career_cloud_settings` in the cloud SQL legs | flag-path regressions | PASS (by reference: `career_apply_cloud.test.sql`) |
 
@@ -238,23 +244,27 @@ real completion, and it is never reported as one.
 
 ## Measured vs claimed (2026-10-22 run, this branch, this VM)
 
-Measured (actually ran): provisioning (94 migrations, PG16.14); H1
-FAIL F-037/F-002 (in-process, the planner's own code); H2 PASS; H3a
-PASS (H3 lane, 2026-10-22: stage 2's bare begin still refuses
-`not_card_approved` — the C9 control — and stage 2b's composed card
-route for the same chat user is claimed, `driving/cloud/1`); H3b
-PASS; H3 drain PASS (H3 lane: the built drain — drain.ts + pg-queue.ts —
-claimed the stage-5 card-bound row from the disposable cluster and
-finished it `submitted_unconfirmed`, telemetry `submitted` recorded;
-stub engine, tier 2); H6
-PASS (finish → submitted_unconfirmed → confirm_as → confirmed). H4/H5:
-ENVIRONMENT — Chromium's sandbox cannot initialize in this VM session
-(probe: plain Playwright `chromiumSandbox: true` → "Chromium sandboxing
-failed!"; the engine refuses unsandboxed runs by design,
-`BROWSER_SANDBOX_REQUIRED` measured; the repo's own WO-039 test fails
-identically here today, DRIVER_ERROR 3/3; running the engine as an
-unprivileged user cannot be staged because /home/hatch is unreadable to
-non-root users on this overlay). Total wall clock ≈ 15 s.
+Measured (actually ran, INTEGRATED branch `muse/2026-10-22-e2e-green`,
+2026-10-22, this VM; full skeleton wall clock 34.4 s): provisioning
+(94 migrations, PG16.14); H1 PASS — the fixed composition driven
+through the bridge (was FAIL F-037/F-002 on the skeleton base); H2
+PASS; H3a PASS (stage 2's bare begin still refuses `not_card_approved`
+— the C9 control — and stage 2b's composed card route for the same
+chat user is claimed, `driving/cloud/1`); H3b PASS; H3 drain PASS
+(the built drain — drain.ts + pg-queue.ts — claimed the stage-5
+card-bound row from the disposable cluster and finished it
+`submitted_unconfirmed`, telemetry `submitted` recorded; stub engine,
+tier 2); H6 PASS (finish → submitted_unconfirmed → confirm_as →
+confirmed). H4/H5: ENVIRONMENT — the staged drive
+(`tests/e2e/stage-unpriv-run.sh`, run as `nobody` from a world-readable
+stage) executes end to end and stops at the product's own named gate,
+`BROWSER_SANDBOX_REQUIRED`: the cloud seam never runs unsandboxed and
+this host cannot initialize a sandboxed Chromium for any user (full
+evidence in `docs/e2e/H4-DRIVER-ERROR-ROOT-CAUSE.md`). Guard suites on
+the integrated branch, same day: `tests/edge/channel-card-readback`
+5/0 · `tests/career-agent-begin-card` 4/4 · begin trio 25/25 + 3/3 +
+11/11 · `tests/career-portal-sandbox-classification` 3/3 ·
+`tests/e2e/engine-env` 2/2 · portal-apply 14/14 · board-provider 11/11.
 
 Claimed (designed, not run): A4.1's doorstep stop shape, A4.2/A5.1–A5.4
 against the mock form (the mock employer's own log assertions are

@@ -1,0 +1,46 @@
+{
+  "bug": "F-008",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "classification": "NOT_REPRODUCED_UNDER_EXISTING_POLICY",
+  "new_guards": {
+    "base": {
+      "pass": 6,
+      "fail": 0
+    },
+    "branch": {
+      "pass": 6,
+      "fail": 0
+    }
+  },
+  "product_changes": [],
+  "cause_of_reported_two": "One ordinary budgeted finding plus the C8 requested-cadence large-charge radar; the second ordinary finding is daily_budget-suppressed.",
+  "contract": "ALRT-012 explicitly exempts urgent, requested-cadence and real near-deadline items. Existing proactive K2 tests require the C8 radar exemption.",
+  "not_a_fix": "No red-to-green claim. Removing exceptions or imposing one total message per day changes the existing product policy. A counterexample involving two ordinary unrequested findings is not reproduced.",
+  "sources": [
+    "packages/capabilities/registry.json:ALRT-012",
+    "packages/domain/43-agent-loop.js:budgetAllows",
+    "packages/domain/56-agent-proactive.js:C8 radar",
+    "tests/edge/proactive.test.ts:K2"
+  ],
+  "node_neighbors": {
+    "pass": 20,
+    "fail": 0
+  },
+  "raw_log_sha256": {
+    "policy-base": "0738c5bb287349ac659013e0246f82fb1f0be225618c87a7d77ccbc746adb6d5",
+    "policy-and-edge-neighbors": "d6a6d004069d64e017b718e3208614d4263a4a041b6093792db25018ab739c3d",
+    "node-neighbors": "1b4d0123144ac5da292afc1f36674a72fe8bb21662984b95b5be152e32c56977"
+  },
+  "existing_tests": "unchanged",
+  "excluded_attempts": "Neighbor loaders initially lacked tracked files in this old sparse checkout. Expanded only its checkout paths before the final logs.",
+  "limits": "No delivery, external network, product edits, migration, deploy, merge, dispatch or spend.",
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  },
+  "edge_neighbors": {
+    "pass": 43,
+    "fail": 0
+  }
+}

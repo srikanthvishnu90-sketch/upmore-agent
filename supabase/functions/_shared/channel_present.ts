@@ -89,6 +89,16 @@ export const VOICE = {
   declineButton: "Not now",
   docAttachFailed:
     "That file didn't go through — it's saved on your record; ask me to send it again and I'll retry.",
+  // P1 text yes: the card's applications, numbered as the yes refers to them.
+  cardItems: (items: CardItem[]) =>
+    items.map((it, i) => `${i + 1}. ${it.company ?? "A company"} — ${it.role ?? "a role"}`).join("\n"),
+  textYesFooter: (n: number) =>
+    `Text "yes" to approve all ${n}, "yes but not 2" to leave one out, or "no".`,
+  textYesUnclear:
+    "I didn't approve anything — I couldn't tell which applications you meant. Text \"yes\" for all of them, \"yes but not 2\" (or \"yes but not 2, 5\") to leave some out, or \"no\".",
+  textYesCardMoved:
+    "That card changed since I showed it, so nothing was approved. Ask for the batch status and I'll show you the current card.",
+  textYesAllExcluded: "That leaves every application out, so nothing was approved. The batch stays where it is.",
 } as const;
 
 // ------------------------------------------------------------------
@@ -415,6 +425,125 @@ export async function readCardHash(admin: any, userId: string, runId: string): P
   }
 }
 
+// ------------------------------------------------------------------
+// P1 TEXT YES. A texted reply to a live card offer: "yes" approves the
+// whole card, "yes but not 2" (or "yes except 2, 5") leaves the named
+// applications off, "no" declines. The reply resolves ONLY through the
+// sender's live single-use offer (one per sender per channel; a newer
+// card supersedes it), the stored run is re-read and its card hash must
+// still equal the hash the offer bound, and the approval goes to the
+// core as the identical structured approve a button tap sends, plus the
+// exclusions as posting keys. Anything that is not clearly one of those
+// shapes approves nothing. The core re-verifies the hash and exclusions;
+// the database and the worker check them again.
+
+export interface CardItem { postingKey: string; company: string | null; role: string | null }
+
+export type TextReply =
+  | { kind: "yes"; exclude: number[] }
+  | { kind: "no" }
+  | { kind: "unclear" };
+
+const YES_WORD = /^(?:yes|yep|yeah|yup|y|ok|okay|approve|approved|go|go ahead|send|send them|do it|sure)$/;
+const NO_WORD = /^(?:no|nope|nah|n|not now|cancel|stop|don't|dont|do not)$/;
+
+// null = not a reply to the card at all (an ordinary message).
+export function parseTextApproval(text: string): TextReply | null {
+  const t = String(text ?? "").toLowerCase().replace(/[‘’]/g, "'").replace(/[.!]+\s*$/g, "").trim().replace(/\s+/g, " ");
+  if (!t || t.length > 120) return null;
+  if (NO_WORD.test(t)) return { kind: "no" };
+  if (YES_WORD.test(t) || /^(?:yes|ok|okay) (?:please|to all|all|approve)$/.test(t)) return { kind: "yes", exclude: [] };
+  const m = /^(?:yes|yep|yeah|ok|okay|approve)[, ]+(?:but |except |minus |without )?(?:not |skip |drop |except |leave out |exclude |without )?(?:#|number |no\. ?)?(.+)$/.exec(t);
+  if (!m) {
+    // Starts like a yes but says more than we can read: never a yes.
+    return /^(?:yes|yep|yeah|ok|okay|approve)\b/.test(t) ? { kind: "unclear" } : null;
+  }
+  // The rest must be ONLY numbers joined by commas / "and" / "&" / spaces / "#".
+  const rest = m[1].replace(/\b(?:and|&|or)\b/g, ",").replace(/#/g, "");
+  if (!/^[\d,\s]+$/.test(rest)) return { kind: "unclear" };
+  const nums = rest.split(/[,\s]+/).filter(Boolean).map((s) => Number(s));
+  if (!nums.length || nums.some((n) => !Number.isSafeInteger(n) || n < 1)) return { kind: "unclear" };
+  if (new Set(nums).size !== nums.length) return { kind: "unclear" };
+  // The words must actually say "not"/"except"/… — "yes 2" is not an exclusion.
+  if (!/\b(?:but|except|minus|without|not|skip|drop|leave out|exclude)\b/.test(t)) return { kind: "unclear" };
+  return { kind: "yes", exclude: nums.sort((a, b) => a - b) };
+}
+
+// The card's applications in the order the person sees them: the run's
+// selection order, doorstep-ready only — exactly the set 155's cardSha
+// covers (and career_task_bridge.batchCardItems lists). Read owner-
+// scoped; null unless the stored run is still at the card with the
+// given hash (a moved or foreign card yields nothing).
+export async function readCardItems(
+  admin: any,
+  userId: string,
+  runId: string,
+  cardSha256: string,
+): Promise<CardItem[] | null> {
+  try {
+    const { data, error } = await admin.rpc("career_batch_result_v1", { p_user: userId, p_run: runId });
+    if (error || !data || typeof data !== "object") return null;
+    const rec = (data as any).batch;
+    if (!rec || rec.version !== "career_batch_run/v1" || rec.userId !== userId) return null;
+    if (rec.runId !== runId || rec.status !== "awaiting_approval") return null;
+    const run = rec.run;
+    if (!run || run.id !== runId || run.cardSha256 !== cardSha256) return null;
+    if (!Array.isArray(run.selected) || !run.apps || typeof run.apps !== "object") return [];
+    return run.selected
+      .filter((k: unknown) => typeof k === "string" && run.apps[k as string]?.stage === "doorstep")
+      .map((k: string) => ({ postingKey: k, company: run.apps[k].company ?? null, role: run.apps[k].role ?? null }));
+  } catch {
+    return null;
+  }
+}
+
+export type TextApprovalResolution =
+  | { kind: "none" } // no live offer for this sender, or not a card reply: an ordinary turn
+  | { kind: "say"; text: string; reason: "unclear" | "moved" | "all_excluded" | "declined" | "foreign" | "spent" }
+  | { kind: "approve"; row: PendingApproval; excludeKeys: string[]; count: number };
+
+// Resolve a texted reply against the sender's live card offer. Fail-
+// closed: every doubt says something and approves nothing. The offer is
+// consumed only once the reply is a well-formed yes/no for THIS card.
+export async function resolveTextApproval(
+  deps: ChannelDeps,
+  args: { channel: string; senderKey: string; userId: string; text: string },
+): Promise<TextApprovalResolution> {
+  const parsed = parseTextApproval(args.text);
+  if (!parsed) return { kind: "none" };
+  const pending = await peekApproval(deps, { channel: args.channel, senderKey: args.senderKey });
+  if (!pending) return { kind: "none" };
+  // The offer must be this person's: a sender mapped to another user
+  // never answers someone else's card.
+  if (pending.user_id !== args.userId) return { kind: "say", text: VOICE.buttonForeign, reason: "foreign" };
+  if (parsed.kind === "unclear") return { kind: "say", text: VOICE.textYesUnclear, reason: "unclear" };
+  if (parsed.kind === "no") {
+    const taken = await takeApproval(deps, { channel: args.channel, senderKey: args.senderKey, token: pending.token });
+    if (!taken.ok) return { kind: "say", text: VOICE.choiceExpired, reason: "spent" };
+    return { kind: "say", text: VOICE.dismiss, reason: "declined" };
+  }
+  const items = await readCardItems(deps.createAdmin(), args.userId, pending.run_id, pending.card_sha256);
+  if (!items) {
+    // The stored card is no longer the one offered: spend the offer so it
+    // can never resolve later, and approve nothing.
+    await takeApproval(deps, { channel: args.channel, senderKey: args.senderKey, token: pending.token });
+    return { kind: "say", text: VOICE.textYesCardMoved, reason: "moved" };
+  }
+  let excludeKeys: string[] = [];
+  if (parsed.exclude.length) {
+    // Numbers refer to the card as shown; a run without itemized
+    // applications cannot be partially approved.
+    if (!items.length || parsed.exclude.some((n) => n > items.length)) {
+      return { kind: "say", text: VOICE.textYesUnclear, reason: "unclear" };
+    }
+    if (parsed.exclude.length >= items.length) return { kind: "say", text: VOICE.textYesAllExcluded, reason: "all_excluded" };
+    excludeKeys = parsed.exclude.map((n) => items[n - 1].postingKey);
+  }
+  const taken = await takeApproval(deps, { channel: args.channel, senderKey: args.senderKey, token: pending.token });
+  if (!taken.ok) return { kind: "say", text: taken.reason === "foreign" ? VOICE.buttonForeign : VOICE.choiceExpired, reason: "spent" };
+  return { kind: "approve", row: taken.row, excludeKeys, count: items.length - excludeKeys.length };
+}
+
 export interface PendingApproval {
   token: string;
   channel: string;
@@ -447,11 +576,14 @@ function approvalTtlMs(env: ChannelDeps["env"]): number {
 export async function offerApproval(
   deps: ChannelDeps,
   args: { channel: string; senderKey: string; userId: string; threadId: string; runId: string },
-): Promise<{ token: string } | null> {
+): Promise<{ token: string; items: CardItem[] } | null> {
   try {
     const admin = deps.createAdmin();
     const cardSha256 = await readCardHash(admin, args.userId, args.runId);
     if (!cardSha256) return null;
+    // The numbered list a texted "yes but not 2" refers to — read from
+    // the same stored run at the same hash the token binds.
+    const items = (await readCardItems(admin, args.userId, args.runId, cardSha256)) ?? [];
     const now = new Date();
     // Supersede older live offers so a stale button/choice can never be
     // the one that resolves (best-effort; resolution also re-checks).
@@ -476,10 +608,18 @@ export async function offerApproval(
       consumed_at: null,
     });
     if (error) return null;
-    return { token };
+    return { token, items };
   } catch {
     return null;
   }
+}
+
+// The approval prompt under a card: the run line, then — when the stored
+// run itemizes its applications — the numbered list and the text-yes
+// footer. With no items it is exactly VOICE.approvalPrompt, as before.
+export function approvalPromptText(runId: string, items: CardItem[] | undefined): string {
+  if (!items || !items.length) return VOICE.approvalPrompt(runId);
+  return `${VOICE.approvalPrompt(runId)}\n${VOICE.cardItems(items)}\n${VOICE.textYesFooter(items.length)}`;
 }
 
 // The latest live offer for a sender (WhatsApp numbered choices carry no

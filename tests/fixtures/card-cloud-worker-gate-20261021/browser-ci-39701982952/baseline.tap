@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: CONTROL captured Veeva: exact approved answers and resume produce one local POST with exact He
+ok 1 - CONTROL captured Veeva: exact approved answers and resume produce one local POST with exact He
+  ---
+  duration_ms: 22597.195067
+  type: 'test'
+  ...
+# Subtest: CONTROL captured Veeva: post-tap answer mutation refuses without engine or local POST
+ok 2 - CONTROL captured Veeva: post-tap answer mutation refuses without engine or local POST
+  ---
+  duration_ms: 6174.402921
+  type: 'test'
+  ...
+# Subtest: CONTROL captured Veeva: post-tap resume mutation refuses without engine or local POST
+ok 3 - CONTROL captured Veeva: post-tap resume mutation refuses without engine or local POST
+  ---
+  duration_ms: 6293.005649
+  type: 'test'
+  ...
+# Subtest: CONTROL captured Veeva: post-tap destination mutation refuses without engine or local POST
+ok 4 - CONTROL captured Veeva: post-tap destination mutation refuses without engine or local POST
+  ---
+  duration_ms: 6347.032557
+  type: 'test'
+  ...
+# Subtest: ACCEPTANCE captured Veeva (browser verdict pending): rehashed company/Hq must not run the unchanged approved engine He
+not ok 5 - ACCEPTANCE captured Veeva (browser verdict pending): rehashed company/Hq must not run the unchanged approved engine He
+  ---
+  duration_ms: 15200.910687
+  type: 'test'
+  location: '/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:131:42'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"prepared":true,"fields":[{"name":"resume","label":"Resume/CV ATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success!","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","factId":"approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","provenance":"owner picked this file in the panel","confirmation_event_id":"resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","source":{"table":"answers","key":"resume","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"}},{"name":"name","label":"Full name✱","value":"Synthetic Tester","factId":"TEST-F-1","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-1","source":{"table":"answers","key":"full_name","value":"Synthetic Tester"}},{"name":"email","label":"Email✱","value":"synthetic.tester@example.test","factId":"TEST-F-2","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-2","source":{"table":"answers","key":"email","value":"synthetic.tester@example.test"}},{"name":"cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]","label":"Do you now, or in the future require sponsorship?✱","value":"No","factId":"TEST-F-3","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-3","source":{"table":"answers","key":"sponsorship","value":"No"}},{"name":"cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]","label":"Do you have the unrestricted right to work in the United States?✱","value":"Yes","factId":"TEST-F-4","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-4","source":{"table":"answers","key":"work_authorization","value":"Yes"}},{"name":"cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]","label":"I understand that next steps will be sent via email and I have marked the sender address above as safe.","value":"Yes","factId":"TEST-F-5","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-5","authorizes":true,"source":{"table":"saved","key":"i understand that next steps will be sent via email and i have marked the sender address above as safe","value":"Yes"}}],"pageNames":["accountId","cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][baseTemplate]","cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][baseTemplate]","consent[marketing]","timezone"],"approvedHash":"4200773397e5e05d50eccd7c602a6095378c85a90b66c5d0caabe928980dcfa4","currentHash":"45d15095d2c1629ca4df928f00f75355ab71847142e41b12ed89607170d1edb4","originalCompany":"127.0.0.1:45835","engineApproval":"1fa13bd872f183b1ade723122b731acd1e0578b85d2674512ccbb28b63c56672","engineCalls":1,"argsSeen":[["--url","http://127.0.0.1:45835/veeva-bridge-company/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply","--facts","/tmp/upmore-cloud-lever-6N3paE/bridge-zvb4SK/tmp/trainee-cloud-9109bbedd6cb623a/facts.json","--resume","/tmp/upmore-cloud-lever-6N3paE/bridge-zvb4SK/tmp/trainee-cloud-9109bbedd6cb623a/resume/resume.pdf","--submit","--approved","1fa13bd872f183b1ade723122b731acd1e0578b85d2674512ccbb28b63c56672"]],"authorizationPhases":[],"final":{"state":"confirmed","evidence":{"reason":"employer confirmation on the page","confirmation_id":null,"by":"cloud","answers":[{"label":"Resume/CV ATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success!","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","fact":"approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"},{"label":"Full name✱","value":"Synthetic Tester","fact":"TEST-F-1"},{"label":"Email✱","value":"synthetic.tester@example.test","fact":"TEST-F-2"},{"label":"Do you now, or in the future require sponsorship?✱","value":"No","fact":"TEST-F-3"},{"label":"Do you have the unrestricted right to work in the United States?✱","value":"Yes","fact":"TEST-F-4"},{"label":"I understand that next steps will be sent via email and I have marked the sender address above as safe.","value":"Yes","fact":"TEST-F-5"}],"resume_sha256":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","response":{"status":200,"destination":"http://127.0.0.1:45835/veeva-bridge-company/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply","final_url":"http://127.0.0.1:45835/veeva-bridge-company/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply","page_text":"Thank you for applying Application submitted. Confirmation TEST-LEVER-1."},"screenshots":{"dir":"/tmp/upmore-cloud-lever-6N3paE/bridge-zvb4SK/evidence/cb19ef47-2415-4fe2-872f-7008ca1bb55a","sha256":{"before-review.png":"4fce7bce41c41ca2c1c6d2d27e40213c99e16f828becde15c2941bc47c8ef691","after-submit.png":"87c4a10012921c9aa03aa3726a851322a258c99dedaaf9f0e25f152e5b448bad"}},"started_at":"2026-10-22T00:50:18.197Z","finished_at":"2026-10-22T00:50:26.753Z"},"outcome":"submitted"},"left":0}
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:132:124)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ACCEPTANCE captured Veeva (browser verdict pending): rehashed page-url/Hq must not run the unchanged approved engine He
+not ok 6 - ACCEPTANCE captured Veeva (browser verdict pending): rehashed page-url/Hq must not run the unchanged approved engine He
+  ---
+  duration_ms: 11870.354307
+  type: 'test'
+  location: '/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:131:42'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"prepared":true,"fields":[{"name":"resume","label":"Resume/CV ATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success!","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","factId":"approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","provenance":"owner picked this file in the panel","confirmation_event_id":"resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","source":{"table":"answers","key":"resume","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"}},{"name":"name","label":"Full name✱","value":"Synthetic Tester","factId":"TEST-F-1","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-1","source":{"table":"answers","key":"full_name","value":"Synthetic Tester"}},{"name":"email","label":"Email✱","value":"synthetic.tester@example.test","factId":"TEST-F-2","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-2","source":{"table":"answers","key":"email","value":"synthetic.tester@example.test"}},{"name":"cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]","label":"Do you now, or in the future require sponsorship?✱","value":"No","factId":"TEST-F-3","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-3","source":{"table":"answers","key":"sponsorship","value":"No"}},{"name":"cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]","label":"Do you have the unrestricted right to work in the United States?✱","value":"Yes","factId":"TEST-F-4","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-4","source":{"table":"answers","key":"work_authorization","value":"Yes"}},{"name":"cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]","label":"I understand that next steps will be sent via email and I have marked the sender address above as safe.","value":"Yes","factId":"TEST-F-5","provenance":"owner stated in chat (TEST)","confirmation_event_id":"evt-TEST-F-5","authorizes":true,"source":{"table":"saved","key":"i understand that next steps will be sent via email and i have marked the sender address above as safe","value":"Yes"}}],"pageNames":["accountId","cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][baseTemplate]","cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][baseTemplate]","consent[marketing]","timezone"],"approvedHash":"4d1d9c086fa700d8cd6431273a8affbbed8538ded334c5e5cb9c266eb8101b39","currentHash":"eb253d5f31186ac68a58186ea2977f44ed70b1154af5b6eaea94903e8c7f91d1","originalCompany":"127.0.0.1:45835","engineApproval":"4c80cd61f9ef06f7fdff0dbd2ab4b5c1d6e9d901042adf36a7d8132247a9e7a5","engineCalls":1,"argsSeen":[["--url","http://127.0.0.1:45835/veeva-bridge-page-url/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply?changed-page","--facts","/tmp/upmore-cloud-lever-6N3paE/bridge-WMa32K/tmp/trainee-cloud-84ef79b5d9bddb07/facts.json","--resume","/tmp/upmore-cloud-lever-6N3paE/bridge-WMa32K/tmp/trainee-cloud-84ef79b5d9bddb07/resume/resume.pdf","--submit","--approved","4c80cd61f9ef06f7fdff0dbd2ab4b5c1d6e9d901042adf36a7d8132247a9e7a5"]],"authorizationPhases":[],"final":{"state":"not_submitted","evidence":{"reason":"APPROVED_APPLICATION_CHANGED","confirmation_id":null,"by":"cloud","answers":[{"label":"Resume/CV ATTACH RESUME/CVCouldn't auto-read resume.Analyzing resume...Success!","value":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","fact":"approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"},{"label":"Full name✱","value":"Synthetic Tester","fact":"TEST-F-1"},{"label":"Email✱","value":"synthetic.tester@example.test","fact":"TEST-F-2"},{"label":"Do you now, or in the future require sponsorship?✱","value":"No","fact":"TEST-F-3"},{"label":"Do you have the unrestricted right to work in the United States?✱","value":"Yes","fact":"TEST-F-4"},{"label":"I understand that next steps will be sent via email and I have marked the sender address above as safe.","value":"Yes","fact":"TEST-F-5"}],"resume_sha256":"e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3","response":null,"screenshots":{"dir":"/tmp/upmore-cloud-lever-6N3paE/bridge-WMa32K/evidence/ef153677-4145-44a5-9486-ec4e48611ac1","sha256":{"before-review.png":"4fce7bce41c41ca2c1c6d2d27e40213c99e16f828becde15c2941bc47c8ef691"}},"started_at":"2026-10-22T00:50:33.008Z","finished_at":"2026-10-22T00:50:38.624Z"},"outcome":"not_sent"},"left":0}
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:132:124)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ACCEPTANCE actual parent/child pre-effect lease denial prevents the local employer POST
+not ok 7 - ACCEPTANCE actual parent/child pre-effect lease denial prevents the local employer POST
+  ---
+  duration_ms: 14801.26246
+  type: 'test'
+  location: '/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:134:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + []
+    - [
+    -   'before_engine',
+    -   'before_engine',
+    -   'before_effect'
+    - ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'before_engine'
+    1: 'before_engine'
+    2: 'before_effect'
+  actual:
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/home/runner/work/upmore-agent/upmore-agent/source/tests/career-cloud-worker-card-bridge-lever.test.cjs:136:44)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 4
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 83424.462856

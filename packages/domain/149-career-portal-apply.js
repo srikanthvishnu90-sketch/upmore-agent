@@ -838,6 +838,27 @@ const CareerPortalApply = (() => {
     const observed = board.answers();
     if (Object.keys(filled).length && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis });
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
+    // F-027 (2026-10-22): per-key value equivalence at this compare
+    // ONLY (the payload is never altered). A phone input is a scalar
+    // fill, so the FR-395 renderedValues hatch (widget fills only)
+    // never fires for it — yet boards normalize phone values on their
+    // own (Lever's mask renders the US national form, dropping the
+    // "+1" country prefix), and the exact compare stopped a correct
+    // fill as drift (live: batch-8ef4497b16db). For fields whose
+    // profile key is "phone", digit sequences are compared with a
+    // single leading country "1" tolerated on either side; a
+    // genuinely different number (different subscriber digits, or a
+    // different country prefix) still differs and still stops. The
+    // equivalence is keyed by the field's profile key — it does not
+    // apply to any other key, however digit-shaped its values look.
+    const digitsOf = (v) => String(v).replace(/\D+/g, "");
+    const phoneDigitsEquivalent = (a, b) => {
+      const strip = (d) => (d.length === 11 && d.startsWith("1") ? d.slice(1) : d);
+      const da = strip(digitsOf(a)), db = strip(digitsOf(b));
+      return da.length >= 7 && da === db;
+    };
+    const fieldDefOf = (fid) => (formDef.fields || []).find((x) => x.field_id === fid)
+      || (session.preparationFields || []).find((x) => x.field_id === fid);
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;
       // Composed at the v224 combine: an EMPTY readback (absent or
@@ -866,10 +887,21 @@ const CareerPortalApply = (() => {
       const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
         : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+      let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
           || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
+      // F-027: when the exact channels fail, the phone digit
+      // equivalence gets its say — keyed by the field's profile key,
+      // strings only, and recorded in the run record when it carries
+      // the acceptance (the same evidentiary standard as the hatch).
+      if (!same && typeof expected !== "object" && typeof actual !== "object") {
+        const fd = fieldDefOf(id);
+        if (fd && fd.profile_key === "phone" && phoneDigitsEquivalent(expected, actual)) {
+          same = true;
+          logStep("answer_observation_equivalent", { field_id: id, equivalence: "phone_digits", expected, observed: actual });
+        }
+      }
       // FR-395: hatch use is recorded in the run record — that the
       // board's rendered value was consulted as the expectation, and
       // whether the acceptance was hatch-ONLY (the raw profile value

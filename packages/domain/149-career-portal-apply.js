@@ -809,6 +809,7 @@ const CareerPortalApply = (() => {
     const filled = {};
     const answers = profile.answers || {};
     let attemptedFills = 0;
+    const driverFillFailures = [];
     // A refused browser fill returns undefined (null across the worker
     // bridge). It did not answer the field: keep it out of the successful
     // fill/repair ledger and expose an ask, rather than claiming it landed.
@@ -820,7 +821,11 @@ const CareerPortalApply = (() => {
         const failures = Array.isArray(board.fillFailures) ? board.fillFailures : [];
         const failure = failures.slice(before).reverse().find((x) => x && x.field_id === f.field_id);
         logStep("fill_refused", Object.assign({}, entry, { reason: failure && failure.reason || "fill_returned_no_value" }));
-        asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        // An option mismatch can require a user-selected answer. A driver
+        // reporting a lost value, vanished input or other technical failure
+        // cannot be repaired by asking the user to restate a confirmed fact.
+        if (!failure || !failure.reason || failure.reason === "option_not_found") asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        else driverFillFailures.push(f);
         return false;
       }
       filled[f.field_id] = { value, source: entry.source };
@@ -896,6 +901,11 @@ const CareerPortalApply = (() => {
     // D2 counts attempts, including refusals: nothing landing is EMPTY_FORM.
     // With no attempted fill, missing facts still take the normal ask path.
     if (attemptedFills && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis, asks });
+    const driverMissing = driverFillFailures.filter((f) => f.required).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
+    if (driverMissing.length) {
+      logStep("incomplete_payload_stop", { missing: driverMissing.map((f) => f.field_id) });
+      return blocked("INCOMPLETE_PAYLOAD", { reason: "the driver could not retain confirmed answers for required fields", missing: driverMissing, formAnalysis, asks });
+    }
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;

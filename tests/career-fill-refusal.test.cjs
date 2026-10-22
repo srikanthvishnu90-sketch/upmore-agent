@@ -34,7 +34,7 @@ function fixture(c, opts = {}) {
     if (id === "target" || opts.refuseAll) {
       if (opts.error) throw opts.error;
       if (opts.refuse) {
-        if (opts.diagnostics !== false && !opts.stale) failures.push({ field_id: id, reason: "option_not_found", wanted: value });
+        if (opts.diagnostics !== false && !opts.stale) failures.push({ field_id: id, reason: opts.reason || "option_not_found", wanted: value });
         return opts.verdict;
       }
     }
@@ -104,4 +104,30 @@ test("F023 thrown resume or driver errors retain the existing throw contract", (
   const error = Object.assign(new Error("Synthetic driver error"), { code: "RESUME_SHA_MISMATCH" });
   const f = fixture(cases[0], { error }); assert.throws(f.run, e => e === error);
   assert.equal(f.board.calls.submit, 0);
+});
+for (const reason of ["file_input_not_mounted", "value_did_not_persist", "fill_error:DRIVER_ERROR"]) {
+  for (const verdict of [undefined, null]) test(`F023 required driver failure ${reason}/${String(verdict)} blocks instead of asking the user`, () => {
+    const f = fixture(cases[0], { refuse: true, verdict, reason }); const r = f.run();
+    assert.equal(r.resultStatus, "blocked"); assert.equal(r.code, "INCOMPLETE_PAYLOAD");
+    assert.ok(r.missing.some(m => m.field_id === "target"));
+    assert.equal(r.asks.some(a => a.field_id === "target"), false, "a broken driver is not a request to invent a new fact");
+    assert.equal(r.stepLog.find(s => s.action === "fill_refused").reason, reason);
+    assert.equal(f.session.doorstep, null);
+  });
+  test(`F023 optional driver failure ${reason} remains logged without blocking`, () => {
+    const r = fixture(cases[0], { refuse: true, verdict: null, reason, required: false }).run();
+    assert.equal(r.resultStatus, "prepared"); assert.equal(r.asks.length, 0);
+    assert.equal(r.stepLog.find(s => s.action === "fill_refused").reason, reason);
+    assert.equal("target" in r.doorstep.payload, false);
+  });
+}
+test("F023 all driver fills failing preserve the EMPTY_FORM priority", () => {
+  const r = fixture(cases[0], { refuse: true, verdict: null, reason: "value_did_not_persist", refuseAll: true }).run();
+  assert.equal(r.resultStatus, "blocked"); assert.equal(r.code, "EMPTY_FORM");
+  assert.equal(r.asks.length, 0);
+});
+test("F023 an unfamiliar driver diagnostic is blocked without guessing its meaning", () => {
+  const r = fixture(cases[0], { refuse: true, verdict: null, reason: "new_driver_failure" }).run();
+  assert.equal(r.resultStatus, "blocked"); assert.equal(r.code, "INCOMPLETE_PAYLOAD");
+  assert.equal(r.stepLog.find(s => s.action === "fill_refused").reason, "new_driver_failure");
 });

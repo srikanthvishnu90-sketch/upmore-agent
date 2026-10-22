@@ -22639,6 +22639,7 @@ const CareerPortalApply = (() => {
     const filled = {};
     const answers = profile.answers || {};
     let attemptedFills = 0;
+    const driverFillFailures = [];
     const attemptFill = (f, value, entry) => {
       const before = Array.isArray(board.fillFailures) ? board.fillFailures.length : 0;
       attemptedFills += 1;
@@ -22647,7 +22648,8 @@ const CareerPortalApply = (() => {
         const failures = Array.isArray(board.fillFailures) ? board.fillFailures : [];
         const failure = failures.slice(before).reverse().find((x) => x && x.field_id === f.field_id);
         logStep("fill_refused", Object.assign({}, entry, { reason: failure && failure.reason || "fill_returned_no_value" }));
-        asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        if (!failure || !failure.reason || failure.reason === "option_not_found") asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        else driverFillFailures.push(f);
         return false;
       }
       filled[f.field_id] = { value, source: entry.source };
@@ -22713,6 +22715,11 @@ const CareerPortalApply = (() => {
 
     const observed = board.answers();
     if (attemptedFills && !Object.keys(observed).length) return blocked("EMPTY_FORM", { reason: "no attempted answer was observed on the board", formAnalysis, asks });
+    const driverMissing = driverFillFailures.filter((f) => f.required).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id }));
+    if (driverMissing.length) {
+      logStep("incomplete_payload_stop", { missing: driverMissing.map((f) => f.field_id) });
+      return blocked("INCOMPLETE_PAYLOAD", { reason: "the driver could not retain confirmed answers for required fields", missing: driverMissing, formAnalysis, asks });
+    }
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
     for (const [id, planned] of Object.entries(filled)) {
       if (observed[id] === undefined) continue;

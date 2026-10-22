@@ -13,7 +13,7 @@
 //     posting goes on; then scripts/career/prove-loop-driver.ts prepares it (the engine's dry run through the cloud
 //     worker's engine runner: every field filled and read back), asks once what the persona's facts do not cover and
 //     answers it from the persona, and builds the card;
-//  3. the card is answered "yes" through cardTurn, the code the chat runs, and only the payload whose hash the card
+//  3. the card is shown through cardTurn, the code the chat runs, and approved by the person's tap, and only the payload whose hash the card
 //     carries is queued;
 //  4. the approved payload must equal the filled page: the cloud worker's before-effects check, then a fresh page filled
 //     from the approved payload alone must give the same engine approval hash. Then it stops at the submit click. With

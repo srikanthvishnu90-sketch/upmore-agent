@@ -3,7 +3,7 @@
 //   prepare (workers/career-browser/approve-first.ts, the engine's dry run through the cloud worker's own engine runner,
 //   workers/career-cloud/worker.ts cloudEngineRunner) -> the questions it stopped on, asked once (ask-once.ts
 //   questionsToStore) and answered from the TEST persona -> prepare again -> the card (supabase/functions/_shared/
-//   career_apply_cards.ts cardTurn: "show my applications", then "yes", the words the chat takes) -> the queued payload
+//   career_apply_cards.ts cardTurn: "show my applications", then the person's tap on that card) -> the queued payload
 //   is the one the card's hash names -> assertApprovedPayload (the cloud worker's own before-effects check) -> a fresh
 //   page filled from the approved payload alone (factsFromPayload, as runCloudJob builds it) must give the engine the
 //   same approval hash, field by field read back. Then it stops: no --submit is ever passed for a real employer.
@@ -12,7 +12,7 @@
 import { factsFromPayload, prepare, assertApprovedPayload, engineFacts, type RunEngine } from "../../workers/career-browser/approve-first.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
 import { cloudEngineRunner, runCloudJob } from "../../workers/career-cloud/worker.ts";
-import { CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
+import { answerText, CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { trustedManifest } from "../../extension/src/apply_core.ts";
 
@@ -71,7 +71,7 @@ if (!p.ready) done({ outcome: "not_prepared", result: p.result, runs });
 const ready = p as Extract<typeof p, { ready: true }>;
 const prepared = runs.at(-1);
 
-// 2. The card and its "yes", through the same cardTurn the chat runs before any brain. The store queues exactly what the
+// 2. The card, shown through the same cardTurn the chat runs before any brain, and the person's tap on it. The store queues exactly what the
 // card showed, by the payload hash the card carries (the database half is career_apply_card_answer_as).
 const queue: any[] = [];
 let card: any = null, last: string | null = null;
@@ -91,9 +91,11 @@ const store: CardStore = {
 };
 const userId = ready.payload.user_id;
 const shown = await cardTurn({ message: "show my applications", userId, threadId: "TEST-THREAD", now: Date.now(), store });
-const yes = await cardTurn({ message: "yes", userId, threadId: "TEST-THREAD", now: Date.now(), store });
-step("card", { shown: shown?.status, answered: yes?.status, card_id: card?.id });
-out.card = { id: card?.id, text: shown?.reply, reply: yes?.reply, items: card?.items };
+// The approval is the person's tap on the shown card (career_apply_card_answer_own), never a text yes: Option A (#162,
+// 2026-10-22) and the bound text-yes rule (#165) both leave the tap as the one path that approves on its own.
+const tapped = card ? await store.answer(userId, card.id, card.items.map((it: any) => it.n)) : [];
+step("card", { shown: shown?.status, answered: "tap", card_id: card?.id });
+out.card = { id: card?.id, text: shown?.reply, reply: answerText(tapped), tapped, items: card?.items };
 if (queue.length !== 1) done({ outcome: "not_approved", runs });
 const job = queue[0];
 
@@ -126,5 +128,5 @@ if (fixtureSubmit) {
   outcome = r.outcome === "submitted" ? "fixture_submitted" : `fixture_not_submitted:${r.reason}`;
   step("fixture_submit", { state: r.state, outcome: r.outcome, reason: r.reason });
 }
-done({ outcome, payload: job.payload, payload_sha256: payloadHash, approval: { card_id: card.id, payload_hash: payloadHash, engine_approval: job.payload.engine_approval, said: "yes" },
+done({ outcome, payload: job.payload, payload_sha256: payloadHash, approval: { card_id: card.id, payload_hash: payloadHash, engine_approval: job.payload.engine_approval, by: "tap" },
   prepared: { result: prepared.result, evidence: prepared.evidence }, replay: { result: replay!.result, readback: replay!.evidence?.readback ?? null }, cloud: cloudRun });

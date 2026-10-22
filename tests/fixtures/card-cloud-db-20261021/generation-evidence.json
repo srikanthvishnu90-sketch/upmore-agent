@@ -8,7 +8,8 @@
     "raw_id_vs_bank_factId_helper_controls": 2,
     "pinned_live014_function_bodies_extracted": 12,
     "generator_typecheck": "PASS",
-    "python_ast_and_concurrency_help": "PASS"
+    "python_ast_and_concurrency_help": "PASS",
+    "prepared_readback_answers_exact_value_and_shown": 120
   },
   "sql_database_and_race_runtime": "NOT_RUN; no connection or migration execution",
   "browser_runtime": "NOT_RUN; separately observed SUID sandbox launcher failure retained in prior artifact",
@@ -19,11 +20,10 @@
   },
   "fresh_expiry": "cc_full_item refreshes P+approved_snapshot.original only before display, then computes Hq; call once per item",
   "remaining_dependencies": [
-    "reviewed up/down and authorized disposable SQL execution",
-    "caller-created committed race/rollback seed fixtures and exact shared maintenance key",
-    "confirmed enrollment column names user_id/purpose/approval_ref",
-    "reviewed source-snapshot digest RPC signature and current source fixture seeding",
-    "Claude engine_input actual raw id:F033 projection; not faked by labelling it bank factId"
+    "reviewed up/down and explicit authorization for disposable SQL execution",
+    "caller-created committed race/rollback seed fixtures and actual reviewed shared maintenance key",
+    "Claude engine_input actual raw id:F033 projection remains known fail-closed; this fixture does not relabel chat IDs as bank facts",
+    "SQL current-source fixture must use actual profile/answered-row source rows matching every replay source; these canonical file fixtures alone do not prove engineInput source reconstruction"
   ],
   "new_cost_usd": 0,
   "prior_known_usd": "8.503100",
@@ -31,13 +31,13 @@
   "files": [
     {
       "path": "tests/db/pending/career_apply_card_cloud_concurrency.py",
-      "bytes": 20275,
-      "sha256": "c3057ca82fe72cfb37205c262a83dc52a7101376380f9cfa9546283941384cfd"
+      "bytes": 20277,
+      "sha256": "1b5c605e969c9f004929cd3ce594f56de83b6772a9b6a3a2b85bc8273f19fd78"
     },
     {
       "path": "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql",
-      "bytes": 14620,
-      "sha256": "68b734c2f2739a345cf037bf56b0919b13058c7a11c269ea3ea3865402c0eb92"
+      "bytes": 14698,
+      "sha256": "f00232659afc4f250cc6e3a7a8fbe42ddd6b15c4a87162db48e6a637378f390d"
     },
     {
       "path": "tests/db/pending/career_apply_card_cloud_rollback.test.sql",
@@ -46,8 +46,8 @@
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/fixture.sql",
-      "bytes": 235035,
-      "sha256": "b2bb98f2b6441048a8e1ab1e43a40116bb88499b2ded3f9bac7beb9b62136127"
+      "bytes": 214715,
+      "sha256": "f1b5b84bcdb9951062492ebdc2633ef13aeaaafbde3654ef73cd7997d00d7b0d"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/generate-live-source.py",
@@ -56,8 +56,8 @@
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/generate.ts",
-      "bytes": 6932,
-      "sha256": "8fb8602f7ab8c3bb7cbe19402ececfcae713ecfae9e9dd1916c77de8afaa6e79"
+      "bytes": 7831,
+      "sha256": "7d1c0510fa5bb29457e44c00ab5bd8e458d6bf37e95c4335c63c5b971748f6ec"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/live014-source-evidence.json",
@@ -71,8 +71,10 @@
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/prepared-payloads.json",
-      "bytes": 375093,
-      "sha256": "cd571a147f7eb08eb63033cc45e81036e23175d590459c0832308f81d8959423"
+      "bytes": 343813,
+      "sha256": "0d05b03e1a98460ac50d7fae88f5800c504f407e918609e6f9d9687c22d7ebe8"
     }
-  ]
+  ],
+  "generation_source_pin": "459d64af329b1224c8dc3d44053b286d5a67803c",
+  "readback_contract": "Each R answer exactly {name,label,value,shown,factId}; value copied verbatim from approved P, shown from scripted dry evidence (file filename; boolean Yes (checked)/No (left unchecked)); no browser claim."
 }

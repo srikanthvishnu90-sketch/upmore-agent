@@ -35,14 +35,23 @@
    - The payload hash is a security binding (the DB recomputes it):
      SHA-256 only — WebCrypto or node:crypto. There is deliberately
      NO fallback hash in this module.
-   - payload.source is the literal "extension" because
-     career_apply_extension_begin_own (migration 20261021120000)
-     refuses anything else ('invalid extension application') and
-     stamps the job row source='extension'. That stamp is a known
-     provenance defect for a chat/cloud begin (the family gate
-     counts email-confirmed 'extension' rows as hand submissions) —
-     ledgered as F-030 in docs/apply/
-     FAILURES-ADDENDUM-CHAT-BEGIN-2026-10-22.md, not hidden here.
+   - payload.source names the door the payload is built for, because
+     each begin door refuses the other's dialect. The default door is
+     the extension's: career_apply_extension_begin_own (migration
+     20261021120000) refuses anything but "extension" and stamps the
+     job row source='extension', already driving, with the beginner's
+     lease — right when the beginner is the driver, wrong for a begin
+     made in chat for the cloud worker, which claims only rows still
+     queued with source null (F-030: the row was never claimed, and
+     its 'extension' stamp would have counted toward the family
+     gate's hand tally). The cloud door (input.door === "cloud",
+     migration 20261024140000's career_apply_cloud_begin_agent_own)
+     builds source "cloud" and carries the destination the person
+     approved and the engine's approval hash — the shapes the cloud
+     claim demands of the payload — and its begin only enqueues: the
+     row waits queued/source null for the claim, which stamps it
+     'cloud' itself. Root cause + fix shape: docs/apply/
+     ROOT-CAUSE-F030-BEGIN-CLAIM-2026-10-22.md.
 
    Pure/sync like its siblings except the two async edges the work
    itself has (hashing + the RPC); every effect goes through the
@@ -66,6 +75,7 @@ const CareerAgentBegin = (() => {
 
   const RPC_APPROVE = "career_apply_batch_approve_own";
   const RPC_BEGIN = "career_apply_extension_begin_agent_own";
+  const RPC_BEGIN_CLOUD = "career_apply_cloud_begin_agent_own";
 
   // ---------------- canonical JSON + SHA-256 ----------------
   // The canonical form career_apply_canonical (migration
@@ -116,10 +126,25 @@ const CareerAgentBegin = (() => {
     const inp = input || {};
     const entry = inp.entry || {};
     const account = inp.account || {};
+    const door = inp.door === "cloud" ? "cloud" : "extension";
     return {
       ...(entry.manifest_hash != null ? { manifest_hash: entry.manifest_hash, quarantine_version: entry.quarantine_version } : {}),
       version: 1,
-      source: "extension", // begin_own's requirement — see header (F-030)
+      source: door, // the door's own label — see header (F-030)
+      // The cloud door's payload carries what the cloud claim will
+      // demand of it (migration 20261021080000's refusal: the
+      // destination the person approved, the preparing engine's
+      // approval hash — the values approve-first puts in its
+      // payloads). From the approved entry first (they are per
+      // posting), then the call-level input. The extension door's
+      // payload is unchanged: it carries neither key.
+      ...(door === "cloud" ? {
+        destination: entry.destination != null ? entry.destination
+          : (inp.destination != null ? inp.destination : null),
+        engine_approval: entry.engineApproval != null ? entry.engineApproval
+          : (entry.engine_approval != null ? entry.engine_approval
+            : (inp.engineApproval != null ? inp.engineApproval : null)),
+      } : {}),
       user_id: inp.userId || null,
       job_id: entry.jobId || null,
       company: entry.company || null,
@@ -214,10 +239,23 @@ const CareerAgentBegin = (() => {
     return { ok: true };
   }
 
+  // The cloud door's own checks (migration 20261024140000), mirrored
+  // with the DB's messages, after the contract mirror and before the
+  // begin RPC — same discipline as checkContract: a payload the claim
+  // could never take is refused here, named, and never sent.
+  function refuseCloud(message) { return { ok: false, code: "AGENT_CLOUD_REFUSED", message }; }
+  function checkCloudDoor(payload) {
+    if (!payload || payload.source !== "cloud") return refuseCloud("agent cloud: source");
+    if (typeof payload.destination !== "string" || !/^https:\/\//.test(payload.destination)) return refuseCloud("agent cloud: destination");
+    if (typeof payload.engine_approval !== "string" || !/^[0-9a-f]{64}$/.test(payload.engine_approval)) return refuseCloud("agent cloud: engine approval");
+    return { ok: true };
+  }
+
   // ---------------- the caller ----------------
   function classifyDbRefusal(message) {
     if (message === "agent submit is off") return "AGENT_SUBMIT_OFF";
     if (typeof message === "string" && message.startsWith("agent contract:")) return "AGENT_CONTRACT_REFUSED";
+    if (typeof message === "string" && message.startsWith("agent cloud:")) return "AGENT_CLOUD_REFUSED";
     if (message === "no live batch approval for this posting") return "NO_LIVE_APPROVAL";
     return "BEGIN_REFUSED";
   }
@@ -253,18 +291,23 @@ const CareerAgentBegin = (() => {
     // Begin each posting: build from the entry, mirror-check locally,
     // then exactly one begin RPC. A refusal — local or the DB's — is
     // recorded per posting and never retried; the others still go.
+    const door = input.door === "cloud" ? "cloud" : "extension";
     const results = [];
     for (const [i, entry] of entries.entries()) {
       const payload = buildBeginPayload({
-        entry, userId,
+        entry, userId, door,
         family: (input.familyByJobId && input.familyByJobId[entry.jobId]) || input.family || null,
         account: input.account, expiresAt: input.expiresAt, resume: input.resume || null,
       });
       const chk = checkContract(entry, payload, { answeredTextAnswerIds: input.answeredTextAnswerIds || [] });
       if (!chk.ok) { results.push({ jobId: entry.jobId, ok: false, code: chk.code, message: chk.message }); continue; }
+      if (door === "cloud") {
+        const dchk = checkCloudDoor(payload);
+        if (!dchk.ok) { results.push({ jobId: entry.jobId, ok: false, code: dchk.code, message: dchk.message }); continue; }
+      }
       const pApproval = await sha256Hex(canonicalApplyJson(payload));
       try {
-        const row = await d.rpc(RPC_BEGIN, { p_payload: payload, p_approval: pApproval, p_batch_hash: items[i].hash });
+        const row = await d.rpc(door === "cloud" ? RPC_BEGIN_CLOUD : RPC_BEGIN, { p_payload: payload, p_approval: pApproval, p_batch_hash: items[i].hash });
         results.push({ jobId: entry.jobId, ok: true, id: row && row.id || null, lease: row && row.lease || null, payloadHash: row && row.payload_hash || null });
       } catch (e) {
         const message = e && e.message ? e.message : String(e);
@@ -305,9 +348,9 @@ const CareerAgentBegin = (() => {
   }
 
   return {
-    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN,
+    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD,
     canonicalApplyJson, sha256Hex, batchHashOf,
-    buildBeginPayload, checkContract, beginApprovedPostings, beginFromClaim,
+    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim,
   };
 })();
 

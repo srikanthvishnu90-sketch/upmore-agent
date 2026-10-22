@@ -189,6 +189,9 @@ done
 
 for t in "$HERE"/*.test.sql; do
   if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" ]]; then continue; fi
+  # career_apply_agent_cloud_begin.test.sql (F-030) runs in its own section at the end, after its
+  # migration is applied at the final schema: the same skip-list pattern as the chain's own tests.
+  if [[ "$t" == "$HERE/career_apply_agent_cloud_begin.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -364,4 +367,13 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
+# F-030: the cloud begin for a chat approval (20261024140000), last in the chain's file order, so it is
+# applied here, at the final schema (the card-cloud bridge above is installed), twice (idempotent), and
+# its test runs after it. The ledger leg above already applied it once, in filename order inside the
+# pending transaction, and recorded its ledger row there; this section proves the begin -> claim leg
+# against the schema production ends on.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024140000_career_apply_agent_cloud_begin.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024140000_career_apply_agent_cloud_begin.sql"
+echo "== career_apply_agent_cloud_begin.test.sql (a begin made in chat is enqueued for the cloud claim and stamped 'cloud' only by that claim; the extension door unchanged)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_cloud_begin.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

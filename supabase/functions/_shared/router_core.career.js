@@ -24474,6 +24474,7 @@ const CareerAgentBegin = (() => {
 
   const RPC_APPROVE = "career_apply_batch_approve_own";
   const RPC_BEGIN = "career_apply_extension_begin_agent_own";
+  const RPC_BEGIN_CLOUD = "career_apply_cloud_begin_agent_own";
 
   const te = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
   function keyCmp(a, b) {
@@ -24510,10 +24511,18 @@ const CareerAgentBegin = (() => {
     const inp = input || {};
     const entry = inp.entry || {};
     const account = inp.account || {};
+    const door = inp.door === "cloud" ? "cloud" : "extension";
     return {
       ...(entry.manifest_hash != null ? { manifest_hash: entry.manifest_hash, quarantine_version: entry.quarantine_version } : {}),
       version: 1,
-      source: "extension",
+      source: door,
+      ...(door === "cloud" ? {
+        destination: entry.destination != null ? entry.destination
+          : (inp.destination != null ? inp.destination : null),
+        engine_approval: entry.engineApproval != null ? entry.engineApproval
+          : (entry.engine_approval != null ? entry.engine_approval
+            : (inp.engineApproval != null ? inp.engineApproval : null)),
+      } : {}),
       user_id: inp.userId || null,
       job_id: entry.jobId || null,
       company: entry.company || null,
@@ -24589,9 +24598,18 @@ const CareerAgentBegin = (() => {
     return { ok: true };
   }
 
+  function refuseCloud(message) { return { ok: false, code: "AGENT_CLOUD_REFUSED", message }; }
+  function checkCloudDoor(payload) {
+    if (!payload || payload.source !== "cloud") return refuseCloud("agent cloud: source");
+    if (typeof payload.destination !== "string" || !/^https:\/\//.test(payload.destination)) return refuseCloud("agent cloud: destination");
+    if (typeof payload.engine_approval !== "string" || !/^[0-9a-f]{64}$/.test(payload.engine_approval)) return refuseCloud("agent cloud: engine approval");
+    return { ok: true };
+  }
+
   function classifyDbRefusal(message) {
     if (message === "agent submit is off") return "AGENT_SUBMIT_OFF";
     if (typeof message === "string" && message.startsWith("agent contract:")) return "AGENT_CONTRACT_REFUSED";
+    if (typeof message === "string" && message.startsWith("agent cloud:")) return "AGENT_CLOUD_REFUSED";
     if (message === "no live batch approval for this posting") return "NO_LIVE_APPROVAL";
     return "BEGIN_REFUSED";
   }
@@ -24619,18 +24637,23 @@ const CareerAgentBegin = (() => {
     }
     const approvalsStored = typeof stored === "number" ? stored : items.length;
 
+    const door = input.door === "cloud" ? "cloud" : "extension";
     const results = [];
     for (const [i, entry] of entries.entries()) {
       const payload = buildBeginPayload({
-        entry, userId,
+        entry, userId, door,
         family: (input.familyByJobId && input.familyByJobId[entry.jobId]) || input.family || null,
         account: input.account, expiresAt: input.expiresAt, resume: input.resume || null,
       });
       const chk = checkContract(entry, payload, { answeredTextAnswerIds: input.answeredTextAnswerIds || [] });
       if (!chk.ok) { results.push({ jobId: entry.jobId, ok: false, code: chk.code, message: chk.message }); continue; }
+      if (door === "cloud") {
+        const dchk = checkCloudDoor(payload);
+        if (!dchk.ok) { results.push({ jobId: entry.jobId, ok: false, code: dchk.code, message: dchk.message }); continue; }
+      }
       const pApproval = await sha256Hex(canonicalApplyJson(payload));
       try {
-        const row = await d.rpc(RPC_BEGIN, { p_payload: payload, p_approval: pApproval, p_batch_hash: items[i].hash });
+        const row = await d.rpc(door === "cloud" ? RPC_BEGIN_CLOUD : RPC_BEGIN, { p_payload: payload, p_approval: pApproval, p_batch_hash: items[i].hash });
         results.push({ jobId: entry.jobId, ok: true, id: row && row.id || null, lease: row && row.lease || null, payloadHash: row && row.payload_hash || null });
       } catch (e) {
         const message = e && e.message ? e.message : String(e);
@@ -24666,9 +24689,9 @@ const CareerAgentBegin = (() => {
   }
 
   return {
-    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN,
+    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD,
     canonicalApplyJson, sha256Hex, batchHashOf,
-    buildBeginPayload, checkContract, beginApprovedPostings, beginFromClaim,
+    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim,
   };
 })();
 

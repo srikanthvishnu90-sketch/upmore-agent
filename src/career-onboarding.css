@@ -1,0 +1,52 @@
+/* F3 onboarding design tokens + styles (Trainee builder plan 2026-10-22, item F3).
+   Same system as F1: graphite + silver base, deep plum as the ONE accent token
+   (--accent-plum, value per the owner's 2026-10-22 decision recorded in the
+   builder plan — the website's plum; a swap is this one line), painted only on
+   active states: the current step's primary action and the progress fill.
+   Serif headers, Inter body. */
+:root {
+  --graphite: #1E1F24;
+  --graphite-dark: #2A1A3A;
+  --silver: #C7C9CE;
+  --silver-dim: #8E9299;
+  --accent-plum: #4A2F5E;
+  --accent-plum-light: #A58FB8;
+}
+
+.f3-step {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--graphite);
+  color: var(--silver);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.f3-step h2, .f3-step h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  color: #EDEEF0;
+  margin: 0;
+}
+.f3-progress { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--silver-dim); }
+.f3-progress-track { flex: 1; height: 6px; border-radius: 999px; background: #3A3D44; overflow: hidden; display: inline-block; }
+.f3-progress-fill { display: block; height: 100%; background: var(--accent-plum); }
+.f3-input {
+  font: inherit; font-size: 15px; color: #EDEEF0;
+  background: #232529; border: 1px solid #3A3D44; border-radius: 10px;
+  padding: 10px 12px; width: 100%; box-sizing: border-box;
+}
+.f3-area { min-height: 140px; resize: vertical; }
+.f3-actions { display: flex; gap: 8px; }
+.f3-btn {
+  font: inherit; font-size: 14px; cursor: pointer;
+  background: transparent; color: var(--silver);
+  border: 1px solid #3A3D44; border-radius: 999px; padding: 8px 16px; min-height: 44px;
+}
+[data-f3-step][data-active="true"] .f3-btn-primary { background: var(--accent-plum); border-color: var(--accent-plum-light); color: #FFFFFF; }
+.f3-error { color: #E8A09E; font-size: 14px; margin: 0; }
+.f3-coverage, .f3-meta { color: var(--silver-dim); font-size: 13px; margin: 0; }
+.f3-match { border: 1px solid #3A3D44; border-radius: 10px; padding: 12px; background: #232529; }
+.f3-match-title { font-size: 17px; }
+.f3-reasons, .f3-missing, .f3-dropped { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--silver); }
+.f3-basis-label { color: var(--silver-dim); font-size: 13px; margin: 8px 0 0; }
+.f3-card-slot { margin-top: 10px; }
+.f3-nomatch, .f3-done { font-size: 14px; margin: 0; }

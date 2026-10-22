@@ -1137,6 +1137,7 @@
   #billAssessment { margin-top:20px; }
   .bill-row .btn { margin-right:8px; margin-top:8px; }
   #bills .btn { min-height:44px; }
+/*__CAREER_ONBOARDING_CSS__*/
 </style>
 </head>
 <body>
@@ -1825,6 +1826,7 @@
       </div>
       <button class="ctasksbtn" id="guideChatsBtn" style="right:108px" aria-label="Your chats">Chats</button>
       <button class="ctasksbtn" id="guideTasksBtn" aria-label="Open tasks">Tasks<span class="taskbadge" hidden></span></button>
+      <button class="ctasksbtn" id="careerOnboardBtn" style="left:12px;right:auto" aria-label="Get started">Start</button>
     </div>
     <div class="cfeed" id="chatFeed" aria-live="polite"></div>
     <div class="ccomposer">
@@ -1839,6 +1841,14 @@
         </div>
       </div>
       <p class="cfine">Upmore is an AI assistant &mdash; it explains and does the prep. It&apos;s not a human advisor and never gives personalized financial advice.</p>
+    </div>
+    <nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+
+  <!-- ================= CAREER ONBOARDING (F3, 2026-10-22) ================= -->
+  <section class="screen nx" id="careerOnboard" aria-label="Get started">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div id="careerOnboarding" class="f3-flow"></div>
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
@@ -2012,6 +2022,9 @@
 <!--__CHAT_CONTROLLER__-->
 <!--__CAREER_APPROVAL_CARD__-->
 <script>
+/*__CAREER_PROFILE__*/
+/*__CAREER_JOBS__*/
+/*__CAREER_ONBOARDING__*/
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
 /*__MANUAL_PLAYBOOKS__*/
@@ -2206,6 +2219,7 @@
     if (id === "plan") buildPlan();
     if (id === "home") renderHome();
     if (id === "chat") renderChatTab();
+    if (id === "careerOnboard") renderCareerOnboarding();
     if (id === "tasks") renderTasks();
     if (id === "feed") renderFeed();
     if (id === "explore") { renderExplore(); renderQueue(); }
@@ -2231,6 +2245,41 @@
       try { if (!$("cfoBody").firstChild && typeof openCFO === "function" && typeof CFO_TOOLS !== "undefined" && CFO_TOOLS[0]) openCFO(CFO_TOOLS[0].id); } catch (e) {}
     }
     renderNav();
+  }
+  /* F3 onboarding (2026-10-22): name -> resume -> target roles -> first
+     reviewed match in one session. Flow + rendering live in
+     src/career-onboarding.js over the real 122 master profile and the 121
+     matcher (both inlined above); this only hosts it. The profile persists
+     per signed-in user in this device's local storage, so leaving mid-flow
+     and returning resumes from the stored profile alone; the posting pool
+     is the real career_postings shelf (authenticated read). INTEGRATION
+     POINT: syncing this profile into the agent-chat account record (the
+     career_host stated-facts carriage) is host wiring still owed — until
+     it lands, this device's stored profile is the copy the flow reads. */
+  async function renderCareerOnboarding() {
+    const host = $('careerOnboarding');
+    if (!host || typeof TraineeOnboarding !== 'object') return;
+    const uid = session?.user?.id || null;
+    if (!uid) { host.textContent = 'Sign in to get started.'; return; }
+    const key = 'trainee:career-profile:v1:' + uid;
+    let profile = null;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) profile = CareerProfile.profileFromData(JSON.parse(raw));
+    } catch (e) { profile = null; }
+    if (!profile) profile = CareerProfile.createProfile({ id: uid, user_id: uid });
+    let postings = [];
+    try {
+      const { data } = await supa.from('career_postings')
+        .select('job_id,company,title,location,url,description,remote,role_family,seniority_band,posted_at')
+        .is('closed_at', null).order('first_seen_at', { ascending: false }).limit(200);
+      postings = (data || []).map(r => ({ job_id: r.job_id, company: r.company, title: r.title, location: r.location || '', url: r.url, jd_text: r.description || '', remote: r.remote, role_family: r.role_family, seniority_band: r.seniority_band, posted_at: r.posted_at, source: 'career_postings' }));
+    } catch (e) { postings = []; }
+    TraineeOnboarding.mount(host, {
+      profile, postings, owner: uid, now: () => Date.now(),
+      save: (p) => { try { localStorage.setItem(key, JSON.stringify(p)); } catch (e) {} },
+      readFileText: (f) => f.text(),
+    });
   }
 
   // SPEC 09b: review queue (Monarch parity) — stale pending holds,
@@ -8517,6 +8566,7 @@
     if ($("tasksRow")) $("tasksRow").onclick = () => show("tasks");
     if ($("feedRow")) $("feedRow").onclick = () => show("feed");
     if ($("guideTasksBtn")) $("guideTasksBtn").onclick = () => show("tasks");
+    if ($("careerOnboardBtn")) $("careerOnboardBtn").onclick = () => show("careerOnboard");
     // Subscription row: shows status, opens checkout or subscription detail.
     if ($("subscriptionRow")) {
       $("subscriptionRow").onclick = () => show("subscription");

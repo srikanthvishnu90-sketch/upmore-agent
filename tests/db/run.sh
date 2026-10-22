@@ -192,6 +192,9 @@ for t in "$HERE"/*.test.sql; do
   # career_apply_agent_cloud_begin.test.sql (F-030) runs in its own section at the end, after its
   # migration is applied at the final schema: the same skip-list pattern as the chain's own tests.
   if [[ "$t" == "$HERE/career_apply_agent_cloud_begin.test.sql" ]]; then continue; fi
+  # career_apply_submit_armed_exercise.test.sql (chunk 100%: the armed submit path's dry walk) runs in
+  # its own section at the end too, at the final schema, for the same reason.
+  if [[ "$t" == "$HERE/career_apply_submit_armed_exercise.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -376,4 +379,12 @@ fi
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024140000_career_apply_agent_cloud_begin.sql"
 echo "== career_apply_agent_cloud_begin.test.sql (a begin made in chat enqueues a claim-shaped row; on this chain the claim requires a card binding -- C9 -- and refuses the unbound row; the extension door unchanged)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_agent_cloud_begin.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Chunk 100% (night plan 2026-10-22): the armed submit path's dry exercise, at the final schema. A synthetic
+# approved batch walks approval -> begin (the live extension door) -> the cloud claim, where it stops by design
+# (a born-claimed row is not claim-shaped; the claim-shaped chat begin is 20261024140000, applied just above in
+# this harness but NOT applied in production), then the claim-shaped walk via career_apply_enqueue with the
+# board boundary stubbed: claim -> lease-bound resume read -> would-be submit payload hash == approved hash ->
+# cloud finish -> employer-email confirmation -> the kill switches at the armed posture. No board, no click.
+echo "== career_apply_submit_armed_exercise.test.sql (chunk 100%: the dry walk of the armed submit path; the board boundary is stubbed, nothing is submitted)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_submit_armed_exercise.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

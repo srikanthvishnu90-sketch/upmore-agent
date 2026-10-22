@@ -21,7 +21,7 @@ Counts below are passed / failed / skipped (Deno omitted skips where none were r
 | 00 baseline | — | `348c2d4a3564c54135d0c485bb0d09d763ee0901` | 5,061 / 35 / 105 | 892 / 0 | 1,262 / 2 | FAIL baseline; Node 18m17s |
 | 01 F-001 | `984478d2` | `8133ee4d52df3da25506c0b3c6f44fc8fe6cca73` | 5,064 / 35 / 105 | 892 / 0 | 1,262 / 2 | VERIFIED: NO_NEW_FAILURES; +3 passing Node tests |
 | 02 F-002 | `15057d56` | `75600f5ebaac591505b89607e112e9eb75d350d8` | 5,069 / 35 / 105 | 892 / 0 | 1,262 / 2 | VERIFIED: NO_NEW_FAILURES; +5 passing Node tests |
-| 03 F-004 | `94f91453` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
+| 03 F-004 | `94f91453` | `7f04c59968a6ea60bdc5db92a2de43298e594bbc` | 5,081 / 35 / 105 | 892 / 0 | 1,262 / 2 | VERIFIED: NO_NEW_FAILURES |
 | 04 F-005 | `233d834d` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
 | 05 F-006 | `5b18a3c3` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
 | 06 F-009 | `6e6b0e34` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
@@ -55,3 +55,13 @@ Merged `984478d2822890072f30408bd8b5d14489452c4c` cleanly with `--no-ff`; no con
 Merged `15057d5669755218b304687963cfb63d5ebc82b1` cleanly; Git auto-merged source and generated bundles. No manual conflict resolution. Tested merge SHA `75600f5ebaac591505b89607e112e9eb75d350d8`. All 422 root Node files ran in 17m42s; +5 passed over F-001, with unchanged failure names, diagnostics, and skips. Edge 892/0; architect 1,262/2, the same baseline failures. Both bundle source checks pass. **NO_NEW_FAILURES, not a green release gate.**
 
 [Comparison to F-001](evidence-20261022/02-f002/comparison.json); raw [Node](evidence-20261022/02-f002/node.log.gz), [Edge](evidence-20261022/02-f002/edge.log.gz), [architect](evidence-20261022/02-f002/architect.log.gz); [bundle checks](evidence-20261022/02-f002/bundle-checks.json). All five F-002 guards pass. Workday setup remains NOT_RUN under the same documented environment limitation.
+
+## Step 03 — F-004
+
+Merged `94f91453` at `3017e3d793f909d4e259e8f033e5e82269fc6b02`. Tested `7f04c59968a6ea60bdc5db92a2de43298e594bbc`. All 423 root Node files ran in 16m38s. No new failure names, changed failure diagnostics, or new skips against the previous verified checkpoint. **NO_NEW_FAILURES, not a green release gate.**
+
+[Comparison](evidence-20261022/03-f004/comparison.json); raw [Node](evidence-20261022/03-f004/node.log.gz), [Edge](evidence-20261022/03-f004/edge.log.gz), [architect](evidence-20261022/03-f004/architect.log.gz).
+
+F-004 was source-only. The normal career-only and full build regenerated the bundles at `7f04c599`; the generated diff contains only module 142's intended goal handoff. No guarded conflict was resolved by hand. Both bundle source checks pass.
+
+Additional checks: all 12 legacy F-004 guards pass within the Node sweep; the modern root TypeScript handoff suite passes 11/11 ([result](evidence-20261022/03-f004/modern-hook.json)). Four evidence-only compiled before/after discovery controls preserve their intent, shortlist and reply with zero measured fetch calls ([result](evidence-20261022/03-f004/request-handoff-repro.json), [reproduction](evidence-20261022/03-f004/request-handoff-repro.cjs)). These controls are separate from the Node count. The same 105 baseline skips remain NOT_RUN.

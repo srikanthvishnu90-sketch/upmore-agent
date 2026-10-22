@@ -103,6 +103,62 @@
     "bytes": 413961,
     "sha256": "2d86d30f30d2a129dd9ea18dfe9471a8e30ae595d03f108ef3594aeefd3d3c5b"
   },
+  "03-f004/architect.json": {
+    "bytes": 830,
+    "sha256": "992fdcf0ee284efa21ef92ddf1bbf198db73fc61df85d3a9bbf8d14da7ba441c"
+  },
+  "03-f004/architect.log.gz": {
+    "bytes": 46723,
+    "sha256": "5b68e4b527ad1d17aa4a593a9239e2c3804b72195f94af7534731d43ad191b56"
+  },
+  "03-f004/bundle-checks.json": {
+    "bytes": 763,
+    "sha256": "e0e684b2d8cc7cb406a411d4c95a9c1a1d030ba5f8a5919641ae2f7cc1f6a6ba"
+  },
+  "03-f004/comparison.json": {
+    "bytes": 11445,
+    "sha256": "36bcaa8623cc4b143d4b9f082584765c528d97d202503ece8da2cf55510c178a"
+  },
+  "03-f004/edge.json": {
+    "bytes": 774,
+    "sha256": "09a373c813015881bcf336977d77155a5159f22706efb6c61d75d091db2734a0"
+  },
+  "03-f004/edge.log.gz": {
+    "bytes": 35503,
+    "sha256": "75ad9d578c124ee964678a1f4622175e2e52f3a2de7bbca6042d113d231c5d17"
+  },
+  "03-f004/extension-cleanup.json": {
+    "bytes": 395,
+    "sha256": "71550d71bc5ce0a40115c467f2962ba89aea238e5f45ffed050cd97537d43b23"
+  },
+  "03-f004/modern-hook.json": {
+    "bytes": 627,
+    "sha256": "3bc8d194f7526e03b7a8f76af2d755ff18d34701848110d40da09096f42747c8"
+  },
+  "03-f004/modern-hook.log.gz": {
+    "bytes": 458,
+    "sha256": "ab892753d9d67de1b326c32fd521832f811bdbc1e121a73ee6f4f828494607f8"
+  },
+  "03-f004/node.json": {
+    "bytes": 18156,
+    "sha256": "64edfae4d37d2a7c5112cba29b5d09b1700eac3986a61282c7d92cf4a1e84160"
+  },
+  "03-f004/node.log.gz": {
+    "bytes": 414710,
+    "sha256": "6ae6bd3b3dfba387df0c7cf56cd07a10d45fae5dc22f08f7736257176d056504"
+  },
+  "03-f004/request-handoff-repro.cjs": {
+    "bytes": 3413,
+    "sha256": "cf860a8226826e3c95163cb85bdd1e9a4023a121ebab06cec9b2567ccb06d12a"
+  },
+  "03-f004/request-handoff-repro.json": {
+    "bytes": 5031,
+    "sha256": "6b5991d626c42a1852c1e3ce8398183b89312882f3b61d70d6c63a4f58f1df73"
+  },
+  "03-f004/request-handoff-repro.log.gz": {
+    "bytes": 705,
+    "sha256": "abcc4499abdaba856ef3179deb3620ec84be8ca24147bf895be1562630530e1d"
+  },
   "compare-local.py": {
     "bytes": 3124,
     "sha256": "7dba7002d8237dc62a24e0f4666046223439edf168e8c6190a62753dfaaa025b"

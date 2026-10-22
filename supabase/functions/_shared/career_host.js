@@ -316,6 +316,9 @@ const CareerHost = (() => {
         if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
         else delete ctx.alertWatchState;
       }
+      // MUSE-F-002: the worker-written batch run record, read by the handler for this turn only (never a STATE_KEY), so a
+      // plain-words status ask speaks the run's true state.
+      if (o.batchRunRecord && typeof o.batchRunRecord === "object") ctx.batchRunRecord = o.batchRunRecord;
       if (o.batchDeps || boardFor || delegateBatch) {
         // J8: per-turn batch deps (module 155's seam inputs — the
         // submissions log and attestations today). The composition

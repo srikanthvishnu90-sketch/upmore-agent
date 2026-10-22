@@ -316,7 +316,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           }
         }
       } catch { /* the window pool stands on its own */ }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings }) as ReturnType<typeof host.createTurnCtx> & {
+      // MUSE-F-002: the thread's batch, if it has one, read back from the worker's own record so a plain-words status ask
+      // answers with its true state. Read only; a failed read leaves the thread's standing state to answer.
+      let batchRunRecord: unknown = null;
+      const batchRunId = (loaded.snapshot as any)?.stores?.batchApplyState?.id;
+      if (typeof batchRunId === "string" && batchRunId) {
+        try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
+      }
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).

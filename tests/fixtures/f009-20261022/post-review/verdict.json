@@ -1,0 +1,202 @@
+{
+  "bug": "MUSE-F-009",
+  "tested_source_pin": "12fe3dfdf581d5f68c2fb49aad8ee186ffac4062",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "supersedes_head": "d61bbf5cad4e47a32d2b4ecda8fb76481f347155",
+  "verdict": "GUARD_REGRESSIONS_FIXED__FULL_ARCHITECT_RED_WITH_SAME_TWO_BASE_FAILURES",
+  "cause": "Replacing repeated direct host controls with a cached reserved variable removed the explicit guards required by G2 and WO-025/14. The final quiet-hours branch wraps the original dispatcher rather than changing its guard expressions. The original dispatcher is byte-identical after removing wrapper indentation.",
+  "dispatch_proof": {
+    "dispatcher_sha256": "a3fa4812e656c4b6850bd4466f8008096abafb9b8695172a7467c6203fcb94d1",
+    "comparison": "byte-identical after removing two-space wrapper indentation",
+    "feature_flag_reads": "unchanged"
+  },
+  "counts": {
+    "G2_fail_first": {
+      "before_pass": 3,
+      "before_fail": 1,
+      "after_pass": 4,
+      "after_fail": 0
+    },
+    "G2_plus_mock_suite": {
+      "pass": 19,
+      "fail": 0
+    },
+    "full_edge": {
+      "pass": 897,
+      "fail": 0
+    },
+    "full_architect": {
+      "base_pass": 1262,
+      "base_fail": 2,
+      "fix_pass": 1262,
+      "fix_fail": 2
+    },
+    "endpoint": {
+      "pass": 18,
+      "fail": 0
+    },
+    "node_neighbors": {
+      "base_pass": 52,
+      "fix_pass": 52,
+      "fail": 0
+    }
+  },
+  "base_and_final_architect_failures": [
+    "meter wiring: the unmetered paid CLI refuses before reading any approval",
+    "meter wiring: the metered CLI refuses without a publication token, before any approval is consumed or call made"
+  ],
+  "baseline_failure_mechanism": "brain-eval-meter-wiring.test.ts creates Deno.Command with clearEnv:true and no PATH, but its CLI args include --allow-run=git. Deno 2.9.6 rejects the relative git permission at startup: no path to search and provided name is not an absolute path. Same frozen tests fail on base and fix. No architect test was edited. The separate diagnostic with PATH reaches the expected paid-run refusal and creates no eval output; it is not counted as a passing architect test.",
+  "commands_and_run_metadata": {
+    "base_architect": {
+      "command": [
+        "/tmp/case2-test-tools/node_modules/.bin/deno",
+        "test",
+        "--cached-only",
+        "--import-map=/tmp/f009-deps/import-map.json",
+        "--allow-read",
+        "--allow-write=/tmp",
+        "--allow-run",
+        "--allow-env",
+        "--allow-net=127.0.0.1,localhost",
+        "--no-check",
+        "--ignore=tests/architect/pending",
+        "tests/architect"
+      ],
+      "cwd": "/tmp/upmore-f023-base-20261022",
+      "exit_code": 1,
+      "seconds": 187.743,
+      "provider_credentials": "not inherited",
+      "network": "loopback only",
+      "new_spend_usd": 0
+    },
+    "final_edge": {
+      "command": [
+        "/tmp/case2-test-tools/node_modules/.bin/deno",
+        "test",
+        "--cached-only",
+        "--import-map=/tmp/f009-deps/import-map.json",
+        "--allow-read",
+        "--allow-write=/tmp",
+        "--allow-run",
+        "--allow-env",
+        "--allow-net=127.0.0.1,localhost",
+        "--no-check",
+        "tests/edge"
+      ],
+      "cwd": "/tmp/upmore-f009-20261022",
+      "exit_code": 0,
+      "seconds": 62.159,
+      "provider_credentials": "not inherited",
+      "network": "loopback only",
+      "new_spend_usd": 0
+    },
+    "final_architect": {
+      "command": [
+        "/tmp/case2-test-tools/node_modules/.bin/deno",
+        "test",
+        "--cached-only",
+        "--import-map=/tmp/f009-deps/import-map.json",
+        "--allow-read",
+        "--allow-write=/tmp",
+        "--allow-run",
+        "--allow-env",
+        "--allow-net=127.0.0.1,localhost",
+        "--no-check",
+        "--ignore=tests/architect/pending",
+        "tests/architect"
+      ],
+      "cwd": "/tmp/upmore-f009-20261022",
+      "exit_code": 1,
+      "seconds": 174.513,
+      "provider_credentials": "not inherited",
+      "network": "loopback only",
+      "new_spend_usd": 0
+    }
+  },
+  "dependency_resolution": {
+    "reason": "JSR endpoint 403; initial cached-only startup did not execute suites",
+    "upstream_sources": [
+      {
+        "repository": "https://github.com/denoland/std",
+        "commit": "f834d0223364361169314833e3c7a8f62ce11d58",
+        "assert_version": "1.0.19"
+      },
+      {
+        "repository": "https://github.com/b-fuze/deno-dom",
+        "commit": "ef8a617ee6b49f8f1e6606b70e66dff3cb441bea",
+        "tag": "v0.1.48"
+      }
+    ],
+    "method": "Unmodified upstream source checkouts loaded by the included import-map; same mapping for base and candidate. No test edits or assertion replacements.",
+    "import_map_sha256": "aabcb596be2d781ed2e23dd4c1af3cd2bc106c121cc783ffafee20aa94e237eb",
+    "runtime": "Deno 2.9.6, same version pinned by ci.yml"
+  },
+  "protected_test_sha256": {
+    "tests/edge/agent-guards.test.ts": "5ad48364684a276e62da1e50a8b49a64d89182374c081b9526f09179eb6f5819",
+    "tests/architect/wo-025-mock.test.ts": "1ebd556d43eb460fb2f37f9cba047921b5828d8bc78fe90e6d1044adbbf60bb6",
+    "tests/architect/brain-eval-meter-wiring.test.ts": "c68381f3e1280b87273628483b4a356cb6c32467b630b7b482667d9a79231c4a"
+  },
+  "raw_logs": {
+    "g2-before.log": {
+      "raw_sha256": "05fb0174bd53dbb62b93023d477fcf8c201ccbce35dc501b01133b083ae32317",
+      "gzip_sha256": "2941f6fe61279470b85623d9b1f782b176a4f17f47158ff106bf324bd0113919",
+      "raw_bytes": 1237
+    },
+    "final-guards.log": {
+      "raw_sha256": "2b390c40cf5f634adecce2564dbdb68d0214b0f9c0f89d2cdfb997dde293e311",
+      "gzip_sha256": "4ec100a0e9448ca832ded9ecadc2f060fbec3d9a301065315b88d1e9205ee5fd",
+      "raw_bytes": 2474
+    },
+    "intermediate-architect.log": {
+      "raw_sha256": "2ff2ac7866d17545ab1b06568575d500b491560c1a31f06a5ca8f089314e256b",
+      "gzip_sha256": "758196c0526ef2d27f3ee6475cabba6b013950b20d3e720cdfec9951fe17e6c7",
+      "raw_bytes": 156317
+    },
+    "base-architect.log": {
+      "raw_sha256": "63a7a6342c62319de794a6e8bcdca1c1510a0e3fbcdc4a7b04f0279fe45d2f59",
+      "gzip_sha256": "cc8e1840d1ef443597cff1b9a43627617183191a63bfb91b831c8f16f74fba93",
+      "raw_bytes": 155804
+    },
+    "final-edge.log": {
+      "raw_sha256": "53100539782fa09b736d8fb2fb6cc67ee07bf44326f494cd663a1d8f2dfa3c59",
+      "gzip_sha256": "414dbcfb7deba8333823dd58d4f37aabe3ce37c2d2f9b6b58a8463fa201fc268",
+      "raw_bytes": 111853
+    },
+    "final-architect.log": {
+      "raw_sha256": "6b51be124ab1f54bbef09bab91f237593b3ec59c462b1c986d461cd57699596b",
+      "gzip_sha256": "d27f6b6d81c6a49e534d32c747e1c33921bc8b97a4cbf18c1a1865d4a9e4884c",
+      "raw_bytes": 155748
+    },
+    "final-endpoint.tap": {
+      "raw_sha256": "d74c7cd412a14504052317573ae843918ea211e9026f43cbf44e3173c717f445",
+      "gzip_sha256": "c2060e979792e815400986990525777943a071e0c3caba5e3ac6d5710e942e6a",
+      "raw_bytes": 4067
+    },
+    "final-node-neighbors.tap": {
+      "raw_sha256": "41f58cfbdd04cc73131fc7e2bf5c7c4efbd86792c1a343db584d09ab7fd37f37",
+      "gzip_sha256": "bc6ad4f5caec139c511d76dd5da7b3a3d4fecebb6d74f8df6cc2361dff02e649",
+      "raw_bytes": 11987
+    },
+    "cli-without-path-diagnostic.log": {
+      "raw_sha256": "d2356926648a822424702d483b7262d1668f4d8d0d818455d22efa586159304b",
+      "gzip_sha256": "2964bab710354334417dc9a6e782ec984f1993ba3bf16a8c59a1ae09f11b23c8",
+      "raw_bytes": 230
+    },
+    "cli-with-path-diagnostic.log": {
+      "raw_sha256": "7b2f1d75faf0c119fb2a4648efc1a25dab942d4b6229450e91992cc869a68a2a",
+      "gzip_sha256": "e734cecce1b0008b8822652c318b7e2f49e6fbfe4fc2d692d1e0d41145cbe18e",
+      "raw_bytes": 523
+    }
+  },
+  "limits": [
+    "Standard gate excludes tests/architect/pending; all active architect tests ran.",
+    "Provider credentials were not inherited; runtime network permitted loopback only. No paid evaluation or live Supabase call.",
+    "No migration, deploy, merge, submit implementation, approval handler, or feature flag was changed.",
+    "Full architect gate is RED on its two baseline failures; GitHub CI not independently verified."
+  ],
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

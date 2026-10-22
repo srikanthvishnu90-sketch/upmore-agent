@@ -107,5 +107,7 @@
     "new_spend_usd": "0.000000",
     "recorded_cumulative_usd": "8.573843",
     "status": "UNRECONCILED"
-  }
+  },
+  "post_review": "post-review/verdict.json",
+  "latest_full_gate_status": "GUARD_REGRESSIONS_FIXED__FULL_ARCHITECT_RED_WITH_SAME_TWO_BASE_FAILURES"
 }

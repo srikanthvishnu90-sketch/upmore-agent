@@ -373,7 +373,14 @@ const CareerPortalBrowser = (() => {
   // sync pump transport loses them (WORKER_UNREACHABLE). The helper now
   // stays warm for an idle grace after the last board closes; the
   // helper's own 15-minute idle self-exit remains the backstop.
-  let helperIdleGraceMs = (() => { const v = Number(process.env.UPMORE_HELPER_IDLE_GRACE_MS); return Number.isFinite(v) && v >= 0 ? v : 90000; })();
+  // Read at load, so it must not throw: under Deno with a narrow --allow-env (the cloud worker) an unlisted variable
+  // is a NotCapable error, which crashed every import of this module. Unreadable means the default.
+  let helperIdleGraceMs = (() => {
+    let raw;
+    try { raw = typeof process !== "undefined" && process.env ? process.env.UPMORE_HELPER_IDLE_GRACE_MS : undefined; } catch (_) { raw = undefined; }
+    const v = Number(raw);
+    return raw !== undefined && raw !== "" && Number.isFinite(v) && v >= 0 ? v : 90000;
+  })();
   let helperIdleTimer = null;
   let exitHookRegistered = false;
   function cancelHelperIdleShutdown() {

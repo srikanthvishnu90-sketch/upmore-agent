@@ -93,10 +93,12 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
 
 Deno.test("WO-027/E2 a card answer writes each line (approved, or why not sent); a receipt writes application_finished once", async () => {
   const events = memoryEventStore();
-  const store = cardStore([{ n: 1, company: "Ramp", result: "queued" }, { n: 2, company: "Plaid", result: "declined" }]);
-  const r = await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events });
+  const store = cardStore([{ n: 1, company: "Ramp", result: "declined" }, { n: 2, company: "Plaid", result: "declined" }]);
+  eq((await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events }))?.status, "needs_tap", "owner's standing rule 2026-10-22: a text yes approves nothing; only the tap on the card sends");
+  eq(events.dump().length, 0, "a text yes answers nothing, so writes nothing");
+  const r = await cardTurn({ message: "no", userId: U, threadId: "TH", now: T, store, events });
   eq(r?.status, "answered");
-  eq(events.dump().map((e) => [e.kind, e.subject, e.detail.result, e.source]), [["application_approved", "Ramp", "queued", "card"], ["status_change", "Plaid", "declined", "card"]]);
+  eq(events.dump().map((e) => [e.kind, e.subject, e.detail.result, e.source]), [["status_change", "Ramp", "declined", "card"], ["status_change", "Plaid", "declined", "card"]]);
   eq((await cardTurn({ message: "show my applications", userId: U, threadId: "TH", now: T, store: { ...store, pending: async () => [] }, events }))?.status, "empty");
   eq(events.dump().length, 2, "showing nothing writes nothing");
 
@@ -115,7 +117,7 @@ Deno.test("WO-027/E3 a timeline that cannot be written never fails the action: a
   const { out, logged } = await quietly(async () => {
     const a: any = await t.set_job_alerts.run({ keywords: ["icu nurse"] }, ctx());
     const k: any = await t.remember_instruction.run({ instruction: "No staffing agencies", quote: "no staffing agencies" }, ctx("no staffing agencies please"));
-    const card = await cardTurn({ message: "yes", userId: U, threadId: "TH", now: T, store: cardStore([{ n: 1, company: "Ramp", result: "queued" }]), events: broken });
+    const card = await cardTurn({ message: "no", userId: U, threadId: "TH", now: T, store: cardStore([{ n: 1, company: "Ramp", result: "declined" }]), events: broken });
     const outbox = memoryAlertStore();
     const n = await runReceipts({ outbox, now: T, finished: async () => [{ id: "A-9", user_id: U, company: "Stripe", state: "failed", reason: "x" }], events: broken });
     return { a, k, card, n, outbox };
@@ -124,7 +126,7 @@ Deno.test("WO-027/E3 a timeline that cannot be written never fails the action: a
   eq((await alerts.get(U))?.prefs.on, true, "the alert is saved");
   eq([out.k.kept.text, (await memory.standing(U)).length], ["No staffing agencies", 1], "the instruction is saved");
   eq(out.card?.status, "answered");
-  assert(out.card?.reply.startsWith("1 approved exactly as shown."), "the card answer is unchanged");
+  assert(out.card?.reply.startsWith("Nothing was approved."), "the card answer is unchanged");
   eq([out.n, out.outbox.dump().outbox.length], [1, 1], "the receipt is queued");
   eq(broken.tries, 4, "each write was tried once");
   assert(logged.length === 4 && logged.every((l) => /career event not recorded \(\w+\): database unreachable/.test(l)), logged.join("\n"));

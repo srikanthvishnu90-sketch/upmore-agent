@@ -151,7 +151,7 @@ export async function cardTurn(
   if (r.kind === "change") {
     return {
       reply:
-        `Application ${r.n} was not sent. To change an answer, change it where you keep your details and prepare it again; it comes back on a new card. Reply "yes but not ${r.n}" to send the others now.`,
+        `Application ${r.n} was not sent. To change an answer, change it where you keep your details and prepare it again; it comes back on a new card. To send the others, tap Approve on each one in the app.`,
       status: "change",
     };
   }
@@ -171,8 +171,17 @@ export async function cardTurn(
       status: "expired",
     };
   }
+  // Owner's standing rule (2026-10-22, option A): a text yes never approves or sends an application; only the person's
+  // tap on the exact payload does (the card's Approve in the app). A text "no" still declines: declining sends nothing.
+  const approve = numbers.filter((n) => !leaveOut.includes(n));
+  if (approve.length) {
+    return {
+      reply: "A text yes doesn't send anything. Open your applications in the app and tap Approve on each one you want sent; Trainee sends exactly what you approve there.",
+      status: "needs_tap",
+    };
+  }
   try {
-    const results = await o.store.answer(o.userId, card.id, numbers.filter((n) => !leaveOut.includes(n)));
+    const results = await o.store.answer(o.userId, card.id, approve);
     for (const r of results) {
       await recordEvent(o.events, {
         user_id: o.userId,

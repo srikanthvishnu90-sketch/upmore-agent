@@ -140,9 +140,23 @@ const CareerJobs = (() => {
     if (/\banalyst/.test(t)) return "Finance";
     return "Other";
   }
+  // MUSE-F-006 (DISCO-QUALITY root cause 583cc918): band tokens were matched as exact surface words between hard
+  // boundaries, so "internships", "entry-level" and "early careers" bound nothing and fell to "mid" (15/30 cells of the
+  // phrase matrix). One normalizer for every site: lowercase, hyphens/slashes/dashes to spaces, and a plural band word
+  // to its stem. Then one intern matcher serves the title and the JD head (they had drifted: only one knew "co-op").
+  // Precedence is unchanged.
+  const BAND_STEMS = new Set(["intern", "internship", "op", "grad", "career", "program", "apprenticeship", "traineeship", "fellowship", "university"]);
+  function bandText(x) {
+    return lc(x).replace(/[-‐‑–—_/]+/g, " ").replace(/[a-z]+/g, (w) => {
+      if (w.length > 3 && w.endsWith("ies") && BAND_STEMS.has(w.slice(0, -3) + "y")) return w.slice(0, -3) + "y";
+      if (w.length > 2 && w.endsWith("s") && BAND_STEMS.has(w.slice(0, -1))) return w.slice(0, -1);
+      return w;
+    });
+  }
+  const INTERN_BAND = /\b(intern|internship|co op)\b/;
   function seniorityBand(title, jd) {
-    const t = lc(title), j = lc(jd);
-    if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    const t = bandText(title), j = bandText(jd);
+    if (INTERN_BAND.test(t)) return "intern";
     // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
     // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
     // winter forms) ARE the finance/consulting internship titles and carry no
@@ -161,7 +175,7 @@ const CareerJobs = (() => {
     if (/\b(senior|sr\.?)\b/.test(t)) return "senior";
     if (/\b(new grad|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
     if (/\b(junior|jr\.?|associate)\b/.test(t)) return "junior";
-    if (/\b(intern|internship)\b/.test(j.slice(0, 300))) return "intern";
+    if (INTERN_BAND.test(j.slice(0, 300))) return "intern";
     return "mid";
   }
   function remoteOf(location, jd) {

@@ -19,17 +19,17 @@ jobs:
         with: { deno-version: "v2.9.6" }
       - name: Install tooling and use the runner's packaged Chrome
         run: |
-          # The versions come from package.json + package-lock.json, the same pins the career browser worker installs
+          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
           # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
-          npm ci --no-audit --no-fund
+          npm ci --prefix tools --no-audit --no-fund
           # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
           # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
-          npx --no-install playwright install chromium
+          (cd tools && npx --no-install playwright install chromium)
           browser_path=$(command -v google-chrome)
           test -x "$browser_path"
-          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
           echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
-          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
           # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
           python3 -m venv "$RUNNER_TEMP/py"
           "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5

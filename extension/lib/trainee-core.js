@@ -1729,7 +1729,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const plain2 = hit.filter((o) => /^(yes|no|sí|si|ja|nee|oui|non|はい|いいえ)[.!]?$/i.test(o.label.trim()));
     return only(plain2);
   }
-  var DECLINE = /decline|prefer not|\bnot declared\b|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|ne préfère pas/;
+  var DECLINE = /decline|prefer not|\bnot declared\b|rather not|do not wish|don'?t wish|not (to )?(answer|disclose|say|self-identify|specify)|choose not|i don'?t want to answer|do not want to answer|ne préfère pas/;
   var EDUCATION = {
     high_school: /high school|ged|secondary|diploma or equivalent/,
     some_college: /some college|some university|enrollment/,

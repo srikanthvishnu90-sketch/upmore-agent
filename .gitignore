@@ -21,4 +21,4 @@ supabase/.temp/
 /dist/
 
 # npm ci installs the pinned tools here (package.json); never committed
-node_modules/
+tools/node_modules/

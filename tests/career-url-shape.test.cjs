@@ -1,7 +1,7 @@
 "use strict";
 /* F-010 URL-SHAPE GUARD — fail-first suite (DISCO-QUALITY, 2026-10-21).
    Fixtures: the junk rows and posting rows are the AUDITED URLs from the F-003
-   link audit (~/workspace/your_files/job-link-audit-2026-10-20.json, 60 links,
+   link audit (the 2026-10-20 job-link audit file, 60 links,
    fetched + content-checked 2026-10-20), copied verbatim. Synthetic shapes are
    labeled as such. The guard classifies URL SHAPE only — never liveness. */
 const test = require("node:test");

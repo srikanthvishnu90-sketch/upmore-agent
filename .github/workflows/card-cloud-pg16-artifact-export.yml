@@ -17,7 +17,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: 39706333198
+          run-id: 39707070816
           path: ${{ runner.temp }}/card-cloud-saved-artifacts
       - name: Export actual receipts, errors and exact raw files without executing them
         shell: bash
@@ -26,9 +26,9 @@ jobs:
           import base64, gzip, hashlib, io, json, os, pathlib, re, tarfile
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'card-cloud-saved-artifacts'
           artifacts=sorted(p.name for p in root.iterdir() if p.is_dir())
-          expected={'card-cloud-pg16-'+case+'-39706333198' for case in
+          expected={'card-cloud-pg16-'+case+'-39707070816' for case in
               ('main','lifecycle','cap','rollback','tap','claim','maintenance','flag-write')}
-          expected.add('card-cloud-pg16-full-runner-39706333198')
+          expected.add('card-cloud-pg16-full-runner-39707070816')
           assert set(artifacts)==expected, {'actual':artifacts,'expected':sorted(expected)}
           files=[]
           for p in sorted(root.rglob('*')):
@@ -53,7 +53,7 @@ jobs:
                       assertions=[line for line in lines if re.search(r'NOTICE:.*ok|^ok\b|passed|PASS|FAIL',line)]
                       if assertions:
                           print('ASSERTION_TAIL '+rel+' '+json.dumps(assertions[-20:]))
-          manifest={'source_run_id':39706333198,'artifacts':artifacts,'files':files,
+          manifest={'source_run_id':39707070816,'artifacts':artifacts,'files':files,
               'new_sql_executions':0,'new_provider_calls':0,'new_cost_usd':0}
           print('CARD_CLOUD_EXPORT_MANIFEST_BEGIN')
           print(json.dumps(manifest,sort_keys=True))

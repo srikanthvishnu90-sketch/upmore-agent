@@ -1,0 +1,165 @@
+{
+  "node": {
+    "base": {
+      "head": "eb57e812d58b0be8177156d0f18e1a498ab9e630",
+      "uid": 1000,
+      "node_selection": "gate career plus shared, existing archives excluded",
+      "suite": "node",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 1,
+      "seconds": 1210.667,
+      "completed_test_grandchildren_reaped": 577,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 251,
+      "new_spend_usd": 0,
+      "log_sha256": "4418ce59370c13f123a311c7e47b91497f27c99c36d0eb6ad2159b8fe3ffd2c1",
+      "node_summary": [
+        "# tests 2854",
+        "# suites 0",
+        "# pass 2743",
+        "# fail 1",
+        "# cancelled 0",
+        "# skipped 110",
+        "# todo 0",
+        "# duration_ms 1210298.889903"
+      ],
+      "deno_summary": []
+    },
+    "candidate": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": "gate career plus shared, existing archives excluded",
+      "suite": "node",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 1388.714,
+      "completed_test_grandchildren_reaped": 578,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 251,
+      "new_spend_usd": 0,
+      "log_sha256": "a8090a328f3efe323c73c36b80d663d6b5b9e2f3ae2e799a26d6e39d40f92831",
+      "node_summary": [
+        "# tests 2855",
+        "# suites 0",
+        "# pass 2753",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 102",
+        "# todo 0",
+        "# duration_ms 1388614.946582"
+      ],
+      "deno_summary": []
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [
+      "dry run: six steps in order, every Trainee migration in order, agent-chat staged then the four functions without JWT, the three schedules, then smoke"
+    ],
+    "baseline_failure_names": [
+      "dry run: six steps in order, every Trainee migration in order, agent-chat staged then the four functions without JWT, the three schedules, then smoke"
+    ],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "edge": {
+    "base": {
+      "head": "eb57e812d58b0be8177156d0f18e1a498ab9e630",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "edge",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 146.707,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "688ff0a43a341d17e0c624eddcdfd99a3c07247aab3a3ea4edb0b7ba2f503066",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 895 passed | 0 failed (2m24s)"
+      ]
+    },
+    "candidate": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "edge",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 104.261,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "b7159dd00ef67b466985b25e343ec275e6ed64e7956c33c39008b6cc0a74f1f1",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 895 passed | 0 failed (1m43s)"
+      ]
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [],
+    "baseline_failure_names": [],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "architect": {
+    "base": {
+      "head": "eb57e812d58b0be8177156d0f18e1a498ab9e630",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "architect",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 242.893,
+      "completed_test_grandchildren_reaped": 1,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "1c89f392641fc8a7d66a8945271f46d2be0da4b95c79540c0fd9ecd78608c3dd",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 1270 passed | 0 failed (4m2s)"
+      ]
+    },
+    "candidate": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "architect",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 206.973,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "cc79c170bd4305a0b598faeff259cc4d45120f4c7ff695c7a798ee31a85d9938",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 1270 passed | 0 failed (3m26s)"
+      ]
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [],
+    "baseline_failure_names": [],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "regression": false
+}

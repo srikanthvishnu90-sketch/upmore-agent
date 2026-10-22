@@ -1,0 +1,34 @@
+{
+  "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+  "uid": 1000,
+  "node_selection": null,
+  "suite": "architect",
+  "command": [
+    "/tmp/case2-test-tools/node_modules/.bin/deno",
+    "test",
+    "--cached-only",
+    "--import-map=/tmp/f009-deps/import-map.json",
+    "--allow-read",
+    "--allow-write=/tmp",
+    "--allow-run",
+    "--allow-env",
+    "--allow-net=127.0.0.1,localhost",
+    "--no-check",
+    "--ignore=tests/architect/pending",
+    "tests/architect"
+  ],
+  "cwd": "/tmp/upmore-trunk-20261022",
+  "exit_code": 0,
+  "seconds": 206.973,
+  "completed_test_grandchildren_reaped": 0,
+  "subreaper": true,
+  "provider_credentials": "not inherited",
+  "deno_network": "loopback only",
+  "node_files": 0,
+  "new_spend_usd": 0,
+  "log_sha256": "cc79c170bd4305a0b598faeff259cc4d45120f4c7ff695c7a798ee31a85d9938",
+  "node_summary": [],
+  "deno_summary": [
+    "ok | 1270 passed | 0 failed (3m26s)"
+  ]
+}

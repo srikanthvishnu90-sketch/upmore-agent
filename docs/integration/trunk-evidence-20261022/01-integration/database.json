@@ -1,0 +1,11 @@
+{
+  "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+  "exit_code": 0,
+  "seconds": 33.825,
+  "server": "PostgreSQL 16.14",
+  "client": "psql 17.11",
+  "scope": "disposable local database; no inherited provider or live DB credentials",
+  "unix_socket_port": 54972,
+  "cleanup": "tests/db/run.sh EXIT trap stops and removes its disposable instance",
+  "new_spend_usd": 0
+}

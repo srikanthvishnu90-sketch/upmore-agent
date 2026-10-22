@@ -2,8 +2,35 @@
   "step": 1,
   "pre_step": "72031f0d2dca55affd2434147e45362a2dc87dad",
   "incoming": "74c0d765",
-  "merge_conflicts": [],
-  "product_test_script_workflow_changes": [],
-  "suites": "NOT_RUN pending fresh post-merge execution",
-  "new_spend_usd": 0
+  "tested_merge": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+  "verdict": "VERIFIED local completed suites; CI pending",
+  "node": {
+    "pass": 2753,
+    "total": 2855,
+    "fail": 0,
+    "not_run": 102
+  },
+  "edge": {
+    "pass": 895,
+    "total": 895,
+    "fail": 0
+  },
+  "architect": {
+    "pass": 1270,
+    "total": 1270,
+    "fail": 0
+  },
+  "database": {
+    "completed_sections": 85,
+    "total_sections": 85,
+    "exit_code": 0,
+    "explicit_ok_diagnostics": 2115,
+    "server": "16.14",
+    "client": "17.11",
+    "instance_destroyed": true
+  },
+  "new_failures": [],
+  "new_skips": [],
+  "new_spend_usd": 0,
+  "historical_spend_usd": "8.573843 UNRECONCILED"
 }

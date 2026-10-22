@@ -17,6 +17,8 @@
 // person before failures pile up under their name.
 import { approvedQuestionsAfterRefusal, assertApprovedPayload, factsFromPayload, type RunEngine } from "../career-browser/approve-first.ts";
 import { questionsToStore } from "../career-browser/ask-once.ts";
+import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
+import { authorizeCurrentCloudJob } from "./current_sources.ts";
 
 export interface CloudJob {
   id: string;
@@ -25,10 +27,18 @@ export interface CloudJob {
   company: string;
   url: string;
   payload: any;
+  payload_hash: string;
+  approval_hash: string;
+  job_id?: string;
+  approval_id?: string;
+  card_id?: string;
+  card_hash?: string;
+  execution_mode?: string;
 }
 export interface CloudResume { filename: string; sha256: string; b64: string }
 export interface CloudQueue {
   claim(limit: number): Promise<CloudJob[]>;
+  authorize(job: CloudJob, phase: "before_engine" | "before_effect"): Promise<void>;
   resume(job: CloudJob): Promise<CloudResume | null>;
   finish(job: CloudJob, state: string, evidence: Record<string, unknown>, outcome: Outcome, errorKind: string | null): Promise<unknown>;
   // Ask, never guess: the questions a required field with no confirmed fact raised, as the person's open questions (the
@@ -49,6 +59,8 @@ const BY_DESIGN = new Set([
   "FACTS_ERASED", "duplicate_job", "daily_cap", "company_cooldown", "UNCONFIRMED_HIDDEN_FIELD", "UNSUPPORTED_FILE_ARTIFACT",
   "SUBMIT_DESTINATION_NOT_BOUND", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
   "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED", "FACT_OWNER_MISMATCH",
+  "CARD_CLOUD_PERMISSION_REVOKED", "CARD_CLOUD_AUTH_REQUIRED", "CARD_CLOUD_AUTH_REFUSED", "CARD_CLOUD_AUTH_PROTOCOL", "CARD_CLOUD_AUTH_TIMEOUT",
+  "APPROVED_SOURCE_WITHDRAWN", "CARD_CLOUD_SOURCE_READ_FAILED", "CARD_CLOUD_AUTHORIZATION_REFUSED",
 ]);
 const BOT_CHECK = (state: string, reason: string) =>
   (state === "needs_user" && reason === "captcha") || (state === "not_submitted" && reason === "CAPTCHA_AT_SUBMIT");
@@ -124,6 +136,8 @@ export async function runCloudJob(job: CloudJob, d: {
   log?: (line: string) => void;
   stopping?: () => boolean;
 }) {
+  // Capture the claimed job and lease before asynchronous work; the child never selects its authority.
+  job = structuredClone(job);
   const now = d.now ?? Date.now, log = d.log ?? ((l: string) => console.log(l)), started = now();
   let s: ReturnType<typeof settle> = { state: "not_submitted", reason: "DRIVER_ERROR", outcome: "error", errorKind: "DRIVER_ERROR" };
   let run: any = null, began = false;
@@ -132,6 +146,15 @@ export async function runCloudJob(job: CloudJob, d: {
     await Deno.chmod(dir, 0o700);
     const p = job.payload;
     await assertApprovedPayload(p, { url: job.url, user_id: job.user_id });
+    const authorize = async (phase: "before_engine" | "before_effect") => {
+      const hash = await hashApplyPayload(p);
+      if (!/^[0-9a-f]{64}$/.test(job.payload_hash || "") || hash !== job.payload_hash || hash !== job.approval_hash ||
+        p.company !== job.company || p.url !== job.url || p.user_id !== job.user_id ||
+        (job.job_id !== undefined && p.job_id !== job.job_id)) throw Error("APPROVED_APPLICATION_CHANGED");
+      if (typeof d.queue.authorize !== "function") throw Error("CARD_CLOUD_AUTH_REQUIRED");
+      await d.queue.authorize(job, phase);
+    };
+    await authorize("before_engine");
     const r = await d.queue.resume(job);
     if (!r) throw Object.assign(Error("RESUME_NOT_IN_CLOUD"), { code: "RESUME_NOT_IN_CLOUD" });
     const bytes = b64bytes(r.b64);
@@ -142,8 +165,18 @@ export async function runCloudJob(job: CloudJob, d: {
     const resumePath = `${dir}/resume/${name}`, factsPath = `${dir}/facts.json`;
     await Deno.writeFile(resumePath, bytes, { mode: 0o600 });
     await Deno.writeTextFile(factsPath, JSON.stringify(factsFromPayload(p)), { mode: 0o600 });
+    await authorize("before_engine");
+    let effectRequested = false, effectAuthorized = false;
     began = true;
-    run = await d.runEngine(["--url", job.url, "--facts", factsPath, "--resume", resumePath, "--submit", "--approved", p.engine_approval]);
+    run = await d.runEngine(["--url", job.url, "--facts", factsPath, "--resume", resumePath, "--submit", "--approved", p.engine_approval], undefined, {
+      beforeEffect: async () => {
+        if (effectRequested) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+        effectRequested = true;
+        await authorize("before_effect");
+        effectAuthorized = true;
+      },
+    });
+    if (["confirmed", "submitted_unconfirmed"].includes(run?.result?.state || "") && !effectAuthorized) throw Error("CARD_CLOUD_AUTH_REQUIRED");
     s = settle(run?.result ?? null);
     if (s.state === "unknown_outcome" && d.stopping?.()) s = { ...s, outcome: "interrupted", errorKind: "WORKER_STOPPED" };
   } catch (e: any) {
@@ -242,30 +275,78 @@ export function engineEnv(from: (k: string) => string | undefined = (k) => Deno.
   return env;
 }
 
-// The engine for the cloud: scripts/apply.ts as its own headless process (its own browser and fresh context), stdin
-// closed (there is no person at a server), screenshots masked, a private evidence folder per job, killed after a
-// time limit (then no result, so unknown and never retried).
-export function cloudEngineRunner(o: { root: string; evidenceRoot: string; deno?: string; timeoutMs?: number }): RunEngine {
-  return async (args) => {
+// The restricted parent/child channel carries no RPC selector, job, lease or service credential. Only the
+// captured parent's beforeEffect closure can authorize one effect. stdout remains bounded even for malformed children.
+export const CLOUD_AUTH_PREFIX = "CLOUD_AUTH ";
+export function cloudEngineRunner(o: { root: string; evidenceRoot: string; deno?: string; timeoutMs?: number; authorizeTimeoutMs?: number }): RunEngine {
+  return async (args, _env, controls) => {
+    const submitting = args.includes("--submit");
+    if (submitting && typeof controls?.beforeEffect !== "function") throw Error("CARD_CLOUD_AUTH_REQUIRED");
+    if (args.some((a) => a.startsWith("--cloud-authorize"))) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+    const nonce = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
     const evidenceDir = `${o.evidenceRoot}/${crypto.randomUUID()}`;
     const child = new Deno.Command(o.deno || Deno.execPath(), {
-      args: ["run", "-A", o.root + "/scripts/apply.ts", ...args, "--evidence-dir", evidenceDir],
-      stdin: "null",
-      stdout: "piped",
-      stderr: "piped",
-      clearEnv: true,
-      env: engineEnv(),
+      args: ["run", "-A", o.root + "/scripts/apply.ts", ...args, "--evidence-dir", evidenceDir,
+        ...(submitting ? ["--cloud-authorize-stdio", "--cloud-authorize-nonce", nonce] : [])],
+      stdin: submitting ? "piped" : "null", stdout: "piped", stderr: "piped", clearEnv: true, env: engineEnv(),
     }).spawn();
-    const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch { /* gone */ } }, o.timeoutMs ?? 600_000);
-    const [out] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.status]);
-    clearTimeout(timer);
-    const line = out.split("\n").filter((l) => l.startsWith("RESULT ")).at(-1);
-    if (!line) return null;
-    const result = JSON.parse(line.slice(7));
+    let protocolFailed = false, requested = false, authorized = false, bytes = 0, pending = "", resultLine = "";
+    const kill = () => { try { child.kill("SIGKILL"); } catch { /* gone */ } };
+    const writer = submitting ? child.stdin.getWriter() : null;
+    const timer = setTimeout(kill, o.timeoutMs ?? 600_000);
+    const processLine = async (line: string) => {
+      if (line.startsWith(CLOUD_AUTH_PREFIX)) {
+        if (!submitting || requested || line.length > 1024) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+        requested = true;
+        let request;
+        try { request = JSON.parse(line.slice(CLOUD_AUTH_PREFIX.length)); } catch { throw Error("CARD_CLOUD_AUTH_PROTOCOL"); }
+        if (!request || Object.keys(request).sort().join(",") !== "nonce,phase,v" || request.v !== 1 ||
+          request.nonce !== nonce || request.phase !== "before_effect") throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+        let allowed = false, authorizationTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([controls!.beforeEffect(), new Promise<never>((_, reject) => {
+            authorizationTimer = setTimeout(() => reject(Error("CARD_CLOUD_AUTH_TIMEOUT")), o.authorizeTimeoutMs ?? 5000);
+          })]);
+          allowed = authorized = true;
+        } catch { /* refusal is returned to the child without authority details */ }
+        finally { clearTimeout(authorizationTimer); }
+        await writer!.write(new TextEncoder().encode(CLOUD_AUTH_PREFIX + JSON.stringify({ v: 1, nonce, allow: allowed }) + "\n"));
+      } else if (line.startsWith("RESULT ")) {
+        if (resultLine) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+        resultLine = line;
+      }
+    };
+    const stdout = (async () => {
+      for await (const chunk of child.stdout.pipeThrough(new TextDecoderStream())) {
+        bytes += chunk.length;
+        if (bytes > 2_000_000) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+        pending += chunk;
+        let at;
+        while ((at = pending.indexOf("\n")) >= 0) {
+          const line = pending.slice(0, at).replace(/\r$/, "");
+          pending = pending.slice(at + 1);
+          await processLine(line);
+        }
+        if (pending.length > 262144) throw Error("CARD_CLOUD_AUTH_PROTOCOL");
+      }
+      if (pending) await processLine(pending);
+    })().catch(() => { protocolFailed = true; kill(); });
+    const stderr = (async () => {
+      let size = 0;
+      for await (const chunk of child.stderr) { size += chunk.length; if (size > 2_000_000) { protocolFailed = true; kill(); break; } }
+    })();
+    let status: Deno.CommandStatus;
+    try { [, , status] = await Promise.all([stdout, stderr, child.status]); }
+    finally { clearTimeout(timer); await writer?.close().catch(() => {}); }
+    // scripts/apply.ts prints RESULT and exits 1 on every refusal (FACT_OWNER_MISMATCH, a changed application, a refused
+    // card authorization): that result is the refusal, not "no result". A sent state is trusted only from a clean exit.
+    if (protocolFailed || !resultLine) return null;
+    const result = JSON.parse(resultLine.slice(7));
+    if (!status.success && ["confirmed", "submitted_unconfirmed"].includes(result?.state)) return null;
+    if (submitting && ["confirmed", "submitted_unconfirmed"].includes(result?.state) && !authorized) return null;
     let evidence = null;
-    try {
-      evidence = JSON.parse(await Deno.readTextFile(evidenceDir + "/evidence.json"));
-    } catch { /* refused before the evidence folder was used */ }
+    try { evidence = JSON.parse(await Deno.readTextFile(evidenceDir + "/evidence.json")); }
+    catch { /* refused before the evidence folder was used */ }
     return { result, evidence };
   };
 }
@@ -289,6 +370,7 @@ export function restQueue(o: { url: string; key: string; fetch?: typeof fetch })
       if (!Array.isArray(rows)) throw Error("APPLY_QUEUE_UNAVAILABLE");
       return rows;
     },
+    authorize: (job, phase) => authorizeCurrentCloudJob(job, phase, { rpc }),
     resume: (job) => rpc("career_apply_cloud_resume", { p_id: job.id, p_lease: job.lease_token }),
     ask: (job, questions) => rpc("career_apply_cloud_ask", { p_id: job.id, p_lease: job.lease_token, p_questions: questions }),
     finish: (job, state, evidence, outcome, errorKind) =>

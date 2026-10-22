@@ -1,0 +1,78 @@
+{
+  "status": "VERIFIED_RED",
+  "source_run_id": 39706333198,
+  "source_run_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39706333198",
+  "workflow_pin": "a28c88162342afee14f8a2905690db6a060cc23a",
+  "acceptance_pin": "8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3",
+  "baseline_pin": "01401cb456bc2982d67316165e183bbd275581c9",
+  "read_only_export_run_id": 39706686292,
+  "read_only_export_workflow_pin": "b8fa33f1600b71a9a67571a7ac88cb3377630c75",
+  "raw_evidence_sha256": "d6e155a5ea2607331bcd8f4f9e5647ff9d1db22b93d287c2a5933ae6741aefe1",
+  "exported_files_individually_hash_verified": 4419,
+  "jobs": {
+    "passed": 1,
+    "failed": 8,
+    "total": 9
+  },
+  "cases": {
+    "main": {
+      "job_id": 119587122583,
+      "result": "PASS",
+      "assertions_passed": 30
+    },
+    "lifecycle": {
+      "job_id": 119587122878,
+      "result": "FAIL",
+      "assertions_passed_before_error": 21,
+      "cause": "Test expected revok but the existing combined guard returns cloud permission disabled or expired. Live pre-Stop authorization and exact revocation assertions passed."
+    },
+    "cap": {
+      "job_id": 119587123500,
+      "result": "FAIL",
+      "assertions_passed_before_error": 6,
+      "cause": "Synthetic history incorrectly requested confirmed; existing email-only confirmation guard correctly refused. Use explicitly synthetic submitted_unconfirmed history, which is in the same counted set."
+    },
+    "rollback": {
+      "job_id": 119587122307,
+      "result": "FAIL",
+      "cause": "Test fixture uses PostgreSQL reserved word authorization as a PL/pgSQL variable; seed parses unsuccessfully before rollback acceptance."
+    },
+    "tap": {
+      "job_id": 119587122815,
+      "result": "FAIL",
+      "cause": "Shared race seed missing parentheses around CASE in PL/pgSQL IF; no race assertions reached."
+    },
+    "claim": {
+      "job_id": 119587122459,
+      "result": "FAIL",
+      "cause": "Shared race seed missing parentheses around CASE in PL/pgSQL IF; no race assertions reached."
+    },
+    "maintenance": {
+      "job_id": 119587123129,
+      "result": "FAIL",
+      "cause": "Shared race seed missing parentheses around CASE in PL/pgSQL IF; no race assertions reached."
+    },
+    "flag-write": {
+      "job_id": 119587123511,
+      "result": "FAIL",
+      "cause": "Shared race seed missing parentheses around CASE in PL/pgSQL IF; no race assertions reached."
+    },
+    "full-runner": {
+      "job_id": 119587122137,
+      "result": "FAIL",
+      "actual_ok_notifications_before_error": 2047,
+      "cause": "Historical phases and main bridge tests completed; stops at the same lifecycle exact-denial matcher. Count is emitted pass notifications, including historical replay checks, not a successful suite verdict."
+    }
+  },
+  "cleanup": {
+    "instances_destroyed": 9,
+    "total": 9,
+    "errors": 0,
+    "full_runner_own_trap_independently_verified": true
+  },
+  "production_contacted": false,
+  "real_enrollment": false,
+  "engine_or_employer_effects": 0,
+  "new_provider_cost_usd": 0,
+  "verdict_limit": "No product defect established by these first failures. Remaining behavioral coverage is NOT_RUN until harness fixes and an independently pinned disposable retest pass. No deployment permission."
+}

@@ -251,21 +251,26 @@ test('the actual built Messages history adapter reaches the own RPC only through
     histBubble(document.querySelector('#card'),'assistant','Review these exact answers.',{intent:'career_message_approval',career_approval_card_id:cardId});
   },{owner:OWNER,cardId:CARD});
   const button=page.getByRole('button',{name:/Approve these exact answers/});await button.waitFor({state:'visible'});
-  assert.deepEqual(await page.evaluate(()=>window.messageCalls),[{name:'career_apply_message_card_read_own',args:{p_card:CARD}}]);
+  // 20261024130000: before reading a card the controller asks, read-only and with no card data, whether this account may
+  // see cloud cards (career_apply_message_cloud_enabled_own). The card calls themselves are unchanged and exact.
+  const cardCalls=async()=>{const calls=await page.evaluate(()=>window.messageCalls);for(const c of calls.filter(c=>c.name==='career_apply_message_cloud_enabled_own'))assert.equal(c.args,undefined,'the eligibility read carries no card data');return calls.filter(c=>c.name!=='career_apply_message_cloud_enabled_own');};
+  assert.deepEqual(await cardCalls(),[{name:'career_apply_message_card_read_own',args:{p_card:CARD}}]);
+  // The owner is verified once when the card is shown (before the cloud-eligibility read) and once more for the tap.
+  assert.equal(await page.evaluate(()=>window.messageAuthReads),1,'one owner check when the card is shown');
   await button.click();await page.waitForFunction(()=>document.querySelector('#card [role=status]')?.textContent.startsWith('Approved exactly'));
-  assert.deepEqual(await page.evaluate(()=>window.messageCalls),[
+  assert.deepEqual(await cardCalls(),[
     {name:'career_apply_message_card_read_own',args:{p_card:CARD}},
     {name:'career_apply_message_card_read_own',args:{p_card:CARD}},
     {name:'career_apply_message_card_approve_own',args:{p_card:CARD,p_hash:card.hash}}
   ]);
-  assert.equal(await page.evaluate(()=>window.messageAuthReads),1);
+  assert.equal(await page.evaluate(()=>window.messageAuthReads),2,'exactly one more owner check for the tap');
   assert.deepEqual(await page.evaluate(()=>window.messageNativeClicks),[true]);
   assert.match(await page.locator('#card [role=status]').innerText(),/Nothing has been submitted to an employer/);
   await page.evaluate(cardId=>{
     histBubble(document.querySelector('#card'),'user','yes',{intent:'career_message_approval',career_approval_card_id:cardId});
     histBubble(document.querySelector('#card'),'assistant','yes',{});
   },CARD);
-  assert.equal(await page.evaluate(()=>window.messageCalls.length),3,'plain words and user metadata cannot trigger an approval RPC');
+  assert.equal((await cardCalls()).length,3,'plain words and user metadata cannot trigger an approval RPC');
   await page.evaluate(cardId=>histBubble(document.querySelector('#card'),'assistant','Review the next exact card.',{intent:'career_message_approval',career_approval_card_id:cardId}),second.id);
   const next=page.getByRole('button',{name:/Approve these exact answers/}).last();await next.waitFor({state:'visible'});
   await page.evaluate(()=>{chatRequests.invalidate();upmoreThread='66666666-6666-4666-8666-666666666666';});

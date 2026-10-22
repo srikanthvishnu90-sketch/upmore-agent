@@ -89,6 +89,7 @@ function drive(specs) {
   fs.writeFileSync(driver, `
 import { prepare } from ${JSON.stringify("file://" + repo + "/workers/career-browser/approve-first.ts")};
 import { cloudEngineRunner, cloudLoop } from ${JSON.stringify("file://" + repo + "/workers/career-cloud/worker.ts")};
+import { hashApplyPayload } from ${JSON.stringify("file://" + repo + "/supabase/functions/_shared/career_apply_store.ts")};
 const specs = JSON.parse(Deno.env.get("SPECS")!);
 const dir = ${JSON.stringify(run)};
 const resume = dir + "/resume.pdf";
@@ -109,7 +110,7 @@ for (const [i, s] of specs.entries()) {
     if (s.spoil.remove) p.payload.fields = p.payload.fields.filter((x) => x !== f);
     else Object.assign(f, s.spoil.set);
   }
-  jobs.push({ id: "job-" + i, lease_token: "lease-" + i, user_id: s.facts.user_id, company: p.payload.company, url: s.url, payload: p.payload });
+  jobs.push({ id: "job-" + i, lease_token: "lease-" + i, user_id: s.facts.user_id, company: p.payload.company, url: s.url, payload: p.payload, payload_hash: await hashApplyPayload(p.payload), approval_hash: await hashApplyPayload(p.payload) });
 }
 const finished = [], tmpRoot = dir + "/tmp";
 await Deno.mkdir(tmpRoot);
@@ -119,6 +120,8 @@ const queue = {
   resume: async () => ({ filename: "resume.pdf", sha256: jobs[0].payload.resume_sha256, b64: btoa(String.fromCharCode(...bytes)) }),
   finish: async (j, state, evidence, outcome, errorKind) => { finished.push({ id: j.id, state, outcome, errorKind, reason: evidence.reason, questions: evidence.questions ?? null }); },
   gatePresent: async () => true,
+  // 20261024130000: the card-bound worker authorizes with the queue before the engine and before the effect.
+  authorize: async () => {},
 };
 if (jobs.length) await cloudLoop({ queue, runEngine: engine, contexts: 2, idleMs: 50, tmpRoot, stop: () => finished.length === jobs.length, log: () => {} });
 console.log("FINISHED " + JSON.stringify({ prepared, finished, left: [...Deno.readDirSync(tmpRoot)].length }));

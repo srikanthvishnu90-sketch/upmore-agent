@@ -1,0 +1,8 @@
+test_changed_input_aborts_before_any_subprocess (__main__.DispatchProof.test_changed_input_aborts_before_any_subprocess) ... ok
+test_failed_checkpoint_prevents_next_migration (__main__.DispatchProof.test_failed_checkpoint_prevents_next_migration) ... ok
+test_standalone_migration_order_and_preflights (__main__.DispatchProof.test_standalone_migration_order_and_preflights) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.033s
+
+OK

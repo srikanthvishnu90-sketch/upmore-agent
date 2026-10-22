@@ -1,0 +1,85 @@
+{
+  "status": "VERIFIED_PASS",
+  "source_run_id": 39707070816,
+  "source_run_url": "https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39707070816",
+  "workflow_pin": "eb20f3de18d3dcc7c1455ac20f829f3844d5f535",
+  "acceptance_pin": "f33e76c6a3cc5f8601b5e96f204594f51113a71f",
+  "production_code_pin": "cf3ea60f5f57c36910b267f0f4ba7fce2e4fa62c",
+  "baseline_pin": "01401cb456bc2982d67316165e183bbd275581c9",
+  "up_sha256": "c5ac429e5e6559d91b35475d719f828a8288d9763c1529a1c1adea0ca8e90fc8",
+  "down_sha256": "5716f7256fb78e681023482647a843e33aab25e5d6136152395205dd11f51186",
+  "read_only_export_run_id": 39707306914,
+  "read_only_export_workflow_pin": "057b884864ecede9b5f4293ec3569028cef4b0b5",
+  "raw_evidence_sha256": "bbd3600c8466e2e0ce448e319469fdef728341ce03f23ad942f0b7fef78990cb",
+  "exported_files_individually_hash_verified": 4431,
+  "jobs": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+  },
+  "cases": {
+    "main": {
+      "job_id": 119589499350,
+      "result": "PASS",
+      "checks": 30
+    },
+    "lifecycle": {
+      "job_id": 119589499523,
+      "result": "PASS",
+      "checks": 29
+    },
+    "cap": {
+      "job_id": 119589499454,
+      "result": "PASS",
+      "checks": 14
+    },
+    "rollback": {
+      "job_id": 119589499485,
+      "result": "PASS",
+      "emitted_pass_checks": 685,
+      "processes": 24,
+      "standalone_migrations": [
+        "up",
+        "up",
+        "down",
+        "down",
+        "up"
+      ]
+    },
+    "tap": {
+      "job_id": 119589499358,
+      "result": "PASS"
+    },
+    "claim": {
+      "job_id": 119589499403,
+      "result": "PASS"
+    },
+    "maintenance": {
+      "job_id": 119589499589,
+      "result": "PASS"
+    },
+    "flag-write": {
+      "job_id": 119589499588,
+      "result": "PASS"
+    },
+    "full-runner": {
+      "job_id": 119589499044,
+      "result": "PASS",
+      "emitted_pass_checks": 2069,
+      "note": "Actual labeled success notifications; excludes psql result column headers. Includes final main/lifecycle/cap and historical checks, so do not add again as unique coverage."
+    }
+  },
+  "cleanup": {
+    "instances_destroyed": 9,
+    "total": 9,
+    "errors": 0,
+    "full_runner_own_trap_independently_verified": true,
+    "first_and_final_runs_instances_destroyed": 18
+  },
+  "production_contacted": false,
+  "real_enrollment": false,
+  "engine_or_employer_effects": 0,
+  "new_provider_cost_usd": 0,
+  "changes_after_first_run": "Four test-only corrections; production code and up/down hashes unchanged. Original failed run retained. No acceptance assertion removed or skipped.",
+  "verdict_limit": "Disposable SQL gate PASS only. Whole-product code gate remains RED (run39704983173); both judge PASS and owner-authorized live apply/merge/deploy/enrollment/flags/send still required."
+}

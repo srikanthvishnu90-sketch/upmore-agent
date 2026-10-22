@@ -85,6 +85,7 @@ function run(answerAck) {
 import { prepare } from ${JSON.stringify("file://" + repo + "/workers/career-browser/approve-first.ts")};
 import { questionsToStore } from ${JSON.stringify("file://" + repo + "/workers/career-browser/ask-once.ts")};
 import { cloudEngineRunner, cloudLoop } from ${JSON.stringify("file://" + repo + "/workers/career-cloud/worker.ts")};
+import { hashApplyPayload } from ${JSON.stringify("file://" + repo + "/supabase/functions/_shared/career_apply_store.ts")};
 import { engineInput } from ${JSON.stringify("file://" + repo + "/workers/career-cloud/engine_input.ts")};
 const dir = ${JSON.stringify(dir)}, url = ${JSON.stringify(url)}, owner = ${JSON.stringify(OWNER)};
 const rows = ${JSON.stringify(ROWS)}, profile = ${JSON.stringify(PROFILE)};
@@ -110,7 +111,7 @@ if (!first.p.ready) {
 const second = await once(2);
 out.second = second.p.ready ? { ready: true, fields: second.p.payload.fields.map((f) => [f.name, f.value, f.factId]), approval: second.p.payload.engine_approval } : { ready: false, result: second.p.result };
 if (second.p.ready) {
-  const job = { id: "job-1", lease_token: "lease-1", user_id: owner, company: second.p.payload.company, url, payload: second.p.payload };
+  const job = { id: "job-1", lease_token: "lease-1", user_id: owner, company: second.p.payload.company, url, payload: second.p.payload, payload_hash: await hashApplyPayload(second.p.payload), approval_hash: await hashApplyPayload(second.p.payload) };
   const finished = [], tmpRoot = dir + "/tmp";
   await Deno.mkdir(tmpRoot);
   let pending = [job];
@@ -120,6 +121,8 @@ if (second.p.ready) {
     finish: async (j, state, evidence, outcome) => { finished.push({ state, outcome, reason: evidence.reason }); },
     ask: async () => 0,
     gatePresent: async () => true,
+  // 20261024130000: the card-bound worker authorizes with the queue before the engine and before the effect.
+  authorize: async () => {},
   };
   await cloudLoop({ queue, runEngine: engine, contexts: 1, idleMs: 50, tmpRoot, stop: () => finished.length === 1, log: () => {} });
   out.finished = finished;

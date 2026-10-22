@@ -7961,6 +7961,11 @@
       if (error || !data?.user?.id) throw Error('Sign in again to review this approval.');
       return data.user.id;
     },
+    cloudEnabled: async () => {
+      const { data, error } = await supa.rpc('career_apply_message_cloud_enabled_own');
+      if (error) throw error;
+      return data === true;
+    },
     readCard: async cardId => {
       const { data, error } = await supa.rpc('career_apply_message_card_read_own', { p_card: cardId });
       if (error) throw error;

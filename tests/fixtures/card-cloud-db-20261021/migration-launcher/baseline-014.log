@@ -1,0 +1,79 @@
+F.F.FF
+======================================================================
+FAIL: test_all_bridge_keeps_legacy_groups_transactional_and_seeds_last (__main__.MigrationLauncherDispatch.test_all_bridge_keeps_legacy_groups_transactional_and_seeds_last)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/upmore-card-cloud-bridge-20261021/tests/career-card-cloud-migration-launcher.test.py", line 95, in test_all_bridge_keeps_legacy_groups_transactional_and_seeds_last
+    self.assertEqual([self.files(args) for args in runs], [[BEFORE], [BRIDGE], [AFTER]])
+AssertionError: Lists differ: [['20[43 chars].sql', '20261024130000_career_apply_card_cloud[54 chars]ql']] != [['20[43 chars].sql'], ['20261024130000_career_apply_card_clo[58 chars]ql']]
+
+First differing element 0:
+['202[42 chars].sql', '20261024130000_career_apply_card_cloud[53 chars]sql']
+['202[42 chars].sql']
+
+Second list contains 2 additional elements.
+First extra element 1:
+['20261024130000_career_apply_card_cloud_bridge.sql']
+
+- [['20261024120000_career_apply_cloud_gate_waiver.sql',
++ [['20261024120000_career_apply_cloud_gate_waiver.sql'],
+?                                                      +
+
+-   '20261024130000_career_apply_card_cloud_bridge.sql',
+?  ^
+
++  ['20261024130000_career_apply_card_cloud_bridge.sql'],
+?  ^                                                   +
+
+-   '20261024140000_synthetic_after_bridge.sql']]
+?  ^
+
++  ['20261024140000_synthetic_after_bridge.sql']]
+?  ^
+
+
+======================================================================
+FAIL: test_bridge_failure_stops_before_ledger_and_later_files (__main__.MigrationLauncherDispatch.test_bridge_failure_stops_before_ledger_and_later_files)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/upmore-card-cloud-bridge-20261021/tests/career-card-cloud-migration-launcher.test.py", line 126, in test_bridge_failure_stops_before_ledger_and_later_files
+    self.assertFalse(any(AFTER in self.files(args) for args in calls))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_pending_bridge_uses_one_standalone_file_with_ledger_after_success (__main__.MigrationLauncherDispatch.test_pending_bridge_uses_one_standalone_file_with_ledger_after_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/upmore-card-cloud-bridge-20261021/tests/career-card-cloud-migration-launcher.test.py", line 81, in test_pending_bridge_uses_one_standalone_file_with_ledger_after_success
+    self.assertEqual(self.files(bridge[0]), [BRIDGE])
+AssertionError: Lists differ: ['20261024120000_career_apply_cloud_gate_waiver.sql'[94 chars]sql'] != ['20261024130000_career_apply_card_cloud_bridge.sql']
+
+First differing element 0:
+'20261024120000_career_apply_cloud_gate_waiver.sql'
+'20261024130000_career_apply_card_cloud_bridge.sql'
+
+First list contains 2 additional elements.
+First extra element 1:
+'20261024130000_career_apply_card_cloud_bridge.sql'
+
+- ['20261024120000_career_apply_cloud_gate_waiver.sql',
+-  '20261024130000_career_apply_card_cloud_bridge.sql',
+? ^                                                   ^
+
++ ['20261024130000_career_apply_card_cloud_bridge.sql']
+? ^                                                   ^
+
+-  '20261024140000_synthetic_after_bridge.sql']
+
+======================================================================
+FAIL: test_postcommit_ledger_failure_stops_without_retrying_bridge_or_seeding (__main__.MigrationLauncherDispatch.test_postcommit_ledger_failure_stops_without_retrying_bridge_or_seeding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/upmore-card-cloud-bridge-20261021/tests/career-card-cloud-migration-launcher.test.py", line 132, in test_postcommit_ledger_failure_stops_without_retrying_bridge_or_seeding
+    self.assertEqual(result.returncode, 32)
+AssertionError: 0 != 32
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.908s
+
+FAILED (failures=4)

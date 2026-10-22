@@ -63,7 +63,7 @@ Tests use invented UUIDs. No enrollment row, opt-in, waiver or switch is written
 
 ### D11: additive, twice-safe migration, dependency, ledger and grants
 
-After design PASS, create ONE additive migration using the real Supabase CLI and a timestamp ordered AFTER
+Under the owner's subsequent build-now authorization, create ONE additive migration using the real Supabase CLI and a timestamp ordered AFTER
 20261024120000 (the repository has future-stamped migrations, so inspect the generated name before accepting it).
 It depends on 20261021220430's Messages schema AND the modern approval/contract/ask/waiver migrations. Live application
 would be TWO explicitly authorized files in order: 20261021220430, then the new bridge migration; the other named
@@ -198,7 +198,7 @@ confirmation_event_id,authorizes,source; the last four are optional as emitted b
 reject unknown nested classes and duplicate field names, check bank factId F-027..F-079 and derived references using
 the existing quarantine contract, without misclassifying own-chat `id:F-033`. No cloud `source:extension` workaround.
 
-C8: live service-only `career_apply_message_cloud_authorize(job_row_id,lease,Hq)` validates driving/source=cloud,
+C8: live service-only `career_apply_message_cloud_authorize(job_row_id,lease,Hq,source_digest)` validates driving/source=cloud,
 current lease, immutable binding/approval/deadline, enrollment, both switches, opt-in/epoch, current authority/facts,
 pause and applicable gate-or-waiver evidence without counting this already claimed job as a second send. Worker calls
 it before engine --submit and at the actual pre-POST boundary, after browser preparation. Parent owns credentials;
@@ -206,14 +206,17 @@ engine receives only a restricted one-job authorization channel, no service key.
 destination/schema/resume using the existing engine guard. Opt-out/pause/epoch/fact withdrawal in preparation blocks
 the effect. Lease-invalid finish/ask fail; valid terminal evidence remains recordable after expiry/disable/revocation.
 Finish retries retry recording only, never engine. A transport-lost send becomes unknown, never automatically driven.
+The source RPC returns `{user_id,profile,rows,digest}`. Its digest covers canonical `{user_id,profile,rows}`;
+the parent checks ownership and recomputes it before calling the authorization RPC. A missing, malformed or stale
+source digest refuses. The RPC accepts a default NULL only for signature compatibility and always refuses NULL.
 
 D13/F18/F19 intended files: new bridge SQL plus rollback; tests/db/career_apply_card_cloud.test.sql and separate
 rollback/race fixtures; tests/career-cloud-worker-card-bridge.test.cjs; tests/db/run.sh; worker.ts, new cloud prepare
 module and its tests; approve-first.ts/scripts/apply.ts only for the reviewed narrow pre-effect channel; existing
 Messages card module/template only to render version-2 cloud exact payloads/eligibility. No engine_input.ts edits.
-Each SQL migration/test unit <=250/400 lines respectively; if restoring full baseline function bodies makes this
-impossible, split tests by contract and rollback and request the architect's explicit exception for one additive SQL
-file before code. Do not bury executable migration fragments in unlisted includes. Existing card 1 MiB, approval
+Tests stay split by contract, lifecycle, cap and rollback. The owner explicitly authorized a readable migration and
+rollback exceeding the original 250-line limit; exact sizes and preexisting-function diffs are retained in
+`tests/fixtures/card-cloud-db/static-source-audit.json`. Do not bury executable migration fragments in unlisted includes. Existing card 1 MiB, approval
 entry 128 KiB and cloud payload 256 KiB caps remain; reject above the strictest applicable cap BEFORE displaying.
 Owner's subsequent written ruling APPROVES the migration/rollback line-count exceed for readable guard code;
 existing caps, waiver/guard semantics stay intact outside the explicitly required binding/route additions.

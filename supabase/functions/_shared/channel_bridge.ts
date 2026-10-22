@@ -14,6 +14,8 @@
 // or fallback mapping: an unlisted sender, or missing config, resolves to
 // nobody and never reaches the agent.
 
+import { applyLoopText } from "./career_apply_receipts.ts";
+
 export type EnvGetter = (k: string) => string | undefined;
 
 export interface ChannelDeps {
@@ -219,6 +221,49 @@ export async function readStoredBatchRunStatus(
   return rec.status;
 }
 
+// ------------------------------------------------------------------
+// H7 LOOP READBACK. The card readback above covers exactly one state
+// (awaiting_approval). Once the tap lands, the batch record stops
+// advancing on the channel path — in the cloud composition the tap's
+// enqueue IS the apply row (career_apply_jobs), and that row is what
+// walks queued -> driving -> submitted_unconfirmed -> confirmed. A
+// status ask in any of those states therefore fell to the plain
+// turn's generic fallback even though the product held the true
+// state — the loop never closed back to the user. This read is the
+// loop half of the same readback phase: owner-scoped (the select
+// filters by user AND the row is re-validated against the ask),
+// newest first. The newest well-formed row governs: if it already
+// left the loop (a final state), the proactive receipt path owns its
+// wording and this readback says nothing rather than reviving an
+// older row's state. The text itself is composed by
+// career_apply_receipts.applyLoopText from the row alone — a
+// confirmed row renders its full receipt there; any other loop state
+// renders its recorded state word; nothing is invented here.
+
+const APPLY_LOOP_STATES = ["queued", "driving", "submitted_unconfirmed", "confirmed"];
+
+export async function readApplyLoopRow(
+  admin: any,
+  args: { userId: string },
+): Promise<any | null> {
+  const { data, error } = await admin
+    .from("career_apply_jobs")
+    .select(
+      "id, user_id, job_id, company, url, state, reason, confirmation_id, payload_hash, email_confirmed_at, confirmation_mail_hash, evidence, source, created_at, updated_at",
+    )
+    .eq("user_id", args.userId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  if (error || !Array.isArray(data)) return null;
+  for (const row of data) {
+    if (!row || row.user_id !== args.userId) continue;
+    if (typeof row.company !== "string" || !row.company) continue;
+    if (typeof row.job_id !== "string" || !row.job_id) continue;
+    return APPLY_LOOP_STATES.includes(row.state) ? row : null;
+  }
+  return null;
+}
+
 // One structured batch STATUS call: the read-only planner branch the
 // handler routes on body.career_batch. Mirrors runChannelApproval's
 // shape and wire discipline; authorizes nothing and commits nothing —
@@ -318,6 +363,7 @@ export async function runChannelTurnRich(
   // existing detectBatchCard / offerApproval path. Skipped entirely
   // when the plain response already carries a batch_run object, and
   // fail-open: any readback failure leaves the plain outcome as-is.
+  let loopReply: string | null = null;
   if (chat?.batch?.kind !== "batch_run") {
     try {
       const runId = await resolveRememberedBatchRun(admin, {
@@ -326,6 +372,7 @@ export async function runChannelTurnRich(
       });
       if (runId) {
         const status = await readStoredBatchRunStatus(admin, { userId: args.userId, runId });
+        let cardSurfaced = false;
         if (status === "awaiting_approval") {
           const readback = await runChannelStatus(deps, {
             userId: args.userId,
@@ -336,7 +383,19 @@ export async function runChannelTurnRich(
           const b = readback.chat?.batch;
           if (b && b.kind === "batch_run" && b.status === "awaiting_approval" && b.id === runId) {
             chat = readback.chat; // the status call ran on this same thread; its id stands
+            cardSurfaced = true;
           }
+        }
+        // H7 loop readback: no card surfaced and the plain response
+        // carries no batch object of its own (an ask turn's
+        // pending_batch_intent stands untouched — a new effort's reply
+        // is never replaced by an older effort's row). The apply row
+        // is the recorded truth for this thread's effort now; answer
+        // from it. Same failure posture as the card readback: any
+        // error leaves the plain outcome as-is.
+        if (!cardSurfaced && !chat?.batch) {
+          const loopRow = await readApplyLoopRow(admin, { userId: args.userId });
+          if (loopRow) loopReply = applyLoopText(loopRow);
         }
       }
     } catch {
@@ -344,7 +403,7 @@ export async function runChannelTurnRich(
       // plain turn already succeeded and stands.
     }
   }
-  const replyText = cleanReply(String(chat.reply ?? ""));
+  const replyText = cleanReply(loopReply ?? String(chat.reply ?? ""));
   return { kind: "done", threadId: threadId as string, replyText, chat };
 }
 

@@ -84,6 +84,91 @@ export function receiptText(
   }
 }
 
+// ------------------------------------------------------------------
+// H7 — the chat loop's readback texts (lane muse/2026-10-22-e2e-h7;
+// root cause: docs/e2e/H7-LOOP-CLOSURE-ROOT-CAUSE.md). The proactive
+// outbox above says a finished application once, on a schedule. The
+// chat loop needs the same honesty at ask time: a status turn during
+// the apply loop (queued -> driving -> submitted_unconfirmed ->
+// confirmed) is answered from the recorded row, and the confirmed
+// state earns a full receipt. Both composers below are pure functions
+// of the row — every rendered field is the row's own recorded value,
+// never a paraphrase, never another row's.
+
+export const APPLY_LOOP_STATES = [
+  "queued",
+  "driving",
+  "submitted_unconfirmed",
+  "confirmed",
+] as const;
+
+export interface ApplyLoopRow {
+  company?: unknown;
+  job_id?: unknown;
+  url?: unknown;
+  state: string;
+  reason?: unknown;
+  confirmation_id?: unknown;
+  payload_hash?: unknown;
+  email_confirmed_at?: unknown;
+  evidence?: {
+    page_confirmation?: unknown;
+    confirmation_id?: unknown;
+    confirmation_number?: unknown;
+  } | null;
+  source?: unknown;
+  tz?: unknown;
+}
+
+// The full chat receipt for a confirmed application. Confirmed means
+// ONE thing in this product — the employer's own email matched to the
+// row (career_apply_confirm_as stamps email_confirmed_at) — so a row
+// without that stamp gets NO receipt here, however it reached the
+// "confirmed" label: page evidence alone never produces one. Every
+// field renders verbatim from the row; a field the row does not carry
+// is omitted, never invented or truncated into place (the payload
+// hash renders only whole, exactly as recorded).
+export function confirmedReceiptText(row: ApplyLoopRow): string | null {
+  if (!row || row.state !== "confirmed" || !row.email_confirmed_at) return null;
+  const company = clean(row.company, 80) || "the employer";
+  const jobId = clean(row.job_id, 200);
+  const confNo = clean(row.confirmation_id, 60) ||
+    clean(row.evidence?.confirmation_id, 60) ||
+    clean(row.evidence?.confirmation_number, 60);
+  const hash = /^[a-f0-9]{64}$/.test(String(row.payload_hash ?? "")) ? String(row.payload_hash) : "";
+  const at = clean(row.email_confirmed_at, 40);
+  const url = httpsUrl(row.url);
+  const lines = [
+    `Receipt — ${company}${jobId ? ` (${jobId})` : ""}: confirmed by ${company}'s email at ${at}.`,
+    ...(confNo ? [`Confirmation: ${confNo}`] : []),
+    ...(hash ? [`Payload hash: ${hash}`] : []),
+    ...(url ? [url] : []),
+  ];
+  return lines.join("\n");
+}
+
+// The status answer for one loop stage, composed from the row alone.
+// Null for any state outside the loop — a finished row's wording
+// belongs to receiptText / the proactive path, not to this readback.
+export function applyLoopText(row: ApplyLoopRow): string | null {
+  if (!row || !(APPLY_LOOP_STATES as readonly string[]).includes(row.state)) return null;
+  const company = clean(row.company, 80) || "the employer";
+  const jobId = clean(row.job_id, 200);
+  const head = `${company}${jobId ? ` (${jobId})` : ""}`;
+  switch (row.state) {
+    case "confirmed":
+      return confirmedReceiptText(row) ?? receiptText(row);
+    case "submitted_unconfirmed":
+      return `Status — ${head}: submitted_unconfirmed. ${receiptText(row)}`;
+    case "queued":
+      return `Status — ${head}: queued. Your approval is recorded and the application is waiting for the worker — nothing has been sent to the employer yet.`;
+    case "driving":
+      return `Status — ${head}: driving. The worker is filling in the employer's form now — nothing is confirmed yet.`;
+    default:
+      return null;
+  }
+}
+
 export interface ReceiptRow {
   id: string;
   user_id: string;

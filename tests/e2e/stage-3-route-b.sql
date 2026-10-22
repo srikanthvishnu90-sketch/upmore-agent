@@ -31,6 +31,9 @@ select 'ROUTE_B_CARD_STATE', (select case when approved_at is not null then 'app
   where id=(select (v->>'id')::uuid from public.e2e_skeleton_state where k='routeb_card'));
 select 'ROUTE_B_JOB', state || '/' || coalesce(source,'null') || '/' || attempts::text
   from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative';
+-- H7: the full row at the queued stage, for the chat-loop readback leg.
+select 'ROUTE_B_ROW_QUEUED_JSON', coalesce((select to_jsonb(j)::text from career_apply_jobs j
+  where j.job_id='lever:veeva:synthetic-binding-negative'), '');
 select 'ROUTE_B_BOUND', count(*)::text from career_message_approval_private.cloud_bound_jobs b
   join career_apply_jobs j on j.id=b.job_row_id
   where j.job_id='lever:veeva:synthetic-binding-negative';
@@ -46,3 +49,6 @@ commit;
 select 'ROUTE_B_CLAIMED', count(*)::text from public.e2e_skeleton_state where k='routeb_claimed';
 select 'ROUTE_B_JOB_AFTER_CLAIM', state || '/' || coalesce(source,'null') || '/' || attempts::text
   from career_apply_jobs where job_id='lever:veeva:synthetic-binding-negative';
+-- H7: the full row at the driving stage, for the chat-loop readback leg.
+select 'ROUTE_B_ROW_DRIVING_JSON', coalesce((select to_jsonb(j)::text from career_apply_jobs j
+  where j.job_id='lever:veeva:synthetic-binding-negative'), '');

@@ -16,10 +16,12 @@
 //
 // Composition honesty: the DB legs run the product's own RPCs on the
 // repo's own schema (tests/db harness order, disposable cluster). The
-// chat leg runs agent-chat's own modules in-process. The board leg runs
-// the product's engine + cloud worker loop, but its queue is the harness
-// in-memory queue (the PG-backed drain is H3, and it is exactly what is
-// missing) — tier 2, labeled as such wherever reported.
+// chat leg runs agent-chat's own modules in-process. The drain leg (H3)
+// runs the product's own drain process (drain.ts -> cloudLoop over the
+// PG queue) against the disposable cluster, with a stub engine. The
+// board leg still runs the product's engine + cloud worker loop over
+// the harness in-memory queue — tier 2, labeled as such wherever
+// reported.
 //
 // Nothing here touches a live system: disposable local PG, localhost
 // fixture, synthetic TEST identities only, no live Supabase calls.
@@ -140,21 +142,41 @@ test("H1 chat -> card: a plain chat apply ask produces no card (F-037/F-002)", a
 });
 
 // ------------------------------------------------------- H3 (Route A)
-test("H3a approval -> cloud worker via the CHAT begin: refused not_card_approved (F-030 seam, C9)", () => {
+test("H3a approval -> cloud worker via the CHAT begin: bare begin refused (C9 control), the composed card route claimed (F-030 seam)", () => {
   const s2 = psql(path.join(HERE, "stage-2-route-a.sql"));
   assert.equal(s2.code, 0, "stage-2 failed: " + s2.out);
   // The begin itself works: module 176's cloud door enqueues a claim-shaped row.
   assert.equal(markers.ROUTE_A_BEGIN_ID, "true");
   assert.equal(markers.ROUTE_A_BEGIN_LEASE_NULL, "true");
   assert.equal(markers.ROUTE_A_ROW, "queued/null/0");
-  // But the composition begin -> claim is refused, by design (C9): the row
-  // carries no Messages-card binding, and the card is the only cloud
-  // authorization route. Recorded as the F-030 seam measurement.
+  // CONTROL (C9 intact): the bare begin -> claim composition is still
+  // refused, by design: the row carries no Messages-card binding (and
+  // the agent_batch_hash the binding check forbids), and the card is
+  // the only cloud authorization route. A direct enqueue is still not
+  // an authorization route — this half must never go green.
   assert.equal(markers.ROUTE_A_REFUSAL, "not_card_approved");
   assert.equal(markers.ROUTE_A_CLAIMED, "0");
-  record("H3a", "approval->cloud worker (chat begin route)", "FAIL",
-    "F-030 seam (C9): career_apply_cloud_begin_agent_own enqueues (queued/null/0, measured), but career_apply_cloud_claim_at refuses the row 'not_card_approved' — a chat begin has no card binding and no product code creates one from chat");
-  assert.fail("H3a FAIL (expected today): F-030 — the chat-begun row can never be claimed");
+
+  // THE COMPOSED ROUTE (composition A — the chat card mints the
+  // binding, the claim enforces it): the same chat user takes an
+  // approved application through the bridge's machinery — module
+  // 176's beginCloudCardPostings verifies the item binds to the
+  // approved entry and shows the card (career_apply_message_cloud_
+  // card_show_as); the person's tap (career_apply_message_card_
+  // approve_own -> cloud_tap) mints the approval + binding + queue
+  // row; the claim takes it. Root cause + fix:
+  // docs/apply/ROOT-CAUSE-F030-SEAM-CARD-BINDING-2026-10-22.md.
+  const s2b = psql(path.join(HERE, "stage-2b-composed-card.sql"));
+  assert.equal(s2b.code, 0, "stage-2b failed: " + s2b.out);
+  assert.equal(markers.COMPOSED_CARD_STATE, "approved", "the chat user's tap approves the composed card");
+  assert.equal(markers.COMPOSED_JOB, "queued/null/0", "the tap queues the carded payload");
+  assert.equal(markers.COMPOSED_BOUND, "1", "exactly one durable card binding owns the composed row");
+  assert.equal(markers.COMPOSED_HASH_BINDING, "true", "the claimed row's payload hash is the shown item's hash");
+  assert.equal(markers.COMPOSED_REFUSAL, "none", "the composed row passes every refusal predicate");
+  assert.equal(markers.COMPOSED_CLAIMED, "1", "the timed claim takes the composed row");
+  assert.equal(markers.COMPOSED_JOB_AFTER_CLAIM, "driving/cloud/1");
+  record("H3a", "approval->cloud worker (chat begin route)", "PASS",
+    "F-030 seam closed by composition (A): the bare chat begin still refuses 'not_card_approved' (C9 control, stage 2), while the composed route — card shown via career_apply_message_cloud_card_show_as, tapped via career_apply_message_card_approve_own — mints the binding and career_apply_cloud_claim_at takes the row (driving/cloud/1, stage 2b, disposable PG)");
 });
 
 // ------------------------------------------------------------- H2 + H3
@@ -171,19 +193,79 @@ test("H2 card -> approval and H3b approval -> cloud claim (Messages card route)"
   assert.equal(markers.ROUTE_B_JOB_AFTER_CLAIM, "driving/cloud/1");
   record("H3b", "approval->cloud worker (claim predicates)", "PASS",
     "career_apply_cloud_claim_at claims the card-bound row exactly once (driving/cloud/1) on disposable PG");
+});
 
-  // The drain half of H3: the claim predicates exist, but NO running
-  // component binds them to the worker. Measured structurally: the only
-  // drain implementation is workers/career-cloud/worker.ts's main, which
-  // (a) speaks PostgREST to a live project with a service-role key — it
-  // cannot run against this disposable PG at all, and (b) is started by
-  // no systemd unit, host config, or function in the tree.
-  const systemd = fs.readdirSync(path.join(ROOT, "scripts/career/systemd"))
-    .filter((f) => !f.startsWith("README")).join(" ");
-  assert.ok(!/career-cloud/.test(systemd), "no systemd unit starts the cloud worker");
-  record("H3", "approval->cloud worker (drain)", "FAIL",
-    "MISSING CLOUD CLAIMER (submit-armed inventory, 2026-10-22): claim/finish RPCs are proven in PG and worker.ts's cloudLoop exists in-tree, but no deployed process runs it — no systemd unit, no host wiring; its only queue (restQueue) needs a live PostgREST + service key, so the queued row waits forever in every real deployment");
-  assert.fail("H3 FAIL (expected today): no cloud claimer/drain runs — the queue has predicates, not a worker");
+// ------------------------------------------------- H3 (the drain)
+test("H3 approval -> cloud worker (drain): the PG drain claims and finishes a card-bound row", async () => {
+  // Structural half: the claimer now exists in-tree — a systemd unit
+  // source whose ExecStart is the drain entrypoint, the entrypoint,
+  // and the Postgres queue beside worker.ts's restQueue. (The unit is
+  // a repo source only: installing/enabling it is an owner step and
+  // does not happen here.)
+  const systemdDir = path.join(ROOT, "scripts/career/systemd");
+  const unit = fs.readFileSync(path.join(systemdDir, "trainee-cloud-drain.service"), "utf8");
+  assert.match(unit, /ExecStart=.*workers\/career-cloud\/drain\.ts/, "the drain unit starts the drain entrypoint");
+  assert.ok(fs.existsSync(path.join(ROOT, "workers/career-cloud/drain.ts")), "the drain entrypoint exists");
+  assert.ok(fs.existsSync(path.join(ROOT, "workers/career-cloud/pg-queue.ts")), "the Postgres queue exists");
+
+  // Behavioral half: stage 5 seeds a card-bound row and leaves it
+  // QUEUED; the actual drain (runDrain over pgQueue, the product's
+  // cloudLoop) claims it from this disposable cluster and finishes
+  // it. The engine is a stub (tier 2 — the real engine leg is
+  // H4/H5): it honors the effect protocol (beforeEffect authorizes
+  // through the real PG authorization path) and reports the mock
+  // employer's confirmation.
+  const s5 = psql(path.join(HERE, "stage-5-drain.sql"));
+  assert.equal(s5.code, 0, "stage-5 failed: " + s5.out);
+  assert.equal(markers.DRAIN_JOB_QUEUED, "queued/null/0", "the drain's row waits queued before the drain runs");
+
+  const dir = fs.mkdtempSync(path.join(STATE, "drain-"));
+  const driver = path.join(dir, "drain-driver.ts");
+  fs.writeFileSync(driver, `
+import { connectPg, pgQueue } from ${JSON.stringify("file://" + path.join(ROOT, "workers/career-cloud/pg-queue.ts"))};
+import { runDrain } from ${JSON.stringify("file://" + path.join(ROOT, "workers/career-cloud/drain.ts"))};
+const db = await connectPg(${JSON.stringify(`postgres://postgres@127.0.0.1:${pg.port}/postgres`)});
+const base = pgQueue(db.executor);
+let finishes = 0;
+const queue = { ...base, finish: async (...a) => { const r = await base.finish(...a); finishes++; return r; } };
+const stubEngine = async (args, _env, controls) => {
+  await controls.beforeEffect();
+  return { result: { state: "submitted_unconfirmed", confirmation_id: "MOCK-DRAIN-CONF" },
+           evidence: { post: { status: 200, destination: args[1] } } };
+};
+const release = await db.acquireDrainLock();
+if (!release) { console.log("DRAIN-LOCK-CONTENDED"); Deno.exit(3); }
+try {
+  const done = await runDrain({ queue, runEngine: stubEngine, contexts: 1, idleMs: 50,
+    tmpRoot: ${JSON.stringify(dir)}, stop: () => finishes >= 1, log: () => {} });
+  console.log("DRAIN-DONE " + JSON.stringify(done.map((d) => ({ id: d.id, state: d.state, outcome: d.outcome, recorded: d.recorded }))));
+} finally { await release(); await db.close(); }
+`);
+  const deno = process.env.DENO_BIN || path.join(os.homedir(), ".deno/bin/deno");
+  const run = await new Promise((resolve) => {
+    const p = spawn(deno, ["run", "-A", "--no-check", driver], { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "", err = "";
+    p.stdout.on("data", (b) => (out += b));
+    p.stderr.on("data", (b) => (err += b));
+    const timer = setTimeout(() => p.kill("SIGKILL"), 180000);
+    p.on("exit", (code) => { clearTimeout(timer); resolve({ out, err, code }); });
+  });
+  const doneLine = run.out.split("\n").find((l) => l.startsWith("DRAIN-DONE "));
+  assert.ok(doneLine, "the drain produced no result (exit " + run.code + "): " + (run.err || run.out).slice(0, 600));
+  const done = JSON.parse(doneLine.slice("DRAIN-DONE ".length));
+  assert.equal(done.length, 1, "the drain finished exactly one job");
+  assert.equal(done[0].state, "submitted_unconfirmed");
+  assert.equal(done[0].recorded, true, "the finish was recorded through the PG queue");
+
+  const s5b = psql(path.join(HERE, "stage-5b-drain-verify.sql"));
+  assert.equal(s5b.code, 0, "stage-5b failed: " + s5b.out);
+  assert.equal(markers.DRAIN_JOB_STATE, "submitted_unconfirmed/cloud",
+    "the row the drain claimed stands submitted_unconfirmed, source cloud");
+  assert.equal(markers.DRAIN_CONFIRMATION, "MOCK-DRAIN-CONF",
+    "the recorded evidence carries the (stub) employer's confirmation id");
+  assert.equal(markers.DRAIN_EVENT, "submitted/", "the cloud telemetry recorded the submitted outcome");
+  record("H3", "approval->cloud worker (drain)", "PASS",
+    "the missing claimer is built: workers/career-cloud/drain.ts (runDrain -> cloudLoop) over pg-queue.ts claimed the stage-5 card-bound row from disposable PG and finished it submitted_unconfirmed via career_apply_cloud_finish (telemetry 'submitted' recorded); unit source scripts/career/systemd/trainee-cloud-drain.service in-tree, NOT installed. Tier 2: stub engine — the real engine leg is H4/H5");
 });
 
 // --------------------------------------------------------- H4 + H5

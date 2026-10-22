@@ -197,6 +197,9 @@ const CareerPortalBrowser = (() => {
         const def = { field_id: gid, label: gLabel, kind: kind.kind, required: members.some((m) => m.required) };
         if (kind.profile_key) def.profile_key = kind.profile_key;
         if (kind.question_key) def.question_key = kind.question_key;
+        // FDSE-QUESTION-KIND: a question-kind def is keyed by its
+        // label's slug (free_text's keying) so a stored answer binds.
+        if (kind.kind === "question" && !def.question_key) { const qk = slug(gLabel).slice(0, 40); if (qk) def.question_key = qk; }
         defs.push(def);
         bindings[gid] = {
           field_id: gid, inputType: f.inputType === "radio" ? "radio_group" : "checkbox_group",
@@ -212,6 +215,8 @@ const CareerPortalBrowser = (() => {
       const def = { field_id: uniqId(baseId), label: label || baseId, kind: kind.kind, required: !!f.required };
       if (kind.profile_key) def.profile_key = kind.profile_key;
       if (kind.question_key) def.question_key = kind.question_key;
+      // FDSE-QUESTION-KIND: same label-slug keying for single fields.
+      if (kind.kind === "question" && !def.question_key) { const qk = slug(label).slice(0, 40); if (qk) def.question_key = qk; }
       defs.push(def);
       bindings[def.field_id] = bindingFor(f, kind);
     }
@@ -222,9 +227,13 @@ const CareerPortalBrowser = (() => {
     // dates only when that education context is present on the form.
     if (defs.some((d) => d.profile_key && d.profile_key.startsWith("education_"))) {
       for (const d of defs) {
-        if (d.kind !== "unknown") continue;
-        if (/^start date year$|^start year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_start_date"; }
-        else if (/^end date year$|^end year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_end_date"; }
+        // FDSE-QUESTION-KIND: the contextual bind is the stronger
+        // signal — it promotes question-kind defs (the generic
+        // unbound class) exactly as it promoted unknown ones, and
+        // the label-slug question key goes away with the class.
+        if (d.kind !== "unknown" && d.kind !== "question") continue;
+        if (/^start date year$|^start year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_start_date"; delete d.question_key; }
+        else if (/^end date year$|^end year$/.test(d.label.toLowerCase())) { d.kind = "standard"; d.profile_key = "education_end_date"; delete d.question_key; }
       }
     }
     return { defs, bindings };
@@ -315,6 +324,22 @@ const CareerPortalBrowser = (() => {
     if (/location|city|where are you based|current residence/.test(eff) && !/preference|desired/.test(eff)) return { kind: "standard", profile_key: "location" }; // a location PREFERENCE question is an ask, never the current-location value (D7)
     if (inputType === "textarea" || /cover letter|additional information|anything else/.test(eff)) return { kind: "free_text", question_key: /cover letter/.test(eff) ? "cover_note" : (slug(eff).slice(0, 40) || "free_text") };
     if (inputType === "checkbox" && /confirm|agree/.test(eff)) return { kind: "attestation", question_key: slug(eff).slice(0, 32) || "attestation" };
+    // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed; root-cause
+    // note docs/apply/ROOT-CAUSE-FDSE-UNCOVERED-QUESTIONS-2026-10-21.md):
+    // a question CONTROL that matched no canonical rule — a native
+    // select, a radio/checkbox group, a lone radio, or a plain text
+    // input — is a board question, not an unclassifiable field. It
+    // classifies as kind "question" and classifyFields keys it by its
+    // label's slug (the keying free_text already uses), so a stored
+    // confirmed answer can bind to it and module 172 can ask it by
+    // that key. Before this, such fields fell to "unknown", module
+    // 149 asked unknown_field_category, and the ask was unanswerable
+    // BY CONSTRUCTION (no question_key exists for an answer to bind
+    // to) — on the live FDSE form 4 of 16 required fields sat in that
+    // class and every batch stopped UNCOVERED_QUESTION. File inputs
+    // (handled above) and single checkboxes (attestation-adjacent
+    // toggles, handled above) keep their existing verdicts.
+    if (inputType === "group" || inputType === "select" || inputType === "radio" || inputType === "text") return { kind: "question" };
     return { kind: "unknown" };
   }
   function bindingFor(f, kind) {

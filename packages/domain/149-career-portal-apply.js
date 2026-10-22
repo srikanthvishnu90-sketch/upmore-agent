@@ -794,6 +794,18 @@ const CareerPortalApply = (() => {
           board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
           logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
+      } else if (f.kind === "question") {
+        // FDSE-QUESTION-KIND (2026-10-21, MUSE-F-026 proposed): a
+        // board question with no canonical mapping (module 150 keys
+        // it by its label's slug) is answered under the screening
+        // contract verbatim — a confirmed stored answer or an ask.
+        // Nothing is derived here either; an unanswered question
+        // still stops the run, named by its field.
+        const a = answers[f.question_key];
+        if (a && a.confirmed === true && a.value !== undefined) {
+          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
+          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+        } else { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.draft === true) {

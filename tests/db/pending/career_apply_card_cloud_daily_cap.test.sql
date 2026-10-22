@@ -65,6 +65,8 @@ insert into career_message_approval_private.test_users(user_id) values('00000000
 insert into public.career_apply_cloud_resumes(user_id,sha256,filename,bytes,privacy_epoch)
  values('00000000-0000-4000-8000-00000000cb01',encode(sha256(convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8')),'hex'),
  'synthetic.pdf',convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8'),1);
+-- These exact answered sources reconstruct the prepared P through the worker's current-source contract.
+select pg_temp.cc_seed_sources();
 create temp table cap_state(k text primary key,v jsonb);
 grant all on cap_state to authenticated,service_role;
 set role service_role;

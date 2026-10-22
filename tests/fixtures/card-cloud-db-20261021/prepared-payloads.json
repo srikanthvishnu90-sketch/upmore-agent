@@ -506,80 +506,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -969,80 +932,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -1432,80 +1358,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -1895,80 +1784,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -2358,80 +2210,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -2821,80 +2636,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -3284,80 +3062,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -3747,80 +3488,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -4210,80 +3914,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -4673,80 +4340,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -5136,80 +4766,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -5599,80 +5192,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -6062,80 +5618,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -6525,80 +6044,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -6988,80 +6470,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -7451,80 +6896,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -7914,80 +7322,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -8377,80 +7748,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -8840,80 +8174,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",
@@ -9303,80 +8600,43 @@
             "name": "name",
             "label": "Full name",
             "value": "Synthetic Person",
-            "factId": "TEST-NAME",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-NAME",
-            "source": {
-              "table": "answers",
-              "key": "full_name",
-              "value": "Synthetic Person"
-            }
+            "shown": "Synthetic Person",
+            "factId": "TEST-NAME"
           },
           {
             "name": "email",
             "label": "Email",
             "value": "synthetic@example.test",
-            "factId": "TEST-EMAIL",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-EMAIL",
-            "source": {
-              "table": "answers",
-              "key": "email",
-              "value": "synthetic@example.test"
-            }
+            "shown": "synthetic@example.test",
+            "factId": "TEST-EMAIL"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
             "label": "Do you now, or in the future require sponsorship?",
             "value": "No",
-            "factId": "TEST-SPONS",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-SPONS",
-            "source": {
-              "table": "answers",
-              "key": "sponsorship",
-              "value": "No"
-            }
+            "shown": "No",
+            "factId": "TEST-SPONS"
           },
           {
             "name": "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
             "label": "Do you have the unrestricted right to work in the United States?",
             "value": "Yes",
-            "factId": "TEST-AUTH",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-AUTH",
-            "source": {
-              "table": "answers",
-              "key": "work_authorization",
-              "value": "Yes"
-            }
+            "shown": "Yes",
+            "factId": "TEST-AUTH"
           },
           {
             "name": "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
             "label": "I understand that next steps will be sent via email and I have marked the sender address above as safe.",
             "value": "Yes",
-            "factId": "TEST-ACK",
-            "provenance": "owner stated synthetic fixture",
-            "confirmation_event_id": "evt-TEST-ACK",
-            "authorizes": true,
-            "source": {
-              "table": "saved",
-              "key": "i understand that next steps will be sent via email and i have marked the sender address above as safe",
-              "value": "Yes"
-            }
+            "shown": "Yes (checked)",
+            "factId": "TEST-ACK"
           },
           {
             "name": "resume",
             "label": "Resume/CV",
             "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "provenance": "owner picked this file in the panel",
-            "confirmation_event_id": "resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3",
-            "source": {
-              "table": "answers",
-              "key": "resume",
-              "value": "e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
-            }
+            "shown": "synthetic.pdf",
+            "factId": "approved-local-resume:e55e20f79aab716c8a7614b2461b24d439294066367a3d4315ec6e06b610a3d3"
           }
         ],
         "resume_name": "synthetic.pdf",

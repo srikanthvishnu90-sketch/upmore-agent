@@ -22064,6 +22064,8 @@ const CareerPortalApply = (() => {
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  const EMPTY_FORM_RESCAN_MAX_READS = 5;
+  const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -22626,14 +22628,33 @@ const CareerPortalApply = (() => {
       return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
     }
 
-    const formDef = board.form();
+    const rescanOff = inp.emptyFormRescan === false;
+    const rescanT0 = Date.now();
+    let formDef = board.form();
+    let rescanReads = 1;
+    while ((!formDef.fields || formDef.fields.length === 0) && !rescanOff
+      && rescanReads < EMPTY_FORM_RESCAN_MAX_READS
+      && Date.now() - rescanT0 < EMPTY_FORM_RESCAN_BUDGET_MS) {
+      formDef = board.form();
+      rescanReads += 1;
+      logStep("empty_form_rescan", { read: rescanReads, fieldCount: (formDef.fields || []).length, elapsedMs: Date.now() - rescanT0 });
+    }
+    const rescanElapsedMs = Date.now() - rescanT0;
+    const rescan = rescanReads > 1
+      ? { reads: rescanReads, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: (formDef.fields || []).length ? "fields_found" : "exhausted" }
+      : (rescanOff && (!formDef.fields || formDef.fields.length === 0))
+        ? { reads: 1, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: "disabled" }
+        : null;
+    if (rescan && rescan.outcome === "fields_found") {
+      logStep("empty_form_rescan_recovered", { reads: rescanReads, fieldCount: formDef.fields.length, elapsedMs: rescanElapsedMs });
+    }
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
     }
     if (!formDef.fields || formDef.fields.length === 0) {
-      logStep("empty_form_stop", { fieldCount: 0 });
-      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+      logStep("empty_form_stop", { fieldCount: 0, rescanReads });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis, rescan });
     }
     const asks = [];
     const filled = {};

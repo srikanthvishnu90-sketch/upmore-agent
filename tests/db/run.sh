@@ -425,5 +425,53 @@ if [[ -f "$BRIDGE_PATH" ]]; then
   echo "  ok   rollbacks restore the live shape byte for byte and remove the ledger rows"
   for f in 02-apply-card 03-apply-bridge 04-verify; do "${QUIET[@]}" -f "$HA/$f.sql" >/dev/null || { echo "FAIL re-apply $f"; exit 1; }; done
   echo "  ok   applies again from clean and verifies"
+  # Item 5: the owner's steps after the card and bridge (docs/apply/first-send). The person's own acts (their career
+  # account, their cloud resume, their chat opt-in) are simulated by the rows and the RPC the product writes them with;
+  # every operator step runs the held file itself, prepared by scripts/ops/first-send-prepare.sh (manifest-checked).
+  FS="$ROOT/docs/apply/first-send"
+  echo "== first-send owner steps (readiness red -> green, refusals, kill switch, undo)"
+  (cd "$ROOT" && bash scripts/ops/first-send-prepare.sh --check) >/dev/null || { echo "FAIL first-send manifest"; exit 1; }
+  step() { local p; p="$(cd "$ROOT" && bash scripts/ops/first-send-prepare.sh "$1" ${2:-} | sed -n 's/^prepared   [0-9a-f]\{64\}  \([^ ]*\).*/\1/p')"; [[ -f "$p" ]] || { echo "FAIL prepare $1"; exit 1; }; echo "$p"; }
+  EM=first.send@example.test; FU=00000000-0000-4000-8000-0000000000f5; OU=00000000-0000-4000-8000-0000000000f6
+  ready() { local o; o="$("${PSQL[@]}" -f "$(step docs/apply/first-send/00-readiness.sql $EM)" 2>&1)" || { echo "$o" >&2; return 1; }; sed -n "s/.*NOTICE:  READY FOR TAP: //p" <<<"$o"; }
+  expect_ready() { local got; got="$(ready)"; [[ "$got" == "$1" ]] || { echo "want: $1"; echo "got:  $got"; echo "FAIL readiness: $2"; exit 1; }; echo "  ok   readiness: $2"; }
+  refuses() { local out; if out="$("${QUIET[@]}" -f "$(step "$1" "${2:-}")" 2>&1)"; then echo "$out"; echo "FAIL $1 ran: $4"; exit 1; fi
+    grep -q "$3" <<<"$out" || { echo "$out"; echo "FAIL $1 refused for another reason: $4"; exit 1; }; echo "  ok   $(basename "$1") refuses: $4"; }
+  runs() { "${QUIET[@]}" -f "$(step "$1" "${2:-}")" >/dev/null || { echo "FAIL $1"; exit 1; }; }
+  "${PSQL[@]}" -c "insert into auth.users(id,email) values('$FU','First.Send@Example.test'),('$OU','other.person@example.test'); insert into profiles(id) values('$FU'),('$OU'); delete from career_cloud_settings" >/dev/null
+  [[ "$(grep -v '^--' "$FS/00-readiness.sql" | head -n1)" == "begin transaction read only;" && "$(tail -n1 "$FS/00-readiness.sql")" == "rollback;" ]] || { echo "FAIL readiness is not read-only"; exit 1; }
+  expect_ready "no (missing: career account, cloud resume, opt-in, waiver, enrollment, switches)" "before any owner step, everything the owner owes is named"
+  refuses docs/apply/first-send/08-switches-on.sql "$EM" "not enrolled" "switches before enrollment"
+  (cd "$ROOT" && bash scripts/ops/first-send-prepare.sh docs/apply/first-send/08-switches-on.sql) >/dev/null 2>&1 && { echo "FAIL prepared without an email"; exit 1; }
+  out="$("${QUIET[@]}" -f "$FS/08-switches-on.sql" 2>&1)" && { echo "FAIL the raw held file ran"; exit 1; }
+  grep -q "placeholder not replaced" <<<"$out" || { echo "$out"; echo "FAIL raw file refused for another reason"; exit 1; }
+  echo "  ok   no email: the prepare script refuses, and the raw file run directly refuses too"
+  runs docs/apply/HELD-WAIVER-LEVER-5x7D.sql "$EM"
+  "${PSQL[@]}" -c "insert into career_watch_kv(user_id,key,value) values('$FU','career:account','{\"epoch\":0,\"version\":1,\"paused\":false}');
+    insert into career_apply_cloud_resumes(user_id,sha256,filename,bytes,privacy_epoch) values('$FU',encode(sha256('TEST resume'::bytea),'hex'),'resume.pdf','TEST resume'::bytea,0);
+    select career_apply_cloud_optin_as('$FU',true,'TEST terms shown in chat')" >/dev/null
+  runs docs/apply/held-card-bridge/05-enroll-owner.sql "$EM"
+  expect_ready "no (missing: switches)" "after waiver, account, resume, opt-in and enrollment, only the switches are left"
+  "${PSQL[@]}" -c "insert into career_apply_batch_approvals(user_id,job_id,batch_hash,entry) values('$OU','TEST-BATCH',repeat('b',64),'{}')" >/dev/null
+  refuses docs/apply/first-send/08-switches-on.sql "$EM" "unused batch approval" "an unused batch approval anyone holds"
+  "${PSQL[@]}" -c "delete from career_apply_batch_approvals; insert into career_watch_kv(user_id,key,value) values('$OU','career:account','{\"epoch\":0,\"version\":1,\"paused\":false}'); select career_apply_cloud_optin_as('$OU',true,'TEST terms')" >/dev/null
+  refuses docs/apply/first-send/08-switches-on.sql "$EM" "another account is opted in" "a second opted-in account"
+  "${PSQL[@]}" -c "select career_apply_cloud_optin_as('$OU',false,null)" >/dev/null
+  runs docs/apply/first-send/08-switches-on.sql "$EM"
+  expect_ready "yes" "both switches on: the tap is the only thing left"
+  [[ "$("${PSQL[@]}" -tAc "select count(*) from career_apply_jobs")" == 0 ]] || { echo "FAIL a step queued a job"; exit 1; }
+  echo "  ok   no step queued or claimed anything: only the owner's tap makes a job"
+  runs docs/apply/first-send/98-switches-off.sql
+  expect_ready "no (missing: switches)" "the kill switch turns both off"
+  runs docs/apply/first-send/08-switches-on.sql "$EM"
+  runs docs/apply/first-send/99-undo-owner-steps.sql "$EM"
+  expect_ready "no (missing: waiver, enrollment, switches)" "undo revokes the operator's rows and turns the switches off; the person's opt-in stays theirs"
+  [[ "$("${PSQL[@]}" -tAc "select (select count(*) from career_message_approval_private.cloud_card_enrollments where revoked_at is not null)||'|'||(select count(*) from career_apply_cloud_gate_waivers where revoked_at is not null)")" == "1|1" ]] || { echo "FAIL undo did not keep the revoked rows"; exit 1; }
+  echo "  ok   undo keeps the revoked rows for the record"
+  TMPROOT="$(mktemp -d)"; (cd "$ROOT" && tar -cf - docs/apply supabase/migrations/20261021220430_career_apply_message_cards.sql supabase/migrations/20261024130000_career_apply_card_cloud_bridge.sql scripts/ops/first-send-prepare.sh) | tar -xf - -C "$TMPROOT"
+  printf ' ' >> "$TMPROOT/docs/apply/first-send/08-switches-on.sql"
+  FIRST_SEND_ROOT="$TMPROOT" bash "$TMPROOT/scripts/ops/first-send-prepare.sh" docs/apply/first-send/08-switches-on.sql "$EM" >/dev/null 2>&1 && { echo "FAIL a changed held file was prepared"; exit 1; }
+  rm -rf "$TMPROOT"; echo "  ok   a held file changed by one byte is refused before anything is prepared"
+  "${PSQL[@]}" -c "delete from career_cloud_settings; delete from career_message_approval_private.cloud_card_enrollments; delete from career_apply_cloud_gate_waivers; delete from career_apply_cloud_optin; delete from career_apply_cloud_resumes; delete from career_watch_kv where user_id in ('$FU','$OU'); delete from profiles where id in ('$FU','$OU'); delete from auth.users where id in ('$FU','$OU')" >/dev/null
 fi
 echo "db tests passed"

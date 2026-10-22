@@ -326,166 +326,166 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
-      const events = supabaseEventStore(admin);
-      // Explicit alert settings precede thread prompts and either brain. Account controls still go first.
-      const hostControlled = host.isHostControlled(message, ctx);
-      const quiet = !careerTask && !careerBatch && !hostControlled
+      // Explicit alert settings precede thread prompts and either brain. Host controls retain priority.
+      const quiet = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await quietHoursTurn({ message, userId: user.id, store: supabaseAlertStore(admin) }) : null;
-      const reserved = hostControlled || !!quiet;
-      // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
-      // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
-      // controls stay the host's.
-      const card = !careerTask && !careerBatch && !reserved
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
-        : null;
-      // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
-      // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !card && !careerTask && !careerBatch && !reserved
-        ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
-        : null;
-      // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
-      // answers them by number. Code checks every answer against the employer's own choices; the model never decides.
-      // Each of card, mock and questions answers only while its own prompt is the thread's last word, so they never overlap.
-      // WO-030: "draft 2" drafts a written answer from the person's confirmed facts through the same gateway and model the
-      // brain uses (the model only writes; code checks the employer's AI policy, every fact and the length), and only
-      // "use 2" saves it.
-      const draftMeter = newMeter();
-      const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-      const asked = !card && !mock && !careerTask && !careerBatch && !reserved
-        ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
-          draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
-        : null;
-      // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
-      // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
-      // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
-      // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
-      const free = !card && !mock && !asked && !careerTask && !careerBatch && !reserved;
-      const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
-      const sendToken = careerTokenFor({
-        env: Deno.env, fetch, now: Date.now,
-        connection: async (u) => {
-          const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
-          if (error) throw new Error(`read the career grant: ${error.message}`);
-          return data ?? null;
-        },
-        readVault: async (name) => {
-          const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
-          if (error) throw new Error("read the career grant's vault entry");
-          return data ? String(data) : null;
-        },
-        writeVault: async (name, secret) => {
-          const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
-          if (error) throw new Error("save the refreshed career grant");
-        },
-      }, CAREER_SEND_SCOPE);
-      // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
-      const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
-      const emailed = free && !which
-        ? await emailTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
-          store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
-          draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
-          canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
-          // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
-          sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
-        } })
-        : null;
-      if (draftMeter.calls) {
-        const m = draftMeter;
-        const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
-        if (costErr) console.error("essay draft cost not recorded:", costErr.message);
-      }
-      // WO-033: the outreach batch and the one text that answers it ("send all", "send 1-7,9", "redo 3", "skip 4", "edit 3:
-      // ..."), code's like the card, only while the batch is this thread's last word. The approval binds each exact
-      // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
-      const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
-      const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
-      const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !reserved
-        ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
-            redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
-            gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
-          .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
-        : null;
-      if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
-      // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
-      // they are the thread's last word (and nothing was texted since) turns it on, and "cloud off" turns it off at any time.
-      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !reserved
-        ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
-        : null;
       if (quiet) {
         out = quiet;
-      } else if (card) {
-        // A card still waiting for its answer stays this thread's last word; an answered one does not.
-        const waiting = ["shown", "not_on_card", "change"].includes(card.status);
-        out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
-      } else if (mock) {
-        // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
-        out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
-      } else if (asked) {
-        // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them; so does
-        // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
-        const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
-        out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
-      } else if (which) {
-        // A number not on the list leaves the ask waiting; anything else answered it.
-        out = { reply: which.reply, intent: which.status === "not_on_list" ? CONFIRM_INTENT : "career_apply_confirm_answer", resultStatus: which.status, contained: false, handler: "confirm" };
-      } else if (emailed) {
-        // A card waiting for its yes is this thread's last word, by its id (meta.email_card): a yes counts only for the card
-        // this reply showed. Anything else answered it, and leaves no email waiting.
-        out = { reply: emailed.reply, intent: emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
-        if (emailed.waiting && emailed.card_id) agentMeta = { email_card: emailed.card_id };
-      } else if (outreachAns) {
-        out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
-      } else if (cloud) {
-        out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
-      } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !reserved) {
-        const meter = newMeter();
-        const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-        // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
-        const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(HISTORY_WINDOW + 1);
-        if (hist.error) throw new Error(`agent history: ${hist.error.message}`);
-        const win = historyWindow((hist.data || []) as any[]), history = win.history;
-        const postingsDb = supabasePostingsDb(admin);
-        // WO-023: what is known about the person, every turn. Standing instructions are fundamental: if they cannot be
-        // read the turn fails rather than answer without them. Alerts say "could not be read" instead; the applications
-        // are the situation read at the top of the turn (WO-100), which names what it could not read.
-        const memory = supabaseMemoryStore(admin), alertStore = supabaseAlertStore(admin), now = Date.now();
-        const standing = await memory.standing(user.id);
-        const alertRow = await alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; });
-        // WO-027: the account's timeline, written by the tools and read by recall; past the window, a summary of it written
-        // in code. A timeline that cannot be read never fails the turn: the summary says so instead.
-        const tz = alertRow?.tz;
-        const recent = win.cut ? await events.recall(user.id, { limit: 200 }).catch((e) => { console.error("agent memory: events", e?.message ?? e); return null; }) : null;
-        const summary = summaryFor(win.cut, recent, now, tz);
-        // WO-066: the person's own daily application limit (the queue's SQL holds the same bound); unread, the default.
-        const daily = await admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => r.error ? undefined : Number(r.data) || undefined, () => undefined);
-        const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
-          model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
-          mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
-          events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin),
-          // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
-          outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
-          verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
-          tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
-          // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
-          // goes only on its card's tap.
-          wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
-          // WO-106 (F4): each job link is checked against its board just before it is shown.
-          linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
-          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
-        if (meter.calls) {
-          const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
-          if (costErr) console.error("agent turn cost not recorded:", costErr.message);
-        }
-        if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
-          console.error("agent brain: model unavailable, answering with the router");
-          out = host.runTurn(message, ctx);
-        } else {
-          // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
-          out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
-          agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
-        }
       } else {
-        out = host.runTurn(message, ctx);
+        const events = supabaseEventStore(admin);
+        // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
+        // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
+        // controls stay the host's.
+        const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+          ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
+          : null;
+        // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
+        // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
+        const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+          ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
+          : null;
+        // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
+        // answers them by number. Code checks every answer against the employer's own choices; the model never decides.
+        // Each of card, mock and questions answers only while its own prompt is the thread's last word, so they never overlap.
+        // WO-030: "draft 2" drafts a written answer from the person's confirmed facts through the same gateway and model the
+        // brain uses (the model only writes; code checks the employer's AI policy, every fact and the length), and only
+        // "use 2" saves it.
+        const draftMeter = newMeter();
+        const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+          ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
+            draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
+          : null;
+        // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
+        // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
+        // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
+        // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
+        const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+        const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
+        const sendToken = careerTokenFor({
+          env: Deno.env, fetch, now: Date.now,
+          connection: async (u) => {
+            const { data, error } = await admin.from("user_oauth_connections").select("vault_name,scopes").eq("user_id", u).eq("provider", "google_career").maybeSingle();
+            if (error) throw new Error(`read the career grant: ${error.message}`);
+            return data ?? null;
+          },
+          readVault: async (name) => {
+            const { data, error } = await admin.rpc("oauth_vault_read", { p_name: name });
+            if (error) throw new Error("read the career grant's vault entry");
+            return data ? String(data) : null;
+          },
+          writeVault: async (name, secret) => {
+            const { error } = await admin.rpc("oauth_vault_store", { p_name: name, p_secret: secret });
+            if (error) throw new Error("save the refreshed career grant");
+          },
+        }, CAREER_SEND_SCOPE);
+        // The resume attached is WO-028's, tailored to the posting from confirmed facts, else the person's own file.
+        const resumes = supabaseResumes(admin, { profile: () => ((ctx as any).profile ?? {}), tailor: { render: edgeRenderer(), resumes: supabaseResumeStore(admin) } });
+        const emailed = free && !which
+          ? await emailTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
+            store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
+            draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
+            canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+            // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
+            sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
+          } })
+          : null;
+        if (draftMeter.calls) {
+          const m = draftMeter;
+          const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+          if (costErr) console.error("essay draft cost not recorded:", costErr.message);
+        }
+        // WO-033: the outreach batch and the one text that answers it ("send all", "send 1-7,9", "redo 3", "skip 4", "edit 3:
+        // ..."), code's like the card, only while the batch is this thread's last word. The approval binds each exact
+        // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
+        const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
+        const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
+        const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+          ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
+              redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
+              gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
+            .catch((e) => { console.error("outreach turn:", e?.message ?? e); return null; })
+          : null;
+        if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
+        // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
+        // they are the thread's last word (and nothing was texted since) turns it on, and "cloud off" turns it off at any time.
+        const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+          ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
+          : null;
+        if (card) {
+          // A card still waiting for its answer stays this thread's last word; an answered one does not.
+          const waiting = ["shown", "not_on_card", "change"].includes(card.status);
+          out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
+        } else if (mock) {
+          // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
+          out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
+        } else if (asked) {
+          // Questions shown, or some still open after an answer, stay this thread's last word so "2 yes" answers them; so does
+          // every draft turn (a draft shown waits for "use 2"; a refused or failed one leaves the question open).
+          const waiting = ["shown", "partial"].includes(asked.status) || asked.status.startsWith("draft");
+          out = { reply: asked.reply, intent: waiting ? QUESTIONS_INTENT : "career_apply_questions_answer", resultStatus: asked.status, contained: false, handler: "questions" };
+        } else if (which) {
+          // A number not on the list leaves the ask waiting; anything else answered it.
+          out = { reply: which.reply, intent: which.status === "not_on_list" ? CONFIRM_INTENT : "career_apply_confirm_answer", resultStatus: which.status, contained: false, handler: "confirm" };
+        } else if (emailed) {
+          // A card waiting for its yes is this thread's last word, by its id (meta.email_card): a yes counts only for the card
+          // this reply showed. Anything else answered it, and leaves no email waiting.
+          out = { reply: emailed.reply, intent: emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: emailed.status, contained: false, handler: "email" };
+          if (emailed.waiting && emailed.card_id) agentMeta = { email_card: emailed.card_id };
+        } else if (outreachAns) {
+          out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
+        } else if (cloud) {
+          out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
+        } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+          const meter = newMeter();
+          const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+          // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
+          const hist = await admin.from("agent_messages").select("role,content,meta").eq("thread_id", tid).order("id", { ascending: false }).limit(HISTORY_WINDOW + 1);
+          if (hist.error) throw new Error(`agent history: ${hist.error.message}`);
+          const win = historyWindow((hist.data || []) as any[]), history = win.history;
+          const postingsDb = supabasePostingsDb(admin);
+          // WO-023: what is known about the person, every turn. Standing instructions are fundamental: if they cannot be
+          // read the turn fails rather than answer without them. Alerts say "could not be read" instead; the applications
+          // are the situation read at the top of the turn (WO-100), which names what it could not read.
+          const memory = supabaseMemoryStore(admin), alertStore = supabaseAlertStore(admin), now = Date.now();
+          const standing = await memory.standing(user.id);
+          const alertRow = await alertStore.get(user.id).catch((e) => { console.error("agent memory: alerts", e?.message ?? e); return null; });
+          // WO-027: the account's timeline, written by the tools and read by recall; past the window, a summary of it written
+          // in code. A timeline that cannot be read never fails the turn: the summary says so instead.
+          const tz = alertRow?.tz;
+          const recent = win.cut ? await events.recall(user.id, { limit: 200 }).catch((e) => { console.error("agent memory: events", e?.message ?? e); return null; }) : null;
+          const summary = summaryFor(win.cut, recent, now, tz);
+          // WO-066: the person's own daily application limit (the queue's SQL holds the same bound); unread, the default.
+          const daily = await admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => r.error ? undefined : Number(r.data) || undefined, () => undefined);
+          const turn = await agentTurn({ message, history, stores: ctx as unknown as Record<string, unknown>, userId: user.id, threadId: tid, now,
+            model: (payload) => callModel(cfg, payload, { meter, role: "chat" }), postings: (q) => postingsDb.search(searchWords(q), 150), alerts: alertStore,
+            mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
+            events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin),
+            // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
+            outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
+            verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
+            tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
+            // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each
+            // goes only on its card's tap.
+            wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
+            // WO-106 (F4): each job link is checked against its board just before it is shown.
+            linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
+            known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
+          if (meter.calls) {
+            const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
+            if (costErr) console.error("agent turn cost not recorded:", costErr.message);
+          }
+          if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
+            console.error("agent brain: model unavailable, answering with the router");
+            out = host.runTurn(message, ctx);
+          } else {
+            // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
+            out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
+            agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
+          }
+        } else {
+          out = host.runTurn(message, ctx);
+        }
       }
       let taskIntent = null;
       let batchIntent = null;

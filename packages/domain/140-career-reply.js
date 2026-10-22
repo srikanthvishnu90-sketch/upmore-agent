@@ -100,7 +100,7 @@ const CareerReply = (() => {
     if (sentenceCount(t) > MAX_SENTENCES_PER_BUBBLE) violations.push(`more than ${MAX_SENTENCES_PER_BUBBLE} sentences`);
     if (t.includes("```")) violations.push("code fence");
     if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
-    if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (UUID_RE.test(t.replace(/https?:\/\/\S+/g, " "))) violations.push("raw UUID"); // MUSE-F-001: a link's own id is not a raw UUID
     if (HASH_RE.test(t.replace(/https?:\/\/\S+/g, " ")) || HASH_WORD_RE.test(t)) violations.push("raw content hash");
     if (FACT_ID_RE.test(t)) violations.push("fact ID");
     if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
@@ -194,7 +194,6 @@ const CareerReply = (() => {
     s = s.replace(/https?:\/\/\S+/g, (u) => { urls.push(u); return `\u0001${urls.length - 1}\u0001`; });
     s = s.replace(HASH_WORD_RE, " ");
     s = s.replace(HASH_RE, " ");
-    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     // Bare https links SURVIVE: an action link (the connect tap, a step's
     // destination) is the step itself, and the owner's standing rule is
     // that every step carries its exact raw URL (SC-286 contract). Only
@@ -213,6 +212,9 @@ const CareerReply = (() => {
     s = s.replace(/\(\s*\)/g, " ");
     s = s.replace(/\s{2,}/g, " ").trim();
     s = s.replace(/^[\s\-•·]+/, "").trim();
+    // MUSE-F-001: the links go back only now, after every machine-token rule: a job link's own path carries a UUID
+    // (Lever, Ashby) or an id, and stripping it from the link broke the link the person was given.
+    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     return s;
   }
 
@@ -221,7 +223,7 @@ const CareerReply = (() => {
   function sentenceIsClean(cleaned) {
     if (!cleaned || cleaned.length < 3) return false;
     if (!/[a-zA-Z]/.test(cleaned)) return false;
-    const low = cleaned.toLowerCase();
+    const low = cleaned.replace(/https?:\/\/\S+/g, " ").toLowerCase(); // MUSE-F-001: a link's path is not jargon
     for (const w of JARGON_WORDS) if (new RegExp(`\\b${w}\\b`).test(low)) return false;
     // A bare URL is an opaque token, not prose: its underscores/slashes
     // must not trip the snake_case rule (SC-286's connect link carries one).

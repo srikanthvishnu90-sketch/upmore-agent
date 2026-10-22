@@ -16999,9 +16999,17 @@ const CareerRouter = (() => {
         else if (/associate/i.test(lvlF.value)) q.seniority_band = "associate";
         if (!q.role_phrase) q.role_phrase = lvlF.value;
       }
-      // And this ask's own named target joins the thread record (a
-      // declarative plan ask is the user's own statement of target).
-      if (!interrogativeTurn(text)) {
+      // And this ask's own named target joins the plan's working
+      // state (persistPlan below) — but NOT the durable record.
+      // MI-124 (LF-10): this write used to persist the parsed target
+      // as stated facts ("a declarative plan ask is the user's own
+      // statement of target") — a people-search request asserts
+      // nothing about the user, and the ask's firms/geography are
+      // where the PEOPLE are; filing them overwrote asserted facts
+      // (target_firm Meridian Capital -> Google, geography Denver ->
+      // SF, live 2026-10-20, DB-verified). Only a non-search,
+      // non-interrogative statement of target still joins the record.
+      if (!interrogativeTurn(text) && !isPeopleSearchRequest(text)) {
         if (q.firms_named && q.firms.length === 1) recordThreadFact(ctx, "target_firm", q.firms[0], text);
         if (q.geography) recordThreadFact(ctx, "geography", q.geography, text);
       }
@@ -24165,6 +24173,37 @@ const CareerRouter = (() => {
   // not New York"), never accumulated into a contradiction.
   const FACT_CITIES = ["New York", "Chicago", "San Francisco", "Boston", "Houston", "Dallas", "Los Angeles", "Seattle", "Austin", "Miami", "Charlotte", "Denver"];
   const FACT_SINGLE_KINDS = new Set(["year", "geography", "target_firm", "level", "tone", "school", "majors"]);
+  // MI-124 (LF-10): a people-search request ("Find 55 people at
+  // Google…", "find me analysts in SF") is a SEARCH SPECIFICATION,
+  // not a statement about the user — the firms and cities in it are
+  // where the PEOPLE are. The capture paths treated it as a
+  // self-assertion: handleCampaignPlan persisted the parsed target
+  // into the durable record, and per-clause capture filed the ask's
+  // own phrases (its geography, a fragment before "major", a level
+  // word) as profile facts, overwriting asserted facts in their
+  // single-value slots. A turn (or clause) shaped like a people
+  // search therefore writes NO stated facts; the plan itself still
+  // runs on the parsed target — ctx.plan is the ask's working state,
+  // the durable record is not.
+  function isPeopleSearchRequest(text) {
+    const t = lc(text);
+    return /^\s*(?:please\s+)?(?:find|list|get|show|search|source|identify|pull|fetch|build|draft|line up|look for|hunt for)\b/.test(t)
+      || /\b(?:find|list|get|show|search|source|identify|pull|fetch)\b[^.!?]*\b(?:people|analysts|associates|interns|bankers|scientists|contacts|alumni|names|students|engineers|consultants|founders|managers)\b/.test(t);
+  }
+  // MI-124 (LF-10): a majors VALUE must read as a field of study, not
+  // a sentence fragment — the "X major" frame harvested "at fintechs
+  // in SF who share my" (a relative-clause tail) as the user's major.
+  // A field-of-study phrase never starts with a preposition, never
+  // contains a relative pronoun or clause verb, and runs to at most
+  // five words ("finance and computer science" is four).
+  function plausibleMajorValue(v) {
+    const val = s(v).replace(/\s+/g, " ").trim();
+    if (!val || val.length > 40) return false;
+    if (val.split(/\s+/).length > 5) return false;
+    if (/^(at|in|on|for|with|from|of|to)\b/i.test(val)) return false;
+    if (/\b(who|whom|which|that|share|shares|shared|interned|worked|works|went|goes|is|are|was|were|has|have|had|my)\b/i.test(val)) return false;
+    return true;
+  }
   function recordThreadFact(ctx, kind, value, evidence) {
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
@@ -24210,6 +24249,9 @@ const CareerRouter = (() => {
     // the turn to the generic fallback (v227 live verification).
     const restated = [];
     const push = (kind, value, clause) => {
+      // MI-124 (LF-10): no majors frame may file a sentence fragment
+      // as the user's field of study (see plausibleMajorValue).
+      if (kind === "majors" && !plausibleMajorValue(value)) return;
       if (recordThreadFact(ctx, kind, value, clause)) { added.push({ kind, value: s(value).trim() }); return; }
       const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
       if (clean && statedFactsOf(ctx).some((f) => f.kind === kind && lc(f.value) === lc(clean)) && !restated.some((r) => r.kind === kind)) restated.push({ kind, value: clean });
@@ -24278,7 +24320,10 @@ const CareerRouter = (() => {
     }
     // (1) Per-clause declarative capture.
     for (const cl of factClausesOf(raw)) {
-      if (!clauseIsAssertion(cl)) continue;
+      // MI-124 (LF-10): a people-search clause is a search
+      // specification, not a self-assertion — clauseIsAssertion
+      // passes imperatives, so the search gate stands beside it.
+      if (!clauseIsAssertion(cl) || isPeopleSearchRequest(cl)) continue;
       // DEPTH LANE A (floor): a clause whose SUBJECT is a third person
       // ("my roommate is a junior at Yale studying art history") states
       // facts about THEM — the bare "studying X" pattern used to record
@@ -24290,7 +24335,16 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+a\s+(first|second|third|fourth)[- ]year\b/i))) push("year", { first: "freshman", second: "sophomore", third: "junior", fourth: "senior" }[m[1].toLowerCase()], m[0]);
       else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+)?(?:rising\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
-      if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      // MI-124 (LF-10): the study frame's first person used to be
+      // OPTIONAL — any "study <words>" anywhere (the noun phrase
+      // "study groups", a subordinate "people studying CS") filed
+      // the following words as the user's major. The verb now needs
+      // the user as its subject: "I study X", "I'm studying X",
+      // "I major in X" — or a self-describing clause that reaches
+      // "studying X" through the user's own person ("I'm a junior
+      // studying data science").
+      if ((m = cl.match(/\b(?:i\s+(?:study|major)|i'm\s+(?:studying|majoring)|i\s+am\s+(?:studying|majoring))\s+(?:in\s+)?([a-z][a-z &]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
+      else if ((m = cl.match(/\b(?:studying|majoring\s+in)\s+([a-z][a-z &]{2,40})/i)) && /\b(?:i'm|i am|i|my)\b/i.test(cl.slice(0, m.index))) push("majors", _cleanFactVal(m[1]), m[0]);
       else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) push("majors", _cleanFactVal(m[1]), m[0]);
       // DEPTH LANE A: the inverted statement ("finance and computer
       // science are my majors") names the same fact subject-last.

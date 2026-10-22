@@ -537,6 +537,7 @@ export function canonicalTypedValue(f: TypedField, value: string): string | null
   return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${day}`;
 }
 const YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+const GRAD_YEAR = /\b(graduat\w*|class|completion|end)\b[^?.]{0,30}\byear\b|\byear\b[^?.]{0,30}\b(graduat\w*|complet\w*)\b/;
 // WO-052 (an independent review of every fill on samples A and B):
 // - A yes, a no or an "I agree" goes into a typed box only when the box asks a yes-or-no question, and only that: "If
 //   you were referred, by who?", "In what countries do you have the right to work?", "Please confirm your situation:",
@@ -565,6 +566,9 @@ export function fitsField(f: FormField, value: string, ownAnswer = false): boole
   if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
   // WO-057: "What date are you available to begin (Month and Year)" takes a month and year, never "2 weeks".
   if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
+  // Item 19 (owner, 2026-10-21): a box that asks for a graduation, class or end year takes only an answer that states one.
+  // The month alone ("June") never fills it, and no year is completed from anywhere else (a resume's span is not stated).
+  if (GRAD_YEAR.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
   return true;
 }
 

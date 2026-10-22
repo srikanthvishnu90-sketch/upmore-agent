@@ -3246,6 +3246,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return f.type === "month" ? `${year}-${month}` : `${year}-${month}-${day}`;
   }
   var YES_NO_VALUE = /^(yes|no|y|n|true|false)$/i;
+  var GRAD_YEAR = /\b(graduat\w*|class|completion|end)\b[^?.]{0,30}\byear\b|\byear\b[^?.]{0,30}\b(graduat\w*|complet\w*)\b/;
   var YES_NO_LIKE = /^(yes|no|y|n|true|false|i (agree|accept|acknowledge|consent|understand)\b.*|i am (not )?currently employed)$/i;
   var COMPOUND = /\bif (so|yes|not|no|applicable|you (are|were|have|do|did|answered|selected))\b[^?]{0,80}\b(list|provide|describe|explain|specify|enter|state|indicate|give|share|tell|include)\b|\bplease (list|provide|describe|explain|specify|share|confirm your)\b|,? or (would|are|do|will|have|can|could) you\b/;
   function asksYesNo(t) {
@@ -3263,6 +3264,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (YES_NO_LIKE.test(v) && !asksYesNo(t)) return false;
     if (/\by\s*\/\s*n\b|\byes\s*\/\s*no\b|\(yes or no\)/i.test(f.label) && !YES_NO_VALUE.test(v)) return false;
     if (/\bdate\b/.test(t) && /\bmonth and year\b|\bmm\s*\/\s*yy/.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
+    if (GRAD_YEAR.test(t) && !/\b(19|20)\d\d\b/.test(v)) return false;
     return true;
   }
   var EDU_END = /^end-(month|year)--0$/;

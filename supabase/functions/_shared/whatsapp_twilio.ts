@@ -54,6 +54,8 @@ import {
   offerApproval,
   peekApproval,
   presentReply,
+  resolveTextApproval,
+  approvalPromptText,
   takeApproval,
 } from "./channel_present.ts";
 import { fetchArtifactBytes, signedArtifactUrl, verifyArtifactUrl } from "./channel_artifacts.ts";
@@ -250,6 +252,39 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
       }
     }
 
+    // P1 text yes: "yes" / "yes but not 2" / "no" while this sender's card
+    // offer is live resolves THAT card through the same structured approval
+    // as choice 1 (exclusions as the card's posting keys). Anything else is
+    // an ordinary turn.
+    if (!dryRun) {
+      const res = await resolveTextApproval(deps, { channel: "whatsapp", senderKey: parsed.senderKey, userId, text: parsed.text });
+      if (res.kind === "say") {
+        if (send) await send(parsed.from, res.text);
+        return json({ ok: true, approval: res.reason === "declined" ? "declined" : "refused", reason: res.reason });
+      }
+      if (res.kind === "approve") {
+        const row = res.row;
+        let approved;
+        try {
+          approved = await runChannelApproval(deps, {
+            userId: row.user_id, threadId: row.thread_id, runId: row.run_id, cardSha256: row.card_sha256,
+            eventId: `watx-${row.token}`, turnKey: `watx-${row.token}`, exclude: res.excludeKeys,
+          });
+        } catch (e) {
+          if (e instanceof TurnLimitError) {
+            if (send) { try { await send(parsed.from, VOICE.rateLimited); } catch { /* best effort */ } }
+            return json({ ok: true, limited: true });
+          }
+          console.error("whatsapp-inbound text approval:", e);
+          if (send) { try { await send(parsed.from, VOICE.error); } catch { /* surfaced below */ } }
+          return json({ ok: false, error: "internal" }, 500);
+        }
+        const parts = presentReply("whatsapp", approved.replyText || VOICE.empty, WHATSAPP_LIMIT);
+        if (send) await sendParts(deps, parts, (part) => send(parsed.from, part));
+        return json({ ok: true, approval: "resolved", run_id: row.run_id, approved: res.count, excluded: res.excludeKeys.length });
+      }
+    }
+
     let outcome;
     try {
       outcome = await runChannelTurnRich(deps, {
@@ -310,7 +345,7 @@ export async function handleWhatsappWebhook(req: Request, deps: ChannelDeps): Pr
         channel: "whatsapp", senderKey: parsed.senderKey, userId, threadId: outcome.threadId, runId: card.runId,
       });
       if (offer) {
-        await send(parsed.from, `${VOICE.approvalPrompt(card.runId)}\n${VOICE.choiceFooter}`);
+        await send(parsed.from, `${approvalPromptText(card.runId, offer.items)}\n${VOICE.choiceFooter}`);
         approvalOffered = true;
       }
     }

@@ -24985,12 +24985,20 @@ const CareerBatchApply = (() => {
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
     }
-    run.approvals = {};
-    for (const key of run.selected) {
-      const app = run.apps[key];
-      if (app && app.stage === "doorstep") run.approvals[key] = app.payloadSha256;
+    const doorKeys = run.selected.filter((k) => run.apps[k] && run.apps[k].stage === "doorstep");
+    const exclude = approval.exclude == null ? [] : approval.exclude;
+    if (!Array.isArray(exclude) || exclude.some((k) => typeof k !== "string" || !doorKeys.includes(k)) || new Set(exclude).size !== exclude.length) {
+      return { ok: false, code: "APPROVAL_EXCLUDE_INVALID", reason: "an excluded application is not on the card that was approved — nothing was approved" };
     }
-    run.approvalRef = `batch:${run.id}:${nowSha}`;
+    if (exclude.length >= doorKeys.length) {
+      return { ok: false, code: "APPROVAL_EXCLUDE_ALL", reason: "every application on the card was left out — there is nothing to approve" };
+    }
+    run.approvals = {};
+    for (const key of doorKeys) {
+      if (exclude.includes(key)) continue;
+      run.approvals[key] = run.apps[key].payloadSha256;
+    }
+    run.approvalRef = `batch:${run.id}:${nowSha}` + (exclude.length ? `:x-${sha256(exclude.slice().sort().join("|")).slice(0, 16)}` : "");
     run.attestations = {};
     for (const key of Object.keys(run.approvals)) {
       const app = run.apps[key];
@@ -25001,7 +25009,13 @@ const CareerBatchApply = (() => {
       }
     }
     run.status = "approved";
-    event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef });
+    for (const key of Object.keys(run.approvals)) event(run, "app_approved", { postingKey: key, payloadSha256: run.approvals[key] });
+    for (const key of exclude) {
+      const app = run.apps[key];
+      app.stage = "excluded_by_user";
+      event(run, "app_excluded", { postingKey: key });
+    }
+    event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef, ...(exclude.length ? { excluded: exclude.length } : {}) });
     return { ok: true, approved: Object.keys(run.approvals).length, approvalRef: run.approvalRef };
   }
 
@@ -25117,6 +25131,7 @@ const CareerBatchApply = (() => {
           : a.stage === "stopped" ? "stopped (named below)"
           : a.stage === "deferred_cap" ? "queued past today's cap"
           : a.stage === "selected" ? "selected, not prepared yet"
+          : a.stage === "excluded_by_user" ? "left out by your yes — not sent"
           : a.stage;
         lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
       }

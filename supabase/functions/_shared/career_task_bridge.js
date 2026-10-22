@@ -183,11 +183,20 @@ const BATCH_RUN_VERSION = "career_batch_run/v1";
 const batchRunIdOk = v => typeof v === "string" && /^batch-[A-Za-z0-9-]{4,96}$/.test(v);
 const cardHashOk = v => typeof v === "string" && (/^[a-f0-9]{64}$/.test(v) || /^fnv1a-[a-f0-9]{1,16}$/.test(v));
 const batchEventIdOk = v => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v);
+const batchExcludeKeyOk = v => typeof v === "string" && v.length >= 1 && v.length <= 300 && !/[\u0000-\u001f]/.test(v);
+// The card's applications in the order the person is shown them: the
+// run's selection order, doorstep-ready applications only — the same set
+// 155's cardSha covers. Channels number them 1..N from this list.
+export function batchCardItems(run) {
+  if (!run || !Array.isArray(run.selected) || !run.apps || typeof run.apps !== "object") return [];
+  return run.selected.filter(k => run.apps[k] && run.apps[k].stage === "doorstep")
+    .map(k => ({ postingKey: k, company: run.apps[k].company || null, role: run.apps[k].role || null, payloadSha256: run.apps[k].payloadSha256 || null }));
+}
 export function normalizeCareerBatchRequest(value) {
   if (value == null) return null;
   if (typeof value !== "object" || Array.isArray(value)) return fail();
   const fields = {
-    approve: ["action", "version", "eventId", "runId", "cardSha256"],
+    approve: ["action", "version", "eventId", "runId", "cardSha256", "exclude"],
     status: ["action", "version", "runId"],
   }[value.action];
   if (!fields || Object.keys(value).some(k => !fields.includes(k)) || (value.version && value.version !== BATCH_VERSION)) return fail();
@@ -195,6 +204,14 @@ export function normalizeCareerBatchRequest(value) {
   for (const key of fields) if (key !== "version" && value[key] !== undefined) out[key] = value[key];
   if (!batchRunIdOk(out.runId)) return fail();
   if (out.action === "approve" && (!batchEventIdOk(out.eventId) || !cardHashOk(out.cardSha256))) return fail();
+  // P1 text yes ("yes but not 2"): an approve may leave named applications
+  // of the card off — posting keys, unique, at most 50. Absent or empty
+  // means the whole card, byte-identical to the request before it existed.
+  if (out.exclude !== undefined) {
+    const x = out.exclude;
+    if (!Array.isArray(x) || x.length > 50 || x.some(k => !batchExcludeKeyOk(k)) || new Set(x).size !== x.length) return fail();
+    if (x.length) out.exclude = x.slice().sort(); else delete out.exclude;
+  }
   return out;
 }
 async function batchIntentId(userId, threadId, turnKey, requestHash) {
@@ -241,12 +258,26 @@ export async function planCareerBatchIntent({ batchRequest, message, userId, thr
   if (record.run.cardSha256 !== batchRequest.cardSha256) {
     return { intent: null, out: reply("The batch changed since the card you approved (its set hash no longer matches) — nothing was queued. Ask for the batch status, review the current card, and approve that one.", "blocked") };
   }
+  const exclude = Array.isArray(batchRequest.exclude) ? batchRequest.exclude : [];
+  if (exclude.length) {
+    // Only applications ON this card may be left off, and at least one
+    // must remain — otherwise nothing is queued (155 re-checks at execute).
+    const keys = batchCardItems(record.run).map(i => i.postingKey);
+    if (exclude.some(k => !keys.includes(k))) {
+      return { intent: null, out: reply("An application you left out is not on this card — nothing was queued. Ask for the batch status and answer the card that is shown.", "blocked") };
+    }
+    if (exclude.length >= keys.length) {
+      return { intent: null, out: reply("That leaves every application on the card out, so nothing was approved and nothing was queued.", "blocked") };
+    }
+  }
   const intent = { version: BATCH_VERSION, intent_id: await batchIntentId(userId, threadId, turnKey, requestHash), user_id: userId, thread_id: threadId, turn_key: turnKey,
     request_hash: requestHash, action: "approve", event_id: batchRequest.eventId, run_id: batchRequest.runId, card_sha256: batchRequest.cardSha256,
+    ...(exclude.length ? { exclude_keys: exclude } : {}),
     authority_account_version: accountVersion + 1, privacy_epoch: account.epoch || 0 };
   const batch = { version: BATCH_VERSION, id: batchRequest.runId, userId, status: "queued", kind: "pending_batch_intent",
     intent_id: intent.intent_id, bindings: intent };
-  return { intent, out: reply("Your yes is recorded for this batch exactly as carded — the browser worker will submit it under that approval and the results will read back here. This reply itself submitted nothing.", "queued", batch) };
+  const leftOut = exclude.length ? ` You left ${exclude.length} out; ${exclude.length === 1 ? "it" : "they"} will not be sent.` : "";
+  return { intent, out: reply("Your yes is recorded for this batch exactly as carded — the browser worker will submit it under that approval and the results will read back here." + leftOut + " This reply itself submitted nothing.", "queued", batch) };
 }
 
 export function createWorkerBoardProvider(opts) {

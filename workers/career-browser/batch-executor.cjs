@@ -164,7 +164,10 @@ function createBatchExecutor(deps) {
       // card so a corrected yes can still land.
       return { blocked: "APPROVAL_SET_CHANGED", runId: run.id, runStatus: run.status };
     }
-    const ap = Batch.approveRun(run, { approvedByUser: true });
+    // P1 text yes: the applications the owner left off the card ride the
+    // approve intent (exclude_keys); 155 refuses any key not on the card.
+    const exclude = Array.isArray(binding.exclude_keys) ? binding.exclude_keys : [];
+    const ap = Batch.approveRun(run, exclude.length ? { approvedByUser: true, exclude } : { approvedByUser: true });
     if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
     const deps = await buildDeps(intent.userId, []);
     const baseRecords = ((deps.log && deps.log.records) || []).slice();

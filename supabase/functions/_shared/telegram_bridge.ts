@@ -38,6 +38,8 @@ import {
   offerApproval,
   plainFromTelegramHtml,
   presentReply,
+  resolveTextApproval,
+  approvalPromptText,
   takeApproval,
 } from "./channel_present.ts";
 import { fetchArtifactBytes } from "./channel_artifacts.ts";
@@ -280,6 +282,39 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
       return json({ ok: true, ignored: "unknown sender" });
     }
 
+    // P1 text yes: a texted "yes" / "yes but not 2" / "no" while this
+    // sender's card offer is live resolves THAT card (its stored hash,
+    // re-checked) through the identical structured approval a button tap
+    // sends. Any other text, or no live offer, is an ordinary turn.
+    if (!dryRun) {
+      const res = await resolveTextApproval(deps, { channel: "telegram", senderKey: parsed.chatId, userId, text: parsed.text });
+      if (res.kind === "say") {
+        if (send) await sendTelegramPresented(deps, token, parsed.chatId, res.text);
+        return json({ ok: true, approval: res.reason === "declined" ? "declined" : "refused", reason: res.reason });
+      }
+      if (res.kind === "approve") {
+        const row = res.row;
+        let approved;
+        try {
+          const go = () => runChannelApproval(deps, {
+            userId: row.user_id, threadId: row.thread_id, runId: row.run_id, cardSha256: row.card_sha256,
+            eventId: `tgtx-${row.token}`, turnKey: `tgtx-${row.token}`, exclude: res.excludeKeys,
+          });
+          approved = token ? await withTelegramTyping(deps, token, parsed.chatId, go) : await go();
+        } catch (e) {
+          if (e instanceof TurnLimitError) {
+            if (send) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.rateLimited); } catch { /* best effort */ } }
+            return json({ ok: true, limited: true });
+          }
+          console.error("telegram-inbound text approval:", e);
+          if (send) { try { await sendTelegramPresented(deps, token, parsed.chatId, VOICE.error); } catch { /* surfaced below */ } }
+          return json({ ok: false, error: "internal" }, 500);
+        }
+        if (send) await sendTelegramPresented(deps, token, parsed.chatId, approved.replyText || VOICE.empty);
+        return json({ ok: true, approval: "resolved", run_id: row.run_id, approved: res.count, excluded: res.excludeKeys.length });
+      }
+    }
+
     let outcome;
     try {
       const runTurn = () =>
@@ -352,7 +387,7 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
         channel: "telegram", senderKey: parsed.chatId, userId, threadId: outcome.threadId, runId: card.runId,
       });
       if (offer) {
-        await sendTelegramRendered(deps, token, parsed.chatId, VOICE.approvalPrompt(card.runId), {
+        await sendTelegramRendered(deps, token, parsed.chatId, approvalPromptText(card.runId, offer.items), {
           inline_keyboard: [
             [{ text: VOICE.approveButton, callback_data: `appr:${offer.token}` }],
             [{ text: VOICE.declineButton, callback_data: `apprx:${offer.token}` }],

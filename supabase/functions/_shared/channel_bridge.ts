@@ -385,6 +385,9 @@ export async function runChannelApproval(
     cardSha256: string;
     eventId: string;
     turnKey: string;
+    // P1 text yes ("yes but not 2"): posting keys of THIS card left off.
+    // Absent/empty = the whole card, byte-identical to the button tap.
+    exclude?: string[];
   },
 ): Promise<{ threadId: string; replyText: string; chat: any }> {
   const chat = await callAgentChat(deps, {
@@ -398,6 +401,7 @@ export async function runChannelApproval(
       eventId: args.eventId,
       runId: args.runId,
       cardSha256: args.cardSha256,
+      ...(args.exclude && args.exclude.length ? { exclude: args.exclude } : {}),
     },
   });
   return {

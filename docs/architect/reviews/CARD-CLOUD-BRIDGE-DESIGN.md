@@ -214,6 +214,9 @@ Each SQL migration/test unit <=250/400 lines respectively; if restoring full bas
 impossible, split tests by contract and rollback and request the architect's explicit exception for one additive SQL
 file before code. Do not bury executable migration fragments in unlisted includes. Existing card 1 MiB, approval
 entry 128 KiB and cloud payload 256 KiB caps remain; reject above the strictest applicable cap BEFORE displaying.
+Owner's subsequent written ruling APPROVES the migration/rollback line-count exceed for readable guard code;
+existing caps, waiver/guard semantics stay intact outside the explicitly required binding/route additions.
+The exact size and per-function diffs remain visible for second-judge review; this is not a line-budget PASS claim.
 
 ## Fail-first acceptance matrix
 

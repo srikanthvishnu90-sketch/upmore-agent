@@ -3,7 +3,7 @@ import { prepare, assertApprovedPayload, type RunEngine } from "../career-browse
 import { questionsToStore } from "../career-browser/ask-once.ts";
 import { readEngineInput } from "./engine_input.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
-import type { CardCloudRpc } from "./current_sources.ts";
+import { assertCurrentApprovedSources, type CardCloudRpc } from "./current_sources.ts";
 import { cloudEngineRunner } from "./worker.ts";
 import { trustedManifest } from "../../extension/src/apply_core.ts";
 
@@ -91,6 +91,13 @@ export async function prepareCloudCard(o: CloudCardPreparation, d: {
     // A batch with a missing answer is not partly approved: answer the questions and prepare the entire card anew.
     if (questions.length) return { ready: false as const, reason: "needs_answers", questions };
     if (items.length !== o.urls.length) fail("INCOMPLETE_CLOUD_CARD");
+    const latest = await d.rpc("career_apply_message_cloud_sources", { p_user: o.owner });
+    if (!object(latest) || latest.user_id !== o.owner || !Object.hasOwn(latest, "profile") || !Array.isArray(latest.rows) ||
+      await hashApplyPayload({ user_id: o.owner, profile: latest.profile, rows: latest.rows }) !== latest.digest)
+      fail("CARD_CLOUD_SOURCE_READ_FAILED");
+    const current = await readEngineInput({ latestProfile: async () => latest.profile,
+      answeredRows: async () => latest.rows }, o.owner, r.sha256);
+    for (const item of items) assertCurrentApprovedSources(item.payload, current);
     const card = await d.rpc("career_apply_message_cloud_card_show_as", { p_user: o.owner, p_thread: o.thread, p_items: items });
     if (!object(card) || !object(card.payload) || card.payload.user_id !== o.owner || card.payload.thread_id !== o.thread ||
       card.payload.version !== 2 || card.payload.execution_mode !== "cloud" ||

@@ -6,7 +6,7 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { plan, parseCommand, settingsMessage, describe, mapAccounts, mapTransactions, capWatches, MAX_WATCHES } from "../../supabase/functions/_shared/proactive.ts";
 import { accountRows, txRows, NOW } from "./lib/proactive_fixture.ts";
-import SRC_MIGRATION from "../../supabase/migrations/20261011060000_proactive.sql" with { type: "text" };
+const SRC_MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261011060000_proactive.sql", import.meta.url));
 
 const H = 3600000;
 const CITE = " (First Bank via SimpleFIN, as of Oct 11, 9:30 AM)";

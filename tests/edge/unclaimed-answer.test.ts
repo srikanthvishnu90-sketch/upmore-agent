@@ -4,7 +4,7 @@
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { unclaimedKind, unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TODAY = "2026-10-12";
 function readers(accounts: any[], rows: any[]) {

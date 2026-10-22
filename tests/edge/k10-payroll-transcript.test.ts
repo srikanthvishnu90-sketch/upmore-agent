@@ -4,7 +4,7 @@
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { payrollKind, payrollReply } from "../../supabase/functions/agent-chat/_shared/payroll_answer.ts";
 import PROFILE from "../fixtures/k10-standin.json" with { type: "json" };
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TODAY = "2026-10-12";
 const CASES: Array<[string, string, RegExp]> = [

@@ -5,7 +5,7 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
 import { budgetReply, readBudgets, isBudgetAsk, BUDGETS_UNAVAILABLE } from "../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 import { parseCommand } from "../../supabase/functions/_shared/proactive.ts";
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const NOW = new Date("2026-10-12T15:05:00Z"), TZ = "America/New_York";
 let n = 0;

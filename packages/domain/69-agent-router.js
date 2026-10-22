@@ -451,7 +451,13 @@
       }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
-        try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
+        let modelTimer = null;
+        try {
+          ex = await Promise.race([c.extract(text), new Promise((_, rej) => {
+            modelTimer = setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000);
+          })]);
+        } catch (e) { modelError = String(e && e.message || e); ex = null; }
+        finally { if (modelTimer !== null) clearTimeout(modelTimer); }
       } else modelError = "no model";
       let v = ex ? validate(ex, text) : { ok: false, problems: [modelError || "no extraction"] };
       let e = v.ok ? v.extraction : null;

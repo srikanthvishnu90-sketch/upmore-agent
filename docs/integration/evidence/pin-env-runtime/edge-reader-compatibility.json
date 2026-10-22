@@ -1,0 +1,188 @@
+[
+  {
+    "path": "tests/edge/year-in-money.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "c45e35fb8c2862f758ebef6684a0e2cd153c57208111845ed038b596a42faa19",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/win-back-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "ee84abb06b76b2c659888213f6093ac8b612a77538a8c4e8391b1f50abcd0d71",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/whats-new-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "bbcfe9c6478c3c3025306a118238d168d5a6e5498fe47917af70399d6777ee08",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/unclaimed-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "b4a9e5673d9e14cabb5555c087b62099a5ab7b91caede4a87e11123893602a70",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/the-numbers.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "823821d4c397e6be5f84f447bf893ad6aef3f0f538a23f10a698685de365471e",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/substitutes-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "701a45cf55f701091f5debb5ae3fad58900abcd9572f473f76f789ce0d4a52f6",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/spending-views.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "8b67a2cdc9bf1c83979082c0ef1e894788f5174fc683a09496e8d39f0b3d058e",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/phone-call-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "40742e2c72e2ac17db2e2e28e1fa3021cbd84aafeaac17ad0c6a17700d16a8cc",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/paper-trading-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "9187b1c07dbacb6e26c26d3a8ce94179dd7081673fc8fc4b69496ed2a179d33c",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/nothing-linked.test.ts",
+    "raw_imports_replaced": 2,
+    "assertion_lines_sha256": "6b7e1a280fd82ddfdcd9a9213a6af31c612031105a2dbd315ba1a3652f70af15",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/moved-on.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "16b5f43fc0a6b9eef203be7d00b710dd68ffe0ee731d6af8e1665f5ebe1db57a",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/money-owed-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "7f9e91a78874f183afafe9424d658c16bf65e86ba9ab482c5c02fced861baa3a",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/market-intel.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "d5fa1383a6dc76ac0807acb6b095bec5d334de671ff2e1dcc2e709f408ca897f",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/k10-payroll-transcript.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "f1d3b652ff2bd7e237574e669f150e4d5abe9a46d80b5d122bd5b5d9ff2eef3c",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/iou.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "453cb38da747ada242b51dafcaf20a58f8794cd30afddf9e73cba759d11bcc59",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/gmail-code-window.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "bfbb0de8138ab585996562a466ba998c571b9bee5a2a4ef9e57bbd02877aaf1d",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/direct-routing-corpus.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "e94ac44aa2a15cd23eb742ef635683a422dfa776608c2b6e6246d05909d45859",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/direct-answers.test.ts",
+    "raw_imports_replaced": 9,
+    "assertion_lines_sha256": "b7b415b25b0b370fcec20f5c66ab3d7c1dee27f515e517b6d9ca41847be51b3e",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/direct-answers-timezone.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "a540e19a9f529e2759068a9dc583dd1b78e2a119313342680e5a1ce52d6199cd",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/deadlines.test.ts",
+    "raw_imports_replaced": 3,
+    "assertion_lines_sha256": "e954851b16430b841dcc1d5b8ef27b3e6f9ec5ffd5d3f88ed75b78d8deafb8d4",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/credit-score-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "93df989d871131a2cf3f0d14147736c9b430f24d9fda1b34b95076e82eb117eb",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/category-rules.test.ts",
+    "raw_imports_replaced": 2,
+    "assertion_lines_sha256": "48b9408af4bd29412d62bd443516951231dd194ee9c9795d48ac4d3cc6da9661",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/career-compare.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "525978d1dcadfc6b34e8f37add38a7fa1e9abd168b03a3a5ccf44f082a1161e1",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/career-ask-once.test.ts",
+    "raw_imports_replaced": 2,
+    "assertion_lines_sha256": "f4d87d6f9baafc99fd5c67a8ef36d4011f310be525d45680c6433c1636699594",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/cancel-done-reply.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "428c3f3098c125987fa2da13f8f1d4d67ec2ea9bf0548f9ce8bf0e5d53cfc71c",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/bureau-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "1d3f42b6934c702136104ff4c59ac19b69a96569946f8be411fcbfe518fb305f",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/budgets-proactive.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "b3d49766ef299a760f863886735d79897482978f7cdd1e9a5690a352000f6803",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/budgets-answer.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "85b474ce8ce5b65e0b6512e718eba585603d58f42cfc623030dde42fd9631414",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/bnpl-answer.test.ts",
+    "raw_imports_replaced": 2,
+    "assertion_lines_sha256": "abe0d4a76b81aaf4fcece9b2812f42f895e1ecebf2b7f708cc2e693e7087a859",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/agent-guards.test.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "546a18cdd4d00c788225a6077a1cf9a6257e6c3058e9803e773d387f0cc7448f",
+    "assertions_unchanged": true
+  },
+  {
+    "path": "tests/edge/lib/direct_chain.ts",
+    "raw_imports_replaced": 1,
+    "assertion_lines_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "assertions_unchanged": true
+  }
+]

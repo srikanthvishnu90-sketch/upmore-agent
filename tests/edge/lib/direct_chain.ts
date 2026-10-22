@@ -25,7 +25,7 @@ import { form1099Reply } from "../../../supabase/functions/agent-chat/_shared/fo
 import { annualCheckupReply } from "../../../supabase/functions/agent-chat/_shared/annual_checkup_answer.ts";
 import { cryptoTaxReply } from "../../../supabase/functions/agent-chat/_shared/crypto_tax_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 export const NOW = new Date("2026-10-12T15:05:00Z"), TODAY = "2026-10-12";
 const ACCOUNTS = [

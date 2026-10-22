@@ -4,7 +4,7 @@
 import { afterErase, historyWindow } from "../../supabase/functions/agent-chat/career_brain.ts";
 import { CareerHost } from "../../supabase/functions/_shared/career_host.js";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment } from "../../supabase/functions/_shared/router_core.career.js";
-import SRC from "../../supabase/functions/agent-chat/handler-career.ts" with { type: "text" };
+const SRC = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler-career.ts", import.meta.url));
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

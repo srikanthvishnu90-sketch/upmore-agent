@@ -1494,6 +1494,18 @@ const CareerPortalApply = (() => {
       logStep("session_binding_invalid", {});
       return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
     }
+    // WO-094 (F-031 on trunk's design): a card-approval doorstep carries
+    // its PENDING certifications — the payload holds their would-send
+    // values (an overlay, never ticked on the page) and binds their text
+    // (attestation_text). The resume rebuilds the payload exactly as
+    // prepareRound did, so the stored hash is reproduced only when the
+    // live page AND the certification text are what the card showed.
+    const pendingAtt = stored.attestations == null ? [] : stored.attestations;
+    if (!Array.isArray(pendingAtt) || pendingAtt.some((a) => !a || typeof a.field_id !== "string" || !a.field_id || typeof a.text !== "string" || a.value === undefined)) {
+      logStep("session_binding_invalid", { cause: "attestations" });
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep's pending certifications are malformed — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    const pendingIds = new Set(pendingAtt.map((a) => a.field_id));
     // target rules (§6.3): the same gates prepare applies before any board use
     const target = classifyTarget(posting.url || "");
     logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
@@ -1528,7 +1540,7 @@ const CareerPortalApply = (() => {
       // its live field set or its live readback must carry the
       // payload's fields. A board carrying NONE of them is a
       // different page, whatever its session id claims.
-      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256" && !(pendingAtt.length && k === "attestation_text"));
       const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
       const observed = board.answers() || {};
       const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
@@ -1542,8 +1554,10 @@ const CareerPortalApply = (() => {
       // the rebuild is the same union prepare hashed at the doorstep.
       session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
       session.preparationPayload = {};
-      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
-      const livePayload = buildPayload(board, session);
+      // a pending certification is never seeded: its value comes only
+      // from the overlay, exactly as prepareRound built it
+      for (const k of payloadIds) if (!pendingIds.has(k)) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = bindAttestations(buildPayload(board, session, overlayOf(pendingAtt)), pendingAtt);
       const liveHash = sha256(JSON.stringify(livePayload));
       if (liveHash !== stored.payloadSha256) {
         const changedFields = [], addedFields = [], removedFields = [];
@@ -1595,9 +1609,13 @@ const CareerPortalApply = (() => {
       }
       session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
         requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      // the certifications stay PENDING on the resumed doorstep:
+      // submitDoorstep ticks them only from the card's yes, bound to
+      // this payload hash and text (WO-094), exactly as on a fresh one
+      if (pendingAtt.length) session.doorstep.attestations = pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value }));
       logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
       return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
-        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+        doorstep: Object.assign({ atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 }, pendingAtt.length ? { attestations: pendingAtt.map((a) => ({ field_id: a.field_id, text: a.text, value: a.value })) } : {}) });
     } catch (e) {
       if (e && SESSION_DEATH_CODES.has(e.code)) {
         logStep("session_not_live", { cause: e.code });

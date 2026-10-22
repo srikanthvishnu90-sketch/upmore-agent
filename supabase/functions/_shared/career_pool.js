@@ -46,6 +46,7 @@
 // batch executor's postingsFor reads through the same loader so the
 // in-turn pool and the worker pool can never disagree about what
 // exists (checklist §8 step 2).
+import { CareerUrlShape } from "./router_core.career.js";
 "use strict";
 
 const CareerPool = (() => {
@@ -136,6 +137,8 @@ const CareerPool = (() => {
     const key = s(row.posting_key).trim();
     const title = s(row.title).trim();
     if (!key || !title) return null;
+    const urlShape = CareerUrlShape.classifyPostingUrl(row.url);
+    if (urlShape.verdict === "not_posting") return null;
     const strip = jobs && typeof jobs.stripHtml === "function" ? jobs.stripHtml : stripHtmlFallback;
     const jdText = strip(row.text_excerpt || "");
     const source = s(row.source).split(/\s+/)[0].toLowerCase() || "career_kb";
@@ -152,6 +155,7 @@ const CareerPool = (() => {
       location: s(row.location || ""),
       remote: remoteOf(row.location, jdText),
       url: s(row.url || ""),
+      ...(urlShape.verdict === "unknown" ? { url_shape: "unclassified" } : {}),
       posted_at: postedAt,
       jd_text: jdText,
       source, sources: [source], source_urls: [s(row.url || "")],

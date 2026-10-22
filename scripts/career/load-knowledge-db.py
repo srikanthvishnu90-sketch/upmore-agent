@@ -575,7 +575,7 @@ def build_skills(file_role, file_multi, lines, splits):
     return rows, failures, methods, notes
 
 # ---------------------------------------------------------------- corpus + boards
-def build_postings():
+def build_postings(url_shape_counts=None):
     stats = json.loads((HR / "corpus/stats.json").read_text(encoding="utf-8"))
     vintage = f"corpus/postings.jsonl fetched {stats.get('fetched')}, total {stats.get('total')}"
     rows, bad = [], 0
@@ -606,7 +606,33 @@ def build_postings():
                 text_excerpt=r.get("text"),
                 extra={k: v for k, v in r.items() if k not in known},
                 corpus_vintage=vintage, _raw=line))
-    return rows, bad, vintage
+    # Share the exact domain classifier with the serving path; no duplicate
+    # URL grammar in Python. Failure happens before run_load reaches any DB I/O.
+    kept = []
+    classifier = Path(__file__).resolve().with_name("classify-posting-urls.cjs")
+    for offset in range(0, len(rows), 500):
+        batch = rows[offset:offset + 500]
+        result = subprocess.run(["node", str(classifier)],
+                                input=json.dumps([r.get("url") for r in batch]),
+                                capture_output=True, text=True, timeout=30)
+        if result.returncode != 0:
+            raise RuntimeError("posting URL classification failed; no rows loaded")
+        shapes = json.loads(result.stdout)
+        if not isinstance(shapes, list) or len(shapes) != len(batch) or any(
+                not isinstance(s, dict) or s.get("verdict") not in
+                ("posting", "not_posting", "unknown") for s in shapes):
+            raise ValueError("invalid posting URL classifier output; no rows loaded")
+        for row, shape in zip(batch, shapes):
+            if url_shape_counts is not None:
+                counts = url_shape_counts.setdefault(row.get("source") or "unknown", {})
+                counts[shape["verdict"]] = counts.get(shape["verdict"], 0) + 1
+            if shape["verdict"] == "not_posting":
+                continue
+            row["extra"].pop("url_shape", None)
+            if shape["verdict"] == "unknown":
+                row["extra"]["url_shape"] = "unclassified"
+            kept.append(row)
+    return kept, bad, vintage
 
 def build_boards():
     doc = json.loads((REPO / "packages/career-data/board-directory.json").read_text(encoding="utf-8"))
@@ -764,7 +790,8 @@ def apply_rows(table, rows, failures):
     for r in rows:
         fields = [c for c in spec["cols"] if c != "content_hash"]
         if table == "career_kb_postings":
-            r["content_hash"] = sha(r["_raw"])
+            # Derived shape metadata must participate in the idempotency hash.
+            r["content_hash"] = row_hash(r, fields)
         elif table == "career_kb_boards":
             r["content_hash"] = sha(r["_raw"])
         else:
@@ -859,7 +886,8 @@ def run_load(stage):
     skills, sk_fail, sk_methods, sk_notes = build_skills(file_role, file_multi, lines, splits)
     failures += [(f"roles:{n}", r) for n, r in audit["failures"]]
     failures += [(f"skills:{n}", r) for n, r in sk_fail]
-    postings, bad_lines, corpus_vintage = build_postings()
+    url_shape_counts = {}
+    postings, bad_lines, corpus_vintage = build_postings(url_shape_counts=url_shape_counts)
     boards, boards_gen = build_boards()
 
     apply_migration()
@@ -888,6 +916,7 @@ def run_load(stage):
     rep.append(f"- MT3 resume-skills: {len([p for p in RS.glob('*.md') if p.name not in ('INDEX.md','00-worker-brief.md')])} role files; skills rows built: {len(skills)}; pairing methods: {sk_methods}")
     rep.append(f"  INDEX claim: {index_claim(RS / 'INDEX.md', r'Files complete: [0-9]+')}")
     rep.append(f"- Corpus: {len(postings)} postings parsed ({bad_lines} unparsable lines); vintage: {corpus_vintage}")
+    rep.append(f"- Posting URL shapes by source (known non-postings excluded): {json.dumps(url_shape_counts, sort_keys=True)}")
     rep.append(f"- Boards: {len(boards)} directory rows ({sum(1 for b in boards if b['status'] == 'live')} live); directory generated_at: {boards_gen}")
     rep.append("\n## File-to-role matching audit (MT1)")
     rep.append(f"- exact title matches: {len(audit['exact'])} · token-signature: {len(audit['sig'])} · fuzzy: {len(audit['fuzzy'])} · body-SOC: {len(audit['body_soc'])} · soc-filename: {len(audit['soc_filename'])} · splits: {len(audit['splits'])} · shared-coverage lines: {len(audit['shared'])} · duplicate-file SOCs: {len(audit['duplicates'])}")
@@ -927,7 +956,7 @@ def run_load(stage):
     (REPORT_DIR / "reconciliation-latest.md").write_text(report, encoding="utf-8")
     summary = dict(stage=stage, ts=ts.isoformat(), report=name, stats={
         t: {k: v for k, v in s.items() if k != "orphans"} for t, s in stats.items()},
-        failures=failures)
+        failures=failures, url_shape_counts=url_shape_counts)
     (REPORT_DIR / f"summary-{stage}.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     return report, summary
 

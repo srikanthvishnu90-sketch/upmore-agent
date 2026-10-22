@@ -28736,7 +28736,7 @@ const CareerApply = (() => {
       const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
       if (seen.has(key)) continue; seen.add(key);
       const fit = i.fit != null ? i.fit : null;
-      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null, url: i.url || null });
     }
     const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };
@@ -31694,7 +31694,7 @@ const CareerReply = (() => {
     if (sentenceCount(t) > MAX_SENTENCES_PER_BUBBLE) violations.push(`more than ${MAX_SENTENCES_PER_BUBBLE} sentences`);
     if (t.includes("```")) violations.push("code fence");
     if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
-    if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (UUID_RE.test(t.replace(/https?:\/\/\S+/g, " "))) violations.push("raw UUID"); // MUSE-F-001: a link's own id is not a raw UUID
     if (HASH_RE.test(t.replace(/https?:\/\/\S+/g, " ")) || HASH_WORD_RE.test(t)) violations.push("raw content hash");
     if (FACT_ID_RE.test(t)) violations.push("fact ID");
     if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
@@ -31788,7 +31788,6 @@ const CareerReply = (() => {
     s = s.replace(/https?:\/\/\S+/g, (u) => { urls.push(u); return `\u0001${urls.length - 1}\u0001`; });
     s = s.replace(HASH_WORD_RE, " ");
     s = s.replace(HASH_RE, " ");
-    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     // Bare https links SURVIVE: an action link (the connect tap, a step's
     // destination) is the step itself, and the owner's standing rule is
     // that every step carries its exact raw URL (SC-286 contract). Only
@@ -31807,6 +31806,9 @@ const CareerReply = (() => {
     s = s.replace(/\(\s*\)/g, " ");
     s = s.replace(/\s{2,}/g, " ").trim();
     s = s.replace(/^[\s\-•·]+/, "").trim();
+    // MUSE-F-001: the links go back only now, after every machine-token rule: a job link's own path carries a UUID
+    // (Lever, Ashby) or an id, and stripping it from the link broke the link the person was given.
+    s = s.replace(/\u0001(\d+)\u0001/g, (m, i) => urls[Number(i)] || m);
     return s;
   }
 
@@ -31815,7 +31817,7 @@ const CareerReply = (() => {
   function sentenceIsClean(cleaned) {
     if (!cleaned || cleaned.length < 3) return false;
     if (!/[a-zA-Z]/.test(cleaned)) return false;
-    const low = cleaned.toLowerCase();
+    const low = cleaned.replace(/https?:\/\/\S+/g, " ").toLowerCase(); // MUSE-F-001: a link's path is not jargon
     for (const w of JARGON_WORDS) if (new RegExp(`\\b${w}\\b`).test(low)) return false;
     // A bare URL is an opaque token, not prose: its underscores/slashes
     // must not trip the snake_case rule (SC-286's connect link carries one).
@@ -36429,7 +36431,7 @@ const CareerRouter = (() => {
     let kept = scored;
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
-      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
+      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
       item.caveat = caveatFor(item, profile);
       return item;
@@ -36457,10 +36459,18 @@ const CareerRouter = (() => {
     const c = Reply.composeResult(result);
     return ensureNextStepText(c.bubbles.join("\n"));
   }
+  // MUSE-F-001: a role is named with the posting's own link, so the person can open it. Only a link the posting itself
+  // carries (its url or its source url), and only http(s); a role with none is named without one, never given an invented one.
+  function postingUrlOf(p) {
+    const c = [p && p.url, ...((p && Array.isArray(p.source_urls)) ? p.source_urls : [])].map(s).find((u) => /^https?:\/\/\S+$/i.test(u));
+    return c || null;
+  }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
-    return `${item.title} at ${item.company} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    const url = item.url || postingUrlOf(item.posting);
+    // The link rides inside the role's own sentence: the composer keeps one sentence per role.
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -36508,8 +36518,8 @@ const CareerRouter = (() => {
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
     const publicFacts = {
-      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
-      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
+      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
+      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {
@@ -52919,7 +52929,8 @@ const CareerBatchApply = (() => {
     if (!run.apps[key]) {
       run.apps[key] = {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
-        url: posting.url || null, stage: "selected", stop: null, payloadSha256: null,
+        // MUSE-F-001: the posting's own link (its url, else its first http(s) source url), never an invented one.
+        url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
       };
     }
@@ -53097,7 +53108,7 @@ const CareerBatchApply = (() => {
     // stops and defers are reported beside it, never hidden inside it.
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
     if (Apply && Apply.batchCard && doorstepApps.length) {
-      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, url: a.url, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
       // WO-094: the card shows each application's certification text — the
       // words the yes signs, for that application only (inside its hash).
       run.card.certifications = [];
@@ -53342,6 +53353,22 @@ const CareerBatchApply = (() => {
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
+    // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
+    const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
+    if (selApps.length) {
+      lines.push(`The ${selApps.length} selected:`);
+      for (const a of selApps) {
+        const stage = a.stage === "doorstep" ? "ready at the final review screen"
+          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
+          : a.stage === "stopped" ? "stopped (named below)"
+          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "selected" ? "selected, not prepared yet"
+          : a.stage;
+        lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
+      }
+    }
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
       lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
       // WO-094: the certification each form asks for is signed by this yes,

@@ -132,7 +132,8 @@ const CareerBatchApply = (() => {
     if (!run.apps[key]) {
       run.apps[key] = {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
-        url: posting.url || null, stage: "selected", stop: null, payloadSha256: null,
+        // MUSE-F-001: the posting's own link (its url, else its first http(s) source url), never an invented one.
+        url: posting.url || (Array.isArray(posting.source_urls) ? posting.source_urls.find((u) => /^https?:\/\/\S+$/i.test(String(u || ""))) : null) || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
       };
     }
@@ -310,7 +311,7 @@ const CareerBatchApply = (() => {
     // stops and defers are reported beside it, never hidden inside it.
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
     if (Apply && Apply.batchCard && doorstepApps.length) {
-      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, url: a.url, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
       // WO-094: the card shows each application's certification text — the
       // words the yes signs, for that application only (inside its hash).
       run.card.certifications = [];
@@ -555,6 +556,22 @@ const CareerBatchApply = (() => {
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    // MUSE-F-001 (ported from the loop-writer package, muse/2026-10-20-loop-writer): the selection by name — company,
+    // role, the posting's own link and where each one stands — from the run's own application records, never re-derived.
+    const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
+    if (selApps.length) {
+      lines.push(`The ${selApps.length} selected:`);
+      for (const a of selApps) {
+        const stage = a.stage === "doorstep" ? "ready at the final review screen"
+          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
+          : a.stage === "stopped" ? "stopped (named below)"
+          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage === "selected" ? "selected, not prepared yet"
+          : a.stage;
+        lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
+      }
+    }
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
       lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
       // WO-094: the certification each form asks for is signed by this yes,

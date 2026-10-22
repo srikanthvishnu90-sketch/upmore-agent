@@ -16,6 +16,7 @@
 // Trainee never probes a mailbox over SMTP itself (RCPT TO): it is abusive to the receiving server and gets the sender's
 // IPs blocked. Hunter runs its own checks on its own servers; that is the one mailbox-level signal, and it is labeled.
 import { CareerProfile } from "./router_core.career.js";
+import type { PersonSource } from "./career_people_sources.ts";
 
 export const MAX_CONTACTS = 3000; // what the per-thread state keeps (the snapshot is at most 1 MB)
 export const NO_SMTP_PROBE = "Trainee never probes a mailbox over SMTP itself: it is abusive to mail servers and gets IPs blocked. Only Hunter's own check, where it ran, speaks to the mailbox.";
@@ -32,6 +33,7 @@ export interface ContactRow {
   title: string; school: string; connected_on: string | null;
   check?: Checks; verified?: boolean;
   vendor?: string; vendor_email_status?: string; // the list vendor's own claim (Apollo's "Email Status"), never a check
+  source?: PersonSource | null; // #20: what shows this person is real at this firm in this role (career_people_sources.ts)
 }
 export type SourceResult =
   | { status: "ok"; source: string; kind: "own_export" | "vendor"; vendor: string | null; rows: ContactRow[]; duplicates: number; skipped: { row: number; why: string }[]; cost_usd: number }
@@ -368,11 +370,15 @@ export function listReport(rows: ContactRow[], cost_usd: number | null = 0): Lis
 // A file the person attached: imported and given the free pass by code before the model runs (a 2,000-row export never
 // goes through the model). Rows from the same file replace that file's earlier rows; the state keeps at most MAX_CONTACTS.
 // Hunter runs later, on the person's word (verify_contacts), because it spends credits and takes time.
-export async function importContactsFile(state: Record<string, unknown>, file: { name: string; text: string | null }, mx: MxResolver): Promise<{ ok: boolean; note: string; report?: ListReport }> {
+// #20: a row of the person's own file is sourced by that file and row, read now (no URL is kept: never a profile URL). A
+// vendor's row is not: it waits until a page shows the person at that firm (career_people_sources.ts).
+export async function importContactsFile(state: Record<string, unknown>, file: { name: string; text: string | null }, mx: MxResolver, now = Date.now()): Promise<{ ok: boolean; note: string; report?: ListReport }> {
   if (file.text === null) return { ok: false, note: `${file.name}: this file type can't be read yet` };
   const src = await csvSource(file.name, file.text).fetch();
   if (src.status !== "ok" || !src.rows.length) return { ok: false, note: `${file.name}: no contacts found (it needs a header row with a name column and a company or email column)` };
-  const checked = await verifyRows(src.rows, mx);
+  const read = new Date(now).toISOString();
+  const checked = (await verifyRows(src.rows, mx)).map((r) => src.vendor ? r
+    : { ...r, source: { kind: "own_export" as const, url: null, ref: `${r.file}, row ${r.row}`, retrieved_at: read, shows: { name: r.name, firm: r.firm, title: r.title } } });
   const kept = contactsOf(state).filter((r) => r.file !== file.name);
   state.contacts = [...kept, ...checked].slice(-MAX_CONTACTS);
   const report = listReport(checked, src.vendor ? null : 0);

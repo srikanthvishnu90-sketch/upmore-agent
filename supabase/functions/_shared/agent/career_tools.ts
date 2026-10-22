@@ -19,7 +19,8 @@ import { extractInvite, INTERVIEWER_NOTE, interviewRow, inviteBrief, isInvite, s
 import { sameCompany } from "../career_mail.ts";
 import type { DigestStore, InterviewStore } from "../career_brief_store.ts";
 import { DAY_NAMES, DEFAULT_DIGEST, validDigest } from "../career_digest.ts";
-import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, sameFirm, type Verifier, vendorSource } from "../career_contacts.ts";
+import { contactsOf, hunterPass, knownFirm, LIST_TARGET_USD, listCost, listReport, MX_NOT_WIRED, type MxResolver, sameFirm, type Verifier, vendorSource, verifyRows } from "../career_contacts.ts";
+import { type Extractor, mergeSourced, type NotSourced, notSourcedText, notSourcedWhy, type PageReader, requireSourced, sourcePeopleFromPage } from "../career_people_sources.ts";
 import {
   BATCH_MAX, batchMessages, batchText, confirmed, draftFor, emailHash, footerOf, MAX_DAILY, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, recordOutreach, SIGNATURE_ASK,
@@ -131,7 +132,8 @@ export interface TailorTools { posting: (jobId: string) => Promise<any | null>; 
 // Recording never fails the tool (recordEvent logs and goes on).
 // `outreach` (WO-033): where drafts, approvals, the do-not-contact list and the person's outreach settings are kept, and
 // the model that writes each draft (the fact-lock checks every one). Absent: the outreach tools say so, never pretend.
-export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null }
+// `pages` (#20): reads one public page the person names and keeps only the people its own words show (NOT_WIRED absent).
+export interface OutreachDeps { store: OutreachStore; model?: ModelFn | null; pages?: { read: PageReader; extract: Extractor | null; mx?: MxResolver } | null }
 // `interviews` and `digest` (WO-034) keep a pasted invite (for its thank-you, nudge and the digest) and the weekly digest's
 // settings; absent, brief_from_invite still briefs (and says it kept nothing) and set_weekly_digest says it is not kept here.
 // `wants` (WO-066): the person's own apply queue, which the Trainee extension takes and prepares in their browser; absent,
@@ -702,7 +704,7 @@ export function careerTools(deps: {
     },
     {
       name: "draft_outreach", effect: "write_own",
-      description: "Draft up to 10 cold emails, one per person, from contacts the person sent (only addresses that passed every check run; never anyone already emailed or on their do-not-contact list). Each uses only their confirmed facts, that person's row and what both share. Code shows the batch in full; nothing is sent until they approve.",
+      description: "Draft up to 10 cold emails, one per person, from contacts the person sent (only people a source shows and addresses that passed every check run; never anyone already emailed or on their do-not-contact list). Each uses only their confirmed facts, that person's row and what both share. Code shows the batch in full; nothing is sent until they approve.",
       input_schema: obj({ firm: str("Only people at this firm, if they said one"), title: str("Only people whose title has these words, e.g. 'analyst'"), count: { type: "number", description: `How many, at most ${BATCH_MAX}` } }),
       run: async (i, c) => {
         const o = outreachOf();
@@ -717,7 +719,7 @@ export function careerTools(deps: {
         const held = { no_email: 0, not_verified: 0, already_contacted: 0, do_not_contact: 0 };
         const words = String(i.title ?? "").toLowerCase().split(/\s+/).filter(Boolean);
         const want = Math.max(1, Math.min(BATCH_MAX, Math.floor(Number(i.count) || BATCH_MAX)));
-        const pick: typeof rows = [];
+        const pick: typeof rows = [], notSourced: NotSourced[] = [];
         for (const r of rows) {
           if (pick.length >= want) break;
           if (i.firm && !sameFirm(r.firm, String(i.firm))) continue;
@@ -726,10 +728,17 @@ export function careerTools(deps: {
           if (!r.verified) { held.not_verified++; continue; }
           if (contacted.has(r.email.toLowerCase())) { held.already_contacted++; continue; }
           if (dnc.has(await emailHash(r.email))) { held.do_not_contact++; continue; }
+          // #20: only people a source shows, at this firm, in this role; never anyone made up or only a vendor's claim.
+          const why = notSourcedWhy(r);
+          if (why) { notSourced.push({ name: r.name, firm: r.firm, why }); continue; }
           pick.push(r);
         }
-        if (!pick.length) return { drafted: 0, held_out: held, note: "No one on their list fits; say why from held_out." };
-        const recipientOf = (r: typeof rows[number]) => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}` });
+        const unsourced = notSourcedText(notSourced);
+        if (!pick.length) return { drafted: 0, held_out: held, not_sourced: notSourced, ...(unsourced ? { not_sourced_text: unsourced } : {}), note: "No one on their list fits; say why from held_out and not_sourced_text." };
+        const recipientOf = (r: typeof rows[number]) => ({
+          name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: r.source?.kind === "public_page" ? r.source.ref : `${r.file}, row ${r.row}`,
+          source_kind: r.source!.kind, source_url: r.source!.url, retrieved_at: r.source!.retrieved_at,
+        });
         const results: Awaited<ReturnType<typeof draftFor>>[] = [];
         for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r) }))));
         const footer = footerOf(prefs.signature), ok: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[] = [], notDrafted: { name: string; why: string }[] = [];
@@ -740,14 +749,37 @@ export function careerTools(deps: {
           draft.hash = await payloadHash(messageOf(draft));
           ok.push(draft);
         }
-        if (!ok.length) return { drafted: 0, not_drafted: notDrafted, held_out: held };
+        if (!ok.length) return { drafted: 0, not_drafted: notDrafted, held_out: held, not_sourced: notSourced, ...(unsourced ? { not_sourced_text: unsourced } : {}) };
         const saved = await o.store.saveBatch(c.userId, c.threadId, ok, c.now);
         for (const d of saved) await recordOutreach(deps.events, c.userId, "outreach_drafted", d, c.now);
         const left = notDrafted.length ? `\n\nNot drafted, because I couldn't write to them without making something up: ${notDrafted.map((x) => x.name).join(", ")}.` : "";
         const parts = batchMessages(saved);
         if (left) parts.push(left.trim());
-        if (c.turn) c.turn.show = { intent: OUTREACH_INTENT, text: batchText(saved) + left, parts };
-        return { drafted: saved.length, not_drafted: notDrafted, held_out: held, shown: "Code shows the batch to the person in full; do not repeat or change it." };
+        if (unsourced) parts.push(unsourced);
+        if (c.turn) c.turn.show = { intent: OUTREACH_INTENT, text: batchText(saved) + left + (unsourced ? `\n\n${unsourced}` : ""), parts };
+        return { drafted: saved.length, not_drafted: notDrafted, held_out: held, not_sourced: notSourced, shown: "Code shows the batch to the person in full; do not repeat or change it." };
+      },
+    },
+    {
+      name: "source_people_from_page", effect: "write_own",
+      description: "Find real people on one public page the person gave in this message (a firm's team page, a school's alumni page): code reads it once and keeps only people its text shows with that title at that firm, with the link and date. Never LinkedIn or Indeed. Nothing is sent. Relay who was kept and the not_sourced_text.",
+      input_schema: obj({ url: str("The link exactly as the person gave it in this message"), firm: str("Only people at this firm, if they said one") }, ["url"]),
+      run: async (i, c) => {
+        const link = String(i.url ?? "").trim();
+        if (!c.turn || !link || !c.turn.message.includes(link)) throw new Error("not read: the link must be one the person gave in this message; ask them for the page");
+        const pages = deps.outreach?.pages;
+        if (!pages) return { status: "NOT_WIRED", note: "Reading people from a page isn't switched on here. Say so; they can send their own connections export instead." };
+        const r = await sourcePeopleFromPage({ link, read: pages.read, extract: pages.extract, firm: i.firm ? String(i.firm) : null });
+        if (r.status !== "ok") return { status: r.status, kept: 0, note: `Not read: ${r.why}. Nothing was added and nothing was sent.` };
+        const host = new URL(r.url).hostname;
+        const merged = mergeSourced(contactsOf(c.state), r.kept, `page ${host}`);
+        const added = new Map((await verifyRows(merged.added, pages.mx ?? MX_NOT_WIRED)).map((x) => [`${x.file}#${x.row}`, x]));
+        c.state.contacts = merged.rows.map((x) => added.get(`${x.file}#${x.row}`) ?? x);
+        const unsourced = notSourcedText(r.not_sourced);
+        return {
+          status: "ok", read: r.url, read_at: r.retrieved_at, kept: r.kept.map((k) => ({ name: k.name, title: k.title, firm: k.firm, email: k.email ? "printed on the page" : "none on the page" })),
+          corroborated: merged.corroborated, added: merged.added.length, not_sourced: r.not_sourced, ...(unsourced ? { not_sourced_text: unsourced } : {}), sent: 0,
+        };
       },
     },
     {
@@ -788,9 +820,11 @@ export function careerTools(deps: {
         const stated = (Array.isArray(sf?.facts) ? sf.facts : Array.isArray(sf) ? sf : []).filter((f: any) => f?.kind === "target_firm").map((f: any) => String(f.value ?? ""));
         const saved = deps.alerts ? await deps.alerts.get(c.userId).catch(() => null) : null;
         const targets = targetFirms([said, stated, (saved?.prefs?.keywords ?? []).map(knownFirm).filter((f): f is string => !!f)]);
-        const rows = [...contactsOf(c.state), ...legacyRows(profileOf(c).connections)];
-        if (!targets.length) return { firms: [], ask: "Which firms are you targeting? Name up to 20.", ...(rows.length ? {} : { export_ask: REFERRAL_ASK }) };
-        return referralMap({ targets, rows, facts: profileOf(c).facts || [] });
+        // #20: a path only through someone a source shows (their own file, or a page read); never a vendor's claim alone.
+        const { kept: rows, not_sourced } = requireSourced([...contactsOf(c.state), ...legacyRows(profileOf(c).connections)]);
+        const unsourced = notSourcedText(not_sourced);
+        if (!targets.length) return { firms: [], ask: "Which firms are you targeting? Name up to 20.", ...(rows.length ? {} : { export_ask: REFERRAL_ASK }), ...(unsourced ? { not_sourced_text: unsourced } : {}) };
+        return { ...referralMap({ targets, rows, facts: profileOf(c).facts || [] }), ...(unsourced ? { not_sourced_text: unsourced } : {}) };
       },
     },
     {

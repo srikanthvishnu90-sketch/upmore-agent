@@ -58,6 +58,7 @@ import { CAREER_SEND_SCOPE, careerTokenFor, sendMail } from "../_shared/career_m
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { draftFor, outreachTurn, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.ts";
+import { httpPageReader, modelExtractor } from "../_shared/career_people_sources.ts";
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
@@ -455,7 +456,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           mail: supabaseMailStore(admin), interviews: supabaseInterviewStore(admin), digest: supabaseDigestStore(admin),
           events, tz, summary, hired: hiredSourceFromEnv(Deno.env, admin),
           // WO-033: drafts from the person's lists (the model writes, the fact-lock checks), and Hunter when its key is set.
-          outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }) },
+          // #20: people from one public page the person names, kept only where the page's own words show them; off unless
+          // CAREER_SOURCE_PAGES=on (the owner's switch). Never LinkedIn or Indeed; reading a page sends nothing to anyone.
+          outreach: { store: outreachStore, model: (payload) => callModel(cfg, payload, { meter, role: "chat" }),
+            pages: Deno.env.get("CAREER_SOURCE_PAGES") === "on" ? { read: httpPageReader({ fetch, now: Date.now }), extract: modelExtractor((payload) => callModel(cfg, payload, { meter, role: "chat" })) } : null },
           verifier: hunterVerifier({ fetch, apiKey: Deno.env.get("HUNTER_API_KEY"), cache: supabaseCheckCache(admin), now: Date.now }),
           tailor: { posting: (id) => postingsDb.get(id), personas: supabasePersonaStore(admin), resumes: supabaseResumeStore(admin), render: edgeRenderer() },
           // WO-066: "apply me to these" puts the postings in the person's own queue; the extension prepares each, and each

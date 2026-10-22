@@ -22,7 +22,22 @@ import { factLock } from "./essay_draft.ts";
 import { CareerProfile } from "./router_core.career.js";
 
 export type ModelFn = (payload: any) => Promise<any>;
-export interface Recipient { name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[] }
+export interface Recipient {
+  name: string; firm: string; title: string; school: string; email: string; source: string; prior_firms?: string[];
+  // #20: what shows they are real, at that firm, in that role (career_people_sources.ts): the person's own file (source
+  // is its "file, row N") or a public page Trainee read (source_url). Never approved or sent without one.
+  source_kind?: "own_export" | "public_page"; source_url?: string | null; retrieved_at?: string;
+}
+// A recipient with a source on record and the time it was read.
+export function recipientSourced(r: Partial<Recipient> | null | undefined): boolean {
+  if (!r || !Number.isFinite(Date.parse(String(r.retrieved_at ?? "")))) return false;
+  if (r.source_kind === "own_export") return !!String(r.source ?? "").trim() && !r.source_url;
+  return r.source_kind === "public_page" && /^https:\/\/[^\s]+$/.test(String(r.source_url ?? ""));
+}
+const sourceOfRecipient = (r: Recipient) => {
+  const read = r.retrieved_at ? ` (read ${String(r.retrieved_at).slice(0, 10)})` : "";
+  return r.source_kind === "public_page" ? `Source: ${r.source_url}${read}` : `From your list: ${r.source}${read}`;
+};
 export type Status = "shown" | "approved" | "skipped" | "sending" | "sent" | "failed" | "bounced" | "replied";
 export interface OutreachDraft {
   id: string; batch_id: string; thread_id: string | null; n: number;
@@ -267,7 +282,7 @@ const who = (r: Recipient) => [r.name, r.title, r.firm].filter(Boolean).join(", 
 export function draftText(d: OutreachDraft): string {
   const common = (d.shared ?? []).length ? `In common: ${(d.shared ?? []).map((s) => `${s.value} (your ${s.fact || "fact"}; their ${s.field.replace("_", " ")})`).join("; ")}\n` : "";
   const m = messageOf(d);
-  return `${d.n}. To: ${who(d.recipient)} <${m.to}>\nFrom your list: ${d.recipient.source}\n${common}Subject: ${m.subject}\n\n${m.text}`;
+  return `${d.n}. To: ${who(d.recipient)} <${m.to}>\n${sourceOfRecipient(d.recipient)}\n${common}Subject: ${m.subject}\n\n${m.text}`;
 }
 export const BATCH_FOOT = `Reply "send all", "send 1-7,9" for some, "redo 3" for a new version, "skip 4" to drop one, "edit 3: your words" to change one, or "send none".`;
 // The batch, split on purpose into messages of at most 1,500 characters; a draft is never cut across two.
@@ -442,6 +457,7 @@ export async function outreachTurn(o: {
   for (const n of want) {
     const d = byN.get(n)!;
     if (d.status !== "shown") { not.push(`${n} (${d.status})`); continue; }
+    if (!recipientSourced(d.recipient)) { not.push(`${n} (no source on record shows ${d.recipient.name || "them"})`); continue; }
     const h = await payloadHash(messageOf(d));
     if (h !== d.hash) { not.push(`${n} (changed since it was shown)`); continue; }
     if (await o.store.update(o.userId, { ...d, status: "approved", approved_hash: h, approved_at: new Date(o.now).toISOString() }, { status: "shown", hash: h })) {
@@ -496,6 +512,12 @@ export async function runOutreachSends(o: SendRun) {
 async function sendOne(o: SendRun, stats: SendStats, user_id: string, draft: OutreachDraft): Promise<boolean> {
   const m = messageOf(draft);
   if (!/^[^\s@,;<>]+@[^\s@,;<>]+$/.test(m.to)) { stats.refused.bad_address = (stats.refused.bad_address ?? 0) + 1; return true; }
+  // #20: nobody is written to without a source on record (a draft made before sources were kept, or by any other path).
+  if (!recipientSourced(draft.recipient)) {
+    stats.refused.not_sourced = (stats.refused.not_sourced ?? 0) + 1;
+    await o.store.update(user_id, { ...draft, status: "skipped", approved_hash: null, approved_at: null, result: "not_sourced" }, { status: "approved" });
+    return true;
+  }
   const hash = await payloadHash(m);
   const tz = o.tz ? await o.tz(user_id).catch(() => undefined) : undefined;
   const admit = await o.store.claim(user_id, draft, hash, o.now, dayStartOf(o.now, tz));

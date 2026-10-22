@@ -73,7 +73,8 @@ Deno.test("WO-091c/C1b the chat wires apply-by-email's send to CAREER_EMAIL_SEND
 
 // ------------------------------------------------------------------------------------------------ C2 outreach approvals
 async function approvedDraft(store: ReturnType<typeof memoryOutreachStore>, u: string, i: number, at: number) {
-  const d: any = { n: 1, recipient: { name: `R${i}`, firm: "Acme", title: "VP", school: "", email: `r${i}@acme.example`, source: "list" },
+  const d: any = { n: 1, recipient: { name: `R${i}`, firm: "Acme", title: "VP", school: "", email: `r${i}@acme.example`, source: "list.csv, row 1",
+    source_kind: "own_export", retrieved_at: iso(at) }, // #20: a recipient carries its source; none is sent without one
     subject: "Hello", body: "Hi there.", footer: footerOf("Sam"), hash: "", status: "shown", approved_hash: null, approved_at: null, sent_at: null,
     gmail_id: null, gmail_thread: null, result: null, created_at: iso(at) };
   d.hash = await payloadHash(messageOf(d));

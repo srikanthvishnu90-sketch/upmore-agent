@@ -8,6 +8,7 @@
 // Each finder returns what it found (for the one rewrite the loop asks for) and a fixer applies code's last resort.
 import { DEGREES, factLock, factText, norm, SCALE, TITLES, TOOLS } from "../essay_draft.ts";
 import { personalSourceDenied as sourceDenied, personalSourceGuard } from "../personal_fact_source.ts";
+import { knownFirm } from "../career_contacts.ts";
 
 // ------------------------------------------------------------------------------------------------ sentences
 // A reply as sentence pieces with the whitespace after each, so a piece can be dropped or changed and the rest of the
@@ -331,3 +332,54 @@ export function waiverSolicits(reply: string, refuse: (text: string) => string |
 const SAVE_WORDS = /\b(?:sav(?:e|ed|ing)|keep(?:s|ing)?|kept|remember(?:ed|ing)?|stor(?:e|ed|ing)|record(?:ed|ing)?|note (?:it|that|this) down)\b/i;
 const CONFIRM_AFTER_REFUSAL = /^(?:(?:is|does|would|will|are|was)\s+(?:that|this|it|everything|all of that)\b[^?]{0,50}|(?:sounds?|ok|okay|good|alright|all right|fair|agreed|deal)\b[^?]{0,20}|.{0,30}\bwhat you(?:'d| would)? (?:like|want)\b[^?]{0,20})\?$/i;
 
+
+// ------------------------------------------------------------------------------------------------ people
+// #20 (owner, 2026-10-22): Trainee never makes a person up. A reply that names someone as a contact ("reach out to Sarah
+// Chen", "Sarah Chen, an analyst at Evercore", "Sarah Chen is a VP at Evercore") must name someone a source shows: the
+// person's own lists or messages, or this turn's tool results (a page read, an invite, a posting). Anyone else is unsourced.
+// Firms, teams and offices ("Jane Street", "Goldman Sachs campus recruiting") are not people. Returns piece indices.
+// A name is two or three capitalized words (a middle initial allowed), not followed by another capitalized word or "'s".
+const NAME = "([A-Z][a-z](?:[A-Za-z'’-]*[A-Za-z])?(?:\\s+[A-Z]\\.)?(?:\\s+[A-Z][a-z](?:[A-Za-z'’-]*[A-Za-z])?){1,2})(?![A-Za-z'’-])(?![ \\t]+[A-Z][a-z])";
+// Either case for a word's first letter (a cue may open a sentence); names stay case-sensitive.
+const cap = (alts: string) => alts.split("|").map((w) => /^[a-z]/.test(w) ? `[${w[0].toUpperCase()}${w[0]}]${w.slice(1)}` : w).join("|");
+const ROLE = `(?:${cap("analyst|associate|vice president|managing director|director|partner|principal|recruiter|manager|engineer|head|founder|president|banker|trader|consultant|lead|officer|intern|alumnus|alumna|alum|VP|MD|CEO|CFO|CTO|COO")})`;
+const VERB = `(?:${cap("reach out to|reaching out to|email|emailing|e-mail|contact|contacting|message|messaging|ping|connect with|connecting with|talk to|talking to|speak with|speak to|speaking with|write to|writing to|introduce yourself to|network with|networking with|get in touch with|follow up with|following up with|coffee chat with|ask")})`;
+const PERSON_CUES = [
+  new RegExp(`\\b${VERB}\\s+${NAME}`, "g"),
+  new RegExp(`${NAME}\\s*(?:,|\\(|\\u2014|\\u2013| -)\\s*(?:[Aa]n?\\s+|[Tt]he\\s+|[Oo]ur\\s+)?(?:[A-Za-z&]+\\s+){0,4}?${ROLE}\\b[^.!?\\n]{0,40}?\\b(?:at|with|from)\\s+[A-Z]`, "g"),
+  new RegExp(`${NAME}\\s+(?:is|was|works as|who is|who works as)\\s+(?:an?|the)\\s+(?:[A-Za-z&]+\\s+){0,4}?${ROLE}\\b[^.!?\\n]{0,40}?\\b(?:at|with)\\s+[A-Z]`, "g"),
+];
+const NOT_A_PERSON = new Set(("street capital partners group bank banking securities advisors advisory associates management ventures fund funds global " +
+  "technologies technology labs university college school recruiting recruitment talent team teams department institute club society alumni network " +
+  "program office desk division markets equity private wealth asset research sales trading corporate finance coverage industry healthcare media " +
+  "real estate energy consumer retail industrials restructuring leveraged operations compliance legal product software data science engineering " +
+  "marketing strategy business development human resources hiring career careers services center centre campus linkedin handshake indeed glassdoor " +
+  "investment investments analyst associate director president vice managing partner recruiter manager engineer intern internship " +
+  "monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december " +
+  "new york san francisco los angeles boston chicago london hong kong").split(" "));
+export function unsourcedPeople(reply: string, sources: string[]): { index: number; name: string }[] {
+  const known = ` ${sources.join(" \n ").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ")} `;
+  const sourced = (n: string) => known.includes(` ${n.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim()} `);
+  const out: { index: number; name: string }[] = [];
+  pieces(reply).forEach((p, index) => {
+    const text = p.text.replace(URL_RE, " ");
+    for (const rx of PERSON_CUES) {
+      for (const m of text.matchAll(new RegExp(rx.source, rx.flags))) {
+        const name = m[1].replace(/\s+/g, " ").trim();
+        const toks = name.toLowerCase().replace(/[’']/g, "").split(/[\s.-]+/).filter(Boolean);
+        if (!/^[A-Z]/.test(name) || toks.some((t) => NOT_A_PERSON.has(t)) || knownFirm(name)) continue;
+        if (sourced(name) || out.some((o) => o.index === index && o.name === name)) continue;
+        out.push({ index, name });
+      }
+    }
+  });
+  return out;
+}
+export const notSourcedPeopleLine = (names: string[]) =>
+  `I left out ${[...new Set(names)].join(", ")}: I couldn't source them, and I only name people a source shows (your own lists, a page you send me, or what a tool found).`;
+// What a reply may name a person from, beyond the turn's sources: the names on the person's own lists and profile.
+export function peopleOnRecord(state: Record<string, unknown>): string[] {
+  const p: any = (state as any)?.profile ?? {};
+  const rows = [...(Array.isArray((state as any)?.contacts) ? (state as any).contacts : []), ...(Array.isArray(p.connections) ? p.connections : [])];
+  return [p.name, p.full_name, ...rows.map((r: any) => r?.name ?? r?.full_name)].filter((x) => typeof x === "string" && x.trim());
+}

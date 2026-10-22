@@ -51,7 +51,9 @@ function scripted(mode: "honest" | "invent" | "invent_once" = "honest") {
   return Object.assign(fn, { calls: () => calls });
 }
 const recipient = (o: Partial<{ name: string; firm: string; title: string; school: string; email: string }> = {}) =>
-  ({ name: "Avery Synthetic", firm: "Goldman Sachs", title: "Investment Banking Analyst", school: "", email: "avery.synthetic@gs.example", source: "apollo-export.csv, row 1", ...o });
+  ({ name: "Avery Synthetic", firm: "Goldman Sachs", title: "Investment Banking Analyst", school: "", email: "avery.synthetic@gs.example", source: "Connections.csv, row 1",
+    // #20: a recipient carries its source (here the person's own export, read on Oct 14); none is approved or sent without one.
+    source_kind: "own_export" as const, retrieved_at: "2026-10-14T12:00:00.000Z", ...o });
 // A batch of n approved-ready drafts in the store, for the turn and the caps.
 async function batchOf(store: ReturnType<typeof memoryOutreachStore>, n: number, at = OCT14, firm = "Goldman Sachs") {
   const ds = [];
@@ -382,8 +384,14 @@ Deno.test("WO-033/E1 'which bankers did I email in October?' end to end: import,
   const state: Record<string, any> = { profile: { facts: FACTS, connections: [] } };
   const imported = await importContactsFile(state, { name: "apollo-export.csv", text: APOLLO }, MX_OK);
   assert(imported.ok && /imported 4 contacts/.test(imported.note), imported.note);
-  const tools = byName(careerTools({ postings: async () => [], events, outreach: { store, model }, tz: "America/New_York" }));
+  // #20: Apollo's rows are only the vendor's claim until a page shows them; the person sends one that does (synthetic).
+  const page = "https://www.dealnews.example/2026/10/ib-class";
+  const read = async (link: string) => ({ status: "ok" as const, url: link, retrieved_at: new Date(OCT14).toISOString(),
+    text: "Avery Synthetic, Investment Banking Analyst, Goldman Sachs. Blake Fixture, Investment Banking Associate, J.P. Morgan." });
+  const extract = async () => [{ name: "Avery Synthetic", title: "Investment Banking Analyst", firm: "Goldman Sachs" }, { name: "Blake Fixture", title: "Investment Banking Associate", firm: "J.P. Morgan" }];
+  const tools = byName(careerTools({ postings: async () => [], events, outreach: { store, model, pages: { read, extract } }, tz: "America/New_York" }));
   const ctx = (message: string, now = OCT14) => ({ userId: U, threadId: TH, now, state, turn: { message, added: [] as string[] } as any });
+  eq((await tools.source_people_from_page.run({ url: page }, ctx(`they're both on ${page}`))).corroborated, 2, "the page shows both at their firms");
   const first = await tools.draft_outreach.run({}, ctx("draft emails to the bankers on my list"));
   eq([first.drafted, first.needs], [0, "signature"], "no signature, no drafts");
   await tools.set_outreach_signature.run({ signature: "Sam Student\nNYU '27" }, ctx("sign them Sam Student\nNYU '27"));

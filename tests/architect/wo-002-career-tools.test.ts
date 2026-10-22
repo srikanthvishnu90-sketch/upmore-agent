@@ -21,7 +21,7 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     "add_profile_fact", "confirm_profile_fact", "correct_profile_fact", "read_resume", "forget_instruction", "get_interview_questions", "get_job_alerts", "get_memory", "get_profile",
     "interview_brief", "list_applications", "recall", "remember_instruction", "save_resume_persona", "score_interview_answer", "search_jobs", "set_job_alerts", "set_resume_contact",
     "stop_job_alerts", "tailor_resume", "track_application", "use_resume_persona", "where_do_i_stand",
-    "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts",
+    "contact_list", "draft_outreach", "record_list_cost", "referral_map", "set_outreach_limit", "set_outreach_signature", "verify_contacts", "source_people_from_page",
     "brief_from_invite", "set_weekly_digest",
     "offer_benchmark", "career_path_answer",
     "queue_applications", "get_posting", "get_situation",
@@ -36,7 +36,7 @@ Deno.test("WO-002/T1 the tool set: names, effects, schemas; no external tool yet
     get_interview_questions: "read", interview_brief: "read", offer_benchmark: "write_own", career_path_answer: "read",
     score_interview_answer: "read",
     tailor_resume: "write_own", set_resume_contact: "write_own", save_resume_persona: "write_own", use_resume_persona: "write_own", where_do_i_stand: "read",
-    contact_list: "read", verify_contacts: "write_own", record_list_cost: "write_own", draft_outreach: "write_own",
+    contact_list: "read", verify_contacts: "write_own", record_list_cost: "write_own", draft_outreach: "write_own", source_people_from_page: "write_own",
     set_outreach_signature: "write_own", set_outreach_limit: "write_own", referral_map: "read",
     brief_from_invite: "write_own", set_weekly_digest: "write_own",
   });

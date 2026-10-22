@@ -5,7 +5,7 @@
 //   external   touches the world (send, submit, message); NEVER runs here. It becomes a pending approval the
 //              person approves on its exact payload (WO-005), and the model is told it is waiting.
 // Messages use the Anthropic block shape (text / tool_use / tool_result); _shared/model_gateway.ts converts to OpenAI.
-import { bracketUntraced, factSources, leakedWords, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, untracedFacts, waiverSolicits } from "./reply_guards.ts";
+import { bracketUntraced, factSources, leakedWords, notSourcedPeopleLine, peopleOnRecord, pieces, plainQuotes, postingsOf, rebuild, stripLeaks, unsourcedMoney, unsourcedPeople, untracedFacts, waiverSolicits } from "./reply_guards.ts";
 import { STANDING_REFUSED, standingRefusal } from "./memory.ts";
 export type Effect = "read" | "write_own" | "external";
 // `turn` is this turn's own record, filled by runAgentTurn: the person's message (a confirmation must come from it) and
@@ -290,13 +290,17 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const claims = unbackedClaims(reply, tool_calls), leaks = leakedWords(reply, leak), facts = untracedFacts(reply, sources);
       const money = unsourcedMoney(reply, [typed, ...seen, ...sources]);
       const waiver = waiverSolicits(reply, standingRefusal, o.message);
-      if ((claims.length || leaks.length || facts.length || money.length || waiver.length) && !checked && !repairing && steps < max) {
+      // #20: a person named as a contact must be one a source shows; never someone the model made up.
+      const peopleSources = [typed, o.message, ...seen, ...sources, ...peopleOnRecord(o.ctx.state)];
+      const people = unsourcedPeople(reply, peopleSources);
+      if ((claims.length || leaks.length || facts.length || money.length || waiver.length || people.length) && !checked && !repairing && steps < max) {
         checked = true;
         const told = [
           claims.length ? `Your reply says ${[...new Set(claims.map((c) => c.kind))].join(" and ")}, but no tool that does that succeeded this turn. Either call the tool now, or rewrite the reply without saying it happened.` : "",
           leaks.length ? `Your reply shows internal words the person must never see: ${leaks.join(", ")}. Say it in plain words; name a posting by its title and company.` : "",
           money.length ? `Your reply states pay or money figures that no tool returned this turn and they did not say: ${[...new Set(money.map((m) => m.figure))].join(", ")}. Remove them, and say you don't have verified pay for that unless a posting a tool returned states it.` : "",
           waiver.length ? "Your reply offers them wording to send, offers to save something, or asks them to confirm something, after they asked to waive their yes or grant a standing permission. Never propose that wording, offer to save it or ask them to confirm it: say plainly it can't be kept, because every application and message still needs their yes on its card." : "",
+          people.length ? `Your reply names people no source shows (not on the person's lists, in their messages or in this turn's tool results): ${[...new Set(people.map((p) => p.name))].join(", ")}. Never name a person you can't source: leave them out, and offer to find real people from a page they send or from their own connections export.` : "",
           facts.length ? `Your reply states things about the person that are not in their confirmed facts, their own messages or this turn's tool results: ${facts.map((f) => f.word).join(", ")}. Answer from supported facts, or ask a concrete question for what is missing. Only if they requested a draft or template, mark missing facts with fill-in brackets; a placeholder is not an answer to an informational question.` : "",
         ].filter(Boolean).join(" ");
         // WO-106 (eval run 39535880905: E009 saved this note as the person's standing instruction, E032 and E050 answered
@@ -311,8 +315,11 @@ export async function runAgentTurn(o: { system: string; history: any[]; message:
       const stillMoney = unsourcedMoney(reply, [typed, ...seen, ...sources]);
       // WO-061 (H018): proposed waiver wording that stands after the check is removed by code, with its save offer.
       const stillWaiver = waiverSolicits(reply, standingRefusal, o.message);
-      if (claims.length || stillMoney.length || stillWaiver.length) {
-        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver]));
+      const stillPeople = unsourcedPeople(reply, peopleSources);
+      if (claims.length || stillMoney.length || stillWaiver.length || stillPeople.length) {
+        out = rebuild(pieces(reply), new Set([...claims.map((c) => c.index), ...stillMoney.map((m) => m.index), ...stillWaiver, ...stillPeople.map((p) => p.index)]));
+        // #20: what was left out is said, never silently dropped.
+        if (stillPeople.length) out = [out, notSourcedPeopleLine(stillPeople.map((p) => p.name))].filter((x) => x.trim()).join("\n\n");
         if (!/[A-Za-z0-9]/.test(out) && ((stillWaiver.length && !claims.length) || !ANSWER_REQUEST.test(o.message))) return { reply: stillWaiver.length && !claims.length ? STANDING_REFUSED : CLAIM_UNBACKED_REPLY, steps, tool_calls, pending_approvals, stopped: "final" };
         // WO-061 (H018 p1): after a waiver strip the refusal must still be there; if the person asked to waive their yes
         // and nothing left says it is still needed, code says it first.

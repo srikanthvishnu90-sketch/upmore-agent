@@ -188,7 +188,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_apply_cloud_waiver_sends.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -330,6 +330,22 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024120000_career_apply_cloud_gate_waiver.sql"
 echo "== career_apply_cloud_gate_waiver.test.sql (one person, one family, set sends, set time; every other rule still decides)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_gate_waiver.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# Item 16, option B, held for the owner's call: 20261024140000 counts possible sends, not claims. Applied twice
+# (idempotent), tested, rolled back to 20261024120000's body byte for byte, then applied through the held file.
+WS="$ROOT/supabase/migrations/20261024140000_career_apply_cloud_waiver_counts_sends.sql"
+if [[ -f "$WS" ]]; then
+  WL() { "${PSQL[@]}" -tAc "select md5(prosrc) from pg_proc where proname = 'career_apply_cloud_waiver_left'"; }
+  BEFORE_WS="$(WL)"
+  "${QUIET[@]}" -f "$WS"; "${QUIET[@]}" -f "$WS"
+  echo "== career_apply_cloud_waiver_sends.test.sql (a claim stopped before the effect gives its send back; nothing else does)"
+  "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_waiver_sends.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+  "${QUIET[@]}" -f "$ROOT/docs/apply/held-waiver-sends/rollback.sql" >/dev/null
+  [[ "$(WL)" == "$BEFORE_WS" ]] || { echo "FAIL waiver-sends rollback did not restore 20261024120000's body"; exit 1; }
+  echo "  ok   rollback restores 20261024120000's career_apply_cloud_waiver_left byte for byte ($BEFORE_WS)"
+  "${QUIET[@]}" -f "$ROOT/docs/apply/held-waiver-sends/apply.sql" >/dev/null
+  [[ "$(WL)" != "$BEFORE_WS" ]] || { echo "FAIL held apply did not change the function"; exit 1; }
+  echo "  ok   held apply re-applies with its ledger row"
+fi
 echo "== career_apply_cloud.test.sql (after 20261024120000: no waiver, the gate exactly as before)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.

@@ -1,0 +1,70 @@
+name: Card cloud PG16 saved artifact export only
+# Isolated NEVER_MERGE diagnostic ref. Reads the one authorized completed run;
+# no SQL, PostgreSQL process, migration, provider, flags or real account access.
+on:
+  push:
+    branches: [ci/card-cloud-pg16-export-20261022]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Download only the nine saved artifacts from the authorized run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 39706333198
+          path: ${{ runner.temp }}/card-cloud-saved-artifacts
+      - name: Export actual receipts, errors and exact raw files without executing them
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, hashlib, io, json, os, pathlib, re, tarfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'card-cloud-saved-artifacts'
+          artifacts=sorted(p.name for p in root.iterdir() if p.is_dir())
+          expected={'card-cloud-pg16-'+case+'-39706333198' for case in
+              ('main','lifecycle','cap','rollback','tap','claim','maintenance','flag-write')}
+          expected.add('card-cloud-pg16-full-runner-39706333198')
+          assert set(artifacts)==expected, {'actual':artifacts,'expected':sorted(expected)}
+          files=[]
+          for p in sorted(root.rglob('*')):
+              if not p.is_file(): continue
+              raw=p.read_bytes()
+              rel=p.relative_to(root).as_posix()
+              files.append({'path':rel,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+              if p.name in ('execution.json','scope.json'):
+                  print('RECEIPT_BEGIN '+rel)
+                  print(raw.decode())
+                  print('RECEIPT_END '+rel)
+              if p.suffix=='.log':
+                  lines=raw.decode(errors='replace').splitlines()
+                  failures=[(i+1,line) for i,line in enumerate(lines)
+                      if re.search(r'ERROR:|FATAL:|FAIL|Traceback|AssertionError|RuntimeError',line)]
+                  if failures:
+                      print('ERRORS_BEGIN '+rel)
+                      print(json.dumps(failures[-30:]))
+                      print('\n'.join(lines[-50:]))
+                      print('ERRORS_END '+rel)
+                  if p.parent==root/p.parts[-2] or p.name.startswith(('acceptance-','race-')) or p.name=='full-runner.log':
+                      assertions=[line for line in lines if re.search(r'NOTICE:.*ok|^ok\b|passed|PASS|FAIL',line)]
+                      if assertions:
+                          print('ASSERTION_TAIL '+rel+' '+json.dumps(assertions[-20:]))
+          manifest={'source_run_id':39706333198,'artifacts':artifacts,'files':files,
+              'new_sql_executions':0,'new_provider_calls':0,'new_cost_usd':0}
+          print('CARD_CLOUD_EXPORT_MANIFEST_BEGIN')
+          print(json.dumps(manifest,sort_keys=True))
+          print('CARD_CLOUD_EXPORT_MANIFEST_END')
+          archive=io.BytesIO()
+          with tarfile.open(fileobj=archive,mode='w:gz') as output:
+              for f in files: output.add(root/f['path'],arcname=f['path'],recursive=False)
+          raw=archive.getvalue()
+          print('CARD_CLOUD_RAW_TGZ_SHA256 '+hashlib.sha256(raw).hexdigest())
+          print('CARD_CLOUD_RAW_TGZ_BASE64_BEGIN')
+          encoded=base64.b64encode(raw).decode()
+          for i in range(0,len(encoded),16000): print(encoded[i:i+16000])
+          print('CARD_CLOUD_RAW_TGZ_BASE64_END')
+          PY

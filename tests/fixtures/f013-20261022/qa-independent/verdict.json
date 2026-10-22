@@ -1,0 +1,197 @@
+{
+  "actual_route_scope": [
+    "Actual career_ingest.ts boardFetchFeed uses imported router_core.career.js normalizers, an injected synthetic fetch, ingestBoards and memoryPostingsDb storage. Includes address-only, secondary-only, missing-location and duplicate-label cases.",
+    "Actual career_pool.js createKbPoolLoader uses a synthetic career_kb_postings reader, legal persisted text values and the exact roleFamily/seniorityBand/stripHtml helper subset from handler-career.ts. Unknown text is evaluated by the actual compiled scoreFit.",
+    "career_postings and career_kb_postings are separate stores. This proof does not claim an automatic bridge between them.",
+    "Structured-row optional mapper API remains covered by the builder source suite; the independent persisted KB fixture deliberately uses its SQL text schema."
+  ],
+  "artifacts": {
+    "base-21.tap": {
+      "gzip_bytes": 1508,
+      "gzip_sha256": "68a244bf3231cca8f4cd4c3a4e4df6fb8f9eaeee7ed9db988d645b1a9e264d64",
+      "path": "tests/fixtures/f013-20261022/qa-independent/base-21.tap.gz",
+      "raw_bytes": 18686,
+      "raw_sha256": "8da548063587951b5665fea88659fac8771380c65aab7caf98c5902a7966ddef"
+    },
+    "base-jobs.tap": {
+      "gzip_bytes": 1633,
+      "gzip_sha256": "52833713a9a367b8d38579f1b115b358e52570a8f61845f68b4c23457fe4523b",
+      "path": "tests/fixtures/f013-20261022/qa-independent/base-jobs.tap.gz",
+      "raw_bytes": 3221,
+      "raw_sha256": "4c981fbe60952c91b640096c4f4d704fc91888adc6b21498871954b0ac88b78b"
+    },
+    "base-pool.tap": {
+      "gzip_bytes": 650,
+      "gzip_sha256": "1ec40b479963c49b311e78595045e1333b1898e08128a0d8c7dd58310732c12a",
+      "path": "tests/fixtures/f013-20261022/qa-independent/base-pool.tap.gz",
+      "raw_bytes": 1168,
+      "raw_sha256": "681f719d3e91e51c0ad343d07dadc484ca1f9adffe7652cbf5ac06dd0ebe8196"
+    },
+    "built-21.tap": {
+      "gzip_bytes": 635,
+      "gzip_sha256": "f0b7558240bec4e1cd1db704426e487869befcc3b754cf5afbba2d869f1ef0af",
+      "path": "tests/fixtures/f013-20261022/qa-independent/built-21.tap.gz",
+      "raw_bytes": 1662,
+      "raw_sha256": "be79b3c23c907272b470b34a2fb89998dfb731ae7dfca8126a6bed33975faa3c"
+    },
+    "built-jobs.tap": {
+      "gzip_bytes": 1646,
+      "gzip_sha256": "2451872f200e54f436bec7129666c97b2b2ab705fe62b1e55e88f44c7a418f2e",
+      "path": "tests/fixtures/f013-20261022/qa-independent/built-jobs.tap.gz",
+      "raw_bytes": 3230,
+      "raw_sha256": "2fc430de58b5ad96af399ed0632a7a601d3e820536ea1d1b9084ae8ba6494045"
+    },
+    "built-pool.tap": {
+      "gzip_bytes": 645,
+      "gzip_sha256": "5b0b29667f3f9f9845a092f2e739844d60291a6c1f6ca979e7fc71eef3a87665",
+      "path": "tests/fixtures/f013-20261022/qa-independent/built-pool.tap.gz",
+      "raw_bytes": 1165,
+      "raw_sha256": "02db0b1fcf371166df3e77cc8e4a7217b3bf6298834b5f46ed9dfaaa7cf5c2fd"
+    },
+    "compiled-base-final.tap": {
+      "gzip_bytes": 707,
+      "gzip_sha256": "691fd910e4bae0b6d245048e318eb0ae929c3e09a6f055aba2995a1a93cfc564",
+      "path": "tests/fixtures/f013-20261022/qa-independent/compiled-base-final.tap.gz",
+      "raw_bytes": 3632,
+      "raw_sha256": "56ee437f2f14d1f1e4462c5696ce725040b65c9f44a681a37e878d1670f12d75"
+    },
+    "compiled-fix-final.tap": {
+      "gzip_bytes": 363,
+      "gzip_sha256": "d43e51e6c86e1302fd36d60970fe66285bfa08fb16bcc453adf083af8e52a737",
+      "path": "tests/fixtures/f013-20261022/qa-independent/compiled-fix-final.tap.gz",
+      "raw_bytes": 885,
+      "raw_sha256": "70d5b6ac9b182a44c2bc1d4c7aef29ddd0b07c1b4839961cc2826da9eebd52b8"
+    },
+    "qa-test-typecheck-final.log": {
+      "gzip_bytes": 63,
+      "gzip_sha256": "17105cc52769cfff05bb5b1720dd07bb119c089fa6a2c8ea1295452ba67f58ea",
+      "path": "tests/fixtures/f013-20261022/qa-independent/qa-test-typecheck-final.log.gz",
+      "raw_bytes": 48,
+      "raw_sha256": "387c2d8de7a5ef754ce8e1cf58d09fd9b8c688624f2d33ba9a4d14dbff727b2b"
+    }
+  },
+  "base_commit": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "bug": "F013",
+  "candidate_commit": "a6a94985d18e2eb44d9ae18fff1bec62aa22c595",
+  "commands": [
+    "node --test tests/career-f013-ashby-location.test.cjs",
+    "node --test tests/career-jobs.test.cjs tests/career-jobs-domain.test.cjs",
+    "node --experimental-vm-modules --test tests/career-pool-loader.test.cjs",
+    "/tmp/case2-test-tools/node_modules/.bin/deno test --no-check --cached-only --no-remote --deny-net --no-prompt tests/career-f013-compiled-ingest.test.ts",
+    "/tmp/case2-test-tools/node_modules/.bin/deno check --cached-only --no-remote tests/career-f013-compiled-ingest.test.ts"
+  ],
+  "cost": {
+    "new_usd": 0,
+    "prior_comparison_known_usd": "8.503100",
+    "prior_final_status": "UNRECONCILED",
+    "prior_unknown_held_usd": "0.070743"
+  },
+  "named_user_outcome": "When discovering Ashby roles, the user sees the source-stated primary and secondary locations; absent geography stays unknown and cannot satisfy a location preference or become an onsite requirement claim.",
+  "not_run": [
+    "live public ATS fetch",
+    "Supabase client/database writes",
+    "backfill",
+    "deployed ingestion",
+    "production or real-user conversation",
+    "deployment"
+  ],
+  "proof": [
+    {
+      "base": {
+        "failed": 18,
+        "passed": 3,
+        "skipped": 0
+      },
+      "candidate": {
+        "failed": 0,
+        "passed": 21,
+        "skipped": 0
+      },
+      "name": "same 21 new source guards"
+    },
+    {
+      "base": {
+        "failed": 0,
+        "passed": 32,
+        "skipped": 0
+      },
+      "candidate": {
+        "failed": 0,
+        "passed": 32,
+        "skipped": 0
+      },
+      "name": "unchanged career jobs neighbors"
+    },
+    {
+      "base": {
+        "failed": 0,
+        "passed": 7,
+        "skipped": 0
+      },
+      "candidate": {
+        "failed": 0,
+        "passed": 7,
+        "skipped": 0
+      },
+      "name": "unchanged mapper, loader and actual staged handler neighbors"
+    },
+    {
+      "base": {
+        "failed": 5,
+        "passed": 3,
+        "skipped": 0
+      },
+      "candidate": {
+        "failed": 0,
+        "passed": 8,
+        "skipped": 0
+      },
+      "name": "same 8 independent compiled-ingestion and hosted-pool tests"
+    }
+  ],
+  "read_scope": "Only named F013 source/test/dependency paths. Existing neighbor runners use their historical synthetic persona/scored-corpus fixtures. No frozen 320 held-out prompts or rubrics inspected.",
+  "release_limit": "Scoped source/compiled-route proof only; does not override any whole-product CI or deployment gate.",
+  "root_cause": "normalizeAshby selected j.location || j.locationName, dropping secondaryLocations and accepting objects as location values. A display fallback was then treated as real geography by locationMatches and onsite rejection wording. Production ingestion imports a compiled bundle, so the matching source changes must be rebuilt there.",
+  "source_evidence_head": "87b795a34fc58352bdb3c570e972ba6dde4ed4f9",
+  "source_fix_commit": "96d6432a87419f2d10ea7a5df40f5087225feaae",
+  "source_hashes": {
+    "348c2d4a3564c54135d0c485bb0d09d763ee0901": {
+      "packages/domain/121-career-jobs.js": "fd63d6f36638b621b1fbd87c99aa12049d14d87a1146b1e9f6383267dd797012",
+      "supabase/functions/_shared/career_ingest.ts": "9420fa93fd61a7c8570c6e9df673b8a4dc979aa81debef91dbd0dc55e356d268",
+      "supabase/functions/_shared/career_pool.js": "2c11623bd1e2f61bcdfa54a80460a3d4b45b4c06698bb71801459981865b2e93",
+      "supabase/functions/_shared/router_core.career.js": "ca1fd026a6b9367b50419521ae89ec03326b96a859d18a020b4dafe680df6740",
+      "supabase/functions/_shared/router_core.js": "33ab095deb65d2ed539d0d430f28818da184e2d734de3882633666c9e104ba1e",
+      "supabase/functions/agent-chat/handler-career.ts": "3e55c1155d506b110e79ab02226c82278ac5e6936f489818b9036587dd19a007"
+    },
+    "a6a94985d18e2eb44d9ae18fff1bec62aa22c595": {
+      "packages/domain/121-career-jobs.js": "28aa18f076425af8e57543e766e4cb0f0e370d45970d686de633ebf47c137bb7",
+      "supabase/functions/_shared/career_ingest.ts": "9420fa93fd61a7c8570c6e9df673b8a4dc979aa81debef91dbd0dc55e356d268",
+      "supabase/functions/_shared/career_pool.js": "ddb76b74d6c825ccae4c4b4237bb028802d54518f6b075d3e642788d7752c7d6",
+      "supabase/functions/_shared/router_core.career.js": "62155e778df0eb699115303ffce15550a1bdbb87030fdef42e67636f6c709b05",
+      "supabase/functions/_shared/router_core.js": "3ad5eb341a9d4e1f4d1172fd0e38b48670980c1a593baab37412dbafb43a1837",
+      "supabase/functions/agent-chat/handler-career.ts": "3e55c1155d506b110e79ab02226c82278ac5e6936f489818b9036587dd19a007"
+    }
+  },
+  "test_hashes": {
+    "tests/career-f013-ashby-location.test.cjs": "2ddb4f6cb0c5fa8836a84f588a770b522fcca42c0c486c1def04227eed6a1e3b",
+    "tests/career-f013-compiled-ingest.test.ts": "90425ef56f37efe763a34560de0a66de241f8a38d0e2cfb96f5b43f0ef776fcc",
+    "tests/career-jobs-domain.test.cjs": "95c43c8570032c256a0091e595e930e7beac01c028079f8df42ae7033c27949d",
+    "tests/career-jobs.test.cjs": "4f5d18ba2235ea00a6d16e2c0014571bb301cccb19bfb21cab47b360cb2ac950",
+    "tests/career-pool-loader.test.cjs": "a91a5ff5f87f2535f9c69ea94121967a199c906afcaa6a9dea2f7166a82cbbd7"
+  },
+  "test_ownership": "New QA test only. Existing builder guards and neighbors remain byte-identical between compared pins. No architect tests edited, no skips added, no product edits in QA commit.",
+  "totals": {
+    "base": {
+      "failed": 23,
+      "passed": 45,
+      "skipped": 0
+    },
+    "candidate": {
+      "failed": 0,
+      "passed": 68,
+      "skipped": 0
+    }
+  },
+  "typecheck": "PASS",
+  "verdict": "VERIFIED_LOCAL_SCOPED"
+}

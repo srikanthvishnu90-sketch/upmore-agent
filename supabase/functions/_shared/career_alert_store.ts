@@ -11,6 +11,9 @@ export type AlertCounters = Pick<AlertRow, "last_checked_at" | "instant_sent_tod
 export interface AlertStore {
   get(userId: string): Promise<AlertRow | null>;
   save(row: AlertRow): Promise<void>;
+  // Settings-only compare-and-set: a stale chat never overwrites newer settings or scheduler counters.
+  patchQuietHours?(userId: string, expected: Pick<AlertRow, "prefs" | "tz">,
+    next: { quiet_start: number; quiet_end: number; tz: string }): Promise<boolean>;
   // WO-091c: the alerts run's own counters only, never the person's settings (prefs, tz): a stop that lands mid-run holds.
   saveCounters?(userId: string, c: AlertCounters): Promise<void>;
   active(): Promise<AlertRow[]>; // everyone with alerts on
@@ -76,6 +79,13 @@ export function memoryAlertStore(initial?: MemoryAlerts): AlertStore & Outbox & 
   return {
     async get(id) { return st.rows[id] ? JSON.parse(JSON.stringify(st.rows[id])) : null; },
     async save(row) { st.rows[row.id] = JSON.parse(JSON.stringify(row)); },
+    async patchQuietHours(id, expected, next) {
+      const row = st.rows[id];
+      if (!row || row.tz !== expected.tz || JSON.stringify(row.prefs) !== JSON.stringify(expected.prefs)) return false;
+      row.prefs = { ...row.prefs, quiet_start: next.quiet_start, quiet_end: next.quiet_end };
+      row.tz = next.tz;
+      return true;
+    },
     async saveCounters(id, c) { if (st.rows[id]) st.rows[id] = { ...st.rows[id], ...JSON.parse(JSON.stringify(c)) }; },
     async active() { return Object.values(st.rows).filter((r) => r.prefs.on).map((r) => JSON.parse(JSON.stringify(r))); },
     async alertsSince(since) {
@@ -108,6 +118,14 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
   return {
     async get(id) { const r = must<any>(await admin.from("career_alert_prefs").select("*").eq("user_id", id).maybeSingle(), "read alert settings"); return r ? fromDb(r) : null; },
     async save(row) { must(await admin.from("career_alert_prefs").upsert(toDb(row), { onConflict: "user_id" }), "save alert settings"); },
+    async patchQuietHours(id, expected, next) {
+      const row = must(await admin.from("career_alert_prefs").update({
+        prefs: { ...expected.prefs, quiet_start: next.quiet_start, quiet_end: next.quiet_end },
+        tz: next.tz, updated_at: new Date().toISOString(),
+      }).eq("user_id", id).eq("prefs", JSON.stringify(expected.prefs)).eq("tz", expected.tz)
+        .select("user_id").maybeSingle(), "save quiet hours");
+      return !!row;
+    },
     async saveCounters(id, c) {
       must(await admin.from("career_alert_prefs").update({ last_checked_at: c.last_checked_at, instant_sent_today: c.instant_sent_today, sent_on: c.sent_on,
         last_report_on: c.last_report_on, held: (c.held || []).slice(0, 200), updated_at: new Date().toISOString() }).eq("user_id", id), "save alert counters");

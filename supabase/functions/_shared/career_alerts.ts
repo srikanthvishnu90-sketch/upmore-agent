@@ -108,7 +108,7 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
            ...day.slice(0, REPORT_LIMIT).map((p) => `- ${line(p)}\n  ${httpsUrl(p.url)}`),
            ...(day.length > REPORT_LIMIT ? [`…and ${day.length - REPORT_LIMIT} more. Ask me for the rest.`] : [])].join("\n")
         : "Your daily job report: no new matches in the last day. I'm still watching.";
-      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at: o.now, text });
+      out.push({ userId: u.id, kind: "report", key: `report:${l.date}`, at, text });
     }
   }
   return out;

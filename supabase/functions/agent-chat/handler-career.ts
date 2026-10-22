@@ -46,6 +46,7 @@ import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shar
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
+import { quietHoursTurn } from "../_shared/career_quiet_hours.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
@@ -326,15 +327,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       let out: CareerTurnResult;
       let agentMeta: Record<string, unknown> | null = null;
       const events = supabaseEventStore(admin);
+      // Explicit alert settings precede thread prompts and either brain. Account controls still go first.
+      const hostControlled = host.isHostControlled(message, ctx);
+      const quiet = !careerTask && !careerBatch && !hostControlled
+        ? await quietHoursTurn({ message, userId: user.id, store: supabaseAlertStore(admin) }) : null;
+      const reserved = hostControlled || !!quiet;
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
       // controls stay the host's.
-      const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const card = !careerTask && !careerBatch && !reserved
         ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
-      const mock = !card && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const mock = !card && !careerTask && !careerBatch && !reserved
         ? await mockTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseMockStore(admin) })
         : null;
       // Ask once: "what do you need from me" shows the questions only the person can answer, and the text right after
@@ -345,7 +351,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // "use 2" saves it.
       const draftMeter = newMeter();
       const draftCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
-      const asked = !card && !mock && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const asked = !card && !mock && !careerTask && !careerBatch && !reserved
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
@@ -353,7 +359,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
       // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with
       // CAREER_EMAIL_SEND=on (WO-091c; off, the yes is told so and the card is kept). Code's, like the card.
-      const free = !card && !mock && !asked && !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+      const free = !card && !mock && !asked && !careerTask && !careerBatch && !reserved;
       const which = free ? await confirmWhichTurn({ message, userId: user.id, threadId: tid, store: supabaseConfirmStore(admin) }) : null;
       const sendToken = careerTokenFor({
         env: Deno.env, fetch, now: Date.now,
@@ -393,7 +399,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // message; sending is the scheduled run's. A store that cannot be read sends the text on to the brain, never a guess.
       const outreachStore = supabaseOutreachStore(admin), outreachMeter = newMeter();
       const outreachModel = (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: outreachMeter, role: "chat" });
-      const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const outreachAns = !card && !mock && !asked && !which && !emailed && !careerTask && !careerBatch && !reserved
         ? await outreachTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: outreachStore, events, tz: undefined,
             redraft: (d) => draftFor({ model: outreachModel, facts: ((ctx as any).profile?.facts ?? []), r: d.recipient, previous: d.body }),
             gmailConnected: () => careerGrantHas(admin, user.id, GMAIL_SEND_SCOPE), connectAsk: missingIntegration("gmail") })
@@ -402,10 +408,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (outreachMeter.calls) await recordTurnCost(admin, user.id, tid, outreachMeter);
       // WO-039: the cloud on and off, code's like the card: "apply for me in the cloud" shows the exact terms, a "yes" while
       // they are the thread's last word (and nothing was texted since) turns it on, and "cloud off" turns it off at any time.
-      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const cloud = !card && !mock && !asked && !which && !emailed && !outreachAns && !careerTask && !careerBatch && !reserved
         ? await cloudTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCloudOptinStore(admin) })
         : null;
-      if (card) {
+      if (quiet) {
+        out = quiet;
+      } else if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
         out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
@@ -429,7 +437,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: outreachAns.reply, intent: outreachAns.intent, resultStatus: outreachAns.status, contained: false, handler: "outreach", ...(outreachAns.parts ? { parts: outreachAns.parts } : {}) };
       } else if (cloud) {
         out = { reply: cloud.reply, intent: cloud.intent, resultStatus: cloud.status, contained: false, handler: "cloud" };
-      } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+      } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !reserved) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.

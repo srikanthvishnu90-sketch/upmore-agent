@@ -29,6 +29,12 @@ for suite in ['node', 'edge', 'architect']:
         return collections.Counter(result)
     before, after = failures(base), failures(candidate)
     old_errors, new_errors = error_messages(base), error_messages(candidate)
+    def skips(directory):
+        text = (directory / (suite + '.log')).read_text(errors='replace')
+        if suite == 'node':
+            return collections.Counter(re.findall(r'^\s*ok \d+ - (.*?) # SKIP(?:\s.*)?$', text, re.M))
+        return collections.Counter(re.findall(r'^(.*?) \.\.\. ignored.*$', text, re.M))
+    new_skips = list((skips(candidate) - skips(base)).elements())
     added, removed = list((after - before).elements()), list((before - after).elements())
     report[suite] = {
         'base': json.loads((base / (suite + '.json')).read_text()),
@@ -37,12 +43,13 @@ for suite in ['node', 'edge', 'architect']:
         'baseline_failure_names': sorted(before.elements()),
         'candidate_failure_names': sorted(after.elements()),
         'new_or_changed_failure_messages': list((new_errors - old_errors).elements()),
+        'new_skip_names': new_skips,
     }
     for side in ['base', 'candidate']:
         report[suite][side].pop('command', None)
         if not report[suite][side].get('node_summary') and not report[suite][side].get('deno_summary'):
             report[suite]['new_failure_names'].append('SUITE_DID_NOT_COMPLETE')
-report['regression'] = any(x['new_failure_names'] or x['new_or_changed_failure_messages'] for x in report.values())
+report['regression'] = any(x['new_failure_names'] or x['new_or_changed_failure_messages'] or x['new_skip_names'] for x in report.values())
 (candidate / 'comparison.json').write_text(json.dumps(report, indent=2) + '\n')
 print(json.dumps(report, indent=2))
 raise SystemExit(1 if report['regression'] else 0)

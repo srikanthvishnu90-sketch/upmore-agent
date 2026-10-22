@@ -67,9 +67,45 @@
     "bytes": 413733,
     "sha256": "c869b35f6291037fcf8461aa7f340ca11d4ddddbc026d9b49e2e9831bb98649f"
   },
+  "02-f002/architect.json": {
+    "bytes": 830,
+    "sha256": "d058ce4f7ac9d573fc365816ea378a5bf1697b16dff1ebc3ed7b61215f541ecf"
+  },
+  "02-f002/architect.log.gz": {
+    "bytes": 46741,
+    "sha256": "b24b5fe3cea63d682672d8079e491bac92e2c656ada102d75a3152e99b1898e5"
+  },
+  "02-f002/bundle-checks.json": {
+    "bytes": 431,
+    "sha256": "34a7593cfd3f6e8d460379928baca4f01ab007fa00e1e3e7b29167855ccb1d3c"
+  },
+  "02-f002/comparison.json": {
+    "bytes": 11447,
+    "sha256": "5a38b2ab6700757722bda40e951836d58bb4af9212dee258a97c37ac7a975495"
+  },
+  "02-f002/edge.json": {
+    "bytes": 774,
+    "sha256": "58fd69e43fb9cfb782d7bcbb4ea6401849982e577a472516c77b9755cf9d56fc"
+  },
+  "02-f002/edge.log.gz": {
+    "bytes": 35541,
+    "sha256": "1e6fc570efa077f0756258c344b1b4c63381b2ee0b1cb8b8b5f1a7a5f5ea36df"
+  },
+  "02-f002/extension-cleanup.json": {
+    "bytes": 395,
+    "sha256": "079478bf62d23fde8ec9e1afa37f7a94ceed21d6aa206c99371e62c7a00b7675"
+  },
+  "02-f002/node.json": {
+    "bytes": 18106,
+    "sha256": "10ad9f563a00c078238f5999bda8c2fdb490922e3b2efeaf6c791714295b39fd"
+  },
+  "02-f002/node.log.gz": {
+    "bytes": 413961,
+    "sha256": "2d86d30f30d2a129dd9ea18dfe9471a8e30ae595d03f108ef3594aeefd3d3c5b"
+  },
   "compare-local.py": {
-    "bytes": 2679,
-    "sha256": "41d106f0baa9ccb0854e836ec364a0a205a680f50f8410dfe2e973fd77a2e8f1"
+    "bytes": 3124,
+    "sha256": "7dba7002d8237dc62a24e0f4666046223439edf168e8c6190a62753dfaaa025b"
   },
   "environment.json": {
     "bytes": 970,

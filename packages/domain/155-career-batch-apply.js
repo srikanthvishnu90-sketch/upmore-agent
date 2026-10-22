@@ -47,6 +47,20 @@
    MI-116's rebuild-and-compare inside 149 is what makes a payload
    changed since the card stop itself (APPROVAL_PAYLOAD_MISMATCH).
 
+   SESSION REUSE (chunk 50%, 2026-10-22; design note
+   docs/apply/SESSION-REUSE-2026-10-22.md): the board service holds a
+   prepare drive's filled page alive under its idle TTL — what died
+   at the prepare/approve seam was never the page, only the handle:
+   the run record carried no session id and no doorstep payload, so
+   the execution turn could only re-drive. Prepare now records both
+   (app.boardSession + app.doorstep, below), and the execution turn
+   first tries to resume the SAME session — 149's resumeApply
+   verifies the live board against the stored payload before
+   anything proceeds, and a session that is gone, expired, or
+   differs falls back to the rebuild above, named in the run's
+   events. The session id is session material: it lives only in the
+   user-scoped run record, never in events or summaries.
+
    Pure/sync like the other domain modules: the host (or the test
    harness) injects postings, profiles, boards and the clock via deps. */
 const CareerBatchApply = (() => {
@@ -103,6 +117,7 @@ const CareerBatchApply = (() => {
       status: "new", // new -> prepared(awaiting_approval) -> approved -> completed | completed_with_stops
       createdAt: now,
       found: 0,
+      familyFound: null, // postings on the named family's shelf (null = no family filter applied)
       duplicatesRemoved: 0,
       screenedOut: [], // {postingKey, company, role, code, reasons[]}
       eligible: 0,
@@ -114,6 +129,10 @@ const CareerBatchApply = (() => {
       approvalRef: null, // minted by approveRun at the card's one yes,
       // bound to the card set hash — 149's arming wire requires it
       // before a REAL board (module 150) may fire (Leg 1 seam fix)
+      attestationCardSha256: null, // when the carded set included
+      // attestation-pending applications, the card hash the user
+      // approved, stamped by completeAttestations before it drives
+      // them to their doorsteps under that approval (LOOP Task 1)
       card: null,
       cardSha256: null,
       events: [],
@@ -121,9 +140,10 @@ const CareerBatchApply = (() => {
     };
   }
   // app state: { postingKey, company, role, url, stage, stop, payloadSha256,
-  //              confirmationId, tailored }
-  // stages: selected | doorstep | stopped | captcha_handoff |
-  //         deferred_cap | deferred_count | submitted
+  //              confirmationId, tailored, carded, pendingAttestations,
+  //              doorstep, boardSession }
+  // stages: selected | doorstep | awaiting_attestation | stopped |
+  //         captcha_handoff | deferred_cap | deferred_count | submitted
   function event(run, type, data) {
     run.events.push(Object.assign({ seq: run.events.length + 1, type }, data || {}));
   }
@@ -134,9 +154,63 @@ const CareerBatchApply = (() => {
         postingKey: key, company: posting.company || null, role: posting.title || posting.role || null,
         url: posting.url || null, stage: "selected", stop: null, payloadSha256: null,
         confirmationId: null, tailored: null,
+        doorstep: null, // { payload, payloadSha256 } — the exact would-submit
+        // payload the card shows, kept so an execution-turn resume can
+        // verify the live board against it (149 resumeApply)
+        boardSession: null, // { sessionId, atsFamily, host, preparedAt,
+        // expiresAt } — the board-service session the prepare drive
+        // left live; session material, run-record only, never logged
       };
     }
     return run.apps[key];
+  }
+
+  // ---------------- session reuse (chunk 50%) ----------------
+  // The reuse window mirrors the board service's idle session TTL
+  // (workers/career-browser/board-service.cjs DEFAULT_TTL_MS,
+  // 10 minutes, refreshed by each board call). The stamp is only a
+  // local pre-check — the service's own expiry (410) is the hard
+  // gate, and 149's SESSION_NOT_LIVE is its verdict here.
+  const SESSION_REUSE_TTL_MS = 10 * 60 * 1000;
+  // 149 resume verdicts that mean "this session cannot carry the
+  // approval" — and ONLY these — discard the resumed board and fall
+  // back to a fresh drive. Any other stop is the application's
+  // result, exactly as a fresh drive would produce it.
+  const RESUME_FALLBACK_CODES = new Set(["SESSION_NOT_LIVE", "SESSION_STATE_MISMATCH", "SESSION_BINDING_INVALID"]);
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  const isSessionDeath = (e) => !!(e && SESSION_DEATH_CODES.has(e.code));
+  // A client board bound to the prepare session, or null when no
+  // usable binding exists. A boardFor that does not understand the
+  // resume option could return a fresh board instead — that board's
+  // page was never prepared, so 149's verification mismatches and
+  // the caller falls back; a wrong session is never filled on.
+  function resumeBoardFor(run, app, d, posting, now) {
+    const b = app && app.boardSession;
+    if (!b || typeof b.sessionId !== "string" || !b.sessionId || typeof d.boardFor !== "function") return null;
+    const nowMs = typeof now === "number" ? now : Date.parse(now);
+    if (Number.isFinite(nowMs) && typeof b.expiresAt === "number" && nowMs >= b.expiresAt) return null;
+    let board = null;
+    try { board = d.boardFor(posting, { resumeSessionId: b.sessionId, atsFamily: b.atsFamily || null, host: b.host || null }); } catch (_) { board = null; }
+    return board || null;
+  }
+  // Record the session binding a prepare drive leaves behind. Only
+  // stages that hold a live, filled page get one: doorstep (filled,
+  // at the final review) and awaiting_attestation (filled, waiting
+  // only on the user's certification). The board must declare its
+  // worker session id — a board that cannot name its session leaves
+  // no binding and the execution turn rebuilds, as before.
+  function recordBoardSession(run, app, board, res, now) {
+    if (app.stage !== "doorstep" && app.stage !== "awaiting_attestation") return;
+    if (!board || typeof board.workerSessionId !== "string" || !board.workerSessionId) return;
+    const nowMs = typeof now === "number" ? now : (Date.parse(now) || Date.now());
+    app.boardSession = {
+      sessionId: board.workerSessionId, atsFamily: board.atsFamily || null, host: board.host || null,
+      preparedAt: nowMs, expiresAt: nowMs + SESSION_REUSE_TTL_MS,
+    };
+    if (app.stage === "doorstep" && res && res.doorstep && res.doorstep.payload) {
+      app.doorstep = { payload: res.doorstep.payload, payloadSha256: res.doorstep.payloadSha256 };
+    }
+    event(run, "board_session_recorded", { postingKey: app.postingKey, stage: app.stage, expiresAt: app.boardSession.expiresAt });
   }
   function postingKeyOf(posting) {
     if (posting && posting.canonicalKey) return posting.canonicalKey;
@@ -171,13 +245,47 @@ const CareerBatchApply = (() => {
     run.duplicatesRemoved = raw.length - deduped.length;
     if (run.duplicatesRemoved) event(run, "deduped", { removed: run.duplicatesRemoved });
 
+    // family selection (LOOP Task 1): the pool is a shared shelf of
+    // every family; the run is for the family the user NAMED. Until
+    // this filter existed, prepare screened the shelf in recency
+    // order and selected whatever came first — a "software
+    // engineering intern" batch prepared PM and controls roles
+    // (live, 2026-10-20). The ask and the postings are classified by
+    // the SAME classifiers (121's askRoleFamilies / roleFamily /
+    // seniorityBand — the ones the pool loader itself stamps onto
+    // every posting), so the two sides cannot drift. Postings outside
+    // the named family are not rejects and are never spoken as
+    // screened out; they are simply not this run's shelf. A family
+    // text the classifiers cannot place keeps the whole shelf
+    // (today's behavior) rather than filtering on a guess. The band
+    // binds only when the ask itself expresses it (intern), the
+    // classifier's default bucket never filters.
+    let shelf = deduped;
+    if (Jobs && Jobs.askRoleFamilies && Jobs.roleFamily && Jobs.seniorityBand) {
+      const fams = Jobs.askRoleFamilies(run.familyText);
+      if (fams.length) {
+        const wantIntern = Jobs.seniorityBand(run.familyText, "") === "intern";
+        shelf = deduped.filter((p) => {
+          const fam = p.role_family || Jobs.roleFamily(p.title || p.role || "", p.jd_text || p.jdText || "");
+          if (!fams.includes(fam)) return false;
+          if (wantIntern) {
+            const band = p.seniority_band || Jobs.seniorityBand(p.title || p.role || "", p.jd_text || p.jdText || "");
+            if (band !== "intern") return false;
+          }
+          return true;
+        });
+        run.familyFound = shelf.length;
+        if (shelf.length !== deduped.length) event(run, "family_filtered", { families: fams, intern: wantIntern, kept: shelf.length, of: deduped.length });
+      }
+    }
+
     // screen: closed -> knockouts (121) -> current employer (132) ->
     // triageBatch hard filters when a scoring profile is supplied.
     const triage = d.scoringProfile && Apply && Apply.triageBatch
       ? new Map(Apply.triageBatch(deduped, { log, profile: d.profileMaster || null, scoringProfile: d.scoringProfile }).map((x) => [x.job_id, x]))
       : null;
     const eligiblePool = [];
-    for (const posting of deduped) {
+    for (const posting of shelf) {
       const key = postingKeyOf(posting);
       run.postings[key] = posting;
       const out = (code, reasons) => run.screenedOut.push({ postingKey: key, company: posting.company || null, role: posting.title || posting.role || null, code, reasons });
@@ -235,18 +343,26 @@ const CareerBatchApply = (() => {
       rt.sessions[key] = session;
       const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
       absorbPrepareResult(run, app, res);
+      // Session reuse (chunk 50%): a doorstep / attestation-pending
+      // application's page is still live on its board session — leave
+      // the execution turn its handle + the exact payload.
+      recordBoardSession(run, app, board, res, now);
     }
 
-    // the card (132's shape) covers doorstep-ready applications only;
-    // stops and defers are reported beside it, never hidden inside it.
+    // the card (132's shape) covers the applications the user's yes
+    // would act on: doorstep-ready ones and attestation-pending ones
+    // (their certification IS the yes). Stops and defers are reported
+    // beside it, never hidden inside it.
     const doorstepApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep");
-    if (Apply && Apply.batchCard && doorstepApps.length) {
-      run.card = Apply.batchCard(doorstepApps.map((a) => ({ company: a.company, role: a.role, fit: null })), { title: `Apply to ${doorstepApps.length} ${run.familyText} roles?` });
+    const cardedApps = run.selected.map((k) => run.apps[k]).filter((a) => a.stage === "doorstep" || a.stage === "awaiting_attestation");
+    for (const a of cardedApps) a.carded = true;
+    if (Apply && Apply.batchCard && cardedApps.length) {
+      run.card = Apply.batchCard(cardedApps.map((a) => ({ company: a.company, role: a.role, url: a.url, fit: null })), { title: `Apply to ${cardedApps.length} ${run.familyText} roles?` });
     }
     run.cardSha256 = cardSha(run);
-    run.status = doorstepApps.length ? "awaiting_approval" : "completed";
+    run.status = cardedApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
-    event(run, "prepared", { doorstep: doorstepApps.length, status: run.status });
+    event(run, "prepared", { doorstep: doorstepApps.length, attestationPending: cardedApps.length - doorstepApps.length, status: run.status });
     return run;
   }
 
@@ -267,6 +383,23 @@ const CareerBatchApply = (() => {
     if (res.resultStatus === "awaiting_user") {
       // 149's required-ask gate: a required question has no confirmed
       // fact. Named here, carried verbatim — never invented around.
+      // ONE class is different in kind, not degree: asks whose every
+      // REQUIRED field is an attestation (certify_true). The answers
+      // all exist; what is missing is the user's own certification,
+      // and the batch card's approval IS that act (the owner's rule:
+      // certify_true derives only when the user approves the batch
+      // card, never silently). Such an application is not stopped —
+      // it waits ON the card, named awaiting_attestation, and
+      // completeAttestations drives it to its doorstep under the
+      // approval before anything submits.
+      const analysis = new Map((res.formAnalysis || []).map((f) => [f.field_id, f]));
+      const requiredAsks = (res.asks || []).filter((a) => { const fd = analysis.get(a.field_id); return fd && fd.required; });
+      if (requiredAsks.length && requiredAsks.every((a) => { const fd = analysis.get(a.field_id); return fd && fd.category === "attestation"; })) {
+        app.stage = "awaiting_attestation";
+        app.pendingAttestations = requiredAsks.map((a) => a.field_id);
+        event(run, "attestation_pending", { postingKey: app.postingKey, company: app.company, fields: app.pendingAttestations.slice() });
+        return;
+      }
       stopApp(run, app, "UNCOVERED_QUESTION", "a required question has no confirmed fact — nothing was invented to fill it", { asks: res.asks || [] });
       return;
     }
@@ -315,10 +448,91 @@ const CareerBatchApply = (() => {
   function cardSha(run) {
     const pairs = run.selected
       .map((k) => run.apps[k])
-      .filter((a) => a && a.stage === "doorstep")
-      .map((a) => `${a.postingKey}:${a.payloadSha256}`)
+      .filter((a) => a && (a.stage === "doorstep" || a.stage === "awaiting_attestation"))
+      .map((a) => a.stage === "doorstep"
+        ? `${a.postingKey}:${a.payloadSha256}`
+        : `${a.postingKey}:attestation-pending:${(a.pendingAttestations || []).slice().sort().join(",")}`)
       .sort();
     return pairs.length ? sha256(pairs.join("|")) : null;
+  }
+
+  // ---------------- attestation completion: the approval act drives
+  // the pending applications to their doorsteps ----------------
+  // Called by the executor under an APPROVE claim, with deps whose
+  // attestations were derived from that very approval (module 149's
+  // portalInputsFromBank approvalAct — the committed "Approve batch
+  // <runId>" intent for this run at this card hash). Each pending
+  // application is re-driven through 149 with the attestation in
+  // hand; one that reaches its doorstep joins the approved set, and
+  // one that stops for any other reason keeps its named stop —
+  // approveRun then refuses the batch rather than submitting a
+  // different set than the card showed. The card hash the user
+  // approved is stamped on the run BEFORE the first re-drive, so the
+  // approval's binding survives the stage change it causes.
+  function completeAttestations(run, deps) {
+    const d = deps || {};
+    const Portal = getPortal();
+    const log = d.log || { records: [] };
+    const now = d.now != null ? d.now : Date.now();
+    const pending = run.selected.map((k) => run.apps[k]).filter((a) => a && a.stage === "awaiting_attestation");
+    if (!pending.length) return { completed: 0, pending: 0 };
+    if (run.attestationCardSha256 == null) run.attestationCardSha256 = run.cardSha256;
+    const rt = runtimeFor(run);
+    let completed = 0;
+    for (const app of pending) {
+      const posting = run.postings[app.postingKey];
+      const profile = profileFor(d, posting);
+      rt.profiles[app.postingKey] = profile;
+      // Session reuse (chunk 50%): the pending application's page is
+      // still live on its prepare session, filled, waiting only on
+      // this certification — continue the round on THAT page (149's
+      // continueApply skips open(), so its fills survive) instead of
+      // a fresh board re-driving the whole form. A session that is
+      // gone or no longer matches falls back to the fresh drive,
+      // named in the run's events.
+      let res = null;
+      const resumedBoard = resumeBoardFor(run, app, d, posting, now);
+      if (resumedBoard) {
+        const session = Portal.createPortalSession({ userId: run.userId, board: resumedBoard });
+        rt.sessions[app.postingKey] = session;
+        try {
+          res = Portal.continueApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+        } catch (e) {
+          if (!isSessionDeath(e)) throw e;
+          event(run, "session_resume_fallback", { postingKey: app.postingKey, code: "SESSION_NOT_LIVE", cause: e.code });
+          res = null;
+        }
+        if (res && res.resultStatus === "blocked" && RESUME_FALLBACK_CODES.has(res.code)) {
+          event(run, "session_resume_fallback", { postingKey: app.postingKey, code: res.code });
+          res = null;
+        }
+        if (res) event(run, "session_resumed", { postingKey: app.postingKey, via: "continue" });
+        else { try { resumedBoard.close && resumedBoard.close(); } catch (_) {} delete rt.sessions[app.postingKey]; }
+      }
+      if (!res) {
+        const board = d.boardFor ? d.boardFor(posting) : null;
+        if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[app.postingKey] = session;
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      }
+      if (res && res.resultStatus === "prepared" && res.doorstep) {
+        app.stage = "doorstep";
+        app.payloadSha256 = res.doorstep.payloadSha256;
+        // the completed payload (attestation now included) is the
+        // payload + live session the execution turn resumes against
+        app.doorstep = { payload: res.doorstep.payload, payloadSha256: res.doorstep.payloadSha256 };
+        recordBoardSession(run, app, (rt.sessions[app.postingKey] || {}).board, res, now);
+        app.attestedFromCardSha256 = run.attestationCardSha256;
+        delete app.pendingAttestations;
+        event(run, "attestation_completed", { postingKey: app.postingKey, company: app.company });
+        completed += 1;
+      } else {
+        absorbPrepareResult(run, app, res);
+      }
+    }
+    run.summary = summarizeRun(run);
+    return { completed, pending: pending.length };
   }
 
   // ---------------- J3: one yes -> per-application hash-bound approvals ----
@@ -330,6 +544,34 @@ const CareerBatchApply = (() => {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
     }
     const nowSha = cardSha(run);
+    if (run.attestationCardSha256) {
+      // The card the user approved included attestation-pending
+      // applications, and completeAttestations has since driven them
+      // to their doorsteps under that approval. The binding is the
+      // stamped card hash plus the carded set itself: every carded
+      // application must now stand at a doorstep (an
+      // originally-doorstep payload is never re-driven before
+      // approval, so it cannot have moved; a completed application
+      // carries its stamp). Anything else refuses — the set the user
+      // certified is the only set that may submit.
+      if (run.cardSha256 !== run.attestationCardSha256) {
+        return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the card changed after the certification stamp — the batch must be re-prepared and re-approved, never silently re-pointed" };
+      }
+      const unready = run.selected.map((k) => run.apps[k]).filter((a) => a && a.carded && a.stage !== "doorstep");
+      if (unready.length) {
+        return { ok: false, code: "ATTESTATION_COMPLETION_INCOMPLETE", reason: `${unready.length} application${unready.length === 1 ? "" : "s"} on the approved card did not reach the final review screen when your certification was applied — nothing was submitted; ask for the batch status and approve the current card` };
+      }
+      run.approvals = {};
+      for (const key of run.selected) {
+        const app = run.apps[key];
+        if (app && app.stage === "doorstep") run.approvals[key] = app.payloadSha256;
+      }
+      run.approvalRef = `batch:${run.id}:${nowSha}`;
+      run.cardSha256 = nowSha;
+      run.status = "approved";
+      event(run, "approved", { count: Object.keys(run.approvals).length, approvalRef: run.approvalRef, attestationCompleted: true });
+      return { ok: true, approved: Object.keys(run.approvals).length, approvalRef: run.approvalRef };
+    }
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
     }
@@ -370,6 +612,38 @@ const CareerBatchApply = (() => {
       const posting = run.postings[key];
       let session = rt.sessions[key];
       try {
+        if (!session) {
+          // Session reuse (chunk 50%): the prepare session may still
+          // be live on its board — resume it first. 149's resumeApply
+          // verifies the live board against the stored doorstep
+          // payload before anything proceeds; a session gone, expired,
+          // or differing falls back to the rebuild below, named in the
+          // run's events. Any other named stop is this application's
+          // result, as a fresh drive would produce it.
+          const resumedBoard = resumeBoardFor(run, app, d, posting, now);
+          if (resumedBoard && typeof Portal.resumeApply === "function") {
+            session = Portal.createPortalSession({ userId: run.userId, board: resumedBoard });
+            rt.sessions[key] = session;
+            const profile = rt.profiles[key] || profileFor(d, posting);
+            let resumed = false;
+            try {
+              const res = Portal.resumeApply(session, { posting, profile, log, userId: run.userId, now, doorstep: app.doorstep || null });
+              if (res && res.resultStatus === "prepared" && res.doorstep) {
+                resumed = true;
+                event(run, "session_resumed", { postingKey: key, via: "execute" });
+              } else if (res && res.resultStatus === "blocked" && RESUME_FALLBACK_CODES.has(res.code)) {
+                event(run, "session_resume_fallback", { postingKey: key, code: res.code });
+              } else if (res) {
+                absorbPrepareResult(run, app, res);
+                continue;
+              }
+            } catch (e) {
+              if (!isSessionDeath(e)) throw e;
+              event(run, "session_resume_fallback", { postingKey: key, code: "SESSION_NOT_LIVE", cause: e.code });
+            }
+            if (!resumed) { session = null; delete rt.sessions[key]; try { resumedBoard.close && resumedBoard.close(); } catch (_) { /* best effort */ } }
+          }
+        }
         if (!session) {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
@@ -441,10 +715,11 @@ const CareerBatchApply = (() => {
     return {
       runId: run.id, familyText: run.familyText, requested: run.requested, status: run.status,
       approvalRef: run.approvalRef || null,
-      found: run.found, duplicatesRemoved: run.duplicatesRemoved,
+      found: run.found, familyFound: run.familyFound != null ? run.familyFound : null, duplicatesRemoved: run.duplicatesRemoved,
       screenedOut: run.screenedOut.slice(),
       eligible: run.eligible, selected: run.selected.length,
       doorstep: apps.filter((a) => a.stage === "doorstep").length,
+      attestationPending: apps.filter((a) => a.stage === "awaiting_attestation").length,
       submitted: submitted.length,
       confirmations: submitted.map((a) => ({ company: a.company, role: a.role, confirmationId: a.confirmationId })),
       stops,
@@ -456,10 +731,31 @@ const CareerBatchApply = (() => {
     const sm = run.summary || summarizeRun(run);
     const lines = [];
     lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
+    if (sm.familyFound != null && sm.familyFound !== sm.found) lines.push(`The ${run.familyText} shelf holds ${sm.familyFound} of them (the pool is shared across families; only the named family's postings are this run's shelf).`);
     if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
     lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    // The selection, as objects — company, role, and the posting's own
+    // link, with where each one stands (LOOP Task 1, Step 1: a batch
+    // the user cannot see is a claim, not a step; the owner watched
+    // the claim ship with no roles and no links). Rendered from the
+    // run's own application records — never re-derived, never prose.
+    const selApps = run.selected.map((k) => run.apps[k]).filter(Boolean);
+    if (selApps.length) {
+      lines.push(`The ${selApps.length} selected:`);
+      for (const a of selApps) {
+        const stage = a.stage === "doorstep" ? "ready at the final review screen"
+          : a.stage === "awaiting_attestation" ? "ready — waiting on your certification"
+          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
+          : a.stage === "stopped" ? "stopped (named below)"
+          : a.stage === "deferred_cap" ? "queued past today's cap"
+          : a.stage;
+        lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}${a.url ? ` — ${a.url}` : ""} (${stage})`);
+      }
+    }
     if (sm.status === "awaiting_approval" || run.status === "awaiting_approval") {
-      lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
+      if (sm.doorstep) lines.push(`${sm.doorstep} are tailored and sitting at the final review screen — the card shows each one with the exact answers it will send. Nothing submits until your yes.`);
+      if (sm.attestationPending) lines.push(`${sm.attestationPending} ${sm.attestationPending === 1 ? "is" : "are"} ready except your certification — approving this batch certifies that ${sm.attestationPending === 1 ? "its" : "their"} answers are true and submits ${sm.attestationPending === 1 ? "it" : "them"}. Nothing submits until your yes.`);
     }
     if (sm.submitted) lines.push(`Submitted ${sm.submitted} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
@@ -475,7 +771,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, completeAttestations, approveRun, executeRun, summarizeRun, speakSummary, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

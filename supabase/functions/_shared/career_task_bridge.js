@@ -79,9 +79,9 @@ export async function planCareerTaskIntent({ taskRequest, message, userId, threa
 const BOARD_METHODS = ["open", "form", "fill", "answers", "atReview", "submit"];
 export function createCareerBoardFor(provider) {
   if (!provider || typeof provider.boardFor !== "function") return null;
-  return function careerBoardFor(posting) {
+  return function careerBoardFor(posting, boardOpts) {
     let board = null;
-    try { board = provider.boardFor(posting); } catch (_) { return null; }
+    try { board = provider.boardFor(posting, boardOpts); } catch (_) { return null; }
     if (!board || typeof board !== "object") return null;
     for (const m of BOARD_METHODS) if (typeof board[m] !== "function") return null;
     return board;
@@ -285,18 +285,13 @@ export function createWorkerBoardProvider(opts) {
       }
     }
   }
-  function boardFor(posting) {
-    const url = posting && typeof posting.url === "string" ? posting.url : null;
-    if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
-    const res = createSessionWithRetry(url);
-    if (res.status !== 201) {
-      const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
-      const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;
-      throw codedError(code, `the career worker refused a board session (${raw})${res.body && res.body.reason ? `: ${res.body.reason}` : ""}`);
-    }
-    const created = res.body || {};
-    const sessionId = typeof created.sessionId === "string" && created.sessionId ? created.sessionId : null;
-    if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
+  // One client board bound to one board-service session. The create
+  // path (boardFor, below) and the session-reuse path (boardFor with a
+  // resume option) share this constructor, so a resumed board behaves
+  // exactly like a created one — same call discipline, same terminal
+  // death codes (410 SESSION_EXPIRED / 403 WORKER_SESSION_FORBIDDEN /
+  // 404 WORKER_SESSION_GONE), same close.
+  function boardFromSession(sessionId, created) {
     let terminal = null; // {code, message} — once dead, the board stays dead
     let closedBoard = false;
     // FR-395: the service-side board's rendered values (the widget's own
@@ -350,6 +345,37 @@ export function createWorkerBoardProvider(opts) {
         try { transport({ method: "POST", path: `/board-sessions/${sessionId}/close`, headers, body: { userId } }); } catch (_) { /* closing is best-effort; the service reaps by TTL regardless */ }
       },
     };
+  }
+  function boardFor(posting, boardOpts) {
+    const url = posting && typeof posting.url === "string" ? posting.url : null;
+    if (!url) throw codedError("BOARD_URL_REQUIRED", "a posting url is required to open a worker board session");
+    // Session reuse (chunk 50%): bind to the board-service session a
+    // prepare drive left live instead of creating a new one — the
+    // filled page, still at its final review. No creation call is
+    // made. The id is session material: it is never logged, and the
+    // service enforces this user's ownership on every call (a foreign
+    // session answers 403). The caller verifies the resumed board's
+    // live state against the prepared payload before anything
+    // proceeds (module 149's resumeApply); a board that does not
+    // match is discarded, never filled on.
+    if (boardOpts && boardOpts.resumeSessionId != null) {
+      if (typeof boardOpts.resumeSessionId !== "string" || !/^[a-f0-9]{32}$/.test(boardOpts.resumeSessionId)) {
+        throw codedError("WORKER_SESSION_ID_INVALID", "a resume session id must be the board service's session id");
+      }
+      return boardFromSession(boardOpts.resumeSessionId, {
+        atsFamily: boardOpts.atsFamily || null, host: boardOpts.host || "", accountName: null,
+      });
+    }
+    const res = createSessionWithRetry(url);
+    if (res.status !== 201) {
+      const raw = res.body && res.body.error ? String(res.body.error) : "WORKER_SESSION_REFUSED";
+      const code = raw === "unauthorized" ? "WORKER_AUTH_REFUSED" : raw;
+      throw codedError(code, `the career worker refused a board session (${raw})${res.body && res.body.reason ? `: ${res.body.reason}` : ""}`);
+    }
+    const created = res.body || {};
+    const sessionId = typeof created.sessionId === "string" && created.sessionId ? created.sessionId : null;
+    if (!sessionId) throw codedError("WORKER_PROTOCOL", "the career worker answered session creation without a session id");
+    return boardFromSession(sessionId, created);
   }
   return { transport: "career_worker_board", boardFor };
 }

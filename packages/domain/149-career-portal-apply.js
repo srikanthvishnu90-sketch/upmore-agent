@@ -1171,6 +1171,184 @@ const CareerPortalApply = (() => {
     return prepared;
   }
 
+  // ---------- session reuse: resume a live prepared session (chunk 50%) ----------
+  // A prepare drive's board session can outlive the drive: the board
+  // service holds the filled page, still at the final review, under
+  // its idle TTL. resumeApply VERIFIES that live state against the
+  // stored doorstep instead of re-driving — no open() (a navigation
+  // would reload the form and destroy the fills) and no fills. The
+  // verification anchors, in order: the stored record must hash to
+  // its own recorded hash before the board is touched at all; the
+  // live board must still expose the prepared form's fields and read
+  // back values that rebuild — through the SAME buildPayload MI-116
+  // uses, with the session's preparation state seeded from the stored
+  // payload (live answers win, exactly as at the doorstep) — to the
+  // stored payload hash; and the board must still stand at the final
+  // review. Success sets session.doorstep exactly as prepareRound
+  // does; submitDoorstep then re-verifies the live payload hash at
+  // click time, and the driver re-verifies the armed payload against
+  // the live fields before the click — resume adds no trust those
+  // gates do not re-check. Failures are named for the caller's
+  // fallback discipline: SESSION_NOT_LIVE (the session is gone,
+  // expired, or not this user's), SESSION_STATE_MISMATCH (the live
+  // state differs from the prepared payload), SESSION_BINDING_INVALID
+  // (the stored record is internally inconsistent). Any other stop
+  // (captcha, caps, a board code) is the application's result, as a
+  // fresh drive would produce it.
+  const SESSION_DEATH_CODES = new Set(["SESSION_EXPIRED", "WORKER_SESSION_GONE", "WORKER_SESSION_FORBIDDEN", "BOARD_CLOSED"]);
+  function resumeApply(session, input) {
+    const inp = input || {};
+    const posting = inp.posting || {};
+    const profile = inp.profile || {};
+    const log = inp.log || { records: [] };
+    const stepLog = [];
+    const logStep = (action, data) => stepLog.push(Object.assign({ seq: stepLog.length + 1, action }, data || {}));
+    const base = () => ({ stepLog, capReport: capReport(log, session.userId, posting, inp.now, session.board) });
+    const blocked = (code, extra) => Object.assign(base(), { resultStatus: "blocked", code }, extra || {});
+
+    // session binding: a session serves exactly its own user (§6.3 isolation)
+    if (inp.userId && inp.userId !== session.userId) {
+      logStep("session_user_refused", { sessionUser: session.userId, runUser: inp.userId });
+      return blocked("SESSION_USER_MISMATCH");
+    }
+    const board = session.board;
+    // The stored doorstep must be internally consistent BEFORE the
+    // board is addressed: a payload that does not hash to its own
+    // recorded hash is never verified against and never trusted.
+    const stored = inp.doorstep || null;
+    if (!stored || !stored.payload || typeof stored.payload !== "object" || Array.isArray(stored.payload)
+      || typeof stored.payloadSha256 !== "string"
+      || sha256(JSON.stringify(stored.payload)) !== stored.payloadSha256) {
+      logStep("session_binding_invalid", {});
+      return blocked("SESSION_BINDING_INVALID", { reason: "the stored doorstep payload does not hash to its recorded payload hash — the binding is not trustworthy, and the session is not addressed on its word" });
+    }
+    // target rules (§6.3): the same gates prepare applies before any board use
+    const target = classifyTarget(posting.url || "");
+    logStep("classify_target", { url: posting.url || null, kind: target.kind, code: target.code });
+    if (!target.allowed) return blocked(target.code, { reason: target.reason || null });
+    if (!board.sandbox && !(board.browserDriver === true && board.kind === "browser")) {
+      return blocked("REAL_PORTAL_NOT_WIRED", { reason: "CA-03: only sandbox boards and the attested module-150 browser driver (doorstep-only, submit disabled) can be driven" });
+    }
+    if (target.kind === "employer_ats" && target.atsFamily && board.atsFamily && target.atsFamily !== board.atsFamily) {
+      return blocked("BOARD_POSTING_MISMATCH", { reason: "the session board does not serve this posting's ATS family" });
+    }
+    if (posting.status && posting.status !== "open") {
+      logStep("eligibility_stop", { reason: "posting_not_open", status: posting.status });
+      return blocked("JOB_CLOSED");
+    }
+    const dup = (log.records || []).some((r) => r.userId === session.userId && r.canonicalKey === posting.canonicalKey && r.status === "submitted");
+    if (dup) { logStep("eligibility_stop", { reason: "duplicate" }); return blocked("DUPLICATE_APPLICATION"); }
+    // §11(F): the name on the board account must be the person applying
+    if (board.accountName && profile.name && normName(board.accountName) !== normName(profile.name)) {
+      logStep("name_mismatch_stop", { accountName: board.accountName, profileName: profile.name });
+      return blocked("NAME_MISMATCH", { accountName: board.accountName, profileName: profile.name });
+    }
+    try {
+      // NO open(): the page is already there, filled. form() is a
+      // read (discovery); answers() is a read (live readback).
+      const formDef = board.form();
+      const formAnalysis = analyzeForm(formDef);
+      if (!formDef.fields || formDef.fields.length === 0) {
+        logStep("session_state_mismatch", { cause: "empty_form" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board exposes no form — the prepared page is gone", formAnalysis });
+      }
+      // The resumed board must still be the prepared form's board:
+      // its live field set or its live readback must carry the
+      // payload's fields. A board carrying NONE of them is a
+      // different page, whatever its session id claims.
+      const payloadIds = Object.keys(stored.payload).filter((k) => k !== "resume_sha256");
+      const liveIds = new Set((formDef.fields || []).map((f) => f.field_id));
+      const observed = board.answers() || {};
+      const covered = payloadIds.filter((id) => liveIds.has(id) || observed[id] !== undefined);
+      if (payloadIds.length && covered.length === 0) {
+        logStep("session_state_mismatch", { cause: "no_payload_fields_on_board" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board carries none of the prepared payload's fields — it is not the prepared page", formAnalysis });
+      }
+      // Rebuild the would-submit payload from the board's CURRENT
+      // answers (buildPayload — the MI-116 construction), with the
+      // session's preparation state seeded from the stored payload so
+      // the rebuild is the same union prepare hashed at the doorstep.
+      session.preparationFields = (formDef.fields || []).map((f) => ({ field_id: f.field_id, label: f.label || f.field_id, kind: f.kind, required: !!f.required, profile_key: f.profile_key || null, question_key: f.question_key || null }));
+      session.preparationPayload = {};
+      for (const k of payloadIds) session.preparationPayload[k] = stored.payload[k];
+      const livePayload = buildPayload(board, session);
+      const liveHash = sha256(JSON.stringify(livePayload));
+      if (liveHash !== stored.payloadSha256) {
+        const changedFields = [], addedFields = [], removedFields = [];
+        for (const k of Object.keys(livePayload)) {
+          if (!(k in stored.payload)) addedFields.push(k);
+          else if (JSON.stringify(livePayload[k]) !== JSON.stringify(stored.payload[k])) changedFields.push(k);
+        }
+        for (const k of Object.keys(stored.payload)) if (!(k in livePayload)) removedFields.push(k);
+        logStep("session_state_mismatch", { changedFields, addedFields, removedFields });
+        return blocked("SESSION_STATE_MISMATCH", { changedFields, addedFields, removedFields, formAnalysis,
+          reason: `the resumed board's current answers differ from the prepared payload — changed: [${changedFields.join(", ")}], added: [${addedFields.join(", ")}], removed: [${removedFields.join(", ")}]; the session is discarded and a fresh drive prepares the application again` });
+      }
+      logStep("session_state_verified", { payloadSha256: stored.payloadSha256 });
+      // Still standing at the final review? (cmdReview is read-only on
+      // a page already at final review — it clicks only a "next"
+      // control, and a prepared page at its doorstep has none.)
+      const review = board.atReview();
+      if (review && review.code) {
+        logStep("host_redirect_refused", { code: review.code, finalUrl: review.finalUrl || null, host: review.host || null, at: "review" });
+        return blocked(review.code, { reason: review.reason || "the review step landed off the tested-ATS allowlist (§6.3)", finalUrl: review.finalUrl || null, host: review.host || null, formAnalysis });
+      }
+      if (review.captcha) {
+        logStep("captcha_stop", { at: "review" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: review.screenshotRef || null, reason: "a captcha/code appeared at the final step — Upmore never solves it; the user finishes the last step", formAnalysis });
+      }
+      if (review.needsFields || review.advanced) {
+        logStep("session_state_mismatch", { cause: "not_at_prepared_step" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed page is no longer at the prepared step — it asks for fields or advanced past the doorstep", formAnalysis });
+      }
+      if (review.atFinalReview === false) {
+        logStep("session_state_mismatch", { cause: "not_at_final_review" });
+        return blocked("SESSION_STATE_MISMATCH", { reason: "the resumed board is not at the final review the prepare drive reached", formAnalysis });
+      }
+      // §8.3 collision + §6.4 caps, the same re-checks prepare makes
+      if (inp.manualApplications) session.manualApplications = inp.manualApplications;
+      const collision = collisionCheck(session.manualApplications, posting);
+      if (collision.collision) {
+        const c0 = collision.collision;
+        logStep("already_applied_stop", { company: c0.company, stage: c0.stage, source: c0.source });
+        return blocked("ALREADY_APPLIED_BY_USER", { company: c0.company, title: c0.title, stage: c0.stage, source: c0.source,
+          reason: `the user already holds an application at ${c0.company} for this job (stage: ${c0.stage}; source: ${c0.source}) — the product never files a duplicate (§8.3)` });
+      }
+      const caps = capCheck(log, session.userId, posting, inp.now, board);
+      if (!caps.ok) {
+        const sc = caps.stops[0];
+        logStep("cap_reached_stop", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops });
+        return blocked("CAP_REACHED", { cap: sc.cap, count: sc.count, limit: sc.limit, stops: caps.stops, counts: caps.counts,
+          reason: `the owner's decided application cap is reached (${sc.cap}: ${sc.count} of ${sc.limit}) — this submission waits for a later day or window` });
+      }
+      session.doorstep = { payload: stored.payload, payloadSha256: stored.payloadSha256, postingKey: posting.canonicalKey, vendor: caps.vendor, company: posting.company || null, atFinalReview: true,
+        requiredFieldIds: (formDef.fields || []).filter((f) => f.required).map((f) => f.field_id) };
+      logStep("session_resumed", { payloadSha256: stored.payloadSha256 });
+      return Object.assign(base(), { resultStatus: "prepared", resumed: true, formAnalysis,
+        doorstep: { atFinalReview: true, payload: stored.payload, payloadSha256: stored.payloadSha256 } });
+    } catch (e) {
+      if (e && SESSION_DEATH_CODES.has(e.code)) {
+        logStep("session_not_live", { cause: e.code });
+        return blocked("SESSION_NOT_LIVE", { cause: e.code, reason: "the board session the prepare drive left is no longer live (expired, closed, or not this user's) — a fresh drive prepares the application again" });
+      }
+      throw e;
+    }
+  }
+
+  // continueApply: a prepare round CONTINUED on the session's live
+  // page (prepareRound's continued entry — it skips open(), so the
+  // page's existing fills survive). The attestation-completion seam:
+  // an application that stopped at awaiting_user for its certification
+  // alone is sitting filled on its board; when the certification
+  // arrives, the round continues on THAT page instead of a fresh
+  // board re-driving the whole form.
+  function continueApply(session, input) {
+    if (!session.preparationPayload) session.preparationPayload = {};
+    if (!session.preparationFields) session.preparationFields = [];
+    session.doorstep = null;
+    return prepareRound(session, input, true, 0, []);
+  }
+
   // ---------- the one submit leg: exactly once, reconciled, never blind ----------
   function submitDoorstep(session, approval, ctx) {
     const c = ctx || {};
@@ -1406,6 +1584,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, portalInputsFromBank, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, resumeApply, continueApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, portalInputsFromBank, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

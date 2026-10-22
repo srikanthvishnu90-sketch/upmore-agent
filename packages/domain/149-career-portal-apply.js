@@ -67,6 +67,43 @@ const CareerPortalApply = (() => {
   ];
   const AGGREGATOR_HOSTS = [/(^|\.)linkedin\.com$/, /(^|\.)indeed\.com$/];
   const EEO_DECLINE = "Decline to self-identify";
+  // The EEO decline MEANING CLASS (DECLINE-VOCAB lane, 2026-10-21; the
+  // doctrine is D8 / BUG-067 in the browser helper): the decline default
+  // is ONE semantic choice worded a dozen ways across boards — the
+  // dropdown-measure lane (cc2932c9) recorded the boards' own renderings
+  // on 24 verified fills: "I don't wish to answer" x19, "Decline To Self
+  // Identify" x4, "I prefer not to say" x1. The class is DATA in the
+  // WO-020 question_map shape — ordered named pattern rules over
+  // normalized text; the first that matches names why — so it can fold
+  // into the shared meaning map verbatim when that lands on this line
+  // (seam: docs/career/decline-vocab-2026-10-21.md). ONE home: this
+  // module's export. Patterns are regex SOURCES (serializable data);
+  // they are written against normMeaningText below, which is the
+  // helper's normOpt verbatim (lowercase, curly quotes dropped,
+  // punctuation -> space, spaces collapsed) — the same normalization
+  // the on-page matcher (scripts/career/portal-browser-helper.cjs,
+  // isDeclineText) evaluates, and the class's union is semantically
+  // identical to that matcher's vocabulary, pinned by
+  // tests/career-decline-vocab.test.cjs.
+  const EEO_DECLINE_MEANING = [
+    { name: "decline_word", pattern: "decline" },
+    { name: "prefer_not", pattern: "prefer not" },
+    { name: "wish_not", pattern: "do not wish|don t wish|dont wish" },
+    { name: "not_answer", pattern: "not (to )?answer" },
+    { name: "not_disclose", pattern: "not (to )?disclose" },
+    { name: "no_answer", pattern: "no answer" },
+  ];
+  const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
+  // The first rule that matches names why the text is decline-class
+  // (WO-020: each rule names why it matched); null when it is not.
+  function eeoDeclineMatch(text) {
+    const t = normMeaningText(text);
+    if (!t) return null;
+    for (const r of EEO_DECLINE_RULES) if (r.re.test(t)) return r.name;
+    return null;
+  }
+  const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
 
@@ -912,10 +949,21 @@ const CareerPortalApply = (() => {
       const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
         : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
+      // DECLINE-VOCAB (2026-10-21): an EEO fill whose intended value is
+      // decline-class is the SAME answer when the board renders it in
+      // any decline-class wording (EEO_DECLINE_MEANING above — the
+      // measured forms are "I don't wish to answer" x19, "Decline To
+      // Self Identify" x4, "I prefer not to say" x1; the old inline
+      // regex lacked the wish forms and blocked 6 of 8 measured drives
+      // with every fill correct). Class-vs-class ONLY, and only for EEO
+      // fills (the default or the user's own EEO choice): a decline
+      // intent rendered as a substantive answer — or any non-decline
+      // value rendered as anything else — still mismatches below, and
+      // acceptance of every non-EEO answer is exactly what it was.
       let same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
           || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
+          || ((planned.source === "eeo_default_decline" || planned.source === "user_eeo_choice") && isEeoDeclineText(expected) && isEeoDeclineText(actual));
       // F-027: when the exact channels fail, the per-key equivalence
       // gets its say — keyed by the field's profile key, strings
       // only, and recorded in the run record when it carries the
@@ -1358,6 +1406,6 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, portalInputsFromBank, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, portalInputsFromBank, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;

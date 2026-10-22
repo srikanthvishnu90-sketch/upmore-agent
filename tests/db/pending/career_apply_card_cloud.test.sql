@@ -86,6 +86,8 @@ reset role;
 insert into career_apply_cloud_resumes(user_id,sha256,filename,bytes,privacy_epoch)
  values('00000000-0000-4000-8000-00000000cb01',
  encode(sha256(convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8')),'hex'),'synthetic.pdf',convert_to('%PDF-1.4 SYNTHETIC TEST RESUME','UTF8'),1);
+-- Persist exactly the profile and answered questions used by the actual engineInput-backed payloads.
+select pg_temp.cc_seed_sources();
 set role service_role;
 insert into cc_state values('cloud-card',career_apply_message_cloud_card_show_as(
  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',

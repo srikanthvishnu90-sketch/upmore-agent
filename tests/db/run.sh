@@ -194,11 +194,26 @@ for t in "$HERE"/*.test.sql; do
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 done
 echo "== migration ledger (--pending): backfill, apply only what is new, then nothing on a re-run"
-LEDGER_OUT="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
+# This runner deliberately tests historical migration/rollback definitions below before ending on the latest one.
+# The bridge's durable FKs and changed claim permission must not be installed halfway through those old phases.
+# Only the bridge is deferred; every earlier migration and existing assertion still runs, then bridge tests run last.
+BRIDGE_NAME=20261024130000_career_apply_card_cloud_bridge.sql
+BRIDGE_PATH="$ROOT/supabase/migrations/$BRIDGE_NAME"
+PENDING_ROOT="$ROOT"
+if [[ -f "$BRIDGE_PATH" ]]; then
+  PENDING_ROOT="$WORK/historical-pending-view"
+  mkdir -p "$PENDING_ROOT/scripts/launch" "$PENDING_ROOT/supabase/migrations"
+  cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$PENDING_ROOT/scripts/launch/"
+  for file in "$ROOT"/supabase/migrations/*.sql; do
+    [[ "$(basename "$file")" == "$BRIDGE_NAME" ]] && continue
+    cp "$file" "$PENDING_ROOT/supabase/migrations/"
+  done
+fi
+LEDGER_OUT="$(cd "$PENDING_ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
 grep -q "ledger backfilled up to 20261011030000_brokerage_accounts_per_user.sql" <<<"$LEDGER_OUT" || { echo "$LEDGER_OUT"; echo "FAIL ledger backfill"; exit 1; }
 grep -q "pending migrations, one transaction: .*20261011040000_model_health_and_turn_costs.sql 20261011050000_broker_vault_cascade.sql" <<<"$LEDGER_OUT" || { echo "$LEDGER_OUT"; echo "FAIL pending set"; exit 1; }
 grep -q "20261011030000" <<<"$(grep 'pending migrations' <<<"$LEDGER_OUT")" && { echo "FAIL an already-applied file was replayed"; exit 1; }
-AGAIN="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
+AGAIN="$(cd "$PENDING_ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
 [[ "$AGAIN" == "== no pending migrations" ]] || { echo "$AGAIN"; echo "FAIL a re-run applied something"; exit 1; }
 "${PSQL[@]}" -tAc "select count(*) from public.upmore_migration_ledger where filename='20261011040000_model_health_and_turn_costs.sql'" | grep -qx 1 || { echo "FAIL ledger row"; exit 1; }
 echo "  ok   ledger backfilled, only new files applied, a re-run applies nothing"
@@ -335,4 +350,18 @@ echo "== career_apply_cloud.test.sql (after 20261024120000: no waiver, the gate 
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.
 echo "== career_apply_message_cards.test.sql (exact shown payload, authenticated single-use tap)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_message_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+if [[ -f "$BRIDGE_PATH" ]]; then
+  echo "== card-cloud bridge (latest schema, standalone up twice; no enclosing transaction)"
+  "${PSQL[@]}" -f "$BRIDGE_PATH"
+  "${PSQL[@]}" -f "$BRIDGE_PATH"
+  "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$BRIDGE_NAME','$(sha256sum "$BRIDGE_PATH" | cut -d' ' -f1)')"
+  for file in career_apply_card_cloud.test.sql career_apply_card_cloud_lifecycle.test.sql; do
+    echo "== $file (latest card-bound cloud semantics, all earlier phases retained)"
+    "${PSQL[@]}" -v card_cloud_tests_authorized=true -f "$HERE/pending/$file"
+  done
+  echo "== career_apply_card_cloud_daily_cap.test.sql (cloud15; extension/global unchanged)"
+  "${PSQL[@]}" -v card_cloud_tests_authorized=true -v card_cloud_disposable_database=postgres \
+    -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
+    -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
+fi
 echo "db tests passed"

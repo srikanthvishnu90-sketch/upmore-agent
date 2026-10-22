@@ -35,7 +35,11 @@ run_legacy_migration_group() {
       args+=(-c "insert into public.upmore_migration_ledger(filename,sha256) values ('$name','$(sha256sum "$path" | cut -d' ' -f1)')")
     fi
   done
-  echo "== legacy migration group, one transaction: ${names[*]}"
+  if [[ "$ledger" == true ]]; then
+    echo "== pending migrations, one transaction: ${names[*]}"
+  else
+    echo "== legacy migration group, one transaction: ${names[*]}"
+  fi
   "${P[@]}" --single-transaction "${args[@]}"
 }
 run_ordered_migration_groups() {

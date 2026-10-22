@@ -5,7 +5,7 @@
   "new_spend_usd": 0,
   "baseline_commit": "01401cb456bc2982d67316165e183bbd275581c9",
   "baseline_source_sha256": "e324eb933d0060f6f921580e90669fecd51d1ff10cd2176df9e296dc8ef2d1d1",
-  "candidate_source_sha256": "9472f0f029735cc25b5e9aafbb138b7a4a1465ba5699717036af4d20f1acde80",
+  "candidate_source_sha256": "76e1f3ce2f4c71c8303e33e8e75ac885cd31f8758ab67a516437aeed3c01c63d",
   "test_sha256": "9222ebaaf93c197f0c3855c5d2749e6c369a23cc288afbad51802a396e1163ac",
   "baseline": {
     "tests": 6,
@@ -19,7 +19,7 @@
   },
   "logs": {
     "baseline-014": "d21e680d83ed61ed546b4d2be4f8948f676d66c8060ad4588c2cc37d8c6b8341",
-    "candidate": "b591268d2720264c22b3d07ff3a895282257b9a5966535f67565f958b60d5635"
+    "candidate": "58e42785b3d629e97b24bbcc858f4f3728f019fc29c07bde9d7b305c2ebe7428"
   },
   "limitation": "Does not verify Postgres semantics, migration runtime or deploy readiness."
 }

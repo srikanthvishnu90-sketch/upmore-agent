@@ -11,8 +11,8 @@ permissions:
 
 env:
   BASELINE_PIN: 01401cb456bc2982d67316165e183bbd275581c9
-  ACCEPTANCE_PIN: 8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3
-  QA_TOOLS_PIN: 8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3
+  ACCEPTANCE_PIN: f33e76c6a3cc5f8601b5e96f204594f51113a71f
+  QA_TOOLS_PIN: f33e76c6a3cc5f8601b5e96f204594f51113a71f
   UP_SHA256: c5ac429e5e6559d91b35475d719f828a8288d9763c1529a1c1adea0ca8e90fc8
   DOWN_SHA256: 5716f7256fb78e681023482647a843e33aab25e5d6136152395205dd11f51186
   PGBIN: /usr/lib/postgresql/16/bin
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, shutil, signal, subprocess, sys, time, uuid
+          import hashlib, json, os, pathlib, re, shutil, signal, subprocess, sys, time, uuid
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
           temp = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
           case = os.environ['CASE']
@@ -98,6 +98,14 @@ jobs:
               with (evidence/(label+'.log')).open('w') as output:
                   result = subprocess.run(argv,stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT)
               record['commands'][-1]['exit_code'] = result.returncode
+              text = (evidence/(label+'.log')).read_text(errors='replace')
+              assertions = [line for line in text.splitlines() if re.search(r'NOTICE:.*ok|^ok\b|passed|PASS',line)]
+              print('COMMAND_RESULT '+json.dumps({'label':label,'exit_code':result.returncode,
+                  'log_sha256':hashlib.sha256((evidence/(label+'.log')).read_bytes()).hexdigest(),'assertion_lines':len(assertions)}),flush=True)
+              if label.startswith(('acceptance-','race-')) or result.returncode:
+                  print('COMMAND_LOG_BEGIN '+label,flush=True)
+                  print(text,flush=True)
+                  print('COMMAND_LOG_END '+label,flush=True)
               (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
               if result.returncode: raise RuntimeError(label+' failed; inspect retained log')
           try:
@@ -126,6 +134,12 @@ jobs:
               errors = []
               if cluster.exists():
                   try:
+                      for logfile in sorted((cluster/'logs').glob('*.log')):
+                          lines=logfile.read_text(errors='replace').splitlines()
+                          if any(re.search(r'ERROR:|FATAL:|FAIL|Traceback',line) for line in lines):
+                              print('SQL_ERROR_CONTEXT_BEGIN '+logfile.name,flush=True)
+                              print('\n'.join(lines[-100:]),flush=True)
+                              print('SQL_ERROR_CONTEXT_END '+logfile.name,flush=True)
                       for name in ('setup-manifest.json','postgres.log'):
                           if (cluster/name).is_file(): shutil.copy2(cluster/name,evidence/name)
                       for name in ('logs','rollback-driver-logs'):
@@ -168,6 +182,9 @@ jobs:
               if not record['destroyed']: errors.append('owned cluster/socket/runtime destruction not verified')
               record['cleanup_errors'] = errors
               (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+              print('EXECUTION_RECEIPT_BEGIN',flush=True)
+              print(json.dumps(record,sort_keys=True),flush=True)
+              print('EXECUTION_RECEIPT_END',flush=True)
               if errors: raise RuntimeError('cleanup failed: '+', '.join(errors))
           PY
       - name: Preserve actual raw SQL and process evidence even on failure
@@ -198,7 +215,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, shutil, signal, subprocess, time, uuid
+          import hashlib, json, os, pathlib, re, shutil, signal, subprocess, time, uuid
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'acceptance'
           assert subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip() == os.environ['ACCEPTANCE_PIN']
           assert hashlib.sha256((root/'supabase/migrations/20261024130000_career_apply_card_cloud_bridge.sql').read_bytes()).hexdigest() == os.environ['UP_SHA256']
@@ -228,6 +245,14 @@ jobs:
                   result=subprocess.run(['bash',str(root/'tests/db/run.sh')],cwd=root,env=env,
                       stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT)
               record['runner_exit_code']=result.returncode
+              text=(evidence/'full-runner.log').read_text(errors='replace')
+              lines=text.splitlines()
+              assertions=[line for line in lines if re.search(r'NOTICE:.*ok|^\s*ok\s|passed',line)]
+              print('FULL_RUNNER_RESULT '+json.dumps({'exit_code':result.returncode,
+                  'assertion_lines':len(assertions),'log_sha256':hashlib.sha256((evidence/'full-runner.log').read_bytes()).hexdigest()}),flush=True)
+              print('FULL_RUNNER_TAIL_BEGIN',flush=True)
+              print('\n'.join(lines[-150:] if result.returncode else lines[-50:]),flush=True)
+              print('FULL_RUNNER_TAIL_END',flush=True)
               if result.returncode: raise RuntimeError('full database runner failed')
               record['result']='PASS'
           finally:
@@ -261,6 +286,9 @@ jobs:
               if not record['destroyed']: errors.append('full-runner destruction not verified')
               record['cleanup_errors']=errors
               (evidence/'scope.json').write_text(json.dumps(record,indent=2)+'\n')
+              print('SCOPE_RECEIPT_BEGIN',flush=True)
+              print(json.dumps(record,sort_keys=True),flush=True)
+              print('SCOPE_RECEIPT_END',flush=True)
               if errors: raise RuntimeError('cleanup failed: '+', '.join(errors))
           PY
       - name: Preserve full historical and final-schema integration output

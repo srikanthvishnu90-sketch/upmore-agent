@@ -1,0 +1,632 @@
+✔ F006 original matrix ask: software engineering intern roles (2.327342ms)
+✔ F006 original matrix ask: software engineering internship roles (0.312814ms)
+✖ F006 original matrix ask: software engineering internships roles (7.476126ms)
+✔ F006 original matrix ask: software engineering entry level roles (2.783446ms)
+✖ F006 original matrix ask: software engineering entry-level roles (0.432111ms)
+✔ F006 original matrix ask: software engineering early career roles (2.290923ms)
+✖ F006 original matrix ask: software engineering early careers roles (0.351094ms)
+✔ F006 original matrix ask: data analyst intern roles (0.445645ms)
+✔ F006 original matrix ask: data analyst internship roles (0.220543ms)
+✖ F006 original matrix ask: data analyst internships roles (0.452404ms)
+✔ F006 original matrix ask: data analyst entry level roles (0.220554ms)
+✖ F006 original matrix ask: data analyst entry-level roles (0.303109ms)
+✔ F006 original matrix ask: data analyst early career roles (0.082196ms)
+✖ F006 original matrix ask: data analyst early careers roles (0.673817ms)
+✔ F006 original matrix ask: financial analyst intern roles (0.117965ms)
+✔ F006 original matrix ask: financial analyst internship roles (0.067141ms)
+✖ F006 original matrix ask: financial analyst internships roles (0.256008ms)
+✔ F006 original matrix ask: financial analyst entry level roles (0.069042ms)
+✖ F006 original matrix ask: financial analyst entry-level roles (2.999338ms)
+✔ F006 original matrix ask: financial analyst early career roles (0.116715ms)
+✖ F006 original matrix ask: financial analyst early careers roles (0.278896ms)
+✔ F006 original matrix title: Software Engineering Intern (0.128343ms)
+✔ F006 original matrix title: Software Engineering Internship (0.087359ms)
+✖ F006 original matrix title: Software Engineering Internships (0.223552ms)
+✖ F006 original matrix title: Data Analyst Internships (0.138606ms)
+✖ F006 original matrix title: Finance Internships, Summer 2027 (0.172265ms)
+✖ F006 original matrix title: Entry-Level Software Engineer (0.208073ms)
+✖ F006 original matrix title: Early Careers — Data Analyst (0.520337ms)
+✔ F006 original matrix JD: an intern (0.143583ms)
+✖ F006 original matrix JD: internships (0.166864ms)
+✖ F006 bounded morphology/control: Data Analyst Interns |  (0.471016ms)
+✖ F006 bounded morphology/control: Data Analyst — Co-ops |  (0.21608ms)
+✖ F006 bounded morphology/control: Data Analyst — Co / op |  (0.149134ms)
+✖ F006 bounded morphology/control: Analyst | A co-op with our research team. (0.114361ms)
+✖ F006 bounded morphology/control: Analyst | Co-ops with our research team. (0.153968ms)
+✖ F006 bounded morphology/control: Entry–Level Data Analyst |  (3.453122ms)
+✖ F006 bounded morphology/control: Entry/Level Data Analyst |  (0.217083ms)
+✖ F006 bounded morphology/control: Early-Careers Data Analyst |  (0.138009ms)
+✖ F006 bounded morphology/control: New Graduates — Data Analyst |  (0.127748ms)
+✖ F006 bounded morphology/control: Graduate Programs — Analyst |  (0.177547ms)
+✖ F006 bounded morphology/control: Universities Recruiting — Data Analyst |  (0.14772ms)
+✔ F006 bounded morphology/control: Senior Data Analyst | Internships are available on a different team. (0.065407ms)
+✔ F006 bounded morphology/control: Data Analyst Manager | Early careers program supports other teams. (0.0503ms)
+✔ F006 bounded morphology/control: Summer Analyst Program Manager |  (0.178732ms)
+✔ F006 bounded morphology/control: Winter Business Analyst |  (0.219673ms)
+✔ F006 bounded morphology/control: Seasonal Customer Service Representative |  (0.104602ms)
+✔ F006 bounded morphology/control: International Data Analyst |  (0.070857ms)
+✔ F006 bounded morphology/control: Internal Controls Analyst |  (0.05505ms)
+✔ F006 bounded morphology/control: Internist |  (0.078972ms)
+✔ F006 bounded morphology/control: Data Analyst Internshipper |  (0.051286ms)
+✔ F006 bounded morphology/control: Engineering Cooperative |  (0.049898ms)
+✔ F006 bounded morphology/control: Staff Data Analyst |  (0.044548ms)
+✔ F006 bounded morphology/control: VP, Finance |  (0.043762ms)
+✔ F006 bounded morphology/control: Jr. Data Analyst |  (0.043542ms)
+✖ F006 normalized feed and hosted shelf use the same corrected band authority (5.699638ms)
+ℹ tests 55
+ℹ suites 0
+ℹ pass 28
+ℹ fail 27
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 244.274448
+
+✖ failing tests:
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: software engineering internships roles (7.476126ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: software engineering entry-level roles (0.432111ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: software engineering early careers roles (0.351094ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: data analyst internships roles (0.452404ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: data analyst entry-level roles (0.303109ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: data analyst early careers roles (0.673817ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: financial analyst internships roles (0.256008ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: financial analyst entry-level roles (2.999338ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:11:3
+✖ F006 original matrix ask: financial analyst early careers roles (0.278896ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:11:57)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:14:3
+✖ F006 original matrix title: Software Engineering Internships (0.223552ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:14:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:14:3
+✖ F006 original matrix title: Data Analyst Internships (0.138606ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:14:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:14:3
+✖ F006 original matrix title: Finance Internships, Summer 2027 (0.172265ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:14:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:14:3
+✖ F006 original matrix title: Entry-Level Software Engineer (0.208073ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:14:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:14:3
+✖ F006 original matrix title: Early Careers — Data Analyst (0.520337ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:14:61)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:16:51
+✖ F006 original matrix JD: internships (0.166864ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:16:107)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Data Analyst Interns |  (0.471016ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Data Analyst — Co-ops |  (0.21608ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Data Analyst — Co / op |  (0.149134ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Analyst | A co-op with our research team. (0.114361ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Analyst | Co-ops with our research team. (0.153968ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Entry–Level Data Analyst |  (3.453122ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Entry/Level Data Analyst |  (0.217083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Early-Careers Data Analyst |  (0.138009ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: New Graduates — Data Analyst |  (0.127748ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Graduate Programs — Analyst |  (0.177547ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:43:4
+✖ F006 bounded morphology/control: Universities Recruiting — Data Analyst |  (0.14772ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'new_grad'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:43:75)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'new_grad',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/career-f006-seniority-morphology.test.cjs:45:1
+✖ F006 normalized feed and hosted shelf use the same corrected band authority (5.699638ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'mid' !== 'intern'
+  
+      at TestContext.<anonymous> (/tmp/upmore-f006-seniority-morphology-20261022/tests/career-f006-seniority-morphology.test.cjs:50:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mid',
+    expected: 'intern',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

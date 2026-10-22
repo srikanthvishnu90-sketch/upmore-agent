@@ -1,0 +1,42 @@
+{
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "fix_source_commit": "4ce83caf9f60737b04f51398157a65b0101d4f28",
+  "original_repro_commit": "23b566b9f1d35f1d3ec595e6b45066769acc3740",
+  "original_repro_only_change": "require accepts F006_JOBS_SOURCE, otherwise uses this checkout domain module",
+  "model_calls": 0,
+  "spend_usd": 0,
+  "base_source_sha256": "fd63d6f36638b621b1fbd87c99aa12049d14d87a1146b1e9f6383267dd797012",
+  "fix_source_sha256": "539fcb34ee519506538c25dad5f5faadcd864ba9b99da5d83bc266f374bb65f5",
+  "new_guard_test_sha256": "8168143b7aebca68c7bdafe3646e121118537107cee9494329cd4d607ce0c259",
+  "results": {
+    "original_matrix": {
+      "base_pass": 15,
+      "base_fail": 15,
+      "fix_pass": 30,
+      "fix_fail": 0
+    },
+    "new_guards": {
+      "base_pass": 28,
+      "base_fail": 27,
+      "fix_pass": 55,
+      "fix_fail": 0
+    },
+    "unchanged_neighbors": {
+      "base_pass": 37,
+      "base_fail": 0,
+      "fix_pass": 37,
+      "fix_fail": 0
+    }
+  },
+  "reproduce_matrix": "F006_JOBS_SOURCE=/absolute/path/to/checkout/packages/domain/121-career-jobs.js node tests/fixtures/f006-20261022/original-matrix-repro.cjs",
+  "reproduce_guards": "node --test tests/career-f006-seniority-morphology.test.cjs",
+  "reproduce_neighbors": "node --test tests/career-jobs.test.cjs tests/career-jobs-domain.test.cjs tests/career-bug229-summer-analyst-band.test.cjs",
+  "artifact_sha256": {
+    "original-matrix-repro.cjs": "ffb26e774bba4601cf110322357100477e1989aa5488e67ffeef08003df30430",
+    "guards-neighbors-fix.log": "9e958e43ca6ac2b8d329a4878a80aab06d000c1cb4465c48cabae62cb83d67a7",
+    "neighbors-base.log": "09672c44714af6a9d715bf2c65fbf460b1c839b71d62155a9b9e871fb512ec67",
+    "guards-base.log": "2bd66bc7b1d59602492fdf41e827552cf7b8147d015b59fb9754516329b7fffe",
+    "original-matrix-fix.log": "c9e9109b64bc4b6415cd6797c9dc87facce411bc223583337004f89c1033e2ac",
+    "original-matrix-base.log": "4cbdef527176c7ca80b3943db9c9b4acac49f65bb162352e1b66e0267cbd323f"
+  }
+}

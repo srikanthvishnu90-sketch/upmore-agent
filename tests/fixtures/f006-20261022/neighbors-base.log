@@ -1,0 +1,45 @@
+✔ BUG-229: the LA-0043 witness — 'Summer Analyst' bands intern (1.780842ms)
+✔ BUG-229: the seasonal-analyst title family bands intern (2.53428ms)
+✔ BUG-229: seasonal JOBS keep their bands — the noun is the convention, not the season (1.166789ms)
+✔ BUG-229: a management title naming the program stays the manager's band (0.214512ms)
+✔ BUG-229: frozen verdicts — unrelated bands do not move (0.160577ms)
+✔ ask families parse from the ask text (abbreviations included) (8.700001ms)
+✔ PM/product ask returns PM roles only — zero SWE roles in output (13.57698ms)
+✔ PM ask over an SWE-only pool: honest empty, true reason, one next step — never padded (3.285183ms)
+✔ data ask returns data roles only — no SWE padding (1.366981ms)
+✔ SWE ask still returns SWE roles (control case) (15.184937ms)
+✔ ask with no role family keeps legacy unfiltered behavior (2.127987ms)
+✔ scoreFit opt-in ask-family exclusion: cross-family posting is excluded with the reason, same-family is not (1.147535ms)
+✔ SC-065 regression on the real gauntlet corpus: PM ask -> honest zero; SWE ask -> SWE roles (21.932291ms)
+✔ DISC-003 greenhouse normalization: stable id, family, band, jd text unescaped (9.625125ms)
+✔ DISC-003 lever normalization (recorded shape: text/categories/hostedUrl/createdAt ms) (1.566012ms)
+✔ DISC-003 ashby + smartrecruiters normalization (1.100304ms)
+✔ DISC-003 feed URLs are the exact Appendix B.2 endpoints (0.513191ms)
+✔ DISC-003 fetchFeed never throws on HTTP error; the failure is recorded (3.792804ms)
+✔ DISC-003 dedupe: same role cross-posted on two boards collapses, both URLs kept (regression: req ids are source-scoped) (4.396108ms)
+✔ DISC-003 dedupe: two distinct reqs on the SAME board stay separate (1.331345ms)
+✔ DISC-004 diff: only genuinely new postings fire; unchanged second poll is empty (7.301881ms)
+✔ DISC-008 ghost flags: 94-day reposted role says lower odds in plain language (3.036683ms)
+✔ DISC-008 fresh, complete posting has no flags (1.837904ms)
+✔ DISC-005 hard filter: sponsorship case from Doc 2 section 2 — excluded, never scored (7.80641ms)
+✔ DISC-005 hard filters: citizenship, seniority, degree, clearance, location each exclude with a reason (4.985395ms)
+✔ DISC-005 fit score: reasons + gaps always present, bucket from neutral bar; starred company lifts score (2.226636ms)
+✔ DISC-005 graduation window: intern posting targeting another class year excludes (1.568657ms)
+✔ APPE-001 persona fixture adapts: skills w/ evidence, starred companies, citizenship, grad year (5.24861ms)
+✔ DISC-006 shortlist: top-N, excluded dropped, yes/no feedback memory nudges later scores (3.776838ms)
+✔ replay: location alias — persona says NYC, posting says New York, NY (bug found by the persona test) (1.605628ms)
+✔ replay: stripHtml handles Greenhouse-escaped content and entities (0.331433ms)
+✔ board registry schema: every entry has provider, board, status, checkedAt, note (1.095875ms)
+✔ board registry: Ramp is Ashby live (was Lever, which 404s); no Lever Ramp entry remains (0.163403ms)
+✔ board registry: Goldman Sachs and Netflix are honestly dead — custom/no-public-api, no invented endpoint (1.805727ms)
+✔ board registry: boardFeeds() returns live boards only, as fetchable feed descriptors (0.498361ms)
+✔ dead boards are never fetched: fetchFeed skips without calling fetch, poll reports deadBoards (1.27924ms)
+✔ replay: snapshot repost counting — a role that vanishes and returns counts as reposted (0.367719ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 222.869503

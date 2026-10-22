@@ -364,4 +364,41 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
+# The held live apply of the card + bridge (docs/apply/held-card-bridge): from the database's live shape (both rolled
+# back), preflight -> card -> preflight -> bridge -> verify; then both rollbacks restore every replaced function byte for
+# byte and remove the ledger rows; then apply again (idempotent from clean) and verify. Enrollment: once, then revoked.
+if [[ -f "$BRIDGE_PATH" ]]; then
+  HA="$ROOT/docs/apply/held-card-bridge"
+  echo "== held live apply rehearsal (card 20261021220430 + bridge 20261024130000)"
+  (cd "$ROOT" && bash scripts/ops/build-held-card-bridge.sh --check)
+  md5s() { "${PSQL[@]}" -tAc "select string_agg(p.proname||'('||pg_get_function_identity_arguments(p.oid)||'):'||md5(p.prosrc),' ' order by p.proname, pg_get_function_identity_arguments(p.oid)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('career_apply_cloud_refusal','career_apply_cloud_claim_at','career_apply_claim_own','career_apply_extension_begin_own','career_apply_batch_revoke_own','career_apply_cloud_optin_as','career_apply_cloud_optin_get')"; }
+  "${PSQL[@]}" -c "delete from career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_AGENT_SUBMIT')" >/dev/null
+  "${QUIET[@]}" -f "$HA/90-rollback-bridge.sql" >/dev/null
+  "${QUIET[@]}" -f "$HA/91-rollback-card.sql" >/dev/null
+  LIVE_SHAPE="$(md5s)"; echo "  live shape: $LIVE_SHAPE"
+  [[ "$("${PSQL[@]}" -tAc "select to_regprocedure('public.career_apply_message_card_approve_own(uuid,text)') is null and to_regnamespace('career_message_approval_private') is null")" == t ]] || { echo "FAIL rollbacks left card objects"; exit 1; }
+  # A replaced function that is not the rehearsed one (one transaction, rolled back by the refusal) stops the preflight.
+  "${QUIET[@]}" -1 -c "create or replace function public.career_apply_cloud_optin_get(p_user uuid) returns jsonb language sql as \$q\$ select '{}'::jsonb \$q\$" \
+    -f "$HA/01-preflight.sql" >/dev/null 2>&1 && { echo "FAIL preflight passed on a drifted live function"; exit 1; }
+  [[ "$(md5s)" == "$LIVE_SHAPE" ]] || { echo "FAIL drift probe left a change"; exit 1; }
+  echo "  ok   preflight refuses a live shape it was not rehearsed on"
+  for f in 01-preflight 02-apply-card 01-preflight 03-apply-bridge 04-verify; do "${QUIET[@]}" -f "$HA/$f.sql" >/dev/null || { echo "FAIL held apply step $f"; exit 1; }; echo "  ok   $f"; done
+  "${QUIET[@]}" -f "$HA/01-preflight.sql" >/dev/null 2>&1 && { echo "FAIL preflight passed with the bridge applied"; exit 1; }
+  echo "  ok   preflight refuses once the bridge is applied"
+  "${PSQL[@]}" -c "insert into auth.users(id,email) values('00000000-0000-4000-8000-0000000000e1','Enroll.Owner@Example.test'); insert into profiles(id) values('00000000-0000-4000-8000-0000000000e1')" >/dev/null
+  sed "s/__OWNER_ACCOUNT_EMAIL__/enroll.owner@example.test/" "$HA/05-enroll-owner.sql" | "${QUIET[@]}" -f - >/dev/null || { echo "FAIL enrollment"; exit 1; }
+  sed "s/__OWNER_ACCOUNT_EMAIL__/enroll.owner@example.test/" "$HA/05-enroll-owner.sql" | "${QUIET[@]}" -f - >/dev/null 2>&1 && { echo "FAIL a second live enrollment"; exit 1; }
+  "${QUIET[@]}" -f "$HA/05-enroll-owner.sql" >/dev/null 2>&1 && { echo "FAIL unreplaced placeholder enrolled"; exit 1; }
+  "${PSQL[@]}" -c "update career_message_approval_private.cloud_card_enrollments set revoked_at = now() where revoked_at is null" >/dev/null
+  [[ "$("${PSQL[@]}" -tAc "select career_message_approval_private.cloud_eligible('00000000-0000-4000-8000-0000000000e1', now())")" == f ]] || { echo "FAIL revoke"; exit 1; }
+  echo "  ok   one 24h enrollment; a second and an unreplaced one refused; revoke ends it"
+  "${PSQL[@]}" -c "delete from career_message_approval_private.cloud_card_enrollments; delete from profiles where id='00000000-0000-4000-8000-0000000000e1'; delete from auth.users where id='00000000-0000-4000-8000-0000000000e1'" >/dev/null
+  "${QUIET[@]}" -f "$HA/90-rollback-bridge.sql" >/dev/null
+  "${QUIET[@]}" -f "$HA/91-rollback-card.sql" >/dev/null
+  AFTER="$(md5s)"; [[ "$AFTER" == "$LIVE_SHAPE" ]] || { echo "before: $LIVE_SHAPE"; echo "after:  $AFTER"; echo "FAIL rollback did not restore the replaced functions byte for byte"; exit 1; }
+  [[ "$("${PSQL[@]}" -tAc "select count(*) from public.upmore_migration_ledger where filename in ('20261021220430_career_apply_message_cards.sql','20261024130000_career_apply_card_cloud_bridge.sql')")" == 0 ]] || { echo "FAIL ledger rows left"; exit 1; }
+  echo "  ok   rollbacks restore the live shape byte for byte and remove the ledger rows"
+  for f in 02-apply-card 03-apply-bridge 04-verify; do "${QUIET[@]}" -f "$HA/$f.sql" >/dev/null || { echo "FAIL re-apply $f"; exit 1; }; done
+  echo "  ok   applies again from clean and verifies"
+fi
 echo "db tests passed"

@@ -1,0 +1,10 @@
+{
+  "postgres": "16.14",
+  "psql_client": "17.11",
+  "scope": "throwaway local Unix socket only; no live credentials; no migrations",
+  "new_spend_usd": 0,
+  "output": "16.14\nCREATE EXTENSION\nt\n",
+  "pass": true,
+  "stop_exit": 0,
+  "instance_destroyed": true
+}

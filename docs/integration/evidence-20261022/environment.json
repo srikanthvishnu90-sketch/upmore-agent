@@ -1,0 +1,20 @@
+{
+  "recorded_at": "2026-10-22T19:30:45.139952+00:00",
+  "versions": {
+    "node": "v22.23.3",
+    "deno": "deno 2.9.6 (stable, release, x86_64-unknown-linux-gnu)\nv8 15.0.245.2-rusty\ntypescript 6.0.3",
+    "chromium": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+    "python": "Python 3.12.14",
+    "esbuild": "0.25.12"
+  },
+  "deno_matches_production_runtime": "NOT_VERIFIED",
+  "sandbox": "Chromium sandbox enabled; Node suite outside nested execution sandbox so the browser can launch",
+  "paid_provider_credentials": "not inherited",
+  "timezone": "TZ unset; host UTC; identical environment before and after each merge",
+  "dependency_sources": {
+    "std": "f834d0223364361169314833e3c7a8f62ce11d58",
+    "deno_dom": "ef8a617ee6b49f8f1e6606b70e66dff3cb441bea"
+  },
+  "runner_sha256": "0baca92c3f41ed13a1f9917de70ac3d72c952557cc619574c12571ca16701dbb",
+  "import_map_sha256": "aabcb596be2d781ed2e23dd4c1af3cd2bc106c121cc783ffafee20aa94e237eb"
+}

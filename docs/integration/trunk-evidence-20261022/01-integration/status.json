@@ -1,0 +1,9 @@
+{
+  "step": 1,
+  "pre_step": "72031f0d2dca55affd2434147e45362a2dc87dad",
+  "incoming": "74c0d765",
+  "merge_conflicts": [],
+  "product_test_script_workflow_changes": [],
+  "suites": "NOT_RUN pending fresh post-merge execution",
+  "new_spend_usd": 0
+}

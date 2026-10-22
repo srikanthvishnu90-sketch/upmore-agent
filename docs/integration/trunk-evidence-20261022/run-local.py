@@ -1,0 +1,70 @@
+import argparse, ctypes, hashlib, json, os, pathlib, re, subprocess, time
+
+p = argparse.ArgumentParser()
+p.add_argument('repo')
+p.add_argument('label')
+p.add_argument('suite', choices=['node', 'edge', 'architect'])
+p.add_argument('--node-concurrency', type=int, choices=[2, 4], default=4)
+a = p.parse_args()
+repo = pathlib.Path(a.repo)
+out = pathlib.Path('/tmp/trunk-20261022-evidence') / a.label
+out.mkdir(parents=True, exist_ok=True)
+env = {k: v for k, v in os.environ.items() if k in {'PATH', 'TMPDIR', 'LANG', 'LC_ALL', 'USER'}}
+env.update({
+    'PATH': '/tmp/case2-test-tools/node_modules/.bin:' + env.get('PATH', ''),
+    'HOME': '/tmp/integration-20261022-clean-home',
+    'DENO_DIR': '/tmp/case2-deno-cache',
+    'DENO_BIN': '/tmp/case2-test-tools/node_modules/.bin/deno',
+    'NO_COLOR': '1',
+    'UPMORE_PLAYWRIGHT_PATH': '/tmp/case2-test-tools/node_modules/playwright',
+    'UPMORE_CHROMIUM_PATH': '/usr/bin/chromium',
+    'ESBUILD_BIN': '/tmp/case2-test-tools/node_modules/.bin/esbuild',
+})
+pathlib.Path(env['HOME']).mkdir(exist_ok=True)
+if a.suite == 'node':
+    gate = (repo / 'scripts/gate.sh').read_text()
+    shared_block = re.search(r"^shared_tests=\((.*?)^\)", gate, re.M | re.S).group(1)
+    shared = re.findall(r"tests/[A-Za-z0-9_./-]+\.cjs", shared_block)
+    archive_block = re.search(r"^declare -A archive_tests=\((.*?)^\)", gate, re.M | re.S).group(1)
+    archive = set(re.findall(r"\[(tests/[^\]]+)[\]]", archive_block))
+    career = sorted(str(x.relative_to(repo)) for x in (repo / 'tests').glob('career-*.test.cjs'))
+    first = 'tests/career-apply-script.test.cjs'
+    files = list(dict.fromkeys([first] + [x for x in career if x != first and x not in archive] + shared))
+    cmd = ['node', '--experimental-vm-modules', '--test', f'--test-concurrency={a.node_concurrency}', *files]
+else:
+    cmd = [env['DENO_BIN'], 'test', '--cached-only', '--import-map=/tmp/f009-deps/import-map.json',
+           '--allow-read', '--allow-write=/tmp', '--allow-run', '--allow-env',
+           '--allow-net=127.0.0.1,localhost', '--no-check']
+    if a.suite == 'architect':
+        cmd += ['--ignore=tests/architect/pending']
+    cmd += ['tests/' + a.suite]
+    files = []
+# Adopt and reap finished browser grandchildren; leave all live processes alone.
+# This prevents test-owned Chromium zombies accumulating under the container's PID 1.
+subreaper = ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0
+start = time.time()
+with (out / (a.suite + '.log')).open('w') as f:
+    result = subprocess.run(cmd, cwd=repo, env=env, stdout=f, stderr=subprocess.STDOUT)
+reaped = 0
+if subreaper:
+    while True:
+        try:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+            if pid == 0:
+                break
+            reaped += 1
+        except ChildProcessError:
+            break
+log = (out / (a.suite + '.log')).read_text(errors='replace')
+record = {
+    'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+    'uid': os.geteuid(), 'node_selection': 'gate career plus shared, existing archives excluded' if a.suite == 'node' else None, 'suite': a.suite, 'command': cmd, 'cwd': str(repo), 'exit_code': result.returncode,
+    'seconds': round(time.time() - start, 3), 'completed_test_grandchildren_reaped': reaped, 'subreaper': subreaper, 'provider_credentials': 'not inherited',
+    'deno_network': 'loopback only', 'node_files': len(files), 'new_spend_usd': 0,
+    'log_sha256': hashlib.sha256(log.encode()).hexdigest(),
+    'node_summary': re.findall(r'^# (?:tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) .*$', log, re.M)[-8:],
+    'deno_summary': re.findall(r'^.*\d+ passed.*\d+ failed.*$', log, re.M)[-1:],
+}
+(out / (a.suite + '.json')).write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps({k: v for k, v in record.items() if k != 'command'}), flush=True)
+raise SystemExit(result.returncode)

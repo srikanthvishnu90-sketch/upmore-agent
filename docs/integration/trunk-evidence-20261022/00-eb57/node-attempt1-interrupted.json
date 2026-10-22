@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-22T21:30:12.350375+00:00",
+  "status": "INTERRUPTED; incomplete suite, not a pass",
+  "reason": "restored extension-sync suite missing its checked-in jsdom dependency; install existing lock before a clean Node baseline",
+  "stopped_runner_pids": [
+    769430
+  ]
+}

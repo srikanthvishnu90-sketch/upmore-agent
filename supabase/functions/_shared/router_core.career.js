@@ -22288,7 +22288,12 @@ const CareerPortalApply = (() => {
     { name: "not_answer", pattern: "not (to )?answer" },
     { name: "not_disclose", pattern: "not (to )?disclose" },
     { name: "no_answer", pattern: "no answer" },
+    { name: "want_not", pattern: "do not want to answer|dont want to answer|don t want to answer" },
+    { name: "rather_not", pattern: "rather not" },
+    { name: "choose_not", pattern: "choose not" },
+    { name: "not_identify", pattern: "not (to )?(self identify|identify|specify|say)" },
   ];
+  const EEO_DECLINE_SOURCE = EEO_DECLINE_MEANING.map((r) => "(?:" + r.pattern + ")").join("|");
   const normMeaningText = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
   const EEO_DECLINE_RULES = EEO_DECLINE_MEANING.map((r) => ({ name: r.name, re: new RegExp(r.pattern) }));
   function eeoDeclineMatch(text) {
@@ -23567,7 +23572,7 @@ const CareerPortalApply = (() => {
     return report;
   }
 
-  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, eeoDeclineMatch, isEeoDeclineText };
+  return { classifyTarget, createSandboxBoard, createPortalSession, analyzeForm, runApply, runApplyWithEmailCode, codeStopText, submitDoorstep, reconcile, resolveUnknownOutcomes, profileValue, capCheck, collisionCheck, deriveAnswers, answerMapCoverage, ANSWER_KEY_SOURCES, NON_ANSWER_FACT_KINDS, EDUCATION_KEYS, SANDBOX_FIELDS, SPEC_CAPS, resumeApply, continueApply, portalInputsFromBank, EEO_DECLINE_MEANING, EEO_DECLINE_SOURCE, eeoDeclineMatch, isEeoDeclineText };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPortalApply;
 

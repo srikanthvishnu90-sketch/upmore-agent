@@ -315,7 +315,11 @@ const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").re
 // decline-class equivalence is matched explicitly, nothing else is.
 // F-024: Lever's disability select says "I do not want to answer".
 // This is a decline choice; "I do not have a disability" remains substantive.
-const isDeclineText = (s) => /decline|prefer not|do not wish|do not want to answer|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
+// The decline class has ONE home: module 149's EEO_DECLINE_MEANING (the gate that checks what was filled). This
+// matcher used to carry its own copy and drifted (F-024 added a phrasing here that the gate refused).
+const { EEO_DECLINE_SOURCE } = require(path.join(__dirname, "..", "..", "packages", "domain", "149-career-portal-apply.js"));
+const DECLINE_RE = new RegExp(EEO_DECLINE_SOURCE);
+const isDeclineText = (s) => DECLINE_RE.test(normOpt(s));
 function matchOption(options, value) {
   const v = normOpt(value);
   if (!v) return null;
@@ -522,7 +526,7 @@ async function driveWidget(board, cmd) {
         await page.waitForTimeout(400);
       }
     }
-    chosen = await page.evaluate(({ tok, full }) => {
+    chosen = await page.evaluate(({ tok, full, declineSrc }) => {
       const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
       const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
       document.querySelectorAll("[data-upmore-opt]").forEach((e) => e.removeAttribute("data-upmore-opt"));
@@ -535,7 +539,8 @@ async function driveWidget(board, cmd) {
       // only when nothing stronger exists anywhere in the list.
       const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
       let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
-      const isDecline = (s) => /decline|prefer not|do not wish|do not want to answer|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
+      const declineRe = new RegExp(declineSrc);
+      const isDecline = (s) => declineRe.test(norm(s));
       const wantedDecline = isDecline(full);
       for (const sel of pools) {
         for (const el of Array.from(document.querySelectorAll(sel))) {
@@ -552,7 +557,7 @@ async function driveWidget(board, cmd) {
       const hit = segHit || declineHit || tokenHit || prefixHit;
       if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
       return null;
-    }, { tok, full: wanted }).catch(() => null);
+    }, { tok, full: wanted, declineSrc: EEO_DECLINE_SOURCE }).catch(() => null);
     if (chosen) {
       const clicked = await page.click('[data-upmore-opt="1"]', { timeout: 5000 }).then(() => true).catch(() => false);
       if (!clicked) {

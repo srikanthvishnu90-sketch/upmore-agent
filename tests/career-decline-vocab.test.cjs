@@ -169,21 +169,23 @@ test("class membership: substantive answers and other meanings are NOT decline-c
   ]) assert.equal(Portal.isEeoDeclineText(s), false, JSON.stringify(s));
 });
 
-test("alignment: the class is semantically identical to the on-page matcher's (helper D8/BUG-067)", () => {
-  // Recorded reference: scripts/career/portal-browser-helper.cjs —
-  // normOpt + isDeclineText (line ~396 at base cea914fe). If the helper's
-  // vocabulary ever changes, this test is the tripwire that says the two
-  // homes must be re-aligned (the unification seam is in
-  // docs/career/decline-vocab-2026-10-21.md).
-  const helperNorm = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-  const helperClass = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(helperNorm(s));
+test("alignment: the on-page matcher IS this class (helper D8/BUG-067; unified 2026-10-22)", () => {
+  // This was a tripwire against a frozen copy of the helper's regex, to fire when the two homes drifted. They did
+  // (F-024 taught the helper "I do not want to answer"; the frozen copy expected that NOT to be a decline). The helper
+  // now builds its matcher from Portal.EEO_DECLINE_SOURCE, so there is one home; tests/career-decline-one-class.test.cjs
+  // checks the helper source and the answer-option matcher against it.
+  const re = new RegExp(Portal.EEO_DECLINE_SOURCE);
+  const norm = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
   const probes = [
     "Decline to self-identify", "Decline To Self Identify", "I don't wish to answer",
     "I prefer not to say", "Prefer not to answer", "Do not wish to disclose",
     "I do not wish to answer", "No answer", "Decline", "decline to answer",
     "Female", "Male", "Yes", "No", "Not applicable", "N/A", "I will answer",
     "Hispanic or Latino", "I am not a veteran", "Prefer to answer", "Wish to answer",
-    "I don't want to answer", "Refuse to answer", "Two or more races", "White",
+    "I don't want to answer", "I do not want to answer", "Refuse to answer", "Two or more races", "White",
   ];
-  for (const p of probes) assert.equal(Portal.isEeoDeclineText(p), helperClass(p), `probe ${JSON.stringify(p)}`);
+  for (const p of probes) assert.equal(Portal.isEeoDeclineText(p), re.test(norm(p)), `probe ${JSON.stringify(p)}`);
+  assert.equal(Portal.isEeoDeclineText("I don't want to answer"), true);
+  assert.equal(Portal.isEeoDeclineText("I do not want to answer"), true);
+  assert.equal(Portal.isEeoDeclineText("I am not a veteran"), false);
 });

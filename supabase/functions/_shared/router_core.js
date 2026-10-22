@@ -51594,6 +51594,64 @@ const CareerBatchApply = (() => {
     return RUNTIME.get(run.id);
   }
 
+  // F-035 (bench-60 fix round, 2026-10-22): resolve a fresh board
+  // for one application, or record its stop and return null. A
+  // boardFor that resolves through the worker bridge records the
+  // worker's coded refusal on itself (careerBoardFor.lastRefusal)
+  // when it returns null; a boardFor that throws a coded error
+  // directly is treated the same. The naming rule (stopForRefusal):
+  // an ANSWERED refusal — the service heard the ask and decided
+  // (SESSION_LIMIT, DRIVER_HOST_REFUSED, FAMILY_NOT_DRIVEABLE, …) —
+  // names the stop by its own code, with the code also carried as
+  // workerRefusal. A TRANSPORT-family failure — no answer ever
+  // arrived (WORKER_UNREACHABLE, WORKER_TRANSPORT_TIMEOUT,
+  // WORKER_TRANSPORT_CLOSED, WORKER_PROTOCOL) — is the not-wired
+  // degradation the loop has always named BOARD_NOT_WIRED
+  // (loop-acceptance's standing guard: a down worker stops every
+  // drive BOARD_NOT_WIRED); its code is still carried as
+  // workerRefusal evidence. BOARD_NOT_WIRED without a workerRefusal
+  // means no board adapter exists for this posting's family at all.
+  const TRANSPORT_REFUSAL_CODES = new Set(["WORKER_UNREACHABLE", "WORKER_TRANSPORT_TIMEOUT", "WORKER_TRANSPORT_CLOSED", "WORKER_PROTOCOL"]);
+  function stopForRefusal(run, app, code, message) {
+    if (TRANSPORT_REFUSAL_CODES.has(code)) {
+      stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run", { workerRefusal: code });
+      return;
+    }
+    stopApp(run, app, code, message || `the board worker refused this session (${code})`, { workerRefusal: code });
+  }
+  function boardOrStop(run, app, d, posting) {
+    let board = null;
+    try { board = typeof d.boardFor === "function" ? d.boardFor(posting) : null; }
+    catch (e) {
+      if (e && e.code) { stopForRefusal(run, app, e.code, String((e && e.message) || e).slice(0, 300)); return null; }
+      board = null;
+    }
+    if (board) return board;
+    const refusal = (typeof d.boardFor === "function" && d.boardFor.lastRefusal) || null;
+    if (refusal && refusal.code) { stopForRefusal(run, app, refusal.code, refusal.message); return null; }
+    stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run");
+    return null;
+  }
+
+  // F-036 (bench-60 fix round, 2026-10-22): a board throw mid-drive
+  // (measured signature: module 150's coded DRIVER_ERROR, "Target
+  // crashed") becomes THIS application's named stop — never an
+  // escape that blocks the intent and erases the run record. The
+  // stop carries the verbatim error and the fills the board had
+  // already rendered (its own renderedValues — preserved, never
+  // reconstructed).
+  function stopDriveThrow(run, app, board, e) {
+    const msg = String((e && e.message) || e).slice(0, 300);
+    const detail = { error: msg };
+    try {
+      const rv = board && board.renderedValues;
+      if (rv && typeof rv === "object" && !Array.isArray(rv) && Object.keys(rv).length) {
+        detail.fills = JSON.parse(JSON.stringify(rv));
+      }
+    } catch (_) { /* a board that cannot report its fills loses nothing else */ }
+    stopApp(run, app, (e && e.code) || "DRIVER_ERROR", `the portal drive threw before it could name an outcome: ${msg}`, detail);
+  }
+
   // ---------------- prepare: discover -> screen -> tailor -> doorsteps ----
   function prepareRun(run, deps) {
     const d = deps || {};
@@ -51705,11 +51763,19 @@ const CareerBatchApply = (() => {
       }
       const profile = profileFor(d, posting);
       rt.profiles[key] = profile;
-      const board = d.boardFor ? d.boardFor(posting) : null;
-      if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
-      const session = Portal.createPortalSession({ userId: run.userId, board });
-      rt.sessions[key] = session;
-      const res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      const board = boardOrStop(run, app, d, posting);
+      if (!board) continue;
+      let res = null;
+      try {
+        const session = Portal.createPortalSession({ userId: run.userId, board });
+        rt.sessions[key] = session;
+        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+      } catch (e) {
+        // F-036: the throw is this application's outcome — stop it
+        // named, keep the run record, drive the next application.
+        stopDriveThrow(run, app, board, e);
+        continue;
+      }
       absorbPrepareResult(run, app, res);
       // Session reuse (chunk 50%): a doorstep / attestation-pending
       // application's page is still live on its board session — leave
@@ -51878,11 +51944,18 @@ const CareerBatchApply = (() => {
         else { try { resumedBoard.close && resumedBoard.close(); } catch (_) {} delete rt.sessions[app.postingKey]; }
       }
       if (!res) {
-        const board = d.boardFor ? d.boardFor(posting) : null;
-        if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+        const board = boardOrStop(run, app, d, posting);
+        if (!board) continue;
         const session = Portal.createPortalSession({ userId: run.userId, board });
         rt.sessions[app.postingKey] = session;
-        res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+        try {
+          res = Portal.runApply(session, { posting, profile, log, userId: run.userId, now, attestations: d.attestations || {} });
+        } catch (e) {
+          // F-036, approve path: the same escape would erase the
+          // same record — the throw is the application's named stop.
+          stopDriveThrow(run, app, board, e);
+          continue;
+        }
       }
       if (res && res.resultStatus === "prepared" && res.doorstep) {
         app.stage = "doorstep";
@@ -52016,8 +52089,8 @@ const CareerBatchApply = (() => {
           // Cross-invocation rebuild: a fresh session re-prepares the
           // doorstep; 149's click-time hash verification is the guard
           // that a changed payload stops (APPROVAL_PAYLOAD_MISMATCH).
-          const board = d.boardFor ? d.boardFor(posting) : null;
-          if (!board) { stopApp(run, app, "BOARD_NOT_WIRED", "no board adapter is wired for this posting's family in this run"); continue; }
+          const board = boardOrStop(run, app, d, posting);
+          if (!board) continue;
           session = Portal.createPortalSession({ userId: run.userId, board });
           rt.sessions[key] = session;
           const profile = rt.profiles[key] || profileFor(d, posting);

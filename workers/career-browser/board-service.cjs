@@ -59,6 +59,24 @@ const http = require("node:http");
 const crypto = require("node:crypto");
 
 const BOARD_CALL_METHODS = ["open", "form", "fill", "answers", "atReview", "armForSubmit", "submit", "submissionState"];
+// REAP-ON-CRASH (bench-60 fix round, 2026-10-22; root-cause note
+// docs/apply/ROOT-CAUSE-BENCH60-FIX-2026-10-22.md): a board call that
+// throws one of these signatures means the session's PAGE IS GONE —
+// module 150's helper answered with a crash signature, or the helper
+// itself was killed on a timeout (150 terminates it; every page it
+// held dies with it), or the board was already closed. Such a
+// session is destroyed at the failing call, freeing its per-user
+// cap slot immediately, instead of squatting it until the idle TTL
+// (measured in the bench: crash zombies filled the cap, new creates
+// were refused 409 SESSION_LIMIT, and the bridge mislabeled the
+// saturation BOARD_NOT_WIRED). Any OTHER throw is a live board
+// declining a call and never reaps.
+const BOARD_DEATH_CODES = new Set(["BOARD_CLOSED", "DRIVER_TIMEOUT"]);
+const BOARD_DEATH_MESSAGE = /target crashed|target page, context or browser has been closed|browser has been closed|page crashed|page has been closed|session closed/i;
+function boardDied(code, message) {
+  if (BOARD_DEATH_CODES.has(code)) return true;
+  return BOARD_DEATH_MESSAGE.test(message || "");
+}
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_MAX_SESSIONS_PER_USER = 32;
 const DEFAULT_MAX_BODY_BYTES = 65536;
@@ -106,7 +124,7 @@ function createBoardService(config) {
 
   const sessions = new Map(); // id -> {id, userId, board, family, createdAt, lastActivityAt}
   const counters = {
-    sessionsCreated: 0, callsServed: 0,
+    sessionsCreated: 0, callsServed: 0, reaped: 0,
     refused: { auth: 0, host: 0, verdict: 0, userMismatch: 0, expired: 0, sessionLimit: 0, notFound: 0 },
   };
   const respond = (status, body) => ({ status, body });
@@ -215,9 +233,22 @@ function createBoardService(config) {
       if (rv) responseBody.renderedValues = rv;
       return respond(200, responseBody);
     } catch (e) {
-      session.lastActivityAt = now();
       counters.callsServed += 1;
-      return respond(200, { ok: false, code: (e && e.code) || "BOARD_ERROR", message: String((e && e.message) || e).slice(0, 300) });
+      const code = (e && e.code) || "BOARD_ERROR";
+      const message = String((e && e.message) || e).slice(0, 300);
+      if (boardDied(code, message)) {
+        // The page is gone: reap NOW and say so on the response, so
+        // the sharded router drops its ownership entry at once. The
+        // caller still receives the board's own error, unchanged; a
+        // later call on this id answers the ordinary 404, which the
+        // client board surfaces as WORKER_SESSION_GONE (module 155's
+        // session-death path — resume falls back to a fresh drive).
+        destroy(session);
+        counters.reaped += 1;
+        return respond(200, { ok: false, code, message, sessionReaped: true });
+      }
+      session.lastActivityAt = now();
+      return respond(200, { ok: false, code, message });
     }
   }
 
@@ -451,7 +482,8 @@ function createShardedBoardService(config) {
       }
       const out = await send(idx, req);
       counters.routed += 1;
-      if ((m[2] === "close" && out.status === 200) || out.status === 410 || out.status === 404) {
+      if ((m[2] === "close" && out.status === 200) || out.status === 410 || out.status === 404
+        || (out.body && out.body.sessionReaped === true)) {
         owner.delete(m[1]);
         if (shards[idx].sessions > 0) shards[idx].sessions -= 1;
       }

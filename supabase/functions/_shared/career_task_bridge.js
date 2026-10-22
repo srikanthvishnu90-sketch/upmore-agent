@@ -70,22 +70,47 @@ export async function planCareerTaskIntent({ taskRequest, message, userId, threa
 //
 // Fail-closed, always: no provider, a provider whose boardFor throws
 // (worker unreachable), a provider that returns nothing, or a returned
-// object missing any of 149's board methods all resolve to null — the
-// drive stops named BOARD_NOT_WIRED and no board is ever faked into
-// existence. A bare UPMORE_CAREER_WORKER_URL is NOT a provider: it
+// object missing any of 149's board methods all resolve to null and no
+// board is ever faked into existence. The stop's NAME follows the
+// reason (F-035): a provider throw is recorded on the wrapper
+// (careerBoardFor.lastRefusal) and module 155 names the stop by that
+// code; BOARD_NOT_WIRED is reserved for the no-adapter case. A bare UPMORE_CAREER_WORKER_URL is NOT a provider: it
 // addresses the worker's asynchronous task API (the intent path at the
 // top of this file); it cannot vend synchronous board sessions and is
 // never treated as one.
 const BOARD_METHODS = ["open", "form", "fill", "answers", "atReview", "submit"];
 export function createCareerBoardFor(provider) {
   if (!provider || typeof provider.boardFor !== "function") return null;
-  return function careerBoardFor(posting, boardOpts) {
+  // F-035 (bench-60 fix round, 2026-10-22): the catch below used to
+  // erase the provider's coded refusal (SESSION_LIMIT 409,
+  // DRIVER_HOST_REFUSED 403, shard_unavailable 502,
+  // WORKER_UNREACHABLE…) into a bare null, and module 155 could only
+  // name the resulting stop BOARD_NOT_WIRED — a saturation refusal
+  // was indistinguishable from a genuinely unwired family. The
+  // wrapper still fails closed to null (every composition root
+  // relies on that contract), but the refusal is RECORDED on the
+  // wrapper itself — careerBoardFor.lastRefusal = {code, message},
+  // cleared at the start of every call and set only when that call
+  // threw — so the caller can name the stop by the refusal's own
+  // code. The constructed-without-transport case never reaches this
+  // function (the factory above returns null), so it records
+  // nothing and BOARD_NOT_WIRED keeps its one meaning.
+  const careerBoardFor = function (posting, boardOpts) {
+    careerBoardFor.lastRefusal = null;
     let board = null;
-    try { board = provider.boardFor(posting, boardOpts); } catch (_) { return null; }
+    try { board = provider.boardFor(posting, boardOpts); } catch (e) {
+      careerBoardFor.lastRefusal = {
+        code: (e && e.code) || "WORKER_BOARD_REFUSED",
+        message: String((e && e.message) || e).slice(0, 300),
+      };
+      return null;
+    }
     if (!board || typeof board !== "object") return null;
     for (const m of BOARD_METHODS) if (typeof board[m] !== "function") return null;
     return board;
   };
+  careerBoardFor.lastRefusal = null;
+  return careerBoardFor;
 }
 
 // ---------------------------------------------------------------------------

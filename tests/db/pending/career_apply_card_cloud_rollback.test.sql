@@ -2,7 +2,11 @@
 -- No baseline regression, SQL runtime PASS, migration apply, or rollback proof is claimed.
 -- Future execution needs separately scoped authorization for a disposable local database.
 -- Invoke psql -X with an EXPLICIT connection and EVERY variable below; no target/path defaults.
--- up/down must be reviewed SQL-only files without transaction control or psql meta-commands.
+-- Reviewed up/down own their BEGIN/COMMIT. This harness deliberately commits lifecycle changes
+-- in the explicitly named disposable database; it does NOT provide rollback isolation.
+-- Every include/fixture must be reviewed, with no connection-changing psql meta-commands.
+-- Require bridge_lifecycle_commits_authorized=true in addition to all guards below.
+-- Destroy the disposable database after success OR failure; never reuse it as a live target.
 -- Both are unavailable until design PASS; missing artifacts are BLOCKED evidence, not behavior.
 -- live source fixture: creates pg_temp.bridge_live_source(signature text PK, source_body text,
 --   source_path text, source_commit text). Bodies must be extracted from pinned 01401cb4 files.
@@ -15,6 +19,8 @@
 -- Terminal fixture history alone is not proof of claim/finish behavior. No switch is enabled
 -- by this harness. Receipt shape/path is caller supplied until reviewed.
 -- Baseline fixture setup precedes this script; source fixture performs no persistent writes.
+-- Temporary snapshots survive the reviewed scripts' commits. Seeded cases are committed fixture
+-- history before down, including the two settled attempted outcomes; no final ROLLBACK erases them.
 -- Two real-session lock/ON-write/active-drive refusal races need separate authorization and
 -- remain unavailable evidence here; this sequential lifecycle does NOT establish concurrency.
 \set ON_ERROR_STOP on
@@ -26,6 +32,16 @@
 \if :bridge_rollback_authorized
 \else
  \echo 'BLOCKED: disposable rollback lifecycle not authorized; NOT_RUN'
+ \quit 3
+\endif
+\if :{?bridge_lifecycle_commits_authorized}
+\else
+ \echo 'BLOCKED: explicit bridge_lifecycle_commits_authorized=true required; NOT_RUN'
+ \quit 3
+\endif
+\if :bridge_lifecycle_commits_authorized
+\else
+ \echo 'BLOCKED: committed disposable migration lifecycle not authorized; NOT_RUN'
  \quit 3
 \endif
 \if :{?bridge_disposable_database}
@@ -60,9 +76,8 @@ select current_database()=:'bridge_disposable_database' and inet_server_addr() i
  \echo 'BLOCKED: named local disposable database/marker mismatch; NOT_RUN'
  \quit 3
 \endif
-begin;
 reset role;
-set local search_path=public,pg_temp;
+set search_path=public,pg_temp;
 create function pg_temp.rb_ok(ok boolean, label text) returns void language plpgsql as $$
 begin if ok is distinct from true then raise exception 'FAIL rollback: %',label; end if;
  raise notice 'ok rollback: %',label; end $$;
@@ -269,4 +284,6 @@ select pg_temp.rb_ok(not exists(select from career_message_approval_private.clou
 -- No claim call here: historical unbound claim semantics after down require switches to stay OFF.
 -- Remaining NOT_RUN evidence: negative rollback refusal, real two-session maintenance/account
 -- lock ordering, operator setting/enrollment write races, and pre-effect fence interleavings.
-rollback;
+-- The last up is committed by the reviewed migration; all assertions above describe that state.
+-- Caller cleanup is destruction of this explicitly authorized disposable database, even on failure.
+\echo 'Lifecycle assertions complete in committed disposable database; destroy it before reuse.'

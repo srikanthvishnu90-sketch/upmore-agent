@@ -50249,6 +50249,23 @@ const CareerPortalApply = (() => {
     const asks = [];
     const filled = {};
     const answers = profile.answers || {};
+    // A refused browser fill returns undefined (null across the worker
+    // bridge). It did not answer the field: keep it out of the successful
+    // fill/repair ledger and expose an ask, rather than claiming it landed.
+    const attemptFill = (f, value, entry) => {
+      const before = Array.isArray(board.fillFailures) ? board.fillFailures.length : 0;
+      const verdict = board.fill(f.field_id, value);
+      if (verdict === undefined || verdict === null) {
+        const failures = Array.isArray(board.fillFailures) ? board.fillFailures : [];
+        const failure = failures.slice(before).reverse().find((x) => x && x.field_id === f.field_id);
+        logStep("fill_refused", Object.assign({}, entry, { reason: failure && failure.reason || "fill_returned_no_value" }));
+        asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        return false;
+      }
+      filled[f.field_id] = { value, source: entry.source };
+      logStep("fill", entry);
+      return true;
+    };
     // MUSE-F-007: a field that would otherwise be asked takes a saved answer the contract kept, only for its exact
     // question (and, when the answer names an employer, only there); kept answers that disagree leave it asked.
     const savedAnswerFor = (f) => {
@@ -50261,8 +50278,7 @@ const CareerPortalApply = (() => {
     const fillSaved = (f, entry) => {
       const s = savedAnswerFor(f);
       if (!s) return false;
-      board.fill(f.field_id, s.value); filled[f.field_id] = { value: s.value, source: "saved_answer" };
-      logStep("fill", Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
+      attemptFill(f, s.value, Object.assign({}, entry, { source: "saved_answer", fact_refs: [s.factId], confirmation_event_id: s.confirmation_event_id,
         derivation: "saved-answer-exact-question", manifest_hash: s.manifest_hash, quarantine_version: s.quarantine_version }));
       return true;
     };
@@ -50272,13 +50288,11 @@ const CareerPortalApply = (() => {
         const raw = profileValue(profile, f.profile_key);
         if (raw === undefined || raw === null || raw === "") { asks.push({ field_id: f.field_id, reason: "no_confirmed_fact" }); continue; }
         const value = f.profile_key === "resume" ? { filename: raw.filename, sha256: raw.sha256 } : raw;
-        board.fill(f.field_id, value); filled[f.field_id] = { value, source: "profile" };
-        logStep("fill", Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
+        attemptFill(f, value, Object.assign({}, entry, { source: "profile", profile_key: f.profile_key }));
       } else if (f.kind === "screening") {
         const a = answers[f.question_key];
         if (a && a.confirmed === true && a.value !== undefined) {
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source: "user_confirmed_answer" };
-          logStep("fill", Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
+          attemptFill(f, a.value, Object.assign({}, entry, { source: "user_confirmed_answer", question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: a ? "answer_unconfirmed" : "no_confirmed_fact" }); }
       } else if (f.kind === "free_text") {
         const a = answers[f.question_key];
@@ -50288,20 +50302,16 @@ const CareerPortalApply = (() => {
         const onCard = !!(a && a.draft === true && a.onCard === true && inp.cardApproval === true && typeof a.value === "string" && a.value.trim());
         if (a && a.draft === true && (a.confirmed === true || onCard)) {
           const source = a.confirmed === true ? "user_confirmed_draft" : "draft_on_card";
-          board.fill(f.field_id, a.value); filled[f.field_id] = { value: a.value, source };
-          logStep("fill", Object.assign({}, entry, { source, question_key: f.question_key }));
+          attemptFill(f, a.value, Object.assign({}, entry, { source, question_key: f.question_key }));
         } else if (!fillSaved(f, entry)) { asks.push({ field_id: f.field_id, reason: "needs_user_draft_confirmation" }); }
       } else if (f.kind === "eeo") {
         const chosen = profile.eeoChoice || null;
         const value = chosen || EEO_DECLINE;
-        board.fill(f.field_id, value);
-        filled[f.field_id] = { value, source: chosen ? "user_eeo_choice" : "eeo_default_decline" };
-        logStep("fill", Object.assign({}, entry, { source: chosen ? "user_eeo_choice" : "eeo_default_decline" }));
+        attemptFill(f, value, Object.assign({}, entry, { source: chosen ? "user_eeo_choice" : "eeo_default_decline" }));
       } else if (f.kind === "attestation") {
         const att = (inp.attestations || {})[f.field_id];
         if (att && att.explicit === true && att.value !== undefined) {
-          board.fill(f.field_id, att.value); filled[f.field_id] = { value: att.value, source: "user_explicit_attestation" };
-          logStep("fill", Object.assign({}, entry, { source: "user_explicit_attestation" }));
+          attemptFill(f, att.value, Object.assign({}, entry, { source: "user_explicit_attestation" }));
         } else if (inp.cardApproval === true && attestationValue(f) !== undefined) {
           if (!session.pendingAttestations) session.pendingAttestations = [];
           const text = attestationText(f), value = attestationValue(f);

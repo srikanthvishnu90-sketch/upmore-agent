@@ -95,6 +95,9 @@ const CareerPool = (() => {
     const jdText = strip(row.text_excerpt || "");
     const source = s(row.source).split(/\s+/)[0].toLowerCase() || "career_kb";
     const company = row.company == null || s(row.company).trim() === "" ? null : s(row.company);
+    const location = (jobs && typeof jobs.locationText === "function"
+      ? jobs.locationText(row.location)
+      : typeof row.location === "string" ? row.location.trim() : "") || "Location not stated";
     let postedAt = null;
     if (row.posted_at) {
       const t = Date.parse(row.posted_at);
@@ -104,8 +107,8 @@ const CareerPool = (() => {
       id: key, job_id: key, corpus_id: key,
       company, company_not_stated: company === null,
       title,
-      location: s(row.location || ""),
-      remote: remoteOf(row.location, jdText),
+      location,
+      remote: remoteOf(location, jdText),
       url: s(row.url || ""),
       posted_at: postedAt,
       jd_text: jdText,

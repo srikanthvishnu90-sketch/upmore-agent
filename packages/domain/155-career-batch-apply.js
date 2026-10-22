@@ -282,8 +282,22 @@ const CareerBatchApply = (() => {
       event(run, "captcha_handoff", { postingKey: app.postingKey });
       return;
     }
-    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped"); return; }
+    if (res.resultStatus === "blocked") { stopApp(run, app, res.code || "BLOCKED", res.reason || "the portal run stopped", stopDetailOf(res)); return; }
     stopApp(run, app, res.code || "UNEXPECTED_RESULT", `unexpected portal result: ${res.resultStatus || "unknown"}`);
+  }
+
+  // FDSE-MISMATCH (2026-10-21): a portal stop's diagnostic detail
+  // (the field an observation mismatch names, and the expected /
+  // observed values) must survive into the stored app record — the
+  // generic blocked paths used to forward only code + reason, so the
+  // live record for batch-5ab08dedd45c could not name the field 149
+  // had already identified. Carriage is whitelisted to these three
+  // keys: arbitrary portal extras do not leak into the run record.
+  function stopDetailOf(res) {
+    if (!res) return undefined;
+    const d = {};
+    for (const k of ["field_id", "expected", "observed"]) if (res[k] !== undefined) d[k] = res[k];
+    return Object.keys(d).length ? d : undefined;
   }
 
   function stopApp(run, app, code, reason, extra) {
@@ -409,7 +423,7 @@ const CareerBatchApply = (() => {
       return;
     }
     if (out && out.resultStatus === "blocked") {
-      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application");
+      stopApp(run, app, out.code || "SUBMIT_BLOCKED", out.reason || "the submit gate stopped this application", stopDetailOf(out));
       return;
     }
     stopApp(run, app, "UNKNOWN_OUTCOME", "the submit returned no readable end state — it is recorded unknown, never retried blind (MI-115's resolver owns it from here)");
@@ -421,7 +435,7 @@ const CareerBatchApply = (() => {
     const submitted = apps.filter((a) => a.stage === "submitted");
     const stops = [];
     for (const a of apps) {
-      if (a.stage === "stopped" && a.stop) stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason });
+      if (a.stage === "stopped" && a.stop) stops.push(Object.assign({ postingKey: a.postingKey, company: a.company, role: a.role, code: a.stop.code, reason: a.stop.reason }, a.stop.field_id !== undefined ? { field_id: a.stop.field_id } : {}));
       if (a.stage === "captcha_handoff") stops.push({ postingKey: a.postingKey, company: a.company, role: a.role, code: "CAPTCHA_HANDOFF", reason: a.stop ? a.stop.reason : "a captcha appeared", handoffUrl: a.stop ? a.stop.handoffUrl : a.url });
     }
     return {

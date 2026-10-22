@@ -488,6 +488,13 @@ const CareerPortalBrowser = (() => {
       // country dial code) — module 149's observation check compares
       // the readback against THIS, not against the profile text.
       get renderedValues() { return Object.assign({}, state.renderedValues); },
+      // FDSE-MISMATCH (2026-10-21): the same renderings through a
+      // METHOD — a property-snapshotting wrapper freezes the getter
+      // at {} and silently disables module 149's FR-395 hatch;
+      // methods survive delegation wrappers, so 149 prefers this
+      // channel when present (contract symmetry with the worker
+      // bridge board, which serves the production path).
+      renderedValue(fieldId) { return state.renderedValues[fieldId]; },
       get captchaTech() { return state.captchaTech.slice(); },
       get finalUrl() { return state.finalUrl; },
       get submitArmed() { return state.armed; },

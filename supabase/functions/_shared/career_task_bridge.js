@@ -328,6 +328,14 @@ export function createWorkerBoardProvider(opts) {
       accountName: created.accountName || null,
       workerSessionId: sessionId,
       get renderedValues() { return Object.assign({}, renderedState); },
+      // FDSE-MISMATCH (2026-10-21): the same renderings through a
+      // METHOD. The getter above is frozen at {} by any wrapper that
+      // snapshots own properties (the drive harness's observation
+      // wrapper did exactly that, and module 149's FR-395 hatch
+      // silently never fired — a correct fill stopped as drift).
+      // Methods survive delegation wrappers, so 149 prefers this
+      // channel when present.
+      renderedValue(fieldId) { return renderedState[fieldId]; },
       open() { return call("open", []); },
       form() { return call("form", []); },
       fill(fieldId, value) { return call("fill", [fieldId, value]); },

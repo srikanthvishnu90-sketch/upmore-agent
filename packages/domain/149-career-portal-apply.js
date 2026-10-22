@@ -841,7 +841,18 @@ const CareerPortalApply = (() => {
       // "United States"), the readback is compared against that
       // rendering, not the profile text. A board that renders
       // differently from BOTH is still drift and still stops here.
-      const rendered = board.renderedValues && board.renderedValues[id];
+      // FDSE-MISMATCH (2026-10-21): the rendered value is read through
+      // the board's renderedValue(fieldId) METHOD when the board
+      // offers one. The property channel is a getter on the production
+      // boards (150 / the worker bridge), and any wrapper that
+      // snapshots own properties (an observation/logging wrapper that
+      // copies non-function props once) freezes the getter at its
+      // initial {} — the hatch then silently never fires and a correct
+      // fill stops as drift (live: batch-5ab08dedd45c, the university
+      // field). Methods survive delegation wrappers; the property
+      // remains the fallback for boards that only carry it.
+      const rendered = typeof board.renderedValue === "function" ? board.renderedValue(id)
+        : (board.renderedValues && board.renderedValues[id]);
       const expected = rendered !== undefined ? rendered : wanted;
       const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
         : norm(expected) === norm(actual)
@@ -856,7 +867,14 @@ const CareerPortalApply = (() => {
           hatch_only: !!same && typeof rendered !== "object" && typeof wanted !== "object"
             && norm(rendered) !== norm(wanted) && norm(wanted) !== norm(actual) });
       }
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      if (!same) {
+        // The stop record names the field AND carries both values —
+        // a record that says only "the observed value differs" cannot
+        // be diagnosed without re-driving the board (live:
+        // batch-5ab08dedd45c's stored record named nothing).
+        logStep("answer_observation_mismatch", { field_id: id, expected, observed: actual });
+        return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, expected, observed: actual, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      }
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled

@@ -40,3 +40,18 @@ test('F013 bare shelf mapper also describes an unknown location without inventin
  const p=Pool.mapKbPosting({posting_key:'synthetic:f013',source:'ashby',title:'Data Analyst',location:''});
  assert.equal(p.location,'Location not stated');assert.equal(p.company,null);assert.equal(p.company_not_stated,true);
 });
+
+test('F013 unknown-location display text cannot satisfy a geographic preference',()=>{
+ const p=normalized({});
+ const result=Jobs.scoreFit(p,{skills:[],preferences:{locations:['Location']},constraints:{}});
+ assert.equal(result.excluded,true);
+ assert.ok(result.reasons.some(r=>/does not state a location/.test(r)),JSON.stringify(result.reasons));
+ assert.ok(result.reasons.every(r=>!r.includes('posting is in Location not stated')),JSON.stringify(result.reasons));
+});
+test('F013 unknown location cannot become a claim that the employer requires onsite work',()=>{
+ const p=normalized({});
+ const result=Jobs.scoreFit(p,{skills:[],preferences:{remote_only:true},constraints:{}});
+ assert.equal(result.excluded,true);
+ assert.ok(result.reasons.some(r=>/does not confirm remote work/.test(r)),JSON.stringify(result.reasons));
+ assert.ok(result.reasons.every(r=>!r.includes('posting is on-site')),JSON.stringify(result.reasons));
+});

@@ -81,6 +81,7 @@ const CareerJobs = (() => {
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
   const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  const locationIsStated = (v) => !!s(v).trim() && lc(v).trim() !== "location not stated";
   const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
 
   // ---------- classification ----------
@@ -766,9 +767,13 @@ const CareerJobs = (() => {
     // location
     const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
     if (wantLocs.length && posting.remote !== "remote") {
-      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+      if (!locationMatches(posting.location, c.locations || prefs.locations || [])) fails.push(locationIsStated(posting.location)
+        ? `location: posting is in ${posting.location}; you want ${[...(c.locations || prefs.locations)].join(", ")}`
+        : `location: posting does not state a location; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
     }
-    if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
+    if (prefs.remote_only && posting.remote === "onsite") fails.push(locationIsStated(posting.location)
+      ? `location: posting is on-site in ${posting.location}; you want remote`
+      : "location: posting does not confirm remote work; you want remote");
     // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
     const needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization));
     const citizenOnly = /\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/.test(jd);
@@ -818,6 +823,7 @@ const CareerJobs = (() => {
   function locationMatches(postingLoc, wantsRaw) {
     const wants = (wantsRaw || []).map(normLoc).filter(Boolean);
     if (!wants.length) return true;
+    if (!locationIsStated(postingLoc)) return false;
     const segments = s(postingLoc).split(/[;•|]/).map((x) => x.replace(/^\s*(hybrid|remote|on-site|onsite|in-office)\s*[-–—:]\s*/i, "").trim()).filter(Boolean);
     const candidates = new Set();
     for (const seg of segments) {

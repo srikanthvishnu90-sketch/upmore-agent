@@ -21,6 +21,8 @@ The bigint lock key MUST be supplied from the reviewed bridge implementation.
 Tap/claim/flag-write use two real clients; maintenance needs a third rollback client
 while the controller holds the account lock. pg_locks/pg_stat_activity establish
 ordering; elapsed time and sleeps are never race evidence. No engine is invoked.
+Rollback runs in its own psql -X -v ON_ERROR_STOP=1 -f FILE process; its PID is
+resolved by unique application_name through the observer, never by injected SQL.
 Cleanup: destroy the disposable database after EACH case. Successful tap/claim
 commits immutable fixtures; no attempted job is deleted or reset by this harness.
 """
@@ -35,6 +37,8 @@ import subprocess
 import threading
 import time
 import uuid
+
+from card_cloud_file_client import DedicatedRollbackProcess
 
 
 class SetupError(RuntimeError):
@@ -264,7 +268,7 @@ def maintenance(args, a, b, c):
     b.start("begin;" + claim_sql())
     barrier(a, waiting(b.pid, a.pid) + " and " + maintenance_lock(args, b.pid, "ShareLock"),
             "actual claim has shared maintenance lock before blocked account lock", args.timeout)
-    c.start(include(args.rollback_sql))
+    c.start(a)
     barrier(a, waiting(c.pid, b.pid) + " and " + maintenance_lock(args, c.pid, "ExclusiveLock", False),
             "actual rollback waits exclusively behind claim", args.timeout)
     a.run(flag_update("off") + "commit;")
@@ -283,7 +287,7 @@ def flag_race(args, a, b):
         raise SetupError("flag-write fixture needs both explicit switch rows OFF")
     before = a.value("select to_jsonb(pg_get_functiondef('public.career_apply_cloud_claim_at(integer,timestamptz)'::regprocedure));")
     a.run("begin;" + flag_update("on", args.flag_key))
-    b.start(include(args.rollback_sql))
+    b.start(a)
     table_wait = (f"exists(select 1 from pg_locks where pid={b.pid} and locktype='relation' "
                   "and relation='public.career_cloud_settings'::regclass and not granted)")
     barrier(a, waiting(b.pid, a.pid) + " and " + table_wait + " and " +
@@ -360,9 +364,10 @@ def main():
                          " where fixture_tag=" + lit(args.fixture_tag) + ";")
         if not marker:
             raise SetupError("committed unique fixture marker missing")
-        b = Client(args, "competitor"); clients.append(b)
+        b = DedicatedRollbackProcess(args) if args.case == "flag-write" else Client(args, "competitor")
+        clients.append(b)
         if args.case == "maintenance":
-            c = Client(args, "rollback"); clients.append(c)
+            c = DedicatedRollbackProcess(args); clients.append(c)
             maintenance(args, a, b, c)
         else:
             {"tap": tap, "claim": competing_claims, "flag-write": flag_race}[args.case](args, a, b)

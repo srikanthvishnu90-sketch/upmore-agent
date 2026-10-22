@@ -139,7 +139,7 @@ begin
  rows as(select coalesce(jsonb_agg(jsonb_build_object('id',id,'user_id',user_id,'key',key,'kind',kind,'answer',answer,'state',state)
   order by id),'[]'::jsonb) r from public.career_apply_questions where user_id=p_user and state='answered')
  select jsonb_build_object('profile',(select p from profile),'rows',r) into v from rows;
- return v||jsonb_build_object('digest',encode(sha256(convert_to(public.career_apply_canonical(v||jsonb_build_object('user_id',p_user)),'UTF8')),'hex'));
+ return v||jsonb_build_object('user_id',p_user,'digest',encode(sha256(convert_to(public.career_apply_canonical(v||jsonb_build_object('user_id',p_user)),'UTF8')),'hex'));
 end $$;
 
 create or replace function public.career_apply_message_cloud_card_show_as(p_user uuid,p_thread uuid,p_items jsonb) returns jsonb
@@ -202,7 +202,7 @@ begin
   jobs:=jobs||jsonb_build_object('id',j.id,'approval_id',aid,'payload_hash',h,'expires_at',deadline);n:=n+1;
  end loop;
  receipt:=jsonb_build_object('card_id',c.id,'card_hash',p_hash,'approved_count',n,'approved_at',stamp,
-  'approval_expires_at',(select min((x->>'expires_at')::timestamptz) from jsonb_array_elements(jobs)x),'jobs',jobs);
+  'approval_expires_at',stamp+interval'24 hours','jobs',jobs);
  insert into career_message_approval_private.cloud_tap_receipts(card_id,user_id,card_hash,receipt) values(c.id,u,p_hash,receipt);
  -- Keep the preexisting extension table's exact24h constraint. The per-item effective deadline is in immutable
  -- metadata/receipt, independently min(P expiry,tap+24h); P and the extension constraint are never restamped.
@@ -309,7 +309,11 @@ begin
   if public.career_apply_current(p_user,p) is distinct from true then raise exception 'stale cloud authority'; end if;
   if not coalesce(career_message_approval_private.cloud_keys(r,array['answers','resume_name','resume_sha256','destination','blank','employer_fields']),false)
    or jsonb_typeof(r->'answers') is distinct from'array' or jsonb_typeof(r->'blank') is distinct from'array'
-   or jsonb_typeof(r->'employer_fields') is distinct from'array' or coalesce(r->>'resume_name','')=''
+   or jsonb_typeof(r->'employer_fields') is distinct from'array' or r->'employer_fields' is distinct from p->'page_field_names'
+   or exists(select 1 from jsonb_array_elements(r->'blank')x where jsonb_typeof(x) is distinct from'string')
+   or exists(select 1 from jsonb_array_elements(p->'page_field_names')x where jsonb_typeof(x) is distinct from'string' or x#>>'{}'='')
+   or (select count(*) from jsonb_array_elements(p->'page_field_names'))<>(select count(distinct x#>>'{}') from jsonb_array_elements(p->'page_field_names')x)
+   or coalesce(r->>'resume_name','')=''
    or r->>'resume_sha256' is distinct from p->>'resume_sha256' or r->>'destination' is distinct from p->>'destination'
    or (select array_agg(x->>'name' order by x->>'name') from jsonb_array_elements(r->'answers')x)
      is distinct from(select array_agg(x->>'name' order by x->>'name') from jsonb_array_elements(p->'fields')x)
@@ -317,11 +321,20 @@ begin
   then raise exception 'cloud readback mismatch'; end if;
   for f in select value from jsonb_array_elements(p->'fields') loop
    if not coalesce(career_message_approval_private.cloud_keys(f,array['name','label','value','factId','provenance','confirmation_event_id','authorizes','source']),false)
-    or jsonb_typeof(f->'name') is distinct from'string' or coalesce(f->>'name','')='' or jsonb_typeof(f->'label') is distinct from'string'
-    or coalesce(f->>'factId','')='' or jsonb_typeof(f->'value') not in('string','object','number','boolean')
+    or jsonb_typeof(f->'name') is distinct from'string' or coalesce(f->>'name','')='' or jsonb_typeof(f->'label') is distinct from'string' or coalesce(f->>'label','')=''
+    or jsonb_typeof(f->'factId') is distinct from'string' or coalesce(f->>'factId','')=''
+    or coalesce(jsonb_typeof(f->'value'),'missing') not in('string','object','number','boolean')
+    or (f?'authorizes' and jsonb_typeof(f->'authorizes') is distinct from'boolean')
     or not coalesce(career_message_approval_private.cloud_source_ok(f->'source'),false)
-    or coalesce(f->>'confirmation_event_id','')='' or coalesce(f->>'provenance','')=''
+    or jsonb_typeof(f->'confirmation_event_id') is distinct from'string' or coalesce(f->>'confirmation_event_id','')=''
+    or jsonb_typeof(f->'provenance') is distinct from'string' or coalesce(f->>'provenance','')=''
     or career_message_approval_private.cloud_quarantined(f) then raise exception 'invalid or quarantined cloud field'; end if;
+   if jsonb_typeof(f->'value')='object' and (
+    not coalesce(career_message_approval_private.cloud_keys(f->'value',array['filename','sha256']),false)
+    or f->'value'->>'filename' is distinct from r->>'resume_name'
+    or f->'value'->>'sha256' is distinct from p->>'resume_sha256'
+    or f->>'factId' is distinct from 'approved-local-resume:'||(p->>'resume_sha256')) then
+    raise exception 'invalid cloud file answer'; end if;
    select value into a from jsonb_array_elements(r->'answers') where value->>'name'=f->>'name';
    if not coalesce(career_message_approval_private.cloud_keys(a,array['name','label','value','shown','factId','kind']),false)
     or a->'value' is distinct from f->'value' or a->>'label' is distinct from f->>'label'
@@ -330,7 +343,10 @@ begin
   for s in select value from jsonb_array_elements(p->'replay_sources') loop
    if not coalesce(career_message_approval_private.cloud_keys(s,array['table','key','value','factId','event','provenance','authorizes']),false)
     or not coalesce(career_message_approval_private.cloud_source_ok(jsonb_build_object('table',s->'table','key',s->'key','value',s->'value')),false)
-    or coalesce(s->>'factId','')='' or coalesce(s->>'event','')='' or coalesce(s->>'provenance','')=''
+    or jsonb_typeof(s->'factId') is distinct from'string' or coalesce(s->>'factId','')=''
+    or jsonb_typeof(s->'event') is distinct from'string' or coalesce(s->>'event','')=''
+    or jsonb_typeof(s->'provenance') is distinct from'string' or coalesce(s->>'provenance','')=''
+    or (s?'authorizes' and jsonb_typeof(s->'authorizes') is distinct from'boolean')
     or career_message_approval_private.cloud_quarantined(s) then raise exception 'invalid or quarantined replay source'; end if;
   end loop;
   if p?'approved_snapshot' then
@@ -354,6 +370,10 @@ declare n jsonb:=to_jsonb(new); o jsonb; marker career_message_approval_private.
  resume_hash text; resume_name text; active_check boolean; bound_id uuid;
 begin
  -- Cloud dispatch only; the original extension body below is preserved byte-for-byte.
+ if tg_op='UPDATE' then
+  if exists(select 1 from career_message_approval_private.cloud_bound_jobs where job_row_id=old.id) then
+   return career_message_approval_private.cloud_guard(old,new,true); end if;
+ end if;
  if exists(select 1 from career_message_approval_private.cloud_bound_jobs where job_row_id=new.id)
   or exists(select 1 from career_message_approval_private.cloud_bound_approvals where user_id=new.user_id and payload_hash=new.payload_hash) then
   if tg_op='UPDATE' then return career_message_approval_private.cloud_guard(old,new,true);
@@ -534,6 +554,7 @@ begin
  if u is null then raise exception 'not signed in'; end if;
  if p_source is null or p_source not in ('own_computer', 'extension') then raise exception 'invalid apply source'; end if;
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
+ n:=clock_timestamp();
  update public.career_apply_jobs set state='unknown_outcome',
   reason='application outcome unknown: the drive stopped before recording it; not retried',
   evidence=evidence||jsonb_build_object('swept_at',n),updated_at=n

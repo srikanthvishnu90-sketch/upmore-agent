@@ -295,11 +295,13 @@ do $$ begin
  if to_regclass('career_message_approval_private.cloud_bound_jobs') is not null then
   execute $copy$ update public.career_apply_jobs j set
    evidence=j.evidence||jsonb_build_object('card_cloud_bridge_receipt',jsonb_build_object('card_id',b.card_id,'item_index',b.item_index,
-    'approval_id',b.approval_id,'payload_hash',a.payload_hash,'approved_at',a.approved_at,'expires_at',a.expires_at)),
+    'approval_id',b.approval_id,'payload_hash',a.payload_hash,'approved_at',a.approved_at,'expires_at',a.expires_at,
+    'card_hash',r.card_hash,'tap_receipt',r.receipt)),
    state=case when j.state='queued' then 'not_submitted' else j.state end,
    reason=case when j.state='queued' then 'card_cloud_bridge_rolled_back' else j.reason end,
    updated_at=clock_timestamp()
    from career_message_approval_private.cloud_bound_jobs b join career_message_approval_private.cloud_bound_approvals a using(approval_id)
+   left join career_message_approval_private.cloud_tap_receipts r on r.card_id=b.card_id and r.user_id=b.user_id
    where j.id=b.job_row_id $copy$;
  end if;
 end $$;

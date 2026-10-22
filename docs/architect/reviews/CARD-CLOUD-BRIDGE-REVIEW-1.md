@@ -32,7 +32,8 @@ branch), and the gate is re-run on that file. Nothing is passed on a summary.
 ## Not shown (answer by item number before code)
 
 1. **A1 — producer / engine input: NOT COVERED. Owner decision applied: the architect builds it** (assignment 3). The
-   bridge consumes it; it does not re-implement it. Interface, on branch `arch/engine-input` (being built now):
+   bridge consumes it; it does not re-implement it. **Built: branch `arch/engine-input` @ 6c1bc24a** (9/9 unit, 2/2 ask->answer->
+   prepare->submit on the captured Veeva Lever form, all browser/worker suites green). Interface:
    `workers/career-cloud/engine_input.ts` →
    `engineInput({ owner, profile, rows }) → { facts, manifest: { hash, version, kept, excluded, conflicts } }` (pure) and
    `readEngineInput(source, owner)` (reads the stored chat profile and the person's answered `career_apply_questions`

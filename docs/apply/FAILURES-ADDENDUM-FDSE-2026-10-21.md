@@ -70,3 +70,31 @@ Priority: P2 (transient; the one permitted retry cleared it — but a retry is a
 Root cause: PINNED (prior lane's measurement, confirmed by bracketing) — a page-timing race in open: the helper's single post-apply-click discover scan can land before the form mounts on a slow first paint, and 149's D2 gate (correctly) stops on zero fields. The fix shape is a bounded re-scan on an empty first discovery inside open/form (the board is known-mounted when the apply click succeeded), with the EMPTY_FORM stop preserved for genuinely formless pages. NOT fixed by the FDSE-mismatch round; not reproduced in this lane's drives (diagnostic + re-drive both mounted full forms — the re-drive stopped later, at a captcha).
 Fix:
 Verified by:
+
+[ID: MUSE-F-026 (proposed)] [Status: FIXED — host-live, drive-verified for its scope]
+Found: 2026-10-21 ~23:3x CDT, Muse (FDSE question-kind lane; inventory scan of the live FDSE form)
+Area: brain/shared
+Input: any board form carrying a REQUIRED question outside 150's canonical map (Lever FDSE: spoken-language checkbox group, heard-about select, summer-2026 select, AI-notetaker consent radio).
+Expected: such a field is answerable from a stored confirmed answer under a stable key, or asks a question an answer can bind to.
+Actual (pre-fix): 150's classifyKind returned kind "unknown" for these controls with no question_key; 149's fill loop filed them as asks with reason unknown_field_category, keyed by nothing a stored answer could bind — every such posting stopped UNCOVERED_QUESTION forever, regardless of answers on file.
+Evidence: ~/workspace/o5-batch/fdse-inventory-2026-10-21.json (live form: 27 fields, 16 required, the four fields above kind unknown); root-cause note docs/apply/ROOT-CAUSE-FDSE-UNCOVERED-QUESTIONS-2026-10-21.md @ 8a9a573e.
+Root cause: two halves — (1) 150 classifyKind's final return made "unknown" the verdict for ordinary question controls (select/radio/group/text) that matched no canonical rule; (2) 149's fill loop had no category that answers such fields from the stored-answer map.
+Fix: @ cc6aaaab (branch muse/2026-10-21-fdse-question-kind) — 150: unmapped select/radio/group/text controls classify kind "question", keyed by the label slug truncated to 40 (free_text's keying); the D4 education-block contextual bind still promotes question defs (stronger signal wins, question_key cleared). 149: a "question" fill branch under the screening contract verbatim — a confirmed stored answer fills (source user_confirmed_answer); otherwise an ask (no_confirmed_fact / answer_unconfirmed); nothing derived. Applied to the host tree 2026-10-22T04:49Z (.bak-20261022T044925Z), board service restarted, gate probes green (401/401/403/403/Lever 201+close 200).
+Verified by: tests/career-question-kind.test.cjs 6/6 (fail-first on base: 4 red + 1 green; the D4-promotion guard added after it caught a real regression in the first fix shape); neighbor suites' failing sets identical to base (portal family 46 pass / 2 fail = the pre-existing F-007 pair; submit suites' failing set identical by name); offline replay of the fixed classifier over the captured live form: 27 defs, 22 identical, exactly the 5 intended fields changed; LIVE drive batch-8ef4497b16db: all five fields filled and read back verbatim (language ["English (ENG)"], heard "University Job Board", summer "Other", two-roles essay, notetaker "Yes, I consent") — the run stopped later, on F-027 below.
+
+[ID: MUSE-F-027 (proposed)] [Status: OPEN]
+Found: 2026-10-21 ~23:55 CDT, Muse (FDSE question-kind lane drive, batch-8ef4497b16db)
+Area: shared
+Input: live FDSE prepare, TEST profile, phone fact "+1 2246029341".
+Expected: the filled phone passes the observation gate — the board accepted and holds the same number.
+Actual (verbatim stop): { "code": "ANSWER_OBSERVATION_MISMATCH", "reason": "the observed value differs from the confirmed fact; no review or submit is allowed", "field_id": "phone", "expected": "+1 2246029341", "observed": "2246029341" }. Run status completed, app stage stopped, no card (cardSha256 null; module 175 returns NO_CARD_HASH).
+Evidence: ~/workspace/o5-batch/run-live-fdse-question.json + run-live-fdse-question-progress.jsonl; root-cause note docs/apply/ROOT-CAUSE-PHONE-RENDER-2026-10-21.md.
+Priority: P1 (blocks the FDSE doorstep; any board that normalizes phone input hits it)
+Root cause: PINNED — 149's observation gate compares payload vs answers() exactly; its only benign-render channel (the FR-395 hatch) needs a helper renderedValues snapshot, which exists only for widget fills. A phone input is a scalar fill: no snapshot. Lever's phone mask normalizes to the US national form (drops "+1"), answers() reports "2246029341", exact compare fails. The fact is true and the fill is right; the gate lacks the evidence channel. Fix shape (its own round): value equivalence per profile key at the compare only (phone: digit-sequence compare), each normalizer fail-first guarded with negative controls; never alters the payload.
+Fix:
+Verified by:
+
+Corroborations from drive batch-8ef4497b16db (2026-10-22T04:52–04:55Z):
+- F-023: the major field's fill returned null again (04:54:33Z, ~337ms); the field is absent from answers(). It remains queued behind F-027 (the mismatch gate runs before the doorstep completeness step). No new mechanism.
+- F-024: eeo_disability fill returned null again (04:54:38Z). New cost observation: the Lever disability block's signature and signature-date fields (eeo_disabilitysignature / eeo_disabilitysignaturedate) were classified standard (name/date keys) and attempted — 30.6s and 30.2s, both null — ~60s of every FDSE drive spent on optional EEO signature fields that never fill.
+- F-025: NOT reproduced (the form mounted in full on the single fresh attempt; no retry was needed or used).

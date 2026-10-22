@@ -73,7 +73,7 @@ function harness(opts: { seedIntent?: boolean } = {}) {
       const plan = await planCareerBatchIntent({
         batchRequest: req, message: body.message, userId: body.as_user_id, threadId: body.thread_id,
         turnKey: body.turn_key ?? `tk-${++seq}`, requestHash: "e".repeat(64), ctx: { workerCapabilities: null },
-        accountVersion: 1, account: { epoch: 0 }, persistence,
+        accountVersion: 1, account: { epoch: 0 }, persistence, summarizeRun: undefined,
       });
       if (plan.intent) committed.push(plan.intent);
       return { thread_id: body.thread_id, reply: plan.out.reply, ...(plan.out.batch ? { batch: plan.out.batch } : {}) };

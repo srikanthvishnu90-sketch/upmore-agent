@@ -136,7 +136,7 @@ Deno.test("F-037 guard 1: a text turn after a completed prepare surfaces the car
   const card = detectBatchCard(outcome.chat);
   assert(card && card.runId === RUN, "detectBatchCard fires on the readback outcome");
   const offer = await offerApproval(deps as any, {
-    channel: "telegram", senderKey: SENDER, userId: TEST_USER, threadId: outcome.threadId, runId: card.runId,
+    channel: "telegram", senderKey: SENDER, userId: TEST_USER, threadId: outcome.threadId, runId: card!.runId,
   });
   assert(offer && /^[0-9a-f]{16}$/.test(offer.token), "an offer token is minted");
   const row = admin.approvals.get(offer!.token);

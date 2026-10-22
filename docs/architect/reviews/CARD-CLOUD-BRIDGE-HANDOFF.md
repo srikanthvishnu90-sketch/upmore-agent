@@ -63,6 +63,17 @@ bodies from `20261024120000`. Migration: **764 lines / 64,768 bytes**; rollback:
 **370 lines / 29,476 bytes**. This exceeds the original line budget under the owner's
 explicit readability exception. Syntax/source equality is not runtime behavior proof.
 
+The complete SQL runtime proposal is retained as an **inert fixture**, not an active
+workflow: `tests/fixtures/card-cloud-db-20261021/pending-disposable-pg16-workflow.yml`.
+It pins acceptance `8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3` and exact up/down hashes.
+Eight independent fresh PG16 cases cover main, lifecycle, cap, rollback, tap race,
+claim race, maintenance race and flag-write race; a ninth runs the complete DB runner.
+Each uses new local sockets, synthetic data and retained raw evidence. The proposed
+isolated QA ref is never merged. Its unresolved `OWNER_APPROVAL_REF=NOT_AUTHORIZED`
+refuses before SQL. It has not been pushed or launched; a separate owner yes is required
+for disposable migration execution and temporary synthetic fixture switches/grants.
+No hosted database, real C10 enrollment, provider call or employer is in that scope.
+
 The browser baseline's rehashed company mutation ran the engine and produced one synthetic local POST. The
 rehashed page-URL mutation started the engine but its existing engine guard refused the POST; the regression is
 earlier dispatch prevention, not a claimed baseline send. The new pre-effect authorization test verifies the real

@@ -1,0 +1,43 @@
+{
+  "id": "MUSE-F-024",
+  "scope": "repo-only fill option matching; no submit, approval, flag, migration or live drive changes",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "branch": "wo/f024-lever-disability-decline-20261022",
+  "mechanism": "Native select/radio and react-select fill recognizers omitted the exact decline option I do not want to answer; veteran wish wording already matched.",
+  "fix": "Add the exact do-not-want-to-answer wording to the two existing fill-side decline recognizers; no changes to generic prefix/fuzzy matching.",
+  "fixture_provenance": "Synthetic empty native/select/radio/widget controls using standard wording present in the committed empty Lever Shield AI form fixture. No applicant data loaded.",
+  "base_helper_sha256": "4a71f913ba6ec5ca5336a4e4f19d6622e1d4cc4284bce838dda7175a29002d6a",
+  "fix_helper_sha256": "1f65edf931806b70737835ab2b899d528a7ee8d622d48e1b0951e23848c7a3cb",
+  "test_sha256": "deb607b11723551a05c12a8a519a207206c753388cc1e547f6ae3e9b3aedc23f",
+  "node_version": "v24.19.0",
+  "repro_command": "node --test --test-reporter=tap tests/career-f024-lever-disability-decline.test.cjs",
+  "base_counts": {
+    "tests": 12,
+    "pass": 9,
+    "fail": 3,
+    "skipped": 0
+  },
+  "fix_counts": {
+    "tests": 12,
+    "pass": 12,
+    "fail": 0,
+    "skipped": 0
+  },
+  "neighbors_command": "node --test --test-reporter=tap tests/career-portal-apply.test.cjs tests/career-portal-caps.test.cjs",
+  "neighbors_counts": {
+    "tests": 21,
+    "pass": 21,
+    "fail": 0,
+    "skipped": 0
+  },
+  "submit_capture_region_byte_identical": true,
+  "submit_capture_region_sha256": "f48b941f456187d7103756774101e1a9f829dd1c29c50d0c8323a6b347242b64",
+  "verification": "VERIFIED_LOCAL_GUARDS; independent QA pending; no claim of host/live deployment",
+  "browser_network_or_engine_invocations": 0,
+  "new_spend_usd": 0,
+  "limits": [
+    "Synthetic DOM handles run the actual helper fill functions; no real browser/host drive claimed.",
+    "Runtime installation/deployment NOT_RUN and not authorized.",
+    "No shared generated bundle regeneration required for this worker helper."
+  ]
+}

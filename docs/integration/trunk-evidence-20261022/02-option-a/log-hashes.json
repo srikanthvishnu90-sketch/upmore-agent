@@ -1,0 +1,18 @@
+{
+  "architect.log": {
+    "raw_bytes": 156286,
+    "sha256": "79b37bf47547fbad30484436192c50b59dc78ba909038c654f26fcd4fae63c05"
+  },
+  "edge.log": {
+    "raw_bytes": 111840,
+    "sha256": "c8355edc67a7541981a05efadb1ae19faa8e2a417c6e6f1485d4f8997121a560"
+  },
+  "node.log": {
+    "raw_bytes": 714053,
+    "sha256": "02631c5a831c605d76e020f7c05ccd97324af4b07a20b3c48ef7e7a4a5348f62"
+  },
+  "targeted.log": {
+    "raw_bytes": 4061,
+    "sha256": "023cc4561040e8632e02883258549775cd3c49cb6dc6a1e2308956a97d775800"
+  }
+}

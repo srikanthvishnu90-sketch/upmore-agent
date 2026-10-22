@@ -1,0 +1,49 @@
+{
+  "bug": "F-003",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source": "01eccb77e93a929b31659e206a3f290a7d92d823",
+  "new_checks": {
+    "base": {
+      "pass": 0,
+      "fail": 15
+    },
+    "branch": {
+      "pass": 15,
+      "fail": 0
+    }
+  },
+  "neighbors": {
+    "base": {
+      "pass": 55,
+      "fail": 0
+    },
+    "branch": {
+      "pass": 55,
+      "fail": 0
+    }
+  },
+  "edge_guards": {
+    "pass": 4,
+    "fail": 0
+  },
+  "cause": "Discovery and targeted KB reads copied old snapshot URLs without consulting their HTTP status.",
+  "fix": "Both serving paths share cached, concurrent, time-bounded probes; only 404/410 exclude rows. Both Edge and worker roots bind the probe. Real worker read and staged Edge discovery verified with mocked responses.",
+  "limits": [
+    "Unknown, network failure, JS-shell/200, exhausted probe time and unsupported company domains remain unconfirmed, not proved live.",
+    "HTTPS provider-owned allowlist only; redirect destinations revalidated; credentials omitted; HEAD first, ranged GET only on 405/501.",
+    "Maximum eight concurrent probes and two seconds per load; individual probe capped at 1.5 seconds by default; cache TTL <=60 seconds.",
+    "No live link audit or real provider request; no flags, submit-path logic, migration, deployment, merge, dispatch or spend.",
+    "Full product CI NOT_RUN. F-003 live closure is not claimed."
+  ],
+  "fixture_adaptations": "Original assertions unchanged. Six existing test transports now locally mock the added HEAD checks; staged helper accepts an explicit injected mock fetch. The same frozen fixtures ran on base and branch.",
+  "raw_log_sha256": {
+    "base-family": "17b382f86cd6285b043c362eb90e81bba1144c35f59df032d36758e516a54f62",
+    "fix-family": "bd348246aa4e322c4492519c8a9cc14c85a341a47246bbb78d0791074e23b279",
+    "edge-guards": "23487b34437159d7308efe99c2d50a2266bf2444b1411a08aed967c37522aa4b"
+  },
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

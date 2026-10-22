@@ -96,11 +96,18 @@ across the standalone boundary. Runs with no bridge retain the original one-tran
    the reviewed bridge file in its own psql session.
 3. Require both judges' PASS and green CI on the final landing commit. Merge/deployment
    and live migration execution still require the owner's explicit word. On authorized
-   live application, first verify modern approval/contract/question/waiver prerequisites,
+   live application, first verify both switches OFF and no active cloud drive. Stop/drain
+   the existing worker under `docs/launch/CLOUD-WORKER.md`; do not reset an uncertain
+   outcome to queued. Verify modern approval/contract/question/waiver prerequisites,
    then apply **`20261021220430_career_apply_message_cards.sql`**, then
    **`20261024130000_career_apply_card_cloud_bridge.sql`**. The new up/down files own
    BEGIN/COMMIT: use standalone `psql -X -v ON_ERROR_STOP=1 -f FILE`; never `-1`, an
    enclosing fixture transaction, or a casual include in another migration run.
+   Install the reviewed worker, its `current_sources.ts`/`engine_input.ts` dependencies,
+   `scripts/apply.ts` and the approval-card assets from the same landing commit before
+   restarting `trainee-cloud.service` with both switches still OFF. An old running
+   worker is not evidence of the new pre-effect check. Publish the running source pin
+   and fresh checks before any separately authorized flag or account change.
 4. Verify default-empty eligibility, both switches OFF, cap 15 and no approvals/jobs
    minted by installation. Actual C10 enrollment needs a separately authorized UUID,
    deadline of at most 24 hours, purpose and operator approval reference. No row is

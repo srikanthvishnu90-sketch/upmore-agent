@@ -17,7 +17,7 @@
    the RPC's jsonb return. Table reads (the pool loader's readRows
    spec, the profile source's snapshot reads) ride the same
    transport: GET {SUPABASE_URL}/rest/v1/<table> with PostgREST
-   select / eq filters / order / limit.
+   select / eq or ilike filters / order / limit.
    
    CREDENTIAL DISCIPLINE (the checklist's placement rule): the
    service-role key arrives ONLY through this factory's options —
@@ -82,7 +82,7 @@ function createSupabaseTransport(opts) {
   }
 
   // The readRows spec the pool loader and the profile source share:
-  // { table, select, filters: { column: { eq } }, order: { column,
+  // { table, select, filters: { column: { eq } } OR [{column,op,value}], order: { column,
   // ascending, nullsFirst }, limit } -> the rows array. Throws
   // coded on failure; each caller decides its own degrade (the
   // pool loader empties, profileFor stops named).
@@ -92,9 +92,20 @@ function createSupabaseTransport(opts) {
     const params = new URLSearchParams();
     params.set("select", sp.select || "*");
     if (sp.filters) {
-      for (const [column, cond] of Object.entries(sp.filters)) {
-        if (!/^[a-z0-9_]+$/.test(column)) throw coded("SUPABASE_READ_INVALID", `readRows: refusing a malformed filter column: ${column}`);
-        if (cond && typeof cond === "object" && "eq" in cond) params.set(column, `eq.${cond.eq}`);
+      const filters = Array.isArray(sp.filters) ? sp.filters : Object.entries(sp.filters).map(([column, cond]) => {
+        if (!cond || typeof cond !== "object" || Array.isArray(cond) || Object.keys(cond).join(",") !== "eq")
+          throw coded("SUPABASE_READ_INVALID", "readRows: an explicit supported filter is required");
+        return { column, op: "eq", value: cond.eq };
+      });
+      for (const filter of filters) {
+        const { column, op, value } = filter || {};
+        if (typeof column !== "string" || !/^[a-z0-9_]+$/.test(column) || ["select", "order", "limit", "offset", "or", "and"].includes(column))
+          throw coded("SUPABASE_READ_INVALID", "readRows: refusing a malformed or reserved filter column");
+        if (!["eq", "ilike"].includes(op) || !["string", "number", "boolean"].includes(typeof value) && value !== null ||
+          op === "ilike" && typeof value !== "string")
+          throw coded("SUPABASE_READ_INVALID", "readRows: refusing an unsupported filter operator or value");
+        if (params.has(column)) throw coded("SUPABASE_READ_INVALID", "readRows: duplicate filter columns require an explicit supported query shape");
+        params.set(column, `${op}.${value}`);
       }
     }
     if (sp.order && sp.order.column) {

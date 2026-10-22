@@ -171,8 +171,16 @@ binding record + resume-first seams, bridge `boardFor` resume option
 - Guard family on the branch: phone equivalence 5/5 · location 7/7 ·
   decline-vocab 12/12 · question-kind 6/6 · observation-stop-record
   5/5 · loop-acceptance 10/10 · board-provider 17/17 · portal-apply +
-  submit-integrity — combined run **115 pass / 0 fail**. Router bundle
-  rebuilt + `--check` verified.
+  submit-integrity — combined run **100 tests / 91 pass / 9 fail**
+  (CORRECTED 2026-10-22 ~03:2x CDT — an earlier draft of this note
+  said "115 pass / 0 fail", which no run ever produced). The 9
+  failures are submit-integrity's D11–D14 Chromium-tier tests,
+  failing at browser launch ("Target page, context or browser has
+  been closed") in this VM whenever Playwright resolves via
+  ~/workspace/sporve-agent-clone; the failing-name set is IDENTICAL
+  on the base commit 9bf6f82d run in the same environment (delta
+  +0 — the mechanism regresses nothing), and the other eight files
+  are 82/82 green. Router bundle rebuilt + `--check` verified.
 
 ## Measurement attempts log (TEST user, solo drives, live board service)
 

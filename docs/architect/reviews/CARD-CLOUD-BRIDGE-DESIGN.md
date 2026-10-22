@@ -42,9 +42,9 @@ but zero claims or engine submission. No switch is set by migration, rollback, p
 queued/attempts=0/source=NULL; the actual claim alone changes source to cloud. Own/extension claim skips a durable
 cloud-mode binding and extension-start explicitly refuses it. Do not pre-set source=cloud on enqueue.
 
-### C10: proposed replacement of TEST-only for exactly one ordinary account
+### C10: owner-approved rule for exactly one ordinary account; enrollment separate
 
-PROPOSED, OWNER APPROVAL REQUIRED: retain the existing empty TEST allowlist and add a private service-role-only
+OWNER APPROVED THE RULE; ACTUAL ENROLLMENT STILL REQUIRES SEPARATE AUTHORIZATION: retain the existing empty TEST allowlist and add a private service-role-only
 `cloud_card_enrollments` table. A row names exactly one user UUID, purpose `first-real-card-cloud`, created_at,
 expires_at (strictly later, at most 24 hours), revoked_at and the operator's approval reference. No wildcard, domain,
 global setting or client write exists. At most one unrevoked ordinary-account enrollment is allowed. The migration
@@ -58,7 +58,8 @@ Use a separate cloud-mode eligibility RPC/predicate and mode-specific RLS, not a
 career_apply_message_card_test_enabled_own; otherwise the ordinary grant would accidentally admit v1 extension cards.
 Expiry, revocation and account deletion close the path. The frontend needs only the same server-derived eligibility
 for the approval card. Eligibility grants no payload approval, opt-in, waiver, switch or arbitrary job permission.
-Until the owner approves this rule and the row, the ordinary-account send remains blocked. Tests use invented UUIDs.
+The owner approved this rule; until the actual row is separately authorized, the ordinary-account send remains blocked.
+Tests use invented UUIDs. No enrollment row, opt-in, waiver or switch is written by this migration.
 
 ### D11: additive, twice-safe migration, dependency, ledger and grants
 
@@ -217,6 +218,10 @@ entry 128 KiB and cloud payload 256 KiB caps remain; reject above the strictest 
 Owner's subsequent written ruling APPROVES the migration/rollback line-count exceed for readable guard code;
 existing caps, waiver/guard semantics stay intact outside the explicitly required binding/route additions.
 The exact size and per-function diffs remain visible for second-judge review; this is not a line-budget PASS claim.
+The owner's later explicit cap ruling changes CLOUD opt-in/claim/authorization/enqueue to at most 15 per day, including
+legacy opt-in rows containing 25. This is a named exception to preserving old caps; global/extension caps are unchanged.
+The cloud-switch approval is conditional on landing for the owner's account. Submit flags and sends remain unauthorized
+without the exact card tap and the owner's separate operational word; the waiver waits on the owner's email choice.
 
 ## Fail-first acceptance matrix
 
@@ -242,8 +247,9 @@ grants, message deletion and the four existing EXTENSION post-approval bypass te
 fixture and local mocks only; no employer requests. Two real DB sessions (not one sequential transaction pretending
 concurrency) prove claim/tap races, once SQL execution is separately authorized. No paid model calls.
 
-Unresolved permissions are explicit: architect PASS for release; owner's approval of C10 rule and exact
-account row; explicit authorization for any migration application, merge, deployment or switch change. Tests/design
+Unresolved permissions are explicit: architect PASS for release; owner's approval of the exact C10 enrollment
+row; explicit authorization for any migration application, merge or deployment. The cloud-switch approval is conditional
+and has not been exercised; submit remains OFF. Tests/design
 can be committed now; no CI job may inadvertently apply the draft migration.
 
 During the review-only phase, the SQL acceptance draft is at

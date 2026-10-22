@@ -37,7 +37,7 @@ const CareerHost = (() => {
     "trackStore", "suppression", "applyLog", "applicationLog", "outreach",
     "outreachContacts", "contacts", "sendingAccounts", "artifacts",
     "discovery", "plan", "offer", "portalRecords", "statusRecords",
-    "tasks", "resumeTexts", "pastedText",
+    "tasks", "resumeTexts", "pastedText", "profileDeletePreview",
     // COMPLEXITY WAVE: a user-pasted posting staged on ctx, the user's
     // own stated facts, the deferred parts of a multi-intent turn, and
     // relayed opt-out records — all four are conversation state the
@@ -209,16 +209,36 @@ const CareerHost = (() => {
   const PAUSE_RE = /^(?:STOP|UNSUBSCRIBE|stop everything|pause all career work)[.!]*$/i;
   const RESUME_RE = /^(?:resume career work|resume all career work)[.!]*$/i;
   const ERASE_RE = /^(?:forget|delete) my career profile[.!]*$/i;
+  const ERASE_PREVIEW_RE = /^(?:forget|delete) my stored profile[.!]*$/i;
+  const ERASE_CONFIRM_RE = /^confirm (?:forget|delete) my stored profile[.!]*$/i;
+  function deletionState(ctx) {
+    return JSON.stringify(STATE_KEYS.filter((key) => key !== "profileDeletePreview" && key !== "globalPause").map((key) => [key, ctx[key]]));
+  }
   // True when this turn belongs to the host's account controls: a pause, resume or erase command, or any turn while
   // the account is paused. Any brain (the router or the agent) must hand such a turn to runTurn, before any model call.
   function isHostControlled(text, ctx) {
     const ask = typeof text === "string" ? text.trim() : "";
-    if (PAUSE_RE.test(ask) || RESUME_RE.test(ask) || ERASE_RE.test(ask)) return true;
+    if (PAUSE_RE.test(ask) || RESUME_RE.test(ask) || ERASE_RE.test(ask) || ERASE_PREVIEW_RE.test(ask) || ERASE_CONFIRM_RE.test(ask)) return true;
     return !!(ctx && ctx.globalPause && ctx.globalPause.set === true && ctx.globalPause.source === "account_control");
   }
   function applyHostControl(text, ctx) {
     if (!ctx.userId || typeof text !== "string") return null;
     const ask = text.trim();
+    if (ERASE_PREVIEW_RE.test(ask)) {
+      const facts = ctx.profile && Array.isArray(ctx.profile.facts) ? ctx.profile.facts : [];
+      const preview = { fact_ids: facts.map((f) => f.id), fact_count: facts.length, clears: ["profile", "resume text", "active career context", "account watches"], pauses_career_work: true };
+      ctx.profileDeletePreview = { userId: ctx.userId, state: deletionState(ctx), expiresAt: ctx.now + 10 * 60 * 1000 };
+      return { intent: "career_profile_delete_preview", resultStatus: "awaiting_user", deletion_preview: preview, reply: `This will remove ${facts.length} saved profile facts, saved resume text, active career context and account watches, and pause career work. Existing chat/audit records may retain earlier text. Nothing has been deleted. Say "confirm delete my stored profile" to proceed.` };
+    }
+    let confirmedErase = false;
+    if (ERASE_CONFIRM_RE.test(ask)) {
+      const pending = ctx.profileDeletePreview;
+      if (!pending || pending.userId !== ctx.userId || !Number.isFinite(pending.expiresAt) || pending.expiresAt <= ctx.now || pending.expiresAt > ctx.now + 10 * 60 * 1000 || pending.state !== deletionState(ctx)) {
+        delete ctx.profileDeletePreview;
+        return { intent: "career_profile_delete_preview", resultStatus: "blocked", reply: 'A current deletion preview is required. Say "delete my stored profile" to see what will be removed; nothing was deleted.' };
+      }
+      confirmedErase = true;
+    }
     if (PAUSE_RE.test(ask)) {
       ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
       ctx._hostPatch = { paused: true };
@@ -228,7 +248,7 @@ const CareerHost = (() => {
       ctx.globalPause = { set: false, source: "account_control" }; ctx._hostPatch = { paused: false };
       return { intent: "career_resumed", reply: "The account pause is lifted. Earlier cancelled or uncertain work was not restarted. Ask for the next action explicitly." };
     }
-    if (ERASE_RE.test(ask)) {
+    if (ERASE_RE.test(ask) || confirmedErase) {
       for (const key of STATE_KEYS) delete ctx[key];
       ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
       ctx._hostPatch = { erase: true, paused: true };

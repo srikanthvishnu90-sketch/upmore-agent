@@ -10,7 +10,7 @@ Owner's order: merge the named fixes individually in the order below; after each
 - Provider credentials are not inherited. Fixtures use synthetic data. Deno network permission is loopback only. JSR downloads are blocked here, so the external import map uses unchanged upstream std/assert and deno-dom source checkouts; their exact commits and map hash are in [environment.json](evidence-20261022/environment.json).
 - Node selects every root `tests/*.cjs` file, including archived external-evidence suites, with `--experimental-vm-modules --test --test-concurrency=2`. Deno runs all of `tests/edge` and `tests/architect`, excluding only the preexisting `tests/architect/pending` selection.
 - **NOT_RUN:** baseline Node reports 105 skips. These include extension suites whose service worker could not start under the installed Chromium. A browser left open after Workday setup failed blocked fixture-server cleanup; only that test-owned browser was terminated after all Workday cases had skipped. [Cleanup record](evidence-20261022/00-base/extension-cleanup.json). No test or assertion was edited.
-- A checkpoint with unchanged baseline failures is labeled **NO_NEW_FAILURES**, never a green gate. Failure-name sets are compared as well as counts. No baseline failure is waived for release.
+- A checkpoint with unchanged baseline failures is labeled **NO_NEW_FAILURES**, never a green gate. Failure-name sets and failure diagnostics are compared as well as counts. No baseline failure is waived for release.
 
 ## Results
 
@@ -19,7 +19,7 @@ Counts below are passed / failed / skipped (Deno omitted skips where none were r
 | Step | Incoming fix | Tested SHA | Node | Edge | Architect | Result |
 |---|---|---|---|---|---|---|
 | 00 baseline | — | `348c2d4a3564c54135d0c485bb0d09d763ee0901` | 5,061 / 35 / 105 | 892 / 0 | 1,262 / 2 | FAIL baseline; Node 18m17s |
-| 01 F-001 | `984478d2` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
+| 01 F-001 | `984478d2` | `8133ee4d52df3da25506c0b3c6f44fc8fe6cca73` | 5,064 / 35 / 105 | 892 / 0 | 1,262 / 2 | VERIFIED: NO_NEW_FAILURES; +3 passing Node tests |
 | 02 F-002 | `15057d56` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
 | 03 F-004 | `94f91453` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
 | 04 F-005 | `233d834d` | — | NOT_RUN | NOT_RUN | NOT_RUN | Pending |
@@ -43,3 +43,9 @@ All 420 root Node files ran. There were 5,201 counted tests: 5,061 passed, 35 fa
 Raw logs: [Node](evidence-20261022/00-base/node.log.gz), [Edge](evidence-20261022/00-base/edge.log.gz), [architect](evidence-20261022/00-base/architect.log.gz). Commands, durations, exit statuses and uncompressed log hashes are in each matching JSON file. [File hashes](evidence-20261022/files.json). [Local runner](evidence-20261022/run-local.py); [failure comparison](evidence-20261022/compare-local.py).
 
 Ledger: **$0 new** for this work; prior **$8.573843 recorded, UNRECONCILED**. No paid evaluation was launched.
+
+## Step 01 — F-001
+
+Merged `984478d2822890072f30408bd8b5d14489452c4c` cleanly with `--no-ff`; no conflict or source edit. Tested merge SHA `8133ee4d52df3da25506c0b3c6f44fc8fe6cca73`. All 421 root Node files ran in 17m44s; +3 passed, no new failures, no resolved baseline failures, identical failure diagnostics. Full Edge 892/0; active architect 1,262/2, same baseline failures. Both career-only and full generated bundles pass their source checks. **NO_NEW_FAILURES, not a green release gate.**
+
+[Comparison](evidence-20261022/01-f001/comparison.json); raw [Node](evidence-20261022/01-f001/node.log.gz), [Edge](evidence-20261022/01-f001/edge.log.gz), [architect](evidence-20261022/01-f001/architect.log.gz); [bundle checks](evidence-20261022/01-f001/bundle-checks.json). Workday setup again failed before its assertions; the documented cleanup unblocked shutdown, preserving the skips.

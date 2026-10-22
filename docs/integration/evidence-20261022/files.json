@@ -31,13 +31,53 @@
     "bytes": 413632,
     "sha256": "577390290a1fe7c775bd1bcc999b02767cb4b09f35eb6bcc7f21d8d5540eaacf"
   },
+  "01-f001/architect.json": {
+    "bytes": 830,
+    "sha256": "27d4668620b80db345424bea81091c252157b6ccd784849037ec0190c72502c9"
+  },
+  "01-f001/architect.log.gz": {
+    "bytes": 46736,
+    "sha256": "f88a0d633091aa32d52e9796b6b3af6724e6b126d31379dbd65148810ae07b06"
+  },
+  "01-f001/bundle-checks.json": {
+    "bytes": 431,
+    "sha256": "23f8c26cde0415486b9c0e02af16f07c2b8fb4334ad235d67e9c4c79f57c8f35"
+  },
+  "01-f001/comparison.json": {
+    "bytes": 11369,
+    "sha256": "d9be12a1053ffe3e57cdef3acb277a242e1d2399a5a3c21377efd2e16c1527af"
+  },
+  "01-f001/edge.json": {
+    "bytes": 774,
+    "sha256": "efb90364adf2af8cadbcc13ae77db569bae78459fc12a39b16519d65b73d18ea"
+  },
+  "01-f001/edge.log.gz": {
+    "bytes": 35498,
+    "sha256": "3ac295a8d1f8024f2b4e73bdb1f73db50032cd9a57f94130acc366330680d703"
+  },
+  "01-f001/extension-cleanup.json": {
+    "bytes": 395,
+    "sha256": "acb990b131333b775cae471d60ded0411018e620e0bda7b3381a1f92d0d46893"
+  },
+  "01-f001/node.json": {
+    "bytes": 18058,
+    "sha256": "0c62ef46c4ddd2bb5dbe611a4a5f0f45779a4a8d5c0515169b2b782f5e1f9985"
+  },
+  "01-f001/node.log.gz": {
+    "bytes": 413733,
+    "sha256": "c869b35f6291037fcf8461aa7f340ca11d4ddddbc026d9b49e2e9831bb98649f"
+  },
   "compare-local.py": {
-    "bytes": 1633,
-    "sha256": "3903cf39ef0b7d57a037917665418d0e7c0641be7abf136712981ad85257b085"
+    "bytes": 2679,
+    "sha256": "41d106f0baa9ccb0854e836ec364a0a205a680f50f8410dfe2e973fd77a2e8f1"
   },
   "environment.json": {
     "bytes": 970,
     "sha256": "2876b9e2e02e4e86524abfec072481c351bb08397b9168955af204f13cade942"
+  },
+  "extension-cleanup.py": {
+    "bytes": 2624,
+    "sha256": "1c9c5778083a9610d14e02455e91c30193c221ea1ecb765ce901f15567edb70b"
   },
   "run-local.py": {
     "bytes": 2587,

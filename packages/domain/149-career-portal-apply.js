@@ -112,6 +112,10 @@ const CareerPortalApply = (() => {
   const isEeoDeclineText = (text) => eeoDeclineMatch(text) !== null;
   // Spec 2 §6.4 caps — DECIDED by the owner (15/day locked 2026-10-12) and enforced (MI-110).
   const SPEC_CAPS = { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 };
+  // MUSE-F-025: the bounded re-scan of a zero-field form read (see the
+  // discover step in prepareRound and docs/apply/ROOT-CAUSE-F025-2026-10-22.md).
+  const EMPTY_FORM_RESCAN_MAX_READS = 5;
+  const EMPTY_FORM_RESCAN_BUDGET_MS = 10000;
 
   const normName = (v) => String(v == null ? "" : v).toLowerCase().replace(/\(test\)/gi, " ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
@@ -969,7 +973,39 @@ const CareerPortalApply = (() => {
     }
 
     // steps 3+4: analyze, then fill from confirmed facts only
-    const formDef = board.form();
+    // MUSE-F-025 (bounded re-scan): the first form read can land before
+    // the board's client-rendered form has mounted on a slow first paint;
+    // that instantaneous read legitimately returns zero fields on a
+    // healthy posting, and the D2 stop below then fired on a form that
+    // was not reached YET (live: batch-7ac6d3b30fa5, bracketed by drives
+    // returning 27/34 fields through the same stack). A zero-field read
+    // is therefore re-scanned — bounded by EMPTY_FORM_RESCAN_MAX_READS
+    // total reads AND EMPTY_FORM_RESCAN_BUDGET_MS wall-clock, whichever
+    // binds first; each re-read is a complete fresh discover on the
+    // board, so the loop observes later paints. There is no synthetic
+    // delay and no unbounded wait. inp.emptyFormRescan === false is the
+    // kill switch: the exact pre-fix single read. Root cause:
+    // docs/apply/ROOT-CAUSE-F025-2026-10-22.md.
+    const rescanOff = inp.emptyFormRescan === false;
+    const rescanT0 = Date.now();
+    let formDef = board.form();
+    let rescanReads = 1;
+    while ((!formDef.fields || formDef.fields.length === 0) && !rescanOff
+      && rescanReads < EMPTY_FORM_RESCAN_MAX_READS
+      && Date.now() - rescanT0 < EMPTY_FORM_RESCAN_BUDGET_MS) {
+      formDef = board.form();
+      rescanReads += 1;
+      logStep("empty_form_rescan", { read: rescanReads, fieldCount: (formDef.fields || []).length, elapsedMs: Date.now() - rescanT0 });
+    }
+    const rescanElapsedMs = Date.now() - rescanT0;
+    const rescan = rescanReads > 1
+      ? { reads: rescanReads, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: (formDef.fields || []).length ? "fields_found" : "exhausted" }
+      : (rescanOff && (!formDef.fields || formDef.fields.length === 0))
+        ? { reads: 1, elapsedMs: rescanElapsedMs, budgetMs: EMPTY_FORM_RESCAN_BUDGET_MS, maxReads: EMPTY_FORM_RESCAN_MAX_READS, outcome: "disabled" }
+        : null;
+    if (rescan && rescan.outcome === "fields_found") {
+      logStep("empty_form_rescan_recovered", { reads: rescanReads, fieldCount: formDef.fields.length, elapsedMs: rescanElapsedMs });
+    }
     const formAnalysis = analyzeForm(formDef);
     for (const field of formDef.fields || []) {
       if (!session.preparationFields.some((f) => f.field_id === field.field_id)) session.preparationFields.push(field);
@@ -977,6 +1013,8 @@ const CareerPortalApply = (() => {
     // D2 (BUG-061): a board exposing ZERO fields is a stop, never a
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
+    // F-025: the stop now consumes the bounded re-scan above; a form
+    // still empty when the bound is exhausted stops exactly as before.
     if (!formDef.fields || formDef.fields.length === 0) {
       // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
       // fields — the review page after a Next click carries the
@@ -992,8 +1030,8 @@ const CareerPortalApply = (() => {
         logStep("captcha_stop", { at: continued ? "review" : "form" });
         return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
       }
-      logStep("empty_form_stop", { fieldCount: 0 });
-      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
+      logStep("empty_form_stop", { fieldCount: 0, rescanReads });
+      return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis, rescan });
     }
     const asks = [];
     const filled = {};

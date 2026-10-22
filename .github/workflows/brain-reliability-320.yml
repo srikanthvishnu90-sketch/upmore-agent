@@ -6,7 +6,8 @@ on:
     branches: [ci/brain320-mini-20261021, ci/brain320-higher-20261021]
     paths: [.github/workflows/brain-reliability-320.yml]
 permissions:
-  contents: read
+  # contents: write only so the live meter can publish the public cost snapshot to wo/brain-eval-meter-<run id>.
+  contents: write
   actions: read
 concurrency:
   group: brain-eval
@@ -27,6 +28,8 @@ jobs:
       FIRST_ARM_RESULT_SHA256: NOT_RUN
       FIRST_ARM_VERIFY_REF: NOT_VERIFIED
       HIGHER_RECHECK_APPROVAL_REF: NOT_APPROVED
+      # The owner's word that this arm runs under the live cost meter (live-meter.ts refuses without it).
+      LIVE_METER_APPROVAL_REF: NOT_APPROVED
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Reject retries and unapproved proposals before checkout or provider access
@@ -51,6 +54,8 @@ jobs:
           test -n "$OWNER_POOL_REF"
           test "$OWNER_POOL_REF" != "NOT_APPROVED"
           test "$COMPARISON_CAP_USD" = "20"
+          test -n "$LIVE_METER_APPROVAL_REF"
+          test "$LIVE_METER_APPROVAL_REF" != "NOT_APPROVED"
           echo "BRAIN320_MODEL=$MODEL" >> "$GITHUB_ENV"
           echo "BRAIN320_APPROVAL_REF=$APPROVAL_REF" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
@@ -61,7 +66,7 @@ jobs:
         with: {deno-version: "v2.9.6"}
       - name: Free runner controls, with network denied
         run: |
-          deno check evals/brain-reliability/run-comparison.ts tests/architect/brain-eval-comparison.test.ts
+          deno check evals/brain-reliability/run-comparison.ts evals/brain-reliability/live-meter.ts tests/architect/brain-eval-comparison.test.ts
           deno test --no-check --cached-only --no-remote --allow-read="$GITHUB_WORKSPACE" --deny-net --no-prompt tests/architect/brain-eval-comparison.test.ts
       - name: Retrieve the first arm's complete private evidence for the higher arm
         if: env.BRAIN320_MODEL == 'gpt-5'
@@ -83,6 +88,7 @@ jobs:
             "source_commit":os.environ["SOURCE_COMMIT"],"corpus_sha256":os.environ["CORPUS_SHA256"],
             "comparison_cap_usd":20,"comparison_spent_usd":0,"cap_usd":5,
             "owner_allocated_pool_ref":os.environ["OWNER_POOL_REF"],
+            "live_meter_approval_ref":os.environ["LIVE_METER_APPROVAL_REF"],
             "prior_settled_usd":0.139984,
             "new_budget_spent_usd":None,"other_reserved_usd":None,"ledger_snapshot_at":None}
           if model=="gpt-5":
@@ -110,10 +116,12 @@ jobs:
           p.write_text(json.dumps(approval))
           p.chmod(0o600)
           PY
-      - name: One approved arm, no retries; keep sealed item evidence out of job logs
+      - name: One approved arm, no retries; metered (a failed cost publication blocks dispatch); keep sealed item evidence out of job logs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          deno run --cached-only --no-remote --allow-read --allow-write="$RUNNER_TEMP" --allow-env=OPENAI_API_KEY --allow-net=api.openai.com --allow-run=git --no-prompt \
-            evals/brain-reliability/run-comparison.ts --run-approved --model "$BRAIN320_MODEL" \
+          deno run --cached-only --no-remote --allow-read --allow-write="$RUNNER_TEMP" --allow-env=OPENAI_API_KEY,GITHUB_TOKEN,GITHUB_REPOSITORY,GITHUB_RUN_ID --allow-net=api.openai.com,api.github.com --allow-run=git --no-prompt \
+            evals/brain-reliability/live-meter.ts --run-approved --model "$BRAIN320_MODEL" \
             --corpus evals/brain-reliability/scenarios320.json --manifest evals/brain-reliability/manifest320.json \
             --approval-file "$RUNNER_TEMP/brain320-approval.json" --out "$RUNNER_TEMP/brain320-result" \
             > "$RUNNER_TEMP/brain320-diagnostic.log" 2>&1

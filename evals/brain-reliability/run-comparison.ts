@@ -361,30 +361,9 @@ if (import.meta.main) {
     const raw = await Deno.readTextFile(corpusPath), manifestRaw = await Deno.readTextFile(manifestPath), manifest = JSON.parse(manifestRaw) as Manifest, corpus = await validateCorpus(raw, manifest);
     if (Deno.args.includes("--inventory")) console.log(JSON.stringify(corpusInventory(corpus, bytes(raw).length), null, 2));
     else {
-      insist(Deno.args.includes("--run-approved") && opt("--approval-file") && opt("--model") && opt("--out"), "NOT RUN: explicit --run-approved, bound owner approval file, one model and output prefix required");
-      const model = opt("--model")!, out = opt("--out")!, approval = JSON.parse(await Deno.readTextFile(opt("--approval-file")!)) as Approval;
-      insist(MODELS.includes(model as any), "unsupported brain model");
-      const git = async (...args: string[]) => { const r = await new Deno.Command("git", { args, stdout: "piped", stderr: "piped" }).output(); insist(r.success, "git provenance check failed"); return new TextDecoder().decode(r.stdout).trim(); };
-      const source = await git("rev-parse", "HEAD"); insist(/^[a-f0-9]{40}$/.test(source) && !await git("status", "--porcelain"), "candidate checkout must be clean and pinned");
-      validateApproval(approval, model, source, manifest.sha256);
-      const identity: Identity = { source_commit: source, corpus_sha256: manifest.sha256, rubric_sha256: await sha256(COMPARISON_RUBRIC), clock_utc: corpus.clock_utc, seed: corpus.seed, concurrency: 4,
-        params: { judges: [...JUDGES], reasoning_effort: "minimal", brain_max_tokens: 1200, judge_max_tokens: 700, provider_retry_count: 0, turn_advance_ms: 60000, fixture_version: "deterministic-local-stores-v1", manifest_sha256: await sha256(manifestRaw), harness_sha256: await sha256(await Deno.readTextFile(new URL(import.meta.url))), prices_sha256: await sha256(canonical(Object.fromEntries([...MODELS, ...JUDGES].map((m) => [m, PRICES[m]])))) } };
-      const firstArm = model === "gpt-5" ? await verifyFirstArm(approval, identity, await Deno.readTextFile(approval.first_arm_evidence!.result_path)) : null;
-      // Local, same-approval-file replay guard only. The owner's shared ledger and once-only publication remain authoritative.
-      const receipt = Deno.openSync(opt("--approval-file")! + ".consumed", { write: true, createNew: true, mode: 0o600 });
-      try { receipt.writeSync(bytes(canonical({ approval, consumed_at: new Date().toISOString() }))); receipt.syncSync(); } finally { receipt.close(); }
-      const file = durableAppend(out + ".journal.jsonl");
-      try {
-        file.append({ type: "arm", model, identity, approval, first_arm_verified: firstArm, budget_scope: approval.new_budget_spent_usd === null || approval.other_reserved_usd === null ? "OWNER_ALLOCATED_POOL_ONLY; shared $35 working/$40 hard ledger is owner-consolidated and unknown here" : "PER_ARM_PLUS_KNOWN_OWNER_SHARED_SNAPSHOT; not cross-machine enforcement", prior_settled_before_comparison_usd: .139984, started_at: new Date().toISOString(), acceptance: "CI_INTERSECTION only; independent Instinct verdict required" });
-        const key = Deno.env.get("OPENAI_API_KEY") ?? ""; await modelPreflight(key, [...new Set([model, ...JUDGES])]);
-        file.append({ type: "preflight", models: [...new Set([model, ...JUDGES])], status: "available" });
-        const journal = new BudgetJournal(usdMicros(approval.cap_usd), file.append);
-        const arm = await runArm(corpus, identity, model, journal, file.append, key), summary = armSummary(arm);
-        file.append({ type: "complete", summary, finished_at: new Date().toISOString() });
-        const resultFile = Deno.openSync(out + ".json", { write: true, createNew: true, mode: 0o600 }), data = bytes(JSON.stringify(arm));
-        try { let offset = 0; while (offset < data.length) offset += resultFile.writeSync(data.subarray(offset)); resultFile.syncSync(); } finally { resultFile.close(); }
-        console.log(JSON.stringify({ ...summary, result_sha256: await sha256(data), comparison_cap_usd: 20, comparison_spent_before_usd: approval.comparison_spent_usd, comparison_spent_after_known_usd: (usdMicros(approval.comparison_spent_usd) + arm.ledger.usd_micros) / 1000000, prior_settled_before_comparison_usd: .139984, shared_ledger: "Owner consolidates $35 working/$40 hard budget; unknown external balances are not inferred as zero" }, null, 2)); if (summary.status !== "SCORED") Deno.exitCode = 2;
-      } finally { file.close(); }
+      // A paid arm runs only through the live meter (live-meter.ts): its public cost snapshot must be published before
+      // every provider dispatch, and a failed or contended publication stops dispatch. This path had no meter.
+      insist(false, "NOT RUN: a paid arm runs only through evals/brain-reliability/live-meter.ts --run-approved (cost publication gates every provider dispatch)");
     }
   }
 }

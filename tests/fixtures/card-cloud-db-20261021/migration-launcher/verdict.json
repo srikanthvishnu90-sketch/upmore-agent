@@ -1,0 +1,25 @@
+{
+  "scope": "RECORDING_PSQL_DISPATCH_ONLY",
+  "sql_executed": false,
+  "real_psql_executed": false,
+  "new_spend_usd": 0,
+  "baseline_commit": "01401cb456bc2982d67316165e183bbd275581c9",
+  "baseline_source_sha256": "e324eb933d0060f6f921580e90669fecd51d1ff10cd2176df9e296dc8ef2d1d1",
+  "candidate_source_sha256": "9472f0f029735cc25b5e9aafbb138b7a4a1465ba5699717036af4d20f1acde80",
+  "test_sha256": "9222ebaaf93c197f0c3855c5d2749e6c369a23cc288afbad51802a396e1163ac",
+  "baseline": {
+    "tests": 6,
+    "pass": 2,
+    "fail": 4
+  },
+  "candidate": {
+    "tests": 6,
+    "pass": 6,
+    "fail": 0
+  },
+  "logs": {
+    "baseline-014": "d21e680d83ed61ed546b4d2be4f8948f676d66c8060ad4588c2cc37d8c6b8341",
+    "candidate": "b591268d2720264c22b3d07ff3a895282257b9a5966535f67565f958b60d5635"
+  },
+  "limitation": "Does not verify Postgres semantics, migration runtime or deploy readiness."
+}

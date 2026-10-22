@@ -76,6 +76,12 @@ filename to the `tests/db/run.sh` ledger once and its explicit final replay twic
 The migration checks required base signatures exist; no partially installed fallback. The new private metadata
 does not alter the existing extension approval deadline constraint.
 
+Implementation check found that run.sh's existing generic pending launcher globs all migration files and passes
+them through one enclosing transaction. Keeping the new tests in pending does not exclude the migration from that
+glob. Broad CI stays held while the no-apply instruction stands. Before release CI, its integration must run this
+up/down standalone rather than through the generic pending launcher; until that is implemented and authorized,
+D11 runtime/integration remains NOT_RUN. The isolated browser job does not invoke that launcher.
+
 All functions pin search_path to public,pg_temp and qualify private objects. Revoke function EXECUTE from PUBLIC,
 anon, authenticated and service_role first, then grant tap/read only to authenticated and producer only to
 service_role. Worker lease-authorization RPC only to service_role. Private binding tables have no client grants;
@@ -118,16 +124,20 @@ then up/down/down/up. Both down stages must equal the saved live hashes and gran
 unchanged. Also compare normalized DDL source text to the exact baseline file, so an accidental replacement from
 the older cloud migration fails. Existing card guard/function definitions similarly equal the pre-bridge snapshot.
 This lifecycle test remains NOT_RUN while the no-apply instruction stands.
+The rollback also restores the exact prior Stop RPC and cloud opt-in setter/getter, and removes the new daily-column
+default (the baseline has no default). Restoring the historical cloud cap is permitted only as part of this reviewed
+rollback with both switches OFF; it is not a switch-on authorization or a permanent replacement for the new cap 15.
 
 ## Remaining gate answers and concrete implementation surface
 
 Concrete cloud interfaces for the tests: producer
-`career_apply_message_cloud_card_show_as(owner uuid,thread uuid,items jsonb)` returns the existing stored card
+`career_apply_message_cloud_card_show_as(p_user uuid,p_thread uuid,p_items jsonb)` returns the existing stored card
 envelope with `{id,hash,payload}`; each item is `{payload,hash,readback}`. Existing
 `career_apply_message_card_approve_own(uuid,text)` dispatches version-2/cloud cards and returns a stable receipt
-with `jobs:[{id,approval_id,payload_hash,expires_at}]`; existing version-1/extension behavior stays unchanged.
-New private metadata is `cloud_bound_approvals` (approval_id PK, owner, card_id,item_index,Hq,approved_at,expires_at,
-revoked_at) and `cloud_bound_jobs` (job_row_id PK, approval_id UNIQUE, owner, card_id,item_index, unique(card_id,item_index)).
+with `jobs:[{id,approval_id,payload_hash,expires_at}]`; the top-level `approval_expires_at` is tap +24h while each
+job's `expires_at` is min(P.expires_at,tap +24h). Existing version-1/extension behavior stays unchanged.
+New private metadata is `cloud_bound_approvals` (approval_id PK, user_id, card_id,item_index,payload_hash,approved_at,expires_at,
+revoked_at) and `cloud_bound_jobs` (job_row_id PK, approval_id UNIQUE, user_id, card_id,item_index, unique(card_id,item_index)).
 The card_id here is a durable value, not a cascading FK to a deletable card. The existing approval row's entry is
 exact P, batch_hash is Hq and used_at records consumption in the same transaction. Cloud tap inserts this row directly
 under its lock after cloud contract validation; it does NOT call extension-only batch_approve with a fabricated entry.
@@ -167,6 +177,13 @@ owned question rows via the existing questions writer (an equivalent service wri
 do not forge a claimed-job lease to call cloud_ask). It shows NO card until required answers are confirmed and a new
 dry run succeeds. The source reader/engine input builder is Claude's dependency, not duplicated here.
 
+Implemented service-side RPC names and argument names are fixed: `career_apply_message_cloud_sources(p_user)`
+returns `{user_id,profile,rows,digest}`; rows are ordered by question ID. The profile is the freshest matching stored
+profile in the bounded account-owned state query. `career_apply_message_cloud_prepare_context(p_user,p_resume)`
+returns the owned resume bytes/fingerprint and account epoch/version. Missing answers use
+`career_apply_message_cloud_prepare_questions_as(p_user,p_job_id,p_questions)`, which invokes the existing owned
+question writer without forging a claimed-job lease. All producer/source RPCs are service-role-only.
+
 B4/B5: take account advisory lock before card lock; use actual clock after waits. Verify unanswered nonce, owner,
 thread owner, recomputed Hc and every item's current authority, Hq/He contract and owned resume. All items mint an
 approval id, create immutable private item origin metadata, enqueue P, bind the returned job row id to that consumed
@@ -193,7 +210,8 @@ C7: closed CLOUD top-level keys from prepare: version,user_id,job_id,company,url
 page_field_names,engine_approval,schema_hash,privacy_epoch,account_version,expires_at,quarantine_version,manifest_hash,
 replay_sources,resume_tailored,resume_persona,approved_snapshot. Optional keys stay optional as emitted; absent vs
 null remain hash-distinct. Cloud field keys are exactly the producer's name,label,value,factId,provenance,
-confirmation_event_id,authorizes,source; the last four are optional as emitted by sourceOf. source is an object
+confirmation_event_id,authorizes,source. Cloud validation requires nonempty provenance and confirmation_event_id
+and a valid source object; authorizes is optional. source is an object
 (closed table,key,value keys), not extension's string. Validate source and approved_snapshot/replay_sources via the existing engine contract,
 reject unknown nested classes and duplicate field names, check bank factId F-027..F-079 and derived references using
 the existing quarantine contract, without misclassifying own-chat `id:F-033`. No cloud `source:extension` workaround.

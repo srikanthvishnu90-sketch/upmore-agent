@@ -49,7 +49,7 @@ not a substitute for that release gate, and its CI configuration must never be m
 | Source changed during card preparation | VERIFIED **1/3 → 3/3** | intermediate producer baseline; withdrawal and edit must block display |
 | Actual producer → renderer ABI | VERIFIED **7/10 → 10/10** | unchanged regression fixture, including nonempty employer fields |
 | SQL outer/function syntax + original-body preservation | VERIFIED offline | 68 up/44 down statements; all **10/10** rollback definitions match their exact baseline; original extension guard suffix preserved |
-| Captured sandboxed browser baseline/candidate | RUNNING at handoff | run `39701982952`; frozen test 68e70bbc, baseline 01401cb4 versus candidate dff3 |
+| Captured sandboxed browser baseline/candidate | VERIFIED **4/7 → 7/7**, zero skips | [run 39701982952](https://github.com/srikanthvishnu90-sketch/upmore-agent/actions/runs/39701982952); frozen test 68e70bbc, baseline 01401cb4 versus candidate dff3 |
 | SQL runtime, grants/RLS, up twice/down twice/up, actual DB races | **NOT_RUN** | written pending tests; explicit no-apply instruction remains in force |
 | Full product CI, second-judge release PASS, live send | **NOT_RUN / NOT_GRANTED** | no such claim is made by the local or isolated-browser results |
 
@@ -60,6 +60,12 @@ bodies from `20261024120000`. Migration: **764 lines / 64,768 bytes**; rollback:
 **370 lines / 29,476 bytes**. This exceeds the original line budget under the owner's
 explicit readability exception. Syntax/source equality is not runtime behavior proof.
 
+The browser baseline's rehashed company mutation ran the engine and produced one synthetic local POST. The
+rehashed page-URL mutation started the engine but its existing engine guard refused the POST; the regression is
+earlier dispatch prevention, not a claimed baseline send. The new pre-effect authorization test verifies the real
+parent/child channel reaches the browser boundary and a denied lease produces zero local POSTs. Four preexisting
+browser protections remain controls. This isolated CI used no database or employer destination.
+
 ## Exact landing order, only after the remaining gates and owner authorization
 
 1. Review this branch against 01401cb4, including the frozen source pin and the SQL
@@ -68,7 +74,14 @@ explicit readability exception. Syntax/source equality is not runtime behavior p
 2. Obtain separate authorization for a named disposable-local database test scope.
    Run pending positive/negative, repeat-up, rollback and real multi-client race tests
    there; retain raw outputs and verify no hosted connection. Nothing here authorizes
-   executing those files. Keep pending SQL out of incidental push/PR test discovery.
+   executing those files. The pending test directory prevents test autodiscovery, but
+   **does not prevent migration application**: the existing DB runner invokes
+   `scripts/launch/apply-rails-and-seed.sh --pending`, which globs every migration and
+   uses one enclosing transaction. Broad push/PR CI therefore remains held with
+   `[skip ci]`. Before release CI, integrate the standalone bridge execution convention
+   deliberately; do not run this new migration through that generic pending launcher.
+   The disposable test bootstrap must use the pinned baseline tree, then the reviewed
+   bridge file in its own psql session. This runner integration remains an open gate.
 3. Require both judges' PASS and green CI on the final landing commit. Merge/deployment
    and live migration execution still require the owner's explicit word. On authorized
    live application, first verify modern approval/contract/question/waiver prerequisites,

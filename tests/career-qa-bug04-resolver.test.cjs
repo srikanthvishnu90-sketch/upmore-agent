@@ -39,7 +39,7 @@ for (const gate of GATES) {
   });
 }
 
-test("the sibling fallback resolves Playwright with UPMORE_PLAYWRIGHT_PATH unset", () => {
+test("the sibling fallback resolves Playwright with UPMORE_PLAYWRIGHT_PATH unset", { skip: !fs.existsSync(SIBLING) && "sibling Playwright install absent on this machine — the fallback target is this dev host's layout" }, () => {
   assert.ok(!process.env.UPMORE_PLAYWRIGHT_PATH || process.env.UPMORE_PLAYWRIGHT_PATH === SIBLING,
     "this proof runs with the env unset (the posture that used to skip)");
   assert.ok(fs.existsSync(SIBLING), `sibling install present at ${SIBLING}`);

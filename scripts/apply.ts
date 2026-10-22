@@ -115,11 +115,58 @@ function privateDir(dir: string) {
   const st = fs.lstatSync(dir);
   if (!st.isDirectory() || st.isSymbolicLink() || (st.mode & 0o077)) throw fail("PRIVATE_DIRECTORY_REQUIRED");
 }
+// Cloud-only one-shot IPC. The worker owns all credentials and chooses the captured job/lease; this channel
+// can request only before_effect, never an RPC, URL, identity or hash. The browser receives none of it.
+export function cloudEffectAuthorization(nonce: string, timeoutMs = 5000): () => Promise<void> {
+  if (!/^[0-9a-f]{64}$/.test(nonce)) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+  let requested = false;
+  return async () => {
+    if (requested) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+    requested = true;
+    const reader = Deno.stdin.readable.getReader();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const request = "CLOUD_AUTH " + JSON.stringify({ v: 1, nonce, phase: "before_effect" }) + "\n";
+      const bytes = new TextEncoder().encode(request);
+      let written = 0;
+      while (written < bytes.length) written += await Deno.stdout.write(bytes.subarray(written));
+      const read = async () => {
+        let input = "";
+        const decoder = new TextDecoder("utf-8", { fatal: true });
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          input += decoder.decode(chunk.value, { stream: true });
+          if (input.length > 1024) throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          if (!input.includes("\n")) continue;
+          if (!input.endsWith("\n") || input.indexOf("\n") !== input.length - 1 || !input.startsWith("CLOUD_AUTH "))
+            throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          let response;
+          try { response = JSON.parse(input.slice(11, -1)); } catch { throw fail("CARD_CLOUD_AUTH_PROTOCOL"); }
+          if (!response || Object.keys(response).sort().join(",") !== "allow,nonce,v" || response.v !== 1 ||
+            response.nonce !== nonce || typeof response.allow !== "boolean") throw fail("CARD_CLOUD_AUTH_PROTOCOL");
+          if (!response.allow) throw fail("CARD_CLOUD_AUTH_REFUSED");
+          return;
+        }
+      };
+      await Promise.race([read(), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(fail("CARD_CLOUD_AUTH_TIMEOUT")), timeoutMs);
+      })]);
+    } finally {
+      clearTimeout(timer);
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+}
+
 function options(args: string[]) {
   const o: any = { submit: false };
   for (let i = 0; i < args.length; i++) {
     const k = args[i];
     if (k === "--submit") o.submit = true;
+    else if (k === "--cloud-authorize-stdio") o["cloud-authorize-stdio"] = true;
+    else if (k === "--cloud-authorize-nonce" && /^[0-9a-f]{64}$/.test(args[i + 1] || "")) o["cloud-authorize-nonce"] = args[++i];
     else if (k === "--dry-run") o.dry = true;
     // --handoff: when a verification shows on the page, wait for the person to complete it, then go on from the same
     // page. --headed opens a visible browser for the person's own runs (and implies --handoff).
@@ -296,8 +343,12 @@ function codeReader(mode: string | undefined, local: boolean, userId: string): C
     }, { now: Date.now, maxWaitMs: wait });
 }
 export async function runApply(args: string[]) {
-  const o = options(args),
-    u = new URL(o.url),
+  const o = options(args);
+  if ((o["cloud-authorize-stdio"] || o["cloud-authorize-nonce"]) &&
+    (!o["cloud-authorize-stdio"] || !o["cloud-authorize-nonce"] || !o.submit || !o.approved || o["person-submits"] || o.handoff))
+    throw fail("CARD_CLOUD_AUTH_REQUIRED");
+  const authorizeCloudEffect = o["cloud-authorize-stdio"] ? cloudEffectAuthorization(o["cloud-authorize-nonce"]) : null;
+  const u = new URL(o.url),
     target = posting(u),
     _local = (() => {
       // Another state folder would be another once-only record: for a real employer there is exactly one.
@@ -386,6 +437,15 @@ export async function runApply(args: string[]) {
     destination = "",
     current: any,
     version = "";
+  const authorizeEffect = async (route: any) => {
+    if (!authorizeCloudEffect) return true;
+    try { await authorizeCloudEffect(); return true; }
+    catch (e: any) {
+      evidence.transport_rejection = e?.code || "CARD_CLOUD_AUTH_REFUSED";
+      await route.abort("blockedbyclient");
+      return false;
+    }
+  };
   const wire: any = {};
   const personSubmits = !!o["person-submits"];
   // Resume uploads the page made while filling an approved application, and the employer's answers to them.
@@ -681,6 +741,7 @@ export async function runApply(args: string[]) {
           await route.abort("blockedbyclient");
           return;
         }
+        if (!(await authorizeEffect(route))) return;
         mutations++;
         destination = req.url();
         postStatus = 0;
@@ -738,6 +799,7 @@ export async function runApply(args: string[]) {
           await route.abort("blockedbyclient");
           return;
         }
+        if (!(await authorizeEffect(route))) return;
         mutations++;
       }
       // A request the network refuses (an unreachable image host) is that request's failure, not the run's: it fails in
@@ -1079,6 +1141,7 @@ export async function runApply(args: string[]) {
       }
       allowSubmit = false;
       evidence.post = { mutations, status: postStatus, destination };
+      if (evidence.transport_rejection) throw fail(evidence.transport_rejection);
       if (denied || cap.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       // A challenge at the click that nobody completed: nothing left the browser, and the reason says what is needed.
       if (cap.captcha && mutations === 0) throw fail("CAPTCHA_AT_SUBMIT");

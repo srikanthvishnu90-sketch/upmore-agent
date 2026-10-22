@@ -230,7 +230,7 @@ def job_fixture(args, a):
     valid = a.value("select to_jsonb(exists(select 1 from public.career_apply_jobs j join "
         "career_message_approval_private.cloud_bound_jobs b on b.job_row_id=j.id "
         "where j.id=" + lit(args.job) + "::uuid and j.user_id=" + lit(args.owner) +
-        "::uuid and b.owner=j.user_id and j.attempts=0 and j.source is null));")
+        "::uuid and b.user_id=j.user_id and j.attempts=0 and j.source is null));")
     if not valid:
         raise SetupError("named queued job lacks explicit fixture owner/cloud binding")
 

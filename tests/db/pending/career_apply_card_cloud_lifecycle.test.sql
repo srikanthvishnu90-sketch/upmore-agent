@@ -164,6 +164,49 @@ select t.ok((career_apply_cloud_finish((select id from cc_short_claim),(select l
  'not_submitted','{"reason":"permission_expired"}','not_sent',null)).state='not_submitted','expired_terminal_receipt_recordable');
 reset role;
 
+-- The person's actual Stop RPC must revoke already-consumed cloud permission, not only unused legacy approvals.
+-- One of two fresh jobs is claimed; the other remains queued. No ordering of equal created_at rows is assumed.
+insert into cc_state values('stop-card',career_apply_message_cloud_card_show_as(
+ '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
+ jsonb_build_array(pg_temp.cc_full_item('ordinary-scope'),pg_temp.cc_full_item('ordinary-thread'))));
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+insert into cc_state values('stop-receipt',career_apply_message_card_approve_own(
+ (select (v->>'id')::uuid from cc_state where k='stop-card'),(select v->>'hash' from cc_state where k='stop-card')));
+reset role;
+create temp table cc_stop_claim as select * from career_apply_cloud_claim_at(1,clock_timestamp());
+create temp table cc_stop_queued as select * from career_apply_jobs where state='queued'
+ and job_id in ('lever:veeva:synthetic-ordinary-scope','lever:veeva:synthetic-ordinary-thread');
+select t.ok((select count(*)=1 and bool_and(job_id in ('lever:veeva:synthetic-ordinary-scope','lever:veeva:synthetic-ordinary-thread')) from cc_stop_claim)
+ and (select count(*)=1 from cc_stop_queued),'stop_fixture_one_live_lease_and_one_unattempted_job');
+grant select on cc_stop_claim,cc_stop_queued to authenticated,service_role;
+set role service_role;
+select t.ok((career_apply_message_cloud_authorize((select id from cc_stop_claim),
+ (select lease_token from cc_stop_claim),(select payload_hash from cc_stop_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest')))->>'authorized'='true',
+ 'stop_fixture_real_pre_effect_authorization_was_live');
+reset role;
+select t.as_user('00000000-0000-4000-8000-00000000cb01');set role authenticated;
+select t.ok(career_apply_batch_revoke_own()>0,'owned_Stop_API_revokes_consumed_cloud_permission');
+reset role;
+select t.ok((select count(*)=2 and bool_and(a.used_at is not null and a.revoked_at is not null)
+ from career_message_approval_private.cloud_bound_jobs b join career_apply_batch_approvals a on a.id=b.approval_id
+ where b.card_id=(select (v->>'id')::uuid from cc_state where k='stop-card')),
+ 'Stop_marks_exact_consumed_approvals_not_a_private_superuser_flag');
+select t.ok(not exists(select 1 from career_apply_cloud_claim_at(6,clock_timestamp()) where id=(select id from cc_stop_queued)),
+ 'Stop_prevents_remaining_queued_claim');
+select t.ok((select state='not_submitted' and attempts=0 and reason='cloud approval revoked'
+ from career_apply_jobs where id=(select id from cc_stop_queued)),
+ 'Stop_truthfully_terminates_queued_job_without_spending_attempt');
+set role service_role;
+select t.must_fail($$select career_apply_message_cloud_authorize((select id from cc_stop_claim),
+ (select lease_token from cc_stop_claim),(select payload_hash from cc_stop_claim),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000cb01')->>'digest'))$$,
+ 'revok','owned_Stop_prevents_effect_on_existing_lease');
+select t.ok((career_apply_cloud_finish((select id from cc_stop_claim),(select lease_token from cc_stop_claim),
+ 'not_submitted','{"reason":"owner_stopped"}','not_sent',null)).state='not_submitted',
+ 'Stop_does_not_block_truthful_terminal_receipt');
+reset role;
+
 -- Ordinary account grant is separate from TEST eligibility. Columns confirmed by owner before implementation.
 delete from career_message_approval_private.test_users where user_id='00000000-0000-4000-8000-00000000cb01';
 select t.must_fail($$select pg_temp.cc_show('ordinary')$$,'enroll|eligible|disabled|TEST','ordinary_without_grant_refused');

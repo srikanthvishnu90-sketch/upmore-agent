@@ -27,7 +27,7 @@ def main():
     test = (ROOT / "tests/db/pending/career_apply_card_cloud_rollback.test.sql").read_text()
     section = test.split("insert into rb_required values", 1)[1].split(";", 1)[0]
     required = re.findall(r"\('([^']+)','([^']+)'\)", section)
-    if len(required) != 12:
+    if len(required) != 15:
         raise ValueError("rollback signature list changed; review source extractor")
     rows, evidence = [], []
     for signature, source_path in required:

@@ -135,6 +135,7 @@ c(area, req, name, ok) as (values
   ('mark', 'full',  '20261020000000_channel_artifacts', to_regclass('public.channel_artifacts') is not null),
   ('mark', 'apply', '20261020000001_career_apply_jobs', to_regclass('public.career_apply_jobs') is not null),
   ('mark', 'apply', '20261020010000_career_apply_own_worker', exists (select 1 from pg_proc where proname = 'career_apply_claim_own')),
+  ('mark', 'full',  '20261020010001_extension_submission_reports', to_regclass('public.extension_submission_reports') is not null),
   ('mark', 'full',  '20261020020000_career_apply_receipts', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'career_proactive_runs' and column_name = 'receipts')),
   ('mark', 'apply', '20261020030000_career_apply_cards', to_regclass('public.career_apply_cards') is not null),
   ('mark', 'full',  '20261020040000_career_apply_card_push', exists (select 1 from pg_proc where proname = 'career_apply_card_push_for')),

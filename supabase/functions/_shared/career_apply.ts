@@ -219,6 +219,12 @@ const homeInUs = (answers: Record<string, unknown> = {}) => {
   const v = (k: string) => String((answers[k] as { value?: unknown } | undefined)?.value ?? "");
   return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
 };
+// Owner (Ashby scope, 2026-10-21): an answer offered for a work-rights question can tie it to the job's country ("No, I do
+// not require sponsorship to work in the country where this role is located", Harvey). Such a question is read with that
+// option: it is the person's US answer only at a posting known to be in the US, and asked at one with no location (F-013).
+// A question that names the US itself ("authorized to work in the United States?") stays the person's, whatever its options say.
+const placeText = (q: { label: string; options?: { label: string }[] }) => NAMES_US.test(q.label) ? q.label :
+  [q.label, ...(q.options ?? []).map((o) => o.label).filter((l) => RELATIVE_PLACE.test(l))].join(" ");
 export function otherCountry(fact: string, label: string, location?: string, homeUs = false): boolean {
   if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
   const abroad = postingCountry(postingPlaces(location ?? "")) === "abroad";
@@ -252,7 +258,7 @@ const BEYOND_FACT: [string[], RegExp][] = [
 // becomes the person's US sponsorship fact, and a US "No" saved as the fact never answers London's question.
 export function factStaysHere(q: { label: string; type: string; options?: { label: string }[] }, location?: string, answers?: Record<string, unknown>): boolean {
   const m = mapQuestion({ label: q.label, type: q.type, options: q.options ?? [] });
-  return m.kind === "fact" && (otherCountry(m.fact, q.label, location, homeInUs(answers)) || beyondFact(m.fact, q));
+  return m.kind === "fact" && (otherCountry(m.fact, placeText(q), location, homeInUs(answers)) || beyondFact(m.fact, q));
 }
 const byNationalityList = (options: { label: string }[]) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
 export function beyondFact(fact: string, f: { label: string; type: string; options?: { label: string }[] }): boolean {
@@ -362,7 +368,7 @@ function byMeaning(f: FormField, company: string, answers: Record<string, Answer
     return citizen && pick.length === 1 && postingCountry(posting) !== "abroad" ? { value: pick[0].value, factId: answers.citizenship.factId } : null;
   }
   // WO-052: the employer list derives "worked here before"; it is never typed as one employer, a title or a date.
-  if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
+  if (m.fact === "former_employers" || otherCountry(m.fact, placeText(f), location, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
   if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
   // The person's own contact and identity facts never answer a question about someone else, by meaning either
   // ("Phone number of the person referring you"; WO-031, tests/fixtures/extension/answer-key.json).
@@ -844,7 +850,7 @@ export function planBatch(o: { userId: string; postings: PlanPosting[]; answers:
       const here = factStaysHere(f, p.location, o.answers);
       const own: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ?? o.saved[normLabel(f.label)];
       const direct: Answer | undefined = o.saved[answerKey(f, p.job_id, { haveFact: true, here })] ?? o.saved[answerKey(f, p.job_id, { here })] ??
-        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
+        (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, placeText(f), p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : undefined) ?? o.saved[normLabel(f.label)];
       let a: Answer | undefined = direct;
       let value: string | null = a ? String(a.value) : null;
       if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);

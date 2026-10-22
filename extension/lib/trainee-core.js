@@ -1604,7 +1604,7 @@
     "sponsorship",
     "us_person"
   ]);
-  var RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b/i;
+  var RELATIVE_PLACE = /\b(country|location)\b.{0,60}\b(this|the) (job|role|position|opportunity|vacancy)\b|\b(country|location)\b.{0,40}\b(you are|you're|you have been|you've been|are you) apply|\b(country|location) (in which|to which|for which|where) you (are )?apply|\bstated location of this role\b|\bin this country\b/i;
   function answerKey(q, jobId, o = {}) {
     const m = mapQuestion(q);
     const words = norm(q.label);
@@ -2848,6 +2848,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     const v = (k) => String(answers[k]?.value ?? "");
     return NAMES_US.test(v("country")) || postingCountry(postingPlaces(v("location"))) === "us";
   };
+  var placeText = (q) => NAMES_US.test(q.label) ? q.label : [
+    q.label,
+    ...(q.options ?? []).map((o) => o.label).filter((l) => RELATIVE_PLACE.test(l))
+  ].join(" ");
   function otherCountry(fact, label, location2, homeUs = false) {
     if (AUTH_FACTS.has(fact) && HOME_PLACE.test(label) && !FOREIGN.test(label)) return !homeUs;
     const abroad = postingCountry(postingPlaces(location2 ?? "")) === "abroad";
@@ -2931,7 +2935,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       type: q.type,
       options: q.options ?? []
     });
-    return m.kind === "fact" && (otherCountry(m.fact, q.label, location2, homeInUs(answers)) || beyondFact(m.fact, q));
+    return m.kind === "fact" && (otherCountry(m.fact, placeText(q), location2, homeInUs(answers)) || beyondFact(m.fact, q));
   }
   var byNationalityList = (options) => options.some((o) => /nationality|citizen/i.test(o.label)) && options.some((o) => /permit|visa/i.test(o.label));
   function beyondFact(fact, f) {
@@ -3053,7 +3057,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         factId: answers.citizenship.factId
       } : null;
     }
-    if (m.fact === "former_employers" || otherCountry(m.fact, f.label, location2, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
+    if (m.fact === "former_employers" || otherCountry(m.fact, placeText(f), location2, homeInUs(answers)) || beyondFact(m.fact, f)) return null;
     if (SITE_SCREENS.has(m.fact) && awayFromHome(f, places, answers, posting)) return null;
     if (TEXT_FACTS.has(m.fact) && m.fact !== "references" && SOMEONE_ELSE.test(f.label)) return null;
     let a;
@@ -3601,7 +3605,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
           here
         })] ?? o.saved[answerKey(f, p.job_id, {
           here
-        })] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, f.label, p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
+        })] ?? (key !== "unknown" && key !== "eeo" && !followUp && !otherCountry(key, placeText(f), p.location, homeInUs(o.answers)) && !beyondFact(key, f) ? o.answers[key] : void 0) ?? o.saved[normLabel(f.label)];
         let a = direct;
         let value = a ? String(a.value) : null;
         if (value !== null && f.options.length) value = matchOption(value, f.options) ?? (key !== "unknown" && direct === o.answers[key] ? chooseOption(key, value, f.options, f.label) : null);

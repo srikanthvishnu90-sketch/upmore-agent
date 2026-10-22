@@ -1,0 +1,819 @@
+{
+ "note": "The schema scripts/apply.ts read from each captured Ashby form (tests/fixtures/forms-ci/<id>.html, scripts removed, served locally) and the posting location its page shows (fnPostingLocation), 2026-10-21. Regenerate by running the engine's dry run on the captured page; nothing here is hand-written.",
+ "forms": {
+  "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c": {
+   "page_location": "HK - Hong Kong SAR",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Full Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "d3315ee6-7808-40ad-bb16-75f5e5d06c0e",
+     "label": "First Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "ec863876-a2c3-4675-82f9-7cb2d0c57c41",
+     "label": "Middle Name",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "386e7831-bd04-4d0b-a7e1-5816b2b0b0ca",
+     "label": "Last Name / Surname",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "28359782-77a8-4b04-bdbc-5225bd34cca6",
+     "label": "Phone",
+     "type": "tel",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "type": "input",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "1b628532-6f2d-4729-a502-459c234b38e3",
+     "label": "Linkedin Link",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "37f9cdbb-c5c4-495e-876e-593908d37fe6",
+     "label": "Salary Expectations",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "184096a9-5750-4da5-ade0-bec5148fe278",
+     "label": "What is your notice period?",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "7fcfdda5-b2a6-448a-8ec2-a751c6afef28",
+     "label": "Do you have any relatives currently working for Airwallex?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "fbcbdbf8-19db-4666-970b-e7384ac0719f",
+     "label": "If Yes, please state their name here",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "d63bb003-f10c-499e-ad90-d4a49ecc3080",
+     "label": "How did you first hear about Airwallex?",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "ee1ba3aa-f450-4c91-bb9e-eb7c9087ea10",
+     "label": "We encourage you to use AI tools to help research, prepare, or refine your application materials. However, we ask that you do not use AI tools during live, real-time interviews unless you've been explicitly told otherwise. Our goal during live conversations is to get a true sense of how you think on",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    }
+   ]
+  },
+  "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03": {
+   "page_location": "San Francisco, CA - US",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "aa795dbe-4fe1-4345-90bf-943f58f81ecd",
+     "label": "Phone Number",
+     "type": "tel",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "communicationConsent",
+     "label": "Yes - I consent to receiving text messages",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "Yes - I consent to receiving text messages",
+       "value": "given"
+      },
+      {
+       "label": "No - I do not consent to receiving text messages",
+       "value": "notGiven"
+      }
+     ]
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Which state, province, or region do you currently live in?",
+     "type": "input",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "a494b772-61d3-4270-9ec5-b098f7647123",
+     "label": "Will you now or in the future require immigration sponsorship to work for Crusoe?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "1ccd8aff-6566-401e-9182-f72e065f4790",
+     "label": "Do you currently work for Crusoe, or have you worked for Crusoe in the past?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "b21991a7-47a4-41c1-bcc3-761b1a896534",
+     "label": "Linkedin URL",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "e0cc67a2-f1ac-4695-b4f9-289527dc913e",
+     "label": "Github/Portfolio/Twitter/Etc",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "d19036a4-987f-4237-bdd8-d082505dc8fc",
+     "label": "Additional information or a note you want to share",
+     "type": "textarea",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_gender",
+     "label": "Gender",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "Male",
+       "value": "Male"
+      },
+      {
+       "label": "Female",
+       "value": "Female"
+      },
+      {
+       "label": "Decline to self-identify",
+       "value": "Decline to self-identify"
+      }
+     ]
+    },
+    {
+     "name": "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_race",
+     "label": "Race",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "Hispanic or Latino",
+       "value": "Hispanic or Latino"
+      },
+      {
+       "label": "White (Not Hispanic or Latino)",
+       "value": "White (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Black or African American (Not Hispanic or Latino)",
+       "value": "Black or African American (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+       "value": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Asian (Not Hispanic or Latino)",
+       "value": "Asian (Not Hispanic or Latino)"
+      },
+      {
+       "label": "American Indian or Alaska Native (Not Hispanic or Latino)",
+       "value": "American Indian or Alaska Native (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Two or More Races (Not Hispanic or Latino)",
+       "value": "Two or More Races (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Decline to self-identify",
+       "value": "Decline to self-identify"
+      }
+     ]
+    },
+    {
+     "name": "f35dab40-2c18-4d57-8ed6-674c5a693b81__systemfield_eeoc_veteran_status",
+     "label": "Veteran Status",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "I identify as one or more of the classifications of protected veteran listed above",
+       "value": "I identify as one or more of the classifications of protected veteran listed above"
+      },
+      {
+       "label": "I am not a protected veteran",
+       "value": "I am not a protected veteran"
+      },
+      {
+       "label": "I decline to self-identify for protected veteran status",
+       "value": "I decline to self-identify for protected veteran status"
+      }
+     ]
+    }
+   ]
+  },
+  "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778": {
+   "page_location": "San Francisco",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Legal First and Last Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "7c3610a2-745f-4bd7-927a-d8e97e80472c",
+     "label": "Preferred First Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "5f7ed317-45f1-4be4-aa3e-5e8b3820b404",
+     "label": "Preferred Last Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "a2a0b8a6-0b1f-44ad-9fc9-4ef424704c26",
+     "label": "Phone Number",
+     "type": "tel",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "type": "input",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "dd1d5af7-8d94-4ab6-860a-59b5fca04147",
+     "label": "Current or Most Recent Employer",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "a0393613-cd27-4354-b328-4b8fdabcdb4e",
+     "label": "University or School Attended",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "35987d90-0b56-44cc-b2f6-f59f86c3cc57",
+     "label": "Pronouns",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "74da689e-2056-420d-9a18-4227f9bf998e",
+     "label": "Are you legally authorized to work in the country where this role is located, for any employer?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_eebeac06-e08c-4eee-b866-81971c178736",
+     "label": "Will you now or will you in the future require employment visa sponsorship?",
+     "type": "radio",
+     "required": true,
+     "options": [
+      {
+       "label": "Yes, I will require Harvey to sponsor my employment",
+       "value": "Yes, I will require Harvey to sponsor my employment"
+      },
+      {
+       "label": "No, I do not require sponsorship to work in the country where this role is located",
+       "value": "No, I do not require sponsorship to work in the country where this role is located"
+      }
+     ]
+    },
+    {
+     "name": "5f4d2602-62fb-409d-9100-c4c3f9f14159_161ea5e2-3ea4-49cc-bae5-4e14ff877093",
+     "label": "This role is tied to the office location listed in the job posting. Team members are expected to work from the office 3 days per week as part of Harvey\u2019s hybrid work model. Are you currently based in the listed location and able to work in person 3 days per week?",
+     "type": "radio",
+     "required": true,
+     "options": [
+      {
+       "label": "Yes, I\u2019m based in this location and able to work from the office 3 days per week",
+       "value": "Yes, I\u2019m based in this location and able to work from the office 3 days per week"
+      },
+      {
+       "label": "No, I\u2019m not based in this location but willing to relocate",
+       "value": "No, I\u2019m not based in this location but willing to relocate"
+      },
+      {
+       "label": "No, I\u2019m only able to work remotely",
+       "value": "No, I\u2019m only able to work remotely"
+      },
+      {
+       "label": "Other (optional context)",
+       "value": "Other (optional context)"
+      }
+     ]
+    },
+    {
+     "name": "8b9dae4d-2ed4-4da0-a994-e7b1d73d3a5e",
+     "label": "If you selected \u201cOther,\u201d please provide additional details.",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "39ebb162-1514-4658-8940-c15a1a71881f",
+     "label": "LinkedIn",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    }
+   ]
+  },
+  "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3": {
+   "page_location": "Spain (Remote); Basque (Remote)",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "769eeb4a-2fe7-45d0-86d3-87b2caa2c658",
+     "label": "Preferred Name",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "f9b3f66d-2515-4312-bd27-c323ec883f8c",
+     "label": "Phone Number",
+     "type": "tel",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "0203f527-33a0-4720-9e38-b6ad568f43fc",
+     "label": "Link to your LinkedIn Profile",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "a2804e1f-f78b-42f3-9a93-6f7195b8c64c",
+     "label": "How long have you been a professional Translator?",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "538d63d0-e2cb-4266-8735-3c6dd40f3dcf",
+     "label": "Do you have translation experience in Marketing?",
+     "type": "textarea",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "2a4201dd-1268-43c8-9472-e62c492c092e",
+     "label": "Do you have Technology translation experience?",
+     "type": "textarea",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "794c985a-3972-49f0-a6bd-ff9fe66c5eb2",
+     "label": "Do you have Legal translation experience?",
+     "type": "textarea",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "eb87c1b6-59a2-4f29-9e28-5dbfb12454bf",
+     "label": "Are you a native Basque translator?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    }
+   ]
+  },
+  "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3": {
+   "page_location": "San Francisco",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Legal Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "09a328e0-8d57-4f88-86ab-688de1657b17",
+     "label": "Preferred Name (if applicable)",
+     "type": "text",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "20f8883c-d278-427c-9465-dc614f612e1f",
+     "label": "Phone Number",
+     "type": "tel",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Where are you currently located?",
+     "type": "input",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "3f4e05d4-dd62-48ef-96ca-d9f293ae18d4",
+     "label": "When can you start a new role?",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "bed95633-1b6e-4cd0-9eaf-c5a9f75ac35d",
+     "label": "Are you authorized to work in the country where the job is located?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "bda78810-f000-4f1c-99c5-f783e161f2f7",
+     "label": "Will you now or in the future require sponsorship for employment visa status in this country?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "d33e2a8f-3742-4e5e-b91c-b7607d3cdf63",
+     "label": "Are you able to work from our US office three days per week?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "f189fed2-624b-41a1-a76f-0c67a2611d1a",
+     "label": "Additional Information",
+     "type": "textarea",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.",
+     "label": "I acknowledge that I have opened, read, and understood the Arbitration Agreement. I understand that by submitting my application, I am agreeing to be bound by the terms of the Arbitration Agreement.",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "I confirm I have read the above.",
+     "label": "I confirm I have read the above.",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_gender",
+     "label": "Gender",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "Male",
+       "value": "Male"
+      },
+      {
+       "label": "Female",
+       "value": "Female"
+      },
+      {
+       "label": "Decline to self-identify",
+       "value": "Decline to self-identify"
+      }
+     ]
+    },
+    {
+     "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_race",
+     "label": "Race",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "Hispanic or Latino",
+       "value": "Hispanic or Latino"
+      },
+      {
+       "label": "White (Not Hispanic or Latino)",
+       "value": "White (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Black or African American (Not Hispanic or Latino)",
+       "value": "Black or African American (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)",
+       "value": "Native Hawaiian or Other Pacific Islander (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Asian (Not Hispanic or Latino)",
+       "value": "Asian (Not Hispanic or Latino)"
+      },
+      {
+       "label": "American Indian or Alaska Native (Not Hispanic or Latino)",
+       "value": "American Indian or Alaska Native (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Two or More Races (Not Hispanic or Latino)",
+       "value": "Two or More Races (Not Hispanic or Latino)"
+      },
+      {
+       "label": "Decline to self-identify",
+       "value": "Decline to self-identify"
+      }
+     ]
+    },
+    {
+     "name": "b7df1eca-7687-48ba-a395-d1540619c7eb__systemfield_eeoc_veteran_status",
+     "label": "Veteran Status",
+     "type": "radio",
+     "required": false,
+     "options": [
+      {
+       "label": "I identify as one or more of the classifications of protected veteran listed above",
+       "value": "I identify as one or more of the classifications of protected veteran listed above"
+      },
+      {
+       "label": "I am not a protected veteran",
+       "value": "I am not a protected veteran"
+      },
+      {
+       "label": "I decline to self-identify for protected veteran status",
+       "value": "I decline to self-identify for protected veteran status"
+      }
+     ]
+    }
+   ]
+  },
+  "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75": {
+   "page_location": "GB-London",
+   "schema": [
+    {
+     "name": "_systemfield_name",
+     "label": "Full Name",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_email",
+     "label": "Email",
+     "type": "email",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "3fdc76ed-6ac2-497a-a6cc-e07ed517ec1d",
+     "label": "Phone Number",
+     "type": "tel",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_resume",
+     "label": "Resume",
+     "type": "file",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "_systemfield_location",
+     "label": "Location",
+     "type": "input",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "f63fdc3f-8d4c-49fc-9388-3a9ef836de55",
+     "label": "LinkedIn Profile, if available",
+     "type": "textarea",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "28ff5b93-a104-45f7-9d46-2d13d3217dca",
+     "label": "Will you require company sponsorship now or in the future to maintain or extend your current work authorization status?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "4c8e248b-f134-416f-9fa5-38c9e679f7b1",
+     "label": "In office attendance is an essential function for this role and necessary to enable effective teamwork and collaboration. Do you currently reside within commuting distance or are you open to relocation to the local Snowflake office(s) designated in this post?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "b1890667-a914-4163-b3c1-c5b694fd412c",
+     "label": "Additional Attachments",
+     "type": "file",
+     "required": false,
+     "options": []
+    },
+    {
+     "name": "c779ac6e-f4fe-4dfe-9dfa-acd7e2823ba7",
+     "label": "Where have you most recently worked?",
+     "type": "text",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "962f2552-c3ca-4d6c-a7d8-b7b1340558ae",
+     "label": "Have you worked at Snowflake in the past in a Full-time, Part-time, contractor or Intern capacity?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "a3cc08ef-4552-444a-b493-c608c65670df",
+     "label": "For Snowflake to anticipate possible immigration timelines and obligations, could you confirm you are currently authorized to work in the country to which you are applying?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_0a2a2426-a42d-4c4f-a68f-5083d6b8a72a",
+     "label": "A \u201cU.S. person\u201d is a citizen, legal permanent resident, or legal temporary resident (i.e., a refugee or asylee) of the United States. Which of the following best describes your \u201cU.S. person\u201d status?",
+     "type": "radio",
+     "required": true,
+     "options": [
+      {
+       "label": "I am a U.S. person",
+       "value": "I am a U.S. person"
+      },
+      {
+       "label": "I am a citizen of Cuba, Iran, North Korea, or Syria AND I am NOT a U.S. person",
+       "value": "I am a citizen of Cuba, Iran, North Korea, or Syria AND I am NOT a U.S. person"
+      },
+      {
+       "label": "None of the above; I am a citizen of a different country",
+       "value": "None of the above; I am a citizen of a different country"
+      }
+     ]
+    },
+    {
+     "name": "192bb6de-7d9a-4817-a202-8c321cc1e63a_5c859149-0940-42e7-8962-ec82679d8074",
+     "label": "Due to SEC auditor independence requirements, please let us know whether you have previously worked at, or if currently working at PricewaterhouseCoopers (PwC), who is our independent auditor.",
+     "type": "radio",
+     "required": true,
+     "options": [
+      {
+       "label": "Yes - I have previously worked at, or is currently working at PwC",
+       "value": "Yes - I have previously worked at, or is currently working at PwC"
+      },
+      {
+       "label": "No - I have never been employed by PwC",
+       "value": "No - I have never been employed by PwC"
+      }
+     ]
+    },
+    {
+     "name": "a7d1a4bb-e59b-4149-a733-f46f352b0cb5",
+     "label": "Have you ever been directly employed by (1) any government or military entity, state-owned enterprise, or publicly-funded institution, or (2) a government contractor in a role that recommended Snowflake as part of Government procurement?",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    },
+    {
+     "name": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+     "label": "I have read and agree to the Snowflake Candidate Privacy Notice.",
+     "type": "checkbox",
+     "required": true,
+     "options": []
+    }
+   ]
+  }
+ }
+}

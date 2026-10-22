@@ -3321,7 +3321,10 @@ const CareerOutreach = (() => {
   function importState(json) { const c = typeof json === "string" ? JSON.parse(json) : JSON.parse(JSON.stringify(json)); return c; }
   function buildGmailRaw(msg) {
     const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
-    return Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const bytes = new TextEncoder().encode(raw);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
   function createGmailTransport(gmailApi) {
     if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };

@@ -68,3 +68,15 @@ test("edge realm without Buffer: the tailored resume renders a DOCX that reads b
   assert.ok(eb && eb.length > 500, "a real DOCX");
   assert.deepEqual(RenderNode.extractDocxLines(Buffer.from(eb)), RenderNode.extractDocxLines(Buffer.from(nb)), "same text on the edge as on Node");
 });
+
+// F-015: module 124 built the Gmail message with Buffer, latent until the send path runs on the edge runtime.
+test("edge realm without Buffer: the outreach Gmail message builds, and matches Node's", () => {
+  const B = loadBundleWithoutNodeGlobals();
+  const Outreach = require("../packages/domain/124-career-outreach.js");
+  const msg = { to: "maya@employer.example", subject: "Héllo – a quick intro", body: "Hi Maya,\nnaïve café ✓\n".repeat(500) };
+  const edge = B.CareerOutreach.buildGmailRaw(msg);
+  assert.equal(typeof edge, "string");
+  assert.equal(edge, Outreach.buildGmailRaw(msg));
+  const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
+  assert.equal(edge, Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
+});

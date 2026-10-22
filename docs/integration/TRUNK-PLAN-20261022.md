@@ -113,3 +113,54 @@ For every merge commit or pushed branch, the architect checks:
 | 0 | `a93af5a2` | | | |
 
 - **Live:** nothing here deploys. When the owner later deploys trunk, the rollback is redeploying the previous function version. agent-chat v248 corresponds to `cea914fe`, which is inside trunk, so it can be rebuilt. Migrations are applied only by the owner, each with its own written rollback file, as the held packages already have.
+
+## 7. Update 2026-10-22 evening: trunk moved, and priorities after the competitor comparison
+
+**Trunk is now the `trunk` branch.** `consolidate` landed there as #156 (`371d5415`). Step 0 is done on trunk:
+- `6e6cf808` restores extension-sync;
+- `eb57e812` restores the site capture and re-versions channel delivery to `20261019020001`;
+- `72031f0d` fixes the two gate failures those caused.
+
+Steps 1–11 now merge into `trunk`, not `consolidate`.
+
+**The competitor comparison (Tsenta, Pinloop), checked against what can be read today.**
+
+| Claim in the comparison | What the repo and live read say | Taken? |
+|---|---|---|
+| "Never completed one live application" | Live `extension_submission_reports` has 1 row: source extension, class employer_confirmation, with a confirmation id, observed 2026-10-20, not a localhost or demo URL. I did not read its content. `career_apply_jobs` = 0. So one extension-path confirmation may exist; **the owner confirms whether it was a real submission.** | Partly |
+| "No frontend, no working message channel" | Wrong as stated. Live: web chat agent-chat v248 (5,158 messages in 7 days); site-signup and site-careers; Telegram, WhatsApp and iMessage inbound. True: no dashboard, and the approval card does not reach channels (F-037). | The dashboard and F-037 parts |
+| "Approval loop is broken" | True on channels (F-037) and for a texted yes (Option A, by design: only a tap approves). | Yes |
+| "No job index" | A 21,688-posting shelf exists live but was last fetched 2026-10-14; career-ingest is not deployed. Not always-on. | Yes |
+| "No receipts" | Receipt code exists (extension confirmation capture; the receipts migration); one live row above. Not proven at volume. | Yes |
+| "18/60 benchmark" | Not re-checked by me. | Unverified |
+| Competitor prices and ATS counts | Their claims, not checked by me. | Context only |
+
+**What changes in the plan.** The comparison's own judgment is right on one point, and the plan follows it: **one proven loop with a receipt comes before any breadth.**
+
+The fastest honest loop is the extension path:
+- the person's own Chrome fills the form;
+- **the person clicks Submit**: the extension has no submit code, so the submit flags stay off;
+- the extension captures the employer's confirmation, which is the receipt.
+
+That loop is mostly built, and its backend (extension-sync) is the thing Step 0 just restored.
+
+New order after step 1, replacing steps 2–9:
+
+| Priority | What | Why |
+|---|---|---|
+| A | Option A `9568596d`, then Lane B's web approval card `5ffab100` | Per-application review on the web, Pinloop's core UX, without a text yes |
+| B | F-037 card to channels (Codex) | Our edge over both is messaging-first; it does not exist until the card arrives |
+| C | Receipts surfaced: one message per confirmed application with the employer's confirmation id; a tracker view in the web app | Tsenta's proof-per-application pattern |
+| D | Measured: time per application and cost per application (model plus browser) on the loop | Our speed and cost claims are targets until measured |
+| E | The remaining audit fixes (step 6), grad-year, mail row | Correctness |
+| F | #20 networking, docs, held SQL | Breadth and records: they wait for the loop |
+
+**Owner actions on the critical path** (each is his word, none is taken here):
+- deploy agent-chat and the receipt path from trunk;
+- deploy career-ingest and its cron, so the shelf is fresh;
+- one supervised session: one real person, the extension, 10 applications, every receipt and the time and cost of each recorded.
+
+**Not taken now:**
+- **An MCP/CLI surface.** Cheap distribution, but a new external surface before the loop closes is breadth; reconsider after the first measured session.
+- **Workday and more ATSes.** Coverage of Greenhouse, Lever and Ashby to a receipt comes first.
+- **"Watch it fill" live view.** After C.

@@ -1,6 +1,6 @@
 {
   "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
-  "fix_source_commit": "c8a9d884f027b300b00981a30701821d5c5c5399",
+  "fix_source_commit": "96d6432a87419f2d10ea7a5df40f5087225feaae",
   "data": "Invented payload values using captured primary string + secondaryLocations object/address field layouts; structured variants exercise only explicit source labels/address components. No live fetch or real user data.",
   "shape_reference": "348c2d4a3564c54135d0c485bb0d09d763ee0901:packages/career-data/fixtures/gauntlet/jobs/public-snapshots/ashby-ramp-4e64ab86-4e30-403b-b1b9-41dc052570ce.json",
   "spend_usd": 0,
@@ -12,15 +12,15 @@
     "supabase/functions/_shared/career_pool.js": "2c11623bd1e2f61bcdfa54a80460a3d4b45b4c06698bb71801459981865b2e93"
   },
   "fix_source_sha256": {
-    "packages/domain/121-career-jobs.js": "61c159f2df6711c4ec7e0531c5637dac8ddfa82c52dbe598b9dfb38bea4adc9a",
+    "packages/domain/121-career-jobs.js": "28aa18f076425af8e57543e766e4cb0f0e370d45970d686de633ebf47c137bb7",
     "supabase/functions/_shared/career_pool.js": "ddb76b74d6c825ccae4c4b4237bb028802d54518f6b075d3e642788d7752c7d6"
   },
-  "new_guard_test_sha256": "87009dd2b099560bd7048b49a513f10b6540522cd69fb7e04309a3144c5518f6",
+  "new_guard_test_sha256": "2ddb4f6cb0c5fa8836a84f588a770b522fcca42c0c486c1def04227eed6a1e3b",
   "results": {
     "new_guards": {
       "base_pass": 3,
-      "base_fail": 16,
-      "fix_pass": 19,
+      "base_fail": 18,
+      "fix_pass": 21,
       "fix_fail": 0
     },
     "unchanged_job_neighbors": {
@@ -43,11 +43,13 @@
   ],
   "baseline_method": "Exact same new test bytes against base121 and basecareer_pool from git show348c2d4a in an isolated source-only fixture; unchanged neighbors run on untouched base worktree before editing.",
   "artifact_sha256": {
+    "unknown-geography-intermediate-fail.log": "9c48e4b93b19c970e8103a59cf94b3d3e67d4a6f492b7708c23c42a86b4f7288",
     "duplicate-named-location-intermediate-fail.log": "dca7f1d277a027a6cd0fb6bf125c18972a2eab10331e7dde631a87110c817b24",
-    "pool-neighbors-fix.log": "bb958564ac084cafa0dd8bdbb4831942d6aa93989a72d3511d59cf867bff4dc6",
+    "pool-neighbors-fix.log": "16f735282788a79000aa8bd6e2b4957497f16900d7a8db8bbee96aef52b18eba",
     "pool-neighbors-base.log": "fdb51643cb0b5569b8702fabf35a8aed2340fba2c54d8bc2a5c3890eec63f916",
     "neighbors-base.log": "d597d21c0bc744749b278711229f327cb119283977bc4fc78c25a5a8c3db07d9",
-    "guards-neighbors-fix.log": "2218584150502df72839254628f12a972a84fd0a3f67e597537e2b9784948616",
-    "guards-base.log": "dc7de6d5926435ded12a2ced0b8ef51f428baf7cdaeaaac8f757bdc804dd864c"
-  }
+    "guards-neighbors-fix.log": "40befc2a9f5c2c4b4251f3014628b9e1863146c8f9cbd7d1f0b1fc75db772611",
+    "guards-base.log": "a84e4a9382b073501efc4f2cffdd6380be902abe583c1a5ffb9337b60a2791a0"
+  },
+  "unknown_location_invariant": "The display-only missing label cannot match a geographic preference or support a claim of onsite work."
 }

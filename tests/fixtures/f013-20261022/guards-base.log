@@ -1,35 +1,37 @@
-✔ F013 Ashby source mapping: primary string (8.993998ms)
-✔ F013 Ashby source mapping: primary locationName (1.945259ms)
-✖ F013 Ashby source mapping: captured secondary layout (2.732242ms)
-✖ F013 Ashby source mapping: secondary without primary (0.606379ms)
-✖ F013 Ashby source mapping: structured primary name (0.350496ms)
-✖ F013 Ashby source mapping: structured primary address (2.258892ms)
-✖ F013 Ashby source mapping: locations array (0.255142ms)
-✖ F013 Ashby source mapping: primary array (0.233949ms)
-✖ F013 Ashby source mapping: deduped locations (0.24064ms)
-✔ F013 Ashby source mapping: duplicate named secondary retains its label instead of appending its address (0.280841ms)
-✖ F013 Ashby source mapping: invalid primary does not shadow real fallback (0.598014ms)
-✖ F013 Ashby source mapping: unlisted location (0.313092ms)
-✖ F013 Ashby source mapping: empty and malformed locations (0.199162ms)
-✖ F013 feed normalization preserves every source location before the hosted shelf maps it (2.230191ms)
-✖ F013 shelf mapping: structured stored location (0.498989ms)
-✖ F013 shelf mapping: empty snapshot (0.265055ms)
-✖ F013 shelf mapping: missing snapshot (1.486403ms)
-✖ F013 shelf mapping: unknown object (0.200484ms)
-✖ F013 bare shelf mapper also describes an unknown location without inventing a city (0.442848ms)
-ℹ tests 19
+✔ F013 Ashby source mapping: primary string (6.254033ms)
+✔ F013 Ashby source mapping: primary locationName (1.896215ms)
+✖ F013 Ashby source mapping: captured secondary layout (1.127407ms)
+✖ F013 Ashby source mapping: secondary without primary (0.565073ms)
+✖ F013 Ashby source mapping: structured primary name (0.456499ms)
+✖ F013 Ashby source mapping: structured primary address (0.369396ms)
+✖ F013 Ashby source mapping: locations array (0.425043ms)
+✖ F013 Ashby source mapping: primary array (0.313038ms)
+✖ F013 Ashby source mapping: deduped locations (0.463502ms)
+✔ F013 Ashby source mapping: duplicate named secondary retains its label instead of appending its address (1.552491ms)
+✖ F013 Ashby source mapping: invalid primary does not shadow real fallback (0.433364ms)
+✖ F013 Ashby source mapping: unlisted location (4.342155ms)
+✖ F013 Ashby source mapping: empty and malformed locations (0.571499ms)
+✖ F013 feed normalization preserves every source location before the hosted shelf maps it (0.734451ms)
+✖ F013 shelf mapping: structured stored location (0.807611ms)
+✖ F013 shelf mapping: empty snapshot (0.585939ms)
+✖ F013 shelf mapping: missing snapshot (0.311904ms)
+✖ F013 shelf mapping: unknown object (0.141886ms)
+✖ F013 bare shelf mapper also describes an unknown location without inventing a city (0.337302ms)
+✖ F013 unknown-location display text cannot satisfy a geographic preference (6.743124ms)
+✖ F013 unknown location cannot become a claim that the employer requires onsite work (1.411418ms)
+ℹ tests 21
 ℹ suites 0
 ℹ pass 3
-ℹ fail 16
+ℹ fail 18
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 161.115826
+ℹ duration_ms 159.830439
 
 ✖ failing tests:
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: captured secondary layout (2.732242ms)
+✖ F013 Ashby source mapping: captured secondary layout (1.127407ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -53,7 +55,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: secondary without primary (0.606379ms)
+✖ F013 Ashby source mapping: secondary without primary (0.565073ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -76,7 +78,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: structured primary name (0.350496ms)
+✖ F013 Ashby source mapping: structured primary name (0.456499ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -99,7 +101,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: structured primary address (2.258892ms)
+✖ F013 Ashby source mapping: structured primary address (0.369396ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -122,7 +124,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: locations array (0.255142ms)
+✖ F013 Ashby source mapping: locations array (0.425043ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -145,7 +147,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: primary array (0.233949ms)
+✖ F013 Ashby source mapping: primary array (0.313038ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -169,7 +171,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: deduped locations (0.24064ms)
+✖ F013 Ashby source mapping: deduped locations (0.463502ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -192,7 +194,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: invalid primary does not shadow real fallback (0.598014ms)
+✖ F013 Ashby source mapping: invalid primary does not shadow real fallback (0.433364ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -215,7 +217,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: unlisted location (0.313092ms)
+✖ F013 Ashby source mapping: unlisted location (4.342155ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -238,7 +240,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:25:4
-✖ F013 Ashby source mapping: empty and malformed locations (0.199162ms)
+✖ F013 Ashby source mapping: empty and malformed locations (0.571499ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -261,7 +263,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:27:1
-✖ F013 feed normalization preserves every source location before the hosted shelf maps it (2.230191ms)
+✖ F013 feed normalization preserves every source location before the hosted shelf maps it (0.734451ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -281,7 +283,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:35:271
-✖ F013 shelf mapping: structured stored location (0.498989ms)
+✖ F013 shelf mapping: structured stored location (0.807611ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -304,7 +306,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:35:271
-✖ F013 shelf mapping: empty snapshot (0.265055ms)
+✖ F013 shelf mapping: empty snapshot (0.585939ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -327,7 +329,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:35:271
-✖ F013 shelf mapping: missing snapshot (1.486403ms)
+✖ F013 shelf mapping: missing snapshot (0.311904ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -350,7 +352,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:35:271
-✖ F013 shelf mapping: unknown object (0.200484ms)
+✖ F013 shelf mapping: unknown object (0.141886ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -373,7 +375,7 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
   }
 
 test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:39:1
-✖ F013 bare shelf mapper also describes an unknown location without inventing a city (0.442848ms)
+✖ F013 bare shelf mapper also describes an unknown location without inventing a city (0.337302ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
   
@@ -392,5 +394,41 @@ test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:
     actual: '',
     expected: 'Location not stated',
     operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:44:1
+✖ F013 unknown-location display text cannot satisfy a geographic preference (6.743124ms)
+  AssertionError [ERR_ASSERTION]: ["location: posting is in an unlisted place; you want Location"]
+      at TestContext.<anonymous> (/tmp/f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:48:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:51:1
+✖ F013 unknown location cannot become a claim that the employer requires onsite work (1.411418ms)
+  AssertionError [ERR_ASSERTION]: ["location: posting is on-site in ; you want remote"]
+      at TestContext.<anonymous> (/tmp/f013-base-348c2d4a-fixture/tests/career-f013-ashby-location.test.cjs:55:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
     diff: 'simple'
   }

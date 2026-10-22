@@ -20,5 +20,6 @@
     "new_usd": 0,
     "recorded_usd": "8.573843",
     "status": "UNRECONCILED"
-  }
+  },
+  "raw_plain_log": "chromium.tap"
 }

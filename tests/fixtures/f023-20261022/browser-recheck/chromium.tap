@@ -1,0 +1,202 @@
+TAP version 13
+# Subtest: §6.3: the driver itself refuses non-allowlisted hosts before any page opens
+ok 1 - §6.3: the driver itself refuses non-allowlisted hosts before any page opens
+  ---
+  duration_ms: 82.5155
+  type: 'test'
+  ...
+# Subtest: §6.3 captcha at open: run stops with CAPTCHA_HANDOFF, zero submits, stop on the step log
+ok 2 - §6.3 captcha at open: run stops with CAPTCHA_HANDOFF, zero submits, stop on the step log
+  ---
+  duration_ms: 3155.48096
+  type: 'test'
+  ...
+# Subtest: §6.3 captcha at review: the run fills, reaches review, stops — CAPTCHA_HANDOFF with zero submits
+ok 3 - §6.3 captcha at review: the run fills, reaches review, stops — CAPTCHA_HANDOFF with zero submits
+  ---
+  duration_ms: 2873.149151
+  type: 'test'
+  ...
+# Subtest: §6.3 isolation: two browser boards are two contexts — A's fills and storage never appear in B
+ok 4 - §6.3 isolation: two browser boards are two contexts — A's fills and storage never appear in B
+  ---
+  duration_ms: 10981.531671
+  type: 'test'
+  ...
+# Subtest: doorstep: attestation is never auto-answered through the browser driver; with explicit confirmation the run reaches final review and stops
+ok 5 - doorstep: attestation is never auto-answered through the browser driver; with explicit confirmation the run reaches final review and stops
+  ---
+  duration_ms: 19025.671309
+  type: 'test'
+  ...
+# Subtest: integrity: a resume file whose bytes do not match the profile sha is refused, never uploaded
+ok 6 - integrity: a resume file whose bytes do not match the profile sha is refused, never uploaded
+  ---
+  duration_ms: 6849.688973
+  type: 'test'
+  ...
+# Subtest: confirmation capture: an armed submit that lands on a confirmation page returns ID + text + screenshot
+ok 7 - confirmation capture: an armed submit that lands on a confirmation page returns ID + text + screenshot
+  ---
+  duration_ms: 9096.906086
+  type: 'test'
+  ...
+# Subtest: confirmation capture: an ambiguous landing page is unknown_outcome — never success — and reconcile keeps it unknown
+ok 8 - confirmation capture: an ambiguous landing page is unknown_outcome — never success — and reconcile keeps it unknown
+  ---
+  duration_ms: 12797.713603
+  type: 'test'
+  ...
+# Subtest: D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED — nothing filled, nothing submitted
+ok 9 - D1 redirect gate: a board page that redirects OFF the allowlist stops the run typed HOST_REDIRECT_REFUSED — nothing filled, nothing submitted
+  ---
+  duration_ms: 265.443823
+  type: 'test'
+  ...
+# Subtest: D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses
+ok 10 - D3 arming wire: runApply with an owner approvalRef arms the board and submits exactly once, confirmation captured; without a ref it refuses
+  ---
+  duration_ms: 15380.511794
+  type: 'test'
+  ...
+# Subtest: D4 through the driver: education + country fields on a real form fill from the profile and land in the payload
+ok 11 - D4 through the driver: education + country fields on a real form fill from the profile and land in the payload
+  ---
+  duration_ms: 10056.782588
+  type: 'test'
+  ...
+# Subtest: D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'
+ok 12 - D8 EEO decline default: the decline is selected even when the board words it 'Prefer not to answer'
+  ---
+  duration_ms: 6506.967348
+  type: 'test'
+  ...
+# Subtest: D9 Lever custom card: the ask record quotes the human card question, not the machine field name
+ok 13 - D9 Lever custom card: the ask record quotes the human card question, not the machine field name
+  ---
+  duration_ms: 2079.961922
+  type: 'test'
+  ...
+# Subtest: submit stays unplugged unless armed: 149 approval alone does not enable a browser-board submit
+ok 14 - submit stays unplugged unless armed: 149 approval alone does not enable a browser-board submit
+  ---
+  duration_ms: 6117.572125
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved
+ok 15 - D13 (BUG-209): a required field lost between fill and readback stops the run INCOMPLETE_PAYLOAD — no doorstep, no click, even fully approved
+  ---
+  duration_ms: 54.664993
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD
+ok 16 - D13 (BUG-209): a required field that reads back whitespace-only is missing — INCOMPLETE_PAYLOAD
+  ---
+  duration_ms: 0.71971
+  type: 'test'
+  ...
+# Subtest: D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes
+ok 17 - D11 doorstep repair (BUG-207): a value lost AFTER its verified fill (delayed board reset — the live Labelbox shape) is re-filled from the doorstep readback and the run completes
+  ---
+  duration_ms: 1.605802
+  type: 'test'
+  ...
+# Subtest: D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval
+ok 18 - D13 control (BUG-209): a complete readback still reaches the doorstep and submits exactly once under approval
+  ---
+  duration_ms: 1.045852
+  type: 'test'
+  ...
+# Subtest: D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked
+ok 19 - D13 (BUG-209): submitDoorstep itself re-verifies the doorstep payload — a payload missing a required field is refused at the gate, never armed, never clicked
+  ---
+  duration_ms: 1.025488
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): extractConfirmation is exported and mints NOTHING from posting prose, headers, or unrelated IDs
+ok 20 - D12 (BUG-208): extractConfirmation is exported and mints NOTHING from posting prose, headers, or unrelated IDs
+  ---
+  duration_ms: 0.812614
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): the exact Labelbox mint — the word after 'application' — is refused; a bare unlabeled number is refused; a digit-less token is refused
+ok 21 - D12 (BUG-208): the exact Labelbox mint — the word after 'application' — is refused; a bare unlabeled number is refused; a digit-less token is refused
+  ---
+  duration_ms: 0.482668
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): genuinely labeled confirmations still extract — the fix refuses prose, not evidence
+ok 22 - D12 (BUG-208): genuinely labeled confirmations still extract — the fix refuses prose, not evidence
+  ---
+  duration_ms: 0.34275
+  type: 'test'
+  ...
+# Subtest: D12 (BUG-208): a still-open form vetoes EVERYTHING — labeled IDs and success wording on a page still showing the unsubmitted form mint nothing
+ok 23 - D12 (BUG-208): a still-open form vetoes EVERYTHING — labeled IDs and success wording on a page still showing the unsubmitted form mint nothing
+  ---
+  duration_ms: 0.250219
+  type: 'test'
+  ...
+# Subtest: D11 (BUG-207): on a form that remounts every field after its first fill, verified per-field fill persists — the doorstep payload is complete
+ok 24 - D11 (BUG-207): on a form that remounts every field after its first fill, verified per-field fill persists — the doorstep payload is complete
+  ---
+  duration_ms: 9208.982071
+  type: 'test'
+  ...
+# Subtest: D11 delayed-reset end-to-end (BUG-207): a board-wide reset after the resume upload wipes the early fields — the doorstep repair restores them and the payload is complete
+ok 25 - D11 delayed-reset end-to-end (BUG-207): a board-wide reset after the resume upload wipes the early fields — the doorstep repair restores them and the payload is complete
+  ---
+  duration_ms: 10029.053472
+  type: 'test'
+  ...
+# Subtest: D11 typeahead (BUG-207): a location widget that clears unpicked free text is filled by picking its own suggestion — the canonical place text persists to the doorstep
+ok 26 - D11 typeahead (BUG-207): a location widget that clears unpicked free text is filled by picking its own suggestion — the canonical place text persists to the doorstep
+  ---
+  duration_ms: 8199.025817
+  type: 'test'
+  ...
+# Subtest: D11 addendum (BUG-207): a resume input that vanishes after discovery ends the run at the gate — the fill reports it, the run does not die
+ok 27 - D11 addendum (BUG-207): a resume input that vanishes after discovery ends the run at the gate — the fill reports it, the run does not die
+  ---
+  duration_ms: 21433.593101
+  type: 'test'
+  ...
+# Subtest: D11 addendum (BUG-207): a resume input remounted under a fresh id after discovery is re-discovered at fill time and the upload lands
+ok 28 - D11 addendum (BUG-207): a resume input remounted under a fresh id after discovery is re-discovered at fill time and the upload lands
+  ---
+  duration_ms: 19726.025087
+  type: 'test'
+  ...
+# Subtest: D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked
+ok 29 - D13 end-to-end (BUG-209): on a form whose fills can NEVER persist, an approved run stops INCOMPLETE_PAYLOAD and the submit control is never clicked
+  ---
+  duration_ms: 10475.614484
+  type: 'test'
+  ...
+# Subtest: D12 end-to-end (BUG-208): an armed submit landing on the still-open form (the Labelbox shape) is unknown_outcome — the prose token 'security' mints no SUBMITTED
+ok 30 - D12 end-to-end (BUG-208): an armed submit landing on the still-open form (the Labelbox shape) is unknown_outcome — the prose token 'security' mints no SUBMITTED
+  ---
+  duration_ms: 9984.784882
+  type: 'test'
+  ...
+# Subtest: D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep
+ok 31 - D14 (BUG-237): on the current Greenhouse UI shape, widget fills persist at readback and the run reaches the doorstep
+  ---
+  duration_ms: 46851.556789
+  type: 'test'
+  ...
+# Subtest: D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands
+ok 32 - D14 (BUG-237): a resume input that unmounts before its fill and returns only via the Attach control is recovered — the upload lands
+  ---
+  duration_ms: 51300.529781
+  type: 'test'
+  ...
+1..32
+# tests 32
+# suites 0
+# pass 32
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 187418.376787

@@ -456,6 +456,29 @@ const CareerJobs = (() => {
   // marker), per the owner's TN-1a ruling — never invented.
   const companyOf = (payloadName, statedCompany) => s(payloadName) || s(statedCompany) || null;
 
+  // F-013: retain location text from the ATS's stated primary/secondary values.
+  // Never stringify an object into a location or substitute the company/board as geography.
+  function locationText(value) {
+    const out = [], seen = new Set();
+    const plain = (v) => typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
+    const add = (v) => { const t = plain(v), key = t.toLowerCase(); if (t && !seen.has(key)) { seen.add(key); out.push(t); } return !!t; };
+    function read(v, depth) {
+      if (depth > 6 || v == null) return false;
+      if (typeof v === "string") return add(v);
+      if (Array.isArray(v)) { let found = false; for (const item of v) found = read(item, depth + 1) || found; return found; }
+      if (typeof v !== "object") return false;
+      let named = false;
+      for (const name of ["location", "locationName", "name"]) if (v[name] !== undefined) named = read(v[name], depth + 1) || named;
+      // A named location is the source's own label; its address is only a fallback.
+      if (named) return true;
+      const address = v.postalAddress || (v.address && (v.address.postalAddress || v.address)) || v;
+      const parts = [address.city || address.addressLocality, address.region || address.state || address.addressRegion, address.country || address.addressCountry].map(plain).filter(Boolean);
+      return parts.length ? add([...new Set(parts)].join(", ")) : false;
+    }
+    read(value, 0);
+    return out.join("; ");
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
@@ -501,7 +524,7 @@ const CareerJobs = (() => {
   function normalizeAshby(json, name, statedCompany) {
     return ((json && json.jobs) || []).map((j) => basePosting({
       source: "ashby", company: companyOf(json && json.name, statedCompany), title: j.title, req_id: j.id,
-      location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
+      location: locationText([j.location, j.locationName, j.locations, j.secondaryLocations]) || "Location not stated", url: j.jobUrl || j.applyUrl,
       posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
       department: j.departmentName || j.teamName || "",
     }));
@@ -1029,6 +1052,6 @@ const CareerJobs = (() => {
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     detectKnockouts, evaluateKnockouts, evidencedFullTimeYears,
-    roleFamily, seniorityBand, stripHtml, hash };
+    roleFamily, seniorityBand, locationText, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;

@@ -23942,7 +23942,7 @@ const CareerOutreach = (() => {
   const STRUCTURE_ASK = [
     { ask: (topic) => `Would you have 15 minutes on Tuesday afternoon or Thursday morning to talk about ${topic}?`, noFit: () => `If neither fits, whatever works best for you is fine.` },
     { ask: (topic) => `Could I ask you about ${topic} in a 15-minute call on Tuesday afternoon or Thursday morning?`, noFit: () => `Another time that suits you works just as well.` },
-    { ask: (topic) => `I have one specific question about ${topic} — would 15 minutes on Tuesday afternoon or Thursday morning work?`, noFit: () => `If those times miss, I'm happy to work around your schedule. Totally understand if you're swamped.` },
+    { ask: (topic) => `I have one specific question about ${topic} — would 15 minutes on Tuesday afternoon or Thursday morning work?`, noFit: () => `If those times miss, I can bend to whatever your calendar allows. Totally understand if you're swamped.` },
     { ask: (topic) => `Would 15 minutes on Tuesday afternoon or Thursday morning work for a quick chat about ${topic}?`, noFit: () => `Any time that works better for you is fine by me.` },
     { ask: (topic) => `Might you have 15 minutes on Tuesday afternoon or Thursday morning for a chat about ${topic}?`, noFit: () => `Whatever time suits you best works for me.` },
   ];
@@ -47542,6 +47542,139 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPlat
    resume JSON renders byte-identical files (§10.5 snapshot proof).
    Pure: resume object / buffers in, results out. UMD like the others. */
 const CareerRender = (() => {
+  // ================= byte layer (MUSE-F-011) =================
+  // This module's byte plumbing used to read the bare Node Buffer
+  // global in ~30 places (alloc / from / concat / isBuffer, the
+  // write/read UInt accessors, copy, toString encodings). In the Deno
+  // ESM bundle that global does not exist (Supabase Edge Runtime,
+  // Deno 2.1.4), so the first render on every tailor turn threw
+  // "ReferenceError: Buffer is not defined" (first executed read:
+  // renderPdf) and module 143's containment served the generic
+  // failure — while Node and Deno 2.9.7, which both expose a Buffer
+  // global, masked it in every local test. The fix is ONE module-local
+  // byte type over Uint8Array/DataView — bundle-legal primitives
+  // only, no require, no node:buffer — selected once, here: where a
+  // Buffer global exists (Node), Bytes IS the platform Buffer, so the
+  // Node path's bytes and types stay exactly what they were
+  // (golden-pinned in tests/career-render-edge-pdf.test.cjs); where
+  // none exists, Bytes is the shim below, whose instances carry the
+  // semantics this module uses.
+  const B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const B64_LOOKUP = (() => { const t = new Int16Array(128).fill(-1); for (let i = 0; i < B64_ALPHABET.length; i++) t[B64_ALPHABET.charCodeAt(i)] = i; return t; })();
+  function b64Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i], b = i + 1 < bytes.length ? bytes[i + 1] : 0, c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      out += B64_ALPHABET[a >> 2] + B64_ALPHABET[((a & 3) << 4) | (b >> 4)];
+      out += i + 1 < bytes.length ? B64_ALPHABET[((b & 15) << 2) | (c >> 6)] : "=";
+      out += i + 2 < bytes.length ? B64_ALPHABET[c & 63] : "=";
+    }
+    return out;
+  }
+  function b64Decode(text) {
+    const clean = String(text).replace(/[^A-Za-z0-9+/=]/g, "");
+    const out = [];
+    for (let i = 0; i < clean.length; i += 4) {
+      const a = B64_LOOKUP[clean.charCodeAt(i)], b = B64_LOOKUP[clean.charCodeAt(i + 1)];
+      const c = clean[i + 2] === "=" || clean[i + 2] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 2)];
+      const d = clean[i + 3] === "=" || clean[i + 3] === undefined ? -1 : B64_LOOKUP[clean.charCodeAt(i + 3)];
+      out.push(((a << 2) | (b >> 4)) & 0xff);
+      if (c >= 0) out.push((((b & 15) << 4) | (c >> 2)) & 0xff);
+      if (d >= 0) out.push((((c & 3) << 6) | d) & 0xff);
+    }
+    return out;
+  }
+  // Manual UTF-8 codec: the byte layer depends on nothing beyond
+  // Uint8Array/DataView — not even TextEncoder, which a sandboxed
+  // realm is not guaranteed to expose.
+  function utf8Encode(text) {
+    const out = [];
+    for (const ch of String(text)) {
+      const cp = ch.codePointAt(0);
+      if (cp < 0x80) out.push(cp);
+      else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f));
+      else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+      else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    }
+    return out;
+  }
+  function utf8Decode(bytes) {
+    let out = "";
+    const cps = [];
+    let i = 0;
+    while (i < bytes.length) {
+      const b = bytes[i];
+      if (b < 0x80) { cps.push(b); i += 1; }
+      else if ((b & 0xe0) === 0xc0 && i + 1 < bytes.length) { cps.push(((b & 0x1f) << 6) | (bytes[i + 1] & 0x3f)); i += 2; }
+      else if ((b & 0xf0) === 0xe0 && i + 2 < bytes.length) { cps.push(((b & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f)); i += 3; }
+      else if ((b & 0xf8) === 0xf0 && i + 3 < bytes.length) { cps.push(((b & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f)); i += 4; }
+      else { cps.push(0xfffd); i += 1; }
+    }
+    for (let j = 0; j < cps.length; j += 8192) out += String.fromCodePoint(...cps.slice(j, j + 8192));
+    return out;
+  }
+  class ByteBuf extends Uint8Array {
+    static alloc(size) { return new ByteBuf(size); }
+    static from(input, enc) {
+      if (typeof input === "string") {
+        const e = String(enc || "utf8").toLowerCase();
+        if (e === "hex") {
+          const out = new ByteBuf(input.length >> 1);
+          for (let i = 0; i < out.length; i++) out[i] = parseInt(input.slice(i * 2, i * 2 + 2), 16) || 0;
+          return out;
+        }
+        if (e === "latin1" || e === "binary") {
+          const out = new ByteBuf(input.length);
+          for (let i = 0; i < input.length; i++) out[i] = input.charCodeAt(i) & 0xff;
+          return out;
+        }
+        if (e === "base64") { const arr = b64Decode(input); const out = new ByteBuf(arr.length); for (let i = 0; i < arr.length; i++) out[i] = arr[i]; return out; }
+        const encoded = utf8Encode(input);
+        const out = new ByteBuf(encoded.length);
+        for (let i = 0; i < encoded.length; i++) out[i] = encoded[i];
+        return out;
+      }
+      if (input instanceof Uint8Array) { const out = new ByteBuf(input.length); out.set(input); return out; }
+      if (input instanceof ArrayBuffer) return new ByteBuf(new Uint8Array(input));
+      const arr = Array.from(input || []);
+      const out = new ByteBuf(arr.length);
+      for (let i = 0; i < arr.length; i++) out[i] = arr[i] & 0xff;
+      return out;
+    }
+    static concat(list) {
+      let total = 0;
+      for (const part of list) total += part.length;
+      const out = new ByteBuf(total);
+      let off = 0;
+      for (const part of list) { out.set(part, off); off += part.length; }
+      return out;
+    }
+    static isBuffer(x) { return x instanceof Uint8Array; }
+    _view() { return new DataView(this.buffer, this.byteOffset, this.byteLength); }
+    writeUInt16LE(value, offset) { this._view().setUint16(offset, value, true); return offset + 2; }
+    writeUInt32LE(value, offset) { this._view().setUint32(offset, value, true); return offset + 4; }
+    writeUInt32BE(value, offset) { this._view().setUint32(offset, value, false); return offset + 4; }
+    readUInt16LE(offset) { return this._view().getUint16(offset, true); }
+    readUInt32LE(offset) { return this._view().getUint32(offset, true); }
+    copy(target, targetStart = 0, sourceStart = 0, sourceEnd = this.length) {
+      const n = Math.max(0, Math.min(sourceEnd - sourceStart, target.length - targetStart));
+      if (n > 0) target.set(this.subarray(sourceStart, sourceStart + n), targetStart);
+      return n;
+    }
+    toString(enc, start, end) {
+      const e = String(enc || "utf8").toLowerCase();
+      const view = this.subarray(start == null ? 0 : start, end == null ? this.length : end);
+      if (e === "latin1" || e === "binary") {
+        let out = "";
+        for (let i = 0; i < view.length; i += 8192) out += String.fromCharCode(...view.subarray(i, i + 8192));
+        return out;
+      }
+      if (e === "base64") return b64Encode(view);
+      if (e === "hex") { let out = ""; for (const b of view) out += b.toString(16).padStart(2, "0"); return out; }
+      return utf8Decode(view);
+    }
+  }
+  const Bytes = typeof Buffer !== "undefined" ? Buffer : ByteBuf;
   // ================= pure-JS zlib + SHA-256 (edge fallback) =================
   // LANE F (the CHANNEL-DOC-1 blocker; Lane B record
   // docs/career/channel-doc-1-record-2026-10-20.md §5): in the Deno ESM
@@ -47574,18 +47707,18 @@ const CareerRender = (() => {
     let off = 0;
     do {
       const len = Math.min(65535, data.length - off);
-      const head = Buffer.alloc(5);
+      const head = Bytes.alloc(5);
       head[0] = off + len >= data.length ? 1 : 0; // BFINAL, BTYPE=00, then byte-aligned
       head.writeUInt16LE(len, 1);
       head.writeUInt16LE((~len) & 0xffff, 3);
-      chunks.push(head, Buffer.from(data.subarray(off, off + len)));
+      chunks.push(head, Bytes.from(data.subarray(off, off + len)));
       off += len;
     } while (off < data.length);
-    return Buffer.concat(chunks);
+    return Bytes.concat(chunks);
   }
   function zlibDeflate(data) {
     const body = deflateStored(data);
-    const out = Buffer.alloc(2 + body.length + 4);
+    const out = Bytes.alloc(2 + body.length + 4);
     out[0] = 0x78; out[1] = 0x01; // CMF/FLG: deflate, 32K window; (0x78*256+0x01) % 31 === 0
     body.copy(out, 2);
     out.writeUInt32BE(adler32(data), 2 + body.length);
@@ -47684,7 +47817,7 @@ const CareerRender = (() => {
         }
       } else throw new Error("invalid deflate block type");
     } while (!last);
-    return { buffer: Buffer.from(out), end: pos - (bitcnt >> 3) };
+    return { buffer: Bytes.from(out), end: pos - (bitcnt >> 3) };
   }
   function zlibInflate(data) {
     if (data.length < 6) throw new Error("zlib stream too short");
@@ -47741,10 +47874,10 @@ const CareerRender = (() => {
   const pureCrypto = {
     createHash: (alg) => {
       if (alg !== "sha256") throw new Error(`pure crypto fallback supports sha256 only, not ${alg}`);
-      let buf = Buffer.alloc(0);
+      let buf = Bytes.alloc(0);
       return {
-        update(data) { buf = Buffer.concat([buf, Buffer.from(data)]); return this; },
-        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Buffer.from(hex, "hex"); },
+        update(data) { buf = Bytes.concat([buf, Bytes.from(data)]); return this; },
+        digest(enc) { const hex = sha256HexPure(buf); return enc === "hex" ? hex : Bytes.from(hex, "hex"); },
       };
     },
   };
@@ -47842,17 +47975,17 @@ const CareerRender = (() => {
   function zipBuffer(entries) {
     const chunks = []; const central = []; let offset = 0;
     for (const entry of entries) {
-      const nameBuf = Buffer.from(entry.name, "utf8");
-      const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
+      const nameBuf = Bytes.from(entry.name, "utf8");
+      const data = Bytes.isBuffer(entry.data) ? entry.data : Bytes.from(String(entry.data), "utf8");
       const compressed = zlib.deflateRawSync(data);
       const crc = crc32(data);
-      const local = Buffer.alloc(30);
+      const local = Bytes.alloc(30);
       local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
       local.writeUInt16LE(8, 8); local.writeUInt16LE(DOS_TIME, 10); local.writeUInt16LE(DOS_DATE, 12);
       local.writeUInt32LE(crc, 14); local.writeUInt32LE(compressed.length, 18); local.writeUInt32LE(data.length, 22);
       local.writeUInt16LE(nameBuf.length, 26); local.writeUInt16LE(0, 28);
       chunks.push(local, nameBuf, compressed);
-      const cd = Buffer.alloc(46);
+      const cd = Bytes.alloc(46);
       cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0x0800, 8);
       cd.writeUInt16LE(8, 10); cd.writeUInt16LE(DOS_TIME, 12); cd.writeUInt16LE(DOS_DATE, 14);
       cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(compressed.length, 20); cd.writeUInt32LE(data.length, 24);
@@ -47861,16 +47994,16 @@ const CareerRender = (() => {
       offset += local.length + nameBuf.length + compressed.length;
     }
     const cdSize = central.reduce((n, b) => n + b.length, 0);
-    const eocd = Buffer.alloc(22);
+    const eocd = Bytes.alloc(22);
     eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
     eocd.writeUInt32LE(cdSize, 12); eocd.writeUInt32LE(offset, 16);
-    return Buffer.concat([...chunks, ...central, eocd]);
+    return Bytes.concat([...chunks, ...central, eocd]);
   }
-  // Central-directory reader: part name -> inflated Buffer. Independent of
+  // Central-directory reader: part name -> inflated Bytes. Independent of
   // the writer (walks the EOCD + central directory, verifies CRC on read).
   function unzipParts(buf) {
     const parts = new Map();
-    if (!Buffer.isBuffer(buf) || buf.length < 22) return parts;
+    if (!Bytes.isBuffer(buf) || buf.length < 22) return parts;
     let eocd = -1;
     for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
     if (eocd < 0) return parts;
@@ -47888,7 +48021,7 @@ const CareerRender = (() => {
       const dataStart = localOff + 30 + lNameLen + lExtraLen;
       const raw = buf.subarray(dataStart, dataStart + compSize);
       let data = null;
-      try { data = method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw); } catch { data = null; }
+      try { data = method === 8 ? zlib.inflateRawSync(raw) : Bytes.from(raw); } catch { data = null; }
       if (data && crc32(data) === crc) parts.set(name, data);
       p += 46 + nameLen + extraLen + commentLen;
     }
@@ -47958,7 +48091,7 @@ const CareerRender = (() => {
       else if (WINANSI_EXTRA.has(ch)) bytes.push(WINANSI_EXTRA.get(ch));
       else { bytes.push(0x3f); if (unencodable && !unencodable.includes(ch)) unencodable.push(ch); }
     }
-    return Buffer.from(bytes);
+    return Bytes.from(bytes);
   }
   function decodeWinAnsi(buf) {
     let out = "";
@@ -48049,27 +48182,27 @@ const CareerRender = (() => {
     if (!blocks.length) return { ok: false, refused: true, reason: "resume has no renderable lines", buffer: null, contentType: PDF_CONTENT_TYPE, filename: null };
     const unencodable = [];
     const pages = paginate(blocks);
-    const objects = []; // [id, Buffer]
+    const objects = []; // [id, Bytes]
     const pageIds = pages.map((_, i) => 5 + i * 2);
     const contentIds = pages.map((_, i) => 6 + i * 2);
-    objects.push([1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>")]);
-    objects.push([2, Buffer.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
-    objects.push([3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
-    objects.push([4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
+    objects.push([1, Bytes.from("<< /Type /Catalog /Pages 2 0 R >>")]);
+    objects.push([2, Bytes.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
+    objects.push([3, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
+    objects.push([4, Bytes.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
     pages.forEach((lines, i) => {
-      objects.push([pageIds[i], Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
+      objects.push([pageIds[i], Bytes.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
       const ops = lines.map((l) => `BT /${l.font} ${l.size} Tf 1 0 0 1 ${l.x} ${l.y} Tm ${pdfLiteral(encodeWinAnsi(l.text, unencodable))} Tj ET`).join("\n");
-      const stream = zlib.deflateSync(Buffer.from(ops, "latin1"));
-      const head = Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
-      objects.push([contentIds[i], Buffer.concat([head, stream, Buffer.from("\nendstream", "latin1")])]);
+      const stream = zlib.deflateSync(Bytes.from(ops, "latin1"));
+      const head = Bytes.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+      objects.push([contentIds[i], Bytes.concat([head, stream, Bytes.from("\nendstream", "latin1")])]);
     });
     objects.sort((a, b) => a[0] - b[0]);
-    const chunks = [Buffer.from("%PDF-1.4\n", "latin1")];
+    const chunks = [Bytes.from("%PDF-1.4\n", "latin1")];
     const offsets = new Map();
     let pos = chunks[0].length;
     for (const [id, body] of objects) {
-      const head = Buffer.from(`${id} 0 obj\n`, "latin1");
-      const tail = Buffer.from("\nendobj\n", "latin1");
+      const head = Bytes.from(`${id} 0 obj\n`, "latin1");
+      const tail = Bytes.from("\nendobj\n", "latin1");
       offsets.set(id, pos);
       chunks.push(head, body, tail);
       pos += head.length + body.length + tail.length;
@@ -48079,8 +48212,8 @@ const CareerRender = (() => {
     let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
     for (let id = 1; id <= maxId; id++) xref += `${String(offsets.get(id)).padStart(10, "0")} 00000 n \n`;
     xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
-    chunks.push(Buffer.from(xref, "latin1"));
-    const buffer = Buffer.concat(chunks);
+    chunks.push(Bytes.from(xref, "latin1"));
+    const buffer = Bytes.concat(chunks);
     return { ok: true, buffer, contentType: PDF_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "pdf"), bytes: buffer.length, pages: pages.length, unencodable };
   }
 
@@ -48120,13 +48253,13 @@ const CareerRender = (() => {
       else if (c === ")") { depth--; if (depth > 0) bytes.push(41); i++; }
       else { bytes.push(s.charCodeAt(i) & 0xff); i++; }
     }
-    return [decodeWinAnsi(Buffer.from(bytes)), i];
+    return [decodeWinAnsi(Bytes.from(bytes)), i];
   }
   // Full operator walk: returns [{ text, x, y, size, font, page }] in
   // reading order (page order, then y descending, then x ascending).
   function extractPdfRuns(buf) {
     const runs = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return runs;
+    if (!Bytes.isBuffer(buf) || !zlib) return runs;
     const streams = pdfStreams(buf);
     streams.forEach((streamBuf, page) => {
       const s = streamBuf.toString("latin1");
@@ -48152,7 +48285,7 @@ const CareerRender = (() => {
   // Parser B: raw string scan of every inflated stream, operator-blind.
   function extractPdfStrings(buf) {
     const out = [];
-    if (!Buffer.isBuffer(buf) || !zlib) return out;
+    if (!Bytes.isBuffer(buf) || !zlib) return out;
     for (const streamBuf of pdfStreams(buf)) {
       const s = streamBuf.toString("latin1");
       let i = 0;
@@ -48164,14 +48297,14 @@ const CareerRender = (() => {
     return out;
   }
   function pdfStructure(buf) {
-    const s = Buffer.isBuffer(buf) ? buf.toString("latin1") : "";
+    const s = Bytes.isBuffer(buf) ? buf.toString("latin1") : "";
     const fonts = [...new Set([...s.matchAll(/\/BaseFont\s*\/([A-Za-z0-9-]+)/g)].map((m) => m[1].replace(/^[A-Z]{6}\+/, "")))];
     const images = (s.match(/\/Subtype\s*\/Image/g) || []).length;
     const pages = (s.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
     const runs = extractPdfRuns(buf);
     const sizes = [...new Set(runs.map((r) => r.size).filter(Boolean))].sort((a, b) => a - b);
     const xs = [...new Set(runs.map((r) => Math.round(r.x)))];
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
   }
   // External parser B (poppler) — used when the caller opts in.
   function extractPdfPoppler(buf) {
@@ -48220,8 +48353,8 @@ const CareerRender = (() => {
   }
   function docxStructure(buf) {
     const parts = unzipParts(buf);
-    const docXml = (parts.get("word/document.xml") || Buffer.alloc(0)).toString("utf8");
-    const stylesXml = (parts.get("word/styles.xml") || Buffer.alloc(0)).toString("utf8");
+    const docXml = (parts.get("word/document.xml") || Bytes.alloc(0)).toString("utf8");
+    const stylesXml = (parts.get("word/styles.xml") || Bytes.alloc(0)).toString("utf8");
     const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
     const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
     const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
@@ -48229,7 +48362,7 @@ const CareerRender = (() => {
     const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
     const textFrames = (docXml.match(/txbxContent/g) || []).length;
     const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
-    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
+    return { bytes: Bytes.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
   }
   // External parser B (python-docx) — used when the caller opts in.
   function extractDocxPython(buf) {

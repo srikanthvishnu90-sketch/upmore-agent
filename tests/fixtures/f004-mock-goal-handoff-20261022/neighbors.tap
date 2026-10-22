@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: battery scenario 4: a stated career goal is recorded verbatim, never searched
+ok 1 - battery scenario 4: a stated career goal is recorded verbatim, never searched
+  ---
+  duration_ms: 246.632394
+  type: 'test'
+  ...
+# Subtest: battery scenario 5: the goal recalls verbatim in a SECOND, fresh thread
+ok 2 - battery scenario 5: the goal recalls verbatim in a SECOND, fresh thread
+  ---
+  duration_ms: 18.57926
+  type: 'test'
+  ...
+# Subtest: recall with no goal on record stands down (fall-through unchanged)
+ok 3 - recall with no goal on record stands down (fall-through unchanged)
+  ---
+  duration_ms: 87.972395
+  type: 'test'
+  ...
+# Subtest: a conditional goal shape records nothing (BUG-169 discipline)
+ok 4 - a conditional goal shape records nothing (BUG-169 discipline)
+  ---
+  duration_ms: 62.108664
+  type: 'test'
+  ...
+# Subtest: 'my goal is to ...' records verbatim, and a later statement replaces the slot
+ok 5 - 'my goal is to ...' records verbatim, and a later statement replaces the slot
+  ---
+  duration_ms: 12.220434
+  type: 'test'
+  ...
+# Subtest: genuine discovery asks still route to discovery (precedence)
+ok 6 - genuine discovery asks still route to discovery (precedence)
+  ---
+  duration_ms: 19.678516
+  type: 'test'
+  ...
+# Subtest: judge sequence: return to an OLD thread — the recall answers the account's CURRENT goal and never writes the stale copy back
+ok 7 - judge sequence: return to an OLD thread — the recall answers the account's CURRENT goal and never writes the stale copy back
+  ---
+  duration_ms: 28.382132
+  type: 'test'
+  ...
+# Subtest: judge sequence, keyed-kind instance: recruiter_contact — a returning thread answers the account's current contact, no write-back clobber
+ok 8 - judge sequence, keyed-kind instance: recruiter_contact — a returning thread answers the account's current contact, no write-back clobber
+  ---
+  duration_ms: 8.003434
+  type: 'test'
+  ...
+# Subtest: W1-1 (CB-0329 verbatim): mock start runs profile-less, the answer lands, the advance poses the next question
+ok 9 - W1-1 (CB-0329 verbatim): mock start runs profile-less, the answer lands, the advance poses the next question
+  ---
+  duration_ms: 233.234935
+  type: 'test'
+  ...
+# Subtest: W1-2 (CB-0321 verbatim): the same lifecycle holds for a user whose record is stated facts, not a profile
+ok 10 - W1-2 (CB-0321 verbatim): the same lifecycle holds for a user whose record is stated facts, not a profile
+  ---
+  duration_ms: 68.74794
+  type: 'test'
+  ...
+# Subtest: W1-3 (CB-0347/CB-0350 verbatim): 'what questions does <Co> ask for <Role> roles?' serves the bank for that role
+ok 11 - W1-3 (CB-0347/CB-0350 verbatim): 'what questions does <Co> ask for <Role> roles?' serves the bank for that role
+  ---
+  duration_ms: 14.360746
+  type: 'test'
+  ...
+# Subtest: W1-4 (CB-0355 verbatim): a labeled answer lands in the mock, and 'how did I do? score me honestly' debriefs from the session record
+ok 12 - W1-4 (CB-0355 verbatim): a labeled answer lands in the mock, and 'how did I do? score me honestly' debriefs from the session record
+  ---
+  duration_ms: 6.01235
+  type: 'test'
+  ...
+# Subtest: W1-5 (paraphrase): a practice-interview start in new words runs the full lifecycle at a new firm
+ok 13 - W1-5 (paraphrase): a practice-interview start in new words runs the full lifecycle at a new firm
+  ---
+  duration_ms: 22.306467
+  type: 'test'
+  ...
+# Subtest: W1-6 (paraphrase): the question-bank ask in new words, for a new firm and role
+ok 14 - W1-6 (paraphrase): the question-bank ask in new words, for a new firm and role
+  ---
+  duration_ms: 3.756199
+  type: 'test'
+  ...
+# Subtest: W1-7 (control): questions the CANDIDATE should ask keep their own producer — never the company's bank
+ok 15 - W1-7 (control): questions the CANDIDATE should ask keep their own producer — never the company's bank
+  ---
+  duration_ms: 2.957319
+  type: 'test'
+  ...
+# Subtest: W1-8 (control): a debrief ask with NO live mock invents no score
+ok 16 - W1-8 (control): a debrief ask with NO live mock invents no score
+  ---
+  duration_ms: 7.417429
+  type: 'test'
+  ...
+# Subtest: W1-9 (control): a live mock still does not swallow a genuinely new task
+ok 17 - W1-9 (control): a live mock still does not swallow a genuinely new task
+  ---
+  duration_ms: 17.143876
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 622.037841

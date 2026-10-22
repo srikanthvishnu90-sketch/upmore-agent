@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: F004: a new own career target escapes a pending mock: I want a software engineering internship.
+ok 1 - F004: a new own career target escapes a pending mock: I want a software engineering internship.
+  ---
+  duration_ms: 560.668535
+  type: 'test'
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+ok 2 - F004: a new own career target escapes a pending mock: I am aiming for a product design internship.
+  ---
+  duration_ms: 34.147535
+  type: 'test'
+  ...
+# Subtest: F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+ok 3 - F004: a new own career target escapes a pending mock: I'm aiming for a healthcare operations role.
+  ---
+  duration_ms: 7.755604
+  type: 'test'
+  ...
+# Subtest: F004 control: the already-fixed explicit career goal keeps its early claim
+ok 4 - F004 control: the already-fixed explicit career goal keeps its early claim
+  ---
+  duration_ms: 8.919872
+  type: 'test'
+  ...
+# Subtest: F004 control: a labeled mock answer is session content even when it names a desired role
+ok 5 - F004 control: a labeled mock answer is session content even when it names a desired role
+  ---
+  duration_ms: 17.949321
+  type: 'test'
+  ...
+# Subtest: F004 control: ordinary past-tense narrative is still scored in the pending mock
+ok 6 - F004 control: ordinary past-tense narrative is still scored in the pending mock
+  ---
+  duration_ms: 10.172928
+  type: 'test'
+  ...
+# Subtest: F004 control: a multi-sentence labeled answer never changes the goal
+ok 7 - F004 control: a multi-sentence labeled answer never changes the goal
+  ---
+  duration_ms: 3.308649
+  type: 'test'
+  ...
+# Subtest: F004 control: an instruction to find roles is not saved as a personal goal
+ok 8 - F004 control: an instruction to find roles is not saved as a personal goal
+  ---
+  duration_ms: 6.548637
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+ok 9 - F004 control: a hypothetical, quote, or question writes no goal: If I want a software engineering internship, what should I do?
+  ---
+  duration_ms: 69.59998
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+ok 10 - F004 control: a hypothetical, quote, or question writes no goal: My friend said, "I want a software engineering internship."
+  ---
+  duration_ms: 4.556424
+  type: 'test'
+  ...
+# Subtest: F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+ok 11 - F004 control: a hypothetical, quote, or question writes no goal: I want a software engineering internship?
+  ---
+  duration_ms: 27.130767
+  type: 'test'
+  ...
+# Subtest: F004 control: an explicit new task remains discovery rather than becoming a goal record
+ok 12 - F004 control: an explicit new task remains discovery rather than becoming a goal record
+  ---
+  duration_ms: 12.47127
+  type: 'test'
+  ...
+# Subtest: battery scenario 4: a stated career goal is recorded verbatim, never searched
+ok 13 - battery scenario 4: a stated career goal is recorded verbatim, never searched
+  ---
+  duration_ms: 287.448367
+  type: 'test'
+  ...
+# Subtest: battery scenario 5: the goal recalls verbatim in a SECOND, fresh thread
+ok 14 - battery scenario 5: the goal recalls verbatim in a SECOND, fresh thread
+  ---
+  duration_ms: 12.565097
+  type: 'test'
+  ...
+# Subtest: recall with no goal on record stands down (fall-through unchanged)
+ok 15 - recall with no goal on record stands down (fall-through unchanged)
+  ---
+  duration_ms: 103.048192
+  type: 'test'
+  ...
+# Subtest: a conditional goal shape records nothing (BUG-169 discipline)
+ok 16 - a conditional goal shape records nothing (BUG-169 discipline)
+  ---
+  duration_ms: 30.916647
+  type: 'test'
+  ...
+# Subtest: 'my goal is to ...' records verbatim, and a later statement replaces the slot
+ok 17 - 'my goal is to ...' records verbatim, and a later statement replaces the slot
+  ---
+  duration_ms: 27.791016
+  type: 'test'
+  ...
+# Subtest: genuine discovery asks still route to discovery (precedence)
+ok 18 - genuine discovery asks still route to discovery (precedence)
+  ---
+  duration_ms: 28.303793
+  type: 'test'
+  ...
+# Subtest: judge sequence: return to an OLD thread — the recall answers the account's CURRENT goal and never writes the stale copy back
+ok 19 - judge sequence: return to an OLD thread — the recall answers the account's CURRENT goal and never writes the stale copy back
+  ---
+  duration_ms: 9.999092
+  type: 'test'
+  ...
+# Subtest: judge sequence, keyed-kind instance: recruiter_contact — a returning thread answers the account's current contact, no write-back clobber
+ok 20 - judge sequence, keyed-kind instance: recruiter_contact — a returning thread answers the account's current contact, no write-back clobber
+  ---
+  duration_ms: 7.597328
+  type: 'test'
+  ...
+# Subtest: W1-1 (CB-0329 verbatim): mock start runs profile-less, the answer lands, the advance poses the next question
+ok 21 - W1-1 (CB-0329 verbatim): mock start runs profile-less, the answer lands, the advance poses the next question
+  ---
+  duration_ms: 339.717171
+  type: 'test'
+  ...
+# Subtest: W1-2 (CB-0321 verbatim): the same lifecycle holds for a user whose record is stated facts, not a profile
+ok 22 - W1-2 (CB-0321 verbatim): the same lifecycle holds for a user whose record is stated facts, not a profile
+  ---
+  duration_ms: 127.168127
+  type: 'test'
+  ...
+# Subtest: W1-3 (CB-0347/CB-0350 verbatim): 'what questions does <Co> ask for <Role> roles?' serves the bank for that role
+ok 23 - W1-3 (CB-0347/CB-0350 verbatim): 'what questions does <Co> ask for <Role> roles?' serves the bank for that role
+  ---
+  duration_ms: 23.476643
+  type: 'test'
+  ...
+# Subtest: W1-4 (CB-0355 verbatim): a labeled answer lands in the mock, and 'how did I do? score me honestly' debriefs from the session record
+ok 24 - W1-4 (CB-0355 verbatim): a labeled answer lands in the mock, and 'how did I do? score me honestly' debriefs from the session record
+  ---
+  duration_ms: 19.806057
+  type: 'test'
+  ...
+# Subtest: W1-5 (paraphrase): a practice-interview start in new words runs the full lifecycle at a new firm
+ok 25 - W1-5 (paraphrase): a practice-interview start in new words runs the full lifecycle at a new firm
+  ---
+  duration_ms: 43.03974
+  type: 'test'
+  ...
+# Subtest: W1-6 (paraphrase): the question-bank ask in new words, for a new firm and role
+ok 26 - W1-6 (paraphrase): the question-bank ask in new words, for a new firm and role
+  ---
+  duration_ms: 3.666096
+  type: 'test'
+  ...
+# Subtest: W1-7 (control): questions the CANDIDATE should ask keep their own producer — never the company's bank
+ok 27 - W1-7 (control): questions the CANDIDATE should ask keep their own producer — never the company's bank
+  ---
+  duration_ms: 5.451669
+  type: 'test'
+  ...
+# Subtest: W1-8 (control): a debrief ask with NO live mock invents no score
+ok 28 - W1-8 (control): a debrief ask with NO live mock invents no score
+  ---
+  duration_ms: 14.968541
+  type: 'test'
+  ...
+# Subtest: W1-9 (control): a live mock still does not swallow a genuinely new task
+ok 29 - W1-9 (control): a live mock still does not swallow a genuinely new task
+  ---
+  duration_ms: 59.131628
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1028.452367

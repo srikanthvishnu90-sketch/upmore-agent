@@ -10085,6 +10085,26 @@ const CareerRouter = (() => {
     if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
     return false;
   };
+  // A present-tense career target is the person's own goal even without
+  // the noun "goal". Keep one assertion-only parser for capture and the
+  // early claim, so a pending mock cannot grade a new target as an answer.
+  // Labeled answers, requests, quotes and hypothetical/question turns do
+  // not enter this frame; the target must actually name a career opening.
+  function statedCareerTargetOf(text) {
+    if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
+    for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
+      const clause = stripLead(sentence);
+      if (!clauseIsAssertion(clause)) continue;
+      const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
+      if (!m) continue;
+      const value = m[1].trim();
+      if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
+      if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
+      if (value.length > 200) continue;
+      return { value, evidence: clause.replace(/[.!]$/, "").trim() };
+    }
+    return null;
+  }
   function captureStatedFacts(text, ctx) {
     const raw = s(text);
     const added = [];
@@ -10397,6 +10417,9 @@ const CareerRouter = (() => {
       // captured to the end of its own sentence only.
       if ((m = u.match(/\bmy\s+(?:career\s+)?goal\s+is\s+([^.!?]+)/i)) && asserted(m.index)) {
         pushKeyed("goal", "career", m[1], m[0]);
+      } else {
+        const target = statedCareerTargetOf(raw);
+        if (target) pushKeyed("goal", "career", target.value, target.evidence);
       }
     }
     // (1) Per-clause declarative capture. WO-095: gated — a request
@@ -10768,7 +10791,7 @@ const CareerRouter = (() => {
     // statement at the head of dispatch; answer with the record
     // surface, quoting the recorded clause verbatim.
     if (/\?/.test(s(text))) return null;
-    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t)) return null;
+    if (!/\bmy\s+(?:career\s+)?goal\s+is\s+\S/.test(t) && !statedCareerTargetOf(text)) return null;
     if (!goal) return null;
     const all = statedFactsOf(ctx);
     const reply = compose({ headline: `Recorded — your career goal is on your record now: ${goal.value}.`, facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });

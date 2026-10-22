@@ -564,6 +564,21 @@ export function notAnAnswer(text: string): boolean {
     /^(?:what'?s|what is|where'?s|where is|how'?s|how is|how are)\s+my\b/i.test(t) ||
     /^here'?s my (?:resume|cv)\b/i.test(t);
 }
+// This hook runs before the router's own goal capture. A new, own career target is a task switch, not an answer
+// to the saved interview question. Keep answer labels, questions, quotes and hypotheticals in their current frame.
+function ownsNewCareerTarget(text: string): boolean {
+  if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(text)) return false;
+  const own = text.replace(/"[^"\n]*"|“[^”\n]*”|`[^`\n]*`/g, "");
+  return own.split(/(?<=[.!?])\s+|[\r\n]+/).some((sentence) => {
+    const clause = sentence.trim().replace(/^(?:actually|also|and|by the way)[,:]?\s+/i, "");
+    if (/[?]/.test(clause)) return false;
+    if (/^my\s+(?:career\s+)?goal\s+is\s+[^.!?]+[.!]?$/i.test(clause)) return true;
+    const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
+    return !!m && m[1].length <= 200 &&
+      /\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(m[1]) &&
+      !/\b(?:you\s+to|answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(m[1]);
+  });
+}
 const LIVE_REFUSAL ="I can't help during a real interview; that is off by decision. When it ends, text me and we'll go over how it went. Your practice mock is saved: text \"resume mock\" to pick it up later.";
 
 export interface MockStore {
@@ -715,7 +730,7 @@ export async function mockTurn(
     await o.store.clear(o.userId, o.threadId);
     return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
   }
-  if (notAnAnswer(low)) return null;
+  if (ownsNewCareerTarget(o.message) || notAnAnswer(low)) return null;
   const r = next(s!, cmd?.kind === "skip" ? null : o.message, o.now);
   if (r.done) await o.store.clear(o.userId, o.threadId);
   else await o.store.save(o.userId, o.threadId, r.state);

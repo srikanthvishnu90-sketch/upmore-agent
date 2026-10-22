@@ -300,7 +300,9 @@ const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").re
 // "Prefer not to answer", "I don't wish to answer", "Do not wish to
 // disclose"...). Exact text matching made the §6.1 default unreliable;
 // decline-class equivalence is matched explicitly, nothing else is.
-const isDeclineText = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
+// F-024: Lever's disability select says "I do not want to answer".
+// This is a decline choice; "I do not have a disability" remains substantive.
+const isDeclineText = (s) => /decline|prefer not|do not wish|do not want to answer|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(normOpt(s));
 function matchOption(options, value) {
   const v = normOpt(value);
   if (!v) return null;
@@ -507,7 +509,7 @@ async function driveWidget(board, cmd) {
       // only when nothing stronger exists anywhere in the list.
       const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
       let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
-      const isDecline = (s) => /decline|prefer not|do not wish|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
+      const isDecline = (s) => /decline|prefer not|do not wish|do not want to answer|don t wish|dont wish|not (to )?answer|not (to )?disclose|no answer/.test(norm(s));
       const wantedDecline = isDecline(full);
       for (const sel of pools) {
         for (const el of Array.from(document.querySelectorAll(sel))) {

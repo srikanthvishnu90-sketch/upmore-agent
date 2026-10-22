@@ -238,8 +238,68 @@ const CareerOnboarding = (() => {
     profile.dependent_state = { rebuilt: true, rebuilt_at: at || null, based_on_source: "resume-new.txt", eligibility: "recomputed from confirmed facts only", materials: "invalidated and rebuilt on the new facts", confirmed_fact_count: confirmed };
     return profile.dependent_state;
   }
+  // The real chat writer (122.ingestResume) records the facts added by each
+  // paste. Resolve only the latest paste, never an older candidate or an
+  // invented resume-new.txt. One unambiguous graduation fact is supported;
+  // the rest of the resume remains draft until separately confirmed.
+  function correctLatestIngest(profile, text, ctx) {
+    const records = profile.profile_ingest_audit;
+    if (!Array.isArray(records) || !records.length) return null;
+    const refused = () => ({ ok: false, code: "ambiguous_resume_correction", changes: [], text: "I could not identify one confirmed graduation correction from the latest resume. Tell me the corrected graduation year; I changed nothing." });
+    const instruction = String(text || "").trim();
+    if (!/^(?:(?:please|actually)[, ]+)*(?:use the new(?:er)? (?:one|resume|version)|switch to the new (?:one|resume|version)|(?:the )?old resume(?:'s| is) wrong)\b/i.test(instruction) || /\?/.test(instruction)) return refused();
+    const ingestIndex = records.length - 1, record = records[ingestIndex];
+    if (!record || record.outcome !== "ingested_as_drafts" || !Array.isArray(record.added_fact_ids)) return refused();
+    let Profile;
+    try { Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js"); } catch { return refused(); }
+    const education = (profile.facts || []).filter((f) => record.added_fact_ids.includes(f.id) && f.kind === "education");
+    if (education.length !== 1 || Profile.quarantinedFact(education[0]) || education[0].source !== "resume-ingest") return refused();
+    const fact = education[0];
+    const graduation = (f) => {
+      const content = String(f.text || f.title || "");
+      if (/\b(?:not|possibly|maybe|might|uncertain|either|or)\b/i.test(content)) return null;
+      const matches = [...content.matchAll(/\bgraduat(?:ing|ed|ion|e)(?:\s+(?:date|year))?\s*(?:(?:in|is|:)\s*)?(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+)?((?:19|20)\d{2})\b/gi)];
+      return matches.length === 1 ? { value: matches[0][1], identity: content.slice(0, matches[0].index).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() } : null;
+    };
+    const next = graduation(fact);
+    if (!next || !next.identity) return refused();
+    const previousAudit = (profile.profile_corrections || []).find((r) => r.ingest_index === ingestIndex && Array.isArray(r.source_fact_ids) && r.source_fact_ids.length === 1 && r.source_fact_ids[0] === fact.id);
+    if (previousAudit && !fact.needs_confirmation && fact.status === "confirmed" && (profile.constraints || {}).graduationDate === next.value) {
+      return { ok: true, changes: [], reply: `Your latest resume's graduation year is already recorded as ${next.value}; no further changes were needed.` };
+    }
+    if (!fact.needs_confirmation || fact.status !== "draft") return refused();
+    const prior = (profile.facts || []).filter((f) => {
+      if (f === fact || f.kind !== "education" || f.needs_confirmation || Profile.quarantinedFact(f)) return false;
+      const parsed = graduation(f);
+      return parsed && parsed.identity === next.identity;
+    });
+    // Conflicting stored facts for the same credential need an explicit year
+    // from the person; a resume's insertion order is not confirmation.
+    if (new Set(prior.map((f) => graduation(f).value)).size > 1) return refused();
+    const at = ctx && ctx.now != null ? ctx.now : null;
+    const sourceFactIds = [fact.id];
+    const from = (profile.constraints || {}).graduationDate || (prior[0] && graduation(prior[0]).value) || null;
+    for (const old of prior) {
+      old.needs_confirmation = true;
+      old.status = "superseded";
+      old.superseded_by = fact.id;
+    }
+    fact.needs_confirmation = false;
+    fact.status = "confirmed";
+    fact.resolution = { source: "resume-ingest", source_fact_ids: sourceFactIds.slice(), ingest_index: ingestIndex, value: next.value, instruction, at };
+    profile.constraints = Object.assign({}, profile.constraints, { graduationDate: next.value });
+    bumpFactVersion(profile);
+    const changes = [{ fact_id: fact.id, field: "graduation_date", from, to: next.value, source: "resume-ingest" }];
+    const audit = { at, instruction, source: "resume-ingest", source_fact_ids: sourceFactIds, ingest_index: ingestIndex, superseded_fact_ids: prior.map((f) => f.id), changes, outcome: "user-directed correction" };
+    profile.profile_corrections = [...(profile.profile_corrections || []), audit];
+    profile.resume_sources = { active_ingest_index: ingestIndex, source_fact_ids: sourceFactIds.slice(), status: "graduation_corrected" };
+    profile.dependent_state = { rebuilt: false, invalidated_at: at, eligibility: "invalidated", materials: "invalidated", based_on_source_fact_ids: sourceFactIds.slice() };
+    return { ok: true, changes, audit, reply: `Your graduation year is now ${next.value}, from the latest resume you pasted. I recorded your correction and invalidated materials that used the earlier facts.` };
+  }
   function applyProfileCorrection(profile, text, ctx) {
     const c = ctx || {};
+    const ingested = correctLatestIngest(profile, text, c);
+    if (ingested) return ingested;
     const at = c.now || null;
     const changes = [];
     for (const fact of profile.facts || []) {

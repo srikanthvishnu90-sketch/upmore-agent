@@ -1917,7 +1917,7 @@ const CareerRouter = (() => {
     if (!profile) return null;
     let confirmed = 0;
     for (const f of profile.facts || []) {
-      if (f && f.needs_confirmation && f.source === "resume-ingest") { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
+      if (f && f.needs_confirmation && f.source === "resume-ingest" && f.status !== "superseded" && !f.superseded_by) { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
     }
     const target = mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const wmir = threadMirrorForWrite(ctx);

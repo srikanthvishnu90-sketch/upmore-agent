@@ -1,0 +1,45 @@
+{
+  "bug": "F-015",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "tested_source": "d0e66a333ad080faa63b7e59de17686575596e3b",
+  "new_checks": {
+    "base": {
+      "pass": 3,
+      "fail": 5
+    },
+    "branch": {
+      "pass": 8,
+      "fail": 0
+    }
+  },
+  "neighbors": {
+    "base": {
+      "pass": 118,
+      "fail": 0
+    },
+    "branch": {
+      "pass": 118,
+      "fail": 0
+    }
+  },
+  "cause": "buildGmailRaw used the Node Buffer global, absent in Edge.",
+  "fix": "TextEncoder plus byte iteration and btoa preserves UTF-8/base64url bytes for ASCII, Unicode, lone surrogates and large payloads.",
+  "protected_source": "createGmailTransport and all following source byte-identical to base; SEND_DISABLED and approval guards untouched.",
+  "bundles": "full and career-only canonical --check PASS",
+  "raw_log_sha256": {
+    "base-family": "9ff768aab5a8bff6dbba02ed6f44c843c654680b2d243d360fcfc9f6d5a7ed84",
+    "fix-family": "d5547894cdae9e9327a7c47c74fc13aa563f6f0ad3c2b7b3ec7cc6d41db9b060"
+  },
+  "existing_tests": "unchanged",
+  "excluded_attempts": "Initial sparse checkout lacked tracked fixture/build files; expanded checkout before final measurements.",
+  "not_run": [
+    "GitHub CI",
+    "live send (prohibited)"
+  ],
+  "limits": "No submit path, flag, migrations, deploy, merge, workflow dispatch, provider calls or spend.",
+  "ledger": {
+    "new_usd": 0,
+    "recorded_usd": "8.573843",
+    "status": "UNRECONCILED"
+  }
+}

@@ -60,6 +60,21 @@
       "signature": "public.career_apply_extension_begin_agent_own(jsonb,text,text)",
       "source_path": "supabase/migrations/20261024100000_career_apply_agent_contract.sql",
       "source_body_sha256": "4a7d398a07aefc3d29f62c0e26f05c0870775f21a0264bc1354eb9ae665116b4"
+    },
+    {
+      "signature": "public.career_apply_batch_revoke_own()",
+      "source_path": "supabase/migrations/20261024090000_career_apply_agent_submit.sql",
+      "source_body_sha256": "edf37153d09dd35988f8beb4dd9de0b13124f9246f38a38062f6da7a3b607cfe"
+    },
+    {
+      "signature": "public.career_apply_cloud_optin_as(uuid,boolean,text)",
+      "source_path": "supabase/migrations/20261021080000_career_apply_cloud.sql",
+      "source_body_sha256": "1679be9390afa345c78e9d2cece04926989a085ee4f0869c89f7cd0874b60c12"
+    },
+    {
+      "signature": "public.career_apply_cloud_optin_get(uuid)",
+      "source_path": "supabase/migrations/20261021080000_career_apply_cloud.sql",
+      "source_body_sha256": "64c7a915b44e82f24a124bf630f5ea5afbb6ca2845eebfe209facd9bd82e4540"
     }
   ],
   "sql_runtime": "NOT_RUN",

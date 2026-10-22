@@ -373,4 +373,36 @@ begin
  update public.career_apply_batch_approvals set used_at = clock_timestamp() where id = a.id;
  update public.career_apply_jobs set agent_batch_hash = p_batch_hash where id = (r->>'id')::uuid and user_id = u;
  return r;
-end $live014_body$,'supabase/migrations/20261024100000_career_apply_agent_contract.sql','01401cb456bc2982d67316165e183bbd275581c9');
+end $live014_body$,'supabase/migrations/20261024100000_career_apply_agent_contract.sql','01401cb456bc2982d67316165e183bbd275581c9'),
+('public.career_apply_batch_revoke_own()',$live014_body$
+declare u uuid := auth.uid(); n integer;
+begin
+ if u is null then raise exception 'not signed in'; end if;
+ update public.career_apply_batch_approvals set revoked_at = clock_timestamp() where user_id = u and revoked_at is null and used_at is null;
+ get diagnostics n = row_count;
+ return n;
+end $live014_body$,'supabase/migrations/20261024090000_career_apply_agent_submit.sql','01401cb456bc2982d67316165e183bbd275581c9'),
+('public.career_apply_cloud_optin_as(uuid,boolean,text)',$live014_body$
+declare a jsonb; d int;
+begin
+ if p_user is null or p_on is null then raise exception 'invalid cloud opt-in'; end if;
+ if p_on then
+  if p_terms is null or length(btrim(p_terms)) not between 1 and 1500 then raise exception 'invalid cloud opt-in'; end if;
+  select value into a from public.career_watch_kv where user_id = p_user and key = 'career:account';
+  if a is null then raise exception 'no_account'; end if;
+  if coalesce(a->>'paused', 'false') <> 'false' then raise exception 'account_paused'; end if;
+  d := public.career_apply_daily_limit(p_user);
+  insert into public.career_apply_cloud_optin (user_id, enabled, terms, terms_sha256, daily, privacy_epoch, turned_on_at, updated_at)
+  values (p_user, true, p_terms, encode(sha256(convert_to(p_terms, 'UTF8')), 'hex'), d, coalesce((a->>'epoch')::bigint, 0), now(), now())
+  on conflict (user_id) do update set enabled = true, terms = excluded.terms, terms_sha256 = excluded.terms_sha256, daily = excluded.daily,
+   privacy_epoch = excluded.privacy_epoch, turned_on_at = excluded.turned_on_at, updated_at = now();
+  return jsonb_build_object('enabled', true, 'daily', d);
+ end if;
+ update public.career_apply_cloud_optin set enabled = false, turned_off_at = now(), updated_at = now() where user_id = p_user;
+ delete from public.career_apply_cloud_resumes where user_id = p_user;
+ return jsonb_build_object('enabled', false);
+end $live014_body$,'supabase/migrations/20261021080000_career_apply_cloud.sql','01401cb456bc2982d67316165e183bbd275581c9'),
+('public.career_apply_cloud_optin_get(uuid)',$live014_body$
+ select coalesce((select jsonb_build_object('enabled', enabled, 'daily', daily, 'terms', terms, 'terms_sha256', terms_sha256) from public.career_apply_cloud_optin
+  where user_id = p_user), jsonb_build_object('enabled', false))
+$live014_body$,'supabase/migrations/20261021080000_career_apply_cloud.sql','01401cb456bc2982d67316165e183bbd275581c9');

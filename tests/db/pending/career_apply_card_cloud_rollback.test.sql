@@ -106,7 +106,10 @@ insert into rb_required values
  ('public.career_apply_message_card_read_own(uuid)','supabase/migrations/20261021220430_career_apply_message_cards.sql'),
  ('public.career_apply_message_card_test_enabled_own()','supabase/migrations/20261021220430_career_apply_message_cards.sql'),
  ('public.career_apply_extension_begin_own(jsonb,text)','supabase/migrations/20261021120000_career_apply_form_answers.sql'),
- ('public.career_apply_extension_begin_agent_own(jsonb,text,text)','supabase/migrations/20261024100000_career_apply_agent_contract.sql');
+ ('public.career_apply_extension_begin_agent_own(jsonb,text,text)','supabase/migrations/20261024100000_career_apply_agent_contract.sql'),
+ ('public.career_apply_batch_revoke_own()','supabase/migrations/20261024090000_career_apply_agent_submit.sql'),
+ ('public.career_apply_cloud_optin_as(uuid,boolean,text)','supabase/migrations/20261021080000_career_apply_cloud.sql'),
+ ('public.career_apply_cloud_optin_get(uuid)','supabase/migrations/20261021080000_career_apply_cloud.sql');
 select pg_temp.rb_ok(not exists(select from rb_required where to_regprocedure(signature) is null),
  'PRECONDITION: waiver-era cloud, integer/text own-claim, Messages guard and entrypoints installed');
 \i :bridge_live014_source_path

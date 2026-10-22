@@ -6,17 +6,17 @@
     "real_planner_prepare_assertApprovedPayload_templates": 20,
     "captured_required_fields_per_payload": 6,
     "raw_id_vs_bank_factId_helper_controls": 2,
-    "pinned_live014_function_bodies_extracted": 12,
+    "pinned_live014_function_bodies_extracted": 15,
     "generator_typecheck": "PASS",
     "python_ast_and_concurrency_help": "PASS",
     "prepared_readback_answers_exact_value_and_shown": 120
   },
-  "sql_database_and_race_runtime": "NOT_RUN; no connection or migration execution",
+  "sql_database_and_race_runtime": "NOT_RUN; no connection or migration execution. Rollback separate-session lifecycle adaptation remains pending; current SQL file is not approved for execution.",
   "browser_runtime": "NOT_RUN; separately observed SUID sandbox launcher failure retained in prior artifact",
   "written_test_lines": {
     "tests/db/pending/career_apply_card_cloud_concurrency.py": 376,
-    "tests/db/pending/career_apply_card_cloud_rollback.test.sql": 272,
-    "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql": 188
+    "tests/db/pending/career_apply_card_cloud_rollback.test.sql": 292,
+    "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql": 232
   },
   "fresh_expiry": "cc_full_item refreshes P+approved_snapshot.original only before display, then computes Hq; call once per item",
   "remaining_dependencies": [
@@ -36,13 +36,13 @@
     },
     {
       "path": "tests/db/pending/career_apply_card_cloud_lifecycle.test.sql",
-      "bytes": 14698,
-      "sha256": "f00232659afc4f250cc6e3a7a8fbe42ddd6b15c4a87162db48e6a637378f390d"
+      "bytes": 18035,
+      "sha256": "0e8eabc618dfdee026219f814ced40ca1c7e99703e397dfb8292804930cb7581"
     },
     {
       "path": "tests/db/pending/career_apply_card_cloud_rollback.test.sql",
-      "bytes": 19741,
-      "sha256": "7cff5b747ab13627dbe51e12b75474c5c258ce8e820e532adde23b42b5c61b35"
+      "bytes": 21209,
+      "sha256": "e341ab1510fda3244bf56f8ad28f0458ee95bbadf1f3808f150baed96664b4ab"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/fixture.sql",
@@ -52,7 +52,7 @@
     {
       "path": "tests/fixtures/card-cloud-db-20261021/generate-live-source.py",
       "bytes": 2980,
-      "sha256": "df3eb65213062fd5f9b5f9deec157ecbf3b73e377e56b0c7aa6680117aae76cd"
+      "sha256": "4873ce7154cece27b0425c3d92933c8c9967ed7cb72d85465bb6ac9242fe12cd"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/generate.ts",
@@ -61,13 +61,13 @@
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/live014-source-evidence.json",
-      "bytes": 3508,
-      "sha256": "e9eba7c3ed671712219029e25f976c348d65c6c08b657c149bf908f9708b4a7a"
+      "bytes": 4286,
+      "sha256": "4216370c35f2bf81d8ab4fc84edd70540bc68c40f620ca446453554c4b25f5e3"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/live014-source.sql",
-      "bytes": 30221,
-      "sha256": "19e164a26caebc148db0097bf125fc02df2a56b636ca8a24fb8a0c30a69082ed"
+      "bytes": 32685,
+      "sha256": "5f7683ffb25b4e6aca188e9a843c7ff49dbc499b37765773dfdfd97b38795311"
     },
     {
       "path": "tests/fixtures/card-cloud-db-20261021/prepared-payloads.json",

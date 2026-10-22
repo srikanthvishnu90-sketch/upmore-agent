@@ -128,7 +128,7 @@ declare i integer;p jsonb;h text;j public.career_apply_jobs;begin
    'fields','[]'::jsonb,'privacy_epoch',1,'account_version',1,'expires_at',clock_timestamp()+interval'1 hour');
   h:=encode(sha256(convert_to(public.career_apply_canonical(p),'UTF8')),'hex');
   j:=public.career_apply_enqueue(p,h,h,25);
-  update public.career_apply_jobs set state='confirmed',attempts=1,source=route,
+  update public.career_apply_jobs set state='submitted_unconfirmed',attempts=1,source=route,
    claimed_at=clock_timestamp()-interval'1 hour',lease_token=gen_random_uuid(),
    evidence='{"synthetic_historical_count_fixture":true,"not_engine_or_employer_proof":true}'
    where id=j.id;
@@ -137,7 +137,7 @@ end $$;
 select pg_temp.cap_seed_history('00000000-0000-4000-8000-00000000cb01','cloud',14);
 select pg_temp.cap_ok((select count(*)=14 from public.career_apply_jobs where
  user_id='00000000-0000-4000-8000-00000000cb01' and source='cloud' and attempts=1
- and state='confirmed' and claimed_at>clock_timestamp()-interval'1 day'),
+ and state='submitted_unconfirmed' and claimed_at>clock_timestamp()-interval'1 day'),
  'PRECONDITION:14 counted cloud history rows, plus two actually approved unattempted jobs');
 set role service_role;
 insert into cap_state select 'fifteenth',coalesce(jsonb_agg(to_jsonb(j)),'[]') from public.career_apply_cloud_claim(6) j;

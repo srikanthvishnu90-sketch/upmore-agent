@@ -807,6 +807,7 @@ const CareerPortalApply = (() => {
     }
     const asks = [];
     const filled = {};
+    const repairable = {};
     const answers = profile.answers || {};
     let attemptedFills = 0;
     const driverFillFailures = [];
@@ -824,8 +825,15 @@ const CareerPortalApply = (() => {
         // An option mismatch can require a user-selected answer. A driver
         // reporting a lost value, vanished input or other technical failure
         // cannot be repaired by asking the user to restate a confirmed fact.
-        if (!failure || !failure.reason || failure.reason === "option_not_found") asks.push({ field_id: f.field_id, reason: "fill_refused" });
-        else driverFillFailures.push(f);
+        if (failure && failure.reason === "value_did_not_persist") {
+          // Keep the confirmed plan for the existing bounded repair loop,
+          // without claiming the refused fill succeeded. A persistence
+          // failure is not a request for a different personal fact.
+          repairable[f.field_id] = { value, source: entry.source };
+        } else if ((failure && failure.reason === "option_not_found")
+          || ((!failure || !failure.reason) && board.browserDriver !== true)) {
+          asks.push({ field_id: f.field_id, reason: "fill_refused" });
+        } else driverFillFailures.push(f);
         return false;
       }
       filled[f.field_id] = { value, source: entry.source };
@@ -892,7 +900,8 @@ const CareerPortalApply = (() => {
     }
 
     // §6.4 quality gate on everything that would be submitted
-    const qHits = qualityGateHits(filled, posting);
+    const intended = Object.assign({}, repairable, filled);
+    const qHits = qualityGateHits(intended, posting);
     if (qHits.length) { logStep("quality_gate_stop", { hits: qHits }); return blocked("QUALITY_GATE", { hits: qHits }); }
 
     // Check observations before moving pages: a successful tool call alone
@@ -907,7 +916,15 @@ const CareerPortalApply = (() => {
       return blocked("INCOMPLETE_PAYLOAD", { reason: "the driver could not retain confirmed answers for required fields", missing: driverMissing, formAnalysis, asks });
     }
     const norm = (v) => String(v).trim().replace(/\s+/g, " ").toLowerCase();
-    for (const [id, planned] of Object.entries(filled)) {
+    const matchesPlan = (id, plan, actual) => {
+      const rendered = board.renderedValues && board.renderedValues[id];
+      const expected = rendered !== undefined ? rendered : plan.value;
+      return typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
+        : norm(expected) === norm(actual)
+          || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
+          || (plan.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
+    };
+    for (const [id, planned] of Object.entries(intended)) {
       if (observed[id] === undefined) continue;
       // Composed at the v224 combine: an EMPTY readback (absent or
       // whitespace-only) is a persistence absence, not value drift —
@@ -915,20 +932,14 @@ const CareerPortalApply = (() => {
       // and end it as repair or INCOMPLETE_PAYLOAD. Only a non-empty
       // observed value that DIFFERS from the confirmed fact is drift.
       if (payloadValueMissing(observed[id])) continue;
-      const wanted = planned.value, actual = observed[id];
+      const actual = observed[id];
       // Composed at the v224 combine: when the board verified the fill
       // against its own rendering (FR-395 — a widget's single-value,
       // including short forms like the country dial code "+1" for
       // "United States"), the readback is compared against that
       // rendering, not the profile text. A board that renders
       // differently from BOTH is still drift and still stops here.
-      const rendered = board.renderedValues && board.renderedValues[id];
-      const expected = rendered !== undefined ? rendered : wanted;
-      const same = typeof expected === "object" ? JSON.stringify(expected) === JSON.stringify(actual)
-        : norm(expected) === norm(actual)
-          || (/^(yes|no)\b/.test(norm(expected)) && norm(expected).match(/^(yes|no)\b/)[1] === norm(actual))
-          || (planned.source === "eeo_default_decline" && /decline|prefer not|not (to )?answer|not (to )?disclose/.test(norm(actual)));
-      if (!same) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
+      if (!matchesPlan(id, planned, actual)) return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the observed value differs from the confirmed fact; no review or submit is allowed" });
     }
     for (const field of formDef.fields || []) {
       // Composed at the v224 combine: a required field that WAS filled
@@ -941,11 +952,14 @@ const CareerPortalApply = (() => {
       // (BUG-207/209, FR-364/365). The answer_not_observed ask remains
       // for required fields that were never filled at all.
       if (field.required && observed[field.field_id] === undefined && !asks.some((a) => a.field_id === field.field_id)
-        && !filled[field.field_id] && !(session.preparationPayload && session.preparationPayload[field.field_id] !== undefined)
+        && !filled[field.field_id] && !repairable[field.field_id] && !(session.preparationPayload && session.preparationPayload[field.field_id] !== undefined)
         && !(session.pendingAttestations || []).some((x) => x.field_id === field.field_id)) {
         asks.push({ field_id: field.field_id, reason: "answer_not_observed" });
       }
     }
+    // A failed current-page field cannot inherit a prior-page value as
+    // evidence that this attempt persisted. Earlier pages' other fields stay.
+    for (const id of Object.keys(repairable)) if (payloadValueMissing(observed[id])) delete session.preparationPayload[id];
     Object.assign(session.preparationPayload, observed);
 
     // required asks outstanding -> the run waits on the user (nothing invented)
@@ -1040,15 +1054,20 @@ const CareerPortalApply = (() => {
     // already filled from confirmed facts.
     for (let round = 1; round <= 2; round++) {
       const lost = formDef.fields
-        .filter((f) => filled[f.field_id] && payloadValueMissing(payload[f.field_id]))
+        .filter((f) => intended[f.field_id] && payloadValueMissing(payload[f.field_id]))
         .map((f) => f.field_id);
       if (!lost.length) break;
       logStep("doorstep_repair", { round, fields: lost });
       for (const fieldId of lost) {
-        const value = filled[fieldId].value;
+        const value = intended[fieldId].value;
         try { board.fill(fieldId, value); } catch (e) { logStep("doorstep_repair_fill_failed", { round, field_id: fieldId, code: e.code || "FILL_ERROR" }); }
       }
       payload = buildPayload(board, session, attOverlay);
+      for (const [id, planned] of Object.entries(intended)) {
+        if (!payloadValueMissing(payload[id]) && !matchesPlan(id, planned, payload[id])) {
+          return blocked("ANSWER_OBSERVATION_MISMATCH", { field_id: id, reason: "the repaired value differs from the confirmed fact; a new preparation is required" });
+        }
+      }
     }
     // D13 (BUG-209 / FR-365, ported): the payload must carry a readback
     // value for EVERY required field. A required field missing HERE is

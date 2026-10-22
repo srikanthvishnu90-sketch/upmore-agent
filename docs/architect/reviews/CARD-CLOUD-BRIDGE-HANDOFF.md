@@ -6,6 +6,18 @@ remain exactly those tested at `dff3dfc1bc5c34ff177df65cddfff212abebd676`; the o
 production-file change since that pin is the migration launcher integration described below.
 Branch: `wo/card-cloud-bridge-20261021`. Later handoff/evidence commits do not change production code.
 
+Requested second-judge review pin: **`8c36446fca9f8fb23355972a76855113278bca17`**.
+This branch remains based on the tested common ancestor `01401cb4`; no merge or rebase
+onto that newer pin has been performed. The canonical `engine_input.ts`, its two tests
+and `typed_profile_fields.ts` are byte-identical on both trees. The sole differing
+changed-path overlap is generated `extension/lib/trainee-core.js`: the review pin
+already carries the Ashby location-ask change. Preserve it by regenerating that bundle
+from reconciled source on the final landing tree, rather than copying this branch's
+generated file over the pin. Final integration on `8c36446f` is **NOT_RUN** and needs
+the second judge and green CI before landing. Full hashes and this comparison are in
+`pg16-final-run-39707070816/review-pin-comparison.json` beside the independent QA verdict.
+
+
 The bridge is BUILT. Local checks and the owner-authorized disposable PG16 suite are
 VERIFIED. It is **not release-approved or live**. No live migration was applied, no real
 account was enrolled, and no production switches or opt-ins changed. Temporary synthetic
@@ -99,9 +111,13 @@ across the standalone boundary. Runs with no bridge retain the original one-tran
 
 ## Exact landing order, only after the remaining gates and owner authorization
 
-1. Review this branch against 01401cb4, including the frozen source pin and the SQL
-   function diffs. Reconcile with the architect's landing head; do not assume that a
-   matching branch name proves the deployed prerequisite signatures.
+1. Review the bridge delta from common base `01401cb4` against the requested landing
+   pin **`8c36446fca9f8fb23355972a76855113278bca17`**, including the frozen source and
+   SQL function diffs. Reuse the byte-identical canonical input builder already there;
+   preserve all pin-only Ashby and eval-meter changes. Regenerate the overlapping
+   extension bundle from reconciled source and run final integration/CI on that exact
+   landing commit. No merge/rebase is performed by this handoff. Do not assume a
+   matching branch name proves deployed prerequisite signatures.
 2. Review the retained first-run failures, test-only corrections and final disposable
    runtime evidence. Verify the final landing migration/worker hashes still equal the
    tested code; repeat only if implementation changes warrant it. The disposable

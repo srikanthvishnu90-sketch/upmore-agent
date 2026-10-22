@@ -1,0 +1,52 @@
+# Trainee cloud drain — the process that claims card-approved cloud
+# applications from Postgres and drives them (WO-039's loop over the
+# direct-Postgres queue). Design: docs/e2e/H3-CLOUD-CLAIMER-DESIGN.md.
+#
+# This file is the repo SOURCE of the unit, kept here because
+# /etc/systemd/system does not survive a host replacement (the lesson
+# of the 2026-10-17 scheduler wipe, see this directory's README).
+# Installing it is an owner step; nothing in the repo installs or
+# enables it:
+#
+#   sudo cp scripts/career/systemd/trainee-cloud-drain.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now trainee-cloud-drain
+#
+# SINGLE INSTANCE (F-034): run exactly ONE claimer per database —
+# this unit, once. Never run it alongside trainee-cloud.service
+# (worker.ts, the PostgREST queue) against the same database, and
+# never template a second copy. The drain also takes a Postgres
+# advisory lock at startup and refuses to start while another drain
+# holds it, but the unit discipline is the first lock.
+#
+# The env file (/etc/trainee/cloud.env, 0600, owner-typed, never in
+# the repo) carries DATABASE_URL (the worker host's route to the
+# project database), CLOUD_CONTEXTS and CLOUD_EVIDENCE_DIR — see the
+# design doc, section "Where it runs".
+
+[Unit]
+Description=Trainee cloud drain (WO-039 loop, Postgres queue)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=trainee
+Group=trainee
+EnvironmentFile=/etc/trainee/cloud.env
+WorkingDirectory=/home/trainee/upmore-agent
+ExecStart=/home/trainee/.deno/bin/deno run -A workers/career-cloud/drain.ts
+Restart=on-failure
+RestartSec=30
+# A stop signals the drain only (KillMode=mixed). It stops claiming,
+# and the engine runs in flight finish and are recorded (each is at
+# most 10 minutes). Only after TimeoutStopSec is anything killed. A
+# run killed by a stop is recorded "interrupted", which the throttle
+# never counts as a failure.
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=660
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

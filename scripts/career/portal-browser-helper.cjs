@@ -18,8 +18,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { validateAction, assertObservation } = require("../../workers/career-browser/protocol.cjs");
-// Where each ATS's resume upload lives and what the form shows once the employer took the file (docs/apply/RESUME-UPLOAD.md).
-const { NEVER_THE_RESUME, fnFileSlot, fnFindSlotInput, fnSlotTookFile, fnMarkSlotAttach } = require("./resume-upload.cjs");
 
 const dir = process.argv[2];
 if (!dir) { console.error("usage: portal-browser-helper.cjs <sessionDir>"); process.exit(2); }
@@ -345,7 +343,6 @@ async function resolveFieldHandle(page, f) {
 
 async function cmdDiscover(board) {
   const fields = await board.page.evaluate(fnDiscoverFields);
-  await readFileSlots(board, fields);
   const version = crypto.randomUUID();
   const handles = board.handles || new Map(); // retained only for rechecking prior steps before commit
   for (const f of fields) {
@@ -376,12 +373,25 @@ async function cmdDiscover(board) {
   board.fieldCount = fields.length;
   return { fields, observation: board.observation };
 }
+/* One meaning table per command (widget/attach fix, 2026-10-21 —
+ * docs/career/widget-attach-root-cause-2026-10-21.md): connected()
+ * used to run a FULL fnDiscoverFields scan on every ref check, so a
+ * readback over ~30 bindings (one check per option of a 60-option
+ * group) ran 100-225 scans and died at the caller's 30 s cap on live
+ * Lever pages. The meaning comparison only needs the field table as
+ * of THIS command: scan once, cache on the board, clear per command
+ * in execute(). Node liveness stays per-ref and live (the
+ * isConnected check below); only the meaning table is shared. */
+async function meaningFields(board) {
+  if (!board._snapshotFields) board._snapshotFields = await board.page.evaluate(fnDiscoverFields, true);
+  return board._snapshotFields;
+}
 async function connected(board, ref) {
   const h = board.handles && board.handles.get(ref);
   if (!h || !await h.evaluate((el) => el.isConnected)) throw Object.assign(new Error("the observed DOM node changed; re-observe"), { code: "STALE_OBSERVATION" });
   const previous = board.refMetadata && board.refMetadata.get(ref);
   if (previous) {
-    const fields = await board.page.evaluate(fnDiscoverFields, true);
+    const fields = await meaningFields(board);
     const current = fields.find((f) => f.selector === previous.selector);
     if (!current || ["label", "name", "inputType", "groupLabel"].some((key) => current[key] !== previous[key])) {
       throw Object.assign(new Error("the field meaning changed; re-observe"), { code: "STALE_OBSERVATION" });
@@ -535,9 +545,16 @@ async function driveWidget(board, cmd) {
   const b = cmd.binding;
   const wanted = String(cmd.value);
   const tok = wanted.split(",")[0].trim().toLowerCase();
-  await page.click(b.selector, { timeout: 20000 }).catch(() => {});
-  await page.fill(b.selector, "", { timeout: 20000 }).catch(() => {});
-  await page.type(b.selector, wanted, { delay: 25, timeout: 20000 });
+  // One drive, one bounded patience budget (widget/attach fix,
+  // 2026-10-21): the action timeouts used to be 20 s apiece, stacked
+  // on top of the ~17 s option ladder — a never-actionable widget
+  // burned ~77 s for ONE field on the live Greenhouse drive. The
+  // engagement actions get 8/5/5 s, the in-ladder retries 3-5 s: a
+  // live widget answers in milliseconds, a dead one fails inside
+  // one bounded drive and the fill loop moves on.
+  await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+  await page.fill(b.selector, "", { timeout: 5000 }).catch(() => {});
+  await page.type(b.selector, wanted, { delay: 25, timeout: 5000 }).catch(() => {});
   let chosen = null;
   let retyped = false;
   let wordRetyped = false;
@@ -562,20 +579,20 @@ async function driveWidget(board, cmd) {
     }
     if (i === 5) {
       const expanded = await page.evaluate((sel) => { const el = document.querySelector(sel); return el ? el.getAttribute("aria-expanded") : null; }, b.selector).catch(() => null);
-      if (expanded !== "true") await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+      if (expanded !== "true") await page.click(b.selector, { timeout: 3000 }).catch(() => {});
       const seg = wanted.split(/\s+[-–—,]\s+/)[0].trim();
       if (!retyped && seg && seg !== wanted && !(await widgetLoading())) {
         retyped = true;
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
-        await page.type(b.selector, seg, { delay: 25, timeout: 20000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, seg, { delay: 25, timeout: 5000 }).catch(() => {});
       }
     }
     if (i === 10 && !wordRetyped) {
       const word = wanted.split(/\s+/)[0].trim();
       if (word && word.length >= 3 && word !== wanted && !(await widgetLoading())) {
         wordRetyped = true;
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
-        await page.type(b.selector, word, { delay: 25, timeout: 20000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
+        await page.type(b.selector, word, { delay: 25, timeout: 5000 }).catch(() => {});
       }
     }
     // When NO option shares a token with the wanted value, every
@@ -586,7 +603,7 @@ async function driveWidget(board, cmd) {
     if (i === 16 && !clearedSearch) {
       clearedSearch = true;
       if (!(await widgetLoading())) {
-        await page.fill(b.selector, "", { timeout: 8000 }).catch(() => {});
+        await page.fill(b.selector, "", { timeout: 3000 }).catch(() => {});
         await page.waitForTimeout(400);
       }
     }
@@ -665,7 +682,7 @@ async function driveWidget(board, cmd) {
   // degraded later fills on the live boards). The verification in
   // cmdFill judges it — search text alone never counts as a value.
   await page.keyboard.press("Escape").catch(() => {});
-  await page.fill(b.selector, wanted, { timeout: 20000 });
+  await page.fill(b.selector, wanted, { timeout: 5000 }).catch(() => {});
   return { expect: wanted, chosenText: null, via: undefined };
 }
 function widgetPersisted(got, driven) {
@@ -677,46 +694,113 @@ function widgetPersisted(got, driven) {
     || (normPersist(got).length >= 4 && normPersist(driven.chosenText).startsWith(normPersist(got)));
 }
 
-/* Re-discover the resume's own live file input and return a selector for
- * it (its id, else a data marker — a positional selector breaks whenever
- * the board remounts siblings around it). Only the input in the bound
- * input's own place (its upload group, id, name or label: resume-upload.cjs),
- * never "the first file input on the page": that was Ashby's autofill parser
- * on every Ashby form, and a cover letter or another question's upload on a
- * Greenhouse form whose resume input the employer had already taken. */
-async function rediscoverFileSelector(page, slot) {
-  return await page.evaluate(fnFindSlotInput, { slot: slot || null, never: NEVER_THE_RESUME }).catch(() => null);
-}
-const slotKey = (b) => b.selector;
-/* Every file input's place, read at discovery while the inputs are all on
- * the page (a board may take one away before its fill: BUG-207/237). */
-async function readFileSlots(board, fields) {
-  board.fileSlots = board.fileSlots || new Map();
-  for (const f of fields) {
-    if (f.inputType !== "file" || !f.selector || board.fileSlots.has(f.selector)) continue;
-    const slot = await board.page.evaluate(fnFileSlot, { selector: f.selector, never: NEVER_THE_RESUME }).catch(() => null);
-    if (slot) board.fileSlots.set(f.selector, slot);
+/* The file field's identity (widget/attach fix, 2026-10-21): which
+ * slot a file binding is — its observed id, its name, and its class
+ * (cover vs resume). Recovery and verification resolve the LIVE
+ * input through this identity, never by document position: the old
+ * rediscovery returned the FIRST input[type=file] on the page, which
+ * on a remounted Greenhouse section is the cover-letter field — the
+ * resume was attached there (or nowhere) while verification probed
+ * a selector the remount had retired. */
+function fileIdentityOf(board, b) {
+  let meta = null;
+  for (const ref of (b && b.elementRefs) || []) {
+    const m = board.refMetadata && board.refMetadata.get(ref);
+    if (m) { meta = m; break; }
   }
+  let id = meta && meta.id ? String(meta.id) : "";
+  let name = meta && meta.name ? String(meta.name) : "";
+  if (!id) { const m = /^#([\w-]+)$/.exec((b && b.selector) || ""); if (m) id = m[1]; }
+  if (!name) { const m = /\[name="([^"]+)"\]/.exec((b && b.selector) || ""); if (m) name = m[1]; }
+  const hay = `${id} ${name} ${meta ? meta.label || "" : ""}`;
+  const cover = /cover/i.test(hay);
+  const resumeCls = /resume|cv\b/i.test(hay);
+  return { id, name, cover, cls: cover ? "cover" : resumeCls ? "resume" : null,
+    label: meta ? meta.label || "" : "",
+    domIndex: meta && typeof meta.domIndex === "number" ? meta.domIndex : null };
 }
-/* The bound file input's place: read at discovery, else now. */
-async function fileSlot(board, b) {
-  board.fileSlots = board.fileSlots || new Map();
-  if (!board.fileSlots.has(slotKey(b))) {
-    const slot = await board.page.evaluate(fnFileSlot, { selector: b.selector, never: NEVER_THE_RESUME }).catch(() => null);
-    if (slot) board.fileSlots.set(slotKey(b), slot);
+/* In-page: locate the live file input FOR THIS IDENTITY and report
+ * its selector + held-file count. Exact id wins, then exact name,
+ * then the same domIndex the field was observed at (a remount that
+ * preserves the form's field order — Greenhouse's does), then —
+ * only when the identity's class has exactly ONE candidate — that
+ * candidate. The cover/resume class is judged on id + name + the
+ * input's LABEL text (this board's inputs carry neither id nor
+ * name; the label is the only class evidence on the element) and is
+ * a hard exclusion at every tier: a resume never resolves to the
+ * cover input, nor the reverse. An id-less winner is marked on the
+ * element itself, never positional. */
+function fnFileInputState(identity) {
+  const els = Array.from(document.querySelectorAll('input[type="file"]'));
+  const coverOf = (el) => {
+    let lab = "";
+    if (el.id) { const l = document.querySelector('label[for="' + String(el.id).replace(/"/g, '\\"') + '"]'); if (l) lab = l.textContent || ""; }
+    if (!lab) { const w = el.closest("label"); if (w) lab = w.textContent || ""; }
+    if (!lab) lab = el.getAttribute("aria-label") || "";
+    return /cover/i.test(`${el.id || ""} ${el.getAttribute("name") || ""} ${lab}`);
+  };
+  let best = null, bestScore = -1;
+  for (const el of els) {
+    if (coverOf(el) && !identity.cover) continue;
+    if (identity.cover && !coverOf(el)) continue;
+    let score = -1;
+    if (identity.id && el.id === identity.id) score = 100;
+    else if (identity.name && el.getAttribute("name") === identity.name) score = 80;
+    else if (identity.domIndex != null && document.querySelectorAll("input, select, textarea")[identity.domIndex] === el) score = 60;
+    if (score > bestScore) { bestScore = score; best = el; }
   }
-  return board.fileSlots.get(slotKey(b)) || null;
+  if (!best) {
+    const pool = els.filter((el) => coverOf(el) === !!identity.cover);
+    if (pool.length === 1) best = pool[0];
+  }
+  if (!best) return null;
+  let selector = null;
+  if (best.id) selector = "#" + best.id;
+  else { best.setAttribute("data-upmore-file", "1"); selector = '[data-upmore-file="1"]'; }
+  return { selector, files: best.files ? best.files.length : 0, id: best.id || "", name: best.getAttribute("name") || "" };
 }
-/* The employer took the file this helper attached: the resume's upload group
- * holds no input any more and shows the attached file's name (Greenhouse,
- * live). Returns the attached {filename, sha256} — bytes sha-verified before
- * the attach — or undefined. */
-async function takenFile(board, b) {
-  const taken = board.takenFiles && board.takenFiles.get(slotKey(b));
-  const slot = board.fileSlots && board.fileSlots.get(slotKey(b));
-  if (!taken || !slot) return undefined;
-  const shows = await board.page.evaluate(fnSlotTookFile, { slot, filename: taken.filename }).catch(() => false);
-  return shows ? { filename: taken.filename, sha256: taken.sha256 } : undefined;
+/* In-page: the board's own uploaded-state rendering for THIS file
+ * identity. After a successful attach, boards like Greenhouse
+ * replace the whole input with the attached file's NAME (the chip):
+ * no input exists to digest or to hunt for, and the group settles
+ * into that state within seconds (measured on the live board). The
+ * caller only ever trusts this together with the session attach
+ * record — a chip a restored draft painted for a file this session
+ * never uploaded must not be spoken for. Group match: the aria
+ * label anchor (upload-label-<id>), a label[for=<id>] inside the
+ * group, or the group's label text carrying the identity's class. */
+function fnUploadedChip(identity) {
+  const groups = Array.from(document.querySelectorAll('[class*="file-upload"]'));
+  const clsRe = identity && identity.cls === "cover" ? /cover/i : identity && identity.cls === "resume" ? /resume|cv/i : null;
+  for (const g of groups) {
+    let match = false;
+    if (identity.id && (g.querySelector('[id="upload-label-' + identity.id + '"]') || g.querySelector('label[for="' + identity.id + '"]'))) match = true;
+    if (!match && clsRe) {
+      const lab = g.querySelector('.upload-label, .label, label');
+      if (lab && clsRe.test(lab.textContent || "")) match = true;
+    }
+    if (!match) continue;
+    const text = (g.innerText || g.textContent || "").replace(/\s+/g, " ").trim();
+    const m = text.match(/[\w.()\-]+(?: [\w.()\-]+)*\.(?:pdf|docx?|txt|rtf)\b/i);
+    if (m) return { filename: m[0].trim() };
+  }
+  return null;
+}
+/* Re-discover the form's live file input FOR THIS IDENTITY and
+ * return a selector for it. (No-identity callers keep the legacy
+ * first-input behavior; the attach path always passes identity.) */
+async function rediscoverFileSelector(page, identity) {
+  if (!identity) {
+    return await page.evaluate(() => {
+      const inp = document.querySelector('input[type="file"]');
+      if (!inp) return null;
+      if (inp.id) return "#" + inp.id;
+      inp.setAttribute("data-upmore-file", "1");
+      return '[data-upmore-file="1"]';
+    }).catch(() => null);
+  }
+  const st = await page.evaluate(fnFileInputState, identity).catch(() => null);
+  return st ? st.selector : null;
 }
 /* Page-level file attach for when the discovered handle cannot be
  * used — the current boards mount their file inputs late, hide them
@@ -729,9 +813,10 @@ async function takenFile(board, b) {
  * mechanism the browser's own file picker uses). Returns
  * { ok, selectorUsed } — only a board that still shows no input after
  * all of that earns a not-mounted report. */
-async function attachFilePageLevel(board, cmd, slot) {
+async function attachFilePageLevel(board, cmd) {
   const page = board.page;
   const b = cmd.binding;
+  const identity = fileIdentityOf(board, b);
   let selector = b.selector;
   await page.evaluate(() => {
     const l = document.querySelector('[class*="file-upload"], label[for="resume"], [data-testid*="resume" i]');
@@ -740,31 +825,57 @@ async function attachFilePageLevel(board, cmd, slot) {
   await page.waitForTimeout(400);
   let attached = await page.waitForSelector(selector, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
   if (!attached) {
-    const fresh = await rediscoverFileSelector(page, slot);
+    const fresh = await rediscoverFileSelector(page, identity);
     if (fresh && fresh !== selector) {
       attached = await page.waitForSelector(fresh, { state: "attached", timeout: 5000 }).then(() => true).catch(() => false);
       if (attached) selector = fresh;
     }
   }
+  // Poll the identity rediscovery while the board remounts
+  // (widget/attach fix, 2026-10-21): the upload section can be
+  // ABSENT for seconds mid-parse (Greenhouse's post-upload
+  // processing state), and the single shot above races that window —
+  // the ladder then fell through to its 12 s tail wait on a selector
+  // the remount had retired, and reported not-mounted for an input
+  // that was back inside the call's own budget. The attach-control
+  // hunt below remains the next stage for boards that mount the
+  // input only on engagement.
+  for (let t = 0; t < 10 && !attached; t++) {
+    await page.waitForTimeout(600);
+    const again = await rediscoverFileSelector(page, identity);
+    if (again) {
+      attached = await page.waitForSelector(again, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
+      if (attached) selector = again;
+    }
+    // The board may settle into its uploaded state mid-poll (the
+    // filename chip): the input is intentionally absent then, and
+    // the recovery has in fact already happened — the attach from
+    // the caller's earlier attempt is what the board is displaying.
+    if (!attached) {
+      const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
+      if (rec0) {
+        const chip = await page.evaluate(fnUploadedChip, identity).catch(() => null);
+        if (chip && chip.filename === rec0.filename) return { ok: true, selectorUsed: selector, chip: true };
+      }
+    }
+  }
   if (!attached) {
-    // The attach control in the resume's own upload group when it has one (another upload's Attach is never pressed);
-    // else the page's, outside Ashby's autofill parser.
-    const marked = (slot && slot.group) ? await page.evaluate(fnMarkSlotAttach, { slot }).catch(() => false) : await page.evaluate((never) => {
+    const marked = await page.evaluate(() => {
       const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
       const textOf = (el) => ((el.innerText || el.textContent || "") + " " + (el.getAttribute("aria-label") || "")).replace(/\s+/g, " ").trim();
       const pools = ['button, label, [role="button"]', 'a, div, span'];
       for (const pool of pools) {
         const cand = Array.from(document.querySelectorAll(pool))
-          .find((el) => vis(el) && !never.some((s) => el.closest(s)) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
+          .find((el) => vis(el) && /attach|upload|add resume|add file|browse|choose file|drag/i.test(textOf(el)) && textOf(el).length < 90);
         if (cand) { cand.setAttribute("data-upmore-attach", "1"); return true; }
       }
       return false;
-    }, NEVER_THE_RESUME).catch(() => false);
+    }).catch(() => false);
     if (marked) {
       await page.click('[data-upmore-attach="1"]', { timeout: 8000 }).catch(() => {});
       for (let t = 0; t < 10 && !attached; t++) {
         await page.waitForTimeout(600);
-        const fresh2 = await rediscoverFileSelector(page, slot);
+        const fresh2 = await rediscoverFileSelector(page, identity);
         if (fresh2) {
           attached = await page.waitForSelector(fresh2, { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
           if (attached) selector = fresh2;
@@ -776,7 +887,14 @@ async function attachFilePageLevel(board, cmd, slot) {
   // waited ~21s; 12s here keeps the whole ladder inside the caller's
   // 60s ceiling (the ladder runs once per call — see cmdFill).
   if (!attached) attached = await page.waitForSelector(b.selector, { state: "attached", timeout: 12000 }).then(() => true).catch(() => false);
-  if (!attached) return { ok: false, selectorUsed: selector };
+  if (!attached) {
+    const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
+    if (rec0) {
+      const chip = await page.evaluate(fnUploadedChip, identity).catch(() => null);
+      if (chip && chip.filename === rec0.filename) return { ok: true, selectorUsed: selector, chip: true };
+    }
+    return { ok: false, selectorUsed: selector };
+  }
   try {
     await page.setInputFiles(selector, cmd.filePath, { timeout: 20000 });
   } catch (e) {
@@ -812,7 +930,6 @@ async function cmdFill(board, cmd) {
   if (b.inputType === "file") {
     const bytes = fs.readFileSync(cmd.filePath);
     if (crypto.createHash("sha256").update(bytes).digest("hex") !== value.sha256) throw Object.assign(new Error("resume bytes changed before upload"), { code: "RESUME_SHA_MISMATCH" });
-    const slot = await fileSlot(board, b);
     for (let attempt = 1; attempt <= 3; attempt++) {
       let attached = false;
       let selectorUsed = b.selector;
@@ -822,11 +939,28 @@ async function cmdFill(board, cmd) {
         if (nodes.length) {
           await nodes[0].setInputFiles({ name: value.filename, mimeType: "application/octet-stream", buffer: bytes });
           attached = true;
+          board.attachedFiles = board.attachedFiles || {};
+          board.attachedFiles[b.field_id] = { filename: value.filename, sha256: value.sha256 };
         }
       } catch (e) { if (e.code !== "STALE_OBSERVATION") throw e; }
       if (!attached) {
-        const rec = await attachFilePageLevel(board, cmd, slot);
+        // The board may already show THIS session's file as its
+        // uploaded state (the chip): the input is intentionally
+        // absent then, and laddering for it manufactures a
+        // not-mounted failure (widget/attach fix, 2026-10-21).
+        const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
+        if (rec0 && rec0.sha256 === value.sha256) {
+          const chip = await board.page.evaluate(fnUploadedChip, fileIdentityOf(board, b)).catch(() => null);
+          if (chip && chip.filename === value.filename) attached = true;
+        }
+      }
+      if (!attached) {
+        const rec = await attachFilePageLevel(board, cmd);
         attached = rec.ok; selectorUsed = rec.selectorUsed;
+        if (attached && !rec.chip) {
+          board.attachedFiles = board.attachedFiles || {};
+          board.attachedFiles[b.field_id] = { filename: value.filename, sha256: value.sha256 };
+        }
         // The ladder IS the recovery budget (scroll into view,
         // re-discovery, attach-control engagement, mount poll, long
         // wait). Re-running it verbatim inside the same call cannot
@@ -844,24 +978,30 @@ async function cmdFill(board, cmd) {
       // speak), the file's presence under the selector the recovery
       // actually used is the evidence — the bytes themselves were
       // sha-verified above before any upload.
+      // Verification speaks for the LIVE input (widget/attach fix,
+      // 2026-10-21): the digest readback goes through the re-observe
+      // path, so a post-upload remount is answered by the input that
+      // actually holds the file — the plain readback reads the
+      // retired node and reports absence. The presence fallback
+      // probes by file IDENTITY, not by the ladder's last selector
+      // (which the remount may have retired or the old identity-blind
+      // rediscovery may have pointed at the cover field).
       let got;
-      try { got = await readbackBinding(board, b); } catch (e) { got = undefined; }
+      try { got = await readbackBindingFresh(board, b); } catch (e) { got = undefined; }
       if (got && got.sha256 === value.sha256) return { filled: true, verified: true, attempts: attempt };
       if (got === undefined) {
-        const present = await board.page.evaluate((sel) => {
-          const el = document.querySelector(sel);
-          return !!(el && el.files && el.files.length > 0);
-        }, selectorUsed).catch(() => false);
-        if (present) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
-        // The employer took the file (Greenhouse, live): it uploaded what was
-        // just attached and took the input out of the form, leaving the
-        // file's name in the resume's own upload group. That is the attach
-        // succeeding, not a missing input — attaching again would send the
-        // resume a second time, or into the next upload on the page.
-        board.takenFiles = board.takenFiles || new Map();
-        board.takenFiles.set(slotKey(b), { filename: value.filename, sha256: value.sha256 });
-        if (await takenFile(board, b)) return { filled: true, verified: true, attempts: attempt, via: "employer_took_file" };
-        board.takenFiles.delete(slotKey(b));
+        const st = await board.page.evaluate(fnFileInputState, fileIdentityOf(board, b)).catch(() => null);
+        if (st && st.files > 0) return { filled: true, verified: true, attempts: attempt, via: "file_rediscovered" };
+        // Uploaded-state truth: the board replaced the input with
+        // the attached file's name. This session's attach record +
+        // the board displaying exactly that filename is the
+        // verification — the input's absence is the board's success
+        // state here, not a failed attach.
+        const rec0 = board.attachedFiles && board.attachedFiles[b.field_id];
+        if (rec0 && rec0.sha256 === value.sha256) {
+          const chip = await board.page.evaluate(fnUploadedChip, fileIdentityOf(board, b)).catch(() => null);
+          if (chip && chip.filename === value.filename) return { filled: true, verified: true, attempts: attempt, via: "file_uploaded_state" };
+        }
       }
     }
     return { filled: false, reason: "value_did_not_persist", wanted: value.filename };
@@ -896,12 +1036,27 @@ async function cmdFill(board, cmd) {
 async function reresolveBinding(board, b) {
   board.handles = board.handles || new Map();
   board.refMetadata = board.refMetadata || new Map();
+  // A re-resolution happens because the page changed under the
+  // observed refs — the per-command meaning snapshot may predate
+  // that change, so drop it: the next connected() in this command
+  // takes one fresh scan instead of judging against the stale table.
+  board._snapshotFields = null;
   const fields = await board.page.evaluate(fnDiscoverFields);
   const version = (board.observation && board.observation.version) || "re";
+  // Mint under a per-call namespace (widget/attach fix, 2026-10-21):
+  // refs are keyed version+domIndex, and a remount REORDERS the DOM —
+  // a re-minted ref could land on the exact key another binding's
+  // live ref already owns, silently swapping that binding's handle
+  // and metadata for this field's (measured: a remounted upload
+  // section made the resume read answer for the cover field and
+  // vice versa; both then read absent). Fresh refs must never
+  // clobber refs other bindings still hold.
+  board._reresolveSeq = (board._reresolveSeq || 0) + 1;
+  const mintNs = version + ":re" + board._reresolveSeq;
   const mint = async (f) => {
     const h = await resolveFieldHandle(board.page, f);
     if (!h) return null;
-    const ref = version + ":f:" + f.domIndex;
+    const ref = mintNs + ":f:" + f.domIndex;
     board.handles.set(ref, h);
     board.refMetadata.set(ref, f);
     return ref;
@@ -913,6 +1068,32 @@ async function reresolveBinding(board, b) {
     if (!f) continue;
     const ref = await mint(f);
     if (ref) elementRefs.push(ref);
+  }
+  // File bindings (widget/attach fix, 2026-10-21): a board that
+  // remounts its upload section can hand the live input a NEW id, so
+  // the exact-selector match above finds nothing and the readback
+  // reports the resume absent even when it is attached. Fall back to
+  // the field's identity — an exact id or exact name match among the
+  // fresh file fields; failing that, the identity's class (cover vs
+  // resume) when exactly one fresh field carries it. Anything weaker
+  // stays absent: file-truth is a digest of the RIGHT input or it is
+  // not spoken at all.
+  if (!elementRefs.length && b.inputType === "file") {
+    const identity = fileIdentityOf(board, b);
+    const fileFields = fields.filter((x) => x.inputType === "file" && x.tag === "input");
+    let cands = fileFields.filter((x) => (identity.id && x.id === identity.id) || (identity.name && x.name === identity.name) || (identity.domIndex != null && x.domIndex === identity.domIndex));
+    if (cands.length !== 1 && identity.cls) {
+      const pool = fileFields.filter((x) => {
+        const hay = `${x.id || ""} ${x.name || ""} ${x.label || ""}`;
+        const cls = /cover/i.test(hay) ? "cover" : /resume|cv\b/i.test(hay) ? "resume" : null;
+        return cls === identity.cls;
+      });
+      if (pool.length === 1) cands = pool;
+    }
+    if (cands.length === 1) {
+      const ref = await mint(cands[0]);
+      if (ref) elementRefs.push(ref);
+    }
   }
   if (!elementRefs.length) return null;
   const clone = Object.assign({}, b, { elementRefs });
@@ -931,17 +1112,27 @@ async function reresolveBinding(board, b) {
 // verdict triggers one re-resolution and one retry; a field that is
 // gone reads back absent; a second stale verdict propagates.
 async function readbackBindingFresh(board, b) {
-  let value;
-  try { value = await readbackBinding(board, b); }
+  try { return await readbackBinding(board, b); }
   catch (e) {
     if (!e || e.code !== "STALE_OBSERVATION") throw e;
     const fresh = await reresolveBinding(board, b);
-    value = fresh ? await readbackBinding(board, fresh) : undefined;
+    const v = fresh ? await readbackBinding(board, fresh) : undefined;
+    if (v === undefined && b.inputType === "file" && b.field_id) {
+      // Uploaded-state truth (widget/attach fix, 2026-10-21): the
+      // input is gone because the board replaced it with the
+      // attached file's name. Report this session's attach (the
+      // filename, and the sha of the bytes this session uploaded
+      // under it) when the board's own group still displays that
+      // filename — and nothing when it does not, or when this
+      // session never attached a file to this field.
+      const rec = board.attachedFiles && board.attachedFiles[b.field_id];
+      if (rec) {
+        const chip = await board.page.evaluate(fnUploadedChip, fileIdentityOf(board, b)).catch(() => null);
+        if (chip && chip.filename === rec.filename) return { filename: rec.filename, sha256: rec.sha256 };
+      }
+    }
+    return v;
   }
-  // A resume the employer took (its input gone, its name shown in the
-  // resume's own upload group) reads back as the file this helper attached.
-  if (value === undefined && b.inputType === "file") value = await takenFile(board, b);
-  return value;
 }
 
 async function cmdReadback(board, cmd) {
@@ -1011,6 +1202,7 @@ async function execute(boardId, cmd) {
   validateAction(cmd);
   if (cmd.type === "shutdown") { setTimeout(() => process.exit(0), 50); return { ok: true }; }
   const board = await getBoard(boardId);
+  board._snapshotFields = null; // meaning table is per-command (see meaningFields)
   if (["fill", "readback", "verify_payload", "review", "submit_and_capture"].includes(cmd.type)) assertObservation(cmd, board.observation, board.scope, board.page.url());
   switch (cmd.type) {
     case "open": return await cmdOpen(board, cmd);

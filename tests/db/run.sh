@@ -345,6 +345,31 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261024120000_career_apply_cloud_gate_waiver.sql"
 echo "== career_apply_cloud_gate_waiver.test.sql (one person, one family, set sends, set time; every other rule still decides)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_gate_waiver.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# The held waiver row (docs/apply/HELD-WAIVER-LEVER-5x7D.sql): refuses unreplaced, an unknown email, a switch on and a
+# second live waiver; written once it is exactly one Lever waiver of 5 sends for 7 days. Rolled back by the revoke it names.
+echo "== HELD-WAIVER-LEVER-5x7D.sql (held: refusals, then one row, then its undo)"
+HELD="$ROOT/docs/apply/HELD-WAIVER-LEVER-5x7D.sql"
+held() { sed "s/__OWNER_ACCOUNT_EMAIL__/$1/" "$HELD" | "${PSQL[@]}" -c "set client_min_messages = warning" -f - 2>&1; }
+must_refuse() { local out; if out="$(held "$1")"; then echo "$out"; echo "FAIL held waiver ran: $2"; exit 1; fi
+  grep -q "$3" <<<"$out" || { echo "$out"; echo "FAIL held waiver refused for another reason: $2"; exit 1; }; echo "  ok   refuses: $2"; }
+"${PSQL[@]}" -c "insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000d01','Held.Owner@Example.test'),('00000000-0000-4000-8000-000000000d02','dup@example.test'),('00000000-0000-4000-8000-000000000d03','dup@example.test'); insert into profiles(id) values('00000000-0000-4000-8000-000000000d01'); delete from career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_AGENT_SUBMIT');" >/dev/null
+must_refuse "__OWNER_ACCOUNT_EMAIL__" "the placeholder unreplaced" "placeholder not replaced"
+must_refuse "nobody@example.test" "an email with no account" "found 0"
+must_refuse "dup@example.test" "an email on two accounts" "found 2"
+"${PSQL[@]}" -c "insert into career_cloud_settings(key,value) values('CAREER_CLOUD_APPLY','on')" >/dev/null
+must_refuse "held.owner@example.test" "CAREER_CLOUD_APPLY on" "a switch is on"
+"${PSQL[@]}" -c "delete from career_cloud_settings where key='CAREER_CLOUD_APPLY'; insert into career_cloud_settings(key,value) values('CAREER_AGENT_SUBMIT','on')" >/dev/null
+must_refuse "held.owner@example.test" "CAREER_AGENT_SUBMIT on" "a switch is on"
+"${PSQL[@]}" -c "delete from career_cloud_settings where key='CAREER_AGENT_SUBMIT'" >/dev/null
+[[ "$("${PSQL[@]}" -t -A -c "select count(*) from career_apply_cloud_gate_waivers")" == 0 ]] || { echo "FAIL a refused run wrote a row"; exit 1; }
+held " Held.Owner@Example.test " >/dev/null || { held " Held.Owner@Example.test "; echo "FAIL held waiver did not apply"; exit 1; }
+[[ "$("${PSQL[@]}" -t -A -c "select count(*)||'|'||max(max_sends)||'|'||max(portal)||'|'||bool_and(expires_at=created_at+interval '7 days')||'|'||public.career_apply_cloud_waiver_left('00000000-0000-4000-8000-000000000d01','lever',now())||'|'||public.career_apply_cloud_open('lever')||'|'||public.career_apply_cloud_enabled() from career_apply_cloud_gate_waivers where user_id='00000000-0000-4000-8000-000000000d01'")" == "1|5|lever|true|5|false|false" ]] || { echo "FAIL held waiver row"; exit 1; }
+echo "  ok   one Lever waiver, 5 sends, 7 days; the gate itself and the switch unchanged"
+must_refuse "held.owner@example.test" "a second live Lever waiver" "already exists"
+"${PSQL[@]}" -c "update public.career_apply_cloud_gate_waivers set revoked_at = now() where user_id = '00000000-0000-4000-8000-000000000d01' and revoked_at is null" >/dev/null
+[[ "$("${PSQL[@]}" -t -A -c "select public.career_apply_cloud_waiver_left('00000000-0000-4000-8000-000000000d01','lever',now())")" == 0 ]] || { echo "FAIL undo"; exit 1; }
+echo "  ok   undo: revoked, 0 sends left"
+"${PSQL[@]}" -c "delete from career_apply_cloud_gate_waivers; delete from profiles where id='00000000-0000-4000-8000-000000000d01'; delete from auth.users where id in ('00000000-0000-4000-8000-000000000d01','00000000-0000-4000-8000-000000000d02','00000000-0000-4000-8000-000000000d03')" >/dev/null
 echo "== career_apply_cloud.test.sql (after 20261024120000: no waiver, the gate exactly as before)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.

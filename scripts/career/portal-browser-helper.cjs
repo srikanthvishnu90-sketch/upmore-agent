@@ -502,20 +502,26 @@ async function readbackBinding(board, b) {
       return t || null;
     });
   }
-  else if (b.inputType === "name_pair") value = (await nodes[0].inputValue()) + " " + (await nodes[1].inputValue());
+  else if (b.inputType === "name_pair") value = [(await nodes[0].inputValue()), (await nodes[1].inputValue())].map((v) => String(v || "").trim()).filter(Boolean).join(" ");
   else if (b.inputType === "file") value = await nodes[0].evaluate(async (el) => {
     const f = el.files && el.files[0]; if (!f) return null;
     const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
     return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
   });
   else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
-  else if (b.inputType === "checkbox") value = await nodes[0].isChecked();
+  else if (b.inputType === "checkbox") value = (await nodes[0].isChecked()) ? true : undefined;
   else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
     const chosen = [];
     for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
-    value = b.inputType === "radio_group" ? chosen[0] : chosen;
+    value = b.inputType === "radio_group" ? chosen[0] : (chosen.length ? chosen : undefined);
   } else value = await nodes[0].inputValue();
-  if (value === null || value === undefined || value === "" || /^select/i.test(String(value))) return undefined;
+  // BUG-QA-2026-10-21-02: absent means absent. An untouched field reads
+  // back undefined — never " " (an empty name_pair joined naively), never
+  // false (an unticked checkbox: fillOnceHandles already expects
+  // "__absent__" for one), never a whitespace-only string. Consumers of
+  // answers() are written against absent ⇔ undefined; a truthy " " made
+  // a fresh board look like it held another board's values.
+  if (value === null || value === undefined || value === "" || (typeof value === "string" && !value.trim()) || /^select/i.test(String(value))) return undefined;
   return value;
 }
 

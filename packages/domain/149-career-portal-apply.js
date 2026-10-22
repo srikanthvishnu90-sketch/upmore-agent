@@ -811,6 +811,20 @@ const CareerPortalApply = (() => {
     // doorstep — last night "prepared" was spoken over forms the driver
     // never actually reached, with a payload of only the resume hash.
     if (!formDef.fields || formDef.fields.length === 0) {
+      // BUG-QA-2026-10-21-03: a captcha page ALSO exposes zero fillable
+      // fields — the review page after a Next click carries the
+      // challenge, a submit button, and no fields at all, so this stop
+      // fired before the review-stage captcha check could ever run and
+      // a challenge was misreported as an empty form. A captcha present
+      // on any step outranks EMPTY_FORM: probe the board's review state
+      // (the helper's review command checks the challenge before any
+      // click) and honor a challenge before naming the form empty.
+      let rv = null;
+      try { rv = typeof board.atReview === "function" ? board.atReview() : null; } catch (e) { rv = null; }
+      if (rv && rv.captcha) {
+        logStep("captcha_stop", { at: continued ? "review" : "form" });
+        return blocked("CAPTCHA_HANDOFF", { handoffUrl: posting.url, screenshot_ref: rv.screenshotRef || null, reason: "a captcha/code appeared — Upmore never solves it; the user finishes the last step" });
+      }
       logStep("empty_form_stop", { fieldCount: 0 });
       return blocked("EMPTY_FORM", { reason: "the board exposed zero fillable fields — there is no form to prepare; this is a stop, not a doorstep", formAnalysis });
     }

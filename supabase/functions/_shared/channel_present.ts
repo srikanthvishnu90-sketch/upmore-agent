@@ -96,6 +96,8 @@ export const VOICE = {
     `Text "yes" to approve all ${n}, "yes but not 2" to leave one out, or "no".`,
   textYesUnclear:
     "I didn't approve anything — I couldn't tell which applications you meant. Text \"yes\" for all of them, \"yes but not 2\" (or \"yes but not 2, 5\") to leave some out, or \"no\".",
+  textYesTooLate:
+    "That card was shown more than 10 minutes ago, so a text yes can't approve it. Tap Approve on the card, or ask for the batch status and I'll show you a fresh one.",
   textYesCardMoved:
     "That card changed since I showed it, so nothing was approved. Ask for the batch status and I'll show you the current card.",
   textYesAllExcluded: "That leaves every application out, so nothing was approved. The batch stays where it is.",
@@ -499,7 +501,7 @@ export async function readCardItems(
 
 export type TextApprovalResolution =
   | { kind: "none" } // no live offer for this sender, or not a card reply: an ordinary turn
-  | { kind: "say"; text: string; reason: "unclear" | "moved" | "all_excluded" | "declined" | "foreign" | "spent" }
+  | { kind: "say"; text: string; reason: "unclear" | "moved" | "all_excluded" | "declined" | "foreign" | "spent" | "too_late" }
   | { kind: "approve"; row: PendingApproval; excludeKeys: string[]; count: number };
 
 // Resolve a texted reply against the sender's live card offer. Fail-
@@ -521,6 +523,12 @@ export async function resolveTextApproval(
     const taken = await takeApproval(deps, { channel: args.channel, senderKey: args.senderKey, token: pending.token });
     if (!taken.ok) return { kind: "say", text: VOICE.choiceExpired, reason: "spent" };
     return { kind: "say", text: VOICE.dismiss, reason: "declined" };
+  }
+  // A text yes counts only as a reply to a card shown within TEXT_YES_WINDOW_MS. The offer is not spent: the tap keeps
+  // its own TTL (approvalTtlMs). A "no" above is honoured at any age.
+  const shownAt = Date.parse(String(pending.created_at ?? ""));
+  if (!Number.isFinite(shownAt) || Date.now() - shownAt > TEXT_YES_WINDOW_MS) {
+    return { kind: "say", text: VOICE.textYesTooLate, reason: "too_late" };
   }
   const items = await readCardItems(deps.createAdmin(), args.userId, pending.run_id, pending.card_sha256);
   if (!items) {
@@ -544,8 +552,14 @@ export async function resolveTextApproval(
   return { kind: "approve", row: taken.row, excludeKeys, count: items.length - excludeKeys.length };
 }
 
+// Vishnu, 2026-10-22 5:09 (architect's rule, docs/integration/BUILDER-PLAN-48H-20261022.md): a texted "yes" approves a
+// batch only as a direct reply to a card shown in this thread within the last 10 minutes; bound to the card's hash,
+// once, refused on any change. One number, one place.
+export const TEXT_YES_WINDOW_MS = 10 * 60_000;
+
 export interface PendingApproval {
   token: string;
+  created_at?: string;
   channel: string;
   sender_key: string;
   user_id: string;

@@ -172,6 +172,30 @@ Deno.test("F-037 + text yes: the 10-application card reaches Telegram and ONE 'y
   assertEq(h.committed.length, 1);
 });
 
+// Vishnu, 2026-10-22 5:09 (architect's rule): a text yes counts only as a reply to a card shown in this thread within
+// the last 10 minutes. The tap keeps the offer's own TTL; only the text path is bounded.
+const ageOffer = (h: any, ms: number) => {
+  for (const r of h.admin.approvals.values()) r.created_at = new Date(Date.now() - ms).toISOString();
+};
+Deno.test("text yes 10-minute window: a yes 9:59 after the card is shown approves it", async () => {
+  const h = harness();
+  await showCard(h);
+  ageOffer(h, 9 * 60_000 + 59_000);
+  const body = await (await tg(h.d, "yes")).json();
+  assertEq(body.approval, "resolved", JSON.stringify(body));
+  assertEq(approveBodies(h.calls).length, 1, "approved inside the window");
+});
+Deno.test("text yes 10-minute window: a yes 10:01 after the card is shown approves nothing, says why, and leaves the tap live", async () => {
+  const h = harness();
+  await showCard(h);
+  ageOffer(h, 10 * 60_000 + 1_000);
+  await tg(h.d, "yes");
+  assertEq(approveBodies(h.calls).length, 0, "a late text yes approves nothing");
+  assertEq(h.committed.length, 0, "nothing committed");
+  assert(tgTexts(h.calls).some((t) => t.includes("more than 10 minutes ago")), "the reply says why");
+  assert([...h.admin.approvals.values()].some((r) => !r.consumed_at), "the offer stays live for the tap");
+});
+
 Deno.test("'yes but not 2' leaves exactly the card's 2nd application off", async () => {
   const h = harness();
   await showCard(h);

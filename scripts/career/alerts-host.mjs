@@ -471,6 +471,11 @@ export async function runUserAlertCycle(userId, deps) {
     alerts: alerts.length, alert_records: alerts,
     reminders_queued: assign.reminders.length, queue_depth: await queue.size(),
     delivered, fatigue, suppressed: assign.suppressed, rejected_count: assign.rejected.length,
+    // BUG-277: the per-interest rejection reasons ride the cycle result.
+    // Before this, a detected alert that no interest accepted vanished
+    // with no trace in any record — the cycle reported status ok and
+    // the drop was indistinguishable from "nothing to do".
+    rejected: assign.rejected,
     errors,
   };
 }

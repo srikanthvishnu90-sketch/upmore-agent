@@ -28736,6 +28736,20 @@ const CareerAssign = (() => {
   const CITY_ALIASES = { nyc: "new york", chi: "chicago", sf: "san francisco", sea: "seattle", la: "los angeles", philly: "philadelphia", atl: "atlanta", dfw: "dallas", dc: "washington" };
   const canonLoc = (txt) => lc(txt).split(/[^a-z0-9]+/).map((t) => CITY_ALIASES[t] || t).join(" ");
   function locationOk(posting, filters) {
+    if (!(filters.locations || []).length) {
+      // BUG-277 / FR-432: no location list means NO location gate — the
+      // interest watches everywhere. The old fallthrough reached the
+      // "no location filter" pass only when remote_ok === false, so the
+      // standard interest shape (locations [], remote_ok true — what
+      // 142 builds whenever the ask names no place) rejected EVERY
+      // on-site posting here, and a 151 alert fired on that interest's
+      // own terms died silently before the queue. The one refusal an
+      // empty list keeps is remote itself, when the interest refuses
+      // remote postings (the old code accepted that case — inverted).
+      if (posting.remote === "remote")
+        return filters.remote_ok === false ? { ok: false } : { ok: true, via: "remote" };
+      return { ok: true, via: "no location filter" };
+    }
     if (posting.remote === "remote" && filters.remote_ok !== false) return { ok: true, via: "remote" };
     const loc = canonLoc(posting.location || "");
     for (const want of filters.locations || []) {
@@ -28744,7 +28758,6 @@ const CareerAssign = (() => {
       // location basis of the match, previously discarded by matchInterest.
       if (w && loc.includes(w)) return { ok: true, via: `location ${want}`, want };
     }
-    if (!(filters.locations || []).length && filters.remote_ok === false) return { ok: true, via: "no location filter" };
     return { ok: false };
   }
 

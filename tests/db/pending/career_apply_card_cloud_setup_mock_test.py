@@ -20,6 +20,22 @@ SPEC.loader.exec_module(M)
 
 
 class SetupProof(unittest.TestCase):
+    def test_only_reviewed_database_prefixes_are_allowed(self):
+        for name in ('qa_card_cloud_a','cc_qa_races','cc_qa_'+'x'*40):
+            self.assertTrue(M.reviewed_database_name(name),name)
+        for name in ('postgres','qa_card_cloud_','cc_qa_','cc_qa_a-b','other_qa_a',
+            'cc_qa_'+'x'*41,'cc_qa_a;drop','cc_qa_a\n'):
+            self.assertFalse(M.reviewed_database_name(name),name)
+
+    def test_neither_output_can_dirty_any_source_checkout(self):
+        roots=[Path('/mock/baseline'),Path('/mock/up-source'),Path('/mock/acceptance')]
+        outside=Path('/mock/new-output')
+        for root in roots:
+            self.assertTrue(M.output_inside_source((root,outside),roots))
+            self.assertTrue(M.output_inside_source((root/'cluster',outside),roots))
+            self.assertTrue(M.output_inside_source((outside,root/'socket'),roots))
+        self.assertFalse(M.output_inside_source((outside,Path('/mock/new-socket')),roots))
+
     @classmethod
     def setUpClass(cls):
         # Local read-only git command only; all initdb/pg_ctl/psql dispatch below is mocked.

@@ -110,6 +110,14 @@ def quoted(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 
+def reviewed_database_name(value):
+    return re.fullmatch(r'(?:qa_card_cloud|cc_qa)_[a-z0-9_]{1,40}',value) is not None
+
+
+def output_inside_source(targets,roots):
+    return any(root==target or root in target.parents for root in roots for target in targets)
+
+
 class Setup:
     def __init__(self, args):
         self.args, self.nonce = args, uuid.uuid4().hex
@@ -295,7 +303,7 @@ def main():
     p.add_argument('--port',type=int,required=True);p.add_argument('--timeout',type=int,default=60)
     p.add_argument('--authorize-reviewed-up',action='store_true')
     a=p.parse_args()
-    if not re.fullmatch(r'qa_card_cloud_[a-z0-9_]{1,40}',a.dbname):p.error('explicit QA database name required')
+    if not reviewed_database_name(a.dbname):p.error('explicit reviewed QA database name required')
     if not re.fullmatch(r'[a-z_][a-z0-9_]*',a.username) or a.username in ('anon','authenticated','service_role'):p.error('invalid bootstrap owner')
     if not 0<a.port<65536 or not 0<a.timeout<=60:p.error('invalid port/timeout')
     for name in ('baseline_root','cluster_dir','socket_dir','git','initdb','pg_ctl','psql'):
@@ -304,7 +312,6 @@ def main():
         setattr(a,name,v.resolve())
     if len(str(a.socket_dir))>80:p.error('socket path too long')
     if a.cluster_dir.exists() or a.socket_dir.exists() or a.cluster_dir==a.socket_dir:p.error('cluster/socket paths must be new and distinct')
-    if a.baseline_root in a.cluster_dir.parents or a.baseline_root in a.socket_dir.parents:p.error('cluster/socket cannot be inside source checkout')
     for name in ('git','initdb','pg_ctl','psql'):
         if not getattr(a,name).is_file() or not os.access(getattr(a,name),os.X_OK):p.error(name+' executable unavailable')
     if a.mode=='bridge' and not a.authorize_reviewed_up:p.error('bridge mode needs separate reviewed-up authorization')
@@ -314,6 +321,8 @@ def main():
     for n in ('up_source_root','up_sql','down_sql','acceptance_root'):
         if not Path(getattr(a,n)).is_absolute():p.error(n+' must be explicit absolute path')
         setattr(a,n,Path(getattr(a,n)).resolve())
+    if output_inside_source((a.cluster_dir,a.socket_dir),(a.baseline_root,a.up_source_root,a.acceptance_root)):
+        p.error('cluster/socket cannot be inside any baseline/up/acceptance source checkout')
     setup=Setup(a)
     try:setup.run()
     except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as e:

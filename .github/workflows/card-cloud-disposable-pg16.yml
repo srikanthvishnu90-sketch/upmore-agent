@@ -1,0 +1,185 @@
+name: Card cloud disposable PG16 acceptance (owner authorization required)
+
+# WRITTEN / NOT_RUN. Do not push or dispatch before the owner authorizes exactly
+# this ephemeral synthetic scope. No production project, C10 enrollment or model.
+on:
+  push:
+    branches: [ci/card-cloud-pg16-acceptance-20261022]
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_PIN: 01401cb456bc2982d67316165e183bbd275581c9
+  ACCEPTANCE_PIN: 8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3
+  QA_TOOLS_PIN: 8d8f486e4adcf891ab72bce6b0cea6b227b4c0f3
+  UP_SHA256: c5ac429e5e6559d91b35475d719f828a8288d9763c1529a1c1adea0ca8e90fc8
+  DOWN_SHA256: 5716f7256fb78e681023482647a843e33aab25e5d6136152395205dd11f51186
+  PGBIN: /usr/lib/postgresql/16/bin
+  PYTHONDONTWRITEBYTECODE: "1"
+  OWNER_APPROVAL_REF: NOT_AUTHORIZED
+  AUTHORIZED_SCOPE: CARD_CLOUD_DISPOSABLE_PG16_V1
+
+jobs:
+  targeted:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [main, lifecycle, cap, rollback, tap, claim, maintenance, flag-write]
+    env:
+      CASE: ${{ matrix.case }}
+    steps:
+      - name: Require the separately approved exact scope
+        shell: bash
+        run: |
+          test "$AUTHORIZED_SCOPE" = CARD_CLOUD_DISPOSABLE_PG16_V1
+          test -n "$OWNER_APPROVAL_REF"
+          test "$OWNER_APPROVAL_REF" != NOT_AUTHORIZED
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASELINE_PIN }}
+          path: baseline
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ACCEPTANCE_PIN }}
+          path: acceptance
+          persist-credentials: false
+      - name: Bootstrap and run only the selected synthetic local case
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, shutil, subprocess, sys
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          temp = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          case = os.environ['CASE']
+          assert case in ('main','lifecycle','cap','rollback','tap','claim','maintenance','flag-write')
+          pgbin = pathlib.Path(os.environ['PGBIN'])
+          for tool in ('initdb','pg_ctl','psql'):
+              assert (pgbin/tool).is_file(), tool
+          assert subprocess.check_output([str(pgbin/'psql'),'--version'],text=True).split()[2].startswith('16.')
+          baseline, acceptance = [root/n for n in ('baseline','acceptance')]
+          tools = acceptance
+          for checkout, key in ((baseline,'BASELINE_PIN'),(acceptance,'ACCEPTANCE_PIN'),(tools,'QA_TOOLS_PIN')):
+              assert subprocess.check_output(['git','-C',str(checkout),'rev-parse','HEAD'],text=True).strip() == os.environ[key]
+          sqlname = '20261024130000_career_apply_card_cloud_bridge.sql'
+          up, down = acceptance/'supabase/migrations'/sqlname, acceptance/'supabase/rollbacks'/sqlname
+          assert hashlib.sha256(up.read_bytes()).hexdigest() == os.environ['UP_SHA256']
+          assert hashlib.sha256(down.read_bytes()).hexdigest() == os.environ['DOWN_SHA256']
+          suffix = case.replace('-','_')
+          cluster, socket = temp/('cc_'+suffix+'_cluster'), temp/('cc_'+suffix+'_socket')
+          evidence = temp/'card-cloud-evidence'
+          evidence.mkdir()
+          mode = 'baseline' if case == 'rollback' else 'bridge'
+          marker = 'card-cloud-rollback' if case == 'rollback' else 'card-cloud-daily-cap' if case == 'cap' else 'card-cloud-tests'
+          dbname = 'cc_qa_'+suffix
+          command = [sys.executable,str(tools/'tests/db/pending/career_apply_card_cloud_setup.py'),
+              '--authorize-new-disposable-cluster','--authorize-baseline-bootstrap',
+              '--baseline-root',str(baseline),'--cluster-dir',str(cluster),'--socket-dir',str(socket),
+              '--dbname',dbname,'--username','postgres','--git',shutil.which('git'),
+              '--initdb',str(pgbin/'initdb'),'--pg-ctl',str(pgbin/'pg_ctl'),'--psql',str(pgbin/'psql'),
+              '--acceptance-root',str(acceptance),'--acceptance-pin',os.environ['ACCEPTANCE_PIN'],
+              '--up-source-root',str(acceptance),'--up-source-pin',os.environ['ACCEPTANCE_PIN'],
+              '--up-sql',str(up),'--up-sha256',os.environ['UP_SHA256'],
+              '--down-sql',str(down),'--down-sha256',os.environ['DOWN_SHA256'],
+              '--mode',mode,'--marker',marker,'--encoding','UTF8','--port','55432','--timeout','60']
+          if mode == 'bridge': command.append('--authorize-reviewed-up')
+          record = {'case':case,'baseline_pin':os.environ['BASELINE_PIN'],
+              'acceptance_pin':os.environ['ACCEPTANCE_PIN'],'tools_pin':os.environ['QA_TOOLS_PIN'],
+              'owner_approval_ref':os.environ['OWNER_APPROVAL_REF'],'new_provider_cost_usd':0,
+              'scope':'synthetic fresh cluster only; no real enrollment or employer','commands':[]}
+          def call(argv, label):
+              record['commands'].append({'label':label,'argv':argv})
+              (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+              with (evidence/(label+'.log')).open('w') as output:
+                  result = subprocess.run(argv,stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT)
+              record['commands'][-1]['exit_code'] = result.returncode
+              (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+              if result.returncode: raise RuntimeError(label+' failed; inspect retained log')
+          try:
+              call(command,'bootstrap')
+              manifest = json.loads((cluster/'setup-manifest.json').read_text())
+              if case in ('tap','claim','maintenance','flag-write'):
+                  argv = [sys.executable,str(tools/'tests/fixtures/card-cloud-db-20261021/race-driver.py'),
+                      '--host',str(socket),'--port','55432','--dbname',dbname,'--username','postgres',
+                      '--psql',str(pgbin/'psql'),'--case',case,
+                      '--disposable-db-marker','CARD_CLOUD_RACE_DISPOSABLE_V1',
+                      '--authorize-disposable-db-tests','--authorize-fixture-setup','--run-race']
+                  if case != 'tap': argv.append('--authorize-flag-race')
+                  if case in ('maintenance','flag-write'):
+                      argv += ['--rollback-sql',str(down),'--authorize-migration-lifecycle']
+                  call(argv,'race-'+case)
+              else:
+                  expected = {'main':'career_apply_card_cloud.test.sql',
+                      'lifecycle':'career_apply_card_cloud_lifecycle.test.sql',
+                      'cap':'career_apply_card_cloud_daily_cap.test.sql',
+                      'rollback':'career_apply_card_cloud_rollback_driver.py'}[case]
+                  selected = [argv for argv in manifest['next_commands'] if any(pathlib.Path(v).name == expected for v in argv)]
+                  assert len(selected) == 1, 'exact selected bundled acceptance command required'
+                  call(selected[0],'acceptance-'+case)
+              record['result'] = 'PASS'
+          finally:
+              if cluster.exists():
+                  for name in ('setup-manifest.json','postgres.log'):
+                      if (cluster/name).is_file(): shutil.copy2(cluster/name,evidence/name)
+                  for name in ('logs','rollback-driver-logs'):
+                      if (cluster/name).is_dir(): shutil.copytree(cluster/name,evidence/name)
+                  if (cluster/'data/postmaster.pid').exists():
+                      result = subprocess.run([str(pgbin/'pg_ctl'),'-D',str(cluster/'data'),'-m','immediate','-w','stop'],
+                          stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+                      (evidence/'cluster-stop.log').write_text(result.stdout)
+                      record['cleanup_exit_code'] = result.returncode
+              (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+          PY
+      - name: Preserve actual raw SQL and process evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-cloud-pg16-${{ matrix.case }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/card-cloud-evidence/
+          if-no-files-found: error
+          retention-days: 7
+
+  full-runner-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require the separately approved exact scope
+        shell: bash
+        run: |
+          test "$AUTHORIZED_SCOPE" = CARD_CLOUD_DISPOSABLE_PG16_V1
+          test -n "$OWNER_APPROVAL_REF"
+          test "$OWNER_APPROVAL_REF" != NOT_AUTHORIZED
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ACCEPTANCE_PIN }}
+          path: acceptance
+          persist-credentials: false
+      - name: Run all historical DB tests followed by the final bridge schema and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C acceptance rev-parse HEAD)" = "$ACCEPTANCE_PIN"
+          test "$(sha256sum acceptance/supabase/migrations/20261024130000_career_apply_card_cloud_bridge.sql | cut -d' ' -f1)" = "$UP_SHA256"
+          mkdir "$RUNNER_TEMP/card-cloud-full-runner-evidence"
+          export PATH="$PGBIN:$PATH"
+          export PGTEST_PORT=55432
+          bash acceptance/tests/db/run.sh 2>&1 | tee "$RUNNER_TEMP/card-cloud-full-runner-evidence/full-runner.log"
+          python3 - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path(os.environ['RUNNER_TEMP'])/'card-cloud-full-runner-evidence'
+          (path/'scope.json').write_text(json.dumps({'acceptance_pin':os.environ['ACCEPTANCE_PIN'],
+              'owner_approval_ref':os.environ['OWNER_APPROVAL_REF'],'result':'PASS',
+              'coverage':'all historical run.sh phases, standalone bridge up twice, main/lifecycle/cap last',
+              'new_provider_cost_usd':0,'real_enrollment':False},indent=2)+'\n')
+          PY
+      - name: Preserve full historical and final-schema integration output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-cloud-pg16-full-runner-${{ github.run_id }}
+          path: ${{ runner.temp }}/card-cloud-full-runner-evidence/
+          if-no-files-found: error
+          retention-days: 7

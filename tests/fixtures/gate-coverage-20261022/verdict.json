@@ -1,0 +1,32 @@
+{
+  "task": "A - fix test gate coverage",
+  "base": "348c2d4a3564c54135d0c485bb0d09d763ee0901",
+  "base_counts": {
+    "passed": 4,
+    "failed": 3,
+    "skipped": 0
+  },
+  "fix_counts": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "test_sha256": "6a089b98a8cd1ab2939033805505c121d6d29b7309fdf44aad5f934759095768",
+  "gate_before_sha256": "9111fd473695f72fbc3d49712f021d724fed9d8145d995cb9a93df88dc95f712",
+  "gate_after_sha256": "70e94a8f3e870b46f89efef85f4a5496a8eddc9a985b72761a3fd7f45cc1600f",
+  "proof_scope": "Real gate shell control flow on a synthetic inventory; node/deno/python runners record argv only. No model, browser or database execution.",
+  "finding": "Named Node fixes and architect tests already selected; root tests/career-*.test.ts were omitted. Added root TypeScript selection into the existing Deno and portability-check steps.",
+  "artifacts": {
+    "base.tap.gz": {
+      "raw_sha256": "85eae00dc8863bbc79d0b7ca5cf4d82bfe5effc80b86a02848a18858122b0a01",
+      "gzip_sha256": "13eef05a219c2fb4baa92616afae5cc0dd61753f7542625b0c4f0b31b6fbc502"
+    },
+    "fix.tap.gz": {
+      "raw_sha256": "a0f9f3cba15070867efeb8a64dd32f64dcaf88fffcdae1710a4f281f6df34d19",
+      "gzip_sha256": "cd86a34792ecd782d528b6d6de2789d0e9a917aab39784f30ad38a5b2b7aa8c6"
+    }
+  },
+  "shell_syntax": "PASS",
+  "whole_product_gate": "NOT_RUN; no whole-product green claim",
+  "new_spend_usd": 0
+}

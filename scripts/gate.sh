@@ -121,6 +121,11 @@ edge_tests=(
   tests/edge/control-state.test.ts
   tests/edge/fact-quarantine.test.ts
 )
+# Root career TypeScript regressions (including F-004's live-mock handoff)
+# use Deno too; the Node glob and architect directory do not select them.
+for test_file in tests/career-*.test.ts; do
+  if [[ -f "$test_file" ]]; then edge_tests+=("$test_file"); fi
+done
 
 portable_test_paths() {
   python3 - "$@" <<'PY'

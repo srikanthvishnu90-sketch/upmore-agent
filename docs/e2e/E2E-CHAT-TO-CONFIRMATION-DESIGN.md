@@ -132,9 +132,9 @@ catches. Status column = the skeleton's measured result on 2026-10-22
 | # | Assertion | Where | Catches | Status |
 |---|---|---|---|---|
 | A3.1 | Route A: the chat begin enqueues a claim-shaped row (queued, source null, attempts 0, no lease) | `career_apply_cloud_begin_agent_own` (stage-2 SQL) | begin/claim shape drift (module 176 ↔ 20261024140000) | PASS |
-| A3.2 | Route A: the claim refuses that row, refusal exactly `not_card_approved` | `career_apply_cloud_refusal` + `career_apply_cloud_claim_at` | **F-030 seam** — a chat begin carries no card binding and no product code creates one from chat (C9: the card is the only cloud authorization route) | **FAIL — F-030** (the composition, measured; the refusal itself is by design) |
+| A3.2 | Route A: the claim refuses that row, refusal exactly `not_card_approved` | `career_apply_cloud_refusal` + `career_apply_cloud_claim_at` | **F-030 seam** — a chat begin carries no card binding (C9: the card is the only cloud authorization route) | **PASS as the C9 control** (stage 2, still refused by design) — and the seam is closed by composition (A): stage 2b runs the same chat user through the card route (module 176's `beginCloudCardPostings` → show_as → the person's tap) and the claim takes that row. Root cause: `docs/apply/ROOT-CAUSE-F030-SEAM-CARD-BINDING-2026-10-22.md` |
 | A3.3 | Route B: the claim takes the card-bound row exactly once and stamps it `cloud` | `career_apply_cloud_claim_at` (stage-3 SQL) | claim predicate drift, double-claim | PASS |
-| A3.4 | A drain process exists that claims queued rows in a real deployment | structural: no systemd unit / host config starts `workers/career-cloud/worker.ts`; its only queue (`restQueue`) speaks PostgREST to a live project with a service key | **Missing cloud claimer** (submit-armed inventory 2026-10-22: "worker drain for cloud jobs ABSENT — nothing calls cloud_claim/cloud_finish") | **FAIL — missing claimer** |
+| A3.4 | A drain process exists that claims queued rows in a real deployment | `workers/career-cloud/drain.ts` (`runDrain` → `cloudLoop`) over `workers/career-cloud/pg-queue.ts` (the five cloud doors as direct PG, beside `restQueue`); unit source `scripts/career/systemd/trainee-cloud-drain.service` (in-tree, NOT installed) | **Missing cloud claimer** (submit-armed inventory 2026-10-22: "worker drain for cloud jobs ABSENT") | **PASS** (H3 lane, 2026-10-22: the drain claimed the stage-5 card-bound row from disposable PG and finished it `submitted_unconfirmed`, telemetry recorded; stub engine, tier 2. Design: `docs/e2e/H3-CLOUD-CLAIMER-DESIGN.md`) |
 | A3.5 | Two concurrent drains racing the last cap slot never both submit; the ledger never silently loses a drain's record | S3's synchronized drain-pair harness (nightly — see split) | **F-034** — executor snapshot→execute→whole-ledger-replace; S3 measured 40/40 pairs over-submitting (16 vs cap 15) with the ledger afterwards reading a compliant 15 | OPEN (S3) |
 | A3.6 | Kill switches off ⇒ the claim takes nothing, either route | `career_cloud_settings` in the cloud SQL legs | flag-path regressions | PASS (by reference: `career_apply_cloud.test.sql`) |
 
@@ -169,8 +169,9 @@ Justification is runtime + hermeticity, both measured (next section).
 
 **Every merge (hermetic, no browser):** H1 (in-process JS, ~25 ms), H2,
 H3a, H3b, H6 (disposable-PG legs, ~0.05–0.25 s each once provisioned),
-A3.4's structural check (filesystem scan, ms), plus provisioning itself
-(~6 s). Total budget ≈ **15 s** on top of the existing suites. These legs
+A3.4's drain leg (the built drain over the disposable cluster, stub
+engine, ~8 s incl. Deno start), plus provisioning itself
+(~6 s). Total budget ≈ **25 s** on top of the existing suites. These legs
 catch the wiring failures that actually ship (F-002/F-037 class,
 F-030-class seams, claim/finish predicate drift) and they cannot flake
 on a browser.
@@ -202,8 +203,8 @@ healthy; Chromium target deaths, not CPU, set the tail.
 |---|---|---|
 | Provision disposable PG | 20 s | 20 s |
 | H1 chat leg | 2 s | 2 s |
-| H2 + H3a + H3b (SQL stages 2–3) | 5 s | 5 s |
-| H3 drain structural check | 1 s | — |
+| H2 + H3a + H3b (SQL stages 2–3, 2b) | 5 s | 5 s |
+| H3 drain leg (stage 5 + drain run, stub engine) | 15 s | 15 s |
 | H4 + H5 board drive (1 job + doorstep probe) | — | 120 s |
 | H6 finish/confirm (stage 4) | 5 s | 5 s |
 | A3.5 F-034 drain pairs (S3 harness) | — | 300 s |
@@ -238,9 +239,14 @@ real completion, and it is never reported as one.
 ## Measured vs claimed (2026-10-22 run, this branch, this VM)
 
 Measured (actually ran): provisioning (94 migrations, PG16.14); H1
-FAIL F-037/F-002 (in-process, the planner's own code); H2 PASS; H3a FAIL
-F-030 (real PG refusal text); H3b PASS; H3 drain FAIL (structural —
-unit/host scan + the queue's PostgREST requirement read in code); H6
+FAIL F-037/F-002 (in-process, the planner's own code); H2 PASS; H3a
+PASS (H3 lane, 2026-10-22: stage 2's bare begin still refuses
+`not_card_approved` — the C9 control — and stage 2b's composed card
+route for the same chat user is claimed, `driving/cloud/1`); H3b
+PASS; H3 drain PASS (H3 lane: the built drain — drain.ts + pg-queue.ts —
+claimed the stage-5 card-bound row from the disposable cluster and
+finished it `submitted_unconfirmed`, telemetry `submitted` recorded;
+stub engine, tier 2); H6
 PASS (finish → submitted_unconfirmed → confirm_as → confirmed). H4/H5:
 ENVIRONMENT — Chromium's sandbox cannot initialize in this VM session
 (probe: plain Playwright `chromiumSandbox: true` → "Chromium sandboxing

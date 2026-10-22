@@ -52720,6 +52720,19 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerBatc
      'cloud' itself. Root cause + fix shape: docs/apply/
      ROOT-CAUSE-F030-BEGIN-CLAIM-2026-10-22.md.
 
+   THE CARD COMPOSITION (F-030 seam, added 2026-10-22): the cloud
+   door above enqueues a row the cloud claim can never take — the
+   claim's first check is the card bridge's binding
+   (cloud_bound_refusal, 20261024130000), which only a Messages card
+   tap mints, and the begin's agent_batch_hash stamp is one of the
+   values that check forbids. Composition (A): the chat card mints
+   the binding; the claim enforces it. beginCloudCardPostings (below)
+   is that caller: it verifies the engine-prepared card items bind to
+   the approved entries and shows the card through the host's
+   service-role client (deps.cardRpc). It never taps the card — the
+   tap is the person's own act. Root cause:
+   docs/apply/ROOT-CAUSE-F030-SEAM-CARD-BINDING-2026-10-22.md.
+
    Pure/sync like its siblings except the two async edges the work
    itself has (hashing + the RPC); every effect goes through the
    injected deps.rpc (the host's user-JWT client — client.rpc(name,
@@ -52743,6 +52756,7 @@ const CareerAgentBegin = (() => {
   const RPC_APPROVE = "career_apply_batch_approve_own";
   const RPC_BEGIN = "career_apply_extension_begin_agent_own";
   const RPC_BEGIN_CLOUD = "career_apply_cloud_begin_agent_own";
+  const RPC_CARD_SHOW = "career_apply_message_cloud_card_show_as";
 
   // ---------------- canonical JSON + SHA-256 ----------------
   // The canonical form career_apply_canonical (migration
@@ -53014,10 +53028,155 @@ const CareerAgentBegin = (() => {
     return runBegin({ ...(input || {}), record, userId: (input && input.userId) || claim.userId || null }, deps);
   }
 
+  // ---------------- the cloud card composition (F-030 seam) ----------------
+  // Composition (A), the C9 decision on this line: the chat card mints
+  // the binding through the bridge's machinery; the claim enforces it.
+  // Root cause: docs/apply/ROOT-CAUSE-F030-SEAM-CARD-BINDING-2026-
+  // 10-22.md. The agent cloud begin's row can never be claimed (no
+  // cloud_bound_jobs row, and the agent_batch_hash stamp the binding
+  // check forbids), and begin-then-tap is impossible (the queue's
+  // duplicate_job), so the cloud route's enqueue is the card tap
+  // itself — and the tap is the person's own act. This caller
+  // therefore ends at SHOWING the card: it never calls
+  // career_apply_message_card_approve_own, on any dep.
+  //
+  // The card items are INPUT, never built here: the bridge's payload
+  // dialect carries the live form's own coordinates (page field
+  // names, schema hash, replay sources), which only the preparing
+  // engine has (workers/career-cloud/prepare.ts builds the items from
+  // its dry run). What this caller adds is the binding proof, per
+  // entry, BEFORE anything is shown: the item's payload hash
+  // recomputes; its job, person and manifest are the approved entry's;
+  // its destination is the one the person approved; and every field
+  // carries the approved answer's value on the fact its ledger row
+  // names first (contract check 5 across the two dialects). A missing
+  // or non-binding item refuses that posting by name, and a batch
+  // with any refusal is shown to no one — a card is the whole batch
+  // or nothing (prepare.ts's own discipline).
+  //
+  // deps.cardRpc is the host's SERVICE-ROLE client (client.rpc(name,
+  // args), the prepare.ts invocation shape): the producer is
+  // service-role-only (130000's grants). deps.rpc (user-JWT) is never
+  // used here: the card route stores no batch approval and calls no
+  // begin door — cloud_tap mints the approval row itself, entry =
+  // the exact payload shown.
+  function refuseCard(message) { return { ok: false, code: "CARD_ITEM_MISMATCH", message }; }
+
+  async function checkCardItem(entry, item, userId) {
+    if (!item || typeof item !== "object" || !item.payload || typeof item.payload !== "object") {
+      return { ok: false, code: "CARD_ITEM_MISSING", message: "no engine-prepared card item was supplied for this posting — the card is never fabricated" };
+    }
+    const p = item.payload;
+    if (typeof item.hash !== "string" || item.hash !== await sha256Hex(canonicalApplyJson(p))) {
+      return refuseCard("the card item's hash does not recompute over its payload");
+    }
+    if (!item.readback || typeof item.readback !== "object") {
+      return refuseCard("the card item carries no readback — the DB would refuse it unseen");
+    }
+    if (p.user_id !== userId || p.job_id !== entry.jobId) {
+      return refuseCard("the card item is not this person's approved posting");
+    }
+    if (p.manifest_hash !== entry.manifest_hash || p.quarantine_version !== entry.quarantine_version) {
+      return refuseCard("the card item is not bound to the approved entry's manifest");
+    }
+    const destination = entry.destination != null ? entry.destination : entry.url;
+    if (p.destination !== destination || p.url !== entry.url) {
+      return refuseCard("the card item's destination is not the one the person approved");
+    }
+    const engineApproval = entry.engineApproval != null ? entry.engineApproval : entry.engine_approval;
+    if (p.engine_approval !== engineApproval) {
+      return refuseCard("the card item's engine approval is not the approved run's");
+    }
+    // Check 5 across dialects: the item's fields are the entry's
+    // answers — same names, same values, each on its ledger row's
+    // first fact ref.
+    const answers = Array.isArray(entry.answers) ? entry.answers : [];
+    const ledger = Array.isArray(entry.ledger) ? entry.ledger : [];
+    const fields = Array.isArray(p.fields) ? p.fields : null;
+    if (!fields || sortedJson(fields.map((f) => f && f.name)) !== sortedJson(answers.map((a) => a && a.name))) {
+      return refuseCard("the card item's fields are not the approved answers");
+    }
+    for (const f of fields) {
+      const answer = answers.find((a) => a && a.name === f.name);
+      const row = ledger.find((l) => l && l.field_id === f.name);
+      const firstRef = row ? row.fact_refs[0] : null;
+      if (!answer || (f.factId != null ? f.factId : null) !== firstRef) {
+        return refuseCard("a card field cites a fact its ledger row does not name first");
+      }
+      const valueOk = f.value && typeof f.value === "object"
+        ? f.value.sha256 != null && f.value.sha256 === answer.file
+        : f.value === answer.value;
+      if (!valueOk) return refuseCard("a card field's value is not the approved answer");
+    }
+    return { ok: true };
+  }
+
+  async function beginCloudCardPostings(input, deps) {
+    const inp = input || {};
+    const d = deps || {};
+    const record = inp.record;
+    if (!record || record.kind !== "batch_approval_record" || record.approvedByUser !== true) {
+      return { ok: false, code: "NO_APPROVAL_RECORD", message: "no approval record exists for this batch — the card was never tapped", results: [] };
+    }
+    const flagEnabled = inp.flagEnabled !== undefined ? inp.flagEnabled : d.flagEnabled;
+    if (flagEnabled === false) return { ok: false, code: "AGENT_SUBMIT_OFF", message: "agent submit is off", results: [] };
+    if (typeof d.cardRpc !== "function") return { ok: false, code: "NO_CARD_RPC", message: "no service-role rpc client was injected — the card producer is not wired in this host", results: [] };
+    const userId = inp.userId || record.userId || null;
+    const threadId = inp.threadId || null;
+    if (!threadId) return { ok: false, code: "NO_THREAD", message: "no thread was supplied — a Messages card lives on the person's thread", results: [] };
+    const entries = Array.isArray(inp.entries) ? inp.entries : [];
+    if (!entries.length) return { ok: false, code: "NO_ENTRIES", message: "no approved postings were supplied", results: [] };
+    if (!inp.expiresAt) return { ok: false, code: "NO_EXPIRY", message: "no payload expiry was supplied — the account stamp would be refused as stale", results: [] };
+    if (!inp.account || typeof inp.account.epoch !== "number" || typeof inp.account.version !== "number") {
+      return { ok: false, code: "NO_ACCOUNT_STAMP", message: "no account stamp (epoch, version) was supplied — read career_apply_account_own first", results: [] };
+    }
+
+    // Every mirror + binding check runs before the show call, so a
+    // refused batch costs no card and shows the person nothing.
+    const cardItems = inp.cardItems || {};
+    const items = [];
+    const results = [];
+    for (const entry of entries) {
+      const payload = buildBeginPayload({
+        entry, userId, door: "cloud",
+        family: (inp.familyByJobId && inp.familyByJobId[entry.jobId]) || inp.family || null,
+        account: inp.account, expiresAt: inp.expiresAt, resume: inp.resume || null,
+      });
+      const chk = checkContract(entry, payload, { answeredTextAnswerIds: inp.answeredTextAnswerIds || [] });
+      if (!chk.ok) { results.push({ jobId: entry.jobId, ok: false, code: chk.code, message: chk.message }); continue; }
+      const dchk = checkCloudDoor(payload);
+      if (!dchk.ok) { results.push({ jobId: entry.jobId, ok: false, code: dchk.code, message: dchk.message }); continue; }
+      const ichk = await checkCardItem(entry, cardItems[entry.jobId], userId);
+      if (!ichk.ok) { results.push({ jobId: entry.jobId, ok: false, code: ichk.code, message: ichk.message }); continue; }
+      items.push(cardItems[entry.jobId]);
+      results.push({ jobId: entry.jobId, ok: true, shown: true });
+    }
+    if (results.some((r) => !r.ok)) return { ok: false, code: "CARD_NOT_SHOWN", message: "a posting refused — the batch is shown whole or not at all", results };
+
+    let card;
+    try {
+      card = await d.cardRpc(RPC_CARD_SHOW, { p_user: userId, p_thread: threadId, p_items: items });
+    } catch (e) {
+      const message = e && e.message ? e.message : String(e);
+      return { ok: false, code: "CARD_SHOW_REFUSED", message, results: [] };
+    }
+    // The receipt is verified like prepare.ts verifies it: the hash
+    // recomputes over the returned payload, and the payload is this
+    // person's card on this thread, in the cloud dialect.
+    const body = card && typeof card === "object" ? card.payload : null;
+    if (!body || typeof body !== "object" || typeof card.hash !== "string"
+      || card.hash !== await sha256Hex(canonicalApplyJson(body))
+      || body.user_id !== userId || body.thread_id !== threadId
+      || body.version !== 2 || body.execution_mode !== "cloud" || body.card_id !== card.id) {
+      return { ok: false, code: "CARD_RECEIPT_MISMATCH", message: "the shown card's receipt does not bind to this person, thread and payload", results: [] };
+    }
+    return { ok: true, cardId: card.id, hash: card.hash, messageId: card.message_id != null ? card.message_id : null, results };
+  }
+
   return {
-    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD,
+    QUARANTINE_VERSION, DERIVATION_RULES, RPC_APPROVE, RPC_BEGIN, RPC_BEGIN_CLOUD, RPC_CARD_SHOW,
     canonicalApplyJson, sha256Hex, batchHashOf,
-    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim,
+    buildBeginPayload, checkContract, checkCloudDoor, beginApprovedPostings, beginFromClaim, beginCloudCardPostings,
   };
 })();
 

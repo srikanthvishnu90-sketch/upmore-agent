@@ -379,7 +379,7 @@ const CareerRouter = (() => {
     let kept = scored;
     if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
-      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
+      const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null, url: postingUrlOf(it.posting) });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
       item.caveat = caveatFor(item, profile);
       return item;
@@ -407,10 +407,18 @@ const CareerRouter = (() => {
     const c = Reply.composeResult(result);
     return ensureNextStepText(c.bubbles.join("\n"));
   }
+  // MUSE-F-001: a role is named with the posting's own link, so the person can open it. Only a link the posting itself
+  // carries (its url or its source url), and only http(s); a role with none is named without one, never given an invented one.
+  function postingUrlOf(p) {
+    const c = [p && p.url, ...((p && Array.isArray(p.source_urls)) ? p.source_urls : [])].map(s).find((u) => /^https?:\/\/\S+$/i.test(u));
+    return c || null;
+  }
   function roleSentence(item) {
     const where = item.remote === "remote" ? "remote" : item.remote === "hybrid" ? `hybrid in ${s(item.location).split(",")[0]}` : s(item.location);
     const pay = item.posting.salary && item.posting.salary.raw ? `, ${item.posting.salary.raw}` : "";
-    return `${item.title} at ${item.company} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
+    const url = item.url || postingUrlOf(item.posting);
+    // The link rides inside the role's own sentence: the composer keeps one sentence per role.
+    return `${item.title} at ${item.company}${url ? ` (${url})` : ""} — ${where}${pay}: ${item.reason}; caveat: ${item.caveat}.`;
   }
 
   // The role families an ASK names. "Design / portfolio-first" is pinned to
@@ -458,8 +466,8 @@ const CareerRouter = (() => {
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
     const publicFacts = {
-      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
-      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, score: r.score, reason: r.reason, caveat: r.caveat })),
+      shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
+      ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
       excluded, resultStatus: "prepared",
     };
     if (!top.length && dedupedTo === 0 && !ranked.length) {

@@ -17,7 +17,7 @@ env:
   DOWN_SHA256: 5716f7256fb78e681023482647a843e33aab25e5d6136152395205dd11f51186
   PGBIN: /usr/lib/postgresql/16/bin
   PYTHONDONTWRITEBYTECODE: "1"
-  OWNER_APPROVAL_REF: NOT_AUTHORIZED
+  OWNER_APPROVAL_REF: owner-chat-2026-10-21-disposable-pg16-nine-job-yes
   AUTHORIZED_SCOPE: CARD_CLOUD_DISPOSABLE_PG16_V1
 
 jobs:
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, shutil, subprocess, sys
+          import hashlib, json, os, pathlib, shutil, signal, subprocess, sys, time, uuid
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
           temp = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
           case = os.environ['CASE']
@@ -69,7 +69,9 @@ jobs:
           assert hashlib.sha256(up.read_bytes()).hexdigest() == os.environ['UP_SHA256']
           assert hashlib.sha256(down.read_bytes()).hexdigest() == os.environ['DOWN_SHA256']
           suffix = case.replace('-','_')
-          cluster, socket = temp/('cc_'+suffix+'_cluster'), temp/('cc_'+suffix+'_socket')
+          owned_root = temp/('cc_'+suffix+'_'+uuid.uuid4().hex[:12])
+          owned_root.mkdir(mode=0o700)
+          cluster, socket = owned_root/'cluster', owned_root/'socket'
           evidence = temp/'card-cloud-evidence'
           evidence.mkdir()
           mode = 'baseline' if case == 'rollback' else 'bridge'
@@ -121,17 +123,52 @@ jobs:
                   call(selected[0],'acceptance-'+case)
               record['result'] = 'PASS'
           finally:
+              errors = []
               if cluster.exists():
-                  for name in ('setup-manifest.json','postgres.log'):
-                      if (cluster/name).is_file(): shutil.copy2(cluster/name,evidence/name)
-                  for name in ('logs','rollback-driver-logs'):
-                      if (cluster/name).is_dir(): shutil.copytree(cluster/name,evidence/name)
-                  if (cluster/'data/postmaster.pid').exists():
-                      result = subprocess.run([str(pgbin/'pg_ctl'),'-D',str(cluster/'data'),'-m','immediate','-w','stop'],
-                          stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
-                      (evidence/'cluster-stop.log').write_text(result.stdout)
-                      record['cleanup_exit_code'] = result.returncode
+                  try:
+                      for name in ('setup-manifest.json','postgres.log'):
+                          if (cluster/name).is_file(): shutil.copy2(cluster/name,evidence/name)
+                      for name in ('logs','rollback-driver-logs'):
+                          if (cluster/name).is_dir(): shutil.copytree(cluster/name,evidence/name)
+                  except OSError as exc: errors.append(type(exc).__name__+' retaining raw evidence')
+              def servers():
+                  found = []
+                  for item in pathlib.Path('/proc').iterdir():
+                      if not item.name.isdigit(): continue
+                      try:
+                          if pathlib.Path(os.readlink(item/'exe')).name not in ('postgres','postmaster'): continue
+                          argv = (item/'cmdline').read_bytes().decode().split('\0')
+                          if '-D' in argv and pathlib.Path(argv[argv.index('-D')+1]).is_relative_to(owned_root): found.append(int(item.name))
+                      except (OSError,ValueError,IndexError): continue
+                  return found
+              if (cluster/'data/postmaster.pid').exists():
+                  result = subprocess.run([str(pgbin/'pg_ctl'),'-D',str(cluster/'data'),'-m','immediate','-w','-t','20','stop'],
+                      stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+                  (evidence/'cluster-stop.log').write_text(result.stdout)
+                  record['cleanup_exit_code'] = result.returncode
+                  if result.returncode: errors.append('pg_ctl stop failed')
+              remaining = servers()
+              if remaining:
+                  errors.append('owned PostgreSQL server survived normal stop')
+                  for pid in remaining:
+                      try: os.kill(pid,signal.SIGKILL)
+                      except ProcessLookupError: pass
+                  deadline = time.monotonic()+5
+                  while servers() and time.monotonic()<deadline: time.sleep(0.05)
+              if servers(): errors.append('owned PostgreSQL process still alive')
+              else:
+                  for directory in (cluster,socket):
+                      try:
+                          if directory.exists(): shutil.rmtree(directory)
+                      except OSError as exc: errors.append(type(exc).__name__+' removing '+directory.name)
+                  if owned_root.exists():
+                      try: owned_root.rmdir()
+                      except OSError as exc: errors.append(type(exc).__name__+' removing owned runtime root')
+              record['destroyed'] = not cluster.exists() and not socket.exists() and not owned_root.exists() and not servers()
+              if not record['destroyed']: errors.append('owned cluster/socket/runtime destruction not verified')
+              record['cleanup_errors'] = errors
               (evidence/'execution.json').write_text(json.dumps(record,indent=2)+'\n')
+              if errors: raise RuntimeError('cleanup failed: '+', '.join(errors))
           PY
       - name: Preserve actual raw SQL and process evidence even on failure
         if: always()
@@ -160,20 +197,71 @@ jobs:
       - name: Run all historical DB tests followed by the final bridge schema and tests
         shell: bash
         run: |
-          set -euo pipefail
-          test "$(git -C acceptance rev-parse HEAD)" = "$ACCEPTANCE_PIN"
-          test "$(sha256sum acceptance/supabase/migrations/20261024130000_career_apply_card_cloud_bridge.sql | cut -d' ' -f1)" = "$UP_SHA256"
-          mkdir "$RUNNER_TEMP/card-cloud-full-runner-evidence"
-          export PATH="$PGBIN:$PATH"
-          export PGTEST_PORT=55432
-          bash acceptance/tests/db/run.sh 2>&1 | tee "$RUNNER_TEMP/card-cloud-full-runner-evidence/full-runner.log"
           python3 - <<'PY'
-          import json, os, pathlib
-          path = pathlib.Path(os.environ['RUNNER_TEMP'])/'card-cloud-full-runner-evidence'
-          (path/'scope.json').write_text(json.dumps({'acceptance_pin':os.environ['ACCEPTANCE_PIN'],
-              'owner_approval_ref':os.environ['OWNER_APPROVAL_REF'],'result':'PASS',
+          import hashlib, json, os, pathlib, shutil, signal, subprocess, time, uuid
+          root = pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'acceptance'
+          assert subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip() == os.environ['ACCEPTANCE_PIN']
+          assert hashlib.sha256((root/'supabase/migrations/20261024130000_career_apply_card_cloud_bridge.sql').read_bytes()).hexdigest() == os.environ['UP_SHA256']
+          temp, pgbin = pathlib.Path(os.environ['RUNNER_TEMP']), pathlib.Path(os.environ['PGBIN'])
+          runtime = temp/('cc_full_runner_'+uuid.uuid4().hex[:12])
+          runtime.mkdir(mode=0o700)
+          evidence = temp/'card-cloud-full-runner-evidence'
+          evidence.mkdir()
+          record = {'acceptance_pin':os.environ['ACCEPTANCE_PIN'],'owner_approval_ref':os.environ['OWNER_APPROVAL_REF'],
               'coverage':'all historical run.sh phases, standalone bridge up twice, main/lifecycle/cap last',
-              'new_provider_cost_usd':0,'real_enrollment':False},indent=2)+'\n')
+              'new_provider_cost_usd':0,'real_enrollment':False,'owned_runtime':str(runtime)}
+          env = os.environ.copy()
+          env.update(TMPDIR=str(runtime),PGTEST_PORT='55432',PATH=str(pgbin)+':'+env['PATH'])
+          def servers():
+              found=[]
+              for item in pathlib.Path('/proc').iterdir():
+                  if not item.name.isdigit(): continue
+                  try:
+                      if pathlib.Path(os.readlink(item/'exe')).name not in ('postgres','postmaster'): continue
+                      argv=(item/'cmdline').read_bytes().decode().split('\0')
+                      if '-D' in argv and pathlib.Path(argv[argv.index('-D')+1]).is_relative_to(runtime): found.append(int(item.name))
+                  except (OSError,ValueError,IndexError): continue
+              return found
+          errors=[]
+          try:
+              with (evidence/'full-runner.log').open('w') as output:
+                  result=subprocess.run(['bash',str(root/'tests/db/run.sh')],cwd=root,env=env,
+                      stdin=subprocess.DEVNULL,stdout=output,stderr=subprocess.STDOUT)
+              record['runner_exit_code']=result.returncode
+              if result.returncode: raise RuntimeError('full database runner failed')
+              record['result']='PASS'
+          finally:
+              leftovers=list(runtime.iterdir())
+              record['runsh_cleanup_verified']=not leftovers and not servers()
+              if not record['runsh_cleanup_verified']: errors.append('run.sh left server or runtime data')
+              # Retain any surviving logs BEFORE recovery/destruction. Only the
+              # newly created private runtime is inspected or removed.
+              for directory in leftovers:
+                  if directory.is_dir():
+                      for name in ('log','postgres.log'):
+                          try:
+                              if (directory/name).is_file(): shutil.copy2(directory/name,evidence/(directory.name+'-'+name))
+                          except OSError as exc: errors.append(type(exc).__name__+' retaining surviving server log')
+                      if (directory/'data/postmaster.pid').exists():
+                          result=subprocess.run([str(pgbin/'pg_ctl'),'-D',str(directory/'data'),'-m','immediate','-w','-t','20','stop'],
+                              stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+                          (evidence/(directory.name+'-stop.log')).write_text(result.stdout)
+                          if result.returncode: errors.append('recovery pg_ctl stop failed')
+              remaining=servers()
+              for pid in remaining:
+                  try: os.kill(pid,signal.SIGKILL)
+                  except ProcessLookupError: pass
+              deadline=time.monotonic()+5
+              while servers() and time.monotonic()<deadline: time.sleep(0.05)
+              if servers(): errors.append('owned PostgreSQL process still alive')
+              else:
+                  try: shutil.rmtree(runtime)
+                  except OSError as exc: errors.append(type(exc).__name__+' removing owned runtime')
+              record['destroyed']=not runtime.exists() and not servers()
+              if not record['destroyed']: errors.append('full-runner destruction not verified')
+              record['cleanup_errors']=errors
+              (evidence/'scope.json').write_text(json.dumps(record,indent=2)+'\n')
+              if errors: raise RuntimeError('cleanup failed: '+', '.join(errors))
           PY
       - name: Preserve full historical and final-schema integration output
         if: always()

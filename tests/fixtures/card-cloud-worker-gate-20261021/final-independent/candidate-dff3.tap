@@ -1,0 +1,448 @@
+TAP version 13
+# Subtest: unchanged-source control prepares one card from the exact original owned answer
+ok 1 - unchanged-source control prepares one card from the exact original owned answer
+  ---
+  duration_ms: 552.81522
+  type: 'test'
+  ...
+# Subtest: source change refuses before card show with unchanged original input: withdraw_during_dry
+ok 2 - source change refuses before card show with unchanged original input: withdraw_during_dry
+  ---
+  duration_ms: 654.556933
+  type: 'test'
+  ...
+# Subtest: source change refuses before card show with unchanged original input: edit_before_show
+ok 3 - source change refuses before card show with unchanged original input: edit_before_show
+  ---
+  duration_ms: 557.402638
+  type: 'test'
+  ...
+# Subtest: entrypoint availability control is explicitly classified, never a missing-file behavioral red
+ok 4 - entrypoint availability control is explicitly classified, never a missing-file behavioral red
+  ---
+  duration_ms: 2.150579
+  type: 'test'
+  ...
+# Subtest: missing answer becomes an owned question RPC and creates no card
+ok 5 - missing answer becomes an owned question RPC and creates no card
+  ---
+  duration_ms: 575.388736
+  type: 'test'
+  ...
+# Subtest: multi-item missing answer is all-or-nothing: multi_missing
+ok 6 - multi-item missing answer is all-or-nothing: multi_missing
+  ---
+  duration_ms: 652.942043
+  type: 'test'
+  ...
+# Subtest: multi-item missing answer is all-or-nothing: multi_missing_first
+ok 7 - multi-item missing answer is all-or-nothing: multi_missing_first
+  ---
+  duration_ms: 580.867631
+  type: 'test'
+  ...
+# Subtest: all ready produces exact payload/readback pairs from owned facts, including boolean display and resume name
+ok 8 - all ready produces exact payload/readback pairs from owned facts, including boolean display and resume name
+  ---
+  duration_ms: 627.271608
+  type: 'test'
+  ...
+# Subtest: disallowed context invokes zero engines and creates no question or card
+ok 9 - disallowed context invokes zero engines and creates no question or card
+  ---
+  duration_ms: 509.454804
+  type: 'test'
+  ...
+# Subtest: source tamper refuses before engine or card: source_owner
+ok 10 - source tamper refuses before engine or card: source_owner
+  ---
+  duration_ms: 441.573638
+  type: 'test'
+  ...
+# Subtest: source tamper refuses before engine or card: source_digest
+ok 11 - source tamper refuses before engine or card: source_digest
+  ---
+  duration_ms: 478.926807
+  type: 'test'
+  ...
+# Subtest: temporary facts and resume are removed after refusal
+ok 12 - temporary facts and resume are removed after refusal
+  ---
+  duration_ms: 522.145004
+  type: 'test'
+  ...
+# Subtest: temporary facts and resume are removed after engine_error
+ok 13 - temporary facts and resume are removed after engine_error
+  ---
+  duration_ms: 494.379164
+  type: 'test'
+  ...
+# Subtest: unconfirmed, unanswered and another person's email never invent the missing owned answer
+ok 14 - unconfirmed, unanswered and another person's email never invent the missing owned answer
+  ---
+  duration_ms: 510.168372
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION actual full producer P/R with nonempty employer string names renders and approves exact Hc
+ok 15 - NEW REGRESSION actual full producer P/R with nonempty employer string names renders and approves exact Hc
+  ---
+  duration_ms: 117.209325
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION object-shaped employer values cannot replace actual string-array ABI even when card is rehashed
+ok 16 - NEW REGRESSION object-shaped employer values cannot replace actual string-array ABI even when card is rehashed
+  ---
+  duration_ms: 10.312431
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure unlisted
+ok 17 - CONTROL refuses malformed producer disclosure unlisted
+  ---
+  duration_ms: 6.43812
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure omitted
+ok 18 - CONTROL refuses malformed producer disclosure omitted
+  ---
+  duration_ms: 4.884761
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure duplicate
+ok 19 - CONTROL refuses malformed producer disclosure duplicate
+  ---
+  duration_ms: 15.333711
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-value
+ok 20 - CONTROL refuses malformed producer disclosure answer-value
+  ---
+  duration_ms: 5.441702
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-missing
+ok 21 - CONTROL refuses malformed producer disclosure answer-missing
+  ---
+  duration_ms: 6.364912
+  type: 'test'
+  ...
+# Subtest: CONTROL refuses malformed producer disclosure answer-extra
+ok 22 - CONTROL refuses malformed producer disclosure answer-extra
+  ---
+  duration_ms: 5.620899
+  type: 'test'
+  ...
+# Subtest: CONTROL send deadline overrides current card and zero RPCs
+ok 23 - CONTROL send deadline overrides current card and zero RPCs
+  ---
+  duration_ms: 21.476609
+  type: 'test'
+  ...
+# Subtest: CONTROL explicit cloud eligibility lost before tap blocks exact actual producer item
+ok 24 - CONTROL explicit cloud eligibility lost before tap blocks exact actual producer item
+  ---
+  duration_ms: 33.503647
+  type: 'test'
+  ...
+# Subtest: clean: original confirmed sources authorize with exactly one atomic snapshot read
+ok 25 - clean: original confirmed sources authorize with exactly one atomic snapshot read
+  ---
+  duration_ms: 2.141479
+  type: 'test'
+  ...
+# Subtest: before_engine: original confirmed sources authorize with exactly one atomic snapshot read
+ok 26 - before_engine: original confirmed sources authorize with exactly one atomic snapshot read
+  ---
+  duration_ms: 0.579924
+  type: 'test'
+  ...
+# Subtest: unrelated_addition: original confirmed sources authorize with exactly one atomic snapshot read
+ok 27 - unrelated_addition: original confirmed sources authorize with exactly one atomic snapshot read
+  ---
+  duration_ms: 0.388891
+  type: 'test'
+  ...
+# Subtest: withdraw_profile: current source change denies before SQL authorization with unchanged account version/epoch
+ok 28 - withdraw_profile: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.200352
+  type: 'test'
+  ...
+# Subtest: withdraw_dependency: current source change denies before SQL authorization with unchanged account version/epoch
+ok 29 - withdraw_dependency: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.187081
+  type: 'test'
+  ...
+# Subtest: withdraw_row: current source change denies before SQL authorization with unchanged account version/epoch
+ok 30 - withdraw_row: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.466008
+  type: 'test'
+  ...
+# Subtest: unconfirm: current source change denies before SQL authorization with unchanged account version/epoch
+ok 31 - unconfirm: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.181075
+  type: 'test'
+  ...
+# Subtest: event_changed: current source change denies before SQL authorization with unchanged account version/epoch
+ok 32 - event_changed: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.110849
+  type: 'test'
+  ...
+# Subtest: provenance_changed: current source change denies before SQL authorization with unchanged account version/epoch
+ok 33 - provenance_changed: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.164771
+  type: 'test'
+  ...
+# Subtest: dependency_conflict: current source change denies before SQL authorization with unchanged account version/epoch
+ok 34 - dependency_conflict: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.559253
+  type: 'test'
+  ...
+# Subtest: row_conflict: current source change denies before SQL authorization with unchanged account version/epoch
+ok 35 - row_conflict: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.278309
+  type: 'test'
+  ...
+# Subtest: foreign_profile: current source change denies before SQL authorization with unchanged account version/epoch
+ok 36 - foreign_profile: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 0.120864
+  type: 'test'
+  ...
+# Subtest: foreign_row: current source change denies before SQL authorization with unchanged account version/epoch
+ok 37 - foreign_row: current source change denies before SQL authorization with unchanged account version/epoch
+  ---
+  duration_ms: 1.790544
+  type: 'test'
+  ...
+# Subtest: required response owner: contradictory snapshot envelope denies before authorization
+ok 38 - required response owner: contradictory snapshot envelope denies before authorization
+  ---
+  duration_ms: 0.351594
+  type: 'test'
+  ...
+# Subtest: missing_digest: no digest/read evidence means zero authorization calls
+ok 39 - missing_digest: no digest/read evidence means zero authorization calls
+  ---
+  duration_ms: 0.125251
+  type: 'test'
+  ...
+# Subtest: bad_digest: no digest/read evidence means zero authorization calls
+ok 40 - bad_digest: no digest/read evidence means zero authorization calls
+  ---
+  duration_ms: 0.038549
+  type: 'test'
+  ...
+# Subtest: digest_tamper: no digest/read evidence means zero authorization calls
+ok 41 - digest_tamper: no digest/read evidence means zero authorization calls
+  ---
+  duration_ms: 0.416117
+  type: 'test'
+  ...
+# Subtest: read_failed: no digest/read evidence means zero authorization calls
+ok 42 - read_failed: no digest/read evidence means zero authorization calls
+  ---
+  duration_ms: 0.083345
+  type: 'test'
+  ...
+# Subtest: digest drift is passed to and refused by the atomic authorization boundary without duplicate parent reads
+ok 43 - digest drift is passed to and refused by the atomic authorization boundary without duplicate parent reads
+  ---
+  duration_ms: 0.082764
+  type: 'test'
+  ...
+# Subtest: invalid_phase: invalid phase/identity/changed answer cannot read or authorize current sources
+ok 44 - invalid_phase: invalid phase/identity/changed answer cannot read or authorize current sources
+  ---
+  duration_ms: 0.056439
+  type: 'test'
+  ...
+# Subtest: queue_owner_changed: invalid phase/identity/changed answer cannot read or authorize current sources
+ok 45 - queue_owner_changed: invalid phase/identity/changed answer cannot read or authorize current sources
+  ---
+  duration_ms: 0.033081
+  type: 'test'
+  ...
+# Subtest: unrelated_cannot_authorize_change: invalid phase/identity/changed answer cannot read or authorize current sources
+ok 46 - unrelated_cannot_authorize_change: invalid phase/identity/changed answer cannot read or authorize current sources
+  ---
+  duration_ms: 0.031322
+  type: 'test'
+  ...
+# Subtest: auth_false: only an explicit matching job/lease/Hq authorization is accepted
+ok 47 - auth_false: only an explicit matching job/lease/Hq authorization is accepted
+  ---
+  duration_ms: 0.045449
+  type: 'test'
+  ...
+# Subtest: auth_empty: only an explicit matching job/lease/Hq authorization is accepted
+ok 48 - auth_empty: only an explicit matching job/lease/Hq authorization is accepted
+  ---
+  duration_ms: 0.029969
+  type: 'test'
+  ...
+# Subtest: auth_wrong_job: only an explicit matching job/lease/Hq authorization is accepted
+ok 49 - auth_wrong_job: only an explicit matching job/lease/Hq authorization is accepted
+  ---
+  duration_ms: 0.11357
+  type: 'test'
+  ...
+# Subtest: auth_wrong_lease: only an explicit matching job/lease/Hq authorization is accepted
+ok 50 - auth_wrong_lease: only an explicit matching job/lease/Hq authorization is accepted
+  ---
+  duration_ms: 0.034042
+  type: 'test'
+  ...
+# Subtest: auth_wrong_hash: only an explicit matching job/lease/Hq authorization is accepted
+ok 51 - auth_wrong_hash: only an explicit matching job/lease/Hq authorization is accepted
+  ---
+  duration_ms: 0.034223
+  type: 'test'
+  ...
+# Subtest: direct source validator rejects a different EngineInput owner
+ok 52 - direct source validator rejects a different EngineInput owner
+  ---
+  duration_ms: 0.045622
+  type: 'test'
+  ...
+# Subtest: positive transport: one exact request invokes the captured closure once before the child effect
+ok 53 - positive transport: one exact request invokes the captured closure once before the child effect
+  ---
+  duration_ms: 730.69829
+  type: 'test'
+  ...
+# Subtest: denial control: a throwing authority produces no child effect
+ok 54 - denial control: a throwing authority produces no child effect
+  ---
+  duration_ms: 734.501943
+  type: 'test'
+  ...
+# Subtest: malformed-request control blocks independently recorded effect: wrong_nonce
+ok 55 - malformed-request control blocks independently recorded effect: wrong_nonce
+  ---
+  duration_ms: 672.271694
+  type: 'test'
+  ...
+# Subtest: malformed-request control blocks independently recorded effect: extra_identity
+ok 56 - malformed-request control blocks independently recorded effect: extra_identity
+  ---
+  duration_ms: 679.217933
+  type: 'test'
+  ...
+# Subtest: malformed-request control blocks independently recorded effect: malformed
+ok 57 - malformed-request control blocks independently recorded effect: malformed
+  ---
+  duration_ms: 678.508145
+  type: 'test'
+  ...
+# Subtest: malformed-request control blocks independently recorded effect: oversized
+ok 58 - malformed-request control blocks independently recorded effect: oversized
+  ---
+  duration_ms: 676.972016
+  type: 'test'
+  ...
+# Subtest: duplicate-request control invokes authority at most once and grants no second effect
+ok 59 - duplicate-request control invokes authority at most once and grants no second effect
+  ---
+  duration_ms: 699.788007
+  type: 'test'
+  ...
+# Subtest: EOF control: a child that exits without authorization creates no effect
+ok 60 - EOF control: a child that exits without authorization creates no effect
+  ---
+  duration_ms: 666.043496
+  type: 'test'
+  ...
+# Subtest: authorization-timeout control leaves the child without permission or an effect
+ok 61 - authorization-timeout control leaves the child without permission or an effect
+  ---
+  duration_ms: 794.994974
+  type: 'test'
+  ...
+# Subtest: silent-child timeout control bounds a process that never requests authorization
+ok 62 - silent-child timeout control bounds a process that never requests authorization
+  ---
+  duration_ms: 902.752525
+  type: 'test'
+  ...
+# Subtest: environment control: parent service and API keys are absent from the real child
+ok 63 - environment control: parent service and API keys are absent from the real child
+  ---
+  duration_ms: 639.981294
+  type: 'test'
+  ...
+# Subtest: nonzero-child control: an authorized effect does not make a failed child's RESULT successful
+ok 64 - nonzero-child control: an authorized effect does not make a failed child's RESULT successful
+  ---
+  duration_ms: 622.458295
+  type: 'test'
+  ...
+# Subtest: CONTROL: unchanged prepared Veeva answers dispatch exactly --submit --approved He once
+ok 65 - CONTROL: unchanged prepared Veeva answers dispatch exactly --submit --approved He once
+  ---
+  duration_ms: 0.887444
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION: denied current lease/card authorization must stop before resume or engine
+ok 66 - NEW REGRESSION: denied current lease/card authorization must stop before resume or engine
+  ---
+  duration_ms: 0.175612
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION: authorization revoked during resume fetch must be checked again before engine
+ok 67 - NEW REGRESSION: authorization revoked during resume fetch must be checked again before engine
+  ---
+  duration_ms: 0.292272
+  type: 'test'
+  ...
+# Subtest: CONTROL: lost terminal receipt retries the receipt, never the successful engine
+ok 68 - CONTROL: lost terminal receipt retries the receipt, never the successful engine
+  ---
+  duration_ms: 1.250625
+  type: 'test'
+  ...
+# Subtest: CONTROL: postapproval answer mutation stops with APPROVED_APPLICATION_CHANGED and no engine
+ok 69 - CONTROL: postapproval answer mutation stops with APPROVED_APPLICATION_CHANGED and no engine
+  ---
+  duration_ms: 0.322769
+  type: 'test'
+  ...
+# Subtest: CONTROL: postapproval resume mutation stops with APPROVED_MANIFEST_CHANGED and no engine
+ok 70 - CONTROL: postapproval resume mutation stops with APPROVED_MANIFEST_CHANGED and no engine
+  ---
+  duration_ms: 0.179591
+  type: 'test'
+  ...
+# Subtest: CONTROL: postapproval destination mutation stops with APPROVED_APPLICATION_CHANGED and no engine
+ok 71 - CONTROL: postapproval destination mutation stops with APPROVED_APPLICATION_CHANGED and no engine
+  ---
+  duration_ms: 0.133809
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION: rehashed company mutation cannot replace frozen card Hq although He matches
+ok 72 - NEW REGRESSION: rehashed company mutation cannot replace frozen card Hq although He matches
+  ---
+  duration_ms: 0.484287
+  type: 'test'
+  ...
+# Subtest: NEW REGRESSION: rehashed page-url mutation cannot replace frozen card Hq although He matches
+ok 73 - NEW REGRESSION: rehashed page-url mutation cannot replace frozen card Hq although He matches
+  ---
+  duration_ms: 0.404537
+  type: 'test'
+  ...
+1..73
+# tests 73
+# suites 0
+# pass 73
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9655.558705

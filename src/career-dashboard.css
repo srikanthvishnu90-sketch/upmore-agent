@@ -1,0 +1,80 @@
+/* F1 dashboard design tokens + styles (Trainee builder plan 2026-10-22, item F1).
+   One accent, one token: deep plum lives only in --accent-plum and is painted
+   only on active states (selected tab, the in-flight state pill, a pressed
+   button). Graphite + silver carry everything else. Serif headers, Inter body.
+   Plum value per the owner's 2026-10-22 decision recorded in the builder plan
+   (the website's plum); the brief's #6B4F7E is a one-line change of this token. */
+:root {
+  --graphite: #1E1F24;
+  --graphite-dark: #2A1A3A;
+  --silver: #C7C9CE;
+  --silver-dim: #8E9299;
+  --accent-plum: #4A2F5E;
+  --accent-plum-light: #A58FB8;
+}
+
+.f1-dash {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--graphite);
+  color: var(--silver);
+  padding: 16px;
+}
+.f1-dash h1, .f1-dash h2, .f1-dash h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  color: #EDEEF0;
+  margin: 0 0 8px;
+}
+.f1-dash a { color: var(--silver); }
+.f1-coverage { color: var(--silver-dim); font-size: 13px; margin: 0 0 12px; }
+.f1-coverage strong { color: var(--silver); font-weight: 600; }
+
+.f1-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.f1-tab {
+  font: inherit; font-size: 14px; cursor: pointer;
+  background: transparent; color: var(--silver);
+  border: 1px solid #3A3D44; border-radius: 999px; padding: 6px 14px;
+}
+.f1-tabs [aria-selected="true"] {
+  border-color: var(--accent-plum);
+  background: var(--accent-plum);
+  color: #FFFFFF;
+}
+
+.f1-queue-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.f1-item {
+  border: 1px solid #3A3D44; border-radius: 10px; padding: 10px 12px;
+  background: #232529;
+}
+.f1-item .f1-company { font-weight: 600; color: #EDEEF0; }
+.f1-item .f1-meta { color: var(--silver-dim); font-size: 13px; }
+.f1-item .f1-reason { color: #E8C39E; font-size: 13px; margin-top: 4px; }
+
+.f1-state {
+  display: inline-block; font-size: 12px; border: 1px solid #3A3D44;
+  border-radius: 999px; padding: 2px 8px; color: var(--silver);
+}
+.f1-state.is-active {
+  background: var(--accent-plum);
+  border-color: var(--accent-plum);
+  color: #FFFFFF;
+}
+
+.f1-btn {
+  font: inherit; font-size: 14px; cursor: pointer;
+  background: #232529; color: var(--silver);
+  border: 1px solid #3A3D44; border-radius: 8px; padding: 6px 12px;
+}
+.f1-btn:active { background: var(--accent-plum); color: #FFFFFF; }
+
+.f1-receipt {
+  margin-top: 8px; border: 1px solid #3A3D44; border-left: 3px solid var(--silver-dim);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; background: #1B1C20;
+}
+.f1-receipt .f1-hash { word-break: break-all; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+
+.f1-card-slot { margin-top: 8px; }
+.f1-feed-list { display: flex; flex-direction: column; gap: 8px; }
+.f1-feed-item { border-bottom: 1px solid #2C2E33; padding: 6px 0; font-size: 14px; }
+.f1-feed-item .f1-meta { color: var(--silver-dim); font-size: 12px; }
+.f1-dropped { color: #E8C39E; }

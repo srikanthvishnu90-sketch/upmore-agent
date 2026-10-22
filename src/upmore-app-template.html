@@ -1137,6 +1137,7 @@
   #billAssessment { margin-top:20px; }
   .bill-row .btn { margin-right:8px; margin-top:8px; }
   #bills .btn { min-height:44px; }
+/*__CAREER_DASHBOARD_CSS__*/
 </style>
 </head>
 <body>
@@ -1825,6 +1826,7 @@
       </div>
       <button class="ctasksbtn" id="guideChatsBtn" style="right:108px" aria-label="Your chats">Chats</button>
       <button class="ctasksbtn" id="guideTasksBtn" aria-label="Open tasks">Tasks<span class="taskbadge" hidden></span></button>
+      <button class="ctasksbtn" id="careerDashBtn" style="left:12px;right:auto" aria-label="Applications dashboard">Applied</button>
     </div>
     <div class="cfeed" id="chatFeed" aria-live="polite"></div>
     <div class="ccomposer">
@@ -1839,6 +1841,14 @@
         </div>
       </div>
       <p class="cfine">Upmore is an AI assistant &mdash; it explains and does the prep. It&apos;s not a human advisor and never gives personalized financial advice.</p>
+    </div>
+    <nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+
+  <!-- ================= APPLICATIONS DASHBOARD (F1, 2026-10-22) ================= -->
+  <section class="screen nx" id="careerDash" aria-label="Applications dashboard">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div id="careerDashboard" class="f1-dash"></div>
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
@@ -2011,6 +2021,7 @@
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
 <!--__CAREER_APPROVAL_CARD__-->
+<!--__CAREER_DASHBOARD__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -2206,6 +2217,7 @@
     if (id === "plan") buildPlan();
     if (id === "home") renderHome();
     if (id === "chat") renderChatTab();
+    if (id === "careerDash") renderCareerDashboard();
     if (id === "tasks") renderTasks();
     if (id === "feed") renderFeed();
     if (id === "explore") { renderExplore(); renderQueue(); }
@@ -7990,6 +8002,28 @@
       target.setAttribute('role', 'alert');
     });
   }
+  /* F1 dashboard (2026-10-22): feed, queue, tracker and inline receipts over the
+     person's own career_apply_jobs + career_apply_prepared rows (owner-read RLS).
+     Rendering lives in src/career-dashboard.js; this only fetches and hands over.
+     The approval card itself is F2's component — its slots stay empty here until
+     that component mounts into them via TraineeDashboard.mountCards. */
+  async function renderCareerDashboard() {
+    const host = $('careerDashboard');
+    if (!host || typeof TraineeDashboard !== 'object') return;
+    const uid = session?.user?.id || null;
+    if (!uid) { host.textContent = 'Sign in to see your applications.'; return; }
+    try {
+      const [jobs, prepared] = await Promise.all([
+        supa.from('career_apply_jobs').select('id,job_id,company,url,payload,payload_hash,state,reason,confirmation_id,attempts,claimed_at,created_at,updated_at,evidence,source,email_confirmed_at').eq('user_id', uid).order('created_at', { ascending: true }),
+        supa.from('career_apply_prepared').select('id,job_id,company,url,payload,payload_hash,state,created_at,updated_at').eq('user_id', uid).order('created_at', { ascending: true })
+      ]);
+      if (jobs.error) throw jobs.error;
+      if (prepared.error) throw prepared.error;
+      TraineeDashboard.mount(host, { jobs: jobs.data || [], prepared: prepared.data || [], outcomes: [] }, {});
+    } catch (e) {
+      host.textContent = "Couldn't load your applications — check your connection and try again.";
+    }
+  }
   const chatRequests=UpmoreChatRequests({
     identity:()=>session?{owner:session.user.id}:null,conversation:()=>({thread:upmoreThread,mode:chatMode}),getToken:()=>getSessionToken(),
     request:async(body,token)=>{const response=await fetch(UPMORE_BACKEND_URL+'/functions/v1/agent-chat',{method:'POST',headers:{'content-type':'application/json',apikey:UPMORE_ANON_KEY,authorization:'Bearer '+token},body:JSON.stringify(body)});if(!response.ok)throw Error('Chat unavailable');return await response.json();},
@@ -8517,6 +8551,7 @@
     if ($("tasksRow")) $("tasksRow").onclick = () => show("tasks");
     if ($("feedRow")) $("feedRow").onclick = () => show("feed");
     if ($("guideTasksBtn")) $("guideTasksBtn").onclick = () => show("tasks");
+    if ($("careerDashBtn")) $("careerDashBtn").onclick = () => show("careerDash");
     // Subscription row: shows status, opens checkout or subscription detail.
     if ($("subscriptionRow")) {
       $("subscriptionRow").onclick = () => show("subscription");

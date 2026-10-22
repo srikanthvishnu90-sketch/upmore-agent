@@ -40,6 +40,8 @@ for marker, filename, wrapped in [
     ('<!--__BILL_CONTROLLER__-->', 'bill-workflow-controller.js', True),
     ('<!--__CHAT_CONTROLLER__-->', 'chat-request-controller.js', True),
     ('<!--__CAREER_APPROVAL_CARD__-->', 'career-approval-card.js', True),
+    ('<!--__CAREER_DASHBOARD__-->', 'career-dashboard.js', True),
+    ('/*__CAREER_DASHBOARD_CSS__*/', 'career-dashboard.css', False),
     ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
     ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),

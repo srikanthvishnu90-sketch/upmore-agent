@@ -319,9 +319,30 @@ const TraineeOnboarding = (() => {
         result.considered === 0 ? "No postings are in the pool yet, so there is nothing to match against — your answers are saved and the first match is composed as soon as postings land."
           : "No posting in the pool fits the roles on file — every considered posting is listed below with the rule that dropped it."));
     }
+    if (result.kept.length) {
+      // Every kept posting is listed, not only the featured match above:
+      // the screen's own accounting (considered = kept + dropped) must be
+      // visible posting by posting, or a kept posting beyond the first is
+      // silently missing from the outcome the person reviews.
+      const list = el(doc, "ul", "f3-kept");
+      list.setAttribute("data-f3-kept-list", "");
+      for (const k of result.kept) {
+        const li = el(doc, "li", null, `${k.title} — ${k.company}: kept — score ${k.score} · ${k.bucket}`);
+        li.setAttribute("data-f3-kept", "");
+        li.setAttribute("data-job-id", k.job_id);
+        list.appendChild(li);
+      }
+      sec.appendChild(el(doc, "p", "f3-basis-label", "Kept matches:"));
+      sec.appendChild(list);
+    }
     if (result.dropped.length) {
       const list = el(doc, "ul", "f3-dropped");
-      for (const d of result.dropped) list.appendChild(el(doc, "li", null, `${d.title} — ${d.company}: dropped — ${d.reasons.join("; ")}`));
+      for (const d of result.dropped) {
+        const li = el(doc, "li", null, `${d.title} — ${d.company}: dropped — ${d.reasons.join("; ")}`);
+        li.setAttribute("data-f3-dropped", "");
+        li.setAttribute("data-job-id", d.job_id);
+        list.appendChild(li);
+      }
       sec.appendChild(el(doc, "p", "f3-basis-label", "Dropped, with reasons:"));
       sec.appendChild(list);
     }

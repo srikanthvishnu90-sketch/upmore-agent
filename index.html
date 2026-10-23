@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-qwDy7Y54vXwOqS3tFxCB+fTiIwlQ5fLHfMAtilizvVE=' 'sha256-0tvK4Fo56GP5PfRdoLIQ9Zcs2CdXoeAe5I7+6JvDAzs=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-qwDy7Y54vXwOqS3tFxCB+fTiIwlQ5fLHfMAtilizvVE=' 'sha256-+H5dLLQSscKQ2PRbndtPrAZZ8T9M2XUc/LI7M3IvzIo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1186,7 +1186,7 @@
 .f3-coverage, .f3-meta { color: var(--silver-dim); font-size: 13px; margin: 0; }
 .f3-match { border: 1px solid #3A3D44; border-radius: 10px; padding: 12px; background: #232529; }
 .f3-match-title { font-size: 17px; }
-.f3-reasons, .f3-missing, .f3-dropped { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--silver); }
+.f3-reasons, .f3-missing, .f3-kept, .f3-dropped { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--silver); }
 .f3-basis-label { color: var(--silver-dim); font-size: 13px; margin: 8px 0 0; }
 .f3-card-slot { margin-top: 10px; }
 .f3-nomatch, .f3-done { font-size: 14px; margin: 0; }
@@ -4442,9 +4442,30 @@ const TraineeOnboarding = (() => {
         result.considered === 0 ? "No postings are in the pool yet, so there is nothing to match against — your answers are saved and the first match is composed as soon as postings land."
           : "No posting in the pool fits the roles on file — every considered posting is listed below with the rule that dropped it."));
     }
+    if (result.kept.length) {
+      // Every kept posting is listed, not only the featured match above:
+      // the screen's own accounting (considered = kept + dropped) must be
+      // visible posting by posting, or a kept posting beyond the first is
+      // silently missing from the outcome the person reviews.
+      const list = el(doc, "ul", "f3-kept");
+      list.setAttribute("data-f3-kept-list", "");
+      for (const k of result.kept) {
+        const li = el(doc, "li", null, `${k.title} — ${k.company}: kept — score ${k.score} · ${k.bucket}`);
+        li.setAttribute("data-f3-kept", "");
+        li.setAttribute("data-job-id", k.job_id);
+        list.appendChild(li);
+      }
+      sec.appendChild(el(doc, "p", "f3-basis-label", "Kept matches:"));
+      sec.appendChild(list);
+    }
     if (result.dropped.length) {
       const list = el(doc, "ul", "f3-dropped");
-      for (const d of result.dropped) list.appendChild(el(doc, "li", null, `${d.title} — ${d.company}: dropped — ${d.reasons.join("; ")}`));
+      for (const d of result.dropped) {
+        const li = el(doc, "li", null, `${d.title} — ${d.company}: dropped — ${d.reasons.join("; ")}`);
+        li.setAttribute("data-f3-dropped", "");
+        li.setAttribute("data-job-id", d.job_id);
+        list.appendChild(li);
+      }
       sec.appendChild(el(doc, "p", "f3-basis-label", "Dropped, with reasons:"));
       sec.appendChild(list);
     }

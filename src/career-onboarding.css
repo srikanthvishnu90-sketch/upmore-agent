@@ -46,7 +46,7 @@
 .f3-coverage, .f3-meta { color: var(--silver-dim); font-size: 13px; margin: 0; }
 .f3-match { border: 1px solid #3A3D44; border-radius: 10px; padding: 12px; background: #232529; }
 .f3-match-title { font-size: 17px; }
-.f3-reasons, .f3-missing, .f3-dropped { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--silver); }
+.f3-reasons, .f3-missing, .f3-kept, .f3-dropped { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--silver); }
 .f3-basis-label { color: var(--silver-dim); font-size: 13px; margin: 8px 0 0; }
 .f3-card-slot { margin-top: 10px; }
 .f3-nomatch, .f3-done { font-size: 14px; margin: 0; }

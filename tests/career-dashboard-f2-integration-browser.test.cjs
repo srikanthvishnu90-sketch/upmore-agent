@@ -168,3 +168,39 @@ test("approve through the mounted card: the commit seam receives exactly the sho
   assert.deepEqual(Object.keys(results[0].record.approvals), ["job-test-1"]);
   assert.match(await card.locator(".f2-status").innerText(), /Approval recorded/);
 });
+
+test("item 7: every field editor starts hidden; a field's Edit reveals only that field's editor", async (t) => {
+  const page = await surface(t, { withMount: true });
+  const card = slot(page).locator(".f2-card");
+  assert.equal(await card.count(), 1, "the F2 card is mounted inside the F1 slot");
+  const editorStates = () => card.evaluate((el) =>
+    [...el.querySelectorAll(".f2-editor")].map((e) => ({
+      field: e.closest(".f2-field") ? e.closest(".f2-field").getAttribute("data-field") : null,
+      hiddenAttr: e.hidden,
+      display: getComputedStyle(e).display,
+    })));
+  // (a) Initial render: EVERY .f2-editor carries the hidden attribute AND
+  // computes to display:none. Regression guard for the CSS defect where
+  // `.f2-editor { display: flex }` overrode the hidden attribute, so each
+  // answer rendered twice (text plus an open input) before any Edit tap.
+  const initial = await editorStates();
+  assert.deepEqual(initial.map((s) => s.field), ["full_name", "school", "graduation_year"],
+    "one editor per shown field");
+  for (const s of initial) {
+    assert.equal(s.hiddenAttr, true, `editor for ${s.field} starts with the hidden attribute set`);
+    assert.equal(s.display, "none", `editor for ${s.field} computes to display:none on initial render`);
+  }
+  // (b) Clicking a field's Edit reveals THAT field's editor only.
+  const school = card.locator('.f2-field[data-field="school"]');
+  await school.locator('[data-f2-action="edit-field"]').click();
+  const after = await editorStates();
+  for (const s of after) {
+    if (s.field === "school") {
+      assert.equal(s.hiddenAttr, false, "the edited field's editor loses the hidden attribute");
+      assert.notEqual(s.display, "none", "the edited field's editor computes visible after Edit");
+    } else {
+      assert.equal(s.hiddenAttr, true, `editor for ${s.field} keeps the hidden attribute`);
+      assert.equal(s.display, "none", `editor for ${s.field} stays display:none`);
+    }
+  }
+});

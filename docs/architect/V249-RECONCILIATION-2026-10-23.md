@@ -101,6 +101,7 @@ What actually changed differs on four counts:
   - Its earlier Supabase writes were two `apply_migration` calls and one secret, all on 2026-10-11, plus one CLI deploy attempt on 2026-10-12.
 - **Not visible in the platform metadata either.** The function listing and the logs available to this access level carry no actor field.
 - **A first auth event follows at 05:08:33.** `auth_audit_logs` shows its first event of the window then, 81 s after agent-chat changed. That is a sign-in near the deploy, not evidence of who deployed.
+- **Addendum (later the same day).** The 05:08:33 event is a scripted, version-aware probe: the service role with `Python-urllib/3.12` created six `probe-v249-*@upmore.test` users, drove agent-chat, and deleted them by 05:18:02. Its naming matches Muse's earlier probe convention. See `V249-RECOVERY-OPTIONS-2026-10-23.md` §0. That is a lead, not proof.
 
 ## (c) Current live agent-chat
 

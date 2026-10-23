@@ -42,12 +42,15 @@ async function run(cmd: string, args: string[], stdin?: string, env?: Record<str
   return { code: out.code, stdout: new TextDecoder().decode(out.stdout), stderr: new TextDecoder().decode(out.stderr) };
 }
 
-export async function startPg(): Promise<Pg> {
+// `includeBridge`: also the draft card-cloud bridge, at its filename position (tests/architect/bridge-ledger-order.test.ts).
+export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<Pg> {
   const bin = pgBinDir();
   if (!bin) throw Error("NO_POSTGRES");
   const work = await Deno.makeTempDir({ prefix: "trainee-flow-pg-" });
   const port = 55000 + Math.floor(Math.random() * 4000);
-  const prov = await run("bash", [`${ROOT}/tests/flow/provision-pg.sh`, work, String(port)], undefined, { ...Deno.env.toObject(), PGBIN: bin });
+  const prov = await run("bash", [`${ROOT}/tests/flow/provision-pg.sh`, work, String(port)], undefined, {
+    ...Deno.env.toObject(), PGBIN: bin, INCLUDE_BRIDGE: opts.includeBridge ? "1" : "",
+  });
   if (prov.code !== 0) throw Error(`provision failed: ${prov.stderr.slice(-800)}`);
   const base = ["-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-h", work, "-p", String(port), "-U", "postgres", "-d", "postgres"];
   const sql = async (text: string) => {

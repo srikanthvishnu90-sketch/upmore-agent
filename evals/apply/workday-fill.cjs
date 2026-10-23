@@ -52,14 +52,23 @@ async function launch(world) {
   const chrome = [process.env.UPMORE_EXTENSION_CHROMIUM_PATH, auto, "/opt/pw-browsers/chromium", process.env.UPMORE_CHROMIUM_PATH].find((p) => p && fs.existsSync(p));
   const sandboxOff = process.env.UPMORE_CHROMIUM_SANDBOX === "off";
   const ud = fs.mkdtempSync(path.join(os.tmpdir(), "trainee-wd-profile-"));
-  const ctx = await pw.chromium.launchPersistentContext(ud, {
-    headless: true, ...(chrome ? { executablePath: chrome } : {}), ...(sandboxOff ? {} : { chromiumSandbox: true }), viewport: { width: 1280, height: 900 },
-    args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, `--host-resolver-rules=${world.hostRules}`, "--ignore-certificate-errors", "--no-proxy-server",
-      ...(sandboxOff ? ["--no-sandbox"] : [])],
-  });
-  let sw = ctx.serviceWorkers()[0];
-  if (!sw) sw = await ctx.waitForEvent("serviceworker", { timeout: 15000 });
-  return { ctx, sw, close: async () => (await ctx.close().catch(() => {}), fs.rmSync(ud, { recursive: true, force: true })) };
+  let ctx;
+  try {
+    ctx = await pw.chromium.launchPersistentContext(ud, {
+      headless: true, ...(chrome ? { executablePath: chrome } : {}), ...(sandboxOff ? {} : { chromiumSandbox: true }), viewport: { width: 1280, height: 900 },
+      args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, `--host-resolver-rules=${world.hostRules}`, "--ignore-certificate-errors", "--no-proxy-server",
+        ...(sandboxOff ? ["--no-sandbox"] : [])],
+    });
+    let sw = ctx.serviceWorkers()[0];
+    if (!sw) sw = await ctx.waitForEvent("serviceworker", { timeout: 15000 });
+    return { ctx, sw, close: async () => (await ctx.close().catch(() => {}), fs.rmSync(ud, { recursive: true, force: true })) };
+  } catch (error) {
+    // 2026-10-22, pinned-environment/P2: failed setup must release the
+    // context before the caller can close its local fixture server.
+    await ctx?.close().catch(() => {});
+    fs.rmSync(ud, { recursive: true, force: true });
+    throw error;
+  }
 }
 async function openPanel(ctx, sw, tabId) {
   const url = `chrome-extension://${new URL(sw.url()).host}/panel.html` + (tabId === null ? "" : `?tab=${tabId}`);

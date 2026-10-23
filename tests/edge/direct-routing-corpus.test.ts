@@ -6,7 +6,7 @@ import { assertEquals } from "jsr:@std/assert@1";
 import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, optionsReply, notYetReply, copyReply, momentReply, termsReply, accreditedReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import { ANSWERS, ORDER } from "./lib/direct_chain.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
+const SRC_DIRECT_ASKS = Deno.readTextFileSync(new URL("./fixtures/direct-asks.json", import.meta.url));
 
 const corpus = JSON.parse(SRC_DIRECT_ASKS);
 

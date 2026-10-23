@@ -1,0 +1,3 @@
+error: The import attribute type of "text" is unsupported.
+  Specifier: file:///tmp/upmore-pin-env-20261022/supabase/functions/_shared/career_mail_langs.ts
+    at file:///tmp/upmore-pin-env-20261022/tests/architect/wo-046-mail-languages.test.ts:10:24

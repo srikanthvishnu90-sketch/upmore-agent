@@ -8,8 +8,8 @@ import { plan, parseCommand, settingsMessage, describe, mapAccounts, mapTransact
 import { moneyReply, type AccountRow, type MoneyTxRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
 import { budgetReply } from "../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 import { accountRows, txRows, NOW as PNOW } from "./lib/proactive_fixture.ts";
-import SRC_MIGRATION from "../../supabase/migrations/20261012040000_category_rules.sql" with { type: "text" };
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261012040000_category_rules.sql", import.meta.url));
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TZ = "America/New_York";
 const NOW = new Date("2026-10-12T15:05:00Z");

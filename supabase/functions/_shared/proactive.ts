@@ -139,7 +139,7 @@ function asOfText(asOf: string | null, tz: string) {
   if (!asOf) return "date unknown";
   const t = Date.parse(asOf.length <= 10 ? asOf + "T12:00:00Z" : asOf);
   if (!Number.isFinite(t)) return asOf;
-  return asOf.length <= 10 ? asOf : new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(t));
+  return asOf.length <= 10 ? asOf : new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(t)).replace(/[\u202f\u00a0]/g, " ");
 }
 
 // "food" is two ledger categories; the person's words map onto the ledger's, never the other way round.

@@ -1,0 +1,464 @@
+TAP version 13
+# Subtest: deadlines are the posted calendar day under TZ=UTC
+ok 1 - deadlines are the posted calendar day under TZ=UTC
+  ---
+  duration_ms: 84.479296
+  type: 'test'
+  ...
+# Subtest: deadlines are the posted calendar day under TZ=America/Chicago
+ok 2 - deadlines are the posted calendar day under TZ=America/Chicago
+  ---
+  duration_ms: 82.258962
+  type: 'test'
+  ...
+# Subtest: deadlines are the posted calendar day under TZ=America/Los_Angeles
+ok 3 - deadlines are the posted calendar day under TZ=America/Los_Angeles
+  ---
+  duration_ms: 91.67311
+  type: 'test'
+  ...
+# Subtest: deadlines are the posted calendar day under TZ=Asia/Tokyo
+ok 4 - deadlines are the posted calendar day under TZ=Asia/Tokyo
+  ---
+  duration_ms: 56.061671
+  type: 'test'
+  ...
+# Subtest: deadlines are the posted calendar day under TZ=Pacific/Kiritimati
+ok 5 - deadlines are the posted calendar day under TZ=Pacific/Kiritimati
+  ---
+  duration_ms: 69.487805
+  type: 'test'
+  ...
+# Subtest: deadlines are the posted calendar day under TZ=Pacific/Pago_Pago
+ok 6 - deadlines are the posted calendar day under TZ=Pacific/Pago_Pago
+  ---
+  duration_ms: 74.569782
+  type: 'test'
+  ...
+# Subtest: chat handler: settings commands run after the safety guards and before the flow router, with no model call
+ok 7 - chat handler: settings commands run after the safety guards and before the flow router, with no model call
+  ---
+  duration_ms: 2.53647
+  type: 'test'
+  ...
+# Subtest: scheduler: the function exists, CI type-checks it, go-live deploys and schedules it
+not ok 8 - scheduler: the function exists, CI type-checks it, go-live deploys and schedules it
+  ---
+  duration_ms: 1.286886
+  type: 'test'
+  location: '/tmp/upmore-trunk-20261022/tests/proactive-wiring.test.cjs:13:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /deno check [^\n]*supabase\/functions\/agent-proactive\/index\.ts/. Input:
+    
+    'name: ci\n' +
+      'on:\n' +
+      '  push:\n' +
+      '  pull_request:\n' +
+      'permissions:\n' +
+      '  contents: read\n' +
+      'jobs:\n' +
+      '  gate:\n' +
+      '    runs-on: ubuntu-24.04\n' +
+      '    # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test\n' +
+      '    # cancelled it (5470fe98). Consolidating the fix line onto trunk (PR #156) added ~270 tests and the 15-minute cap\n' +
+      '    # cancelled the first run. Headroom, not a target: a slower gate is still a finding.\n' +
+      '    timeout-minutes: 30\n' +
+      '    steps:\n' +
+      '      - uses: actions/checkout@v4\n' +
+      '      - uses: actions/setup-node@v4\n' +
+      '        with: { node-version: "22.23.3" }\n' +
+      '      - uses: denoland/setup-deno@v2\n' +
+      '        with: { deno-version: "v2.9.6" }\n' +
+      "      - name: Install tooling and use the runner's packaged Chrome\n" +
+      '        run: |\n' +
+      '          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs\n' +
+      "          # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).\n" +
+      '          npm ci --prefix tools --no-audit --no-fund\n' +
+      '          # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension\n' +
+      "          # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.\n" +
+      '          (cd tools && npx --no-install playwright install chromium)\n' +
+      '          browser_path=$(command -v google-chrome)\n' +
+      '          test -x "$browser_path"\n' +
+      '          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"\n' +
+      '          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"\n' +
+      '          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"\n' +
+      "          # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.\n" +
+      '          python3 -m venv "$RUNNER_TEMP/py"\n' +
+      '          "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5\n' +
+      '          echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"\n' +
+      '      - name: Allow sandboxed Chromium user namespaces for this gate job\n' +
+      '        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n' +
+      '      - name: Career gate\n' +
+      "        # The gate's result is also written as annotations (readable through the checks API, where a job log may not\n" +
+      "        # be): the step summary lines, then the failing tests' names.\n" +
+      '        run: |\n' +
+      '          set -o pipefail\n' +
+      '          bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"\n' +
+      '      - name: Gate result as annotations\n' +
+      '        if: always()\n' +
+      '        run: |\n' +
+      '          test -f "$RUNNER_TEMP/gate.log" || exit 0\n' +
+      `          summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)\n` +
+      `          [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\\n/%0A/g')"\n` +
+      `          failed=$( { grep -E '^\\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\\s*not ok [0-9]+ - //'; sed 's/\\x1b\\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)\n` +
+      `          [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\\n/%0A/g')"\n` +
+      "          # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.\n" +
+      `          sed 's/\\x1b\\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \\[ERROR\\]|^ERRORS?$|FAILED \\(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done\n` +
+      '          exit 0\n' +
+      '  database:\n' +
+      '    runs-on: ubuntu-24.04\n' +
+      '    steps:\n' +
+      '      - uses: actions/checkout@v4\n' +
+      '      - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger\n' +
+      '        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    name: ci
+    on:
+      push:
+      pull_request:
+    permissions:
+      contents: read
+    jobs:
+      gate:
+        runs-on: ubuntu-24.04
+        # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
+        # cancelled it (5470fe98). Consolidating the fix line onto trunk (PR #156) added ~270 tests and the 15-minute cap
+        # cancelled the first run. Headroom, not a target: a slower gate is still a finding.
+        timeout-minutes: 30
+        steps:
+          - uses: actions/checkout@v4
+          - uses: actions/setup-node@v4
+            with: { node-version: "22.23.3" }
+          - uses: denoland/setup-deno@v2
+            with: { deno-version: "v2.9.6" }
+          - name: Install tooling and use the runner's packaged Chrome
+            run: |
+              # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
+              # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
+              npm ci --prefix tools --no-audit --no-fund
+              # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
+              # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
+              (cd tools && npx --no-install playwright install chromium)
+              browser_path=$(command -v google-chrome)
+              test -x "$browser_path"
+              echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
+              echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+              echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+              # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
+              python3 -m venv "$RUNNER_TEMP/py"
+              "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
+              echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
+          - name: Allow sandboxed Chromium user namespaces for this gate job
+            run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          - name: Career gate
+            # The gate's result is also written as annotations (readable through the checks API, where a job log may not
+            # be): the step summary lines, then the failing tests' names.
+            run: |
+              set -o pipefail
+              bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"
+          - name: Gate result as annotations
+            if: always()
+            run: |
+              test -f "$RUNNER_TEMP/gate.log" || exit 0
+              summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
+              [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
+              failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
+              [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
+              # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
+              sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+              exit 0
+      database:
+        runs-on: ubuntu-24.04
+        steps:
+          - uses: actions/checkout@v4
+          - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
+            run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/tmp/upmore-trunk-20261022/tests/proactive-wiring.test.cjs:15:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: the feed turns engine findings into loop inputs: watches for owned-name news and deadlines firing today, commitments for deadlines ahead, proactive items with reasons, every text lint-clean
+ok 9 - the feed turns engine findings into loop inputs: watches for owned-name news and deadlines firing today, commitments for deadlines ahead, proactive items with reasons, every text lint-clean
+  ---
+  duration_ms: 76.893005
+  type: 'test'
+  ...
+# Subtest: through the loop: safety beats everything, watches beat proactive, the top proactive item goes with its reason, the second is suppressed by the budget, a real deadline bypasses it
+ok 10 - through the loop: safety beats everything, watches beat proactive, the top proactive item goes with its reason, the second is suppressed by the budget, a real deadline bypasses it
+  ---
+  duration_ms: 105.849844
+  type: 'test'
+  ...
+# Subtest: the weekly money minute keeps verified and estimated apart and names what is coming due
+ok 11 - the weekly money minute keeps verified and estimated apart and names what is coming due
+  ---
+  duration_ms: 19.995171
+  type: 'test'
+  ...
+# Subtest: the tool schema and system prompt make the model extract verbatim spans, name one intent, and never approve
+ok 12 - the tool schema and system prompt make the model extract verbatim spans, name one intent, and never approve
+  ---
+  duration_ms: 2.410561
+  type: 'test'
+  ...
+# Subtest: grounding: an amount, ticker, person or merchant the message does not contain is dropped, never used
+ok 13 - grounding: an amount, ticker, person or merchant the message does not contain is dropped, never used
+  ---
+  duration_ms: 1.438469
+  type: 'test'
+  ...
+# Subtest: sloppy texts the regex net missed reach the right flow through the model extraction
+ok 14 - sloppy texts the regex net missed reach the right flow through the model extraction
+  ---
+  duration_ms: 159.234858
+  type: 'test'
+  ...
+# Subtest: cross-check: when the model and the regex net read different values, one question is asked and nothing is staged
+ok 15 - cross-check: when the model and the regex net read different values, one question is asked and nothing is staged
+  ---
+  duration_ms: 2.102511
+  type: 'test'
+  ...
+# Subtest: approvals never come from the model: a reply to a live card goes to the flow's own classifier, and the model is not even called
+ok 16 - approvals never come from the model: a reply to a live card goes to the flow's own classifier, and the model is not even called
+  ---
+  duration_ms: 11.227753
+  type: 'test'
+  ...
+# Subtest: the regex net routes alone when the model throws, times out or returns garbage, and says so
+ok 17 - the regex net routes alone when the model throws, times out or returns garbage, and says so
+  ---
+  duration_ms: 52.424844
+  type: 'test'
+  ...
+# Subtest: two cards never stack: a new request drops the other flow's live card and says so
+ok 18 - two cards never stack: a new request drops the other flow's live card and says so
+  ---
+  duration_ms: 19.758273
+  type: 'test'
+  ...
+# Subtest: a stateless host restores every flow from JSON between messages: one yes sends once, a second yes sends nothing, a late yes expires
+ok 19 - a stateless host restores every flow from JSON between messages: one yes sends once, a second yes sends nothing, a late yes expires
+  ---
+  duration_ms: 25.959636
+  type: 'test'
+  ...
+# Subtest: the app the person named survives the model path, and a new request in the same flow replaces its live card instead of stacking
+ok 20 - the app the person named survives the model path, and a new request in the same flow replaces its live card instead of stacking
+  ---
+  duration_ms: 4.99329
+  type: 'test'
+  ...
+# Subtest: safety net: a bill is not a person; a bill word in the memo still pays the person
+ok 21 - safety net: a bill is not a person; a bill word in the memo still pays the person
+  ---
+  duration_ms: 11.717566
+  type: 'test'
+  ...
+# Subtest: live 2026-10-12: a detail the model dropped is filled from the regex net, so the card goes up instead of "How much?"
+ok 22 - live 2026-10-12: a detail the model dropped is filled from the regex net, so the card goes up instead of "How much?"
+  ---
+  duration_ms: 5.420625
+  type: 'test'
+  ...
+# Subtest: live 2026-10-12: a model reading two different amounts still asks; the net only fills what is missing
+ok 23 - live 2026-10-12: a model reading two different amounts still asks; the net only fills what is missing
+  ---
+  duration_ms: 0.847516
+  type: 'test'
+  ...
+# Subtest: live 2026-10-12: "dispute this charge" is never an order, whatever the model says
+ok 24 - live 2026-10-12: "dispute this charge" is never an order, whatever the model says
+  ---
+  duration_ms: 28.916246
+  type: 'test'
+  ...
+# Subtest: live 2026-10-12: a bare "no" with no live card drops what was asked and says nothing happened, never the model
+ok 25 - live 2026-10-12: a bare "no" with no live card drops what was asked and says nothing happened, never the model
+  ---
+  duration_ms: 1.967834
+  type: 'test'
+  ...
+# Subtest: rent: "pay my rent" routes to the standing rent flow with no model call; "pay sam 900 for rent" stays a send to Sam
+ok 26 - rent: "pay my rent" routes to the standing rent flow with no model call; "pay sam 900 for rent" stays a send to Sam
+  ---
+  duration_ms: 24.751127
+  type: 'test'
+  ...
+# Subtest: rent: the answer, the card and the yes stay in the rent flow; the month is staged for the person to send, once; a live send card is dropped
+ok 27 - rent: the answer, the card and the yes stay in the rent flow; the month is staged for the person to send, once; a live send card is dropped
+  ---
+  duration_ms: 7.983173
+  type: 'test'
+  ...
+# Subtest: portfolio questions reach the live read with no model: "what do I own", "what's my biggest position" ranked, an unvalued holding said
+ok 28 - portfolio questions reach the live read with no model: "what do I own", "what's my biggest position" ranked, an unvalued holding said
+  ---
+  duration_ms: 4.726172
+  type: 'test'
+  ...
+# Subtest: order status: the order this chat placed, read back now (filled, working, unreadable), and none placed is said
+ok 29 - order status: the order this chat placed, read back now (filled, working, unreadable), and none placed is said
+  ---
+  duration_ms: 5.703302
+  type: 'test'
+  ...
+# Subtest: a quote question reads the broker quote and stages nothing; an unknown ticker or no quote is said; "price of gas" is not a ticker
+ok 30 - a quote question reads the broker quote and stages nothing; an unknown ticker or no quote is said; "price of gas" is not a ticker
+  ---
+  duration_ms: 3.451788
+  type: 'test'
+  ...
+# Subtest: a gain question reads the position's cost basis; "how much did I make in August" never becomes an order
+ok 31 - a gain question reads the position's cost basis; "how much did I make in August" never becomes an order
+  ---
+  duration_ms: 2.105129
+  type: 'test'
+  ...
+# Subtest: follow-ups with nothing open are asked back; with a card open, "make it 50" still corrects it
+ok 32 - follow-ups with nothing open are asked back; with a card open, "make it 50" still corrects it
+  ---
+  duration_ms: 7.91093
+  type: 'test'
+  ...
+# Subtest: two amounts in one message are asked; the answer picks one; a correction still takes the last
+ok 33 - two amounts in one message are asked; the answer picks one; a correction still takes the last
+  ---
+  duration_ms: 2.089335
+  type: 'test'
+  ...
+# Subtest: a hypothetical never reaches a money flow, even when the model reads it as a sell; a conditional order still does
+ok 34 - a hypothetical never reaches a money flow, even when the model reads it as a sell; a conditional order still does
+  ---
+  duration_ms: 2.180681
+  type: 'test'
+  ...
+# Subtest: questions, reports of what already happened and maybes never reach a money flow; a split of a past payment still does
+ok 35 - questions, reports of what already happened and maybes never reach a money flow; a split of a past payment still does
+  ---
+  duration_ms: 5.360437
+  type: 'test'
+  ...
+# Subtest: negations, money received and relayed advice never become a card; a request made of the person still routes
+ok 36 - negations, money received and relayed advice never become a card; a request made of the person still routes
+  ---
+  duration_ms: 3.378218
+  type: 'test'
+  ...
+# Subtest: a negated, past or questioned cancel never becomes a cancel card; asking to cancel still does
+ok 37 - a negated, past or questioned cancel never becomes a cancel card; asking to cancel still does
+  ---
+  duration_ms: 4.858163
+  type: 'test'
+  ...
+# Subtest: two orders with no conjunction are two requests, in order; a purpose clause is not split
+ok 38 - two orders with no conjunction are two requests, in order; a purpose clause is not split
+  ---
+  duration_ms: 0.432212
+  type: 'test'
+  ...
+# Subtest: live 2026-10-12 sloppy: a cancel whose charge is not in the data is understood on the first message, in every phrasing
+ok 39 - live 2026-10-12 sloppy: a cancel whose charge is not in the data is understood on the first message, in every phrasing
+  ---
+  duration_ms: 4.872797
+  type: 'test'
+  ...
+# Subtest: a charge named by its amount reaches the cancel card through the model path too (megadoc J12)
+ok 40 - a charge named by its amount reaches the cancel card through the model path too (megadoc J12)
+  ---
+  duration_ms: 0.970539
+  type: 'test'
+  ...
+# Subtest: amounts in compound words read whole: "twenty five dollars" is $25 everywhere, never $5
+ok 41 - amounts in compound words read whole: "twenty five dollars" is $25 everywhere, never $5
+  ---
+  duration_ms: 1.709908
+  type: 'test'
+  ...
+# Subtest: a leading greeting is not part of the request: "hey send sam $40" cards with the model down
+ok 42 - a leading greeting is not part of the request: "hey send sam $40" cards with the model down
+  ---
+  duration_ms: 0.595705
+  type: 'test'
+  ...
+# Subtest: "sell all my VOO" is understood when the model drops the size: the net's fraction fills it
+ok 43 - "sell all my VOO" is understood when the model drops the size: the net's fraction fills it
+  ---
+  duration_ms: 1.052724
+  type: 'test'
+  ...
+# Subtest: a second payee with a two- or three-word name borrows the verb: "send sarah 40 and marcus l 20" is two sends, never one with Marcus dropped
+ok 44 - a second payee with a two- or three-word name borrows the verb: "send sarah 40 and marcus l 20" is two sends, never one with Marcus dropped
+  ---
+  duration_ms: 0.663706
+  type: 'test'
+  ...
+# Subtest: a send above checking says so before any card: the number, the account, its source and as-of time; nothing is staged
+ok 45 - a send above checking says so before any card: the number, the account, its source and as-of time; nothing is staged
+  ---
+  duration_ms: 19.929664
+  type: 'test'
+  ...
+# Subtest: the answers: anyway stages the full amount on a card, a typed amount or "what's there" stages that, no drops it, less asks how much
+ok 46 - the answers: anyway stages the full amount on a card, a typed amount or "what's there" stages that, no drops it, less asks how much
+  ---
+  duration_ms: 25.667199
+  type: 'test'
+  ...
+# Subtest: "move it from savings" is refused in plain words, nothing moves, and the question stays open
+ok 47 - "move it from savings" is refused in plain words, nothing moves, and the question stays open
+  ---
+  duration_ms: 3.805432
+  type: 'test'
+  ...
+# Subtest: unknown is never a guess: no checking, no number, stale, undated, failed sync, foreign, disconnected or an unreadable read all go straight to the card
+ok 48 - unknown is never a guess: no checking, no number, stale, undated, failed sync, foreign, disconnected or an unreadable read all go straight to the card
+  ---
+  duration_ms: 9.271603
+  type: 'test'
+  ...
+# Subtest: fundsCheck: available beats balance, the fullest checking decides, the person's own type counts, the named account is checked
+ok 49 - fundsCheck: available beats balance, the fullest checking decides, the person's own type counts, the named account is checked
+  ---
+  duration_ms: 0.813488
+  type: 'test'
+  ...
+# Subtest: Zelle is said as Zelle; a zero or negative balance offers no $0.00 send
+ok 50 - Zelle is said as Zelle; a zero or negative balance offers no $0.00 send
+  ---
+  duration_ms: 1.066902
+  type: 'test'
+  ...
+# Subtest: the question survives a restart (snapshot), and a new request replaces it
+ok 51 - the question survives a restart (snapshot), and a new request replaces it
+  ---
+  duration_ms: 2.202714
+  type: 'test'
+  ...
+# Subtest: through the router: the answer goes to the send flow, never the model, and "never mind" drops it
+ok 52 - through the router: the answer goes to the send flow, never the model, and "never mind" drops it
+  ---
+  duration_ms: 72.393422
+  type: 'test'
+  ...
+1..52
+# tests 52
+# suites 0
+# pass 51
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8653.402315

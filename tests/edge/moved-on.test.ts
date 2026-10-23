@@ -3,7 +3,7 @@
 // live, so the next "yes" staged it). dropLiveCards in _shared/flow_router.ts, called by agent-chat/handler.ts movedOn().
 // Check: deno test -A --no-check tests/edge/moved-on.test.ts
 import { routeFlows, dropLiveCards, mapFlowData, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
-import handlerSrc from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const handlerSrc = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 const T0 = Date.UTC(2026, 9, 12, 19, 1, 0);
 function world(): FlowDb & { state(): any } {

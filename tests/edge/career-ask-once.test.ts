@@ -3,8 +3,8 @@
 import { coverage, report, rowsOf } from "../../evals/apply/ask-once.ts";
 import SAMPLE_A from "../../evals/apply/questions-ci.json" with { type: "json" };
 import SAMPLE_B from "../../evals/apply/questions-ci-b.json" with { type: "json" };
-import REPORT_A from "../../docs/apply/ask-once.md" with { type: "text" };
-import REPORT_B from "../../docs/apply/ask-once-b.md" with { type: "text" };
+const REPORT_A = Deno.readTextFileSync(new URL("../../docs/apply/ask-once.md", import.meta.url));
+const REPORT_B = Deno.readTextFileSync(new URL("../../docs/apply/ask-once-b.md", import.meta.url));
 import { fromRendered } from "../../evals/apply/build-question-set.ts";
 
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }

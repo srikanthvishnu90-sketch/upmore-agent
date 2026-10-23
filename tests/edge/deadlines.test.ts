@@ -9,9 +9,9 @@ import { plan, settingsMessage, describe, mapAccounts, mapTransactions, capWatch
 import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 import { DEADLINES_JSON } from "../../supabase/functions/_shared/router_core.js";
 import { accountRows, txRows } from "./lib/proactive_fixture.ts";
-import SRC_MIGRATION from "../../supabase/migrations/20261011060000_proactive.sql" with { type: "text" };
-import SRC_STANDING from "../../supabase/migrations/20261012020000_standing_payments.sql" with { type: "text" };
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_MIGRATION = Deno.readTextFileSync(new URL("../../supabase/migrations/20261011060000_proactive.sql", import.meta.url));
+const SRC_STANDING = Deno.readTextFileSync(new URL("../../supabase/migrations/20261012020000_standing_payments.sql", import.meta.url));
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 import DATA from "../../packages/offers/deadlines.json" with { type: "json" };
 
 const at = (iso: string) => Date.parse(iso);

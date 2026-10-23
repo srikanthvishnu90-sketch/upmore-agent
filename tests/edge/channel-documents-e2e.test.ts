@@ -4,11 +4,8 @@
 //
 //   user text -> telegram-inbound / whatsapp-inbound handler (real)
 //     -> agent-chat call (fetch double) answered by the REAL career
-//        host + the REAL domain chain (packages/domain — the bundle's
-//        own sources, composed exactly as the node harnesses compose
-//        them; the deployed handler injects the bundle built from
-//        these same sources, an equivalence tests/router-bundle.test
-//        .cjs pins with --check) + the REAL artifact materialization
+//        host + the REAL deployed career bundle (the same imports
+//        handler-career.ts composes) + the REAL artifact materialization
 //        (channel_artifacts.ts)
 //     -> reply artifacts[] (bytes-refs)
 //     -> Telegram: sendDocument multipart with the exact PDF bytes
@@ -27,20 +24,13 @@ import { CareerHost } from "../../supabase/functions/_shared/career_host.js";
 import {
   FakeAdminArtifacts, assert, assertEq, envOf, TEST_USER, SUPABASE_URL, SERVICE_KEY,
 } from "./lib/channel_fixture.ts";
-import { createRequire } from "node:module";
-
-// The domain chain, loaded from the bundle's own sources through
-// Deno's CJS interop — the composition every repo harness uses, so
-// module 148's renderer runs with the require it was built for and
-// the tailored PDF in this journey is a real rendered document.
-const req = createRequire(import.meta.url);
-const CareerAccess = req("../../packages/domain/120-career-access.js");
-const CareerProfile = req("../../packages/domain/122-career-profile.js");
-const CareerOnboarding = req("../../packages/domain/130-career-onboarding.js");
-const CareerDoorstep = req("../../packages/domain/141-career-doorstep.js");
-const CareerRouter = req("../../packages/domain/142-career-router.js");
-const CareerReply = req("../../packages/domain/140-career-reply.js");
-const CareerContainment = req("../../packages/domain/143-career-containment.js");
+// Exercise the production ESM composition without relying on Node's
+// CommonJS export detection, which differs between Deno versions.
+// @ts-ignore: production JavaScript bundle
+import {
+  CareerAccess, CareerProfile, CareerOnboarding, CareerDoorstep,
+  CareerRouter, CareerReply, CareerContainment,
+} from "../../supabase/functions/_shared/router_core.career.js";
 
 const TG_SECRET = "fixture-webhook-secret";
 const TG_CHAT = 424242;

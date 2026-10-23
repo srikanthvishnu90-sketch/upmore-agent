@@ -3,7 +3,7 @@
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { whatsNewReply } from "../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const TODAY = "2026-10-12";
 const row = (d: string, c: number, m: string) => ({ account_id: "MOCK-chk", provider_transaction_id: `MOCK-${d}-${m}`, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false });

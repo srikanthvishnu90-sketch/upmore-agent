@@ -3,7 +3,7 @@
 // an outside transcript that skips a conversation is "not recorded", never a failure; a judge error is a failure; text
 // hygiene is counted in code; the testers' kit is what the set says.
 import set from "../../evals/career/conversations.json" with { type: "json" };
-import SCRIPT from "../../evals/career/compare/SCRIPT.md" with { type: "text" };
+const SCRIPT = Deno.readTextFileSync(new URL("../../evals/career/compare/SCRIPT.md", import.meta.url));
 import TEMPLATE from "../../evals/career/compare/transcripts/TEMPLATE.json" with { type: "json" };
 import {
   checkRecorded, DIMENSIONS, HYGIENE, hygiene, kit, opening, parseRubric, recordedBrain, repliesOnly, type Rubric, rubricPrompt,

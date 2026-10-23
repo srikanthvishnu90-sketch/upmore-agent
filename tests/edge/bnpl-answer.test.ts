@@ -6,8 +6,8 @@ import { moneyKind, moneyReply, MONEY_UNAVAILABLE, type AccountRow, type MoneyTx
 import { NO_ACCOUNTS, noDataReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import PROVIDERS from "../../packages/offers/bnpl-providers.json" with { type: "json" };
 // Read as text so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
-import SRC_DOMAIN from "../../packages/domain/97-bnpl.js" with { type: "text" };
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+const SRC_DOMAIN = Deno.readTextFileSync(new URL("../../packages/domain/97-bnpl.js", import.meta.url));
 
 const TZ = "America/New_York";
 const NOW = new Date("2026-10-13T03:30:00Z"); // 11:30 p.m. Oct 12 in New York; the bank's UTC date is Oct 13

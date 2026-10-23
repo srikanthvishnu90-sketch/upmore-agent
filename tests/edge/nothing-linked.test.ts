@@ -26,8 +26,8 @@ import { form1099Reply } from "../../supabase/functions/agent-chat/_shared/form1
 import { annualCheckupReply } from "../../supabase/functions/agent-chat/_shared/annual_checkup_answer.ts";
 import { cryptoTaxReply } from "../../supabase/functions/agent-chat/_shared/crypto_tax_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
-import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const SRC_DIRECT_ASKS = Deno.readTextFileSync(new URL("./fixtures/direct-asks.json", import.meta.url));
+const SRC_HANDLER = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const T = "2026-10-12", NOW = new Date("2026-10-12T15:00:00Z"), none = async () => [] as any[];
 const ANSWERS: [string, (m: string) => Promise<string | null>][] = [

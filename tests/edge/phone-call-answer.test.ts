@@ -3,7 +3,7 @@
 // negotiate my bill" still gets the script for the person to call). Look-alikes are not taken.
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { phoneCallReply, PHONE_CALL_NONE } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
-import handler from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 
 const ASKS = ["can you call my bank about the fee", "phone verizon and cancel", "call the IRS for me", "please call my landlord", "I need you to call my insurance company",
   "could u call chase for me", "can upmore call them", "hey can you phone my doctor's office about the bill", "will you call comcast on my behalf"];

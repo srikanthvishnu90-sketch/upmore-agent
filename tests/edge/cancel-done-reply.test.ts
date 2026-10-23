@@ -4,7 +4,7 @@
 import { assert, assertMatch } from "jsr:@std/assert@1";
 import { cancelDoneReply } from "../../supabase/functions/agent-chat/_shared/capabilities.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
-import SRC_CAPABILITIES from "../../supabase/functions/agent-chat/_shared/capabilities.ts" with { type: "text" };
+const SRC_CAPABILITIES = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/_shared/capabilities.ts", import.meta.url));
 
 Deno.test("with the merchant's confirmation: said as cancelled, the confirmation quoted, the next bill checked", () => {
   const r = cancelDoneReply("Netflix", "  Your membership has been cancelled. You can still watch until Nov 3.  ");

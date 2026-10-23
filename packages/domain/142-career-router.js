@@ -8239,8 +8239,27 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const profile = ctx && ctx.profile;
     if (!profile) {
-      const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
-      return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+      // ROUTER-EVAL FIX 3 (2026-10-22): the gate's rationale — "with no
+      // profile there is nothing honest to match against" — is true
+      // only when NO basis exists. The master profile rides the
+      // per-thread snapshot, but the 152 watch record is per-user and
+      // carries its own scoring basis — the same basis creation below
+      // already prefers (the master profile only seeds a record that
+      // lacks one: `if (!wp.scoring_profile) wp.scoring_profile =
+      // scoringProfile(profile)`). A returning user in a fresh thread
+      // was told no profile was on file while their watch record stood
+      // on the account, scoring basis and standing interests and all:
+      // the reply misstated the record, and the ask was refused even
+      // though the record carries everything creation needs. The gate
+      // therefore fires only when neither basis exists; with a
+      // standing record, creation proceeds against the record exactly
+      // as for a profiled user. The check reads through the read view
+      // (loadWatchProfileSync), which never materializes state.
+      const standing = loadWatchProfileSync(ctx);
+      if (!standing || !standing.scoring_profile) {
+        const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
+        return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
     }
     const role = watchRoleFromText(text);
     if (!role) {

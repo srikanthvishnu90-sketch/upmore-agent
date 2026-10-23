@@ -1,0 +1,1477 @@
+{
+ "pack": "forms-ci-coverage",
+ "families": [
+  "greenhouse",
+  "lever"
+ ],
+ "coverage": {
+  "formsCaptured": 11,
+  "questionsMapped": 271,
+  "questionsFilled": 174,
+  "questionsReadBackExactly": 167,
+  "claimable": true
+ },
+ "capturedForms": [
+  {
+   "id": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "company": "Prolific",
+   "sourceUrl": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
+   "capturedAt": "2026-10-19T07:23:43.461Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 11,
+    "mapped": 11,
+    "bindError": null,
+    "filledCount": 9,
+    "readbackMatched": 9,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "question_9668367101",
+      "filled"
+     ],
+     [
+      "question_9668368101",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9668369101",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "company": "EOS Fitness",
+   "sourceUrl": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+   "capturedAt": "2026-10-19T07:23:48.097Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 36,
+    "mapped": 36,
+    "bindError": null,
+    "filledCount": 19,
+    "readbackMatched": 19,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "cover_letter",
+     "question_6872426009",
+     "question_6872427009",
+     "question_6872429009"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "cover_letter",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "start-year--0",
+      "DRIVER_ERROR"
+     ],
+     [
+      "end-year--0",
+      "DRIVER_ERROR"
+     ],
+     [
+      "question_6872424009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872425009[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872426009",
+      "filled"
+     ],
+     [
+      "question_6872427009",
+      "filled"
+     ],
+     [
+      "question_6872428009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872429009",
+      "filled"
+     ],
+     [
+      "question_6872430009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872431009",
+      "filled"
+     ],
+     [
+      "question_6872432009[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872433009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872434009",
+      "filled"
+     ],
+     [
+      "question_6872435009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872436009",
+      "filled"
+     ],
+     [
+      "question_6872437009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872438009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872439009",
+      "filled"
+     ],
+     [
+      "question_6872440009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872441009",
+      "filled"
+     ],
+     [
+      "question_6872442009",
+      "filled"
+     ],
+     [
+      "question_6872443009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872444009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872445009",
+      "filled"
+     ],
+     [
+      "question_6872446009",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "company": "spacex",
+   "sourceUrl": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+   "capturedAt": "2026-10-19T07:23:52.223Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 31,
+    "mapped": 31,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "question_37413364002"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "candidate-location",
+      "value_did_not_persist"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "discipline--0",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413363002",
+      "filled"
+     ],
+     [
+      "question_37413364002",
+      "filled"
+     ],
+     [
+      "question_37413365002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413366002",
+      "filled"
+     ],
+     [
+      "question_37413367002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413368002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413369002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413370002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413371002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413372002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413373002[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413374002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413375002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413376002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413377002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413378002",
+      "filled"
+     ],
+     [
+      "gender",
+      "value_did_not_persist"
+     ],
+     [
+      "hispanic_ethnicity",
+      "value_did_not_persist"
+     ],
+     [
+      "veteran_status",
+      "value_did_not_persist"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "company": "Anduril",
+   "sourceUrl": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+   "capturedAt": "2026-10-19T07:23:56.175Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 33,
+    "mapped": 33,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "cover_letter"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "cover_letter",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "discipline--0",
+      "value_did_not_persist"
+     ],
+     [
+      "end-month--0",
+      "value_did_not_persist"
+     ],
+     [
+      "end-year--0",
+      "DRIVER_ERROR"
+     ],
+     [
+      "question_9753034007",
+      "filled"
+     ],
+     [
+      "question_9753035007",
+      "filled"
+     ],
+     [
+      "question_9753036007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753037007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753038007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753039007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753040007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753041007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753042007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753043007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753044007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_12415488007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753998007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9755019007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9802058007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9802065007",
+      "filled"
+     ],
+     [
+      "gender",
+      "value_did_not_persist"
+     ],
+     [
+      "hispanic_ethnicity",
+      "value_did_not_persist"
+     ],
+     [
+      "veteran_status",
+      "value_did_not_persist"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "company": "WPP Media",
+   "sourceUrl": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+   "capturedAt": "2026-10-19T07:24:00.214Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 28,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "candidate-location",
+      "value_did_not_persist"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "question_18820173008",
+      "filled"
+     ],
+     [
+      "question_18820174008",
+      "filled"
+     ],
+     [
+      "question_18820175008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820176008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820177008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820178008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820179008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820180008",
+      "filled"
+     ],
+     [
+      "question_18820181008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017729008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017730008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017731008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017732008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017733008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017898008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017899008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017900008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017901008",
+      "value_did_not_persist"
+     ],
+     [
+      "gdpr_demographic_data_consent_given",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "company": "TSMG",
+   "sourceUrl": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
+   "capturedAt": "2026-10-19T07:24:22.097Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 18,
+    "mapped": 18,
+    "bindError": null,
+    "filledCount": 13,
+    "readbackMatched": 13,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [
+     "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://tsmg.io/terms-and-conditions/) and Whistleblowers Policy (https://tsmg.io/whistleblowers-policy/).✱"
+    ],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]",
+      "filled"
+     ],
+     [
+      "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+      "value_did_not_persist"
+     ],
+     [
+      "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[gender]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[race]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[veteran]",
+      "value_did_not_persist"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "company": "CGS Federal (Contact Government Services)",
+   "sourceUrl": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+   "capturedAt": "2026-10-19T07:24:26.702Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 29,
+    "mapped": 16,
+    "bindError": null,
+    "filledCount": 15,
+    "readbackMatched": 14,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "opportunityLocationId",
+      "value_did_not_persist"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "pronouns",
+      "filled"
+     ],
+     [
+      "customPronounsOption",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "company": "Veeva",
+   "sourceUrl": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+   "capturedAt": "2026-10-19T07:24:31.222Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 16,
+    "mapped": 14,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "filled"
+     ],
+     [
+      "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "filled"
+     ],
+     [
+      "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[race]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[veteran]",
+      "value_did_not_persist"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "company": "Shield AI",
+   "sourceUrl": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+   "capturedAt": "2026-10-19T07:24:35.767Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 59,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 25,
+    "readbackMatched": 24,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]",
+      "filled"
+     ],
+     [
+      "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "filled"
+     ],
+     [
+      "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]",
+      "filled"
+     ],
+     [
+      "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[disability]",
+      "value_did_not_persist"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "company": "Welo Global",
+   "sourceUrl": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+   "capturedAt": "2026-10-19T07:24:40.435Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 46,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 24,
+    "readbackMatched": 23,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]",
+      "filled"
+     ],
+     [
+      "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+      "filled"
+     ],
+     [
+      "cards[06861205-3484-4dac-b617-20073e0f48a1][field1]",
+      "filled"
+     ],
+     [
+      "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]",
+      "filled"
+     ],
+     [
+      "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field1]",
+      "filled"
+     ],
+     [
+      "cards[913bd467-d4e0-4704-b53a-5e38d194b0dc][field0]",
+      "filled"
+     ],
+     [
+      "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]",
+      "filled"
+     ],
+     [
+      "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]",
+      "filled"
+     ],
+     [
+      "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
+      "value_did_not_persist"
+     ],
+     [
+      "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "filled"
+     ],
+     [
+      "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+      "filled"
+     ],
+     [
+      "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]",
+      "filled"
+     ],
+     [
+      "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]",
+      "filled"
+     ],
+     [
+      "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]",
+      "filled"
+     ],
+     [
+      "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field1]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[race]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[veteran]",
+      "value_did_not_persist"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "company": "Lyra Health",
+   "sourceUrl": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+   "capturedAt": "2026-10-19T07:24:43.827Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 91,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 25,
+    "readbackMatched": 21,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [
+     "If you are a Lyra employee, do you certify you have reviewed the Internal Mobility Policy and meet the requirements?"
+    ],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "pronouns",
+      "filled"
+     ],
+     [
+      "customPronounsOption",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "filled"
+     ],
+     [
+      "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[race]",
+      "value_did_not_persist"
+     ],
+     [
+      "eeo[veteran]",
+      "value_did_not_persist"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "filled"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ]
+   }
+  }
+ ],
+ "alreadyPinnedElsewhere": [
+  {
+   "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  }
+ ],
+ "notCaptured": [
+  {
+   "id": "greenhouse-databricks-8805655002",
+   "family": "greenhouse",
+   "manifestStatus": "no_application"
+  },
+  {
+   "id": "smartrecruiters-dominos-744000156228029",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-crossmark1-743999658732332",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-sonsoftinc-743999659849811",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-aecom2-744000156234495",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-boschgroup-744000156241489",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-sgs-744000156234274",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  }
+ ],
+ "palantirCapturesInFormsCi": 0
+}

@@ -57,6 +57,7 @@
 .f2-app-state { font-size: 14px; margin: 8px 0; }
 .f2-app-state--approved { color: var(--ok); font-weight: 600; }
 .f2-app-state--rejected { color: var(--danger); font-weight: 600; }
+.f2-app-state--heldback { color: var(--danger); font-weight: 600; }
 .f2-app-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .f2-card button {
   font-family: var(--font-body); font-size: 13px; cursor: pointer;

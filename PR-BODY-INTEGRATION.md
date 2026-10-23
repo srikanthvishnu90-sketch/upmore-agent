@@ -23,3 +23,13 @@ Coordinator review 2026-10-23, item 3. Base: `muse/2026-10-22-f1-dashboard` @ `b
 `~/workspace/frontend-fix-proof-2026-10-23/f1/` — `item3-queue-f2-card-mounted.png` (queue with the card in the slot, synthetic fixture: "Test Person" / "Fictional State University" / Northwind Test Labs, `.invalid` URL), `item3-post-approval-through-card.png` (reviewed 1/1, Approved, "Approval recorded for the reviewed set exactly as shown").
 
 Synthetic data only. No merges, no deploy, no submissions, flag OFF.
+
+## Re-sync to the FIXED F2 card — 2026-10-23 (follow-up)
+
+The F2 fix lane landed `4ce494c0cd0d1f82ea17da0786f764319f1cee39` on `muse/2026-10-22-f2-approval-card` (per-application recording-outcome surface + provenance-backed VERIFIED chip + wholly synthetic fixtures). This branch now mounts that card:
+
+- `packages/domain/175-career-approval-ui.js` and `src/career-approval-review.css` replaced byte-for-byte with their `4ce494c0` versions (verified with `cmp` against the commit). `src/trainee-design-tokens.css` was already byte-identical to `4ce494c0` — no change.
+- **Adapter adjustment (forced by the new module's interface, one field in one function):** 175 @`4ce494c0` derives VERIFIED from a provenance field on the answer record and ignores a bare `verification` claim. `reviewInputFromPrepared` therefore no longer emits `verification: 'verified'|'unverified'`; it passes the prepared field's provenance through — `{source:'prepared_field', confirmation_event_id, fact_id}` when the field carries a confirmation event, `null` when it doesn't — the same object 175's own prepared-field reader builds. Measured proof the change was forced: with the new module + the old adapter, the browser e2e failed 2/3 (VERIFIED chip gone; seam verification array all-unverified). The one adapter unit assertion on the old output field was migrated to the new contract at equal strength (provenance contents on the adapter output + both verdicts on the built card); the browser e2e's fixture data and assertions are unchanged — nothing deleted, skipped, or loosened.
+- Built set rebuilt via `python3 src/build-app.py` (`index.html`, `src/upmore-app.html`, `sw.js`); 10/10 inline script blocks parse in each HTML file; the new module is present in the built output.
+- Counts after the re-sync: browser e2e **3/3**, F1 dashboard + adapter suites **21/21** (baseline on the pre-sync head was also 3/3 + 21/21).
+- Screenshot `item3-queue-f2-card-mounted.png` refreshed (same Chromium run shape, `UPMORE_CHROMIUM_SANDBOX=off` on this VM): the mounted FIXED card shows "Answers verified: 2/3", VERIFIED chips on the two event-carrying answers, and the event-less school answer loud UNVERIFIED.

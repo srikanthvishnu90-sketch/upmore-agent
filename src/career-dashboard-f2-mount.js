@@ -4,10 +4,13 @@
    the slot (data-f1-card-slot) and delegates through TraineeDashboard.mountCards;
    this adapter is the host side of that delegation:
      - reviewInputFromPrepared maps ONE career_apply_prepared row to the F2
-       review card's canonical input. Verification is derived exactly the way
-       175's own v2 reader derives it: a field is verified iff the prepared
-       field carries its confirmation_event_id — provenance on the record,
-       never assumed. A field without one renders UNVERIFIED, loudly.
+       review card's canonical input. Verification is 175's call, made from
+       provenance evidence only (175 @4ce494c0 ignores a bare "verified"
+       claim): the adapter hands over the prepared field's provenance —
+       its own confirmation_event_id bound to its fact, built exactly the
+       way 175's own prepared-field reader builds it. A field without a
+       confirmation event carries no provenance and renders UNVERIFIED,
+       loudly — never assumed.
      - batchStateFromPrepared builds the executor's stored batch shape for
        the same row (one application at awaiting_attestation under the
        prepared row's payload hash as the card set hash).
@@ -39,9 +42,16 @@
       value: f.value,
       kind: f.kind || 'text',
       factId: f.factId || null,
-      // Provenance-backed verification (175's v2 rule): the prepared field
-      // itself must carry the confirmation event that verified it.
-      verification: f.confirmation_event_id ? 'verified' : 'unverified',
+      // Provenance pass-through (175 @4ce494c0): VERIFIED is derived by
+      // 175 from this evidence alone — the prepared field's own
+      // confirmation event bound to the field's fact, the same object
+      // 175's own prepared-field reader builds. No event ⇒ null ⇒ the
+      // field renders UNVERIFIED, however true its value happens to be.
+      provenance: f.confirmation_event_id ? {
+        source: 'prepared_field',
+        confirmation_event_id: f.confirmation_event_id,
+        fact_id: f.factId || null,
+      } : null,
     }));
     return {
       runId: row.id,

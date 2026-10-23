@@ -2,8 +2,12 @@
 // The adapter is the ONLY new logic in the integration: prepared row ->
 // F2 review-card input, prepared row -> stored batch state, and the slot
 // mount through TraineeDashboard.mountCards. Verification must come from
-// the prepared field's own confirmation_event_id (175's v2 rule) — a field
-// without one is unverified even when its value happens to be true.
+// the prepared field's own confirmation_event_id — a field without one is
+// unverified even when its value happens to be true. Since the F2 re-sync
+// to 175 @4ce494c0 the adapter carries that evidence as a provenance
+// object (175 derives VERIFIED from provenance alone and ignores a bare
+// "verified" claim), so the mapping assertion below checks the provenance
+// the adapter emits and the verdicts 175 derives from it.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -41,12 +45,16 @@ test('mapping: verification comes from the field\u2019s own confirmation event, 
   const app = input.applications[0];
   assert.equal(app.id, 'job-test-1');
   assert.equal(app.company, 'Northwind Test Labs');
-  assert.deepEqual(app.fields.map(f => [f.name, f.verification]), [
-    ['full_name', 'verified'],   // carries confirmation_event_id
-    ['school', 'unverified'],    // no confirmation event — unverified even though the value is well-formed
+  assert.deepEqual(app.fields.map(f => [f.name, f.provenance]), [
+    // carries confirmation_event_id → provenance evidence, bound to its own fact
+    ['full_name', { source: 'prepared_field', confirmation_event_id: 'evt-test-1', fact_id: 'F-T1' }],
+    // no confirmation event → no provenance — unverified even though the value is well-formed
+    ['school', null],
   ]);
   const built = Ui.buildReviewCard(input);
   assert.equal(built.ok, true);
+  // 175 derives both verdicts from that evidence alone.
+  assert.equal(built.card.applications[0].fields[0].verification, 'verified');
   assert.equal(built.card.applications[0].fields[1].verification, 'unverified');
 });
 

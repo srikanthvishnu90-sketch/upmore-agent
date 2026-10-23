@@ -103,7 +103,16 @@
       if (typeof row.claimed_at === 'string' && row.claimed_at) {
         events.push({ kind: 'apply-event', at: row.claimed_at, state: 'driving', row_id: row.id, text: row.company + ': ' + STATE_LABELS.driving });
       }
-      if (FINISH_STATES.has(row.state) && typeof row.updated_at === 'string' && row.updated_at) {
+      // Dedup (coordinator review 2026-10-23, item 6): a row reaches
+      // 'confirmed' ONLY via the employer's confirmation email —
+      // career_apply_confirm_as writes state, email_confirmed_at and
+      // updated_at in ONE statement — so for a confirmed row the finish
+      // event below and the email event are the SAME real-world event.
+      // Emit only the email event (its timestamp is the real moment);
+      // the finish event remains for a confirmed row that carries no
+      // email timestamp, so the state is never shown zero times either.
+      const confirmedByEmail = row.state === 'confirmed' && typeof row.email_confirmed_at === 'string' && row.email_confirmed_at.length > 0;
+      if (FINISH_STATES.has(row.state) && !confirmedByEmail && typeof row.updated_at === 'string' && row.updated_at) {
         events.push({ kind: 'apply-event', at: row.updated_at, state: row.state, row_id: row.id, text: row.company + ': ' + STATE_LABELS[row.state] });
       }
       if (typeof row.email_confirmed_at === 'string' && row.email_confirmed_at) {

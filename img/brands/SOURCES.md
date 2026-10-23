@@ -23,6 +23,7 @@ Add the official file and a row in brands.json to bring one in.
 | apple.svg | Apple | apple | Iconify `logos:apple`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
 | applemusic.svg | Apple Music | apple music | simple-icons 16.35.0, `applemusic`, the brand's own colour #FA243C (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | appletv.svg | Apple TV+ | apple tv | simple-icons 16.35.0, `appletv`, the brand's own colour #000000 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
+| ashby.svg | Ashby | ashby | ashbyhq.com homepage header logo (inline SVG, aria-label 'Navigate home'), retrieved 2026-10-23; paths unmodified, the site's CSS class and aria-label attributes removed; fill currentColor as published (Ashby official site asset, ashbyhq.com) | company trademark |
 | att.svg | AT&T | at&t, at & t | Iconify `selfhst:at-t`, @iconify/json 2.2.541 (selfh.st icons, github.com/selfhst/icons) | CC-BY-4.0 |
 | audible.svg | Audible | audible | simple-icons 16.35.0, `audible`, the brand's own colour #F8991C (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | bankofamerica.svg | Bank of America | bank of america | simple-icons 16.35.0, `bankofamerica`, the brand's own colour #012169 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
@@ -88,6 +89,7 @@ Add the official file and a row in brands.json to bring one in.
 | shopify.svg | Shopify | shopify | simple-icons 16.35.0, `shopify`, the brand's own colour #7AB55C (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | skillshare.svg | Skillshare | skillshare | simple-icons 16.35.0, `skillshare`, the brand's own colour #00FF84 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | slack.svg | Slack | slack | Iconify `logos:slack-icon`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
+| smartrecruiters.svg | SmartRecruiters | smartrecruiters | the company's own declared organization logo (Organization structured data on smartrecruiters.com): SR-SAP-Logo.svg from the site's own theme, the current 'SmartRecruiters — An SAP company' lockup, retrieved unmodified 2026-10-23 (SmartRecruiters official site asset, smartrecruiters.com) | company trademark |
 | southwest.svg | Southwest Airlines | southwest air | simple-icons 16.35.0, `southwestairlines`, the brand's own colour #304CB2 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | square.svg | Square | square inc, squareup | simple-icons 16.35.0, `square`, the brand's own colour #3E4348 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | starbucks.svg | Starbucks | starbucks | simple-icons 16.35.0, `starbucks`, the brand's own colour #006241 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |

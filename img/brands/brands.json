@@ -121,6 +121,18 @@
   "from": "simple-icons 16.35.0, `appletv`, the brand's own colour #000000"
  },
  {
+  "slug": "ashby",
+  "name": "Ashby",
+  "match": [
+   "ashby"
+  ],
+  "file": "img/brands/ashby.svg",
+  "collection": "Ashby official site asset",
+  "url": "ashbyhq.com",
+  "license": "company trademark",
+  "from": "ashbyhq.com homepage header logo (inline SVG, aria-label 'Navigate home'), retrieved 2026-10-23; paths unmodified, the site's CSS class and aria-label attributes removed; fill currentColor as published"
+ },
+ {
   "slug": "att",
   "name": "AT&T",
   "match": [
@@ -906,6 +918,18 @@
   "url": "github.com/gilbarbara/logos",
   "license": "CC0",
   "from": "Iconify `logos:slack-icon`, @iconify/json 2.2.541"
+ },
+ {
+  "slug": "smartrecruiters",
+  "name": "SmartRecruiters",
+  "match": [
+   "smartrecruiters"
+  ],
+  "file": "img/brands/smartrecruiters.svg",
+  "collection": "SmartRecruiters official site asset",
+  "url": "smartrecruiters.com",
+  "license": "company trademark",
+  "from": "the company's own declared organization logo (Organization structured data on smartrecruiters.com): SR-SAP-Logo.svg from the site's own theme, the current 'SmartRecruiters \u2014 An SAP company' lockup, retrieved unmodified 2026-10-23"
  },
  {
   "slug": "southwest",

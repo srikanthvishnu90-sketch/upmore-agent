@@ -4,7 +4,7 @@
 // today's count against the daily limit; the last list shown; the next steps in an order fixed here; what Trainee can do
 // right now (career_capabilities.ts); and the sources that could not be read, which are never guessed.
 // Read only. The model explains it; it never decides a state.
-import { dailyLimit } from "./career_apply.ts";
+import { COUNTED_STATES, dailyLimit } from "./career_apply.ts";
 import { sameCompany } from "./career_mail.ts";
 import { type Capability, capabilitiesFrom, type Connection } from "./career_capabilities.ts";
 
@@ -38,7 +38,7 @@ export interface SituationRows {
 
 const DAY = 86400000;
 const ACTIVE = new Set(["queued", "driving", "needs_user"]);
-const COUNTED = new Set(["queued", "driving", "confirmed", "submitted_unconfirmed", "needs_user", "unknown_outcome"]);
+const COUNTED = COUNTED_STATES; // one list with the queue and the database (G3)
 const NEEDS: Record<string, [string, string]> = {
   email_code: ["the employer emailed a code", "type the code from the employer's email on the application page in your browser, never in this chat"],
   captcha: ["a verification on the form", "finish it on the application page in your browser"],

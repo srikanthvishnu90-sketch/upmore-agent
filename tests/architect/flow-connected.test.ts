@@ -181,8 +181,13 @@ Deno.test({
         const card = await person.rpc("career_apply_card_open_own", { p_ids: [saved.data.id] });
         const tap = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
         assertEquals(tap.data?.[0]?.result, "queued", JSON.stringify(tap));
-        // Not the person: the stored payload is altered underneath the approval (a corrupted or tampered row).
-        await pg.sql(`update public.career_apply_jobs set payload = jsonb_set(payload, '{fields,0,value}', '"Someone Else"') where user_id = '${PERSON}' and url like '%/second'`);
+        // Not the person: the stored payload is altered underneath the approval. G3: the database refuses the change...
+        const alter = `update public.career_apply_jobs set payload = jsonb_set(payload, '{fields,0,value}', '"Someone Else"') where user_id = '${PERSON}' and url like '%/second'`;
+        let refused = "";
+        try { await pg.sql(alter); } catch (e) { refused = String((e as Error).message); }
+        assert(/approval_fixed/.test(refused), `the database refuses the change: ${refused}`);
+        // ...and a row corrupted past every trigger (as a superuser restoring data could) is still never sent.
+        await pg.sql(`set session_replication_role = replica;\n${alter};\nset session_replication_role = origin;`);
         const queue = ownQueue(person);
         await runApproved({
           claim: () => queue.claim(1),
@@ -197,7 +202,7 @@ Deno.test({
         });
         assertEquals(other.posts.second, 0, "nothing reached the employer");
         const state = await pg.sql(`select state from public.career_apply_jobs where user_id = '${PERSON}' and url like '%/second'`);
-        assert(state === "not_submitted" || state === "queued", `state ${state}`);
+        assertEquals(state, "not_submitted", "closed as not sent by the claim (G3), before any drive");
         } finally {
           await other.close();
         }

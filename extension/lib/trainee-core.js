@@ -2628,14 +2628,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var MAX_DAILY = 50;
   var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
-  var COUNTED = /* @__PURE__ */ new Set([
+  var COUNTED_STATES = /* @__PURE__ */ new Set([
+    "queued",
+    "driving",
     "confirmed",
     "submitted_unconfirmed",
     "needs_user",
-    "submitting",
-    "queued",
-    "planned"
+    "unknown_outcome",
+    "planned",
+    "submitting"
   ]);
+  var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
   var dailyLimit = (l) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));
   function admitApplication(log, a, now, limits) {

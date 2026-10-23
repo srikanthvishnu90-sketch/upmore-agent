@@ -55,7 +55,7 @@ jobs:
           python3 - "$RUNNER_TEMP/report/evals/career/results" <<'PY'
           import json, os, sys
           d = sys.argv[1]; total = 0.0
-          for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+          for n in sorted(x for x in os.listdir(d) if x.endswith(".json")) if os.path.isdir(d) else []:
               r = json.load(open(os.path.join(d, n))); c = r["cost_usd"]["brain"] + r["cost_usd"]["judge"]; total += c
               print(f"{r['label']}: router {r.get('brain_root_commit')} · {r['passed']}/{r['total']} both-pass{' STOPPED (not a score)' if r.get('stopped') else ''} · ${c:.6f}")
           print(f"total ${total:.6f}")

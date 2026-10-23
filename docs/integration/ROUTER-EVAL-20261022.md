@@ -40,3 +40,44 @@ Job run 39891633497 completed 02:51:51 UTC; DONE marker set; no further paid run
 - **Manual equivalent, for a human only after a new approval:**
   1. `git worktree add /tmp/v248 cea914fe && git worktree add /tmp/cand 373453f3`
   2. Then for each run: `OPENAI_API_KEY=… EVAL_JUDGE_MODEL=gpt-5-mini EVAL_JUDGE_MODEL_2=gpt-4.1-mini deno run -A evals/career/run.ts --brain router --set heldout --exclude-file evals/career/heldout-burned.json --brain-root /tmp/<v248|cand> --brain-commit <sha> --budget-usd <cap> --label rba-<run>`
+
+## Result and failure causes (2026-10-23, architect)
+**Scores:** v248 (cea914fe) 14/30 and 15/30; candidate (373453f3) 16/30 and 15/30, all both-pass. **Spend:** $0.050843 of the $5 approval. **Release held** (parent, 2026-10-23): the 95% bar is unchanged and nothing deploys.
+
+**The router is deterministic: each configuration gave the same reply text in both of its runs.** Comparing reply text:
+- 23 of 30 items give the same text in v248 and the candidate.
+- 7 changed (H003, H005, H008, H009, H010, H011, H012). Only two of those changed the outcome: H012 (batch status, F-002) went from fail/fail to pass/pass, and H003 went from 1/2 to 2/2.
+- **Judges flipped on identical text.** H004: the same reply failed 0/2 under v248 and passed 2/2 under the candidate. H006 and H029 also flipped. Part of the measured gap is judge noise, not router behaviour.
+
+**Causes of the candidate's failures (run 1, 14 failing):**
+
+| Cause | Items | Share |
+|---|---|---|
+| The generic fallback "I didn't catch that…" (no route; the phrase is banned) | H001, H006, H013, H014, H027, H031, H034, H035, H036 | 9 |
+| Mock interview flow: a skip reads as ending the mock; the debrief gives no concrete improvement on the actual answer | H010, H011 | 2 |
+| Record capture: a company stated in an earlier turn is not on the record; the watch needs a profile, with an end-state mismatch | H037, H007 | 2 |
+| Acknowledgement too minimal (the judges split) | H002 | 1 |
+
+In all, 12 of 30 final candidate replies are the generic fallback. 2 of those still passed, because the phrase isn't banned on those items.
+
+**Fixes:**
+- **Architect:**
+  - Route the fallback families to the modules that already exist:
+    - greeting and self-introduction (130);
+    - off-topic refusal;
+    - "nothing goes without my yes" (safety answer);
+    - application status / none attempted (126);
+    - interview prep plan (127);
+    - submission field walkthrough;
+    - resume on file;
+    - career change paths (134);
+    - field + location search (121);
+    - onboarding needs (130).
+  - Replace the fallback text: an introduction plus one question, and never the banned phrase.
+  - Measurement: pin judge sampling where the API allows it, otherwise score each item k-of-n, before the next paid claim.
+- **Muse:**
+  - 127 mock interview: a skip moves to the next question and the mock stays open; the debrief names one concrete improvement on the answer given.
+  - The record keeps a company stated in an earlier turn (H037).
+  - The watch-needs-profile end state (H007).
+
+**Eval-set integrity:** the clean-30 cases were read and used to diagnose these failures, so they are now contaminated for measurement. **The next quality claim needs a fresh held-out set** that the builders have not seen. Re-running these 30 proves nothing. Spend: the rest of the $5 is not a grant. Any further paid run needs the remaining-cap fix (this branch) verified, and a fresh approval.

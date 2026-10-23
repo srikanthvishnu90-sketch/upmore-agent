@@ -62,10 +62,11 @@ jobs:
             [ "$spent" = "UNKNOWN" ] && { echo "STOP before $run: the recorded total is unknown"; break; }
             ok=$(deno eval "console.log($spent + $RESERVE_USD <= $CAP_USD ? 'yes' : 'no')")
             [ "$ok" = yes ] || { echo "STOP before $run: \$$spent spent + \$$RESERVE_USD reserve would pass the \$$CAP_USD cap"; break; }
+            remaining=$(deno eval "console.log(($CAP_USD - $spent).toFixed(4))")   # the remainder, never the full cap
             root="$RUNNER_TEMP/${run%%-*}"; commit=$( [ "${run%%-*}" = v248 ] && echo cea914fe || echo 373453f3 )
             echo "== $run (router from $commit) · spent so far \$$spent"
             deno run -A evals/career/run.ts --brain router --set heldout --exclude-file evals/career/heldout-burned.json \
-              --brain-root "$root" --brain-commit "$commit" --budget-usd "$CAP_USD" --label "rba-$run-${{ github.run_id }}" \
+              --brain-root "$root" --brain-commit "$commit" --budget-usd "$remaining" --label "rba-$run-${{ github.run_id }}" \
               | tee "$RUNNER_TEMP/$run.txt" || { echo "run $run did not finish as a score (exit $?)"; }
           done
           echo "TOTAL spent: \$$(tally)"

@@ -20,7 +20,14 @@
 ## Spend ledger
 | When (UTC) | What | Cost | Running total of $5 |
 |---|---|---|---|
-| (filled from `ci/router-before-after` `REPORT.txt` once the run completes) | | | |
+| 02:49:22–02:51:47 | v248-r1 (cea914fe) 14/30 | $0.012409 | $0.012409 |
+| | cand-r1 (373453f3) 16/30 | $0.013032 | $0.025441 |
+| | v248-r2 (cea914fe) 15/30 (1 judge error, counted as a fail) | $0.012546 | $0.037987 |
+| | cand-r2 (373453f3) 15/30 | $0.012856 | **$0.050843** |
+
+Job run 39891633497 completed 02:51:51 UTC; DONE marker set; no further paid run exists or is queued.
+
+**Cap review (2026-10-23):** each run received `--budget-usd 5`, the full cap rather than the remainder. `run.ts` counts every restored result file as `spent_before` (recorded: 0, 0.0124, 0.0254, 0.0380), so its stop already applied to the aggregate total, and the worst case was bounded at $5. The workflow now passes the remainder explicitly ($5 minus the recorded total) so the guarantee does not depend on that. This change is on `arch/eval-cap-remaining`, not on the triggering branch, so it starts nothing.
 
 ## Fallback executor (if the architect's session stops mid-run)
 - **The job runs in GitHub Actions, not in this session.** A stopped session does not stop it; the results and `REPORT.txt` land on `ci/router-before-after`.

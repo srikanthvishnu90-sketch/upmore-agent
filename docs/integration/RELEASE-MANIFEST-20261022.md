@@ -8,6 +8,11 @@
 - The candidate is agent-chat in router mode (`CAREER_BRAIN` unset), plus telegram-inbound and whatsapp-inbound from the frozen SHA.
 - Live schema read 2026-10-22 ~23:40 UTC. Live has no migration ledger.
 
+## Release pins in the candidate (trunk 373453f3, CI 39881310598)
+- `AGENT_BRAIN_RELEASED = false` (career_brain.ts): agent-chat cannot select the agent brain whatever `CAREER_BRAIN` holds; enabling is a reviewed code change.
+- `CAREER_PDL` defaults OFF (career_hired.ts): a `PDL_API_KEY` alone makes no provider request.
+- Tested by `tests/architect/release-pins-20261022.test.ts` (3/3, fail-first).
+
 ## APPLY (needed by the candidate's code: it calls a table or RPC that is missing live)
 | # | File | Effect | Why the candidate needs it | Rows after deploy / rollback |
 |---|---|---|---|---|
@@ -32,7 +37,7 @@
 - **20261024110000_career_apply_cloud_ask:** a needs_answers field becomes a question row (ask, never guess). Live rows: 0.
 - **20261024120000_career_apply_cloud_gate_waiver:** a cloud-gate waiver for one named person and portal. **A submit-path effect that is already live.** Live rows: 0. Nothing tonight adds a waiver.
 
-## HELD (not applied; reasons in the architect's review)
+## EXCLUDED FOR THEIR OWN EFFECTS (not applied; no approval pending; the candidate does not need them)
 - **20261024130000_career_apply_card_cloud_bridge:** cloud submit authorization; a real-account enrollment (widens the audience); rewrites the shared claim and begin functions. Outside the approved feature.
 - **20261021220430_career_apply_message_cards:** TEST-only tap cards. Held until a PG16 run proves its `career_apply_jobs` trigger leaves the extension and cloud routes unchanged.
 

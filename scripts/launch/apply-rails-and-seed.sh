@@ -63,6 +63,9 @@ run_ordered_migration_groups() {
   done
   if (( ${#group[@]} )); then run_legacy_migration_group "$ledger" "${group[@]}"; fi
 }
+# The bridge and the one ledger replace the same two claim functions; whichever ran last decides them. After every apply,
+# the two are reconciled and the run stops unless every claim guard is in place (scripts/launch/verify-claim-guards.sql).
+verify_claim_guards() { echo "== claim guards"; "${P[@]}" -f scripts/launch/verify-claim-guards.sql; }
 # --pending (the default for every run after the first go-live): a ledger table records each applied file, and only the
 # files missing from it are applied, in ONE transaction, each with its ledger row. A re-run with nothing new applies
 # nothing. The first time, the ledger is backfilled with every file up to BASELINE, the last file the 2026-10-11 19:01 UTC
@@ -92,6 +95,7 @@ if [[ "${1:-}" == "--pending" ]]; then
     echo "== pending migrations, one transaction: ${names[*]}"
     "${P[@]}" --single-transaction "${args[@]}"
   fi
+  verify_claim_guards
   echo "== applied ${#names[@]}"
   exit 0
 fi
@@ -108,6 +112,7 @@ if [[ "${1:-}" == "--all" ]]; then
     echo "== all pending migrations, one transaction: $(( ${#files[@]} / 2 )) files"
     psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 --single-transaction "${files[@]}"
   fi
+  P=(psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1); verify_claim_guards
   for ((i = 1; i < ${#files[@]}; i += 2)); do sha256sum "${files[$i]}"; done
   run scripts/launch/seed-gauntlet-test-user.sql
   echo "== proof (read-only, rolled back)"

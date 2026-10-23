@@ -145,11 +145,11 @@ begin
  -- to a payload that hashes to its new approval (career_apply_email_reserve_for's fresh yes).
  if new.user_id is distinct from old.user_id or new.job_id is distinct from old.job_id or new.company is distinct from old.company
   or new.url is distinct from old.url then
-  raise exception 'approval_fixed: an application''s person, posting, company and link never change'; end if;
+  raise exception 'approval_fixed: an application''s person, posting, company and link are immutable'; end if;
  if (new.payload is distinct from old.payload or new.payload_hash is distinct from old.payload_hash or new.approval_hash is distinct from old.approval_hash)
   and (old.state <> 'not_submitted' or new.payload_hash is distinct from public.career_apply_payload_hash(new.payload)
    or new.approval_hash is distinct from new.payload_hash) then
-  raise exception 'approval_fixed: an approved application changes only by a new approval of one that was not sent'; end if;
+  raise exception 'approval_fixed: an approved application is immutable but for a new approval of one that was not sent'; end if;
  return new;
 end $$;
 

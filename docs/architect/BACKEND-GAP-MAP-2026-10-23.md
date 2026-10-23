@@ -44,6 +44,16 @@ in-memory queue or mock RPC. No test takes one person from chat-confirmed facts 
 enqueue, claim and the click on a page, to the recorded result and the receipt, on a real Postgres. Until one does,
 "working connected flow" cannot be shown, and every fix below is measured by it.
 
+**Status 2026-10-23: closed by `tests/architect/flow-connected.test.ts`** (harness `tests/flow/`):
+- **What it drives.** One application through the D-014 stack on a real Postgres (CI's migration order), with a
+  sandboxed browser and the real engine: prepare, card, the person's own tap, claim, drive, recorded outcome.
+- **The attestation gate.** A certification posting stops at the gate: asked of the person, never prepared or sent.
+- **Negative control.** A payload altered after approval is not sent.
+- **Not vacuous.** Two planted defects each fail it.
+- **Defect it found.** With the worker's own payload check removed, the altered application reached the employer.
+  Neither `career_apply_claim_own` nor the engine re-verifies the stored payload against `payload_hash`, so the worker
+  check is a single layer (folded into G3).
+
 ### G2. The executor's inputs have no product writer (MISSING)
 
 What the executor needs that nothing writes:
@@ -65,7 +75,11 @@ The tests pass only on hand-made profiles. A real person's application stops at 
   cap and the 30-day company rule do not hold across paths.
 - **Confirmation IDs (D-024):** `career_apply_jobs.confirmation_id` has no uniqueness constraint, so two employers can
   share one ID.
-- **Old-stack arming:** the old stack can still arm a real Greenhouse click through module 150 after an exact
+- **Payload not re-verified:** the claim does not recompute the payload's hash, and the engine sent an altered payload
+  once the worker check was removed (found by G1). The database should refuse to claim a row whose payload no longer
+  hashes to its approval.
+- **Old-stack arming (owner priority, 2026-10-23):** this needs a fail-closed gate in code, built without changing
+  account settings or broadening permissions. The old stack can still arm a real Greenhouse click through module 150 after an exact
   "Approve batch <id>" and a matching card hash.
 
 ### G4. Nothing is prepared before the person asks (D-011, MISSING)
@@ -105,7 +119,9 @@ coordinator.
 ### G8. Deploy readiness
 
 - Production is `agent-chat` v249, whose lineage relative to trunk is unrecorded (D-026, WO-093 provenance unrun).
-- There is no database migration ledger to diff against.
+- The migration ledger (`upmore_migration_ledger`, read 2026-10-23) records 72 files, only 3 of them from 10-19 or
+  later, although the live schema holds the 10-20 to 10-24 apply tables. Those were applied outside the ledger, so a
+  `--pending` run would try to replay about 40 files.
 - The cloud bridge migration is a draft.
 - Paid-eval safety (`arch/eval-cap-remaining` a248c291, `arch/paid-workflow-disable` 70418b2f) is on side branches;
   the 7 paid workflows are enabled.

@@ -78,8 +78,10 @@ The tests pass only on hand-made profiles. A real person's application stops at 
 - **Payload not re-verified:** the claim does not recompute the payload's hash, and the engine sent an altered payload
   once the worker check was removed (found by G1). The database should refuse to claim a row whose payload no longer
   hashes to its approval.
-- **Old-stack arming (owner priority, 2026-10-23):** this needs a fail-closed gate in code, built without changing
-  account settings or broadening permissions. The old stack can still arm a real Greenhouse click through module 150 after an exact
+- **Old-stack arming (owner priority, 2026-10-23): closed by G3a.** Module 150's browser board, the old stack's only
+  real-browser submit, now arms and clicks only on `localhost` / `127.0.0.1`. A real employer host is refused before
+  any browser command, with no switch; no permission or setting was changed. Before the gate, the old stack could
+  arm a real Greenhouse click through module 150 after an exact
   "Approve batch <id>" and a matching card hash.
 
 ### G4. Nothing is prepared before the person asks (D-011, MISSING)

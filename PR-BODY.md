@@ -1,5 +1,54 @@
 # Captured-form coverage for the forms-ci captures that had no pinned record — Greenhouse + Lever
 
+## Corrections (2026-10-23) — on top of the measurement record below
+
+The original push (`d8f64405`) stands as the measurement record; the four
+coordinator-gated corrections below land as new commits on top and **supersede the
+original summaries where they differ**:
+
+1. **All 97 mapped-not-filled fields reconciled per field** (fixture:
+   `expectation.reconciliation` — exact name, label, status from the captured
+   schema, widget class, attempted value, the executor's outcome, its own reason;
+   no bulk labeling). Composition by status class: **required 45 ·
+   required-conditional 13 · optional 32 · core-contact 7**. By reason: 75
+   custom-select non-persistence (unverified-against-live), 19 native-select
+   placeholder-policy non-fills, 3 `DRIVER_ERROR`. The 97 are kept distinct from
+   the separate read-back axis (174 filled vs 167 read back exactly = 7
+   filled-but-not-exact fields, named in the doc).
+2. **Custom-select framing corrected.** The 75 react-select non-fills are no
+   longer described as a capture-replay limitation: on a stripped capture we
+   cannot know whether those selects are required in effect or would persist
+   live. Every affected field/record is labeled **unverified-against-live**; the
+   live comparison is **held, not scheduled**. Related measured finding, stated
+   with its limit: for the 19 Lever native `<select>` non-fills the only
+   attempted value was the placeholder first option under the drive's
+   first-option policy (one same-shaped Lever select filled, so the placeholder
+   alone does not determine the outcome).
+3. **Read-only safety test isolation fixed, fail-first.** Standalone
+   (`--test-name-pattern="read-only"`) on the pre-correction code: **0 pass / 1
+   fail** — the exact-set assertion failed on an empty command log because no
+   drive test had run in that process. The test now drives the smallest captured
+   form itself when no drive has run in-process, then judges that drive's logs;
+   standalone post-fix: **1/1 pass**. Assertions unchanged, including the
+   verbatim naming of offending requests/commands.
+4. **Blanket `claimable: true` dropped.** The coverage block carries sums only.
+   Claims are scoped: per-form claims (`capturedForms[].claim`, 11/11 claimable
+   with per-form bases) and per-widget-class claims (`widgetClassClaims`):
+   Greenhouse custom selects 75 mapped / 0 filled = **unverified-against-live**;
+   Lever native selects 20 mapped / 1 filled = partial; Greenhouse number inputs
+   partial (3 × `DRIVER_ERROR`); Lever checkbox group partial (pronouns read-back
+   exceptions); the remaining classes covered. The gate now enforces the scoped
+   shape (reconciliation completeness, the unverified label, tally equality,
+   absence of the blanket flag) with unit cases for each tamper.
+
+Derivation note: statuses/widget classes come from the captured schema artifacts
+plus a discover-only re-run of the machinery over the same captures (no fills, no
+new captures, no live contact), which reproduced the pin's mapped counts exactly
+on all 11 forms. A VM replacement mid-corrections wiped the first derivation's
+/tmp scratch; the re-run from durable copies is the derivation of record.
+
+---
+
 The 17 application forms captured in `tests/fixtures/forms-ci/` (2026-10-19 CI capture)
 now all carry pinned captured-form coverage records: the 6 Ashby forms were pinned by
 the Ashby verdict pack, and this branch pins the remaining 11 (5 Greenhouse + 6 Lever)
@@ -32,9 +81,10 @@ pinned as a test).
 
 ## Measured findings (from the pin)
 
-- Greenhouse maps everything discovered (139/139) but fills 61/139 — the dominant
-  non-fill outcome is `value_did_not_persist` on JS-widget selects/typeaheads over
-  the script-stripped captures. Everything it filled read back exactly (61/61).
+- Greenhouse maps everything discovered (139/139) but fills 61/139 — the non-fill
+  outcomes are 75 react-select non-persistence (**unverified-against-live**, see
+  the corrections section above — not a capture-replay claim) and 3 `DRIVER_ERROR`
+  year inputs. Everything it filled read back exactly (61/61).
 - Lever's binder maps 132/259 discovered (the two largest forms map 28 each) and
   fills 113/132; 7 filled values did not read back exactly (pronouns ×2, card fields
   ×3, survey responses ×2), pinned per field.

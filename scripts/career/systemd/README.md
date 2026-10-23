@@ -106,3 +106,42 @@ post-replacement state.
 - Per the convention above, a heal recreates the units, so treat any
   clean-48h measurement as restarting from the heal; the watchdog's
   report-back wake says so each time.
+
+## Measurement board host (added 2026-10-23)
+
+`upmore-career-board-measure.service` (this directory) is the unit
+source for a MEASUREMENT-ONLY board host: it runs the submit-disabled
+variant `workers/career-browser/board-service-measure.cjs`, in which
+every fill / answers / atReview / armForSubmit / submit /
+submissionState call is denied in code
+(`MEASURE_HOST_METHOD_DISABLED`) and session boards are wrapped in a
+facade that does not expose those methods at all. It exists so a
+worker host can be restored for form mapping and evidence capture
+without restoring a live submit path; the recovery decision and its
+options are recorded in `docs/engine/RECOVERY-OPTIONS-2026-10-23.md`.
+
+Construction facts the install must preserve:
+
+- The unit declares `User=trainee-measure`, a dedicated unprivileged
+  service user. Creating it is a host step for the owner's approval
+  moment, never part of a repo change:
+  `sudo useradd --system --no-create-home --shell /usr/sbin/nologin trainee-measure`
+- The unit declares NO `EnvironmentFile` and its `Environment=` set
+  contains no production-database variable. The executor's env file
+  (`/home/hatch/worker-config/executor.env`, root-owned mode 600) is
+  thereby unreadable to the service: `trainee-measure` is neither
+  root nor in its group.
+- The variant's operator config is its own module,
+  `/home/hatch/worker-config/board-measure-config.cjs` (board API
+  secret + family verdicts only; bind port 8473), owned
+  `root:trainee-measure` mode 640.
+- The egress relay (`upmore-egress-relay.service`, from the
+  worker-restore kit's unit templates) is restored unchanged
+  alongside it; the relay holds no credentials. The executor service
+  and timer, the alerts units, and the production board service are
+  NOT part of a measurement-host restore.
+- The worker-restore kit does not restore this shape: its dry run
+  counts the executor units as required, so a measurement-only host
+  reads DEGRADED to the kit by design. Leave the kit (and the F8
+  watchdog) off unless the owner separately approves otherwise.
+

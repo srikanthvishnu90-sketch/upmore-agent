@@ -19691,7 +19691,8 @@ const CareerRouter = (() => {
         || (pthB.lastQ && /\bmy (answer|approach|take)\b|\bcritique\b|\bfeedback\b|\bhow'?s (that|this|it)\b|\bscore (it|that|this|me)\b|\bgrade (it|that|this|me)\b/.test(tnB));
       if (sessionShape) { const ps = handlePrepSession(text, c); if (ps) return ps; }
     }
-    if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
+    const practiceAsk = /\b(?:can|could|may|shall)\s+(?:we|i|you)\b[^.?]*\bpractic(?:e|ing)\b(?!\s+(?:law|medicine|nursing|dentistry|in)\b)|\blet'?s\s+(?:do\s+(?:a|some)\s+)?practic(?:e|ing)\b|\bwhat (?:else )?should i (?:practice|work on|drill)\b|\bpractice question\b|\b(?:another|one more)\s+(?:practice\s+)?question\b/.test(t);
+    if (practiceAsk || /\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
       const ps = handlePrepSession(text, c);
       if (ps) return ps;
       const pq = handlePrepQuestion(text, c);

@@ -9834,7 +9834,12 @@ const CareerRouter = (() => {
     }
     // COMPLEXITY WAVE (BUG-173): single-question and night-before
     // prep asks route on their own shapes, ahead of the extras gate.
-    if (/\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
+    // 2026-10-23 (coordinator probe): a practice REQUEST asked politely or as a question ("can we do a practice
+    // question?", "can we practice?", "what else should I practice?", "let's practice") reaches the same owners as the
+    // imperative "give me a practice question". "Practice" as a noun or a profession ("best practices", "a law
+    // practice", "practice law") is not a request.
+    const practiceAsk = /\b(?:can|could|may|shall)\s+(?:we|i|you)\b[^.?]*\bpractic(?:e|ing)\b(?!\s+(?:law|medicine|nursing|dentistry|in)\b)|\blet'?s\s+(?:do\s+(?:a|some)\s+)?practic(?:e|ing)\b|\bwhat (?:else )?should i (?:practice|work on|drill)\b|\bpractice question\b|\b(?:another|one more)\s+(?:practice\s+)?question\b/.test(t);
+    if (practiceAsk || /\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
       const ps = handlePrepSession(text, c);
       if (ps) return ps;
       const pq = handlePrepQuestion(text, c);

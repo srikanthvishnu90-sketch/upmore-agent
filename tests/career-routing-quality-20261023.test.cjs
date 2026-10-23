@@ -68,3 +68,27 @@ test("(c) 'I want to becme a data analyst' reads as become", () => {
 test("(c) control: 'became' is a real word and is never rewritten", () => {
   assert.equal(D("142-career-router.js").detypo("I became a nurse last year"), "I became a nurse last year");
 });
+
+// (d) Coordinator probe on a48b1a9d: a practice request asked politely or as a question fell back after a prep brief,
+//     while the imperative "give me a practice question" reached the practice owner.
+function afterBrief(q) {
+  n += 1; const th = `prac-${n}`; let snap = null, out = null;
+  for (const text of ["help me prepare for my interview with a hospital", q]) {
+    const ctx = host.createTurnCtx({ userId: th, threadId: th, now: Date.parse("2026-10-23T15:00:00Z") + n * 1000, snapshot: snap, postings: [] });
+    out = host.runTurn(text, ctx); snap = host.extractSnapshot(ctx);
+  }
+  return out;
+}
+for (const q of ["can we do a practice question?", "can we practice?", "what else should I practice?", "could you ask me another practice question?", "let's practice", "can I practice an answer with you?"]) {
+  test(`(d) "${q}" after a prep brief reaches the practice owner`, () => {
+    const o = afterBrief(q);
+    assert.ok(!isFallback(o), `${o.handler || "-"}/${o.intent || "-"}${o.contained ? " contained" : ""}`);
+    assert.match(String(o.reply), /question/i);
+  });
+}
+test("(d) control: 'practice' as a noun is not a practice request", () => {
+  for (const q of ["what are the best practices for a resume?", "I work at a small law practice"]) {
+    const r = String(ask(q).reply);
+    assert.ok(!/^Here is your question/.test(r), `${q} -> ${r.slice(0, 120)}`);
+  }
+});

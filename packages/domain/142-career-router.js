@@ -10404,6 +10404,25 @@ const CareerRouter = (() => {
         pushKeyed("interview_day", cleanCo(m[1]), m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase(), m[0]);
       } else if ((m = u.match(new RegExp(`\\bmy\\s+interview\\s+is\\s+on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
         pushKeyed("interview_day", turnCompany(), m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), m[0]);
+      } else if ((m = u.match(new RegExp(`\\binterview\\s+(?:at|with)\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
+        // ROUTER FIX 2: the same day in the other natural verb shape —
+        // "I have an interview at <Co> on <Day>" (no "is") is the same
+        // statement of the same fact and takes the same keyed slot.
+        pushKeyed("interview_day", cleanCo(m[1]), m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase(), m[0]);
+      }
+      // ROUTER FIX 2: the interview COMPANY itself. Before this frame
+      // the company reached the record only as the key of an
+      // interview_day fact — and only when a day was stated in one
+      // exact shape — so "I have an interview at <Co> next week" left
+      // the record with nothing about <Co> and every later recall
+      // answered the honest absence. A stated interview company is
+      // its own multi-value fact (kind "interview_company", value the
+      // company as stated): several interviews at several companies
+      // coexist, deduplicated by kind+value like every multi-value
+      // kind, and it rides the host's keyed carriage (it is not one
+      // of the account validator's SQL kinds).
+      if ((m = u.match(new RegExp(`\\b(?:[Mm]y\\s+interview\\s+is\\s+(?:at|with)|[Ii]nterview\\s+(?:at|with)|[Ii]nterviewing\\s+(?:at|with)|(?:[Ll]anded|[Gg]ot|[Hh]ave|[Ss]cheduled)\\s+an?\\s+interview\\s+(?:at|with))\\s+${CO}`))) && asserted(m.index)) {
+        push("interview_company", cleanCo(m[1]), m[0]);
       }
       // Recruiter contact: "my recruiter contact there is <Name>",
       // "my recruiter at <Co> is <Name>", "my recruiter is <Name>".
@@ -10540,6 +10559,18 @@ const CareerRouter = (() => {
       // LANE A v2: "my TOP target company is X" (the battery's plant
       // shape) missed every frame — the qualifier belongs in the frame.
       else if ((m = cl.match(/\b[Mm]y\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      // ROUTER FIX 2: the same target stated in its other natural
+      // assertion shapes — "my dream company is X", "the company I'm
+      // focused on is X", "the firm I care about most is X", and the
+      // inverted "X is the company I (most) want to work for" /
+      // "X is my dream company". Same kind, same proper-name span,
+      // same clause gate as the plain frame above; a target named
+      // any of these ways is the same fact on the record.
+      else if ((m = cl.match(/\b[Mm]y\s+dream\s+company\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii](?:'m| am)\s+focused\s+on\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii]\s+care\s+about\s+(?:the\s+)?most\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       // DEPTH LANE A: exclusivity and too-senior frames ("analysts
@@ -10558,6 +10589,17 @@ const CareerRouter = (() => {
       // DEPTH LANE A: "I worked a warehouse job last summer" — the
       // job-noun frame carries the experience without an "at".
       else if ((m = cl.match(/\bi\s+worked\s+(?:a|an|the)\s+([a-z][a-z ]{1,36}?\b(?:job|role|gig|position|shift)\b)/i))) push("experience", m[1].trim(), m[0]);
+      // ROUTER FIX 2: the same work-at fact in the present tense.
+      // The frames above are past-tense only ("I interned/worked
+      // at X"), so "I work at X", "I intern at X", "I work for X"
+      // and "my (current) employer is X" recorded nothing and the
+      // employer was never on the record. Same kind, same value
+      // shape (the company as stated), proper-name span like the
+      // target frames — a lowercase descriptor ("a small startup")
+      // is not a company name and still records nothing here.
+      else if ((m = cl.match(/\b[Ii]\s+(?:work|intern)\s+at\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Ii]\s+work\s+for\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:current\s+)?employer\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
       if ((m = cl.match(/\bmake the tone\s+(casual|formal|warmer)\b/i)) || (m = cl.match(/\btone\s+(casual|formal|warmer)\s+from here\b/i))) push("tone", m[1].toLowerCase(), m[0]);
       // WO-095 (B-MEM-1) polarity: a negated statement is stored as
       // the negation. "I do not require sponsorship" used to be read
@@ -10751,7 +10793,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -11057,6 +11099,42 @@ const CareerRouter = (() => {
           return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
         }
       }
+    }
+    // (f) ROUTER FIX 2: the interview-company ask — "which company
+    // do I have an interview at?" — resolves from the interview
+    // companies the user stated (kind interview_company) and the
+    // companies keying the interview-day facts; stated by the user,
+    // never assumed. Nothing on record: the honest absence, in
+    // branch (b)'s shape.
+    if (/\binterview\b/.test(t) && /\b(which|what)\s+company\b/.test(t)) {
+      const cos = [];
+      for (const f of all) if (f.kind === "interview_company" && !cos.some((x) => lc(x) === lc(f.value))) cos.push(f.value);
+      for (const f of all) if (f.kind === "interview_day" && f.key && !cos.some((x) => lc(x) === lc(f.key))) cos.push(f.key);
+      if (!cos.length) {
+        const reply = compose({ headline: "No interview company is on your record yet.", facts: ["You have not stated a company you are interviewing at — the record holds only what you state, and no company is assumed."], nextStep: "Tell me the company (\"I have an interview at ...\") and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const reply = compose({ headline: "From your record — the company as you stated it.", facts: cos.map((co) => `you have an interview at ${co}.`), nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    // (g) ROUTER FIX 2: the stated-company ask — "which company did
+    // I mention?", "what companies have I told you about?", "what
+    // company was that again?" — lists every company-bearing fact on
+    // the record in the record's own voice: the target firm, the
+    // interview companies, the work-at experience, and the facts
+    // keyed by a company. The shapes the branches above own (a named
+    // target, a contact, a day) have already answered; this branch
+    // is only the bare past-statement ask, and with no company on
+    // record it says exactly that.
+    if (/\b(which|what)\s+compan(y|ies)\b/.test(t) && /\b(did i|have i|i said|i mentioned|i told|was that|were those)\b/.test(t)) {
+      const coFacts = all.filter((f) => f.kind === "target_firm" || f.kind === "interview_company" || f.kind === "experience" || (f.key && ["recruiter_contact", "hiring_manager", "interview_day", "company_preference"].includes(f.kind)));
+      if (!coFacts.length) {
+        const reply = compose({ headline: "No company is on your record yet.", facts: ["You have not stated a company in this conversation — the record holds only what you state, and nothing is assumed to fill it."], nextStep: "State the company in your own words and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const lines = [...new Set(coFacts.map((f) => `${factLine(f)}.`))];
+      const reply = compose({ headline: "The companies on your record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
     }
     return null;
   }

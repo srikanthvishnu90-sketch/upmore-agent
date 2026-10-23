@@ -5,9 +5,10 @@ here is a capability claim beyond the tier it was measured at.
 
 ## Ashby — verdict
 
-- **Harness tier: PROVEN against captured forms.** The product's own browser executor maps,
+- **Harness tier: PROVEN — captured-form coverage only.** The product's own browser executor maps,
   fills, and reads back every mapped question on all six captured Ashby application forms
-  (87/87 questions filled and verified, 87/87 read back exactly). Suite:
+  (captured-form coverage: 87/87 questions filled and verified, 87/87 read back exactly —
+  measured on the captured forms only; this is not live driveability and not production quality). Suite:
   `tests/career-ashby-verdict-pack.test.cjs`, expectations pinned in
   `tests/fixtures/ashby-verdict-pack-expected.json`.
 - **Live tier: NOT LIVE-DRIVEABLE.** Measured 2026-10-23 via the board service:
@@ -54,7 +55,7 @@ which the binder correctly reads as one question each.
 | Snowflake | 21 | 20 | 16 | 14 | 16/16 | 16/16 |
 | Crusoe | 28 | 27 | 14 | 6 | 14/14 | 14/14 |
 | Harvey | 21 | 20 | 15 | 12 | 15/15 | 15/15 |
-| **Total** | | | **87** | | **87/87** | **87/87** |
+| **Total (captured-form coverage)** | | | **87** | | **87/87** | **87/87** |
 
 Question types across the pack: text, email, tel, textarea, checkboxes, radio groups,
 and file inputs. Every form requires a

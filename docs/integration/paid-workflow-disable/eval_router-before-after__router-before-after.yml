@@ -1,0 +1,91 @@
+# DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit.
+# Router before/after (2026-10-22, owner's $5 approval 21:43 CDT, relayed): v248's router (cea914fe) vs the candidate's
+# router (373453f3) on the held-out set minus the 8 burned items (evals/career/heldout-burned.json): 30 items, the same
+# harness (this tree's evals/career/run.ts with --brain-root), the same two judges (gpt-5-mini + gpt-4.1-mini, an item
+# passes only when both pass it), two passes per config, four runs at most, in sequence. This measures; it waives nothing
+# and deploys nothing.
+# Spend: a hard $5 TOTAL across every run this workflow ever makes. Earlier runs' result files are restored from
+# ci/router-before-after before anything starts; a run starts only if the recorded total is known (every result file
+# carries a numeric cost) and the total plus one run's reserve stays under $5; each run also gets --budget-usd 5, so the
+# runner stops before the item that would cross it. A DONE marker on ci/router-before-after refuses any rerun.
+name: router-before-after
+on:
+  push:
+    branches: [eval/router-before-after]
+    paths: [.github/workflows/router-before-after.yml]
+permissions:
+  contents: write
+concurrency: { group: router-before-after, cancel-in-progress: false }
+jobs:
+  compare:
+    if: ${{ false }}  # DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
+      CAP_USD: "5"
+      RESERVE_USD: "0.60"
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Restore earlier spend; refuse a rerun
+        run: |
+          mkdir -p evals/career/results
+          if git fetch -q origin ci/router-before-after 2>/dev/null; then
+            git show origin/ci/router-before-after:evals/career/router-before-after/DONE >/dev/null 2>&1 && { echo "REFUSED: this comparison already ran (DONE on ci/router-before-after)"; exit 4; }
+            git archive origin/ci/router-before-after evals/career/results | tar -x
+          fi
+          ls evals/career/results | sed 's/^/prior: /' || true
+      - name: The two router checkouts
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/v248" cea914fe
+          git worktree add --detach "$RUNNER_TEMP/cand" 373453f3
+      - name: Four runs in sequence under the $5 total
+        run: |
+          set -u
+          tally() { deno eval '
+            let t = 0, bad = 0;
+            for (const e of Deno.readDirSync("evals/career/results")) {
+              if (!e.name.endsWith(".json")) continue;
+              const r = JSON.parse(Deno.readTextFileSync("evals/career/results/" + e.name));
+              const b = Number(r.cost_usd?.brain), j = Number(r.cost_usd?.judge);
+              if (!Number.isFinite(b) || !Number.isFinite(j) || (r.unpriced_calls ?? 0) > 0) bad++; else t += b + j;
+            }
+            console.log(bad ? "UNKNOWN" : t.toFixed(4));'; }
+          for run in v248-r1 cand-r1 v248-r2 cand-r2; do
+            spent=$(tally)
+            [ "$spent" = "UNKNOWN" ] && { echo "STOP before $run: the recorded total is unknown"; break; }
+            ok=$(deno eval "console.log($spent + $RESERVE_USD <= $CAP_USD ? 'yes' : 'no')")
+            [ "$ok" = yes ] || { echo "STOP before $run: \$$spent spent + \$$RESERVE_USD reserve would pass the \$$CAP_USD cap"; break; }
+            root="$RUNNER_TEMP/${run%%-*}"; commit=$( [ "${run%%-*}" = v248 ] && echo cea914fe || echo 373453f3 )
+            echo "== $run (router from $commit) · spent so far \$$spent"
+            deno run -A evals/career/run.ts --brain router --set heldout --exclude-file evals/career/heldout-burned.json \
+              --brain-root "$root" --brain-commit "$commit" --budget-usd "$CAP_USD" --label "rba-$run-${{ github.run_id }}" \
+              | tee "$RUNNER_TEMP/$run.txt" || { echo "run $run did not finish as a score (exit $?)"; }
+          done
+          echo "TOTAL spent: \$$(tally)"
+      - name: Report
+        if: always()
+        run: |
+          deno eval '
+            const rows = [];
+            for (const e of Deno.readDirSync("evals/career/results")) if (e.name.startsWith("rba-")) rows.push(JSON.parse(Deno.readTextFileSync("evals/career/results/" + e.name)));
+            rows.sort((a, b) => a.label.localeCompare(b.label));
+            let total = 0;
+            for (const r of rows) { const c = r.cost_usd.brain + r.cost_usd.judge; total += c;
+              console.log(`${r.label}: router ${r.brain_root_commit} · ${r.passed}/${r.total} both-pass (${(r.pass_rate * 100).toFixed(1)}%)${r.stopped ? " STOPPED (not a score)" : ""} · $${c.toFixed(3)}`); }
+            console.log(`total $${total.toFixed(3)} of $5`);' | tee "$RUNNER_TEMP/report.txt"
+      - name: Commit results and the DONE marker
+        if: always()
+        run: |
+          mkdir -p evals/career/router-before-after && cp "$RUNNER_TEMP/report.txt" evals/career/router-before-after/REPORT.txt && date -u > evals/career/router-before-after/DONE
+          git config user.name "router-before-after[ci]"; git config user.email "router-before-after@users.noreply.github.com"
+          git checkout -q -B ci/router-before-after
+          git add -f evals/career/results evals/career/router-before-after && git commit -qm "router before/after: results (run ${{ github.run_id }})" && git push -f origin ci/router-before-after

@@ -1,0 +1,97 @@
+# DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit.
+# Owner-funded one-pass measurement. No deploy, router re-run, rejudge, or automatic repeat.
+name: brain-reliability-one
+on:
+  push:
+    branches: [ci/brain-reliability-one-20261021]
+    paths: [.github/workflows/brain-reliability-one.yml]
+permissions:
+  contents: read
+concurrency:
+  group: brain-eval
+  cancel-in-progress: false
+jobs:
+  measure:
+    if: ${{ false }}  # DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SOURCE_COMMIT: c59f242051ad99d954447fd24a94bf94035e4a47
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
+      # $1 reserved by the owner against the NEW shared $35 working / $40 hard-stop budget.
+      # Prior $15 is outside that new budget. This checkout has no prior result files.
+      EVAL_BUDGET_USD: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
+          fetch-depth: 1
+      - uses: denoland/setup-deno@v2
+        with: {deno-version: "v2.9.6"}
+      - name: Check source, fixture metadata and credentials without displaying sealed cases
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test -n "$OPENAI_API_KEY"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          data=pathlib.Path("evals/career/heldout-live.json").read_bytes()
+          cases=json.loads(data)["items"]
+          assert len(cases)==38, "Held-out set size changed; stop rather than compare different sets"
+          prior=list(pathlib.Path("evals/career/results").glob("*.json"))
+          assert not prior, "Unexpected prior results; reconcile the ledger before spending"
+          meta={"source_commit":os.environ["SOURCE_COMMIT"],"set":"heldout-live","items":len(cases),
+                "set_sha256":hashlib.sha256(data).hexdigest(),"reserved_usd":1,"expected_usd":[0.15,0.30],
+                "other_builders_reported_spend_usd":0,"other_builders_reported_reserved_usd":0}
+          pathlib.Path(os.environ["RUNNER_TEMP"],"source-metadata.json").write_text(json.dumps(meta,indent=2))
+          print(json.dumps(meta))
+          PY
+      - name: Run the new local regressions with network denied
+        run: deno test --no-check --deny-net --no-prompt tests/architect/brain-reliability-completeness.test.ts
+      - name: ONE full held-out agent pass, both CI judges
+        run: |
+          deno run -A evals/career/run.ts --brain agent --set heldout --budget-usd 1 --label "brain-reliability-${{ github.run_id }}" > "$RUNNER_TEMP/measurement.log" 2>&1
+      - name: Record aggregate score and exact metered cost; never display sealed cases
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib
+          label="brain-reliability-${{ github.run_id }}"
+          p=pathlib.Path("evals/career/results",label+".json")
+          if not p.exists():
+              print("NOT_RUN: no completed result artifact; inspect the saved diagnostic log")
+              raise SystemExit(1)
+          r=json.loads(p.read_text())
+          errors=any(str(x.get("note","")).startswith("judge error") or
+                     any(str(j.get("note","")).startswith("judge error") for j in x.get("judges",[]))
+                     for x in r.get("items",[]))
+          complete=not r.get("stopped") and r["total"]==r["planned"]==38 and not errors
+          cost=sum(r["cost_usd"].values())
+          burned=set(json.loads(pathlib.Path("evals/career/heldout-burned.json").read_text())["items"])
+          clean=[x for x in r["items"] if x["id"] not in burned]
+          ledger={"label":label,"source_commit":os.environ["SOURCE_COMMIT"],"set":r["set"],
+                  "models":[r["model"],r["judge_model"],r.get("judge_model_2")],
+                  "status":"MEASURED" if complete else "NOT_A_SCORE","passed":r["passed"],"total":r["total"],
+                  "planned":r["planned"],"pass_rate":r["pass_rate"],"stopped":r.get("stopped"),
+                  "clean_passed":sum(x["pass"] for x in clean),"clean_total":len(clean),
+                  "clean_pass_rate":sum(x["pass"] for x in clean)/len(clean),
+                  "cost_usd":r["cost_usd"],"exact_metered_usd":cost,"new_budget_cumulative_reported_usd":cost,
+                  "unpriced_calls":r.get("unpriced_calls",0),"independent_adjudication":"PENDING"}
+          pathlib.Path(os.environ["RUNNER_TEMP"],"run-ledger.json").write_text(json.dumps(ledger,indent=2))
+          print(json.dumps(ledger,indent=2))
+          assert not r.get("unpriced_calls",0), "Unpriced calls require reconciliation"
+          assert cost<=1, "Reserved allocation exceeded"
+          assert complete, "An incomplete pass or judge error is not a score"
+          PY
+      - name: Preserve full evidence for the independent judge and coordinator
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brain-reliability-${{ github.run_id }}
+          path: |
+            evals/career/results/brain-reliability-${{ github.run_id }}.json
+            ${{ runner.temp }}/source-metadata.json
+            ${{ runner.temp }}/run-ledger.json
+            ${{ runner.temp }}/measurement.log

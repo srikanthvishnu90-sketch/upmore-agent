@@ -118,6 +118,7 @@ edge_tests=(
   tests/edge/career-backlog-alerts.test.ts
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
+  tests/paid-workflow-disable.test.ts
   tests/edge/career-ask-once.test.ts
   tests/edge/control-state.test.ts
   tests/edge/fact-quarantine.test.ts

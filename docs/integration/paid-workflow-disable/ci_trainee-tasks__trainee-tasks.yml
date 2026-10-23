@@ -1,0 +1,72 @@
+# DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit.
+# WO-065 (real-world testing): the jobs a person hires Trainee for (evals/career/tasks-live.json), sent to both brains
+# against a LIVE shelf of today's postings from public board APIs, graded by code checks and the model judge.
+# Needs the repository secret OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it the run prints NOT RUN and
+# fails: a score is never faked. Spend: $15 in total across every result file on this branch (EVAL_BUDGET_USD); each
+# runner counts what is recorded in evals/career/results/ and stops before the task that would cross it.
+# On a push to ci/trainee-tasks (dispatch is not available to the session's integration). The results commit made with
+# GITHUB_TOKEN does not trigger another run.
+# Owner, 2026-10-20: every run asks the same fixed task set (evals/career/tasks-fixed.json: the shelf keeps its postings,
+# and each result records the hash of the fills it used), and every pass rate is printed with the judge-noise band from
+# the judge's calibration (evals/career/judge-calibration.json; held-out runs 7-8). The calibration runs once per judge.
+name: trainee-tasks
+on:
+  push:
+    branches: [ci/trainee-tasks]
+    paths:
+      - .github/workflows/trainee-tasks.yml
+      - evals/career/**
+      - supabase/functions/_shared/agent/**
+      - supabase/functions/agent-chat/career_brain.ts
+      # WO-073: the battery exercises search and the queue; their code reruns it.
+      - supabase/functions/_shared/career_*.ts
+permissions:
+  contents: write
+concurrency: { group: trainee-tasks, cancel-in-progress: false }
+jobs:
+  tasks:
+    if: ${{ false }}  # DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_BUDGET_USD: "15"
+      EVAL_JUDGE_VOTES: "3"
+      EVAL_JUDGE_REASONING: low
+      RUN: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Judge calibration (once per judge; reused when this judge's calibration is on the branch)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: deno run -A evals/career/judge-calibrate.ts --run "$RUN" --if-needed | tee "$RUNNER_TEMP/calibration.txt"
+      - name: Fetch the live shelf (keeps the fixed task set's postings)
+        id: shelf
+        run: deno run -A evals/career/live-shelf.ts --run-id "$RUN" --pin evals/career/tasks-fixed.json | tee "$RUNNER_TEMP/shelf.txt"
+      - name: Router (trunk's CareerHost)
+        if: ${{ !cancelled() && steps.shelf.outcome == 'success' }}
+        run: deno run -A evals/career/run-tasks.ts --brain router --shelf "$RUN" | tee "$RUNNER_TEMP/router.txt"
+      - name: Agent (trunk's agent brain, gpt-5-mini)
+        if: ${{ !cancelled() && steps.shelf.outcome == 'success' }}
+        run: deno run -A evals/career/run-tasks.ts --brain agent --shelf "$RUN" | tee "$RUNNER_TEMP/agent.txt"
+      - name: Summary
+        if: always()
+        run: deno run -A evals/career/run-tasks.ts --summary "$RUN" | tee "$RUNNER_TEMP/summary.txt"
+      - name: Commit the results to ci/trainee-tasks
+        if: always()
+        run: |
+          git config user.name "trainee-tasks[ci]"
+          git config user.email "trainee-tasks@users.noreply.github.com"
+          git add evals/career/results/ || true
+          # Each brain's pass count with its judge-noise band, and the fill set's hash: never a pass rate alone.
+          TALLY=$(grep -E '^TALLY: ' "$RUNNER_TEMP/summary.txt" 2>/dev/null | head -n1 | sed 's/^TALLY: //')
+          git commit -m "WO-065 data: real-world task battery, run $RUN (${TALLY:-no result})" || exit 0
+          git pull --rebase origin ci/trainee-tasks || true
+          git push origin HEAD:ci/trainee-tasks

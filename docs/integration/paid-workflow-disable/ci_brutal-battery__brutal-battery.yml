@@ -1,0 +1,65 @@
+# DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit.
+# WO-087: the brutal-list battery (evals/career/brutal/scenarios.json): the RETEST-BRAIN and BY-POLICY rows of the
+# owner's brutal list, deduplicated, run on trunk's agent brain (gpt-5-mini) through the conversation interface and
+# graded by code checks plus a 3-vote judge. The router's run beside it uses no model (code checks only; a reference).
+# Needs the repository secret OPENAI_API_KEY (OpenAI only; no Anthropic spend). Without it: NOT RUN, and a score is
+# never faked. Money: a hard cap of $3 a run in code (run-brutal.ts MAX_RUN_USD, counted from the provider's token
+# counts); the cost is estimated before anything runs and an estimate over the cap is NOT RUN.
+# Separate from trainee-tasks.yml (that battery's files, fills and judge calibration are its own).
+name: brutal-battery
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/brutal-battery]
+    paths:
+      - .github/workflows/brutal-battery.yml
+      - evals/career/run-brutal.ts
+      - evals/career/brutal/scenarios.json
+permissions:
+  contents: write
+concurrency: { group: brutal-battery, cancel-in-progress: false }
+jobs:
+  battery:
+    if: ${{ false }}  # DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MODEL_PROVIDER: openai
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      EVAL_JUDGE_VOTES: "3"
+      EVAL_JUDGE_REASONING: low
+      BRUTAL_BUDGET_USD: "3"
+      RUN: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      - name: Cost estimate
+        run: deno run -A evals/career/run-brutal.ts --brain agent --estimate
+      - name: Agent (trunk's agent brain, gpt-5-mini, judged)
+        id: agent
+        continue-on-error: true
+        run: set -o pipefail; deno run -A evals/career/run-brutal.ts --brain agent --run "$RUN" | tee "$RUNNER_TEMP/agent.txt"
+      - name: Router (trunk's CareerHost, code checks only, no model)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: set -o pipefail; env -u OPENAI_API_KEY deno run -A evals/career/run-brutal.ts --brain router --run "$RUN" | tee "$RUNNER_TEMP/router.txt"
+      - name: Commit the results to ci/brutal-battery
+        if: always()
+        run: |
+          git config user.name "brutal-battery[ci]"
+          git config user.email "brutal-battery@users.noreply.github.com"
+          git add evals/career/brutal/results/ || true
+          TALLY=$(grep -E '^TALLY: ' "$RUNNER_TEMP/agent.txt" 2>/dev/null | head -n1 | sed 's/^TALLY: //')
+          git commit -m "WO-087 data: brutal battery, run $RUN (${TALLY:-no result})" || exit 0
+          git pull --rebase origin ci/brutal-battery || true
+          git push origin HEAD:ci/brutal-battery
+      - name: The agent run's outcome
+        if: always()
+        run: |
+          if [ "${{ steps.agent.outcome }}" != "success" ]; then echo "the agent run did not finish (see its step)"; exit 1; fi

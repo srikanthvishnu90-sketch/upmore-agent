@@ -1,0 +1,85 @@
+# DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit.
+# WO-061 (owner, 2026-10-21; D-030): the chat brain's one bar is 95% or better on the held-out set (evals/career/heldout-live.json),
+# one full pass, on the build that is live. Judges: gpt-5-mini and gpt-4.1-mini here (OpenAI; no Anthropic spend), an item
+# passing in CI only when both pass it, and Instinct, the owner-appointed second judge, who scores every run beside them
+# into evals/career/instinct/<run>.json (evals/career/both-pass.ts). The router runs beside the agent on the same set as
+# the comparison. Every run adds one line per pass to evals/career/SCORE-LOG.md (date/time, brain commit, set size, score)
+# and commits it with the result files to ci/brain-eval. Needs the repository secret OPENAI_API_KEY; without it the run
+# prints NOT RUN and fails: a score is never faked. Spend: the runner counts every result file's recorded spend against
+# EVAL_BUDGET_USD and stops before the item that would cross it; a stopped run is not a score.
+# A measurement commit on ci/brain-eval merges the branch measured as its second parent; that is the brain commit logged.
+name: brain-eval
+on:
+  push:
+    branches: [ci/brain-eval]
+    paths:
+      - .github/workflows/brain-eval.yml
+      - evals/career/**
+      - supabase/functions/_shared/**
+      - supabase/functions/agent-chat/career_brain.ts
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: brain-eval, cancel-in-progress: false }
+jobs:
+  eval:
+    if: ${{ false }}  # DISABLED 2026-10-23: no paid evaluation is authorized; re-enabling needs the owner's written approval and a reviewed commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CAREER_MODEL: gpt-5-mini
+      EVAL_JUDGE_MODEL: gpt-5-mini
+      # Owner, 2026-10-21: "gpt-4.1-mini judges every run from now on ... A judge that runs only sometimes makes runs
+      # incomparable." In CI an item passes only when both pass it; Instinct scores every run beside them.
+      EVAL_JUDGE_MODEL_2: gpt-4.1-mini
+      # OWNER'S RULING (2026-10-21, later): "Eval spend ceiling is now $15 total tonight ($4.57 used so far)."
+      # BUILDER'S ARITHMETIC (not an owner figure): this limit sums every recorded result file since the eval began,
+      # so it is set to (recorded spend before tonight, $1.535) + $15 = $16.535, and written lower ($15.95) because five
+      # passes run in parallel and each sees only the spend recorded before it started: four others (about $0.12 each)
+      # can land beside the one that reaches the limit. Builder's arithmetic, not an owner figure. Ledger: evals/career/ROOT-CAUSES.md, "EVAL SPEND LEDGER".
+      EVAL_BUDGET_USD: "15.95"
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: The key is present
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "NOT RUN: the OPENAI_API_KEY secret is not set"; exit 2; fi
+      # Five full passes of the same build, in parallel (second judge's ruling, 2026-10-21: the pass-to-pass swing is
+      # 16-18 points in one run, so three passes cannot resolve a change under about 5 points; keep decisions use five).
+      # Each pass is logged; the bar is still one full pass at 95%.
+      - name: Held-out set, agent brain (the bar), five passes
+        run: |
+          for p in 1 2 3 4 5; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
+          wait; cat "$RUNNER_TEMP"/h-agent-*.txt
+      # Re-scores of recorded runs listed in evals/career/rejudge.txt ("<label> <judge model>"), once each, judge only.
+      - name: Re-score recorded runs (judge only)
+        if: always()
+        run: |
+          [ -f evals/career/rejudge.txt ] || exit 0
+          while read -r l m; do [ -n "$l" ] && deno run -A evals/career/rejudge.ts "$l" "$m"; done < evals/career/rejudge.txt
+      - name: Held-out set, router (the comparison)
+        if: always()
+        run: deno run -A evals/career/run.ts --brain router --set heldout --label "heldout-router-${{ github.run_id }}" | tee "$RUNNER_TEMP/h-router.txt"
+      - name: The score log and the verdict
+        if: always()
+        run: |
+          deno run -A evals/career/score-log.ts evals/career/results/heldout-agent-${{ github.run_id }}-p*.json evals/career/results/heldout-router-${{ github.run_id }}.json --run ${{ github.run_id }}
+          deno eval '
+            const ps = [1, 2, 3, 4, 5].map((p) => { try { return JSON.parse(Deno.readTextFileSync(`evals/career/results/heldout-agent-${{ github.run_id }}-p${p}.json`)); } catch { return null; } });
+            const bad = (a) => !a || a.stopped || a.items.some((x) => /^judge error/.test(x.note ?? "") || (x.judges ?? []).some((j) => /^judge error/.test(j.note ?? "")));
+            const ok = ps.filter((a) => !bad(a));
+            if (!ok.length) { console.log("WO-061: NOT A SCORE (no pass finished cleanly: spend cap or judge errors)"); Deno.exit(0); }
+            const best = Math.max(...ok.map((a) => a.pass_rate));
+            console.log(`WO-061: held-out agent passes ${ps.map((a) => bad(a) ? "void" : a.passed).join(", ")} of ${ok[0].total} both-pass of gpt-5-mini and gpt-4.1-mini, brain ${ok[0].source_commit}: ${best >= 0.95 ? "a pass at 95% on the two CI judges; the score also needs Instinct, on the live build" : "BELOW THE BAR (95%) on the two CI judges"}`);
+          ' | tee "$RUNNER_TEMP/verdict.txt"
+      - name: Commit the results to ci/brain-eval
+        if: always()
+        run: |
+          git config user.name "brain-eval[ci]"
+          git config user.email "brain-eval@users.noreply.github.com"
+          git add evals/career/results/ evals/career/SCORE-LOG.md || true
+          git commit -m "WO-061 data: held-out eval, run ${{ github.run_id }} ($(tail -1 "$RUNNER_TEMP/verdict.txt" 2>/dev/null))" || exit 0
+          git push origin HEAD:ci/brain-eval

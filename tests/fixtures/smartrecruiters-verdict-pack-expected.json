@@ -1,0 +1,212 @@
+{
+ "family": "smartrecruiters",
+ "pack": "smartrecruiters-verdict-pack",
+ "measuredAt": "2026-10-23",
+ "classification": {
+  "liveTier": "NOT_LIVE_DRIVEABLE",
+  "liveEvidence": "403 FAMILY_NOT_DRIVEABLE measured via the board service on 2026-10-23 (docs/engine/ASHBY-VERDICT-PACK-2026-10-23.md, branch muse/2026-10-23-ashby-verdict-pack); this pack made zero live drive calls",
+  "captureTier": "CAPTURE_REFUSED_AT_LOAD"
+ },
+ "capturedForms": [],
+ "coverage": {
+  "formsCaptured": 0,
+  "questionsMapped": 0,
+  "questionsFilledVerified": 0,
+  "questionsReadBackExactly": 0,
+  "claimable": false
+ },
+ "captureAttempts": [
+  {
+   "id": "smartrecruiters-dominos-744000156228029",
+   "company": "Domino's",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/DominoS/publication/44b38694-f519-45aa-852e-72a979c56be9?dcr_ci=DominoS",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:48:53Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:51:21.230Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "9be80b14cdf6183a130258ebd487d22927a262473403a930d5fa90319e30cd8c",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-crossmark1-743999658732332",
+   "company": "CROSSMARK",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/CROSSMARK1/publication/97f34cb9-66a5-439c-bc06-015a0a360dfa?dcr_ci=CROSSMARK1",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:49:36Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:51:42.378Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "d6313689bac8367d537c1999c653290fb8ac976bb546413e494f334bdb9b4d46",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-sonsoftinc-743999659849811",
+   "company": "Sonsoft",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/SonsoftInc/publication/30074fb5-dc8b-4219-9f31-3ac28fd0c8c6?dcr_ci=SonsoftInc",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:49:36Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:52:02.162Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "8155a3f802f98775ecd44099ee5d4b86a9604dc36036a5990316ed0b9e634b9a",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-aecom2-744000156234495",
+   "company": "AECOM",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/AECOM2/publication/820d3fe0-8b3c-4381-b39c-66d770eb013c?dcr_ci=AECOM2",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:49:36Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:52:22.347Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "7d8c463f0810edb24543baddf0b3fcaf1953af930b3ae0543c859d1656cf9cef",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-boschgroup-744000156241489",
+   "company": "BoschGroup",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/BoschGroup/publication/5ce9b50d-4dda-4d35-9e0c-dabf48c50a25?dcr_ci=BoschGroup",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:48:53Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:52:42.569Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "80719afdc9331c96f5d31f48cdf4c9b6236d63aaa283b9a0228ed4040290e931",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-sgs-744000156234274",
+   "company": "Soci\u00e9t\u00e9 G\u00e9n\u00e9rale de Surveillance",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/SGS/publication/50c87330-8f47-4f72-8cf7-5360fbeba545?dcr_ci=SGS",
+   "provenance": "one of the six 2026-10-19 capture sources (tests/fixtures/forms-ci/sources.json); that run recorded blocked_403 behind DataDome, html: null",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:49:36Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:53:02.398Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "dba0ed07ffda4a1a68c8ebc973023dcefbf8073febe10325b5f114d71c0519cf",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-dominos-744000157565339",
+   "company": "Domino's",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/DominoS/publication/f902b919-fd78-471d-ad91-5526e389386e?dcr_ci=DominoS",
+   "provenance": "public postings API (api.smartrecruiters.com/v1/companies/DominoS/postings) read 2026-10-23; posting released 2026-10-23T20:30:04Z",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:50:22Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:53:22.324Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "4768fef5fd3a2ac21ec2b97c3f1a06f31ef78d190ce730e4accee4139a756cf5",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  },
+  {
+   "id": "smartrecruiters-boschgroup-744000157567254",
+   "company": "BoschGroup",
+   "sourceUrl": "https://jobs.smartrecruiters.com/oneclick-ui/company/BoschGroup/publication/31e13ba1-3997-452c-8de5-192011bdd9fe?dcr_ci=BoschGroup",
+   "provenance": "public postings API (api.smartrecruiters.com/v1/companies/BoschGroup/postings) read 2026-10-23; posting released 2026-10-23T20:49:45Z",
+   "plainFetch": {
+    "method": "HTTPS GET, browser user-agent, via egress proxy",
+    "at": "2026-10-23T20:50:22Z",
+    "httpStatus": 403,
+    "evidence": "response headers included \"Server: cloudflare\" and \"X-DataDome: protected\"; body 779 bytes, the DataDome interstitial (captcha-delivery.com references)"
+   },
+   "renderedLoad": {
+    "method": "scripts/career/render-form.cjs (sandboxed-Chromium pattern, read-only request interception)",
+    "at": "2026-10-23T20:53:42.433Z",
+    "httpStatus": 403,
+    "status": "blocked_403",
+    "forms": 0,
+    "fields": 0,
+    "resumeInputs": 0,
+    "renderedSha256": "e8a170d894cd07c1c23fc666ca44295ec8d4478a941fcff1a32be9b44b4dfd53",
+    "nonGetRequestsAbortedByInterceptor": 3,
+    "challenge": "rendered page is the DataDome interstitial: iframe titled \"DataDome Device Check\" served from geo.captcha-delivery.com; no form markup present"
+   }
+  }
+ ]
+}

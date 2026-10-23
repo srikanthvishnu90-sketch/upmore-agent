@@ -99,8 +99,12 @@ if (import.meta.main) {
   const brainName = opt("--brain") || "router", label = opt("--label") || `${brainName}-${new Date().toISOString().slice(0, 10)}`;
   if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
   const { handleInbound, memoryStore } = await import("../../supabase/functions/_shared/conversation.ts");
-  const core = await import("../../supabase/functions/_shared/router_core.career.js");
-  const { CareerHost } = await import("../../supabase/functions/_shared/career_host.js");
+  // --brain-root <checkout> (2026-10-22 router before/after): the router's own code (bundle + host seam) comes from that
+  // checkout; the harness, judges, set and conversation plumbing stay this tree's, so both sides are measured alike.
+  const brainRoot = opt("--brain-root");
+  const routerBase = brainRoot ? `file://${await Deno.realPath(brainRoot)}/supabase/functions/_shared/` : "../../supabase/functions/_shared/";
+  const core = await import(routerBase + "router_core.career.js");
+  const { CareerHost } = await import(routerBase + "career_host.js");
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
@@ -182,7 +186,11 @@ if (import.meta.main) {
   const setName = opt("--set") || "official";
   const set = JSON.parse(await Deno.readTextFile(new URL(setName === "heldout" ? "./heldout-live.json" : "./messages.json", import.meta.url)));
   const only = opt("--only");
-  const items: EvalItem[] = set.items.filter((i: EvalItem) => !only || only.split(",").includes(i.id));
+  // --exclude-file <json with items: [id...]> (e.g. heldout-burned.json): those ids are never run or scored.
+  const excludeFile = opt("--exclude-file");
+  const excluded = new Set<string>(excludeFile ? (JSON.parse(await Deno.readTextFile(excludeFile)).items ?? []).map((x: any) => typeof x === "string" ? x : x.id) : []);
+  const items: EvalItem[] = set.items.filter((i: EvalItem) => (!only || only.split(",").includes(i.id)) && !excluded.has(i.id));
+  if (brainName === "agent" && brainRoot) { console.log("NOT RUN: --brain-root measures the router only."); Deno.exit(2); }
   const budgetArg = opt("--budget-usd") ?? Deno.env.get("EVAL_BUDGET_USD") ?? null;
   const budget = budgetArg === null ? null : Number(budgetArg);
   if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (judge2Cfg && !PRICES[judge2Cfg.model]) || (brainName === "agent" && !PRICES[brainCfg.model]))) {
@@ -208,7 +216,7 @@ if (import.meta.main) {
   const harness = "situation parity since f265092a (production parity, not brain improvement)";
   const result = { label, harness, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
-    budget_usd: budget, spent_before_usd: before, ...r };
+    budget_usd: budget, spent_before_usd: before, brain_root: brainRoot ?? null, brain_root_commit: opt("--brain-commit") ?? null, excluded: [...excluded], ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });
   await Deno.writeTextFile(new URL(`./results/${label}.json`, import.meta.url), JSON.stringify(result, null, 1));
   console.log(`${label}: ${r.passed}/${r.total} passed (${Math.round(r.pass_rate * 100)}%) · brain ${brainName} · judge ${judgeCfg.model} · cost $${(result.cost_usd.brain + result.cost_usd.judge).toFixed(3)}`);

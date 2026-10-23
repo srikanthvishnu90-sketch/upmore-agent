@@ -26,14 +26,19 @@
 // or submit_and_capture, and the final test asserts the command log proves it; the
 // local server only ever receives GETs (asserted).
 //
-// THE COVERAGE GATE (pattern from the SmartRecruiters verdict pack): a coverage
-// claim is supported only when at least one form was genuinely captured AND every
-// captured form carries full provenance (source URL, capture timestamp, capture
-// method) AND a pinned drive expectation; the recorded coverage numbers must equal
-// the sums of the per-form pins. The suite asserts the recorded claim equals the
-// gate's verdict, so an inflated or drifting claim fails here. Fail-first evidence
-// for the gate is recorded in docs/engine/FORMS-CI-COVERAGE-2026-10-23.md (the suite
-// run against a deliberately tampered pin went red before the true pin was finalized).
+// THE COVERAGE GATE (pattern from the SmartRecruiters verdict pack, scoped by the
+// 2026-10-23 corrections): there is NO aggregate coverage claim — claims are
+// scoped. A form's coverage record is claimable only when it carries full
+// provenance AND a pinned drive expectation AND a per-field reconciliation of
+// every mapped-not-filled field (status from the captured schema, widget class,
+// the executor's outcome, its own reason) AND a widget class for every mapped
+// field; custom-select reconciliation entries must carry the
+// unverified-against-live label. The recorded per-form claims and the recorded
+// per-widget-class claim tallies must equal what the gate computes from the pins,
+// and the recorded coverage numbers must equal the sums of the per-form pins — a
+// headline no pin supports cannot stand. Fail-first evidence for the gate is
+// recorded in docs/engine/FORMS-CI-COVERAGE-2026-10-23.md (the suite run against
+// a deliberately tampered pin went red before the true pin was finalized).
 //
 // Synthetic data only: one fixed TEST persona, one synthetic PDF. Regenerate the
 // measured results after an intentional capture/binder change with
@@ -63,24 +68,51 @@ require(path.join(ROOT, "extension", "lib", "trainee-core.js"));
 const bindFields = globalThis.TraineeCore.bindFields;
 
 // ---------------------------------------------------------------------------
-// THE COVERAGE GATE. A captured-form coverage claim is supported only when at
-// least one form was genuinely captured AND every captured form carries full
-// provenance AND a pinned drive expectation. The recorded coverage block must
-// also equal the sums over the per-form pins — a headline number no pin
-// supports cannot stand.
+// THE COVERAGE GATE (scoped — the 2026-10-23 corrections dropped the blanket
+// claim). A form's coverage record is claimable only when the form carries full
+// provenance AND a pinned drive expectation AND a per-field reconciliation
+// covering exactly its mapped-not-filled fields (each with a status, a widget
+// class, and its own reason; custom-select entries must be labeled
+// unverified-against-live) AND a widget class for every mapped field. The
+// recorded coverage block carries sums only — no claimable flag — and the
+// recorded per-form claims and per-widget-class tallies must equal the gate's
+// computation from the pins.
 // ---------------------------------------------------------------------------
-function coverageClaim(exp) {
-  const forms = Array.isArray(exp.capturedForms) ? exp.capturedForms : [];
-  if (!forms.length) return { claimable: false, reason: "no captured forms — coverage not claimable" };
-  for (const f of forms) {
-    if (!f.sourceUrl || !f.capturedAt || !f.captureMethod) {
-      return { claimable: false, reason: `captured form ${f.id || "?"} lacks provenance (sourceUrl/capturedAt/captureMethod)` };
+function formClaim(exp, form) {
+  const id = (form && form.id) || "?";
+  if (!form.sourceUrl || !form.capturedAt || !form.captureMethod) {
+    return { claimable: false, reason: `captured form ${id} lacks provenance (sourceUrl/capturedAt/captureMethod)` };
+  }
+  const e = form.expectation;
+  if (!e || typeof e.mapped !== "number" || !Array.isArray(e.fills)) {
+    return { claimable: false, reason: `captured form ${id} has no pinned drive expectation` };
+  }
+  if (!e.fieldClasses || Object.keys(e.fieldClasses).length !== e.mapped) {
+    return { claimable: false, reason: `captured form ${id} does not pin a widget class for every mapped field` };
+  }
+  if (!Array.isArray(e.reconciliation)) {
+    return { claimable: false, reason: `captured form ${id} has no per-field reconciliation of its mapped-not-filled fields` };
+  }
+  const nonFilled = e.fills.filter(([, o]) => o !== "filled").map(([n]) => n).sort();
+  const recNames = e.reconciliation.map((r) => r.name).sort();
+  if (JSON.stringify(recNames) !== JSON.stringify(nonFilled)) {
+    return { claimable: false, reason: `captured form ${id} reconciliation does not cover exactly its mapped-not-filled fields` };
+  }
+  for (const r of e.reconciliation) {
+    if (!r.status || !r.widgetClass || !r.reason) {
+      return { claimable: false, reason: `captured form ${id} reconciliation entry for ${r.name || "?"} lacks status/widgetClass/reason` };
     }
-    if (!f.expectation || typeof f.expectation.mapped !== "number") {
-      return { claimable: false, reason: `captured form ${f.id || "?"} has no pinned drive expectation` };
+    if (r.widgetClass.startsWith("custom select") && r.unverifiedAgainstLive !== true) {
+      return { claimable: false, reason: `captured form ${id} custom-select entry ${r.name} is not labeled unverified-against-live` };
     }
   }
-  return { claimable: true, reason: `${forms.length} captured form(s) with provenance and pinned expectations` };
+  return { claimable: true, reason: `captured form ${id}: provenance, pinned drive expectation, complete per-field reconciliation and field classes` };
+}
+function coverageClaim(exp) {
+  const forms = Array.isArray(exp.capturedForms) ? exp.capturedForms : [];
+  if (!forms.length) return { claimable: false, perForm: [], reason: "no captured forms — coverage not claimable" };
+  const perForm = forms.map((f) => ({ id: f.id || "?", ...formClaim(exp, f) }));
+  return { claimable: perForm.every((p) => p.claimable), perForm };
 }
 function coverageSums(exp) {
   const forms = Array.isArray(exp.capturedForms) ? exp.capturedForms : [];
@@ -92,13 +124,44 @@ function coverageSums(exp) {
     questionsReadBackExactly: sum("readbackMatched"),
   };
 }
+function widgetClassTallies(exp) {
+  const out = {};
+  for (const f of Array.isArray(exp.capturedForms) ? exp.capturedForms : []) {
+    const e = f.expectation || {};
+    const fam = out[f.family] || (out[f.family] = {});
+    for (const [name, outcome] of Array.isArray(e.fills) ? e.fills : []) {
+      const cls = (e.fieldClasses || {})[name];
+      if (!cls) continue;
+      const t = fam[cls] || (fam[cls] = { mapped: 0, filled: 0 });
+      t.mapped += 1;
+      if (outcome === "filled") t.filled += 1;
+    }
+  }
+  return out;
+}
 function recordedClaimConsistent(exp) {
-  if (!exp.coverage || exp.coverage.claimable !== coverageClaim(exp).claimable) return false;
+  if (!exp.coverage || exp.coverage.claimable !== undefined) return false; // the blanket claim must not exist
   const s = coverageSums(exp);
-  return exp.coverage.formsCaptured === s.formsCaptured
-    && exp.coverage.questionsMapped === s.questionsMapped
-    && exp.coverage.questionsFilled === s.questionsFilled
-    && exp.coverage.questionsReadBackExactly === s.questionsReadBackExactly;
+  if (exp.coverage.formsCaptured !== s.formsCaptured
+    || exp.coverage.questionsMapped !== s.questionsMapped
+    || exp.coverage.questionsFilled !== s.questionsFilled
+    || exp.coverage.questionsReadBackExactly !== s.questionsReadBackExactly) return false;
+  const verdict = coverageClaim(exp);
+  for (const f of Array.isArray(exp.capturedForms) ? exp.capturedForms : []) {
+    const v = verdict.perForm.find((p) => p.id === f.id);
+    if (!v || !f.claim || (f.claim.status === "claimable") !== v.claimable) return false;
+  }
+  const tallies = widgetClassTallies(exp);
+  const recorded = Array.isArray(exp.widgetClassClaims) ? exp.widgetClassClaims : [];
+  let want = 0;
+  for (const classes of Object.values(tallies)) want += Object.keys(classes).length;
+  if (recorded.length !== want) return false;
+  for (const w of recorded) {
+    const t = (tallies[w.family] || {})[w.widgetClass];
+    if (!t || t.mapped !== w.mapped || t.filled !== w.filled) return false;
+    if (!["covered", "partial", "unverified-against-live"].includes(w.verdict)) return false;
+  }
+  return true;
 }
 
 // Same strip the Ashby pack exercised the captures with: the capture already removed
@@ -187,6 +250,20 @@ function expectedFor(b, v) {
   return v;
 }
 
+// The widget class of a mapped question, from the binding the shared binder
+// produced (and the schema type for the number case) — pinned per field in the
+// fixture (expectation.fieldClasses) and recomputed by the gate from the pins.
+function widgetClassOf(s, b) {
+  if (b.inputType === "file") return "file input";
+  if (b.widget) return `custom select (${b.widget})`;
+  if (b.inputType === "select") return "native select";
+  if (b.inputType === "checkbox") return "checkbox";
+  if (b.inputType === "checkbox_group") return "checkbox group";
+  if (b.inputType === "radio_group") return "radio group";
+  if (s && s.type === "number") return "number input";
+  return "text input";
+}
+
 const EEO_RE = /gender|race|ethnic|veteran|disabilit|sexual orientation|pronoun|hispanic|latinx/i;
 const ATTEST_RE = /certify|attest|truthful|accurate to the best|acknowledge|i confirm i have read|read and agree/i;
 
@@ -231,12 +308,12 @@ async function driveForm(form) {
         // A fill that never answers leaves the daemon's state unknown for this
         // session: record the abort as this form's measured outcome and stop the
         // drive here rather than queueing further commands behind a stuck fill.
-        fills.push({ name: s.name, type: b.inputType, outcome: "fill_timeout" });
+        fills.push({ name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: "fill_timeout" });
         rec.driveError = `fill timed out on ${s.name}: ${String((e && e.message) || e)}`;
         break;
       }
       const reasonOf = (x) => typeof x === "string" ? x : (x && typeof x === "object" && x.code) ? String(x.code) : JSON.stringify(x ?? "not_filled");
-      const entry = { name: s.name, type: b.inputType, outcome: r.ok && r.data.filled ? "filled" : (r.ok ? reasonOf(r.data.reason) : reasonOf(r.error)) };
+      const entry = { name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: r.ok && r.data.filled ? "filled" : (r.ok ? reasonOf(r.data.reason) : reasonOf(r.error)) };
       fills.push(entry);
       if (entry.outcome === "filled") filledBindings.push({ b, v });
     }
@@ -337,9 +414,12 @@ test("forms-ci coverage: not-captured manifest entries are recorded, not silentl
   }
 });
 
-test("forms-ci coverage: the coverage gate — recorded claim equals the computed verdict and the pin sums", () => {
-  assert.equal(coverageClaim(EXPECTED).claimable, true, coverageClaim(EXPECTED).reason);
-  assert.ok(recordedClaimConsistent(EXPECTED), "the recorded coverage block is not the gate's verdict over the per-form pins");
+test("forms-ci coverage: the coverage gate — recorded scoped claims equal the computed verdicts and the pin sums", () => {
+  assert.equal(EXPECTED.coverage.claimable, undefined, "the blanket claimable flag must not exist — claims are scoped per form and per widget class");
+  const verdict = coverageClaim(EXPECTED);
+  assert.equal(verdict.perForm.length, EXPECTED.capturedForms.length);
+  for (const p of verdict.perForm) assert.equal(p.claimable, true, p.reason);
+  assert.ok(recordedClaimConsistent(EXPECTED), "the recorded scoped claims are not the gate's verdict over the per-form pins");
   assert.deepEqual(
     { formsCaptured: EXPECTED.coverage.formsCaptured, questionsMapped: EXPECTED.coverage.questionsMapped, questionsFilled: EXPECTED.coverage.questionsFilled, questionsReadBackExactly: EXPECTED.coverage.questionsReadBackExactly },
     coverageSums(EXPECTED),
@@ -351,16 +431,35 @@ test("forms-ci coverage: the coverage gate rejects unsupported claims (gate unit
   const inflated = JSON.parse(JSON.stringify(EXPECTED));
   inflated.coverage.questionsMapped += 1;
   assert.equal(recordedClaimConsistent(inflated), false);
-  // A captured form without provenance cannot support a claim.
-  const noProv = { capturedForms: [{ id: "x", expectation: { mapped: 3 } }], coverage: { claimable: true, formsCaptured: 1, questionsMapped: 3, questionsFilled: 0, questionsReadBackExactly: 0 } };
-  assert.equal(coverageClaim(noProv).claimable, false);
-  assert.match(coverageClaim(noProv).reason, /provenance/);
-  // A captured form without a pinned expectation cannot support a claim.
+  // The blanket claim must not reappear.
+  const blanket = JSON.parse(JSON.stringify(EXPECTED));
+  blanket.coverage.claimable = true;
+  assert.equal(recordedClaimConsistent(blanket), false);
+  // A captured form without provenance cannot support its scoped claim.
+  const noProv = { capturedForms: [{ id: "x", expectation: { mapped: 3, fills: [], fieldClasses: {}, reconciliation: [] } }], coverage: { formsCaptured: 1, questionsMapped: 3, questionsFilled: 0, questionsReadBackExactly: 0 } };
+  assert.equal(coverageClaim(noProv).perForm[0].claimable, false);
+  assert.match(coverageClaim(noProv).perForm[0].reason, /provenance/);
+  // A captured form without a pinned expectation cannot support its scoped claim.
   const noPin = { capturedForms: [{ id: "x", sourceUrl: "https://example.test/x", capturedAt: "2026-10-19T00:00:00Z", captureMethod: "render-form.cjs" }], coverage: { claimable: true } };
-  assert.equal(coverageClaim(noPin).claimable, false);
-  assert.match(coverageClaim(noPin).reason, /pinned drive expectation/);
+  assert.equal(coverageClaim(noPin).perForm[0].claimable, false);
+  assert.match(coverageClaim(noPin).perForm[0].reason, /pinned drive expectation/);
+  // A mapped-not-filled field without a reconciliation entry breaks the claim.
+  const noRec = JSON.parse(JSON.stringify(EXPECTED));
+  noRec.capturedForms[0].expectation.reconciliation.pop();
+  assert.equal(coverageClaim(noRec).perForm[0].claimable, false);
+  assert.match(coverageClaim(noRec).perForm[0].reason, /reconciliation/);
+  // A custom-select entry that drops the unverified-against-live label breaks the claim.
+  const unlabeled = JSON.parse(JSON.stringify(EXPECTED));
+  const cs = unlabeled.capturedForms[0].expectation.reconciliation.find((r) => r.widgetClass.startsWith("custom select"));
+  delete cs.unverifiedAgainstLive;
+  assert.equal(coverageClaim(unlabeled).perForm[0].claimable, false);
+  assert.match(coverageClaim(unlabeled).perForm[0].reason, /unverified-against-live/);
+  // A widget-class tally that drifts from the pins breaks consistency.
+  const tallyDrift = JSON.parse(JSON.stringify(EXPECTED));
+  tallyDrift.widgetClassClaims[0].mapped += 1;
+  assert.equal(recordedClaimConsistent(tallyDrift), false);
   // An empty capture set claims nothing.
-  assert.equal(coverageClaim({ capturedForms: [], coverage: { claimable: false } }).claimable, false);
+  assert.equal(coverageClaim({ capturedForms: [], coverage: {} }).claimable, false);
 });
 
 for (const form of CAPTURED) {
@@ -393,6 +492,9 @@ for (const form of CAPTURED) {
         "coverage outcome drifted from the pinned expectation — re-measure and update the fixture in the same commit");
       if (!rec.driveError) {
         assert.deepEqual((rec.fills || []).map((f) => [f.name, f.outcome]), exp.fills, "per-field fill outcomes drifted from the pinned expectation");
+        const classes = {};
+        for (const f of rec.fills || []) classes[f.name] = f.cls;
+        assert.deepEqual(classes, exp.fieldClasses, "per-field widget classes drifted from the pinned expectation");
         assert.deepEqual(rec.fileQuestions || [], exp.fileQuestions, "file-question inventory drifted from the pinned expectation");
         assert.deepEqual(rec.attestation || [], exp.attestation, "attestation-class inventory drifted from the pinned expectation");
       }
@@ -400,7 +502,16 @@ for (const form of CAPTURED) {
   });
 }
 
-test("forms-ci coverage: the replay stayed read-only and never reached a submit path", () => {
+test("forms-ci coverage: the replay stayed read-only and never reached a submit path", { timeout: 600000 }, async () => {
+  if (cmdTypesSent.length === 0) {
+    // Standalone (e.g. --test-name-pattern selecting only this test): no drive
+    // test ran in this process, so the command/request logs are empty and the
+    // assertions below would fail spuriously on an empty log. Establish our own
+    // minimal state instead: drive the smallest captured form once through the
+    // same runner, then judge the logs that drive produced.
+    const rec = await driveForm(CAPTURED[0]);
+    assert.ok(!rec.driveError, "the standalone read-only proof could not drive its own form: " + rec.driveError);
+  }
   assert.ok(requests.length >= opensCompleted, "server saw every form load the runner opened");
   assert.ok(requests.every((r) => r.startsWith("GET ")), "non-GET request reached the local server: " + requests.join(","));
   const used = [...new Set(cmdTypesSent)];

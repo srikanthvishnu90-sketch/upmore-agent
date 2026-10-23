@@ -53,9 +53,10 @@ end $$;
 create or replace function public.career_apply_ledger(p_user uuid, p_since timestamptz)
 returns table (source text, ref text, company_key text, at timestamptz)
 language sql stable security definer set search_path = public, pg_temp as $$
- select 'queue', j.id::text, public.career_apply_company_key(j.company), j.created_at
+ -- An application counts from when it went (its claim), or, not yet gone, from its approval.
+ select 'queue', j.id::text, public.career_apply_company_key(j.company), coalesce(j.claimed_at, j.created_at)
   from public.career_apply_jobs j
-  where j.user_id = p_user and j.state = any(public.career_apply_counted_states()) and j.created_at > p_since
+  where j.user_id = p_user and j.state = any(public.career_apply_counted_states()) and coalesce(j.claimed_at, j.created_at) > p_since
  union all
  select 'extension', r.id::text, public.career_apply_company_key(r.employer), coalesce(r.observed_at, r.reported_at)
   from public.extension_submission_reports r

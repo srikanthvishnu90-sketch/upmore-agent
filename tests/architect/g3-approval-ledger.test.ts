@@ -183,6 +183,18 @@ Deno.test({
         assertNode.equal(await reserve(email("x2", "Globex")), "driving|email", "another employer is emailed");
       });
 
+      await t.step("3f an application counts from when it went: approved 40 days ago, sent 5 days ago, still cools the company", async () => {
+        const u = await person();
+        assertNode.equal((await enqueue(payload(u, "s1", "Acme"))).error, null);
+        // Dated as an old approval that was sent recently (written past every trigger: only the dates are the subject).
+        await pg.sql(`set session_replication_role = replica;
+          update public.career_apply_jobs set state = 'confirmed', source = 'own_computer', attempts = 1,
+           created_at = now() - interval '40 days', claimed_at = now() - interval '5 days' where user_id = '${u}' and job_id = 's1';
+          set session_replication_role = origin;`);
+        const r = await enqueue(payload(u, "s2", "Acme Inc"));
+        assertNode.match(String(r.error?.message), /company_cooldown/, "sent 5 days ago: the company is still cooling");
+      });
+
       await t.step("3d TS and SQL read a company's name the same way", async () => {
         for (const name of ["Acme, Inc.", "The Coca-Cola Company", "AT&T", "Procter & Gamble Co.", "  Globex   Corp ", "Ünïcode Labs LLC", "co-op"]) {
           const s = await pg.sql(`select public.career_apply_company_key($n$${name}$n$)`);

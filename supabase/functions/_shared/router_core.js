@@ -36298,7 +36298,7 @@ const CareerRouter = (() => {
   // routes key on — the old set was fitted to the wedge paraphrase
   // battery and lacked every one of them, and transposition-only
   // repair could never fix a deletion ("intrnships") at all.
-  const ROUTE_VOCAB = new Set(["connect", "gmail", "calendar", "consent", "password", "safety", "honest", "yield", "digest", "referral", "analysts", "analyst", "people", "finance", "school", "email", "emails", "campaign", "verified", "sendable", "trustworthy", "boutique", "boutiques", "bankers", "banker", "contacts", "upload", "spreadsheet", "voice", "samples", "shorter", "formal", "render", "daily", "finish", "rules", "approve", "approval", "before", "found", "senior", "draft", "drafts", "intro", "office", "vacation", "return", "bounce", "breaker", "firms", "suppression", "suppress", "follow", "waves", "alumni", "directory", "departed", "tailor", "resume", "packet", "interview", "mock", "offer", "offers", "timeline", "tracker", "status", "season", "assessment", "scores", "negotiate", "negotiation", "counter", "people",
+  const ROUTE_VOCAB = new Set(["become", "connect", "gmail", "calendar", "consent", "password", "safety", "honest", "yield", "digest", "referral", "analysts", "analyst", "people", "finance", "school", "email", "emails", "campaign", "verified", "sendable", "trustworthy", "boutique", "boutiques", "bankers", "banker", "contacts", "upload", "spreadsheet", "voice", "samples", "shorter", "formal", "render", "daily", "finish", "rules", "approve", "approval", "before", "found", "senior", "draft", "drafts", "intro", "office", "vacation", "return", "bounce", "breaker", "firms", "suppression", "suppress", "follow", "waves", "alumni", "directory", "departed", "tailor", "resume", "packet", "interview", "mock", "offer", "offers", "timeline", "tracker", "status", "season", "assessment", "scores", "negotiate", "negotiation", "counter", "people",
     "everything", "stop", "pause", "never", "halt", "lift", "closed", "cancel", "outreach", "internships", "internship", "roles", "the", "help", "next", "summer", "first", "wave", "find", "jobs", "question", "questions", "company", "tomorrow", "application", "applications", "network", "networking", "track", "about", "again", "right",
     // DEPTH LANE A: the words of a self-description — a typo'd class year
     // or major ("sophmore", "finace") must repair before fact capture
@@ -36336,7 +36336,7 @@ const CareerRouter = (() => {
   // "analysis" -> "analysts" sent "get into data analysis" to the banking outreach plan, "fine" -> "find" and "states" ->
   // "status" did the same elsewhere. Generated from a 20k common-English word list against ROUTE_VOCAB: every collision
   // that is a real word with a different meaning. Inflections of a routing word and plain misspellings still correct.
-  const REAL_WORD_NEIGHBORS = new Set(["alain", "alt", "analyse", "analyses", "analysis", "baker", "banner", "banners", "barker", "bender", "bind", "bound", "bout", "bright", "bunker", "caves", "champaign", "closer", "cock", "contracts", "cores", "counted", "crack", "cracker", "crafts", "dairy", "daisy", "daly", "dave", "director", "directors", "dock", "drift", "eight", "fave", "fellow", "fender", "fight", "films", "fine", "finn", "finnish", "fires", "fist", "forma", "gail", "gain", "gender", "hale", "hart", "hast", "hat", "headline", "heap", "helm", "hemp", "holes", "hollow", "holt", "hound", "hummer", "intra", "jacket", "jules", "kraft", "lender", "light", "lit", "lock", "loft", "mack", "manor", "mayor", "mick", "mind", "monk", "mound", "neat", "nest", "net", "nitro", "normal", "officer", "ounce", "packed", "parse", "pocket", "poles", "pound", "rack", "rave", "reader", "resumed", "rock", "rolex", "rolls", "ropes", "roses", "ruler", "rulers", "safely", "sailor", "sampler", "saves", "scopes", "sender", "sensor", "shalt", "shooter", "shores", "sight", "sind", "sound", "states", "stats", "statue", "stores", "tack", "taylor", "tee", "tender", "thee", "theo", "thy", "tie", "tight", "toe", "trace", "tract", "tracy", "trick", "truck", "vice", "wade", "wages", "waive", "wales", "walt", "weave", "wight", "wind", "wives", "wound", "wright"]);
+  const REAL_WORD_NEIGHBORS = new Set(["became", "alain", "alt", "analyse", "analyses", "analysis", "baker", "banner", "banners", "barker", "bender", "bind", "bound", "bout", "bright", "bunker", "caves", "champaign", "closer", "cock", "contracts", "cores", "counted", "crack", "cracker", "crafts", "dairy", "daisy", "daly", "dave", "director", "directors", "dock", "drift", "eight", "fave", "fellow", "fender", "fight", "films", "fine", "finn", "finnish", "fires", "fist", "forma", "gail", "gain", "gender", "hale", "hart", "hast", "hat", "headline", "heap", "helm", "hemp", "holes", "hollow", "holt", "hound", "hummer", "intra", "jacket", "jules", "kraft", "lender", "light", "lit", "lock", "loft", "mack", "manor", "mayor", "mick", "mind", "monk", "mound", "neat", "nest", "net", "nitro", "normal", "officer", "ounce", "packed", "parse", "pocket", "poles", "pound", "rack", "rave", "reader", "resumed", "rock", "rolex", "rolls", "ropes", "roses", "ruler", "rulers", "safely", "sailor", "sampler", "saves", "scopes", "sender", "sensor", "shalt", "shooter", "shores", "sight", "sind", "sound", "states", "stats", "statue", "stores", "tack", "taylor", "tee", "tender", "thee", "theo", "thy", "tie", "tight", "toe", "trace", "tract", "tracy", "trick", "truck", "vice", "wade", "wages", "waive", "wales", "walt", "weave", "wight", "wind", "wives", "wound", "wright"]);
   function detypo(text) {
     return s(text).replace(/[A-Za-z]{3,}/g, (w) => {
       const lw = w.toLowerCase();
@@ -39685,6 +39685,50 @@ const CareerRouter = (() => {
     const reply = [`Your ${days}-day plan for the ${whatFor}, day by day.`, ...lines, "Day 1 can start right now — say \"drill me\" and the first question runs timed."].join("\n");
     return { intent: "prep_plan", reply, resultStatus: "prepared", sends: 0, payload: { kind: "prep_plan", days, role_family: roleFamily } };
   }
+  // 2026-10-23: the general shape of interviews by role family, for prep asks that name no company. Authored general
+  // knowledge (what such interviews commonly test and ask), never a company's process or a hiring bar.
+  const INTERVIEW_FAMILIES = [
+    { re: /\b(software|swe|developer|coding|programmer|programming|front[- ]?end|back[- ]?end|full[- ]stack|software engineering)\b/, label: "software engineering",
+      tests: "coding problems solved out loud, data structures and algorithms, and for experienced roles a system design round",
+      prep: "two or three coding problems a day in one language, saying your approach and its time and space cost as you go",
+      questions: ["Reverse a linked list, then give its time and space cost.", "Tell me about a bug you tracked down and how you found it.", "Sketch a URL shortener at a high level."] },
+    { re: /\b(data analyst|data analysis|data analytics|data science|data scientist|analytics)\b/, label: "data",
+      tests: "SQL, basic statistics, and turning a messy question into a clear analysis, often with a take-home",
+      prep: "SQL joins and aggregations written by hand, and one analysis of your own you can walk through from question to result",
+      questions: ["Write a query for the top three products by revenue last month.", "Explain how you would tell whether a change in a metric is real.", "Walk me through an analysis you did and what it changed."] },
+    { re: /\b(finance|financial|banking|investment|accounting|accountant)\b/, label: "finance",
+      tests: "accounting and the three statements, valuation basics such as a DCF, and why this firm and this role",
+      prep: "the three statements and a DCF walked through without notes, and one recent market story you know well",
+      questions: ["Walk me through the three financial statements.", "Explain how a $10 rise in depreciation flows through them.", "Walk me through a DCF."] },
+    { re: /\b(consulting|consultant|case interview)\b/, label: "consulting",
+      tests: "case interviews (structuring a business problem, market sizing, reading charts) plus fit questions",
+      prep: "cases practiced out loud with a partner: a clear structure first, then the math, then a recommendation",
+      questions: ["Estimate the market size for electric bikes in your city.", "A client's profits fell 20 percent; lay out how you would find out why.", "Tell me about a time you led a team through a disagreement."] },
+    { re: /\b(product manager|product management|apm)\b/, label: "product management",
+      tests: "product sense, metrics, prioritization, and how you work with engineers and designers",
+      prep: "two products you use, each with who it serves, one improvement, and the metric that would show it worked",
+      questions: ["Pick a product you use and say how you would improve it.", "Name the metric you would watch for a ride-sharing app's launch in a new city.", "Tell me about a time you said no to a stakeholder."] },
+    { re: /\b(nurse|nursing|clinical|hospital|healthcare|health care|patient care)\b/, label: "nursing and patient care",
+      tests: "clinical scenarios, patient safety and prioritization, and teamwork, usually as behavioral (STAR) questions",
+      prep: "stories about advocating for a patient, catching an error, and prioritizing under pressure, each with its outcome",
+      questions: ["Tell me about a time you advocated for a patient.", "Describe how you prioritize when three patients need you at once.", "Describe a time you caught an error before it reached a patient."] },
+    { re: /\b(teacher|teaching|classroom|tutor)\b/, label: "teaching",
+      tests: "classroom management, lesson planning, and often a short demo lesson",
+      prep: "a ten-minute demo lesson and a classroom-management approach with one real example of it working",
+      questions: ["Teach us a ten-minute lesson on a topic you know well.", "Describe how you handle a student who disrupts the class.", "Explain how you adapt a lesson for students at different levels."] },
+    { re: /\b(sales|account executive|sdr|bdr|business development)\b/, label: "sales",
+      tests: "a role-play pitch, objection handling, and the numbers you have hit",
+      prep: "a role-play of selling a simple product, and your results stated with numbers",
+      questions: ["Sell me this pen.", "Handle this objection: your price is too high.", "Tell me about a quota or target you hit and how."] },
+    { re: /\b(marketing|brand|social media|content)\b/, label: "marketing",
+      tests: "campaign thinking, knowing an audience, and results stated in numbers",
+      prep: "two campaigns or projects, each with its goal, what you did, and the measured result",
+      questions: ["Walk me through a campaign you ran and how it performed.", "Describe how you would market our product to a new audience.", "Name the metrics you would track for a product launch."] },
+  ];
+  function interviewFamilyOf(t) {
+    for (const f of INTERVIEW_FAMILIES) if (f.re.test(t)) return f;
+    return null;
+  }
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
@@ -40136,6 +40180,15 @@ const CareerRouter = (() => {
         // shape — never a question list plus a grounding slogan
         // serving every brief-shaped ask alike.
         let facts = briefFacts(brief);
+        // 2026-10-23: with no company and no posting, every prep ask got the same brief ("No company file on file for
+        // this company", three generic behavioral questions) whatever the role. A named role family gets its own brief.
+        const fam = !company && !posting ? interviewFamilyOf(t) : null;
+        if (fam) facts = [
+          `No company is named, so no company's process or hiring bar is claimed; this is the general shape of ${fam.label} interviews.`,
+          `What they usually test: ${fam.tests}.`,
+          `Prepare first: ${fam.prep}.`,
+          `Likely questions: ${fam.questions.join(" · ")}`,
+        ];
         const preShapeLen = facts.length;
         if (/\bportfolio walkthrough\b/.test(t)) {
           // WORDING-BACKLOG (BUG-192): a walkthrough's openers are
@@ -40194,6 +40247,7 @@ const CareerRouter = (() => {
           : /\bportfolio walkthrough\b/.test(t) ? "The portfolio walkthrough, project by project."
           : /\btwo interviews\b|\bsame day\b/.test(t) ? "Your prep order for both interviews."
           : apptM ? `Your interview brief for ${apptM[1][0].toUpperCase() + apptM[1].slice(1).toLowerCase()} at ${Number(apptM[2])}:${apptM[3] || "00"} ${apptM[4].toUpperCase()}.`
+          : fam ? `Your ${fam.label} interview brief.`
           : `Your interview brief${company ? ` for ${company}` : ""}.`;
         const reply = compose({ headline, facts: facts.length ? facts : ["Every answer gets built from facts on your profile — nothing rehearsed that you cannot defend."], nextStep: /\bnight[ -]before\b/.test(t) ? "Want me to walk the pack once tonight, question by question?" : /\bportfolio walkthrough\b/.test(t) ? "Want to run the walkthrough now, project by project, the way the round will?" : /\bhiring[ -]manager\b/.test(t) ? "Want the first-month plan run as the mock — you pitch it, I push on the calls you would make?" : "Want to run it as a mock, one question at a time?" });
         return { intent: "prep_brief", reply, resultStatus: "prepared", sends: 0, brief, payload: brief };
@@ -41901,7 +41955,18 @@ const CareerRouter = (() => {
     for (const L2 of PATH_LADDERS) if (L2.to.test(t2) && (!f || L2.from.test(f))) return L2;
     return null;
   }
+  // 2026-10-23: the climb ladder fits a climb inside one field (analyst -> director). A move into a different field
+  // was routed through promotions in the old one ("teacher -> senior teacher -> teacher manager -> director-level seat
+  // -> tech"), and a missing starting role printed "senior your current role". A switch now gets the switch shape.
+  const SENIORITY_ONLY = /^(?:senior|lead|principal|staff|manager|head|director|vp|vice president|partner|chief|executive|team lead)(?:\s+(?:of\s+)?[a-z]+)?$/;
+  function isClimb(from, to) {
+    const f = lc(s(from)).trim(), t2 = lc(s(to)).trim();
+    if (!f) return false;
+    const head = f.replace(/^(?:junior|associate|senior)\s+/, "").split(/\s+/).pop();
+    return t2.includes(head) || SENIORITY_ONLY.test(t2);
+  }
   function genericLadder(from, to) {
+    if (!isClimb(from, to)) return switchLadder(from, to);
     const f = s(from || "your current role").trim(), t2 = s(to || "the target role").trim();
     return { rungs: [f, `senior ${f}`, `${f} manager / team lead`, "director-level seat", t2],
       skills: "The craft skills of the NEXT rung first — do the target seat's visible work at your current level (the analysis, the client conversation, the budget line) until it is normal, then the judgment skills the rung after it pays for.",
@@ -41909,6 +41974,15 @@ const CareerRouter = (() => {
       pace: "Commonly two to four years per rung across professional ladders, and it varies more by company than by field; the stall is usually the first seat that manages other people or owns a budget.",
       evidence: "Dated evidence of the next rung's work done from your current seat — logged the week it happens, because promotion cases are assembled from records, not from memory.",
       moves: [`Move one: do one piece of the ${t2} job from where you sit — visibly, with the outcome logged; paths are climbed on evidence of the next rung, not on tenure at this one.`, "Move two: find the person one rung up whose work you can make easier, and become known to them for follow-through; sponsorship moves files that applications cannot."] };
+  }
+  function switchLadder(from, to) {
+    const f = s(from || "").trim(), t2 = s(to || "the target role").trim();
+    return { rungs: f ? [f, `a bridge or entry-level seat in ${t2} that draws on your ${f} background`, t2] : [`an entry-level seat in ${t2}`, t2],
+      skills: `The skills ${t2} postings name most often come first: read five real ${t2} postings, list what they share, and build the two you lack with small, visible work samples.`,
+      credential: `Whether a credential gates ${t2} depends on the field: licensed work (nursing, law, classroom teaching, the CPA) gates on it, and most other fields gate on evidence of the work itself.`,
+      pace: `A switch commonly takes one to two years of building proof before the first ${t2} seat, and that first seat is often at a lower level than the one you hold now.`,
+      evidence: `Work samples that look like the ${t2} job, with their results, logged as you make them; in a switch they stand in for the title you do not hold yet.`,
+      moves: [`Move one: do one piece of the ${t2} job from where you sit, visibly, and log the outcome.`, `Move two: talk to two people who work in ${t2} about what their first year asked of them, and adjust the plan to what they say.`] };
   }
   function parsePathAsk(tn) {
     let from = null, to = null;
@@ -41940,6 +42014,14 @@ const CareerRouter = (() => {
     const from = parsed.from || prev.from || null;
     const to = parsed.to || prev.to || (promotionAsk ? "promotion" : null);
     if (!from && !to && !prev.from && !prev.to) return null;
+    // 2026-10-23: a bare aspiration ("I want to be a data analyst") names no starting role and no path thread exists, so
+    // it is a question about the ROLE: the role library answers it, as it answers "I want to become a data analyst".
+    // A ladder needs a starting role; built without one it read "your current role -> senior your current role -> ...".
+    if (!from && to && to !== "promotion" && !prev.from && !prev.to && /\b(?:want|wanna|hope|hoping|plan|planning|would like|'d like|goal is)\s+to\s+(?:be|become)\s+an?\s+/.test(tn)) {
+      // "to be a" and "to become a" are the same aspiration; the library's role frame reads "become".
+      const iq = handleIntel(s(text).replace(/\bto be (an?)\s/i, "to become $1 "), ctx);
+      if (iq) return iq;
+    }
     const L2 = (from || to) && to !== "promotion" ? (ladderFor(from, to) || genericLadder(from, to)) : null;
     const rungs = (L2 && L2.rungs) || prev.rungs || null;
     // Record the thread (the user's own stated roles only).

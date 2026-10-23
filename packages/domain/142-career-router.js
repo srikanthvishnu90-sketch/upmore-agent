@@ -3151,12 +3151,33 @@ const CareerRouter = (() => {
     let bank = null;
     try { bank = Prep.questionBank({ roleFamily: /\bdcf\b|\btechnicals?\b|\bthree statements\b|\blbo\b|\bcomps\b|\bfinance\b|\bbanking\b|\bibd\b/.test(t) ? "finance" : /\bcoding\b|\bsoftware\b|\bswe\b/.test(t) ? "swe" : null, cir: cirFor(text, ctx) }); } catch { bank = null; }
     const qs = (bank && (bank.questions || bank.items)) || (Array.isArray(bank) ? bank : []);
-    if (!qs.length) return null;
-    const dcfQ = /\bdcf\b/.test(t) ? qs.find((x) => /dcf/i.test(s(x && (x.q || x.question || x.text)))) : null;
-    const pick = dcfQ || qs.find((x) => x && (x.round === "technical" || /technical/i.test(s(x.round)))) || qs[0];
-    const q = s(pick && (pick.q || pick.question || pick.text));
+    // 2026-10-23 (freeze gaps): every practice ask in a thread with no bank sector served the bank's first question
+    // ("Tell me about yourself", four times running). The thread now remembers what it served; the role family named
+    // by the ask or recorded by the brief goes first, then the bank, and a repeat happens only once all are used.
+    const thread = prepThreadOf(ctx);
+    const fam = interviewFamilyOf(t) || (thread.family ? INTERVIEW_FAMILIES.find((f) => f.label === thread.family) : null) || null;
+    if (!qs.length && !fam) return null;
+    const textOf = (x) => s(x && (x.q || x.question || x.text));
+    const norm = (x) => lc(x).replace(/[^a-z0-9]+/g, " ").trim();
+    const served = new Set((Array.isArray(thread.served) ? thread.served : []).map(norm));
+    const dcfQ = /\bdcf\b/.test(t) ? qs.find((x) => /dcf/i.test(textOf(x))) : null;
+    const ordered = [...new Set([...(fam ? fam.questions : []), ...qs.filter((x) => x && (x.round === "technical" || /technical/i.test(s(x.round)))).map(textOf), ...qs.map(textOf)].filter(Boolean))];
+    // A stated weakness ("I'm weakest on prioritizing") is drilled first, from the unserved questions that name it.
+    const weakM = t.match(/\b(?:weakest on|weak on|focus on|struggle with)\s+([a-z]{4,})/);
+    const stem = weakM ? weakM[1].slice(0, 6) : null;
+    let q = dcfQ ? textOf(dcfQ) : ((stem && ordered.find((x) => !served.has(norm(x)) && lc(x).includes(stem))) || ordered.find((x) => !served.has(norm(x))));
+    const cycled = !q;
+    if (!q) q = ordered[0];
     if (!q) return null;
-    const reply = compose({ headline: `Here is your question: ${q}`, facts: ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."], nextStep: "Give me your answer and I will score it." });
+    try {
+      const th = prepThreadForWrite(ctx);
+      th.served = [...(Array.isArray(th.served) ? th.served : []), q];
+      th.lastQ = { q, sector: null };
+      th.lastServedAt = nowOf(ctx);
+    } catch { /* the question stands without the record */ }
+    const facts = ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."];
+    if (cycled) facts.unshift("You have answered every question I have for this, so this one comes round again.");
+    const reply = compose({ headline: `Here is your question: ${q}`, facts, nextStep: "Give me your answer and I will score it." });
     return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: { kind: "bank_question", q } };
   }
   // ======================================================================
@@ -3187,6 +3208,18 @@ const CareerRouter = (() => {
     return null;
   }
   const PREP_SECTOR_LABEL = { finance: "finance", quant: "quant", data: "data", consulting: "consulting", medicine: "medicine", law: "law", pm: "product management", swe: "software engineering" };
+  // 2026-10-23 (freeze gaps): an answer to the question just served fell back ("Give me your answer and I will score it",
+  // then the fallback). An answer is a statement of some length, sent within half an hour of the serve, that is not a
+  // new ask and not a turn about jobs, applications or stopping.
+  function prepAnswerShaped(text, thread, ctx) {
+    if (!thread || !thread.lastQ || !thread.lastServedAt) return false;
+    const raw = s(text).trim(), tn = lc(raw);
+    if (raw.length <= 40 || /\?\s*$/.test(raw) || nowOf(ctx) - thread.lastServedAt > 30 * 60000) return false;
+    if (/^(?:give me|another|next|one more|hit me|ask me|can we|could you|let'?s|ok(?:ay)? (?:next|another)|what|how|why|which|where|when|walk me|explain|teach me|back to)\b|\b(?:another|one more|next|different|harder) question\b/.test(tn)) return false;
+    // A clear ask inside the statement ("harder one, I'm weakest on profitability", "walk me through ...") is an ask.
+    if (/\b(?:give me|hit me|drill me|one more|harder|tougher|weakest|focus on|can (?:we|i|you)|help me|walk me|explain|teach me|back to|model answer|switch to)\b/.test(tn)) return false;
+    return !/\b(?:jobs?|apply|applying|applications?|search|find|look(?:ing)? for|stop|later|instead|cancel|never ?mind|tailor|resume|remind|watch)\b/.test(tn);
+  }
   function handlePrepSession(text, ctx) {
     if (!Prep || !Prep.questionBank) return null;
     const tn = typoNorm(text);
@@ -3221,14 +3254,16 @@ const CareerRouter = (() => {
           `Source: the product's researched ${PREP_SECTOR_LABEL[lq.sector] || lq.sector} interview bank${lq.bank_file ? ` (${lq.bank_file})` : ""} — the same item, not a paraphrase of it.`];
         return { intent: "prep_brief", reply: compose({ headline: "The model answer — what it is supposed to hit.", facts, nextStep: "Say it back in your own words and I will score the attempt against it." }), resultStatus: "running", sends: 0, question: lq };
       }
-      const facts = [`That question's bank item carries no model answer — the bank does not invent one; the grading points are the structure: state the statements, walk the linkages in order (net income to retained earnings, net income into the cash flow statement), and close with what breaks the link (non-cash items, working capital).`];
+      const facts = [lq.sector === "finance"
+        ? `That question's bank item carries no model answer — the bank does not invent one; the grading points are the structure: state the statements, walk the linkages in order (net income to retained earnings, net income into the cash flow statement), and close with what breaks the link (non-cash items, working capital).`
+        : "That question carries no banked model answer, and I won't invent one.", ...(lq.sector === "finance" ? [] : ["A strong answer is in order (situation, what you did, the result), specific (names, numbers, your own part), and ends on what you learned or would do again."])];
       return { intent: "prep_brief", reply: compose({ headline: "No model answer is banked for that one — here are its grading points instead.", facts, nextStep: "Answer it against those points and I will grade the attempt." }), resultStatus: "running", sends: 0, question: lq };
     }
     // (2) An ANSWER to the last served drill question (not a new
     // ask): grade it with 127's drill grader where the question
     // maps to one, else the rubric.
     const isAsk = /\bgive me\b|\banother\b|\bnext\b|\bhit me\b|\bquestion\b|\bdrill me\b|\bpractice\b|\bpractise\b|\bone more\b|\bharder\b|\bwhat (do|does|are|is)\b|\bcan (we|i|you)\b|\bhelp me\b|\bwalk me\b|\bexplain\b|\bhow (do|does|would)\b/.test(tn);
-    if (!isAsk && thread.lastQ && s(text).trim().length > 40) {
+    if ((!isAsk || prepAnswerShaped(text, thread, ctx)) && thread.lastQ && s(text).trim().length > 40) {
       const lq = thread.lastQ;
       let graded = null;
       try {
@@ -3240,14 +3275,19 @@ const CareerRouter = (() => {
           `Graded against the researched ${PREP_SECTOR_LABEL[lq.sector] || lq.sector} bank's drill key — not against a model's impression.`];
         return { intent: "prep_brief", reply: compose({ headline: `Graded: ${graded.score_0_5}/5 on "${s(lq.q).slice(0, 60)}".`, facts, nextStep: graded.gap ? "Want the same drill again with the gap as the focus, or the next question?" : "Next question, or a harder one on the same topic?" }), resultStatus: "running", sends: 0, question: lq, grade: graded };
       }
-      let weak = null;
-      try { const sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text)) : null; weak = sc && (sc.weakest || sc.focus || (sc.dimensions && sc.dimensions.slice().sort((a, b) => (a.score || 0) - (b.score || 0))[0])); } catch { weak = null; }
+      // 2026-10-23 (freeze gaps): the read named no score (127's scoreAnswer returns scores/fix_first, which the old
+      // read never looked at) and spoke of "linkage" and "the drill key" on every answer, a nursing story included.
+      let sc = null;
+      try { sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text)) : null; } catch { sc = null; }
+      const scores = sc && sc.scores;
       const namesAll = /income statement/.test(tn) && /balance sheet/.test(tn) && /cash flow/.test(tn);
-      const facts = [namesAll && /net income/.test(tn) && /retained earnings|cash flow statement/.test(tn)
-        ? "That is the linkage, stated right: all three statements named, net income flowing into retained earnings, and the cash flow statement starting from net income — the three moves the drill exists to check."
-        : "Received and read against the rubric — structure (signposted order), specificity (numbers and named mechanisms over adjectives), and the linkage claims, which are checked against the drill key, never against a vibe.",
-        weak ? `The weakest dimension on the rubric read: ${s(typeof weak === "string" ? weak : weak.name || weak.dimension || "structure")} — that is what the next rep drills.` : "The next rep drills the weakest part of that answer — that loop, not volume, is what moves the score."];
-      return { intent: "prep_brief", reply: compose({ headline: "Your answer, scored.", facts, nextStep: "Want the next question, or the same one again with the weak part as the focus?" }), resultStatus: "running", sends: 0, question: lq };
+      const facts = [];
+      if (lq.sector === "finance" && namesAll && /net income/.test(tn) && /retained earnings|cash flow statement/.test(tn)) facts.push("That is the linkage, stated right: all three statements named, net income flowing into retained earnings, and the cash flow statement starting from net income — the three moves the drill exists to check.");
+      if (scores) facts.push(`On the rubric: structure ${scores.structure}/5, evidence ${scores.evidence}/5, specificity ${scores.specificity}/5.`);
+      if (sc && Array.isArray(sc.feedback) && sc.feedback[0]) facts.push(`Fix first: ${s(sc.feedback[0]).split(/(?<=[.!?])\s/)[0]}`);
+      facts.push("The rubric reads the answer's shape (its order, numbers and specifics); it cannot tell whether what you said is right for the role.");
+      const head = scores ? `Your answer, scored: ${scores.total}/15 on the rubric.` : "Your answer, read against the rubric.";
+      return { intent: "prep_brief", reply: compose({ headline: head, facts, nextStep: "Want the next question, or the same one again with the weak part as the focus?" }), resultStatus: "running", sends: 0, question: lq };
     }
     // (3) Serve the next question from the sector's bank.
     if (!sector) return null;
@@ -3280,7 +3320,9 @@ const CareerRouter = (() => {
     // behavioural rows. The section lives on the bank row's source
     // (127 sets source.section; row.round carries the same label).
     const rowSectionOf = (row) => lc((row && row.source && row.source.section) || (row && row.round) || (row && row.section) || "");
-    if (sector === "consulting" && /\bcases?\b/.test(tn)) {
+    // 2026-10-23 (freeze gaps): "give me a practice question" in a consulting session served method cards ("Clarify the
+    // objective", "Build a case-specific issue tree") as "Your case:". A plain practice ask now gets a case too.
+    if (sector === "consulting" && (/\bcases?\b/.test(tn) || !/\b(?:framework|structur\w*|method|issue tree|behaviou?ral|fit)\b/.test(tn))) {
       const casePool = candidates.filter((row) => /canonical case types|official sample cases/.test(rowSectionOf(row)));
       if (casePool.length) candidates = casePool;
     } else if (/\bbehavioral\b|\bbehavioural\b/.test(tn)) {
@@ -3362,6 +3404,7 @@ const CareerRouter = (() => {
           if (dq) { drillId = dq.id; drillKind = sector === "quant" ? "quant" : "finance"; }
         }
       } catch { /* the rubric path grades it instead */ }
+      th.lastServedAt = nowOf(ctx);
       th.lastQ = { q: qText, sector, model_answer: row.model_answer || row.answer || null, answer: row.answer || null, bank_file: (row.source && row.source.bank_file) || (bank.interview_bank && bank.interview_bank.file) || null, drillId, drillKind };
       th.at = new Date(nowOf(ctx)).toISOString();
     } catch { /* the serve stands without the record */ }
@@ -3374,7 +3417,8 @@ const CareerRouter = (() => {
       : sector === "consulting" ? "case" : `${sectorName} question`;
     const facts = [];
     if (sectorSwitch) facts.push(`Different thread, answered on its own terms: that is a ${sectorName} technical, so it is served from the ${sectorName} bank — your ${PREP_SECTOR_LABEL[thread.sector] || thread.sector} prep thread stays exactly where it was.`);
-    if (detail && sector === "consulting") facts.push(`The prompt: ${detail.split(/(?<=[.!?])\s/)[0]}`);
+    // 2026-10-23: "vs." and "e.g." are not sentence ends ("isolate revenue vs." was served as the whole prompt).
+    if (detail && sector === "consulting") facts.push(`The prompt: ${detail.split(/(?<=[.!?])(?<!\bvs\.)(?<!\be\.g\.)(?<!\bi\.e\.)\s/)[0]}`);
     else if (detail && detail.length > 30 && detail.toLowerCase() !== qText.toLowerCase()) facts.push(detail.split(/(?<=[.!?])\s/)[0]);
     if (cycled) facts.push(`That cycles the ${sectorName} bank's unserved set — this one repeats by design, with your focus applied first.`);
     else if (focusHit && focus) facts.push(`Served first because it drills your stated weakness: ${focus} — the bank's focus ordering puts the weak spot at the front of the session, not the end.`);
@@ -3998,6 +4042,7 @@ const CareerRouter = (() => {
           `Prepare first: ${fam.prep}.`,
           `Likely questions: ${fam.questions.join(" · ")}`,
         ];
+        if (fam) { try { prepThreadForWrite(ctx).family = fam.label; } catch { /* the brief stands without the record */ } }
         const preShapeLen = facts.length;
         if (/\bportfolio walkthrough\b/.test(t)) {
           // WORDING-BACKLOG (BUG-192): a walkthrough's openers are
@@ -8717,6 +8762,104 @@ const CareerRouter = (() => {
     const reply = compose({ headline: `${a.label[0].toUpperCase() + a.label.slice(1)} or ${b.label}: how to decide, and the choice stays yours.`, facts, nextStep: `Want me to show what postings in ${a.label} or ${b.label} ask for?` });
     return { intent: "career_field_decision", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // 2026-10-23 (freeze gaps): a choice between two offers was answered with one company's hiring file ("should I take
+  // the Google offer or the Meta offer?" -> "The Google file"). The decision is the person's; the reply sets out what to
+  // compare and builds the money side only from their own offer letters (the total-comp table), never from memory.
+  function offerNamesOf(raw) {
+    const x = s(raw).replace(/[’]/g, "'").replace(/[?!.]+$/, "");
+    // A name is one to three capitalized words joined by single spaces; it never crosses a sentence end.
+    const name = "([A-Z][\\w&'-]*(?: [A-Z][\\w&'-]*){0,2})";
+    const pats = [
+      new RegExp(`\\bthe ${name} offer or (?:the )?${name} offer\\b`),
+      new RegExp(`\\boffers?,? (?:one )?from ${name} and (?:one from )?${name}\\b`),
+      new RegExp(`\\b${name} offer (?:vs\\.?|versus|or) (?:the )?${name}(?: offer)?\\b`),
+      new RegExp(`\\boffer from ${name} or wait (?:for|on) ${name}\\b`),
+      new RegExp(`\\b(?:between|choose|pick) ${name} and ${name}(?:'s)? offers?\\b`),
+    ];
+    for (const re of pats) { const m = x.match(re); if (m && m[1] && m[2] && m[1] !== m[2]) return [m[1], m[2]]; }
+    return null;
+  }
+  function routeOfferDecision(text, ctx) {
+    const t = lc(s(text)).replace(/[’]/g, "'");
+    if (!/\boffers?\b/.test(t)) return null;
+    if (/\b(?:side by side|negotiat\w*|counter|raise|lowball|rescind\w*|extension|letter says|base salary is|\$\s?\d)\b/.test(t)) return null;
+    const names = offerNamesOf(text);
+    const waitFor = /\bor wait (?:for|on)\b/.test(t);
+    const generic = /\b(?:choose|choosing|decide|deciding|pick|picking|torn) between (?:two|2|multiple|my|these|the)?\s*(?:job )?offers\b|\btwo (?:job )?offers\b[^.]*\b(?:decide|choose|pick|which|take|accept|help)\b|\bwhich (?:job )?offer should i (?:take|accept|pick|choose)\b/.test(t);
+    if (!names && !generic) return null;
+    if (!names && !/\b(?:decide|decid|choose|choos|pick|which|take|accept|torn)/.test(t)) return null;
+    const [a, b] = names || [null, null];
+    const facts = [
+      waitFor
+        ? `Money on the same basis: base, bonus, signing, equity per year at a stated value, and the year-one and steady-state totals; paste the ${a} letter now and ${b}'s if it comes, and equity with no stated price stays unvalued.`
+        : `Money on the same basis: base, bonus, signing, equity per year at a stated value, and the year-one and steady-state totals${a ? ` for ${a} and ${b}` : ""}; paste both offer letters and I put them side by side, and equity with no stated price stays unvalued.`,
+      "The work: the team and manager you would have, what your first year would be spent on, and what each role leads to next.",
+      "The rest of the terms: location or remote, start date, and any relocation or visa support.",
+    ];
+    if (waitFor) facts.push(`An offer has a deadline: it is normal to ask ${b} whether it can speed up its decision and to ask ${a} for a short extension; accepting with a plan to back out later burns the relationship.`);
+    facts.push("Write down the two or three things that matter most to you before comparing, so the bigger number alone does not decide.");
+    const head = a ? `${a} or ${b}: how to compare the offers, and the choice stays yours.` : "Two offers: how to compare them, and the choice stays yours.";
+    const reply = compose({ headline: head, facts, nextStep: waitFor ? `Want to paste the ${a} offer letter so we can lay out what it gives you?` : "Want to paste both offer letters so I can lay them side by side?" });
+    return { intent: "career_offer_decision", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // 2026-10-23 (freeze gaps): single-item resume questions (GPA, photo, references, objective) fell back. Authored
+  // general guidance (US norms unless noted); the GPA answer never suggests misstating it.
+  const RESUME_ITEMS = [
+    { re: /\bgpa\b|\bgrade point\b|\bgrades\b/, head: "Your GPA: include it while it helps, and always give the true number when asked.",
+      facts: ["A common rule of thumb: list it while you are a student or recent graduate if it is 3.5 or higher, and drop it after your first job or two.", "Some employers, often in finance and consulting, ask for it on the application; then the true number goes there whether or not it is on the resume."] },
+    { re: /\bphotos?\b|\bpicture\b|\bheadshot\b/, head: "A photo: leave it off in the US, UK and Canada.",
+      facts: ["Most employers there expect no photo, and some screen resumes with photos out to avoid bias.", "In parts of Europe and Asia a photo is still common, so follow the norm of the country where you apply."] },
+    { re: /\breferences?\b/, head: "References: leave them off the resume.",
+      facts: ["Employers ask for references near the end of the process, and you send them then.", "Skip the line that says references are available on request; it takes space and says nothing."] },
+    { re: /\bobjective\b/, head: "An objective line: mostly dropped now.",
+      facts: ["A two-line summary that says what you do and what you want next works better, if it is specific to the roles you apply for.", "If you cannot make it specific, leave it out and let the experience section speak."] },
+    { re: /\bhobbies\b|\binterests\b/, head: "Hobbies and interests: optional, one line at most.",
+      facts: ["A specific interest can start a conversation, but it never replaces work, projects or results."] },
+  ];
+  function routeResumeItem(text, ctx) {
+    const t = lc(s(text)).replace(/[’]/g, "'");
+    if (!/\b(?:should i|do i|can i|is it ok(?:ay)? to|is it worth)\b[^.?]*\b(?:put|include|list|add|need|have|mention|keep)\b/.test(t)) return null;
+    const item = RESUME_ITEMS.find((r) => r.re.test(t));
+    if (!item) return null;
+    if (!/\b(?:resume|resumes|cv|résumé)\b/.test(t) && !/\bgpa\b/.test(t)) return null;
+    const reply = compose({ headline: item.head, facts: item.facts, nextStep: "Want the rest of what makes a resume work, or to paste yours so I can tailor it to a role?" });
+    return { intent: "career_resume_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // 2026-10-23 (freeze gaps): "update my resume" fell back, and "update my resume with my new job" reached internship
+  // search. An update goes through the same door as any resume: pasted, read as drafts, confirmed by the person.
+  function routeResumeUpdate(text, ctx) {
+    const t = lc(s(text)).replace(/[’]/g, "'");
+    if (!/\b(?:update|updating|refresh|redo|revise|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
+    const profile = ctx.profile || {};
+    const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");
+    const newJob = /\bnew (?:job|role|position)\b|\bpromot/.test(t);
+    const facts = onFile
+      ? ["Paste the updated resume, or tell me what changed, and I read the change as drafts you confirm before anything is built on it.", newJob ? "For the new job: the title, the company, the start month, and one result so far, with its number if you have one." : "A new job, a new skill or a new result each become a fact only once you confirm it."]
+      : ["Paste your current resume, with the change already in it or listed after it, and I read it as drafts you confirm.", newJob ? "For the new job: the title, the company, the start month, and one result so far, with its number if you have one." : "Nothing is built on it until you confirm those facts."];
+    const reply = compose({ headline: onFile ? "Updating your resume: tell me what changed." : "No resume of yours is on file yet, so there is nothing to update; let's start from your current one.", facts, nextStep: onFile ? "What changed?" : "Want to paste it now?" });
+    return { intent: "career_resume_update", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // 2026-10-23 (freeze gaps): a question ABOUT cover letters ("tips for a cover letter", "how long should a cover letter
+  // be?") was answered as a request to write one. Authored general guidance, consistent with this product's rule that a
+  // letter goes only where the portal asks and carries only confirmed facts.
+  function routeCoverLetterGuidance(text, ctx) {
+    const t = lc(s(text)).replace(/[’]/g, "'");
+    if (!/\bcover letters?\b/.test(t)) return null;
+    if (/\b(?:write|draft|make|generate|create)\s+(?:me\s+)?(?:a|my|the)\s+cover letter\b(?![^.?]*\b(?:tips?|advice|good|well)\b)/.test(t) && !/\bhow (?:do|should|can|to)\b/.test(t)) return null;
+    if (!/\b(?:tips?|advice|pointers|best practices?|how (?:do|should|can) i (?:write|start|structure|format|end)|how to (?:write|start|structure|format|end)|what should (?:a|my) cover letter|good cover letter|great cover letter|strong cover letter|how long|length|do i (?:need|have to)|is (?:a )?cover letter (?:necessary|required|needed)|necessary|required|mistakes?)\b/.test(t)) return null;
+    const need = /\bdo i (?:need|have to)\b|\bnecessary\b|\brequired\b|\bneeded\b/.test(t);
+    const len = /\bhow long\b|\blength\b/.test(t);
+    const facts = [
+      "Send one where the application asks for it or allows it for a role you care about; where the portal does not ask, it is usually skipped.",
+      "Keep it under one page: three or four short paragraphs, about 250 to 400 words.",
+      "Open with the role and one specific reason for this company; then two examples from your experience that match what the posting asks for, each with its result; close with what you would do first.",
+      "Every claim is true and something you can talk about in the interview; I draft letters only from facts you have confirmed.",
+    ];
+    const head = need ? "Do you need a cover letter: when the application asks for one, yes." : len ? "A cover letter's length: under one page, about 250 to 400 words." : "What makes a cover letter work: specific to the company, short, and true.";
+    const reply = compose({ headline: head, facts: need ? facts : len ? facts.slice(2) : facts.slice(2).concat([facts[1]]), nextStep: "Want me to draft one for a role? Name it or paste the posting." });
+    return { intent: "career_cover_letter_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
   function routeFamily(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw).replace(/[’]/g, "'");
@@ -9215,6 +9358,11 @@ const CareerRouter = (() => {
       if (wc) return wc;
     }
     { const er = handleEmployerRecall(text, c); if (er) return er; }
+    // 2026-10-23 (freeze gaps): questions ABOUT a resume item, a resume update, and cover-letter guidance are answered
+    // as such, ahead of the recommendation, tailoring and cover-letter drafting gates that read them as requests.
+    { const ri = routeResumeItem(text, c); if (ri) return ri; }
+    { const ru = routeResumeUpdate(text, c); if (ru) return ru; }
+    { const cg = routeCoverLetterGuidance(text, c); if (cg) return cg; }
     // Capability 2 owns read-only resume/role, gap, location and current-source
     // recommendations. It takes only host-injected profile/postings; it never
     // falls back to the filesystem corpus or touches alert/browser state.
@@ -9908,7 +10056,9 @@ const CareerRouter = (() => {
         // byte-identical. Both arms are session-gated, so a cold
         // turn's routing is untouched.
         || ((pthB.sector || pthB.lastQ) && /\bbehavioral\b|\bbehavioural\b/.test(tnB))
-        || (pthB.lastQ && /\bmy (answer|approach|take)\b|\bcritique\b|\bfeedback\b|\bhow'?s (that|this|it)\b|\bscore (it|that|this|me)\b|\bgrade (it|that|this|me)\b/.test(tnB));
+        || (pthB.lastQ && /\bmy (answer|approach|take)\b|\bcritique\b|\bfeedback\b|\bhow'?s (that|this|it)\b|\bscore (it|that|this|me)\b|\bgrade (it|that|this|me)\b/.test(tnB))
+        // 2026-10-23 (freeze gaps): the answer to the question just served (see prepAnswerShaped).
+        || prepAnswerShaped(text, pthB, c);
       if (sessionShape) { const ps = handlePrepSession(text, c); if (ps) return ps; }
     }
     // COMPLEXITY WAVE (BUG-173): single-question and night-before
@@ -9917,7 +10067,7 @@ const CareerRouter = (() => {
     // question?", "can we practice?", "what else should I practice?", "let's practice") reaches the same owners as the
     // imperative "give me a practice question". "Practice" as a noun or a profession ("best practices", "a law
     // practice", "practice law") is not a request.
-    const practiceAsk = /\b(?:can|could|may|shall)\s+(?:we|i|you)\b[^.?]*\bpractic(?:e|ing)\b(?!\s+(?:law|medicine|nursing|dentistry|in)\b)|\blet'?s\s+(?:do\s+(?:a|some)\s+)?practic(?:e|ing)\b|\bwhat (?:else )?should i (?:practice|work on|drill)\b|\bpractice question\b|\b(?:another|one more)\s+(?:practice\s+)?question\b/.test(t);
+    const practiceAsk = /\b(?:can|could|may|shall)\s+(?:we|i|you)\b[^.?]*\bpractic(?:e|ing)\b(?!\s+(?:law|medicine|nursing|dentistry|in)\b)|\blet'?s\s+(?:do\s+(?:a|some)\s+)?practic(?:e|ing)\b|\bwhat (?:else )?should i (?:practice|work on|drill)\b|\bpractice question\b|\b(?:another|one more|next|different|new)\s+(?:practice\s+)?question\b|\b(?:harder|tougher|different) (?:one|question)\b|\bweakest on\b/.test(t);
     if (practiceAsk || /\bhit me with\b|\bgive me\b[^.]*\bquestion\b|\bask me\b[^.]*\bquestion\b|\bquiz me\b|\bdrill me\b/.test(t)) {
       const ps = handlePrepSession(text, c);
       if (ps) return ps;
@@ -10024,6 +10174,7 @@ const CareerRouter = (() => {
       // 2026-10-23: a choice between two named fields is answered on both, ahead of the role library (which answered
       // "should I become a lawyer or a doctor?" about lawyers alone).
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
+      { const od = routeOfferDecision(text, c); if (od) return od; }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       // ROUTING FAMILIES (2026-10-23): an onboarding ask aimed at the product ("how do I get started with you") is not

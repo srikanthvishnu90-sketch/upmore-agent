@@ -158,3 +158,114 @@ test("(f) a cover-letter ask that names no role never claims a target is set", (
 test("(f) control: improving a resume FOR a target is tailoring", () => {
   assert.equal(ask("improve my resume for this posting").intent, "career_tailor");
 });
+
+// (g) Coordinator 2026-10-23, the four known gaps before candidate freeze. Synthetic cases only.
+const lintAll = (r) => { for (const b of Reply.splitBubbles(r)) assert.ok(Reply.lint(b).ok, `${b} -> ${Reply.lint(b).violations}`); };
+for (const [q, a, b] of [["should I take the Google offer or the Meta offer?", /Google/, /Meta/], ["I have two offers, one from Stripe and one from Airbnb. Which should I take?", /Stripe/, /Airbnb/], ["Stripe offer vs Airbnb offer, which is better?", /Stripe/, /Airbnb/], ["how do I choose between two job offers?", /offer/i, /offer/i]]) {
+  test(`(g) offer decision: "${q}" compares the offers and leaves the choice to the person`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_offer_decision", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, a); assert.match(r, b); assert.match(r, /equity/i); assert.match(r, /stays yours/i);
+    assert.ok(!/\bfile —|The bar:/.test(r), r.slice(0, 160));
+    lintAll(r);
+  });
+}
+test("(g) offer decision: an offer in hand against one still pending speaks to the deadline", () => {
+  const o = ask("should I accept the offer from Amazon or wait for Microsoft?"), r = String(o.reply);
+  assert.equal(o.intent, "career_offer_decision", `${o.intent}: ${r.slice(0, 160)}`);
+  assert.match(r, /deadline/i); assert.match(r, /Amazon/); assert.match(r, /Microsoft/);
+});
+test("(g) control: a company's interview process stays a company question", () => {
+  assert.equal(ask("what is Google's interview process?").intent, "company_intel");
+});
+for (const [q, re] of [["should I put my GPA on my resume?", /GPA[\s\S]*3\.5/], ["should I include my GPA?", /GPA[\s\S]*3\.5/], ["should I put a photo on my resume?", /photo/i], ["should I list references on my resume?", /references/i], ["do I need an objective on my resume?", /summary/i]]) {
+  test(`(g) resume item: "${q}" is answered on that item`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_resume_guidance", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, re); assert.ok(!/^What makes a resume work/.test(r), r.slice(0, 120));
+    lintAll(r);
+  });
+}
+test("(g) resume item: the GPA answer never tells anyone to misstate it", () => {
+  assert.match(String(ask("should I put my GPA on my resume?").reply), /true number/i);
+});
+for (const q of ["update my resume", "I need to update my resume with my new job"]) {
+  test(`(g) "${q}" is an update, answered on what is on file`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_resume_update", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, /no resume (?:of yours )?(?:is )?on file/i); assert.match(r, /confirm/i);
+    lintAll(r);
+  });
+}
+for (const [q, re] of [["tips for a cover letter", /specific/i], ["how do I write a good cover letter?", /specific/i], ["what should a cover letter say?", /posting/i], ["do I need a cover letter?", /asks for/i], ["how long should a cover letter be?", /words|page/i]]) {
+  test(`(g) cover-letter guidance: "${q}"`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_cover_letter_guidance", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, re); lintAll(r);
+  });
+}
+test("(g) control: a cover letter for a named company is still a draft request", () => {
+  assert.equal(ask("write me a cover letter for Stripe").intent, "career_tailor");
+});
+function thread(turns) {
+  n += 1; const th = `seq-${n}`; let snap = null; const outs = [];
+  turns.forEach((text, i) => { const ctx = host.createTurnCtx({ userId: th, threadId: th, now: Date.parse("2026-10-23T15:00:00Z") + i * 60000, snapshot: snap, postings: [] }); outs.push(host.runTurn(text, ctx)); snap = host.extractSnapshot(ctx); });
+  return outs;
+}
+const servedQ = (o) => { const m = String(o.reply).match(/^Here is your question: ([^\n]+)/); return m ? m[1] : null; };
+test("(g) practice: repeated asks in a thread with no bank sector serve different questions", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "another practice question", "what else should I practice?", "one more question"]);
+  const qs = outs.slice(1).map(servedQ);
+  assert.ok(qs.every(Boolean), JSON.stringify(outs.slice(1).map((o) => String(o.reply).slice(0, 80))));
+  assert.equal(new Set(qs).size, qs.length, JSON.stringify(qs));
+});
+test("(g) practice: a nursing thread draws on nursing questions first", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question"]);
+  assert.match(String(outs[1].reply), /patient/i, String(outs[1].reply).slice(0, 160));
+});
+test("(g) practice: a consulting practice ask serves a case, never a method card", () => {
+  const outs = thread(["help me prep for a consulting case interview", "give me a practice question", "another question"]);
+  for (const o of outs.slice(1)) assert.ok(!/Clarify the objective|issue tree|framework/i.test(String(o.reply).split("\n")[0]), String(o.reply).slice(0, 160));
+});
+for (const [brief, answer] of [["help me prepare for my interview with a hospital", "I have three years on a cardiac floor, and I chose nursing because my grandmother's nurse changed how I saw care; I led our unit's falls project and falls dropped 20 percent."], ["help me prep for a data analyst interview", "I would group by candidate, count distinct skills among python, tableau and postgres, and keep candidates having a count of exactly three."]]) {
+  test(`(g) practice: an answer to the served question is scored (${brief.slice(-20)})`, () => {
+    const outs = thread([brief, "give me a practice question", answer]);
+    const o = outs[2], r = String(o.reply);
+    assert.ok(!isFallback(o), `${o.handler}/${o.intent}: ${r.slice(0, 120)}`);
+    assert.equal(o.intent, "prep_brief"); assert.match(r, /\d\/5/, r.slice(0, 200));
+    lintAll(r);
+  });
+}
+test("(g) practice: a non-finance answer is not graded on finance linkage", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "I have three years on a cardiac floor, and I chose nursing because my grandmother's nurse changed how I saw care."]);
+  assert.ok(!/linkage|drill key|statements/i.test(String(outs[2].reply)), String(outs[2].reply));
+});
+test("(g) practice: a model-answer ask on a non-finance question carries no finance grading points", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "what is the model answer?"]);
+  assert.ok(!/retained earnings|three statements|cash flow/i.test(String(outs[2].reply)), String(outs[2].reply));
+});
+test("(g) control: a job ask after a served question is not taken as an answer", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "actually can you find me nursing jobs in Boston instead of this practice"]);
+  assert.ok(!/scored/i.test(String(outs[2].reply)), String(outs[2].reply).slice(0, 160));
+});
+test("(g) practice: 'next question' in a thread with no bank sector serves the next question", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "next question"]);
+  assert.ok(servedQ(outs[2]) && servedQ(outs[2]) !== servedQ(outs[1]), String(outs[2].reply).slice(0, 160));
+});
+test("(g) practice: a model-answer ask with no banked answer says what a strong answer does", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "what is the model answer?"]);
+  assert.match(String(outs[2].reply), /strong answer/i, String(outs[2].reply));
+});
+test("(g) practice: a case prompt is never cut at 'vs.'", () => {
+  const outs = thread(["help me prep for a consulting case interview", "give me a practice question"]);
+  assert.ok(!/\bvs\.\s*(?:\n|$)|\bvs\.\s+From\b/.test(String(outs[1].reply)), String(outs[1].reply).slice(0, 200));
+});
+test("(g) control: an ask phrased as a statement after a served question is not scored as an answer", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "harder one please, I'm weakest on prioritizing patients under pressure"]);
+  assert.ok(!/scored/i.test(String(outs[2].reply)), String(outs[2].reply).slice(0, 160));
+});
+test("(g) practice: 'harder one, I'm weakest on X' in a thread with no bank sector serves a question on X", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "harder one please, I'm weakest on prioritizing patients under pressure"]);
+  assert.ok(servedQ(outs[2]), `${outs[2].handler}/${outs[2].intent}: ${String(outs[2].reply).slice(0, 120)}`);
+  assert.match(servedQ(outs[2]), /prioriti/i);
+});

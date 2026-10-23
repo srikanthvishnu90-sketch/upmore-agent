@@ -47,6 +47,16 @@ new captures, no live contact), which reproduced the pin's mapped counts exactly
 on all 11 forms. A VM replacement mid-corrections wiped the first derivation's
 /tmp scratch; the re-run from durable copies is the derivation of record.
 
+Corrections verification: full coverage suite on the corrected code (this VM):
+**17 pass / 1 fail / 0 skipped of 18** — the one failure is the Lever Shield AI
+drive timing out on its `open` command (120s) under the accumulated load of 15
+preceding Chromium drives (`driveError: drive_error`, all counts null — the drive
+never started; no pin assertion was reached). Re-run standalone on an unloaded
+machine, the identical Shield drive **passes 1/1 in 27s**, including the new
+field-class pins — classified environment/load, not branch-caused and not pin
+drift. Neighbors on the corrected tree: fixtures suite **4/4 pass**; Ashby
+verdict-pack suite (its own worktree) **7/7 pass**.
+
 ---
 
 The 17 application forms captured in `tests/fixtures/forms-ci/` (2026-10-19 CI capture)

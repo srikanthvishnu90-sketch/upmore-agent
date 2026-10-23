@@ -250,6 +250,13 @@
     const doc = rootEl.ownerDocument;
     const { jobs = [], prepared = [], outcomes = [] } = data || {};
     const cov = coverage(jobs);
+    // Field-fill telemetry has exactly one data source: each career_apply_jobs
+    // row's payload.fields list (one entry per form field, with its value) —
+    // the same list coverage() counts. When NO row carries any fields, the
+    // telemetry is ABSENT, and absence must stay representable: the counter
+    // renders a dash, never 0/0. A 0/0 beside an active or confirmed row reads
+    // as a measured zero ("nothing was filled"), which the records do not say.
+    const hasFieldTelemetry = jobs.some(r => isRecord(r.payload) && Array.isArray(r.payload.fields) && r.payload.fields.length > 0);
     rootEl.replaceChildren();
     const header = el(doc, 'div', 'f1-head');
     header.appendChild(el(doc, 'h1', '', 'Applications'));
@@ -257,7 +264,9 @@
     covLine.appendChild(el(doc, 'span', '', 'Prepared '));
     covLine.appendChild(el(doc, 'strong', '', cov.prepared));
     covLine.appendChild(el(doc, 'span', '', ' · Fields filled '));
-    covLine.appendChild(el(doc, 'strong', '', cov.filled));
+    const filledEl = el(doc, 'strong', '', hasFieldTelemetry ? cov.filled : '\u2014');
+    filledEl.setAttribute('data-f1-fields-filled', hasFieldTelemetry ? 'telemetry' : 'absent');
+    covLine.appendChild(filledEl);
     covLine.appendChild(el(doc, 'span', '', ' · Confirmed '));
     covLine.appendChild(el(doc, 'strong', '', cov.confirmed));
     header.appendChild(covLine);

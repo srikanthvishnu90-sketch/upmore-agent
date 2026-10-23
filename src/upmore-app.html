@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-qwDy7Y54vXwOqS3tFxCB+fTiIwlQ5fLHfMAtilizvVE=' 'sha256-YCMre1gUDjc6wNCOdBsOgr45hCV4BGzmpDFeK6vEvhw=' 'sha256-qD3UlowHS3AhAC6+8hHhci0WwJjlNJSUt5aeXccUBNA=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-qwDy7Y54vXwOqS3tFxCB+fTiIwlQ5fLHfMAtilizvVE=' 'sha256-YLGHAXtL26APJXVhmN3GYvb22YtIgDdw9AIT8uHpjLk=' 'sha256-qD3UlowHS3AhAC6+8hHhci0WwJjlNJSUt5aeXccUBNA=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -2898,6 +2898,13 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
     const doc = rootEl.ownerDocument;
     const { jobs = [], prepared = [], outcomes = [] } = data || {};
     const cov = coverage(jobs);
+    // Field-fill telemetry has exactly one data source: each career_apply_jobs
+    // row's payload.fields list (one entry per form field, with its value) —
+    // the same list coverage() counts. When NO row carries any fields, the
+    // telemetry is ABSENT, and absence must stay representable: the counter
+    // renders a dash, never 0/0. A 0/0 beside an active or confirmed row reads
+    // as a measured zero ("nothing was filled"), which the records do not say.
+    const hasFieldTelemetry = jobs.some(r => isRecord(r.payload) && Array.isArray(r.payload.fields) && r.payload.fields.length > 0);
     rootEl.replaceChildren();
     const header = el(doc, 'div', 'f1-head');
     header.appendChild(el(doc, 'h1', '', 'Applications'));
@@ -2905,7 +2912,9 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
     covLine.appendChild(el(doc, 'span', '', 'Prepared '));
     covLine.appendChild(el(doc, 'strong', '', cov.prepared));
     covLine.appendChild(el(doc, 'span', '', ' · Fields filled '));
-    covLine.appendChild(el(doc, 'strong', '', cov.filled));
+    const filledEl = el(doc, 'strong', '', hasFieldTelemetry ? cov.filled : '\u2014');
+    filledEl.setAttribute('data-f1-fields-filled', hasFieldTelemetry ? 'telemetry' : 'absent');
+    covLine.appendChild(filledEl);
     covLine.appendChild(el(doc, 'span', '', ' · Confirmed '));
     covLine.appendChild(el(doc, 'strong', '', cov.confirmed));
     header.appendChild(covLine);

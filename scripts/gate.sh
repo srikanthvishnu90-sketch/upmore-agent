@@ -62,6 +62,7 @@ shared_tests=(
   tests/deploy-provenance.test.cjs
   tests/outbox-kinds.test.cjs
   tests/career-bundle-data.test.cjs
+  tests/eval-rba-ledger.test.cjs
   tests/depth-CAREER-WRITING.test.cjs
   tests/extension-package.test.cjs
   tests/extension-package-agent.test.cjs
@@ -118,6 +119,7 @@ edge_tests=(
   tests/edge/career-backlog-alerts.test.ts
   tests/edge/career-conversations-eval.test.ts
   tests/edge/career-compare.test.ts
+  tests/eval-spend-bound.test.ts
   tests/edge/career-ask-once.test.ts
   tests/edge/control-state.test.ts
   tests/edge/fact-quarantine.test.ts

@@ -136,3 +136,49 @@ test("'I'm fine with remote' is not read as a find command", () => {
   const o = ask("I'm fine with remote work");
   assert.ok(!/^career_discovery$/.test(o.intent || ""), `${o.intent}: ${String(o.reply).slice(0, 160)}`);
 });
+
+// Coordinator probe (2026-10-23): the employer the person stated was recorded but no ask could read it back, and the
+// "I want to become a <role>" frame had no owner. Synthetic cases only.
+function convo() {
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const store = { accounts: new Map(), threads: new Map() }; let k = 0;
+  return (u, th, text) => {
+    k += 1;
+    const ctx = host.createTurnCtx({ userId: u, threadId: th, now: Date.parse("2026-10-23T15:00:00Z") + k * 60000, accountPersistence: true, snapshot: store.threads.get(th) || null, account: clone(store.accounts.get(u) || {}), watchState: {}, postings: [] });
+    const o = host.runTurn(text, ctx);
+    store.threads.set(th, host.extractSnapshot(ctx));
+    if (ctx._hostPatch && ctx._hostPatch.erase !== true) { const a = store.accounts.get(u) || {}; for (const key of Object.keys(ctx._hostPatch)) a[key] = clone(ctx._hostPatch[key]); store.accounts.set(u, a); }
+    return o;
+  };
+}
+for (const q of ["where do I work?", "what company do I work at?", "who is my employer?", "do you know where I work?", "what's my current job?"]) {
+  test(`employer recall: "${q}" reads the stated employer back`, () => {
+    const say = convo();
+    say("u-emp", "t1", "I work at Larkfield Hospital.");
+    const o = say("u-emp", "t1", q);
+    assert.equal(o.intent, "conversation_recall", `${o.intent}: ${String(o.reply).slice(0, 160)}`);
+    assert.match(String(o.reply), /you work at Larkfield Hospital/);
+  });
+}
+test("employer recall: with only a past internship on record, no current employer is claimed", () => {
+  const say = convo();
+  say("u-emp2", "t1", "I interned at Quillon Bank.");
+  const r = String(say("u-emp2", "t1", "where do I work?").reply);
+  assert.match(r, /no current employer/i); assert.match(r, /you interned at Quillon Bank/);
+  assert.ok(!/you work at Quillon/.test(r));
+});
+test("employer recall: with nothing on record, the honest absence (never a guess)", () => {
+  const r = String(convo()("u-emp3", "t1", "who is my employer?").reply);
+  assert.match(r, /no employer is on your record/i);
+});
+test("employer recall control: a job-search status ask is not an employer recall", () => {
+  assert.notEqual(convo()("u-emp4", "t1", "what's my current job search looking like?").intent, "conversation_recall");
+});
+for (const q of ["I want to become a data analyst", "I'd like to become a physical therapist", "my goal is to become a teacher", "I'm hoping to become an accountant"]) {
+  test(`aspiration: "${q}" is answered on that role, not the fallback`, () => {
+    const o = ask(q);
+    assert.ok(!isFallback(o), `${o.handler || "-"}/${o.intent || "-"}${o.contained ? " contained" : ""}`);
+    const role = q.match(/become an? (.+)$/)[1];
+    assert.ok(new RegExp(role.split(" ")[0], "i").test(String(o.reply)), `answers on ${role}: ${String(o.reply).slice(0, 200)}`);
+  });
+}

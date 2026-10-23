@@ -15731,6 +15731,7 @@ const CareerRouter = (() => {
             const cands = [];
             const aboutM = s(text).match(/\babout\s+([A-Za-z][A-Za-z -]*?)(?:\s+—|\s+--|\s+-|\?|$)/); if (aboutM) cands.push(aboutM[1].trim());
             const forM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([A-Za-z][A-Za-z -]*?)(?:\?|$)/); if (forM) cands.push(forM[1].trim());
+            const becomeM = s(text).match(/\b(?:become|be|work as)\s+an?\s+([A-Za-z][A-Za-z -]*?)(?:[?.!,]|\s+(?:someday|one day|eventually|soon)\b|$)/i); if (becomeM) cands.push(becomeM[1].trim());
             for (const cand of cands) {
               if (!cand) continue;
               try { kst = Intel.roleKbStats(cand); } catch { kst = null; }
@@ -15743,7 +15744,7 @@ const CareerRouter = (() => {
             const reply = compose({ headline: `${kst.role.title} — what its postings actually ask for, from the library.`, facts, nextStep: "Name a company and I will put its own file's bar next to this, role by role." });
             return { intent: "company_intel", reply, resultStatus: "prepared", sends: 0, payload: { kind: "role_kb_stats", role: kst.role.title }, artifact: { kind: "role_kb_stats", role: kst.role.title } };
           }
-          const tailM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([^?.!,]+)$/i);
+          const tailM = s(text).match(/\bfor\s+(?:an?\s+|the\s+)?([^?.!,]+)$/i) || s(text).match(/\b(?:become|be|work as)\s+an?\s+([^?.!,]+?)(?:[?.!,]|$)/i);
           const roleTail = tailM ? tailM[1].trim() : "";
           const reply = compose({ headline: "That role is not in the career knowledge library — stated plainly.", facts: [`The library's role evidence covers the occupations it was built from; ${roleTail ? `"${roleTail}" is` : "that role is"} not among them, so no posting statistics exist on record for it.`, "What I will not do is borrow a neighbouring role's numbers and present them as this role's — a percentage without its own evidence behind it is invention."], nextStep: "Name a role the library carries — data analyst, software engineer, registered nurse, welder, product manager — and its posting evidence is quoted with its sample sizes." });
           return { intent: "company_intel", reply, resultStatus: "awaiting_user", sends: 0, payload: { kind: "role_kb_absent" }, artifact: { kind: "role_kb_absent" } };
@@ -18937,6 +18938,10 @@ const CareerRouter = (() => {
       const pr = handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
       if (pr) return pr;
     }
+    if (/\b(?:want|wanna|hope|hoping|plan|planning|aim|aiming|trying|would like|'d like|dream|goal is|goal's)\s+(?:is\s+)?to\s+(?:become|be|work as)\s+an?\s+[a-z]/.test(t)) {
+      const iq = handleIntel(text, ctx);
+      if (iq) return iq;
+    }
     if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
         && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
       if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
@@ -19192,6 +19197,7 @@ const CareerRouter = (() => {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
+    { const er = handleEmployerRecall(text, c); if (er) return er; }
     const recommendations = typeof CareerRecommendations !== "undefined" ? CareerRecommendations : req("./154-career-recommendations.js");
     const recommendationIntent = recommendations && recommendations.intentFor(text);
     if (recommendationIntent) {
@@ -20344,6 +20350,19 @@ const CareerRouter = (() => {
     if (/\bworked\s+(?:a|an|the)\s/.test(ev)) return `you worked a ${f.value}`;
     if (/\bworked\b/.test(ev)) return `you worked at ${f.value}`;
     return `you interned at ${f.value}`;
+  }
+  function handleEmployerRecall(text, ctx) {
+    const t = lc(s(text).trim()).replace(/[’]/g, "'");
+    if (!/\bwhere (?:do|did) i (?:currently )?work\b|\bwhere i (?:currently )?work\b|\bwhere am i (?:currently )?working\b|\bwho(?: is|'s) my (?:current )?employer\b|\bwho do i (?:currently )?work for\b|\b(?:what|which) (?:company|firm|organization|place) do i (?:currently )?work (?:at|for)\b|\bwhat(?:'s| is) my (?:current )?(?:job|employer|company|workplace|role|position)[\s?!.]*$|\bwhat do i do for (?:a living|work)\b/.test(t)) return null;
+    const exp = statedFactsOf(ctx).filter((f) => f && f.kind === "experience");
+    const lines = exp.map(experienceLine);
+    const current = lines.filter((l) => /^you (?:work|intern) at /.test(l));
+    const past = lines.filter((l) => !/^you (?:work|intern) at /.test(l));
+    let reply, status = "completed";
+    if (current.length) reply = compose({ headline: `From your record: ${current.join("; ")}.`, facts: ["That is as you stated it; correct it the same way you said it if it has changed."], nextStep: "Want me to look at roles beyond it?" });
+    else if (past.length) reply = compose({ headline: "Your record has no current employer.", facts: [`It holds your past work: ${past.join("; ")}.`], nextStep: "Where do you work now?" });
+    else { status = "awaiting_user"; reply = compose({ headline: "No employer is on your record yet.", facts: ["You have not told me where you work, and the record holds only what you state."], nextStep: "Where do you work now?" }); }
+    return { intent: "conversation_recall", reply, resultStatus: status, sends: 0 };
   }
   function factLine(f) {
     return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;

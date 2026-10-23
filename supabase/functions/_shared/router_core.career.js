@@ -17913,7 +17913,10 @@ const CareerRouter = (() => {
     const facts = [...(contraSentence ? [contraSentence] : []), ...rubricFacts(graded)];
     if (res.done || !res.next_question) {
       const summary = Prep.mockSummary(state.store, state.mockId);
-      const reply = compose({ headline: "That is the set for now.", facts: [...facts, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`], nextStep: "Want to retry your weakest answer once more?" });
+      const imp = mockImprovement(summary);
+      const closeFacts = [...facts, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`];
+      if (imp) closeFacts.push(`One concrete improvement, on your answer to "${s(imp.q).slice(0, 90)}": ${imp.line}`);
+      const reply = compose({ headline: "That is the set for now.", facts: closeFacts, nextStep: "Want to retry your weakest answer once more?" });
       if (profile) profile._careerRouterPrep = null;
       try { const th = prepThreadForWrite(ctx); if (th) delete th.prepMock; } catch {   }
       return { intent: "prep_mock_complete", reply, resultStatus: "prepared", graded, contradiction: contra, summary };
@@ -17923,9 +17926,32 @@ const CareerRouter = (() => {
     return { intent: "prep_mock_next", reply, resultStatus: "running", graded, contradiction: contra, mock: { id: state.mockId, question: state.currentQ } };
   }
 
+  function mockImprovement(summary) {
+    if (!summary || !Array.isArray(summary.what_didnt)) return null;
+    let weakest = null;
+    for (const w of summary.what_didnt) {
+      if (!w || !Array.isArray(w.fix) || !w.fix.length) continue;
+      const total = w.scores && typeof w.scores.total === "number" ? w.scores.total : Infinity;
+      if (!weakest || total < weakest.total) weakest = { total, q: w.q, line: w.fix[0] };
+    }
+    if (!weakest) return null;
+    const line = s(weakest.line).split(/(?<=[.!?])\s+/)[0].trim();
+    return line ? { q: weakest.q, line } : null;
+  }
+
+  const ADVANCE_VERB = "(?:keep going|next question|next one|next|skip|pass|move on|continue)";
+  const ADVANCE_OBJECT = "(?:this question|that question|the question|this one|that one|this probe|the probe|this|that|it|the)";
+  const ADVANCE_FRAME = new RegExp("^(?:please |can we |could we |can i |let'?s |just |ok )?" + ADVANCE_VERB + "(?: " + ADVANCE_OBJECT + ")?(?: please)?$");
+  function isAdvanceTurn(t) {
+    const clean = t.replace(/[.!?]+$/, "").trim();
+    if (ADVANCE_FRAME.test(clean)) return true;
+    const clauses = clean.split(/\s*(?:—|–|--)\s*/);
+    return clauses.length > 1 && clauses.every((cl) => ADVANCE_FRAME.test(cl.trim()));
+  }
+
   function handleMockAdvance(text, ctx, state) {
     const t = lc(text).trim();
-    if (!/^(keep going|next question|next one|skip( this| it| that| the question)?|move on|continue)\b/.test(t)) return null;
+    if (!isAdvanceTurn(t)) return null;
     const store = state && state.store;
     const m = store && Array.isArray(store.mocks) ? store.mocks.find((x) => x.mock_id === state.mockId) : null;
     if (!m || !Array.isArray(m.questions) || !m.questions.length) return null;
@@ -17936,7 +17962,10 @@ const CareerRouter = (() => {
       try { summary = Prep.mockSummary(store, state.mockId); } catch { summary = null; }
       if (profile) profile._careerRouterPrep = null;
       try { const th = prepThreadForWrite(ctx); if (th) delete th.prepMock; } catch {   }
-      const reply = compose({ headline: "That is the set for now.", facts: [`Skipped questions stay unanswered — the summary scores only what you actually answered (${summary ? summary.answered : m.answers.length} answered).`, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`], nextStep: "Want to retry your weakest answer once more?" });
+      const imp = mockImprovement(summary);
+      const facts = [`Skipped questions stay unanswered — the summary scores only what you actually answered (${summary ? summary.answered : m.answers.length} answered).`, `Across the mock your weakest rubric area is ${summary ? summary.fix_first : "structure"} — that is the one to drill.`];
+      if (imp) facts.push(`One concrete improvement, on your answer to "${s(imp.q).slice(0, 90)}": ${imp.line}`);
+      const reply = compose({ headline: "That is the set for now.", facts, nextStep: "Want to retry your weakest answer once more?" });
       return { intent: "prep_mock_complete", reply, resultStatus: "prepared", sends: 0, summary };
     };
     if (state.phase === "probe") {
@@ -17975,6 +18004,8 @@ const CareerRouter = (() => {
       `Rubric averages: structure ${avg.structure != null ? avg.structure : 0} of 5, evidence ${avg.evidence != null ? avg.evidence : 0} of 5, specificity ${avg.specificity != null ? avg.specificity : 0} of 5.`,
       `Honest verdict: your weakest area is ${summary ? summary.fix_first : "structure"} — that is the one to drill before the real round.`];
     if (summary && Array.isArray(summary.what_didnt) && summary.what_didnt.length) facts.push(`The answer that needs work first: "${s(summary.what_didnt[0].q).slice(0, 90)}".`);
+    const imp = mockImprovement(summary);
+    if (imp) facts.push(`One concrete improvement, on your answer to "${s(imp.q).slice(0, 90)}": ${imp.line}`);
     const reply = compose({ headline: "Your debrief — scored from this session's record.", facts, nextStep: "Want to retry your weakest answer once more, or run a fresh mock?" });
     return { intent: "prep_mock_debrief", reply, resultStatus: "prepared", sends: 0, summary };
   }

@@ -18583,8 +18583,11 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const profile = ctx && ctx.profile;
     if (!profile) {
-      const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
-      return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+      const standing = loadWatchProfileSync(ctx);
+      if (!standing || !standing.scoring_profile) {
+        const reply = compose({ headline: "I can set that watch up — I need your profile on file first.", facts: ["A watch matches new postings against your confirmed facts and interests; with no profile there is nothing honest to match against, and a watch on no facts would fire on everything or nothing."], nextStep: "Tell me about yourself first — school, class year, the work you have done — and then say the watch again." });
+        return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
     }
     const role = watchRoleFromText(text);
     if (!role) {

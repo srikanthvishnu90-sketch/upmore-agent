@@ -150,7 +150,11 @@ test.after(async () => {
 });
 
 for (const form of ASHBY) {
-  test(`ashby verdict pack: ${form.id}`, { timeout: 300000 }, async () => {
+  // Timeout headroom is deliberate: a fill is sub-second uncontended (measured), but the
+  // gate runs browser suites at --test-concurrency=2 on shared runners, and a starved
+  // executor must fail loudly rather than be mistaken for a driver verdict. The pinned
+  // outcomes below are the assertion; the waits are not.
+  test(`ashby verdict pack: ${form.id}`, { timeout: 600000 }, async () => {
     const rec = { company: form.company || null, manifestFields: form.fields.length, botCheck: form.bot_check || [] };
     results[form.id] = rec;
     const open = await send({ type: "open", url: `${base}/${form.id}` });
@@ -180,7 +184,7 @@ for (const form of ASHBY) {
       for (const s of schema) {
         const b = bindings[s.name];
         const v = valueFor(b, s);
-        const r = await send({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version });
+        const r = await send({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version }, 300000);
         const entry = { name: s.name, type: b.inputType, outcome: r.ok && r.data.filled ? "filled" : (r.ok ? (r.data.reason || "not_filled") : String(r.error || "protocol_error")) };
         fills.push(entry);
         if (entry.outcome === "filled") filledBindings.push({ b, v });

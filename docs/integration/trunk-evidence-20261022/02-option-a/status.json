@@ -1,0 +1,41 @@
+{
+  "incoming": "9568596d",
+  "base": "b7d02be231036d542a6b20f1820046758f2b436b",
+  "tested_source": "175d042c0ce74a5dde1d56b884876a09f6f1c06b",
+  "fail_first": {
+    "passed": 0,
+    "total": 3,
+    "failed": 3
+  },
+  "targeted": {
+    "passed": 31,
+    "total": 31
+  },
+  "node": {
+    "passed": 2757,
+    "total": 2859,
+    "failed": 0,
+    "NOT_RUN": 102
+  },
+  "edge": {
+    "passed": 895,
+    "total": 895
+  },
+  "architect": {
+    "passed": 1279,
+    "total": 1279
+  },
+  "comparison_to_step_01": {
+    "new_failures": 0,
+    "changed_failures": 0,
+    "new_skip_names": 0
+  },
+  "bundle_checks": {
+    "full_router": "PASS",
+    "career_router": "PASS",
+    "extension_sync": "PASS"
+  },
+  "database": "NOT_RUN for Option A; no SQL changes",
+  "manual_approval_path_edits": false,
+  "new_spend_usd": 0
+}

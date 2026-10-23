@@ -1,0 +1,161 @@
+{
+  "node": {
+    "base": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": "gate career plus shared, existing archives excluded",
+      "suite": "node",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 1388.714,
+      "completed_test_grandchildren_reaped": 578,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 251,
+      "new_spend_usd": 0,
+      "log_sha256": "a8090a328f3efe323c73c36b80d663d6b5b9e2f3ae2e799a26d6e39d40f92831",
+      "node_summary": [
+        "# tests 2855",
+        "# suites 0",
+        "# pass 2753",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 102",
+        "# todo 0",
+        "# duration_ms 1388614.946582"
+      ],
+      "deno_summary": []
+    },
+    "candidate": {
+      "head": "175d042c0ce74a5dde1d56b884876a09f6f1c06b",
+      "uid": 1000,
+      "node_selection": "gate career plus shared, existing archives excluded",
+      "suite": "node",
+      "cwd": "/tmp/upmore-option-a-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 1134.55,
+      "completed_test_grandchildren_reaped": 578,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 252,
+      "new_spend_usd": 0,
+      "log_sha256": "02631c5a831c605d76e020f7c05ccd97324af4b07a20b3c48ef7e7a4a5348f62",
+      "node_summary": [
+        "# tests 2859",
+        "# suites 0",
+        "# pass 2757",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 102",
+        "# todo 0",
+        "# duration_ms 1134414.002417"
+      ],
+      "deno_summary": []
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [],
+    "baseline_failure_names": [],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "edge": {
+    "base": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "edge",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 104.261,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "b7159dd00ef67b466985b25e343ec275e6ed64e7956c33c39008b6cc0a74f1f1",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 895 passed | 0 failed (1m43s)"
+      ]
+    },
+    "candidate": {
+      "head": "175d042c0ce74a5dde1d56b884876a09f6f1c06b",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "edge",
+      "cwd": "/tmp/upmore-option-a-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 84.207,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "c8355edc67a7541981a05efadb1ae19faa8e2a417c6e6f1485d4f8997121a560",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 895 passed | 0 failed (1m23s)"
+      ]
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [],
+    "baseline_failure_names": [],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "architect": {
+    "base": {
+      "head": "beb0a0789f2621c28d9f1cb6d1b36bbcff6bc4fe",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "architect",
+      "cwd": "/tmp/upmore-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 206.973,
+      "completed_test_grandchildren_reaped": 0,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "cc79c170bd4305a0b598faeff259cc4d45120f4c7ff695c7a798ee31a85d9938",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 1270 passed | 0 failed (3m26s)"
+      ]
+    },
+    "candidate": {
+      "head": "175d042c0ce74a5dde1d56b884876a09f6f1c06b",
+      "uid": 1000,
+      "node_selection": null,
+      "suite": "architect",
+      "cwd": "/tmp/upmore-option-a-trunk-20261022",
+      "exit_code": 0,
+      "seconds": 178.597,
+      "completed_test_grandchildren_reaped": 1,
+      "subreaper": true,
+      "provider_credentials": "not inherited",
+      "deno_network": "loopback only",
+      "node_files": 0,
+      "new_spend_usd": 0,
+      "log_sha256": "79b37bf47547fbad30484436192c50b59dc78ba909038c654f26fcd4fae63c05",
+      "node_summary": [],
+      "deno_summary": [
+        "ok | 1279 passed | 0 failed (2m58s)"
+      ]
+    },
+    "new_failure_names": [],
+    "resolved_failure_names": [],
+    "baseline_failure_names": [],
+    "candidate_failure_names": [],
+    "new_or_changed_failure_messages": [],
+    "new_skip_names": []
+  },
+  "regression": false
+}

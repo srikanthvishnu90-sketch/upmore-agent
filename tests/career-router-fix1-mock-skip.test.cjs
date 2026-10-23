@@ -71,7 +71,7 @@ const mockRecord = (snap) => {
 const START = "Start a mock interview for a data analyst role";
 // A substantive narrative answer (lands as the Q1 answer; a probe follows).
 const LONG = "In my internship at a payments company I built a SQL dashboard that tracked checkout conversion for 30 merchants. First I cleaned the event data, then I automated the weekly pull, and in the end the team cut its reporting time from five hours to thirty minutes.";
-// A probe answer with numbers (records the next slot; the next question is posed).
+// A probe answer with numbers (kept with the question it followed; the next question is posed).
 const PROBE_ANSWER = "The hardest part was the messy returns data, because two tables disagreed on order IDs. I sampled 200 rows by hand, measured a 9% mismatch, and wrote a Python script that cut the cleanup from 4 hours to 15 minutes for our 3-person team.";
 // A weak answer: a named project, no number anywhere — 127's rubric records the
 // missing-result-metric diagnosis for THIS answer (verified: total 3, its
@@ -122,7 +122,10 @@ test("F1-3 'can we skip this one?' mid-mock (question pending) advances and keep
   const st = mockOf(r.snap);
   assert.ok(st, "the session is still open");
   assert.notEqual(st.currentQ, pendingBefore, "the pending question moved on");
-  assert.equal(st.currentQ, recBefore.questions[3].q, "exactly one question was skipped");
+  // 2026-10-23 (architect): the index of the pending question is read from the record, not
+  // hardcoded; the old [3] assumed the probe answer consumed a question (Muse's 4th bug).
+  const at = recBefore.questions.findIndex((q) => q.q === pendingBefore);
+  assert.equal(st.currentQ, recBefore.questions[at + 1].q, "exactly one question was skipped");
 });
 
 test("F1-4 a run of skips in mixed forms closes gracefully on the last question", () => {
@@ -155,10 +158,12 @@ test("F1-6 the completion close names the same concrete improvement", () => {
   const w = makeWorld();
   w.say("u", "t", START);
   w.say("u", "t", WEAK);          // Q1 recorded (the weak answer), probe pending
-  w.say("u", "t", PROBE_ANSWER);  // probe answer recorded, next question posed
-  w.say("u", "t", "skip");
-  w.say("u", "t", "skip");
-  const last = w.say("u", "t", "skip"); // last question skipped: the mock closes
+  const p = w.say("u", "t", PROBE_ANSWER);  // probe answer kept with Q1, next question posed
+  // 2026-10-23 (architect): skip every remaining question (counted from the record; the old
+  // fixed three skips assumed the probe answer consumed a question).
+  const rec = mockRecord(p.snap);
+  let last = null;
+  for (let i = rec.idx; i < rec.questions.length; i++) last = w.say("u", "t", "skip"); // the last skip closes the mock
   assert.equal(last.out.intent, "prep_mock_complete", `the mock completes (intent: ${last.out.intent}; reply: ${String(last.out.reply).slice(0, 160)})`);
   assert.ok(String(last.out.reply).includes("result metric"), `the close names the concrete improvement recorded for the weakest answer (reply: ${String(last.out.reply).slice(0, 400)})`);
 });
@@ -169,8 +174,15 @@ test("F1-7 the answer-path completion close names the concrete improvement too",
   assert.equal(w.say("u", "t", "skip").out.intent, "prep_mock_next"); // Q1 skipped
   w.say("u", "t", WEAK);          // answer recorded, probe pending
   w.say("u", "t", PROBE_ANSWER);  // probe answer recorded, next question posed
-  w.say("u", "t", LONG);          // answer recorded, probe pending
-  const last = w.say("u", "t", PROBE_ANSWER); // final probe answer completes the set
+  // 2026-10-23 (architect): answer every remaining question with its probe (counted from the
+  // record); the final probe answer completes the set. The old two-answer path assumed each
+  // probe answer consumed a question.
+  let last = null;
+  for (let guard = 0; guard < 10; guard++) {
+    w.say("u", "t", LONG);        // answer recorded, probe pending
+    last = w.say("u", "t", PROBE_ANSWER);
+    if (last.out.intent !== "prep_mock_next") break;
+  }
   assert.equal(last.out.intent, "prep_mock_complete", `the mock completes on the answer path (intent: ${last.out.intent}; reply: ${String(last.out.reply).slice(0, 160)})`);
   assert.ok(String(last.out.reply).includes("result metric"), `the close names the concrete improvement recorded for the weakest answer (reply: ${String(last.out.reply).slice(0, 400)})`);
 });

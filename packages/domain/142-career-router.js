@@ -7321,8 +7321,10 @@ const CareerRouter = (() => {
       const reply = compose({ headline: probe, facts });
       return { intent: "prep_mock_followup", reply, resultStatus: "running", graded, contradiction: contra, mock: { id: state.mockId, question: state.currentQ, probe } };
     }
-    // phase === "probe": record the probe answer, advance to the next question
-    const res = Prep.answerMock(state.store, state.mockId, text);
+    // phase === "probe": the probe answer is kept with the question it followed (127's
+    // answerProbe; only a main answer advances), then the next question is posed, or the
+    // mock closes when that was the last question.
+    const res = Prep.answerProbe(state.store, state.mockId, text);
     state.phase = "question";
     const facts = [...(contraSentence ? [contraSentence] : []), ...rubricFacts(graded)];
     if (res.done || !res.next_question) {
@@ -10636,8 +10638,10 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/\b[Mm]y\s+dream\s+company\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii](?:'m| am)\s+focused\s+on\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii]\s+care\s+about\s+(?:the\s+)?most\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
-      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
-      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
+      // 2026-10-23 (fix2 review): a pronoun or a possessive/determiner phrase is never
+      // the company ("That is my dream company", "My employer is the company I want").
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?(?!(?:That|This|It|There|Here|Which|What|Who|One|Mine|Yours|Ours|Theirs|My|Our|Your|Their|His|Her|The|A|An)\b)([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?(?!(?:That|This|It|There|Here|Which|What|Who|One|Mine|Yours|Ours|Theirs|My|Our|Your|Their|His|Her|The|A|An)\b)([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       // DEPTH LANE A: exclusivity and too-senior frames ("analysts
@@ -10859,8 +10863,19 @@ const CareerRouter = (() => {
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
+  // 2026-10-23 (fix2 review): the experience kind holds every work-at frame, so its line
+  // keeps the tense and verb the user stated ("I work at X" is not "you interned at X").
+  function experienceLine(f) {
+    const ev = lc(f.evidence || "");
+    if (/\binterned\b/.test(ev)) return `you interned at ${f.value}`;
+    if (/\bintern\s+at\b/.test(ev)) return `you intern at ${f.value}`;
+    if (/\bwork\s+(?:at|for)\b|\bemployer\b/.test(ev)) return `you work at ${f.value}`;
+    if (/\bworked\s+(?:a|an|the)\s/.test(ev)) return `you worked a ${f.value}`;
+    if (/\bworked\b/.test(ev)) return `you worked at ${f.value}`;
+    return `you interned at ${f.value}`;
+  }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but

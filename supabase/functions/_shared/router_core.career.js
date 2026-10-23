@@ -5742,6 +5742,14 @@ const CareerPrep = (() => {
     if (m.idx >= m.questions.length) { m.status = "complete"; m.finished_at = new Date().toISOString(); }
     return { mock: m, graded, next_question: m.status === "complete" ? null : m.questions[m.idx].q, done: m.status === "complete" };
   }
+  function answerProbe(store, mockId, answer) {
+    const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) throw new Error("mock not found: " + mockId);
+    const last = m.answers[m.answers.length - 1]; if (!last) throw new Error("no answer to follow up");
+    const graded = scoreAnswer(answer);
+    last.probe = { answer: s(answer), scores: graded.scores, feedback: graded.feedback };
+    const done = m.idx >= m.questions.length;
+    return { mock: m, graded, next_question: done ? null : m.questions[m.idx].q, done };
+  }
   function mockSummary(store, mockId) {
     const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) return null;
     const n = m.answers.length || 1;
@@ -6180,7 +6188,7 @@ const CareerPrep = (() => {
 
   return { normalizeCir, findCir, cirLibrary, interviewPatterns,jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
-    scoreAnswer, startMock, answerMock, mockSummary,
+    scoreAnswer, startMock, answerMock, answerProbe, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,
     isConfidentialText, makeShareableExample, accessibilityMode, recordingConsent, handlePrepTurn,
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,
@@ -17908,7 +17916,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: probe, facts });
       return { intent: "prep_mock_followup", reply, resultStatus: "running", graded, contradiction: contra, mock: { id: state.mockId, question: state.currentQ, probe } };
     }
-    const res = Prep.answerMock(state.store, state.mockId, text);
+    const res = Prep.answerProbe(state.store, state.mockId, text);
     state.phase = "question";
     const facts = [...(contraSentence ? [contraSentence] : []), ...rubricFacts(graded)];
     if (res.done || !res.next_question) {
@@ -20061,8 +20069,8 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/\b[Mm]y\s+dream\s+company\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii](?:'m| am)\s+focused\s+on\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
       else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii]\s+care\s+about\s+(?:the\s+)?most\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
-      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
-      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?(?!(?:That|This|It|There|Here|Which|What|Who|One|Mine|Yours|Ours|Theirs|My|Our|Your|Their|His|Her|The|A|An)\b)([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?(?!(?:That|This|It|There|Here|Which|What|Who|One|Mine|Yours|Ours|Theirs|My|Our|Your|Their|His|Her|The|A|An)\b)([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/\b(analysts|associates|interns|bankers)\s+only\b/i))) push("level", m[1].toLowerCase(), m[0]);
@@ -20170,8 +20178,17 @@ const CareerRouter = (() => {
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
+  function experienceLine(f) {
+    const ev = lc(f.evidence || "");
+    if (/\binterned\b/.test(ev)) return `you interned at ${f.value}`;
+    if (/\bintern\s+at\b/.test(ev)) return `you intern at ${f.value}`;
+    if (/\bwork\s+(?:at|for)\b|\bemployer\b/.test(ev)) return `you work at ${f.value}`;
+    if (/\bworked\s+(?:a|an|the)\s/.test(ev)) return `you worked a ${f.value}`;
+    if (/\bworked\b/.test(ev)) return `you worked at ${f.value}`;
+    return `you interned at ${f.value}`;
+  }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);

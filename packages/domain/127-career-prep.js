@@ -40,7 +40,7 @@
                                        handled as what they are, never graded as answers (MID-6)
      accessibilityMode(text)           PREP text-only / slower-pace mode, explicitly set up (MID-7)
      recordingConsent(text)            recording opt-out acknowledged with its effect (MID-8)
-     startMock(store, {bank, count}) / answerMock(store, id, answer) / mockSummary(store, id)  PREP-003
+     startMock(store, {bank, count}) / answerMock(store, id, answer) / answerProbe(store, id, answer) / mockSummary(store, id)  PREP-003
      technicalDrills({cir, roleFamily})  PREP-005 coding + system-design sets from CIR round types
      financeDrill() / quantDrill() / gradeDrillAnswer(set, id, answer)   graded drills (SC-169/170)
      caseSession({cir}) / scoreCaseResponse(resp)   consulting case practice (SC-168)
@@ -741,6 +741,19 @@ const CareerPrep = (() => {
     if (m.idx >= m.questions.length) { m.status = "complete"; m.finished_at = new Date().toISOString(); }
     return { mock: m, graded, next_question: m.status === "complete" ? null : m.questions[m.idx].q, done: m.status === "complete" };
   }
+  // 2026-10-23 (Muse's 4th bug): a follow-up (probe) answer belongs to the question it
+  // followed. It is kept on that question's recorded answer and never advances the mock:
+  // only a main answer moves the index. Before this, the probe answer went through
+  // answerMock, was graded as the next question's answer (which was then never asked), and
+  // after the last question threw "mock already complete".
+  function answerProbe(store, mockId, answer) {
+    const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) throw new Error("mock not found: " + mockId);
+    const last = m.answers[m.answers.length - 1]; if (!last) throw new Error("no answer to follow up");
+    const graded = scoreAnswer(answer);
+    last.probe = { answer: s(answer), scores: graded.scores, feedback: graded.feedback };
+    const done = m.idx >= m.questions.length;
+    return { mock: m, graded, next_question: done ? null : m.questions[m.idx].q, done };
+  }
   function mockSummary(store, mockId) {
     const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) return null;
     const n = m.answers.length || 1;
@@ -1227,7 +1240,7 @@ const CareerPrep = (() => {
 
   return { normalizeCir, findCir, cirLibrary, interviewPatterns,jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, buildStoryBank, storyTags,
-    scoreAnswer, startMock, answerMock, mockSummary,
+    scoreAnswer, startMock, answerMock, answerProbe, mockSummary,
     domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,
     isConfidentialText, makeShareableExample, accessibilityMode, recordingConsent, handlePrepTurn,
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,

@@ -37,7 +37,7 @@ import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { linkChecker } from "../_shared/link_check.ts";
-import { chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
+import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
@@ -447,7 +447,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The card stays the last word, so the app shows it again; its Approve is the only way anything is sent.
         out = { reply: cardYes.reply, intent: CLOUD_CARD_INTENT, resultStatus: cardYes.status, contained: false, handler: "cloud_card" };
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
-      } else if (!careerTask && !careerBatch && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+      } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.

@@ -17,6 +17,11 @@ import type { AlertPrefs } from "../_shared/career_alerts.ts";
 import type { Situation } from "../_shared/career_situation.ts";
 import { type CareerEvent, type EventStore, SUMMARY_UNREADABLE, threadSummary } from "../_shared/agent/timeline.ts";
 
+// Release pin (2026-10-22 candidate, the parent's gate): the deployed agent-chat cannot select the agent brain, whatever
+// CAREER_BRAIN holds. The brain stays off until it meets the 95% two-judge held-out bar; turning this on is a separate,
+// reviewed change, never a secret flip. chooseBrain still states the rule the switch would follow.
+export const AGENT_BRAIN_RELEASED = false;
+
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
   return env.get("CAREER_BRAIN") === "agent" ? "agent" : "router";
 }

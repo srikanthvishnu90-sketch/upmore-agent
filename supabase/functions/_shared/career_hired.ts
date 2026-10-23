@@ -205,7 +205,8 @@ export function pdlHiredSource(o: { key: string; store: HiredStore; fetch?: type
 
 // The rail is live only with the owner's key; without it every answer keeps the honest one-line "no data yet".
 export function hiredSourceFromEnv(env: { get(k: string): string | undefined }, admin: any): HiredSource {
-  const key = env.get("PDL_API_KEY");
+  // Paid provider: off unless CAREER_PDL=on (2026-10-22, default OFF). A key alone never makes a request.
+  const key = env.get("CAREER_PDL") === "on" ? env.get("PDL_API_KEY") : undefined;
   if (!key) return { backgrounds: async () => ({ status: "NOT_WIRED", ask: NOT_WIRED_ASK }) };
   const size = Number(env.get("PDL_SEARCH_SIZE") || DEFAULT_SIZE), budget = Number(env.get("PDL_MONTHLY_CREDITS") || DEFAULT_MONTHLY_BUDGET);
   return pdlHiredSource({ key, store: supabaseHiredStore(admin), size, budget });

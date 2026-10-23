@@ -200,6 +200,40 @@ test("(f) an edited application is NEVER presented as approved-and-recorded (coo
   assert.match(status, /Nothing has been submitted to an employer/);
 });
 
+test("(item 7) editors start hidden by COMPUTED style; an Edit tap reveals only that field's editor", async (t) => {
+  // Regression guard for the always-visible editor defect (coordinator
+  // item 7, 2026-10-23): the .f2-editor span carries the hidden
+  // attribute, but the component CSS set `.f2-editor { display: flex }`,
+  // which overrides the hidden attribute's default display:none — so
+  // every answer rendered twice (text plus an open input) and the
+  // surface suggested an edit was already in progress. The assertion
+  // is on COMPUTED style, not the attribute: the attribute was correct
+  // the whole time.
+  const page = await surface(t);
+  const editorDisplays = () => page.evaluate(() => {
+    const out = {};
+    document.querySelectorAll(".f2-app").forEach((a) => {
+      a.querySelectorAll(".f2-field").forEach((f) => {
+        const ed = f.querySelector(".f2-editor");
+        if (ed) out[`${a.dataset.appId}:${f.dataset.field}`] = getComputedStyle(ed).display;
+      });
+    });
+    return out;
+  });
+  const before = await editorDisplays();
+  assert.equal(Object.keys(before).length, 6, "the fixture renders one editor per field");
+  for (const [key, d] of Object.entries(before)) {
+    assert.equal(d, "none", `editor ${key} computes to display:none on initial render (got ${d})`);
+  }
+  // an Edit tap reveals THAT field's editor — and no other
+  await app(page, "app-swe").locator('.f2-field[data-field="relocation"] [data-f2-action="edit-field"]').click();
+  const after = await editorDisplays();
+  assert.notEqual(after["app-swe:relocation"], "none", "the edited field's editor becomes visible after the Edit tap");
+  for (const [key, d] of Object.entries(after)) {
+    if (key !== "app-swe:relocation") assert.equal(d, "none", `editor ${key} stays hidden after another field's Edit tap`);
+  }
+});
+
 test("submit-when-complete is built disabled and inert, even to a forced click", async (t) => {
   const page = await surface(t);
   const btn = page.locator('[data-f2-action="submit-when-complete"]');

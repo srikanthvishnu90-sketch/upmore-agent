@@ -19953,6 +19953,11 @@ const CareerRouter = (() => {
         pushKeyed("interview_day", cleanCo(m[1]), m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase(), m[0]);
       } else if ((m = u.match(new RegExp(`\\bmy\\s+interview\\s+is\\s+on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
         pushKeyed("interview_day", turnCompany(), m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), m[0]);
+      } else if ((m = u.match(new RegExp(`\\binterview\\s+(?:at|with)\\s+${CO}\\s+(?:\\(fictional\\)\\s+)?on\\s+${DAY}\\b`, "i"))) && asserted(m.index)) {
+        pushKeyed("interview_day", cleanCo(m[1]), m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase(), m[0]);
+      }
+      if ((m = u.match(new RegExp(`\\b(?:[Mm]y\\s+interview\\s+is\\s+(?:at|with)|[Ii]nterview\\s+(?:at|with)|[Ii]nterviewing\\s+(?:at|with)|(?:[Ll]anded|[Gg]ot|[Hh]ave|[Ss]cheduled)\\s+an?\\s+interview\\s+(?:at|with))\\s+${CO}`))) && asserted(m.index)) {
+        push("interview_company", cleanCo(m[1]), m[0]);
       }
       if ((m = u.match(new RegExp(`\\brecruiter\\s+(?:contact\\s+)?at\\s+${CO}\\s+is\\s+${PERSON}`))) && asserted(m.index)) {
         pushKeyed("recruiter_contact", cleanCo(m[1]), m[2], m[0]);
@@ -20019,6 +20024,11 @@ const CareerRouter = (() => {
       else if ((m = cl.match(/\bmostly\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+)?)\s+type\s+(?:places|firms|companies)\b/)) && !FACT_CITIES.some((ct) => lc(ct) === lc(m[1]))) push("target_firm", m[1], m[0]);
       else if ((m = cl.match(/\b[Mm]y\s+(?:#1|top|first|main)\s+target\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1], m[0]);
       else if ((m = cl.match(/\b[Mm]y\s+(?:top\s+|#1\s+|first\s+|main\s+)?target\s+(?:firm|company|bank|shop|employer)\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+dream\s+company\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii](?:'m| am)\s+focused\s+on\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Tt]he\s+(?:company|firm)\s+[Ii]\s+care\s+about\s+(?:the\s+)?most\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Za-z0-9&.]+){0,2})\s+is\s+the\s+company\s+[Ii]\s+(?:most\s+)?want\s+to\s+work\s+for\b/))) push("target_firm", m[1].trim(), m[0]);
+      else if ((m = cl.match(/^(?:(?:so|and|also|honestly|really)\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})\s+is\s+my\s+dream\s+company\b/))) push("target_firm", m[1].trim(), m[0]);
       if ((m = cl.match(/\b(analysts|associates|interns|bankers)\b[^.]*\b(first|instead|rather than)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^\s*(?:find|line up|get|list|start with)\s+(analysts|associates|interns|bankers)\b/i))) push("level", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/\b(analysts|associates|interns|bankers)\s+only\b/i))) push("level", m[1].toLowerCase(), m[0]);
@@ -20029,6 +20039,9 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:last summer|this summer|last year)\s+i\s+(?:interned|worked)\s+at\s+([a-zA-Z][a-zA-Z&. ]{2,50}?)(?:\s+doing\s+([a-z ][a-z ]{2,40}?))?(?:[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
       else if ((m = cl.match(/\bi\s+(?:interned|worked)\s+at\s+(.+?)(?:\s+last\s+(?:summer|year)\b|\s+doing\s+(.+?)|[.!?]|$)/i))) push("experience", `${m[1].trim()}${m[2] ? ` — ${m[2].trim()}` : ""}`, m[0]);
       else if ((m = cl.match(/\bi\s+worked\s+(?:a|an|the)\s+([a-z][a-z ]{1,36}?\b(?:job|role|gig|position|shift)\b)/i))) push("experience", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Ii]\s+(?:work|intern)\s+at\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Ii]\s+work\s+for\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
+      else if ((m = cl.match(/\b[Mm]y\s+(?:current\s+)?employer\s+is\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/))) push("experience", m[1].trim(), m[0]);
       if ((m = cl.match(/\bmake the tone\s+(casual|formal|warmer)\b/i)) || (m = cl.match(/\btone\s+(casual|formal|warmer)\s+from here\b/i))) push("tone", m[1].toLowerCase(), m[0]);
       if ((m = cl.match(/\b(?:i|we)\s+(?:do\s+not|don'?t|dont|no\s+longer|won'?t|will\s+not|never|shouldn'?t|should\s+not)\s+(?:(?:ever|actually|really)\s+)?(?:need|require)\s+(?:any\s+|visa\s+|work\s+|employer\s+)*sponsorship\b/i))
         || (m = cl.match(/\b(?:i'?m|i am|im)\s+not\s+(?:going\s+to\s+)?(?:need|require|needing|requiring)\s+(?:any\s+|visa\s+|work\s+)*sponsorship\b/i))
@@ -20124,7 +20137,7 @@ const CareerRouter = (() => {
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
   function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: `you interned at ${f.value}`, school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   function profileFromStatedFacts(ctx) {
     const facts = statedFactsOf(ctx);
@@ -20324,6 +20337,27 @@ const CareerRouter = (() => {
           return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
         }
       }
+    }
+    if (/\binterview\b/.test(t) && /\b(which|what)\s+company\b/.test(t)) {
+      const cos = [];
+      for (const f of all) if (f.kind === "interview_company" && !cos.some((x) => lc(x) === lc(f.value))) cos.push(f.value);
+      for (const f of all) if (f.kind === "interview_day" && f.key && !cos.some((x) => lc(x) === lc(f.key))) cos.push(f.key);
+      if (!cos.length) {
+        const reply = compose({ headline: "No interview company is on your record yet.", facts: ["You have not stated a company you are interviewing at — the record holds only what you state, and no company is assumed."], nextStep: "Tell me the company (\"I have an interview at ...\") and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const reply = compose({ headline: "From your record — the company as you stated it.", facts: cos.map((co) => `you have an interview at ${co}.`), nextStep: "Correct it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
+    }
+    if (/\b(which|what)\s+compan(y|ies)\b/.test(t) && /\b(did i|have i|i said|i mentioned|i told|was that|were those)\b/.test(t)) {
+      const coFacts = all.filter((f) => f.kind === "target_firm" || f.kind === "interview_company" || f.kind === "experience" || (f.key && ["recruiter_contact", "hiring_manager", "interview_day", "company_preference"].includes(f.kind)));
+      if (!coFacts.length) {
+        const reply = compose({ headline: "No company is on your record yet.", facts: ["You have not stated a company in this conversation — the record holds only what you state, and nothing is assumed to fill it."], nextStep: "State the company in your own words and it is recorded in this turn." });
+        return { intent: "conversation_recall", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+      const lines = [...new Set(coFacts.map((f) => `${factLine(f)}.`))];
+      const reply = compose({ headline: "The companies on your record — your words, as stated.", facts: lines, nextStep: "Correct any of it the same way you stated it, or tell me what to run on it first." });
+      return { intent: "conversation_recall", reply, resultStatus: "completed", sends: 0 };
     }
     return null;
   }

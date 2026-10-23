@@ -5669,15 +5669,30 @@ const CareerPrep = (() => {
     return { kind: "answer", is_answer: true, graded, contradictions: detectContradiction(text, opts.profile, opts) };
   }
 
-  function scoreAnswer(answer) {
+  const TECH_DETAIL_RE = /\b(python|react|go|excel|sql|sqlite|flask|postgres|kubernetes|docker|javascript)\b/;
+  const RUBRIC_FAMILIES = {
+    tech: { re: TECH_DETAIL_RE, fix: "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." },
+    clinical: { re: /\b(patients?|unit|floor|icu|er|ed|cardiac|telemetry|medications?|meds|dose|vitals|charting|handoff|falls?|sepsis|discharge|triage|bedside|wound|iv|physician|clinical|ward)\b/, fix: "Specificity: name the clinical detail — the unit, the patient's situation, what you checked or changed, and your exact part." },
+    consulting: { re: /\b(clients?|revenue|margins?|costs?|market|stakeholders?|engagement|recommend\w*|workstream|savings|profit\w*|pricing)\b/, fix: "Specificity: name the client's situation and its numbers — the size of the problem, what you recommended, and your exact part." },
+    finance: { re: /\b(model|dcf|valuation|revenue|ebitda|margins?|deal|portfolio|excel|forecast|variance|budget|lbo|comps)\b/, fix: "Specificity: name the deal, model or figures you worked on, and your exact part." },
+    teaching: { re: /\b(students?|class|classroom|lesson|grades?|curriculum|reading|test scores?|parents?|iep)\b/, fix: "Specificity: name the class, the students' situation, what you changed, and how you knew it worked." },
+    sales: { re: /\b(quota|pipeline|deals?|accounts?|prospects?|calls|close rate|crm|salesforce|territory)\b/, fix: "Specificity: name the account or territory, the numbers (quota, pipeline, close rate), and your exact part." },
+    marketing: { re: /\b(campaign|audience|conversion|ctr|open rate|engagement|followers|channel|seo|leads?)\b/, fix: "Specificity: name the campaign, its audience and channel, and your exact part." },
+    pm: { re: /\b(users?|metric|roadmap|engineers?|designers?|launch|feature|retention|experiment|a\/b)\b/, fix: "Specificity: name the users, the metric you moved, and your exact part with engineering and design." },
+    law: { re: /\b(clients?|brief|motion|matter|research|filing|court|contract|memo|statute)\b/, fix: "Specificity: name the kind of matter, what you researched or drafted, and your exact part." },
+    general: { re: /\b(team|customers?|clients?|manager|project|deadline|budget|process|schedule|store|office)\b/, fix: "Specificity: name the setting, the constraint and your exact part — drop vague words like 'various things'." },
+  };
+  function scoreAnswer(answer, opts) {
     const a = s(answer); const low = lc(a);
+    const fam = opts && opts.family && RUBRIC_FAMILIES[opts.family] ? RUBRIC_FAMILIES[opts.family] : null;
     const has = (re) => re.test(low);
     let structure = 1;
+    const FAM_ACTION = "split|found|recommended|held|called|caught|taught|sold|managed|organized|organised|analyzed|analysed|launched|negotiated|trained|noticed|paused|escalated|closed|presented|planned|consolidated|advocated|coordinated|prioritized|prioritised";
     if (has(/\b(first|started|began|situation|context)\b/)) structure += 1;
-    if (has(/\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
+    if (has(fam ? new RegExp(`\\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created|${FAM_ACTION}))\\b`) : /\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
     if (has(/\b(result|ended|outcome|in the end|led to)\b/)) structure += 1;
-    const hasAction = has(/\b(i|we) (built|wrote|led|designed|modelled|modeled|created|helped|wrote|ran|shipped)\b/) || has(/\bby (writing|building|creating|designing|leading)\b/);
-    const hasOutcome = /\d/.test(a) || has(/\b(used it|users|classmates used|saved|cut|reduced|improved|increased)\b/);
+    const hasAction = has(/\b(i|we) (built|wrote|led|designed|modelled|modeled|created|helped|wrote|ran|shipped)\b/) || has(/\bby (writing|building|creating|designing|leading)\b/) || (!!fam && has(new RegExp(`\\b(i|we) (${FAM_ACTION})\\b`)));
+    const hasOutcome = /\d/.test(a) || has(/\b(used it|users|classmates used|saved|cut|reduced|improved|increased)\b/) || (!!fam && has(/\b(stable|dropped|fell|rose|grew|won|closed|caught|recovered|discharged|passed|save)\b/));
     if (hasAction && hasOutcome) structure += 1;
     let evidence = 0;
     if (/\d/.test(a)) evidence += 2;
@@ -5686,8 +5701,8 @@ const CareerPrep = (() => {
     if (/\d+\s*(%|users|members|people|teams|pages|companies|participants|classmates)/.test(low)) evidence += 1;
     let specificity = 0;
     if (has(/\b(i|my|we)\b/)) specificity += 1;
-    if (has(/\b(python|react|go|excel|sql|sqlite|flask|postgres|kubernetes|docker|javascript)\b/)) specificity += 1;
-    if (has(/\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
+    if (has(fam ? fam.re : TECH_DETAIL_RE)) specificity += 1;
+    if (has(fam ? /\b(weeks?|months?|deadline|semester|summer|shifts?|night|morning|quarters?|years?)\b/ : /\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
     if (has(/\b(studyboard)\b/) || /[A-Z][a-z]+(?:[A-Z][a-z]+)/.test(a)) specificity += 1;
     if (has(/\b(something|stuff|things|various|etc)\b/)) specificity = Math.max(0, specificity - 1);
     const domain = domainCheck(a);
@@ -5713,8 +5728,8 @@ const CareerPrep = (() => {
     if (variant) feedback.push("Transfer: a memorized solution is not mastery yet — " + variant.variant);
     const dimFeedback = {
       structure: "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
-      evidence: "Evidence: add a number (users, %, time saved) and how you know it.",
-      specificity: "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." };
+      evidence: fam ? (/\d/.test(a) ? "Evidence: say how you know the result — what was measured, and over what period." : "Evidence: add a number (how many, how much, how often) and how you know it.") : "Evidence: add a number (users, %, time saved) and how you know it.",
+      specificity: fam ? fam.fix : "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." };
     for (const dim of ["evidence", "specificity", "structure"].sort((x, y) => (sc[x] - sc[y]) || (priority[x] - priority[y]))) {
       if (sc[dim] < 4 && !(dim === "evidence" && missingMetric) && !feedback.includes(dimFeedback[dim])) feedback.push(dimFeedback[dim]);
     }
@@ -15086,7 +15101,7 @@ const CareerRouter = (() => {
     try {
       const th = prepThreadForWrite(ctx);
       th.served = [...(Array.isArray(th.served) ? th.served : []), q];
-      th.lastQ = { q, sector: null };
+      th.lastQ = { q, sector: null, family: fam ? fam.label : null };
       th.lastServedAt = nowOf(ctx);
     } catch {   }
     const facts = ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."];
@@ -15156,7 +15171,10 @@ const CareerRouter = (() => {
         return { intent: "prep_brief", reply: compose({ headline: `Graded: ${graded.score_0_5}/5 on "${s(lq.q).slice(0, 60)}".`, facts, nextStep: graded.gap ? "Want the same drill again with the gap as the focus, or the next question?" : "Next question, or a harder one on the same topic?" }), resultStatus: "running", sends: 0, question: lq, grade: graded };
       }
       let sc = null;
-      try { sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text)) : null; } catch { sc = null; }
+      const RUBRIC_FAMILY_OF = { swe: "tech", data: "tech", quant: "finance", finance: "finance", consulting: "consulting", pm: "pm", law: "law", medicine: "clinical",
+        "software engineering": "tech", "product management": "pm", "nursing and patient care": "clinical", teaching: "teaching", sales: "sales", marketing: "marketing" };
+      const rubricFamily = RUBRIC_FAMILY_OF[lq.sector] || RUBRIC_FAMILY_OF[lq.family] || RUBRIC_FAMILY_OF[thread.family] || "general";
+      try { sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text), { family: rubricFamily }) : null; } catch { sc = null; }
       const scores = sc && sc.scores;
       const namesAll = /income statement/.test(tn) && /balance sheet/.test(tn) && /cash flow/.test(tn);
       const facts = [];

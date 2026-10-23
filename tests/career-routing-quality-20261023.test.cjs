@@ -269,3 +269,44 @@ test("(g) practice: 'harder one, I'm weakest on X' in a thread with no bank sect
   assert.ok(servedQ(outs[2]), `${outs[2].handler}/${outs[2].intent}: ${String(outs[2].reply).slice(0, 120)}`);
   assert.match(servedQ(outs[2]), /prioriti/i);
 });
+
+// (h) Coordinator 2026-10-23, last fix before freeze: the practice rubric's tech bias. Specificity scored tech keywords
+//     (python, react, sql ...) and told every answer to "name the tool". Synthetic answers only.
+const Prep = D("127-career-prep.js");
+const CLINICAL = "On my cardiac telemetry unit during a night shift, a patient's heart rate climbed and his blood pressure dropped after a new medication. I held the next dose, called the physician, and we caught early sepsis; I led the handoff and he was stable by morning.";
+const CLIENT = "At my last internship our retail client's margin fell from 12 to 8 percent in a year. I split revenue and cost, found freight costs had doubled, and recommended consolidating two warehouses, which the client estimated would save 3 million dollars.";
+test("(h) a clinical answer earns specificity on clinical detail, not tech keywords", () => {
+  const plain = Prep.scoreAnswer(CLINICAL).scores.specificity, clinical = Prep.scoreAnswer(CLINICAL, { family: "clinical" }).scores.specificity;
+  assert.ok(clinical >= 3 && clinical > plain, `clinical ${clinical} vs default ${plain}`);
+});
+test("(h) a consulting answer earns specificity on client numbers", () => {
+  assert.ok(Prep.scoreAnswer(CLIENT, { family: "consulting" }).scores.specificity >= 3);
+});
+test("(h) control: with no family the rubric is unchanged, and the tech family scores tech answers as before", () => {
+  const tech = "I built a Flask app in Python over one summer and 40 classmates used it to plan study groups.";
+  assert.deepEqual(Prep.scoreAnswer(tech, { family: "tech" }).scores, Prep.scoreAnswer(tech).scores);
+});
+// Answers carry a number, so the evidence gap does not mask the specificity advice (the shape the probe surfaced).
+for (const [brief, answer, re] of [
+  ["help me prepare for my interview with a hospital", "I really care about people and I helped a lot of them, and over 2 years things got about 20 percent better overall.", /patient|clinical/i],
+  ["help me prep for a consulting case interview", "I would look at the problem and think about it, and in my experience things improved by about 20 percent overall in 2 years.", /client/i],
+  ["help me prepare for my interview", "I am a hard worker and I like people, and over 2 years things got about 20 percent better overall.", /setting/i],
+]) {
+  test(`(h) the specificity advice fits the role (${brief.slice(-28)})`, () => {
+    const outs = thread([brief, "give me a practice question", answer]);
+    const r = String(outs[2].reply);
+    assert.match(r, /Fix first: Specificity/, r);
+    assert.ok(!/name the tool/i.test(r), r);
+    assert.match(r, re, r);
+  });
+}
+test("(h) the probe's nursing answer (clinical detail, a number) is not told specificity is its top fix", () => {
+  const outs = thread(["help me prepare for my interview with a hospital", "give me a practice question", "I have three years on a cardiac floor, and I chose nursing because my grandmother's nurse changed how I saw care; I led our unit's falls project and falls dropped 20 percent."]);
+  const r = String(outs[2].reply);
+  assert.match(r, /scored/i); assert.ok(!/name the tool|Fix first: Specificity/.test(r), r);
+  assert.match(r, /cannot tell whether/i);
+});
+test("(h) structure credits the role's own action verbs (recommended, held, called), not only built/wrote/designed", () => {
+  assert.ok(Prep.scoreAnswer(CLIENT, { family: "consulting" }).scores.structure >= 3, JSON.stringify(Prep.scoreAnswer(CLIENT, { family: "consulting" }).scores));
+  assert.ok(Prep.scoreAnswer(CLINICAL, { family: "clinical" }).scores.structure >= 3, JSON.stringify(Prep.scoreAnswer(CLINICAL, { family: "clinical" }).scores));
+});

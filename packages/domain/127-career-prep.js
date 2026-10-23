@@ -26,7 +26,9 @@
                                        parseInterviewBank() / bankSectorFor() below
      mineStories(facts)                PREP-004 STAR drafts mined from profile facts
      captureStory(store, story) / findStories(store, query)
-     scoreAnswer(answer)               rubric: structure / evidence / specificity (0-5 each);
+     scoreAnswer(answer, {family}?)    rubric: structure / evidence / specificity (0-5 each);
+                                       an optional role family scores specificity on that role's
+                                       own details (RUBRIC_FAMILIES); without one it is unchanged;
                                        domain-checked against the graded drills where they exist
                                        (MID-1), no length/brevity points (MID-2), missing result
                                        metric named as top fix on ties (MID-3), framework recitation
@@ -660,17 +662,37 @@ const CareerPrep = (() => {
   }
 
   // ---------- PREP-003 mock engine + rubric ----------
-  function scoreAnswer(answer) {
+  // 2026-10-23: specificity by role family. The default counts tech details (python, react, sql ...) and told every
+  // answer, a nurse's included, to "name the tool". With a family, that role's own details count and the advice names
+  // them. Without one, the rubric is unchanged for every existing caller.
+  const TECH_DETAIL_RE = /\b(python|react|go|excel|sql|sqlite|flask|postgres|kubernetes|docker|javascript)\b/;
+  const RUBRIC_FAMILIES = {
+    tech: { re: TECH_DETAIL_RE, fix: "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." },
+    clinical: { re: /\b(patients?|unit|floor|icu|er|ed|cardiac|telemetry|medications?|meds|dose|vitals|charting|handoff|falls?|sepsis|discharge|triage|bedside|wound|iv|physician|clinical|ward)\b/, fix: "Specificity: name the clinical detail — the unit, the patient's situation, what you checked or changed, and your exact part." },
+    consulting: { re: /\b(clients?|revenue|margins?|costs?|market|stakeholders?|engagement|recommend\w*|workstream|savings|profit\w*|pricing)\b/, fix: "Specificity: name the client's situation and its numbers — the size of the problem, what you recommended, and your exact part." },
+    finance: { re: /\b(model|dcf|valuation|revenue|ebitda|margins?|deal|portfolio|excel|forecast|variance|budget|lbo|comps)\b/, fix: "Specificity: name the deal, model or figures you worked on, and your exact part." },
+    teaching: { re: /\b(students?|class|classroom|lesson|grades?|curriculum|reading|test scores?|parents?|iep)\b/, fix: "Specificity: name the class, the students' situation, what you changed, and how you knew it worked." },
+    sales: { re: /\b(quota|pipeline|deals?|accounts?|prospects?|calls|close rate|crm|salesforce|territory)\b/, fix: "Specificity: name the account or territory, the numbers (quota, pipeline, close rate), and your exact part." },
+    marketing: { re: /\b(campaign|audience|conversion|ctr|open rate|engagement|followers|channel|seo|leads?)\b/, fix: "Specificity: name the campaign, its audience and channel, and your exact part." },
+    pm: { re: /\b(users?|metric|roadmap|engineers?|designers?|launch|feature|retention|experiment|a\/b)\b/, fix: "Specificity: name the users, the metric you moved, and your exact part with engineering and design." },
+    law: { re: /\b(clients?|brief|motion|matter|research|filing|court|contract|memo|statute)\b/, fix: "Specificity: name the kind of matter, what you researched or drafted, and your exact part." },
+    general: { re: /\b(team|customers?|clients?|manager|project|deadline|budget|process|schedule|store|office)\b/, fix: "Specificity: name the setting, the constraint and your exact part — drop vague words like 'various things'." },
+  };
+  function scoreAnswer(answer, opts) {
     const a = s(answer); const low = lc(a);
+    const fam = opts && opts.family && RUBRIC_FAMILIES[opts.family] ? RUBRIC_FAMILIES[opts.family] : null;
     const has = (re) => re.test(low);
     let structure = 1;
+    // 2026-10-23: with a role family, the actions and outcomes of that work count too (a nurse "held the dose" and
+    // "caught" sepsis; a consultant "recommended"); the default verb list (built, wrote, designed ...) is unchanged.
+    const FAM_ACTION = "split|found|recommended|held|called|caught|taught|sold|managed|organized|organised|analyzed|analysed|launched|negotiated|trained|noticed|paused|escalated|closed|presented|planned|consolidated|advocated|coordinated|prioritized|prioritised";
     if (has(/\b(first|started|began|situation|context)\b/)) structure += 1;
-    if (has(/\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
+    if (has(fam ? new RegExp(`\\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created|${FAM_ACTION}))\\b`) : /\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
     if (has(/\b(result|ended|outcome|in the end|led to)\b/)) structure += 1;
     // MID-2: NO length points. A complete short answer (a named action + a result/outcome)
     // earns the completeness point at any word count; padding past 60 words earns nothing.
-    const hasAction = has(/\b(i|we) (built|wrote|led|designed|modelled|modeled|created|helped|wrote|ran|shipped)\b/) || has(/\bby (writing|building|creating|designing|leading)\b/);
-    const hasOutcome = /\d/.test(a) || has(/\b(used it|users|classmates used|saved|cut|reduced|improved|increased)\b/);
+    const hasAction = has(/\b(i|we) (built|wrote|led|designed|modelled|modeled|created|helped|wrote|ran|shipped)\b/) || has(/\bby (writing|building|creating|designing|leading)\b/) || (!!fam && has(new RegExp(`\\b(i|we) (${FAM_ACTION})\\b`)));
+    const hasOutcome = /\d/.test(a) || has(/\b(used it|users|classmates used|saved|cut|reduced|improved|increased)\b/) || (!!fam && has(/\b(stable|dropped|fell|rose|grew|won|closed|caught|recovered|discharged|passed|save)\b/));
     if (hasAction && hasOutcome) structure += 1;
     let evidence = 0;
     if (/\d/.test(a)) evidence += 2;
@@ -679,8 +701,8 @@ const CareerPrep = (() => {
     if (/\d+\s*(%|users|members|people|teams|pages|companies|participants|classmates)/.test(low)) evidence += 1;
     let specificity = 0;
     if (has(/\b(i|my|we)\b/)) specificity += 1;
-    if (has(/\b(python|react|go|excel|sql|sqlite|flask|postgres|kubernetes|docker|javascript)\b/)) specificity += 1;
-    if (has(/\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
+    if (has(fam ? fam.re : TECH_DETAIL_RE)) specificity += 1;
+    if (has(fam ? /\b(weeks?|months?|deadline|semester|summer|shifts?|night|morning|quarters?|years?)\b/ : /\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
     if (has(/\b(studyboard)\b/) || /[A-Z][a-z]+(?:[A-Z][a-z]+)/.test(a)) specificity += 1; // a named product/system is specific at any length
     if (has(/\b(something|stuff|things|various|etc)\b/)) specificity = Math.max(0, specificity - 1);
     // MID-1: a confidently wrong ground-truth answer earns no evidence for its wrong numbers.
@@ -712,8 +734,8 @@ const CareerPrep = (() => {
     if (variant) feedback.push("Transfer: a memorized solution is not mastery yet — " + variant.variant);
     const dimFeedback = {
       structure: "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
-      evidence: "Evidence: add a number (users, %, time saved) and how you know it.",
-      specificity: "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." };
+      evidence: fam ? (/\d/.test(a) ? "Evidence: say how you know the result — what was measured, and over what period." : "Evidence: add a number (how many, how much, how often) and how you know it.") : "Evidence: add a number (users, %, time saved) and how you know it.",
+      specificity: fam ? fam.fix : "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." };
     for (const dim of ["evidence", "specificity", "structure"].sort((x, y) => (sc[x] - sc[y]) || (priority[x] - priority[y]))) {
       if (sc[dim] < 4 && !(dim === "evidence" && missingMetric) && !feedback.includes(dimFeedback[dim])) feedback.push(dimFeedback[dim]);
     }

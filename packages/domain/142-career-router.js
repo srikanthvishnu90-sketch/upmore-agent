@@ -3172,7 +3172,7 @@ const CareerRouter = (() => {
     try {
       const th = prepThreadForWrite(ctx);
       th.served = [...(Array.isArray(th.served) ? th.served : []), q];
-      th.lastQ = { q, sector: null };
+      th.lastQ = { q, sector: null, family: fam ? fam.label : null };
       th.lastServedAt = nowOf(ctx);
     } catch { /* the question stands without the record */ }
     const facts = ["Answer it the way you would in the room — out loud, structured, numbers before adjectives.", "I will score the answer against the rubric and drill the weakest part next; that loop is the prep."];
@@ -3278,7 +3278,12 @@ const CareerRouter = (() => {
       // 2026-10-23 (freeze gaps): the read named no score (127's scoreAnswer returns scores/fix_first, which the old
       // read never looked at) and spoke of "linkage" and "the drill key" on every answer, a nursing story included.
       let sc = null;
-      try { sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text)) : null; } catch { sc = null; }
+      // 2026-10-23 (freeze): the answer is scored against its own role's details (127 RUBRIC_FAMILIES), never tech
+      // keywords by default; an unknown role is scored on general detail (setting, constraint, your part).
+      const RUBRIC_FAMILY_OF = { swe: "tech", data: "tech", quant: "finance", finance: "finance", consulting: "consulting", pm: "pm", law: "law", medicine: "clinical",
+        "software engineering": "tech", "product management": "pm", "nursing and patient care": "clinical", teaching: "teaching", sales: "sales", marketing: "marketing" };
+      const rubricFamily = RUBRIC_FAMILY_OF[lq.sector] || RUBRIC_FAMILY_OF[lq.family] || RUBRIC_FAMILY_OF[thread.family] || "general";
+      try { sc = Prep.scoreAnswer ? Prep.scoreAnswer(s(text), { family: rubricFamily }) : null; } catch { sc = null; }
       const scores = sc && sc.scores;
       const namesAll = /income statement/.test(tn) && /balance sheet/.test(tn) && /cash flow/.test(tn);
       const facts = [];

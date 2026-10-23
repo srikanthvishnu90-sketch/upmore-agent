@@ -206,7 +206,7 @@ PENDING_ROOT="$ROOT"
 if [[ -f "$BRIDGE_PATH" ]]; then
   PENDING_ROOT="$WORK/historical-pending-view"
   mkdir -p "$PENDING_ROOT/scripts/launch" "$PENDING_ROOT/supabase/migrations"
-  cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$PENDING_ROOT/scripts/launch/"
+  cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$ROOT/scripts/launch/verify-claim-guards.sql" "$PENDING_ROOT/scripts/launch/"
   for file in "$ROOT"/supabase/migrations/*.sql; do
     [[ "$(basename "$file")" == "$BRIDGE_NAME" ]] && continue
     cp "$file" "$PENDING_ROOT/supabase/migrations/"
@@ -359,11 +359,22 @@ echo "== career_apply_cloud.test.sql (after 20261024120000: no waiver, the gate 
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.
 echo "== career_apply_message_cards.test.sql (exact shown payload, authenticated single-use tap)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_message_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# G3's one ledger (20261025100000) replaces functions the historical phases above re-created from older files; it is
+# applied last, twice (idempotent), with the reconcile (20261025110000), and every claim guard must then be in place.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025100000_career_apply_one_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025100000_career_apply_one_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025110000_career_apply_bridge_reconcile.sql"
+echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
+"${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
   echo "== card-cloud bridge (latest schema, standalone up twice; no enclosing transaction)"
   "${PSQL[@]}" -f "$BRIDGE_PATH"
   "${PSQL[@]}" -f "$BRIDGE_PATH"
   "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$BRIDGE_NAME','$(sha256sum "$BRIDGE_PATH" | cut -d' ' -f1)')"
+  # The bridge applied after the one ledger (20261025100000) replaced the claim's approval re-check; the reconcile puts
+  # both halves back and the run stops unless every claim guard is in place. The bridge's tests below then run on that.
+  echo "== claim guards after the bridge (scripts/launch/verify-claim-guards.sql)"
+  "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
   for file in career_apply_card_cloud.test.sql career_apply_card_cloud_lifecycle.test.sql; do
     echo "== $file (latest card-bound cloud semantics, all earlier phases retained)"
     "${PSQL[@]}" -v card_cloud_tests_authorized=true -f "$HERE/pending/$file"

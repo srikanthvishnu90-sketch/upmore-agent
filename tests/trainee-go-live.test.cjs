@@ -56,6 +56,9 @@ test('dry run: six steps in order, every Trainee migration in order, agent-chat 
   const [bridge, ledger] = [at('20261024130000_career_apply_card_cloud_bridge.sql'), at('20261025100000_career_apply_one_ledger.sql')];
   assert.ok(ledger > 0, 'go-live applies the one ledger');
   assert.ok(bridge < 0 || bridge < ledger, 'go-live never applies the draft bridge after the one ledger');
+  // And whatever was already live, after its migrations go-live reconciles the two and stops unless every claim guard
+  // is in place (a bridge applied on its own after the ledger, or its rollback, would otherwise leave the claim without them).
+  inOrder(out, [`--single-transaction -f supabase/migrations/${MIGRATIONS.at(-1)}`, '-f scripts/launch/verify-claim-guards.sql', 'STEP 2/6 migrations: OK']);
   for (const f of fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => /^2026101[56].*career/.test(f))) {
     assert.match(out, new RegExp(`check ${f} is on the live project.*never applied here`), `${f} is only checked`);
     assert.doesNotMatch(out, new RegExp(`-f supabase/migrations/${f}`), `${f} is never applied`);

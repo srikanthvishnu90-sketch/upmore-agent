@@ -1,0 +1,4 @@
+select p.proname||'('||pg_get_function_identity_arguments(p.oid)||')='||left(md5(pg_get_functiondef(p.oid)),8) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and (p.proname like 'career%' or p.proname like 'channel%')
+union all select 'col:'||c.table_name||'.'||c.column_name||':'||c.data_type from information_schema.columns c where c.table_schema='public' and (c.table_name like 'career%' or c.table_name like 'channel%')
+union all select 'con:'||conrelid::regclass::text||':'||conname||'='||left(md5(pg_get_constraintdef(oid)),8) from pg_constraint where connamespace='public'::regnamespace and (conrelid::regclass::text like 'career%' or conrelid::regclass::text like 'channel%')
+union all select 'trg:'||tgrelid::regclass::text||':'||tgname from pg_trigger where not tgisinternal and (tgrelid::regclass::text like 'career%' or tgrelid::regclass::text like 'channel%' or tgrelid::regclass::text='profiles');

@@ -1,0 +1,885 @@
+career_account_authority_mark()=ee96af0e
+career_apply_account_own()=4fa8cb21
+career_apply_agent_submit_enabled()=bb89b627
+career_apply_answers_own()=1ff6830d
+career_apply_batch_approve_own(p_items jsonb)=6115be15
+career_apply_batch_revoke_own()=af3462ee
+career_apply_canonical(p jsonb)=75dbfca3
+career_apply_card_answer_as(p_user uuid, p_card uuid, p_approve integer[])=f9164e75
+career_apply_card_answer_for(p_user uuid, p_card uuid, p_approve integer[], p_now timestamp with time zone)=f98fdf37
+career_apply_card_answer_own(p_card uuid, p_approve integer[])=db1a4d38
+career_apply_card_open_as(p_user uuid, p_ids uuid[])=3e533d7a
+career_apply_card_open_for(p_user uuid, p_ids uuid[], p_now timestamp with time zone)=d1fa9ad5
+career_apply_card_open_own(p_ids uuid[])=319b87cb
+career_apply_card_push_as(p_user uuid, p_ids uuid[], p_text text)=94913a4f
+career_apply_card_push_for(p_user uuid, p_ids uuid[], p_text text, p_now timestamp with time zone)=31753814
+career_apply_claim(p_now timestamp with time zone, p_limit integer)=b82426c7
+career_apply_claim_own(p_limit integer)=c2eda111
+career_apply_claim_own(p_limit integer, p_source text)=5c69daac
+career_apply_cloud_ask(p_id uuid, p_lease uuid, p_questions jsonb)=59289a5a
+career_apply_cloud_claim(p_limit integer)=92c8842a
+career_apply_cloud_claim_at(p_limit integer, p_now timestamp with time zone)=7b219b0d
+career_apply_cloud_confirmed()=3deab018
+career_apply_cloud_enabled()=c6f2f805
+career_apply_cloud_finish(p_id uuid, p_lease uuid, p_state text, p_evidence jsonb, p_outcome text, p_error_kind text)=42946b01
+career_apply_cloud_on_erase()=9ad631cd
+career_apply_cloud_open(p_portal text)=df64f8dd
+career_apply_cloud_optin_as(p_user uuid, p_on boolean, p_terms text)=0a68decc
+career_apply_cloud_optin_get(p_user uuid)=39e2f6a3
+career_apply_cloud_record(j career_apply_jobs, p_outcome text, p_kind text, p_now timestamp with time zone)=ff03ba5f
+career_apply_cloud_refusal(j career_apply_jobs, p_now timestamp with time zone)=ee3b22b0
+career_apply_cloud_report(p_days integer)=4afdd222
+career_apply_cloud_resume(p_id uuid, p_lease uuid)=04231dd7
+career_apply_cloud_resume_put_own(p_filename text, p_b64 text)=3d7470e0
+career_apply_cloud_tell(p_user uuid, p_key text, p_text text, p_now timestamp with time zone)=5124e386
+career_apply_cloud_throttle(p_portal text, p_user uuid, p_now timestamp with time zone)=a3888765
+career_apply_cloud_waiver_left(p_user uuid, p_portal text, p_now timestamp with time zone)=b8f159e0
+career_apply_company_key(p text)=2ecb36c5
+career_apply_confirm_answer_as(p_user uuid, p_hash text, p_n integer)=ce1c4809
+career_apply_confirm_answer_for(p_user uuid, p_hash text, p_n integer, p_now timestamp with time zone)=a7761681
+career_apply_confirm_as(p_user uuid, p_id uuid, p_hash text, p_kind text, p_evidence text, p_mail_at timestamp with time zone)=d9600e02
+career_apply_confirm_ask_push_as(p_user uuid, p_hash text, p_text text)=276b5748
+career_apply_confirm_ask_push_for(p_user uuid, p_hash text, p_text text, p_now timestamp with time zone)=9e0a1e4a
+career_apply_confirmed_by_email()=8ac9b5fe
+career_apply_current(p_user uuid, p_payload jsonb)=66cdee62
+career_apply_daily_limit(p_user uuid)=4c00182a
+career_apply_email_finish_as(p_user uuid, p_id uuid, p_lease uuid, p_state text, p_evidence jsonb)=7955a976
+career_apply_email_finish_for(p_user uuid, p_id uuid, p_lease uuid, p_state text, p_evidence jsonb)=97f634e9
+career_apply_email_reserve_as(p_user uuid, p_payload jsonb, p_hash text)=3ad52593
+career_apply_email_reserve_for(p_user uuid, p_payload jsonb, p_hash text, p_now timestamp with time zone)=9a45d1f6
+career_apply_enqueue(p_payload jsonb, p_hash text, p_approval text, p_daily integer)=05913581
+career_apply_extension_begin_agent_own(p_payload jsonb, p_approval text, p_batch_hash text)=0b00cd94
+career_apply_extension_begin_own(p_payload jsonb, p_approval text)=60bc69d4
+career_apply_finish(p_id uuid, p_lease uuid, p_state text, p_evidence jsonb)=c2c20645
+career_apply_finish_own(p_id uuid, p_lease uuid, p_state text, p_evidence jsonb)=21a198f4
+career_apply_gate_status()=8d265517
+career_apply_gate_users()=8e7a9ac0
+career_apply_jobs_fixed()=0075a909
+career_apply_portal(p_url text)=c17756a5
+career_apply_prepare_own(p_payload jsonb, p_card_lines text[])=6a685bec
+career_apply_question_answer_as(p_user uuid, p_id uuid, p_answer text)=1c59a3a5
+career_apply_question_answer_for(p_user uuid, p_id uuid, p_answer text)=ff164a1a
+career_apply_question_answer_own(p_id uuid, p_answer text)=754e4ae8
+career_apply_questions_answer_from_form_own(p_job_id text, p_answers jsonb)=06f8f9b5
+career_apply_questions_open_as(p_user uuid, p_limit integer)=65f837ee
+career_apply_questions_push_as(p_user uuid, p_ids uuid[], p_text text)=64c2db7d
+career_apply_questions_push_for(p_user uuid, p_ids uuid[], p_text text, p_now timestamp with time zone)=7fbb5857
+career_apply_questions_put_for(u uuid, p_job_id text, p_questions jsonb)=f33b95d1
+career_apply_questions_put_own(p_job_id text, p_questions jsonb)=784ef3cd
+career_apply_record_own(p_job_id text, p_company text, p_url text, p_state text)=14b3570d
+career_apply_sweep(p_now timestamp with time zone)=78837da8
+career_apply_sweep_stale()=fab68956
+career_apply_want_put_for(p_user uuid, p_items jsonb)=f56547ed
+career_apply_want_take_own(p_keys text[])=2c3854b5
+career_batch_claim_v1(p_user uuid, p_intent text)=2fe52763
+career_batch_control_hook_v1()=1611cef1
+career_batch_finish_v1(p_user uuid, p_intent text, p_lease uuid, p_state text, p_result jsonb)=6e475979
+career_batch_ledger_v1(p_user uuid)=8f5a2e4c
+career_batch_pending_v1()=87cc4912
+career_batch_result_v1(p_user uuid, p_run text)=baa3b892
+career_batch_save_ledger_v1(p_user uuid, p_records jsonb)=abbf0b77
+career_batch_save_run_v1(p_user uuid, p_run jsonb)=cdf2af05
+career_batch_turn_commit_v1(p_base jsonb, p_intent jsonb)=87afbf9d
+career_events_on_prepared()=148befac
+career_host_commit(p_user uuid, p_thread uuid, p_key text, p_hash text, p_revision bigint, p_account_version bigint, p_snapshot jsonb, p_patch jsonb, p_input text, p_response jsonb)=e2f88b81
+career_host_load(p_user uuid, p_thread uuid, p_key text, p_hash text)=e3c68cd5
+career_outbox_claim(p_now timestamp with time zone, p_limit integer)=77ce46b5
+career_outbox_claim_key(p_user uuid, p_key text, p_now timestamp with time zone)=a1516167
+career_outbox_claim_user(p_user uuid, p_now timestamp with time zone, p_limit integer)=3ce6486d
+career_outbox_contacts_on(p_day date)=e6f04dd6
+career_outbox_contacts_on_channel(p_day date, p_channel text)=d721041b
+career_outbox_rehold(p_provider_id text, p_at timestamp with time zone, p_error text)=1dd158da
+career_outreach_claim(p_user uuid, p_draft uuid, p_hash text, p_now timestamp with time zone, p_day_start timestamp with time zone)=02cb30d4
+career_outreach_on_erase()=6a907fd2
+career_recall_own(p_kind text[], p_subject text, p_from timestamp with time zone, p_to timestamp with time zone, p_limit integer)=c6659565
+career_reminder_ack(p_user uuid, p_id text, p_lease uuid, p_record jsonb)=917a55e3
+career_reminder_allowed(p_user uuid, p_reminder jsonb)=5eb2dc6c
+career_reminder_claim(p_user uuid, p_id text)=b3147db9
+career_reminder_enqueue(p_user uuid, p_reminder jsonb, p_version bigint, p_epoch bigint)=4d5d7b7a
+career_reminder_list(p_user uuid)=e8d4d4be
+career_reminder_status(p_user uuid, p_id text)=b26fd4d4
+career_task_account_v1(p_user uuid)=cfd5d9e5
+career_task_begin_effect_v1(p_user uuid, p_intent text, p_lease uuid, p_task text, p_operation text, p_effect_key text, p_bindings jsonb)=556e9dee
+career_task_claim_v1(p_user uuid, p_intent text, p_task text, p_lease uuid)=fe77e711
+career_task_consume_effect_v1(p_user uuid, p_token uuid)=28941215
+career_task_control_hook_v1()=07d1c62c
+career_task_effect_status_v1(p_user uuid, p_token uuid)=2cfe509b
+career_task_finish_v1(p_user uuid, p_intent text, p_lease uuid, p_result jsonb)=356a2d05
+career_task_pending_v1()=e18e6143
+career_task_result_v1(p_user uuid, p_task text, p_intent text)=a1fca4c0
+career_task_settle_effect_v1(p_user uuid, p_token uuid, p_outcome text, p_before text, p_after text)=1875167c
+career_task_turn_commit_v1(p_base jsonb, p_intent jsonb)=e4d4965b
+career_text_spaces(t text)=e6042965
+career_thread_busy(p_user uuid, p_thread uuid, p_now timestamp with time zone)=446db17a
+career_watch_cycle_commit(p_user uuid, p_version bigint, p_epoch bigint, p_writes jsonb, p_reminders jsonb)=d0ddae72
+career_watch_read(p_user uuid, p_key text)=67db7ae5
+career_watch_write(p_user uuid, p_key text, p_value jsonb, p_version bigint, p_epoch bigint)=425f3c42
+channel_contacts_derive()=4b025392
+channel_inbound_seen(p_contact text, p_at timestamp with time zone, p_alias text, p_phone text)=9f0bb368
+channel_link_ask(p_user uuid, p_contact text, p_phone text, p_asked_on text, p_text text, p_now timestamp with time zone)=679c7e4b
+channel_link_candidate(p_phone text, p_except text)=48b18c96
+channel_link_confirm(p_user uuid, p_asked_on text, p_notice text, p_now timestamp with time zone)=26f8d596
+channel_link_nonce_issue(p_user uuid, p_now timestamp with time zone)=7a51b166
+channel_link_nonce_redeem(p_nonce text, p_contact text, p_now timestamp with time zone)=771a9e9d
+channel_link_telegram_start()=69ea8196
+channel_opted_out(p_contact text)=d55b84d4
+channel_set_home(p_channel text)=e008d293
+channel_set_opt_out(p_contact text, p_out boolean, p_at timestamp with time zone)=51b54232
+channel_target(p_user uuid, p_channel text)=54af35e4
+col:career_alert_prefs.held:ARRAY
+col:career_alert_prefs.instant_sent_today:integer
+col:career_alert_prefs.last_checked_at:timestamp with time zone
+col:career_alert_prefs.last_report_on:date
+col:career_alert_prefs.prefs:jsonb
+col:career_alert_prefs.sent_on:date
+col:career_alert_prefs.tz:text
+col:career_alert_prefs.updated_at:timestamp with time zone
+col:career_alert_prefs.user_id:uuid
+col:career_apply_batch_approvals.approved_at:timestamp with time zone
+col:career_apply_batch_approvals.batch_hash:text
+col:career_apply_batch_approvals.entry:jsonb
+col:career_apply_batch_approvals.id:uuid
+col:career_apply_batch_approvals.job_id:text
+col:career_apply_batch_approvals.revoked_at:timestamp with time zone
+col:career_apply_batch_approvals.used_at:timestamp with time zone
+col:career_apply_batch_approvals.user_id:uuid
+col:career_apply_cards.answer:jsonb
+col:career_apply_cards.answered_at:timestamp with time zone
+col:career_apply_cards.id:uuid
+col:career_apply_cards.items:jsonb
+col:career_apply_cards.shown_at:timestamp with time zone
+col:career_apply_cards.state:text
+col:career_apply_cards.user_id:uuid
+col:career_apply_cloud_events.at:timestamp with time zone
+col:career_apply_cloud_events.error_kind:text
+col:career_apply_cloud_events.id:bigint
+col:career_apply_cloud_events.job_id:uuid
+col:career_apply_cloud_events.outcome:text
+col:career_apply_cloud_events.portal:text
+col:career_apply_cloud_events.source:text
+col:career_apply_cloud_events.user_id:uuid
+col:career_apply_cloud_gate_waivers.created_at:timestamp with time zone
+col:career_apply_cloud_gate_waivers.expires_at:timestamp with time zone
+col:career_apply_cloud_gate_waivers.id:uuid
+col:career_apply_cloud_gate_waivers.max_sends:integer
+col:career_apply_cloud_gate_waivers.note:text
+col:career_apply_cloud_gate_waivers.portal:text
+col:career_apply_cloud_gate_waivers.revoked_at:timestamp with time zone
+col:career_apply_cloud_gate_waivers.user_id:uuid
+col:career_apply_cloud_optin.daily:integer
+col:career_apply_cloud_optin.enabled:boolean
+col:career_apply_cloud_optin.privacy_epoch:bigint
+col:career_apply_cloud_optin.terms:text
+col:career_apply_cloud_optin.terms_sha256:text
+col:career_apply_cloud_optin.turned_off_at:timestamp with time zone
+col:career_apply_cloud_optin.turned_on_at:timestamp with time zone
+col:career_apply_cloud_optin.updated_at:timestamp with time zone
+col:career_apply_cloud_optin.user_id:uuid
+col:career_apply_cloud_pauses.created_at:timestamp with time zone
+col:career_apply_cloud_pauses.id:bigint
+col:career_apply_cloud_pauses.portal:text
+col:career_apply_cloud_pauses.reason:text
+col:career_apply_cloud_pauses.scope:text
+col:career_apply_cloud_pauses.until:timestamp with time zone
+col:career_apply_cloud_pauses.user_id:uuid
+col:career_apply_cloud_resumes.bytes:bytea
+col:career_apply_cloud_resumes.created_at:timestamp with time zone
+col:career_apply_cloud_resumes.filename:text
+col:career_apply_cloud_resumes.privacy_epoch:bigint
+col:career_apply_cloud_resumes.sha256:text
+col:career_apply_cloud_resumes.user_id:uuid
+col:career_apply_jobs.agent_batch_hash:text
+col:career_apply_jobs.approval_hash:text
+col:career_apply_jobs.attempts:integer
+col:career_apply_jobs.claimed_at:timestamp with time zone
+col:career_apply_jobs.company:text
+col:career_apply_jobs.confirmation_id:text
+col:career_apply_jobs.confirmation_mail_hash:text
+col:career_apply_jobs.created_at:timestamp with time zone
+col:career_apply_jobs.email_confirmed_at:timestamp with time zone
+col:career_apply_jobs.evidence:jsonb
+col:career_apply_jobs.id:uuid
+col:career_apply_jobs.job_id:text
+col:career_apply_jobs.lease_token:uuid
+col:career_apply_jobs.payload:jsonb
+col:career_apply_jobs.payload_hash:text
+col:career_apply_jobs.reason:text
+col:career_apply_jobs.source:text
+col:career_apply_jobs.state:text
+col:career_apply_jobs.updated_at:timestamp with time zone
+col:career_apply_jobs.url:text
+col:career_apply_jobs.user_id:uuid
+col:career_apply_prepared.card_lines:ARRAY
+col:career_apply_prepared.company:text
+col:career_apply_prepared.created_at:timestamp with time zone
+col:career_apply_prepared.id:uuid
+col:career_apply_prepared.job_id:text
+col:career_apply_prepared.payload:jsonb
+col:career_apply_prepared.payload_hash:text
+col:career_apply_prepared.state:text
+col:career_apply_prepared.updated_at:timestamp with time zone
+col:career_apply_prepared.url:text
+col:career_apply_prepared.user_id:uuid
+col:career_apply_questions.ai_policy:text
+col:career_apply_questions.answer:text
+col:career_apply_questions.answered_at:timestamp with time zone
+col:career_apply_questions.company:text
+col:career_apply_questions.created_at:timestamp with time zone
+col:career_apply_questions.id:uuid
+col:career_apply_questions.job_ids:ARRAY
+col:career_apply_questions.key:text
+col:career_apply_questions.kind:text
+col:career_apply_questions.label:text
+col:career_apply_questions.misfit:boolean
+col:career_apply_questions.options:jsonb
+col:career_apply_questions.pushed_at:timestamp with time zone
+col:career_apply_questions.state:text
+col:career_apply_questions.type:text
+col:career_apply_questions.updated_at:timestamp with time zone
+col:career_apply_questions.user_id:uuid
+col:career_apply_wanted.company:text
+col:career_apply_wanted.posting_key:text
+col:career_apply_wanted.queued_at:timestamp with time zone
+col:career_apply_wanted.state:text
+col:career_apply_wanted.taken_at:timestamp with time zone
+col:career_apply_wanted.title:text
+col:career_apply_wanted.url:text
+col:career_apply_wanted.user_id:uuid
+col:career_batch_intents_v1.authority_account_version:bigint
+col:career_batch_intents_v1.binding:jsonb
+col:career_batch_intents_v1.created_at:timestamp with time zone
+col:career_batch_intents_v1.event_hash:text
+col:career_batch_intents_v1.expires_at:timestamp with time zone
+col:career_batch_intents_v1.intent_id:text
+col:career_batch_intents_v1.lease_token:uuid
+col:career_batch_intents_v1.privacy_epoch:bigint
+col:career_batch_intents_v1.private_input:jsonb
+col:career_batch_intents_v1.request_hash:text
+col:career_batch_intents_v1.result:jsonb
+col:career_batch_intents_v1.run_id:text
+col:career_batch_intents_v1.state:text
+col:career_batch_intents_v1.thread_id:uuid
+col:career_batch_intents_v1.turn_key:text
+col:career_batch_intents_v1.updated_at:timestamp with time zone
+col:career_batch_intents_v1.user_id:uuid
+col:career_batch_ledgers_v1.records:jsonb
+col:career_batch_ledgers_v1.updated_at:timestamp with time zone
+col:career_batch_ledgers_v1.user_id:uuid
+col:career_batch_runs_v1.run:jsonb
+col:career_batch_runs_v1.run_id:text
+col:career_batch_runs_v1.state:text
+col:career_batch_runs_v1.summary:jsonb
+col:career_batch_runs_v1.updated_at:timestamp with time zone
+col:career_batch_runs_v1.user_id:uuid
+col:career_cloud_settings.key:text
+col:career_cloud_settings.updated_at:timestamp with time zone
+col:career_cloud_settings.value:text
+col:career_digest_prefs.day:smallint
+col:career_digest_prefs.enabled:boolean
+col:career_digest_prefs.hour:smallint
+col:career_digest_prefs.tz:text
+col:career_digest_prefs.updated_at:timestamp with time zone
+col:career_digest_prefs.user_id:uuid
+col:career_email_checks.checked_at:timestamp with time zone
+col:career_email_checks.key:text
+col:career_email_checks.score:integer
+col:career_email_checks.status:text
+col:career_events.at:timestamp with time zone
+col:career_events.detail:jsonb
+col:career_events.id:bigint
+col:career_events.kind:text
+col:career_events.source:text
+col:career_events.subject:text
+col:career_events.user_id:uuid
+col:career_ingest_state.cursor:integer
+col:career_ingest_state.id:integer
+col:career_ingest_state.last_run_at:timestamp with time zone
+col:career_ingest_state.last_stats:jsonb
+col:career_interviews.application_ref:text
+col:career_interviews.brief_at:timestamp with time zone
+col:career_interviews.brief_ms:bigint
+col:career_interviews.company:text
+col:career_interviews.created_at:timestamp with time zone
+col:career_interviews.format:text
+col:career_interviews.id:bigint
+col:career_interviews.interview_date:date
+col:career_interviews.interview_time:text
+col:career_interviews.interviewers:jsonb
+col:career_interviews.invite_key:text
+col:career_interviews.mail_at:timestamp with time zone
+col:career_interviews.role:text
+col:career_interviews.seen_at:timestamp with time zone
+col:career_interviews.source:text
+col:career_interviews.starts_at:timestamp with time zone
+col:career_interviews.user_id:uuid
+col:career_interviews.when_said:jsonb
+col:career_interviews.zone:text
+col:career_kb_boards.board_token:text
+col:career_kb_boards.company:text
+col:career_kb_boards.content_hash:text
+col:career_kb_boards.directory_generated_at:text
+col:career_kb_boards.last_verified:date
+col:career_kb_boards.loaded_at:timestamp with time zone
+col:career_kb_boards.postings_seen:integer
+col:career_kb_boards.provider:text
+col:career_kb_boards.source:text
+col:career_kb_boards.status:text
+col:career_kb_postings.board:text
+col:career_kb_postings.cluster:text
+col:career_kb_postings.company:text
+col:career_kb_postings.content_hash:text
+col:career_kb_postings.corpus_vintage:text
+col:career_kb_postings.extra:jsonb
+col:career_kb_postings.fetched_on:date
+col:career_kb_postings.loaded_at:timestamp with time zone
+col:career_kb_postings.location:text
+col:career_kb_postings.posted_at:timestamp with time zone
+col:career_kb_postings.posted_raw:text
+col:career_kb_postings.posting_key:text
+col:career_kb_postings.source:text
+col:career_kb_postings.text_excerpt:text
+col:career_kb_postings.title:text
+col:career_kb_postings.url:text
+col:career_kb_role_skills.content_hash:text
+col:career_kb_role_skills.evidence_note:text
+col:career_kb_role_skills.exact_skills:text
+col:career_kb_role_skills.full_text:text
+col:career_kb_role_skills.keyword_reality:text
+col:career_kb_role_skills.keyword_terms:jsonb
+col:career_kb_role_skills.learn_methods:text
+col:career_kb_role_skills.learn_order:text
+col:career_kb_role_skills.loaded_at:timestamp with time zone
+col:career_kb_role_skills.pairs_with_file:text
+col:career_kb_role_skills.postings_basis_n:integer
+col:career_kb_role_skills.resume_killers:text
+col:career_kb_role_skills.role_key:text
+col:career_kb_role_skills.slug:text
+col:career_kb_role_skills.soc_code:text
+col:career_kb_role_skills.source_bytes:integer
+col:career_kb_role_skills.source_file:text
+col:career_kb_role_skills.source_vintage:text
+col:career_kb_role_skills.title:text
+col:career_kb_role_skills.what_gets_picked:text
+col:career_kb_roles.acquisition_methodology:text
+col:career_kb_roles.brief:text
+col:career_kb_roles.content_hash:text
+col:career_kb_roles.employment_2024_k:numeric
+col:career_kb_roles.evidence:jsonb
+col:career_kb_roles.experience_statistics:text
+col:career_kb_roles.full_text:text
+col:career_kb_roles.is_market_split:boolean
+col:career_kb_roles.loaded_at:timestamp with time zone
+col:career_kb_roles.method_note:text
+col:career_kb_roles.parent_soc_code:text
+col:career_kb_roles.researched_on:text
+col:career_kb_roles.role_key:text
+col:career_kb_roles.sector_code:text
+col:career_kb_roles.sector_name:text
+col:career_kb_roles.slug:text
+col:career_kb_roles.soc_code:text
+col:career_kb_roles.source_files:jsonb
+col:career_kb_roles.source_vintage:text
+col:career_kb_roles.title:text
+col:career_kb_roles.unknown_unknowns:text
+col:career_mail_cursors.read_through:timestamp with time zone
+col:career_mail_cursors.updated_at:timestamp with time zone
+col:career_mail_cursors.user_id:uuid
+col:career_mail_drafts.application_ref:text
+col:career_mail_drafts.basis:text
+col:career_mail_drafts.company:text
+col:career_mail_drafts.created_at:timestamp with time zone
+col:career_mail_drafts.draft_key:text
+col:career_mail_drafts.id:bigint
+col:career_mail_drafts.kind:text
+col:career_mail_drafts.role:text
+col:career_mail_drafts.state:text
+col:career_mail_drafts.text:text
+col:career_mail_drafts.user_id:uuid
+col:career_mail_events.application_ref:text
+col:career_mail_events.company:text
+col:career_mail_events.detected_at:timestamp with time zone
+col:career_mail_events.evidence:text
+col:career_mail_events.flagged:boolean
+col:career_mail_events.id:bigint
+col:career_mail_events.kind:text
+col:career_mail_events.mail_at:timestamp with time zone
+col:career_mail_events.message_hash:text
+col:career_mail_events.role:text
+col:career_mail_events.stage:text
+col:career_mail_events.user_id:uuid
+col:career_outbox.attempts:integer
+col:career_outbox.channel:text
+col:career_outbox.claimed_at:timestamp with time zone
+col:career_outbox.contact:text
+col:career_outbox.created_at:timestamp with time zone
+col:career_outbox.deliver_at:timestamp with time zone
+col:career_outbox.delivered_at:timestamp with time zone
+col:career_outbox.error:text
+col:career_outbox.id:bigint
+col:career_outbox.key:text
+col:career_outbox.kind:text
+col:career_outbox.part:integer
+col:career_outbox.part_of:text
+col:career_outbox.provider_id:text
+col:career_outbox.provider_ids:ARRAY
+col:career_outbox.retry_at:timestamp with time zone
+col:career_outbox.status:text
+col:career_outbox.text:text
+col:career_outbox.user_id:uuid
+col:career_outreach_dnc.at:timestamp with time zone
+col:career_outreach_dnc.email_hash:text
+col:career_outreach_dnc.reason:text
+col:career_outreach_dnc.user_id:uuid
+col:career_outreach_drafts.approved_at:timestamp with time zone
+col:career_outreach_drafts.approved_hash:text
+col:career_outreach_drafts.batch_id:uuid
+col:career_outreach_drafts.body:text
+col:career_outreach_drafts.created_at:timestamp with time zone
+col:career_outreach_drafts.footer:text
+col:career_outreach_drafts.gmail_id:text
+col:career_outreach_drafts.gmail_thread:text
+col:career_outreach_drafts.hash:text
+col:career_outreach_drafts.id:uuid
+col:career_outreach_drafts.n:integer
+col:career_outreach_drafts.recipient:jsonb
+col:career_outreach_drafts.recipient_email:text
+col:career_outreach_drafts.result:text
+col:career_outreach_drafts.sent_at:timestamp with time zone
+col:career_outreach_drafts.shared:jsonb
+col:career_outreach_drafts.status:text
+col:career_outreach_drafts.subject:text
+col:career_outreach_drafts.thread_id:uuid
+col:career_outreach_drafts.updated_at:timestamp with time zone
+col:career_outreach_drafts.user_id:uuid
+col:career_outreach_prefs.daily_cap:integer
+col:career_outreach_prefs.list_costs:jsonb
+col:career_outreach_prefs.signature:text
+col:career_outreach_prefs.updated_at:timestamp with time zone
+col:career_outreach_prefs.user_id:uuid
+col:career_postings.apply_email:text
+col:career_postings.ats_id:text
+col:career_postings.board:text
+col:career_postings.closed_at:timestamp with time zone
+col:career_postings.company:text
+col:career_postings.department:text
+col:career_postings.description:text
+col:career_postings.first_seen_at:timestamp with time zone
+col:career_postings.job_id:text
+col:career_postings.last_seen_at:timestamp with time zone
+col:career_postings.location:text
+col:career_postings.posted_at:timestamp with time zone
+col:career_postings.provider:text
+col:career_postings.remote:text
+col:career_postings.role_family:text
+col:career_postings.search:tsvector
+col:career_postings.seniority_band:text
+col:career_postings.title:text
+col:career_postings.url:text
+col:career_proactive_runs.alerts:integer
+col:career_proactive_runs.asks:integer
+col:career_proactive_runs.brief_ms_max:bigint
+col:career_proactive_runs.briefs:integer
+col:career_proactive_runs.cards:integer
+col:career_proactive_runs.confirmations:integer
+col:career_proactive_runs.digests:integer
+col:career_proactive_runs.duplicates:integer
+col:career_proactive_runs.error:text
+col:career_proactive_runs.followups:integer
+col:career_proactive_runs.held:integer
+col:career_proactive_runs.id:bigint
+col:career_proactive_runs.ms:integer
+col:career_proactive_runs.postings:integer
+col:career_proactive_runs.questions:integer
+col:career_proactive_runs.receipts:integer
+col:career_proactive_runs.reports:integer
+col:career_proactive_runs.run_at:timestamp with time zone
+col:career_proactive_runs.statuses:integer
+col:career_proactive_runs.users:integer
+col:career_reminder_outbox.attempts:integer
+col:career_reminder_outbox.created_at:timestamp with time zone
+col:career_reminder_outbox.delivered_at:timestamp with time zone
+col:career_reminder_outbox.lease_token:uuid
+col:career_reminder_outbox.lease_until:timestamp with time zone
+col:career_reminder_outbox.payload:jsonb
+col:career_reminder_outbox.record:jsonb
+col:career_reminder_outbox.reminder_id:text
+col:career_reminder_outbox.seen_at:timestamp with time zone
+col:career_reminder_outbox.status:text
+col:career_reminder_outbox.updated_at:timestamp with time zone
+col:career_reminder_outbox.user_id:uuid
+col:career_task_effects_v1.after_sha256:text
+col:career_task_effects_v1.before_sha256:text
+col:career_task_effects_v1.created_at:timestamp with time zone
+col:career_task_effects_v1.effect_key:text
+col:career_task_effects_v1.intent_id:text
+col:career_task_effects_v1.operation:text
+col:career_task_effects_v1.state:text
+col:career_task_effects_v1.task_id:text
+col:career_task_effects_v1.token:uuid
+col:career_task_effects_v1.user_id:uuid
+col:career_task_intents_v1.authority_account_version:bigint
+col:career_task_intents_v1.binding:jsonb
+col:career_task_intents_v1.budget_limit:integer
+col:career_task_intents_v1.created_at:timestamp with time zone
+col:career_task_intents_v1.event_hash:text
+col:career_task_intents_v1.expires_at:timestamp with time zone
+col:career_task_intents_v1.intent_id:text
+col:career_task_intents_v1.lease_token:uuid
+col:career_task_intents_v1.privacy_epoch:bigint
+col:career_task_intents_v1.private_input:jsonb
+col:career_task_intents_v1.request_hash:text
+col:career_task_intents_v1.reserved:integer
+col:career_task_intents_v1.result:jsonb
+col:career_task_intents_v1.spent:integer
+col:career_task_intents_v1.state:text
+col:career_task_intents_v1.task_id:text
+col:career_task_intents_v1.thread_id:uuid
+col:career_task_intents_v1.turn_key:text
+col:career_task_intents_v1.updated_at:timestamp with time zone
+col:career_task_intents_v1.user_id:uuid
+col:career_watch_kv.key:text
+col:career_watch_kv.updated_at:timestamp with time zone
+col:career_watch_kv.user_id:uuid
+col:career_watch_kv.value:jsonb
+col:channel_artifacts.bytes_b64:text
+col:channel_artifacts.created_at:timestamp with time zone
+col:channel_artifacts.expires_at:timestamp with time zone
+col:channel_artifacts.filename:text
+col:channel_artifacts.id:uuid
+col:channel_artifacts.kind:text
+col:channel_artifacts.mime:text
+col:channel_artifacts.sha256:text
+col:channel_artifacts.thread_id:uuid
+col:channel_artifacts.user_id:uuid
+col:channel_contacts.address:text
+col:channel_contacts.alias:text
+col:channel_contacts.channel:text
+col:channel_contacts.contact:text
+col:channel_contacts.created_at:timestamp with time zone
+col:channel_contacts.home:boolean
+col:channel_contacts.last_inbound_at:timestamp with time zone
+col:channel_contacts.nudged_at:timestamp with time zone
+col:channel_contacts.opted_out:boolean
+col:channel_contacts.opted_out_at:timestamp with time zone
+col:channel_contacts.phone:text
+col:channel_contacts.thread_id:uuid
+col:channel_contacts.updated_at:timestamp with time zone
+col:channel_contacts.user_id:uuid
+col:channel_delivery_runs.capped:integer
+col:channel_delivery_runs.delivered:integer
+col:channel_delivery_runs.error:text
+col:channel_delivery_runs.failed:integer
+col:channel_delivery_runs.held:integer
+col:channel_delivery_runs.id:bigint
+col:channel_delivery_runs.ms:integer
+col:channel_delivery_runs.not_wired:integer
+col:channel_delivery_runs.nudged:integer
+col:channel_delivery_runs.retried:integer
+col:channel_delivery_runs.run_at:timestamp with time zone
+col:channel_delivery_runs.skipped_opt_out:integer
+col:channel_delivery_runs.swept:integer
+col:channel_inbound.provider:text
+col:channel_inbound.provider_message_id:text
+col:channel_inbound.received_at:timestamp with time zone
+col:channel_link_nonces.channel:text
+col:channel_link_nonces.created_at:timestamp with time zone
+col:channel_link_nonces.expires_at:timestamp with time zone
+col:channel_link_nonces.nonce_hash:text
+col:channel_link_nonces.used_at:timestamp with time zone
+col:channel_link_nonces.user_id:uuid
+col:channel_link_requests.answered_at:timestamp with time zone
+col:channel_link_requests.asked_on:text
+col:channel_link_requests.contact:text
+col:channel_link_requests.created_at:timestamp with time zone
+col:channel_link_requests.expires_at:timestamp with time zone
+col:channel_link_requests.id:bigint
+col:channel_link_requests.phone:text
+col:channel_link_requests.user_id:uuid
+col:channel_pending_approvals.card_sha256:text
+col:channel_pending_approvals.channel:text
+col:channel_pending_approvals.consumed_at:timestamp with time zone
+col:channel_pending_approvals.created_at:timestamp with time zone
+col:channel_pending_approvals.expires_at:timestamp with time zone
+col:channel_pending_approvals.run_id:text
+col:channel_pending_approvals.sender_key:text
+col:channel_pending_approvals.thread_id:uuid
+col:channel_pending_approvals.token:text
+col:channel_pending_approvals.user_id:uuid
+col:channel_threads.channel:text
+col:channel_threads.last_message_id:text
+col:channel_threads.sender_key:text
+col:channel_threads.thread_id:uuid
+col:channel_threads.updated_at:timestamp with time zone
+con:career_alert_prefs:career_alert_prefs_held_check=8f02f940
+con:career_alert_prefs:career_alert_prefs_instant_sent_today_check=7d79e23d
+con:career_alert_prefs:career_alert_prefs_pkey=0a0db78b
+con:career_alert_prefs:career_alert_prefs_shape=23658e14
+con:career_alert_prefs:career_alert_prefs_tz_check=a47e3a8f
+con:career_alert_prefs:career_alert_prefs_user_id_fkey=85d8b2f5
+con:career_apply_batch_approvals:career_apply_batch_approvals_batch_hash_check=8efb932d
+con:career_apply_batch_approvals:career_apply_batch_approvals_entry_check=a70dde2c
+con:career_apply_batch_approvals:career_apply_batch_approvals_job_id_check=a75d7a16
+con:career_apply_batch_approvals:career_apply_batch_approvals_pkey=4c6419b3
+con:career_apply_batch_approvals:career_apply_batch_approvals_user_id_fkey=f52ea365
+con:career_apply_cards:career_apply_cards_items_check=a03686b9
+con:career_apply_cards:career_apply_cards_pkey=4c6419b3
+con:career_apply_cards:career_apply_cards_state_check=166860d3
+con:career_apply_cards:career_apply_cards_user_id_fkey=f52ea365
+con:career_apply_cloud_events:career_apply_cloud_events_error_kind_check=3c9d2ab8
+con:career_apply_cloud_events:career_apply_cloud_events_job_id_fkey=c55faad7
+con:career_apply_cloud_events:career_apply_cloud_events_outcome_check=fab43fa9
+con:career_apply_cloud_events:career_apply_cloud_events_pkey=4c6419b3
+con:career_apply_cloud_events:career_apply_cloud_events_portal_check=af59f79b
+con:career_apply_cloud_events:career_apply_cloud_events_source_check=c0f7c6b4
+con:career_apply_cloud_events:career_apply_cloud_events_user_id_fkey=f52ea365
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_max_sends_check=6128f2b8
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_note_check=040dbb3d
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_pkey=4c6419b3
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_portal_check=74aa8e93
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_user_id_fkey=f52ea365
+con:career_apply_cloud_gate_waivers:career_apply_cloud_gate_waivers_window=bb17afe7
+con:career_apply_cloud_optin:career_apply_cloud_optin_daily_check=ff739da4
+con:career_apply_cloud_optin:career_apply_cloud_optin_pkey=0a0db78b
+con:career_apply_cloud_optin:career_apply_cloud_optin_terms_check=4682ee2b
+con:career_apply_cloud_optin:career_apply_cloud_optin_terms_sha256_check=2a5945b7
+con:career_apply_cloud_optin:career_apply_cloud_optin_user_id_fkey=f52ea365
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_check=b0b1d8ed
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_pkey=4c6419b3
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_portal_check=af59f79b
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_reason_check=5ba026cf
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_scope_check=46dcc015
+con:career_apply_cloud_pauses:career_apply_cloud_pauses_user_id_fkey=f52ea365
+con:career_apply_cloud_resumes:career_apply_cloud_resumes_bytes_check=a8a8f4e1
+con:career_apply_cloud_resumes:career_apply_cloud_resumes_filename_check=75446e6d
+con:career_apply_cloud_resumes:career_apply_cloud_resumes_pkey=7b7fe862
+con:career_apply_cloud_resumes:career_apply_cloud_resumes_sha256_check=409f6ab4
+con:career_apply_cloud_resumes:career_apply_cloud_resumes_user_id_fkey=f52ea365
+con:career_apply_jobs:career_apply_jobs_agent_batch_hash_check=9e118739
+con:career_apply_jobs:career_apply_jobs_attempts_check=8a06e180
+con:career_apply_jobs:career_apply_jobs_check1=af4b4371
+con:career_apply_jobs:career_apply_jobs_check=caefaf4d
+con:career_apply_jobs:career_apply_jobs_mail_confirm_check=a23265f6
+con:career_apply_jobs:career_apply_jobs_payload_check=819d684a
+con:career_apply_jobs:career_apply_jobs_payload_hash_check=d1b76340
+con:career_apply_jobs:career_apply_jobs_pkey=4c6419b3
+con:career_apply_jobs:career_apply_jobs_source_check=9724200d
+con:career_apply_jobs:career_apply_jobs_state_check=0f1a988d
+con:career_apply_jobs:career_apply_jobs_url_check=4e50ee39
+con:career_apply_jobs:career_apply_jobs_user_id_fkey=f52ea365
+con:career_apply_jobs:career_apply_jobs_user_id_job_id_key=586484e0
+con:career_apply_prepared:career_apply_prepared_card_lines_check=7d033536
+con:career_apply_prepared:career_apply_prepared_payload_check=819d684a
+con:career_apply_prepared:career_apply_prepared_payload_hash_check=d1b76340
+con:career_apply_prepared:career_apply_prepared_pkey=4c6419b3
+con:career_apply_prepared:career_apply_prepared_state_check=69c9b358
+con:career_apply_prepared:career_apply_prepared_url_check=4e50ee39
+con:career_apply_prepared:career_apply_prepared_user_id_fkey=f52ea365
+con:career_apply_prepared:career_apply_prepared_user_id_job_id_payload_hash_key=8053673c
+con:career_apply_questions:career_apply_questions_ai_policy_check=10354312
+con:career_apply_questions:career_apply_questions_answer_check=36cb7f80
+con:career_apply_questions:career_apply_questions_check=fe848049
+con:career_apply_questions:career_apply_questions_company_check=216e4199
+con:career_apply_questions:career_apply_questions_job_ids_check=48c96828
+con:career_apply_questions:career_apply_questions_key_check=33424071
+con:career_apply_questions:career_apply_questions_kind_check=5e7cd5a6
+con:career_apply_questions:career_apply_questions_label_check=a38e1719
+con:career_apply_questions:career_apply_questions_options_check=ef7c21f7
+con:career_apply_questions:career_apply_questions_pkey=4c6419b3
+con:career_apply_questions:career_apply_questions_state_check=166860d3
+con:career_apply_questions:career_apply_questions_type_check=656bb81b
+con:career_apply_questions:career_apply_questions_user_id_fkey=f52ea365
+con:career_apply_questions:career_apply_questions_user_id_key_key=53bfa9a2
+con:career_apply_wanted:career_apply_wanted_company_check=a640ef15
+con:career_apply_wanted:career_apply_wanted_posting_key_check=cdcfa403
+con:career_apply_wanted:career_apply_wanted_state_check=a59dff6c
+con:career_apply_wanted:career_apply_wanted_title_check=2ef8fc5b
+con:career_apply_wanted:career_apply_wanted_url_check=00c22ded
+con:career_apply_wanted:career_apply_wanted_user_id_fkey=f52ea365
+con:career_apply_wanted:career_apply_wanted_user_id_posting_key_key=3b9d69a9
+con:career_batch_intents_v1:career_batch_intents_v1_intent_id_check=96f7b439
+con:career_batch_intents_v1:career_batch_intents_v1_pkey=a50ec2fb
+con:career_batch_intents_v1:career_batch_intents_v1_state_check=417d69d3
+con:career_batch_intents_v1:career_batch_intents_v1_thread_id_fkey=a915fe76
+con:career_batch_intents_v1:career_batch_intents_v1_user_id_event_hash_key=36afca32
+con:career_batch_intents_v1:career_batch_intents_v1_user_id_fkey=85d8b2f5
+con:career_batch_intents_v1:career_batch_intents_v1_user_id_thread_id_turn_key_key=74cba6d3
+con:career_batch_ledgers_v1:career_batch_ledgers_v1_pkey=0a0db78b
+con:career_batch_ledgers_v1:career_batch_ledgers_v1_user_id_fkey=85d8b2f5
+con:career_batch_runs_v1:career_batch_runs_v1_pkey=5fa283c9
+con:career_batch_runs_v1:career_batch_runs_v1_user_id_fkey=85d8b2f5
+con:career_cloud_settings:career_cloud_settings_key_check=03fbfd6a
+con:career_cloud_settings:career_cloud_settings_pkey=729d3ed6
+con:career_cloud_settings:career_cloud_settings_value_check=fd879fcd
+con:career_digest_prefs:career_digest_prefs_day_check=069929d5
+con:career_digest_prefs:career_digest_prefs_hour_check=34dc6ee7
+con:career_digest_prefs:career_digest_prefs_pkey=0a0db78b
+con:career_digest_prefs:career_digest_prefs_tz_check=a47e3a8f
+con:career_digest_prefs:career_digest_prefs_user_id_fkey=85d8b2f5
+con:career_email_checks:career_email_checks_key_check=1b97b89e
+con:career_email_checks:career_email_checks_pkey=729d3ed6
+con:career_email_checks:career_email_checks_score_check=99602197
+con:career_email_checks:career_email_checks_status_check=47f058b5
+con:career_events:career_events_detail_check=3e87e213
+con:career_events:career_events_kind_check=f3d07da4
+con:career_events:career_events_pkey=4c6419b3
+con:career_events:career_events_source_check=7341b27f
+con:career_events:career_events_subject_check=e0aa44ce
+con:career_events:career_events_user_id_fkey=f52ea365
+con:career_ingest_state:career_ingest_state_cursor_check=ee308552
+con:career_ingest_state:career_ingest_state_id_check=d1e072e9
+con:career_ingest_state:career_ingest_state_pkey=4c6419b3
+con:career_interviews:career_interviews_application_ref_check=327634e5
+con:career_interviews:career_interviews_brief_ms_check=a7309d64
+con:career_interviews:career_interviews_company_check=811c2f39
+con:career_interviews:career_interviews_format_check=cb12e6fc
+con:career_interviews:career_interviews_interview_time_check=aa0ffbd0
+con:career_interviews:career_interviews_interviewers_check=a3dd75f5
+con:career_interviews:career_interviews_invite_key_check=619a2b07
+con:career_interviews:career_interviews_once=77a3cf5f
+con:career_interviews:career_interviews_pkey=4c6419b3
+con:career_interviews:career_interviews_role_check=828267a4
+con:career_interviews:career_interviews_source_check=2bf85977
+con:career_interviews:career_interviews_start_stated=aaad0af2
+con:career_interviews:career_interviews_user_id_fkey=85d8b2f5
+con:career_interviews:career_interviews_when_said_check=2b20541f
+con:career_interviews:career_interviews_zone_check=7e2cd697
+con:career_kb_boards:career_kb_boards_pkey=1b9f512b
+con:career_kb_postings:career_kb_postings_pkey=55b5ded0
+con:career_kb_role_skills:career_kb_role_skills_pkey=6ccbf6db
+con:career_kb_role_skills:career_kb_role_skills_role_key_fkey=f7e3a2cd
+con:career_kb_roles:career_kb_roles_pkey=3ad61994
+con:career_mail_cursors:career_mail_cursors_pkey=0a0db78b
+con:career_mail_cursors:career_mail_cursors_user_id_fkey=85d8b2f5
+con:career_mail_drafts:career_mail_drafts_application_ref_check=dbbe92eb
+con:career_mail_drafts:career_mail_drafts_basis_check=210dd6f0
+con:career_mail_drafts:career_mail_drafts_company_check=811c2f39
+con:career_mail_drafts:career_mail_drafts_draft_key_check=89292e7e
+con:career_mail_drafts:career_mail_drafts_kind_check=c45ad49f
+con:career_mail_drafts:career_mail_drafts_once=12a7ab45
+con:career_mail_drafts:career_mail_drafts_pkey=4c6419b3
+con:career_mail_drafts:career_mail_drafts_role_check=40a4b721
+con:career_mail_drafts:career_mail_drafts_state_check=93279ca4
+con:career_mail_drafts:career_mail_drafts_text_check=1f28907f
+con:career_mail_drafts:career_mail_drafts_user_id_fkey=85d8b2f5
+con:career_mail_events:career_mail_events_application_ref_check=327634e5
+con:career_mail_events:career_mail_events_company_check=811c2f39
+con:career_mail_events:career_mail_events_evidence_check=8b089fa6
+con:career_mail_events:career_mail_events_kind_check=ab7a5bb8
+con:career_mail_events:career_mail_events_message_hash_check=bd307c77
+con:career_mail_events:career_mail_events_once=24089622
+con:career_mail_events:career_mail_events_pkey=4c6419b3
+con:career_mail_events:career_mail_events_role_check=40a4b721
+con:career_mail_events:career_mail_events_stage_check=d359be1b
+con:career_mail_events:career_mail_events_user_id_fkey=85d8b2f5
+con:career_outbox:career_outbox_channel=69480fa0
+con:career_outbox:career_outbox_key_check=d978aca6
+con:career_outbox:career_outbox_kind_check=aca3baca
+con:career_outbox:career_outbox_once=53bfa9a2
+con:career_outbox:career_outbox_part=1fc30402
+con:career_outbox:career_outbox_pkey=4c6419b3
+con:career_outbox:career_outbox_status=02505b2c
+con:career_outbox:career_outbox_text_check=88cd883c
+con:career_outbox:career_outbox_user_id_fkey=85d8b2f5
+con:career_outreach_dnc:career_outreach_dnc_email_hash_check=4fa0eae6
+con:career_outreach_dnc:career_outreach_dnc_pkey=f9902dcd
+con:career_outreach_dnc:career_outreach_dnc_reason_check=d88c9858
+con:career_outreach_dnc:career_outreach_dnc_user_id_fkey=f52ea365
+con:career_outreach_drafts:career_outreach_approved_is_exact=e111d43e
+con:career_outreach_drafts:career_outreach_drafts_approved_hash_check=8da68c69
+con:career_outreach_drafts:career_outreach_drafts_batch_id_n_key=543e62b4
+con:career_outreach_drafts:career_outreach_drafts_body_check=6a966aa7
+con:career_outreach_drafts:career_outreach_drafts_footer_check=397ce17a
+con:career_outreach_drafts:career_outreach_drafts_gmail_id_check=1aaa6ce3
+con:career_outreach_drafts:career_outreach_drafts_gmail_thread_check=13752813
+con:career_outreach_drafts:career_outreach_drafts_hash_check=6dcb737e
+con:career_outreach_drafts:career_outreach_drafts_n_check=0ba7e5b1
+con:career_outreach_drafts:career_outreach_drafts_pkey=4c6419b3
+con:career_outreach_drafts:career_outreach_drafts_recipient_check=e0bd9a14
+con:career_outreach_drafts:career_outreach_drafts_recipient_email_check=b10943d0
+con:career_outreach_drafts:career_outreach_drafts_result_check=24ec8eaa
+con:career_outreach_drafts:career_outreach_drafts_shared_check=050029fe
+con:career_outreach_drafts:career_outreach_drafts_status_check=f6de4f73
+con:career_outreach_drafts:career_outreach_drafts_subject_check=fad503c5
+con:career_outreach_drafts:career_outreach_drafts_user_id_fkey=f52ea365
+con:career_outreach_prefs:career_outreach_prefs_daily_cap_check=045d3ac1
+con:career_outreach_prefs:career_outreach_prefs_list_costs_check=235496e1
+con:career_outreach_prefs:career_outreach_prefs_pkey=0a0db78b
+con:career_outreach_prefs:career_outreach_prefs_signature_check=8d65018f
+con:career_outreach_prefs:career_outreach_prefs_user_id_fkey=f52ea365
+con:career_postings:career_postings_apply_email_check=bd2f7731
+con:career_postings:career_postings_board_check=b9aa0583
+con:career_postings:career_postings_company_check=8b5ee195
+con:career_postings:career_postings_department_check=3eea966a
+con:career_postings:career_postings_description_check=4fef9ff4
+con:career_postings:career_postings_job_id_check=1b65ef71
+con:career_postings:career_postings_location_check=a83800b7
+con:career_postings:career_postings_pkey=100b3120
+con:career_postings:career_postings_provider_check=b4aaabce
+con:career_postings:career_postings_remote_check=25c09d0d
+con:career_postings:career_postings_seen_order=9939b31a
+con:career_postings:career_postings_title_check=5a711933
+con:career_postings:career_postings_url_check=4f95e4e8
+con:career_proactive_runs:career_proactive_runs_asks_check=fc7eef31
+con:career_proactive_runs:career_proactive_runs_brief_ms_max_check=619cadf1
+con:career_proactive_runs:career_proactive_runs_briefs_check=52167727
+con:career_proactive_runs:career_proactive_runs_cards_check=c9a01ef3
+con:career_proactive_runs:career_proactive_runs_confirmations_check=f5f58c3d
+con:career_proactive_runs:career_proactive_runs_digests_check=51d46c27
+con:career_proactive_runs:career_proactive_runs_followups_check=9f56e456
+con:career_proactive_runs:career_proactive_runs_pkey=4c6419b3
+con:career_proactive_runs:career_proactive_runs_questions_check=0e3d6857
+con:career_proactive_runs:career_proactive_runs_receipts_check=3235b30e
+con:career_proactive_runs:career_proactive_runs_statuses_check=fe0e9a9a
+con:career_reminder_outbox:career_reminder_outbox_pkey=02128a65
+con:career_reminder_outbox:career_reminder_outbox_reminder_id_check=4948c3ed
+con:career_reminder_outbox:career_reminder_outbox_status_check=77bff210
+con:career_reminder_outbox:career_reminder_outbox_user_id_fkey=85d8b2f5
+con:career_task_effects_v1:career_task_effects_v1_pkey=08b002a1
+con:career_task_effects_v1:career_task_effects_v1_state_check=c85d8f87
+con:career_task_effects_v1:career_task_effects_v1_token_key=fa62bcb1
+con:career_task_effects_v1:career_task_effects_v1_user_id_intent_id_fkey=0cd3be6d
+con:career_task_intents_v1:career_task_intents_v1_intent_id_check=96f7b439
+con:career_task_intents_v1:career_task_intents_v1_pkey=a50ec2fb
+con:career_task_intents_v1:career_task_intents_v1_state_check=06a861bf
+con:career_task_intents_v1:career_task_intents_v1_thread_id_fkey=a915fe76
+con:career_task_intents_v1:career_task_intents_v1_user_id_event_hash_key=36afca32
+con:career_task_intents_v1:career_task_intents_v1_user_id_fkey=85d8b2f5
+con:career_task_intents_v1:career_task_intents_v1_user_id_thread_id_turn_key_key=74cba6d3
+con:career_watch_kv:career_watch_kv_pkey=ac94d326
+con:career_watch_kv:career_watch_kv_user_id_fkey=85d8b2f5
+con:channel_artifacts:channel_artifacts_pkey=4c6419b3
+con:channel_artifacts:channel_artifacts_thread_id_fkey=71de3af2
+con:channel_contacts:channel_contacts_contact_check=140a8c1e
+con:channel_contacts:channel_contacts_pkey=b531aab3
+con:channel_contacts:channel_contacts_shape=fe6d67b4
+con:channel_contacts:channel_contacts_thread_id_fkey=4d93904e
+con:channel_contacts:channel_contacts_user_id_fkey=85d8b2f5
+con:channel_delivery_runs:channel_delivery_runs_pkey=4c6419b3
+con:channel_inbound:channel_inbound_pkey=8699dc49
+con:channel_inbound:channel_inbound_provider_check=ddca10b9
+con:channel_inbound:channel_inbound_provider_message_id_check=bb6b8d6b
+con:channel_link_nonces:channel_link_nonces_channel_check=226648db
+con:channel_link_nonces:channel_link_nonces_check=7647073f
+con:channel_link_nonces:channel_link_nonces_nonce_hash_check=5fcd62c3
+con:channel_link_nonces:channel_link_nonces_pkey=6e83a341
+con:channel_link_nonces:channel_link_nonces_user_id_fkey=85d8b2f5
+con:channel_link_requests:channel_link_requests_contact_check=5c719051
+con:channel_link_requests:channel_link_requests_phone_check=d6d5ad8d
+con:channel_link_requests:channel_link_requests_pkey=4c6419b3
+con:channel_link_requests:channel_link_requests_user_id_fkey=85d8b2f5
+con:channel_pending_approvals:channel_pending_approvals_channel_check=5a9b7e70
+con:channel_pending_approvals:channel_pending_approvals_pkey=bd7809ab
+con:channel_pending_approvals:channel_pending_approvals_thread_id_fkey=71de3af2
+con:channel_threads:channel_threads_channel_check=5a9b7e70
+con:channel_threads:channel_threads_pkey=3fb3fe93
+con:channel_threads:channel_threads_thread_id_fkey=71de3af2
+trg:career_apply_jobs:career_apply_cloud_confirmed
+trg:career_apply_jobs:career_apply_confirmed_by_email
+trg:career_apply_jobs:career_apply_jobs_fixed
+trg:career_apply_prepared:career_events_on_prepared
+trg:career_watch_kv:career_account_authority
+trg:career_watch_kv:career_apply_cloud_on_erase
+trg:career_watch_kv:career_batch_account_control_v1
+trg:career_watch_kv:career_outreach_on_erase
+trg:career_watch_kv:career_task_account_control_v1
+trg:channel_contacts:channel_contacts_derive

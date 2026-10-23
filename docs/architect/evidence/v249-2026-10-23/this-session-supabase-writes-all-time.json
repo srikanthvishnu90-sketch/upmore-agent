@@ -1,0 +1,31 @@
+[
+ {
+  "at": "2026-10-11T15:51:53.329Z",
+  "tool": "mcp__Supabase__apply_migration",
+  "input_keys": [
+   "name",
+   "project_id",
+   "query"
+  ],
+  "name": "20261011010000_flow_state"
+ },
+ {
+  "at": "2026-10-11T15:53:46.059Z",
+  "tool": "mcp__Supabase__apply_migration",
+  "input_keys": [
+   "name",
+   "project_id",
+   "query"
+  ],
+  "name": "20261011010000_flow_state"
+ },
+ {
+  "at": "2026-10-11T19:47:28.294Z",
+  "tool": "mcp__Supabase__create_edge_function_secret",
+  "input_keys": [
+   "name",
+   "project_id"
+  ],
+  "name": "OPENAI_API_KEY"
+ }
+]

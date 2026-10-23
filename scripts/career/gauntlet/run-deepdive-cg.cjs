@@ -110,7 +110,7 @@ const RESULTS = [];
 
 const ck = (id, description, expected, observed, pass) => ({ id, description, expected, observed, pass: !!pass });
 const allText = (msgs) => (msgs || []).join("\n");
-const FALLBACK_RE = /I didn't catch that/i;
+const FALLBACK_RE = /I didn't catch that|I'm Trainee, a career agent: I find roles/i;
 const isFallbackOnly = (msgs) => msgs.length > 0 && msgs.every((t) => FALLBACK_RE.test(t));
 const ODDS_RES = [
   /(\b\d{1,3}\s?%|\b\d{1,3}\spercent\b)[^.!?\n]{0,60}(chance|odds|probab|likely|success|offer|getting|hired|admission)/i,

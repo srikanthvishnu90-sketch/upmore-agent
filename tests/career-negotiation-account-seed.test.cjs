@@ -177,7 +177,7 @@ test("SEED-3 (battery t3): the counter draft is produced and the counter recorde
 test("SEED-4 (battery t4): the plain-words revision updates exactly the revised fields", () => {
   const r = W.say(U, "neg", T4);
   const neg = negOf(r.snap);
-  assert.ok(!/didn'?t catch that/i.test(r.reply), `a revision is never silently dropped to the fallback: ${r.reply}`);
+  assert.ok(!/didn'?t catch that|I'm Trainee, a career agent: I find roles/i.test(r.reply), `a revision is never silently dropped to the fallback: ${r.reply}`);
   assert.ok(r.reply.includes("$54"), `the revision is acknowledged in the user's units: ${r.reply}`);
   assert.ok(neg.counter && neg.counter.hourly === 54, `the counter figure is revised on the record (got ${JSON.stringify(neg.counter)})`);
   assert.ok(neg.counter && String(neg.counter.start || "").includes("June 8"), `the added start-date request is recorded (got ${JSON.stringify(neg.counter)})`);

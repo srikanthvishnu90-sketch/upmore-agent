@@ -259,7 +259,7 @@ function stratifiedSample(entries) {
 }
 
 // ----------------------------------------------------------------- grading --
-const DIDNT_CATCH_RE = /didn'?t catch that/i;
+const DIDNT_CATCH_RE = /didn'?t catch that|I'm Trainee, a career agent: I find roles/i;
 const HONEST_UNAVAILABLE_RE = /not wired|no live|not (yet )?(wired|available)|isn'?t wired|can'?t (read|check|run|do)|cannot (read|check|run)|don'?t have (a |the )?(live|real|access)|no real (portal|account)|never (see|store) your password|sign in (yourself|once) in/i;
 function loadRescore() { return require("./run-grand-rescore.cjs"); }
 function observedTool(r) {

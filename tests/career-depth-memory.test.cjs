@@ -56,7 +56,7 @@ function makeWorld() {
 }
 const factsOf = (r) => ((r.ctx.statedFacts || {}).facts) || [];
 const rowsOf = (r) => { const ts = r.ctx.trackStore || {}; return Array.isArray(ts) ? ts : (ts.rows || []); };
-const isFallback = (out) => !out || out.contained || out.intent === "career_fallback" || !out.reply || out.reply.startsWith("I didn't catch that");
+const isFallback = (out) => !out || out.contained || out.intent === "career_fallback" || !out.reply || out.reply.match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 // ---------- LF-02: the v223 live regression, replayed verbatim ----------
 test("LF-02: a tracker-status ask is never routed to career_recommendations", () => {

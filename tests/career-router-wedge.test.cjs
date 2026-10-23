@@ -47,7 +47,7 @@ for (const id of WEDGE) {
     assert.ok(!turn.contained, `${id}: turn must not end in containment`);
     assert.ok(RG.isCorrect(exp, turn, text),
       `${id}: expected ${exp.expected_tool} (intents: ${(exp.acceptable_intents || []).join(",")}), observed tool=${RG.observedTool(turn)} intent=${turn.result && turn.result.intent}; reply: ${text.slice(0, 200)}`);
-    assert.ok(!/didn'?t catch that/i.test(text), `${id}: no "didn't catch that" reply`);
+    assert.ok(!/didn'?t catch that|I'm Trainee, a career agent: I find roles/i.test(text), `${id}: no "didn't catch that" reply`);
   });
 }
 

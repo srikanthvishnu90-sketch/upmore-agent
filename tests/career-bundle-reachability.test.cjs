@@ -148,7 +148,7 @@ if (!vm.SourceTextModule) {
       assert.equal(out.meta.contained, false);
       assert.match(out.reply, /Two plausible paths/);
       assert.match(out.reply, /Source:/);
-      assert.doesNotMatch(out.reply, /I didn't catch that/);
+      assert.doesNotMatch(out.reply, /I didn't catch that|I'm Trainee, a career agent: I find roles/);
     }
     assert.equal(app.db.state.career.stores.alertWatchState, undefined);
   });

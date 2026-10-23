@@ -23,7 +23,7 @@ const { CareerHost } = require(path.join(ROOT, "supabase/functions/_shared/caree
 const Router = D("142-career-router.js");
 
 const NOW = Date.parse("2026-10-15T15:00:00.000Z");
-const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").startsWith("I didn't catch that");
+const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 function makeHost() {
   return CareerHost.createCareerHost({

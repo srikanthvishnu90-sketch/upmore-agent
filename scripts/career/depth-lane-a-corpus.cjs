@@ -71,12 +71,13 @@ function say(store, userId, threadId, text, opts) {
 
 // ---------------- grading helpers ----------------
 const FALLBACK_HEAD = "I didn't catch that";
+const FALLBACK_HEAD_2026_10_23 = "I'm Trainee, a career agent: I find roles";
 function isFallback(out) {
   if (!out) return true;
   if (out.contained) return true;
   if (out.intent === "career_fallback") return true;
   if (!out.reply || !String(out.reply).trim()) return true;
-  if (String(out.reply).startsWith(FALLBACK_HEAD)) return true;
+  if (String(out.reply).startsWith(FALLBACK_HEAD) || String(out.reply).startsWith(FALLBACK_HEAD_2026_10_23)) return true;
   return false;
 }
 const lc = (v) => String(v == null ? "" : v).toLowerCase();

@@ -105,7 +105,7 @@ function makeWorld(hostExtra) {
   return { host, store, say };
 }
 const factsOf = (r) => ((r.ctx.statedFacts || {}).facts) || [];
-const isFallback = (out) => !out || out.contained || out.intent === "career_fallback" || !out.reply || out.reply.startsWith("I didn't catch that");
+const isFallback = (out) => !out || out.contained || out.intent === "career_fallback" || !out.reply || out.reply.match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 const PILOT = require(path.join(ROOT, "scripts/career/gauntlet/pilot-lib.cjs"));
 const CORPUS = JSON.parse(fs.readFileSync(path.join(ROOT, "packages/career-data/fixtures/gauntlet/jobs/scored-corpus.json"), "utf8")).postings;

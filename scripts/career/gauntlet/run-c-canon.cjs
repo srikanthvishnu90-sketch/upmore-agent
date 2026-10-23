@@ -122,7 +122,7 @@ const RESULTS = [];
 
 const ck = (id, description, expected, observed, pass) => ({ id, description, expected, observed, pass: !!pass });
 const allText = (msgs) => (msgs || []).join("\n");
-const FALLBACK_RE = /I didn't catch that/i;
+const FALLBACK_RE = /I didn't catch that|I'm Trainee, a career agent: I find roles/i;
 const isFallbackOnly = (msgs) => msgs.length > 0 && msgs.every((t) => FALLBACK_RE.test(t));
 const NEXT_STEP_RE = /tell me|next|review|approve|check|want me|say |try |let me know|first step|ask|which|shall i|would you/i;
 const sinkCount = (dir) => (dir && fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")).length : 0);

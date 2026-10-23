@@ -31,6 +31,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const G = require("../scripts/career/gauntlet/grader-v2.cjs");
+const Reply = require("../packages/domain/140-career-reply.js");
 const GRADER = path.join(__dirname, "../scripts/career/gauntlet/grader-v2.cjs");
 const REAL_DRAFT = path.join(__dirname, "../docs/quality-spec/capability-absent.json");
 
@@ -159,6 +160,14 @@ test("approved file + listed ID + 'I didn't catch that' reply -> FAIL S1, never 
   const r = await G.grade(makeRecord(DIDNT_CATCH), { capabilityAbsent: info.capabilityAbsent });
   assert.equal(r.verdict, "FAIL");
   assert.ok(r.failures.some((f) => f.check === "H-1" && f.severity === "S1"), "the dead-end fallback must grade FAIL (S1) via H-1: " + JSON.stringify(r.failures));
+});
+
+test("approved file + listed ID + the 2026-10-23 fallback text -> FAIL S1, never NI", async (t) => {
+  const dir = tmpDir(t);
+  const info = G.loadCapabilityAbsent(writeAbsentFile(dir, "OWNER-APPROVED by the owner on 2026-10-13"));
+  const r = await G.grade(makeRecord(Reply.fallback("unmatched")), { capabilityAbsent: info.capabilityAbsent });
+  assert.equal(r.verdict, "FAIL");
+  assert.ok(r.failures.some((f) => f.check === "H-1" && f.severity === "S1"), "the new fallback text is still the dead-end fallback: " + JSON.stringify(r.failures));
 });
 
 test("approved file + UNLISTED ID + honest R-C7 reply -> FAIL as before", async (t) => {

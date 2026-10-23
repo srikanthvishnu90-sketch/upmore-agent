@@ -55,7 +55,7 @@ const pick = (res, snap) => JSON.stringify({
   reply: res.reply, intent: res.intent, resultStatus: res.resultStatus,
   contained: res.contained, handler: res.handler, snap,
 });
-const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").startsWith("I didn't catch that");
+const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 test("pruned artifact == full bundle: 9-turn chain and the whole battery, byte-identical", async () => {
   const full = await import(pathToFileURL(FULL_BUNDLE).href);

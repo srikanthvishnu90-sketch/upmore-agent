@@ -60,11 +60,11 @@ function cannedSignature(text) {
 }
 
 // ------------------------------------------------------------- fallbacks ---
-const GENERIC_FALLBACK = "I didn't catch that.";
+const GENERIC_FALLBACK_RE = /I didn't catch that\.|I'm Trainee, a career agent: I find roles/;
 function isFallbackTurn(rec) {
   const st = rec.final_state || {};
   return !st.handler || st.contained === true || st.intent === "career_fallback" ||
-    (rec.delivered_messages || []).join("\n").includes(GENERIC_FALLBACK);
+    (rec.delivered_messages || []).join("\n").match(GENERIC_FALLBACK_RE);
 }
 function isHonestDecline(rec, text) {
   // A fallback turn, or a reply that plainly declines / asks for the missing
@@ -193,11 +193,11 @@ function fallbackGrade(rec, text) {
   if (!isFallbackTurn(rec)) return { applicable: false, pass: null, note: "not a low-confidence/no-route turn" };
   const questions = (text.match(/\?/g) || []).length;
   const canned = cannedSignature(text).canned;
-  const oneSpecificQuestion = questions === 1 && !canned && !text.includes(GENERIC_FALLBACK);
+  const oneSpecificQuestion = questions === 1 && !canned && !GENERIC_FALLBACK_RE.test(text);
   return {
     applicable: true, pass: oneSpecificQuestion, questions, canned,
     note: oneSpecificQuestion ? "ends in one specific clarifying question, no unasked discovery output"
-      : `fallback rule violated: ${questions} question(s) in reply` + (canned ? "; canned discovery output present" : "") + (text.includes(GENERIC_FALLBACK) ? "; generic 'didn't catch that' deflection with a discovery offer instead of a specific question" : ""),
+      : `fallback rule violated: ${questions} question(s) in reply` + (canned ? "; canned discovery output present" : "") + (GENERIC_FALLBACK_RE.test(text) ? "; generic 'didn't catch that' deflection with a discovery offer instead of a specific question" : ""),
   };
 }
 

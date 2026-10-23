@@ -51,7 +51,7 @@ const D = (n) => require(path.join(ROOT, "packages/domain", n));
 const { CareerHost } = require(path.join(ROOT, "supabase/functions/_shared/career_host.js"));
 const CareerRouter = D("142-career-router.js");
 
-const FALLBACK = "I didn't catch that. Try naming the job, company, or person";
+const FALLBACK = /I didn't catch that|I'm Trainee, a career agent: I find roles/;
 
 // ---- the battery's exact words -------------------------------------
 const T_START = "/start";
@@ -148,7 +148,7 @@ test("TG-START-FALLBACK: /start gets a real greeting + orientation, not the fall
   w.store.accounts.set("u-t1", batteryAccount());
   const r = w.say("u-t1", "t-t1", T_START);
   assert.equal(r.out.intent, "career_greeting", `intent=${r.out.intent}; reply: ${String(r.out.reply).slice(0, 160)}`);
-  assert.ok(!String(r.out.reply).includes(FALLBACK), "the greeting is not the generic fallback");
+  assert.ok(!FALLBACK.test(String(r.out.reply)), "the greeting is not the generic fallback");
   assert.match(r.out.reply, /Trainee/, "the greeting names the product");
   assert.match(r.out.reply, /find (jobs|roles)|tailor|prep|track/i, "the greeting orients: what I do");
 });
@@ -159,7 +159,7 @@ test("TG-START-FALLBACK: two bare-greeting paraphrases route the same way", () =
   for (const g of [T_GREET_A, T_GREET_B]) {
     const r = w.say("u-t1b", "t-t1b", g);
     assert.equal(r.out.intent, "career_greeting", `"${g}" → intent=${r.out.intent}; reply: ${String(r.out.reply).slice(0, 120)}`);
-    assert.ok(!String(r.out.reply).includes(FALLBACK), `"${g}" is not the generic fallback`);
+    assert.ok(!FALLBACK.test(String(r.out.reply)), `"${g}" is not the generic fallback`);
   }
 });
 
@@ -168,7 +168,7 @@ test("TG-START-FALLBACK control: a greeting WITH an ask is not swallowed by the 
   w.store.accounts.set("u-t1c", batteryAccount());
   const r = w.say("u-t1c", "t-t1c", T_OPENER);
   assert.notEqual(r.out.intent, "career_greeting", "the opener keeps its existing owner (discovery)");
-  assert.ok(!String(r.out.reply).includes(FALLBACK), "the opener never fell back in the battery either (PARTIAL)");
+  assert.ok(!FALLBACK.test(String(r.out.reply)), "the opener never fell back in the battery either (PARTIAL)");
 });
 
 // =====================================================================
@@ -180,7 +180,7 @@ test("TG-LONGPLAN-FALLBACK: the battery's exact plan ask returns a real day-by-d
   w.store.accounts.set("u-t2", batteryAccount());
   const r = w.say("u-t2", "t-t2", T_PLAN);
   assert.equal(r.out.intent, "prep_plan", `intent=${r.out.intent}; reply: ${String(r.out.reply).slice(0, 200)}`);
-  assert.ok(!String(r.out.reply).includes(FALLBACK), "the plan ask is not the generic fallback");
+  assert.ok(!FALLBACK.test(String(r.out.reply)), "the plan ask is not the generic fallback");
   assert.match(r.out.reply, /Day 1\b/, "the plan starts at day 1");
   assert.match(r.out.reply, /Day 14\b/, "two weeks = 14 days, all of them planned");
   assert.match(r.out.reply, /Day 7\b/, "the plan is structured across the horizon, not a stub");
@@ -254,7 +254,7 @@ test("TG-RECALL-ABSENT: plant then ask, same thread — the record answers", () 
   assert.ok(facts.some((f) => f.kind === "target_firm" && f.value === "Northwind Ledger"), "the store holds the corrected firm after the plant");
   const r = w.say("u-t3", "t-t3", T_RECALL);
   assert.equal(r.out.intent, "conversation_recall", `intent=${r.out.intent}; reply: ${String(r.out.reply).slice(0, 200)}`);
-  assert.ok(!String(r.out.reply).includes(FALLBACK), "the recall is not the generic fallback");
+  assert.ok(!FALLBACK.test(String(r.out.reply)), "the recall is not the generic fallback");
   assert.match(r.out.reply, /Northwind Ledger/, "the recall names the recorded firm");
   assert.match(r.out.reply, /\bDana\b/, "the recall names the recorded contact");
 });

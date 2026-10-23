@@ -9284,9 +9284,11 @@ const CareerReply = (() => {
   const FALLBACKS = {
     error: "Something went wrong on my end — nothing changed on your side. Tell me the job, company, or person to work on and I will pick it back up from there.",
     empty: "I do not have anything solid to show you on that yet. Tell me a job, company, or person to work on and I will dig in.",
-    unmatched: "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    unmatched: "I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews. I may have missed what you meant, so what should we work on first?",
     timeout: "That took too long, so I stopped it. Tell me one job or one company and I will move faster on it.",
   };
+  const FALLBACK_TEXT_RE = /^(I didn't catch that|I'm Trainee, a career agent: I find roles)/;
+  function isFallbackText(text) { return FALLBACK_TEXT_RE.test(String(text || "").trim()); }
   function fallback(kind, ctx) {
     const base = FALLBACKS[kind] || FALLBACKS.error;
     const extra = ctx && typeof ctx === "object" && typeof ctx.next === "string" ? cleanInline(ctx.next) : "";
@@ -9501,7 +9503,7 @@ const CareerReply = (() => {
     return `${trimmed} ${GENERIC_CLOSER}`;
   }
 
-  return { MAX_SENTENCES_PER_BUBBLE, composeText, composeResult, fallback, lint, splitBubbles, GENERIC_CLOSER, endsWithNextStep, ensureNextStep };
+  return { MAX_SENTENCES_PER_BUBBLE, composeText, composeResult, fallback, isFallbackText, FALLBACK_TEXT_RE, lint, splitBubbles, GENERIC_CLOSER, endsWithNextStep, ensureNextStep };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerReply;
 

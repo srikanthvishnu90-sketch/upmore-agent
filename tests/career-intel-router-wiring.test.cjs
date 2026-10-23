@@ -49,7 +49,7 @@ function ask(host, text, prior) {
   res = host.runTurn(text, ctx);
   return res;
 }
-const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").startsWith("I didn't catch that");
+const isFallback = (res) => !res || res.intent === "career_fallback" || String((res && res.reply) || "").match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 test("LF-05: 'What do you have on Databricks?' gets the honest no-file answer, not the fallback", () => {
   const host = makeHost();

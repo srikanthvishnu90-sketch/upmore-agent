@@ -171,7 +171,7 @@ const TRIAL = L.TRIAL_ID;
 const ck = (id, description, expected, observed, pass) => ({ id, description, expected, observed, pass: !!pass });
 const allText = (msgs) => (msgs || []).join("\n");
 const sinkCount = (dir) => (dir && fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")).length : 0);
-const FALLBACK_RE = /I didn't catch that/i;
+const FALLBACK_RE = /I didn't catch that|I'm Trainee, a career agent: I find roles/i;
 const isFallbackOnly = (msgs) => msgs.length > 0 && msgs.every((t) => FALLBACK_RE.test(t));
 
 // Pre-declared capability-absent sets (grading design, fixed before the run):

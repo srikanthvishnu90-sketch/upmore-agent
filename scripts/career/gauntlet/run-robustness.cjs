@@ -85,7 +85,7 @@ function drive(session, text, ctx, snap) {
     say: text, handler: r.handler || null, contained: !!r.contained,
     intent: r.result ? r.result.intent || null : null,
     resultStatus: r.result ? r.result.resultStatus || null : null,
-    delivered, substantive: delivered.length > 0 && !r.contained && !(r.result && r.result.intent === "career_fallback") && !/^I didn't catch that/.test(delivered),
+    delivered, substantive: delivered.length > 0 && !r.contained && !(r.result && r.result.intent === "career_fallback") && !/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/.test(delivered),
     profile_changed: beforeProfile !== afterProfile,
     queue_changed: beforeQueue !== afterQueue,
     sink_receipts: snap && snap.sinkDir ? sinkCount(snap.sinkDir) : 0,

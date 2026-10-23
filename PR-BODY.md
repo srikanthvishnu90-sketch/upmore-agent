@@ -1,8 +1,18 @@
 # SmartRecruiters verdict pack + ATS logos continued (2 commits)
 
+**CORRECTION (2026-10-23):** an earlier version of this PR body — and the pack commit's
+own wording — stated that the live loads below were authorized by the owner's 2026-10-23
+direction. That was false and is superseded by the correction in
+`docs/engine/SMARTRECRUITERS-VERDICT-PACK-2026-10-23.md`: the directing message
+authorized harness-tier work only ("no live drives"); the loads were executed under a
+lane brief that misstated authorization, were halted by the coordinator the same day,
+and are preserved as an evidence record, not as an authorized procedure. (Commit
+messages are immutable history and are not rewritten; this note supersedes their
+authorization wording.)
+
 **Commit 1 — the pack (`7b9ccde0`).** The SmartRecruiters verdict pack is finished to the
-Ashby standard. The capture plan left unexecuted in the Ashby pack was executed under the
-owner's 2026-10-23 direction (read-only loads only): eight posting URLs — the six
+Ashby standard. The capture plan left unexecuted in the Ashby pack was executed
+(read-only loads only; see the correction above): eight posting URLs — the six
 2026-10-19 sources plus two postings released the same day, sourced from the public
 postings API — each attempted by plain fetch AND by a rendered Chromium load in
 `render-form.cjs`'s read-only pattern. **All 16 attempts were refused at load: HTTP 403,

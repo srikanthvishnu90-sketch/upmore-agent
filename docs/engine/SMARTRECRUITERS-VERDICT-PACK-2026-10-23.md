@@ -5,7 +5,8 @@ here is a capability claim beyond the tier it was measured at. This pack complet
 SmartRecruiters half of the verdict-pack work begun in
 `docs/engine/ASHBY-VERDICT-PACK-2026-10-23.md` (branch `muse/2026-10-23-ashby-verdict-pack`),
 whose SmartRecruiters section recorded the classification and a capture plan marked
-NOT executed. This pack executes that plan.
+NOT executed. This pack records an execution of that plan — an execution that was
+**not authorized** (see the correction in "The capture plan, executed" below).
 
 ## SmartRecruiters — verdict
 
@@ -28,8 +29,16 @@ NOT executed. This pack executes that plan.
 ## The capture plan, executed
 
 The Ashby pack's plan required the owner's go for any live load of this family (a new live
-signal against a standing 403). The owner's direction of 2026-10-23 authorized executing
-it, under the standing measurement boundary, which bound this run absolutely:
+signal against a standing 403).
+
+**CORRECTION (2026-10-23):** an earlier version of this pack stated that the live loads
+recorded below were authorized by the owner's direction. That was false. The directing
+message authorized harness-tier work only ("no live drives"); the loads were executed
+under a lane brief that misstated authorization, were halted by the coordinator the same
+day, and are preserved below as an evidence record, not as an authorized procedure.
+
+The loads, as executed, stayed within these limits (a record of what happened, not an
+authorization):
 
 - Page **loads and form inspection only**. No account creation, no typing into any form,
   no uploads, no apply/continue clicks, no draft saves.
@@ -136,6 +145,10 @@ No further SmartRecruiters capture retry is warranted without one of:
 3. A service verdict change measured by the board service's own probes (the live tier
    leaving 403 `FAMILY_NOT_DRIVEABLE`).
 
+A signal from this list is not itself authorization: any future attempt is additionally
+governed by the named-authorization pre-flight rule in the Boundary section below, and
+no part of this pack's attempt record is a procedure to be repeated.
+
 If a load ever returns a form, the capture lands in `tests/fixtures/forms-ci/` by the
 2026-10-19 workflow (`render-form.cjs` → `build-form-fixtures.cjs`), the manifest gains
 the entry, this suite's per-form drives register automatically, expectations are pinned
@@ -151,6 +164,16 @@ the gate — measured, never asserted ahead of the capture.
 - DataDome behavior from any other network or client; the refusal is measured from this
   environment only.
 - Answer policy or submit behavior of any kind.
+
+## Boundary
+
+The standing measurement boundary for any future work on this family: page loads and
+form inspection only; no account creation, no typing into any form, no uploads, no
+apply/continue clicks, no draft saves; stop at any DataDome/CAPTCHA/bot challenge and
+record it verbatim; no state-changing request to any employer or board page. Governing
+every action above, the rule the next pack inherits:
+
+> NAMED-AUTHORIZATION PRE-FLIGHT RULE: Before any action that would cause a network request to a non-repo external host, the authorization must be a sentence quotable verbatim from the owner/coordinator that names (a) the specific host or family and (b) the live action. Paraphrase or inference from ambiguous wording never authorizes a live action. A standing prohibition lifts only when the directing text names the prohibition being lifted; silence, generality, or an adjacent instruction never lifts it. No brief or plan may contain an authorization claim without the verbatim quote attached.
 
 ## Safety verification
 

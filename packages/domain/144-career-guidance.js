@@ -117,6 +117,56 @@ const CareerGuidance = (() => {
   // no as-of dates of their own, and none is invented for them.
   const KNOWLEDGE_AS_OF = "2026-10-13";
 
+  // ROUTING FAMILIES (2026-10-23): common entry points by field and by degree, for plan_paths' named-field branch.
+  // Authored general career knowledge as of KNOWLEDGE_AS_OF: where people commonly start, never a fit verdict, a
+  // market figure or an employer requirement. A licensed field carries its licensing caveat.
+  const FIELD_ENTRY = {
+    hr: { re: /\b(hr|human resources|people operations|recruiting|talent acquisition)\b/, label: "HR", roles: ["HR coordinator", "recruiting coordinator", "people operations assistant"], proof: "draft an onboarding checklist and a structured interview guide for one sample role" },
+    ux: { re: /\b(ux|ui|user experience|product design|interaction design)\b/, label: "UX design", roles: ["junior UX/UI designer", "UX research assistant", "product design intern"], proof: "a two-case-study portfolio that shows the research, the iterations and the final design" },
+    data: { re: /\b(data analysis|data analytics|data analyst|analytics|data science|business intelligence)\b/, label: "data analysis", roles: ["data analyst", "business analyst", "reporting analyst"], proof: "one public-dataset analysis in SQL with a short write-up of its limits" },
+    marketing: { re: /\b(marketing|digital marketing|social media|content marketing)\b/, label: "marketing", roles: ["marketing coordinator", "social media or content coordinator", "marketing analyst"], proof: "a small campaign plan with one measurable goal" },
+    software: { re: /\b(software|software engineering|coding|programming|web development)\b/, label: "software engineering", roles: ["junior software engineer", "QA or test engineer", "technical support engineer"], proof: "a small deployed project with tests and a README" },
+    tech: { re: /\b(tech|the tech industry|it)\b/, label: "tech", roles: ["IT support or help desk", "customer success at a software company", "QA tester", "technical support"], proof: "a support FAQ for a real product, or a small documented home-lab setup" },
+    product: { re: /\b(product management|product manager)\b/, label: "product management", roles: ["associate product manager", "product analyst", "project coordinator"], proof: "a one-page product brief: the problem, the users and one metric" },
+    project: { re: /\b(project management|project manager)\b/, label: "project management", roles: ["project coordinator", "operations coordinator", "program assistant"], proof: "a project plan with a timeline, owners and risks" },
+    finance: { re: /\b(finance|accounting|financial analysis)\b/, label: "finance", roles: ["staff accountant", "financial analyst", "accounts payable or receivable specialist"], proof: "a budget-versus-actual workbook with a short variance memo" },
+    sales: { re: /\b(sales|business development)\b/, label: "sales", roles: ["sales development representative", "account coordinator", "customer success associate"], proof: "a short outreach plan for a sample product" },
+    teaching: { re: /\b(teaching|education)\b/, label: "teaching", roles: ["teaching assistant", "substitute teacher", "tutor"], caveat: "Classroom teaching in public schools requires a state license, and the rules differ by state." },
+    healthcare_admin: { re: /\b(healthcare administration|health care administration|healthcare)\b/, label: "healthcare administration", roles: ["patient services coordinator", "medical office assistant", "healthcare administration assistant"], proof: "map a fictional clinic's appointment workflow and propose one improvement" },
+    law: { re: /\b(law|legal)\b/, label: "law", roles: ["paralegal", "legal assistant", "compliance coordinator"], caveat: "Practicing as a lawyer requires law school and passing a bar exam." },
+    nursing: { re: /\b(nursing)\b/, label: "nursing", roles: ["certified nursing assistant while you train", "patient care technician"], caveat: "Becoming a nurse requires an accredited nursing program and a license." },
+    consulting: { re: /\b(consulting)\b/, label: "consulting", roles: ["business analyst", "associate consultant", "research analyst"], proof: "a one-page recommendation memo on a public company's problem" },
+  };
+  const DEGREE_ENTRY = {
+    biology: { re: /\bbiology\b/, label: "biology", roles: ["clinical research coordinator", "lab technician", "healthcare administration", "science writing or communications", "pharmaceutical or medical device sales", "public health program roles"], proof: "summarize one public health or science study for a general reader" },
+    psychology: { re: /\bpsychology\b/, label: "psychology", roles: ["HR or recruiting coordinator", "UX research assistant", "case management or social services", "market research analyst"], proof: "run five short user interviews about one product and write up the findings" },
+    english: { re: /\benglish\b/, label: "English", roles: ["content or communications coordinator", "editorial assistant", "marketing coordinator", "technical writer"], proof: "rewrite a public product page for two different audiences" },
+    history: { re: /\bhistory\b/, label: "history", roles: ["research or policy assistant", "paralegal", "museum or archive roles", "communications coordinator"], proof: "a two-page research brief on a current issue, with sources" },
+    political_science: { re: /\bpolitical science\b/, label: "political science", roles: ["policy or legislative assistant", "paralegal", "campaign or advocacy coordinator", "communications coordinator"], proof: "a one-page policy memo with sources" },
+    economics: { re: /\beconomics\b/, label: "economics", roles: ["data or business analyst", "financial analyst", "consulting analyst", "policy research assistant"], proof: "one public-dataset analysis with a short written conclusion" },
+    chemistry: { re: /\bchemistry\b/, label: "chemistry", roles: ["lab or quality-control technician", "regulatory affairs assistant", "technical sales", "environmental health and safety"], proof: "summarize one product's safety data sheet for a non-chemist" },
+    communications: { re: /\bcommunications?\b/, label: "communications", roles: ["PR or communications coordinator", "marketing coordinator", "social media coordinator", "content writer"], proof: "a press release and three social posts for one sample announcement" },
+    business: { re: /\bbusiness\b/, label: "business", roles: ["operations coordinator", "sales development representative", "financial analyst", "project coordinator"], proof: "a one-page decision memo using a small sample dataset" },
+    sociology: { re: /\bsociology\b/, label: "sociology", roles: ["case management or social services", "HR coordinator", "nonprofit program coordinator", "market research assistant"], proof: "a short survey and a write-up of what it found" },
+    mathematics: { re: /\bmath(?:ematics)?\b/, label: "mathematics", roles: ["data analyst", "actuarial analyst (professional exams required)", "financial analyst", "tutor"], proof: "one public-dataset analysis with the method written out" },
+    computer_science: { re: /\bcomputer science\b/, label: "computer science", roles: ["junior software engineer", "QA or test engineer", "IT support"], proof: "a small deployed project with tests and a README" },
+  };
+  // The field the ask moves INTO, the degree it asks about, where it comes FROM, and what it excludes. A field or
+  // degree the tables do not hold returns null, and the ask keeps the generic path.
+  function namedFieldAsk(t) {
+    const into = t.match(/\b(?:into|get into|break into|move into|switch(?:ing)? to|transition(?:ing)? (?:in)?to|pivot(?:ing)? (?:in)?to|careers? in|a career in|work in|jobs? in)\s+([a-z][a-z /&-]{1,40})/);
+    let field = null;
+    if (into) for (const [key, f] of Object.entries(FIELD_ENTRY)) if (f.re.test(into[1])) { field = { key, label: f.label }; break; }
+    let degree = null;
+    const dm = t.match(/\b(?:with|have|got|earning|finishing)\s+(?:a|an|my)\s+([a-z]+(?:\s+[a-z]+)?)\s+(?:degree|major)\b|\b([a-z]+(?:\s+[a-z]+)?)\s+(?:degree|major)\b/);
+    const degreeText = dm ? (dm[1] || dm[2]) : null;
+    if (!field && degreeText) for (const [key, d] of Object.entries(DEGREE_ENTRY)) if (d.re.test(degreeText)) { degree = { key, label: d.label }; break; }
+    if (!field && !degree) return null;
+    const fm = t.match(/\b(?:from|i'?m an?|i am an?)\s+([a-z][a-z ]{2,30}?)(?=\s+(?:who|and|into|to|but|wanting|looking|that)\b|[,.?!]|$)/);
+    const ex = [...t.matchAll(/\b(?:besides|other than|except|apart from|not in)\s+([a-z]+)/g)].map((m) => m[1]);
+    const excluded = ex.flatMap((w) => (w === "research" ? ["research", "lab"] : [w]));
+    return { field, degree, degreeText, from: fm ? fm[1].trim() : null, excluded };
+  }
   // ------------------------------------------------------- CG01: path planning
   function planPaths(ctx) {
     const c = ctx || {};
@@ -205,6 +255,38 @@ const CareerGuidance = (() => {
         unknowns: ["Any specific school's placement figure — this product holds no ABA dataset; the schools' own required disclosures are the source, and no number is quoted without them."],
         nextStep: "Tell me where you are on the ladder — pre-law, applying, or in school — and I will lay out that rung in full.",
         text: `Big Law is the most gated path of the set. There is effectively no undergraduate door — the firms hire summer associates from law schools through on-campus interviewing, and the summer offer converts to the full-time seat. The real ladder is LSAT and admissions, then 1L grades, then OCI at the start of 2L, then the summer-associate class. The data that governs the choice is the ABA-required employment disclosure every law school must publish: large-firm placement is concentrated in a minority of schools, and outside them the same degree leads somewhere else entirely. Debt must be stated in the same breath: private law school commonly leaves graduates with six-figure debt, which only the large-firm outcome services comfortably — so the school decision is the career decision, and it is made from the disclosures, not from rankings.`,
+      });
+    }
+    // ROUTING FAMILIES (2026-10-23): a move into a NAMED field, or a degree asked about, is answered on that field.
+    // Before this branch these asks reached the generic two-paths body, which ranks its recipes only by confirmed
+    // profile facts and so gave the same two unrelated roles to every person and every field. The entry points below
+    // are authored general knowledge (as of KNOWLEDGE_AS_OF), labeled as such, never market data or a fit verdict;
+    // a field the table does not hold is said plainly, and nothing is invented for it. An exclusion the person states
+    // ("besides research") is honored.
+    const named = namedFieldAsk(topicText);
+    if (named) {
+      const entries = (named.field ? FIELD_ENTRY[named.field.key] : DEGREE_ENTRY[named.degree.key]) || null;
+      const shown = entries ? entries.roles.filter((r) => !named.excluded.some((x) => r.toLowerCase().includes(x))) : [];
+      const fromText = named.from ? `What you did in ${named.from} is yours to map to it; I won't assume what transfers.` : "";
+      const subject = named.field ? named.field.label : `a ${named.degree.label} degree`;
+      const parts = [];
+      if (shown.length) parts.push(`Common entry points ${named.field ? `into ${subject}` : `with ${subject}`}: ${shown.join(", ")}.`);
+      else parts.push(`I have no authored entry points for ${named.field ? subject : named.degreeText || subject} yet, so I won't invent any.`);
+      if (fromText) parts.push(fromText);
+      if (entries && entries.proof) parts.push(`A cheap first test: ${entries.proof}.`);
+      if (entries && entries.caveat) parts.push(entries.caveat);
+      parts.push("These come from general career knowledge, not your record or market data, and whether one fits you depends on real postings near you.");
+      return finalize("plan_paths", {
+        headline: named.field ? `Moving into ${subject}: where people start, and a first test.` : `Where ${subject} leads: common starting points.`,
+        sources: kbSources,
+        plan: [
+          { action: `Read five real ${named.field ? subject : "entry-level"} postings and list the three requirements they share`, timeframe: "this week" },
+          { action: "Map each requirement to something you have done, and mark the real gaps", timeframe: "this week" },
+          { action: entries && entries.proof ? `Close one gap with a small work sample: ${entries.proof}` : "Close one gap with a small, visible work sample", timeframe: "next two weeks" },
+        ],
+        unknowns: ["Which roles fit you, and what employers near you actually require, stay unknown until real postings are read; no requirement is invented here."],
+        nextStep: shown.length ? `Want me to look for ${shown[0]} roles?` : "Which field should I look at with you?",
+        text: parts.join(" "),
       });
     }
     return finalize("plan_paths", Recommendations.planPaths(c));

@@ -131,11 +131,17 @@ const CareerRouter = (() => {
   // function words plus the ordinary words of this domain.
   const COMMON_WORDS = new Set(["sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
     "step", "steps", "list", "lists", "listed", "left", "life", "live", "lives", "half", "close", "closed", "fund", "funds", "top", "week", "weeks", "send", "sent", "sends", "work", "works", "word", "words", "world", "team", "teams", "deal", "deals", "call", "calls", "meet", "talk", "walk", "week", "year", "years", "time", "times", "day", "days", "thing", "things", "people", "person", "place", "point", "case", "cases", "part", "parts", "week", "group", "groups", "play", "plays", "area", "areas", "book", "books", "money", "story", "stories", "fact", "facts", "month", "months", "lot", "door", "doors", "side", "sides", "kind", "kinds", "head", "heads", "hand", "hands", "life", "part", "week", "child", "week", "eye", "eyes", "woman", "week", "place", "week", "work", "week", "case", "week", "point", "week", "number", "numbers", "night", "nights", "water", "room", "rooms", "mother", "father", "power", "city", "cities", "week", "story", "young", "fact", "month", "different", "lot", "right", "study", "book", "eye", "job", "jobs", "word", "though", "business", "issue", "issues", "side", "kind", "head", "far", "black", "long", "both", "little", "house", "yes", "after", "since", "long", "provide", "service", "around", "friend", "important", "father", "sit", "away", "until", "power", "hour", "game", "often", "yet", "line", "political", "end", "among", "ever", "stand", "bad", "lose", "however", "member", "pay", "law", "meet", "car", "nearly", "include", "nothing", "either", "still", "once", "least", "letter", "become", "left", "found", "role", "roles", "firm", "firms", "week", "help", "next", "early", "several", "occur", "least", "alone", "win", "wins", "won", "past", "last", "best", "rest", "test", "fast", "cost", "post", "host", "vast", "lost", "just", "must", "cast", "dust", "exit", "exam", "text", "sex", "next", "context", "firms", "forms", "farms", "first", "fish", "firm", "girl", "girls", "visit", "list", "lift", "left", "gift", "shift", "draft", "daft", "craft", "graft", "wave", "waves", "cave", "gave", "have", "save", "pave", "wage", "wake", "wale", "wane", "want", "ward", "ware", "warm", "warn", "warp", "wars", "wash", "wasp", "weak", "wear", "webs", "week", "weep", "well", "went", "were", "west", "what", "when", "stop", "step", "shop", "shot", "show", "slot", "slow", "snap", "snow", "soap", "sock", "soda", "sofa", "soft", "soil", "sold", "sole", "some", "song", "soon", "sort", "soul", "soup", "sour", "span", "spar", "spin", "spot", "star", "stay", "stem", "step", "stir", "stop", "such", "suit", "sure", "surf", "halt", "hall", "halo", "half", "halved", "salt", "malt", "balt", "talk", "tall", "call", "fall", "wall", "ball", "mall", "gall", "pall", "fall", "sell", "tell", "well", "bell", "cell", "fell", "hell", "yell", "never", "newer", "lever", "fever", "sever", "every", "even", "ever", "oven", "over", "eves", "deny", "defy", "very", "pause", "cause", "clause", "pauses", "mouse", "house", "phase", "praise", "please", "closed", "close", "closes", "closet", "cloned", "crosed", "cancel", "cancer", "cancels", "chancel", "channel", "panel", "camel", "came", "camp", "cane", "cans", "cape", "card", "care", "cart", "case", "cash", "cast", "cats", "cave"]);
+  // 2026-10-23: real English words one edit away from a routing word, which detypo used to "correct" into that word:
+  // "analysis" -> "analysts" sent "get into data analysis" to the banking outreach plan, "fine" -> "find" and "states" ->
+  // "status" did the same elsewhere. Generated from a 20k common-English word list against ROUTE_VOCAB: every collision
+  // that is a real word with a different meaning. Inflections of a routing word and plain misspellings still correct.
+  const REAL_WORD_NEIGHBORS = new Set(["alain", "alt", "analyse", "analyses", "analysis", "baker", "banner", "banners", "barker", "bender", "bind", "bound", "bout", "bright", "bunker", "caves", "champaign", "closer", "cock", "contracts", "cores", "counted", "crack", "cracker", "crafts", "dairy", "daisy", "daly", "dave", "director", "directors", "dock", "drift", "eight", "fave", "fellow", "fender", "fight", "films", "fine", "finn", "finnish", "fires", "fist", "forma", "gail", "gain", "gender", "hale", "hart", "hast", "hat", "headline", "heap", "helm", "hemp", "holes", "hollow", "holt", "hound", "hummer", "intra", "jacket", "jules", "kraft", "lender", "light", "lit", "lock", "loft", "mack", "manor", "mayor", "mick", "mind", "monk", "mound", "neat", "nest", "net", "nitro", "normal", "officer", "ounce", "packed", "parse", "pocket", "poles", "pound", "rack", "rave", "reader", "resumed", "rock", "rolex", "rolls", "ropes", "roses", "ruler", "rulers", "safely", "sailor", "sampler", "saves", "scopes", "sender", "sensor", "shalt", "shooter", "shores", "sight", "sind", "sound", "states", "stats", "statue", "stores", "tack", "taylor", "tee", "tender", "thee", "theo", "thy", "tie", "tight", "toe", "trace", "tract", "tracy", "trick", "truck", "vice", "wade", "wages", "waive", "wales", "walt", "weave", "wight", "wind", "wives", "wound", "wright"]);
   function detypo(text) {
     return s(text).replace(/[A-Za-z]{3,}/g, (w) => {
       const lw = w.toLowerCase();
       if (ROUTE_VOCAB.has(lw)) return w;
       if (COMMON_WORDS.has(lw)) return w;
+      if (REAL_WORD_NEIGHBORS.has(lw)) return w;
       let hit = null;
       for (const cand of ROUTE_VOCAB) {
         if (Math.abs(cand.length - lw.length) > 1) continue;
@@ -6070,6 +6076,8 @@ const CareerRouter = (() => {
     if (/\bgraduat|\bgrad school\b|\bwhich major\b|\bstraight out of college\b|\bfrom undergrad\b/.test(t)) return "graduation_window";
     if (/\bcredential\b|\blicense\b|\brequirement\b[^.]*\breal\b/.test(t)) return "classify_credential";
     if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbreak into\b|\bwhere do i start\b|\bhow do i start\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b|\bwhat would i do\b/.test(t)) return "plan_paths";
+    // ROUTING FAMILIES (2026-10-23): a degree, or a move between fields, asked as a question is a paths ask too.
+    if (/\bwhat (?:jobs|careers|roles|work|kind of jobs)\b[^.?]*\b(?:can|could) i\b|\b(?:move|moving|switch|switching|transition|transitioning|pivot|pivoting|go|going)\s+from\b[^.?]*\b(?:into|to)\b|\bwith (?:a|an|my) [a-z]+(?: [a-z]+)? degree\b|\bchange careers?\b/.test(t)) return "plan_paths";
     if (/\bfatal for\b|\bno sugarcoating\b|\bactually require\b|\bactually help\b|\boffsets the brand gap\b|\bmarket (bad|brutal)\b|\bdata science entry\b|\bstartup entry\b/.test(t)) return "honest_evidence";
     return null;
   }
@@ -8529,6 +8537,100 @@ const CareerRouter = (() => {
     if (staged && (!target || !target.company || coLc(staged.company) === coLc(target.company))) return staged;
     return null;
   }
+  // ROUTING FAMILIES (2026-10-23; the router eval found the generic fallback the largest failure cause). An ask that
+  // reaches the dispatch tail with no owner is matched by family and sent to the owner that already serves that family,
+  // or answered from the record and this product's own rules. Nothing is invented: the resume answer reads the record,
+  // the approval answer states the rule the code enforces, the scope answer refuses plainly. Each family returns null
+  // when its shape is absent, so what is still unknown keeps the tail's fallback.
+  const FAM_CAREER = /\b(jobs?|careers?|resumes?|cv|interviews?|applications?|apply|applied|applying|internships?|intern|roles?|positions?|openings?|hiring|recruiters?|salary|offers?|employers?|compan(?:y|ies)|cover letter|networking|degree|major|graduat\w*)\b/;
+  const FAM_ROLE_NOUN = /\b(jobs?|roles?|internships?|positions?|openings?|gigs?)\b/;
+  // What the product needs from the person to start: asked of the product itself ("what do you need from me", "how
+  // do I get started with you"). Runs ahead of the guidance engine, whose path and skill-gap shapes otherwise claim
+  // these asks; a start asked about a FIELD ("how do I get started in banking") is not this shape and keeps guidance.
+  function routeOnboardingNeeds(text, ctx) {
+    const t = lc(s(text).trim()).replace(/[’]/g, "'");
+    if (/\bwhat (?:do|would|will) you need\b|\bwhat (?:info(?:rmation)?|details) do you need\b|\bwhat (?:should|do|can) i (?:tell|give|send|share with) you\b|\bwhat do i need to (?:give|tell|send) you\b|\bhow do i (?:set (?:this|it|you) up\b|(?:get started|begin|start)(?: with (?:you|this|trainee)| here)?[\s?!.]*$)|\bwhere do i begin[\s?!.]*$|\bhow (?:do|can) i start using\b/.test(t)) {
+      const reply = compose({ headline: "Here is what I work from, and all of it comes from you.", facts: [
+        "The role or field you want, and where: a city, or remote.",
+        "Your school and year, or the work you have done so far.",
+        "Your resume, if you have one: paste it here and I read it as drafts you confirm before anything is built on them.",
+        "Nothing about you is assumed beyond what you tell me, and you can correct any of it.",
+      ], nextStep: "What role or field should I start with?" });
+      return { intent: "career_onboarding_needs", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
+  function routeFamily(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw).replace(/[’]/g, "'");
+    if (!t) return null;
+    // Identity and capability: who or what this is, what it does. The greeting's own answer.
+    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what can you (?:do|help with)(?: for me)?|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult();
+    // The approval rule: nothing goes out on the product's own initiative.
+    if ((/\b(send|sends|sent|submit|submits|submitted|apply|applies|applied|email|emails|emailed|message|messages|messaged|reach out|contact|post)\b/.test(t)
+        && /\bwithout (?:asking|checking|telling|me\b|my (?:permission|approval|ok|okay|consent|say[- ]so|yes|go[- ]ahead))|\bon (?:your|its) own\b|\bautomatically\b|\bbehind my back\b|\bbefore i (?:say yes|approve|agree|ok|okay|confirm|see)\b|\b(?:unless|until) i (?:approve|say|confirm|ok|okay|agree)\b/.test(t))
+        || /\bnothing (?:goes|gets|is|should be|will be|should go|can go)\b[^.]*\b(?:sent|submitted|out)\b/.test(t)) {
+      const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
+      const facts = ["Every application, email, or message is shown to you first, the exact form or text, and it goes only after you approve it.", "If anything in it changes after you approve, it stops and comes back to you."];
+      if (worker && worker.status === "NOT_WIRED") facts.push("Submitting to employers is not wired in this conversation, so a prepared application stops at your approval.");
+      const reply = compose({ headline: "Nothing goes out without your approval.", facts, nextStep: "Want me to start by finding roles that fit you?" });
+      return { intent: "career_approval_rule", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    // Application status, in the phrasings the status gates above do not carry. The tracker answers from its rows.
+    if (/\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
+      const ts = handleTrackStatus(text, ctx);
+      if (ts) return ts;
+    }
+    // What an application form asks: the common core, and the rule that a question the record can't answer is asked.
+    if (/\b(?:applications?|forms?|apply|applying)\b/.test(t) && /\b(?:ask|asks|asking|fields?|questions?|information|info|details|fill(?: out| in)?|requires?|required|needs?|need ready)\b/.test(t) && /\b(?:what|which|walk me through|typical|usually)\b/.test(t)) {
+      const reply = compose({ headline: "What application forms usually ask for.", facts: [
+        "Most forms ask for the same core: your name and contact details, your resume, whether you are authorized to work and need sponsorship, your education, and links such as a portfolio.",
+        "Some add short questions about why the role or the company, and demographic questions are voluntary.",
+        "For a real posting I prepare the application and show you every answer before anything is sent; a question your record can't answer is asked, never guessed.",
+      ], nextStep: "Want to name a role so I can prepare a real one?" });
+      return { intent: "career_application_fields", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    { const ob = routeOnboardingNeeds(text, ctx); if (ob) return ob; }
+    // Whether a resume is on file, answered from the record.
+    if (/\b(?:resume|cv|résumé)\b/.test(t) && /\b(?:have|got|get|received|on file|on record|using|use|copy|on my account|there)\b/.test(t) && (/\?\s*$/.test(t) || /^(?:do|did|does|is|are|have|has|what|which|where)\b/.test(t))) {
+      const profile = ctx.profile || {};
+      const file = profile.resume && (profile.resume.filename || profile.resume.sha256) ? profile.resume : null;
+      const ingested = (profile.facts || []).filter((f) => f && f.source === "resume-ingest");
+      const drafts = ingested.filter((f) => f.needs_confirmation).length;
+      let headline, facts, nextStep;
+      if (file) {
+        headline = `Yes: ${file.filename || "a resume file"} is on file.`;
+        facts = ["Everything I tailor or fill is built from that file and the facts you have confirmed, never from anything invented."];
+        nextStep = "Want me to tailor it to a role?";
+      } else if (ingested.length) {
+        headline = "Yes: the resume you pasted is on record.";
+        facts = [`I read it as ${ingested.length} facts${drafts ? `, ${drafts} still drafts awaiting your word` : ", all confirmed"}.`, "Nothing is tailored or submitted from a draft until you confirm it."];
+        nextStep = drafts ? "Say \"yes, that's my resume\" to confirm them." : "Want me to tailor it to a role?";
+      } else {
+        headline = "No resume is on file yet.";
+        facts = ["Paste it here and I read it as drafts you confirm before anything is built on them.", "Until then, I work only from what you tell me."];
+        nextStep = "Want to paste it now?";
+      }
+      return { intent: "career_resume_on_file", reply: compose({ headline, facts, nextStep }), resultStatus: file || ingested.length ? "completed" : "awaiting_user", sends: 0 };
+    }
+    // Interview preparation, in the phrasings the prep gates above do not carry: the same prep owners, in their order.
+    if (/\b(?:prepare|prep|preparing|get ready|ready)\b[^.?]*\binterview\b|\binterview\b[^.?]*\b(?:prepare|prep|preparing|get ready)\b/.test(t)) {
+      const pr = handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
+      if (pr) return pr;
+    }
+    // A role search without the find verb: "any X roles in Y?", "show me remote X internships", "X jobs near Y".
+    if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
+        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
+      if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
+      return handleDiscovery(text, ctx, {});
+    }
+    // Plainly outside a job search, with no career word in it: said so, not guessed at.
+    if (!FAM_CAREER.test(t) && /\b(weather|forecast|poems?|poetry|songs?|lyrics|jokes?|riddles?|recipes?|bake|baking|cook|cooking|restaurants?|pizza|movies?|films?|tv shows?|netflix|who won|the score|scores?|super bowl|nba|nfl|mlb|lakers|homework|calculus|algebra|equations?|capital of|trivia|horoscope)\b/.test(t)) {
+      const reply = compose({ headline: "That is outside what I can help with.", facts: ["I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews."], nextStep: "Is there something in your job search I can take on?" });
+      return { intent: "career_out_of_scope", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
   function namedApplyContextOf(ctx) {
     const m = threadMirrorOf(ctx);
     return (m && m.namedApply && typeof m.namedApply === "object") ? m.namedApply : null;
@@ -8546,6 +8648,9 @@ const CareerRouter = (() => {
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
+    return greetingResult();
+  }
+  function greetingResult() {
     const reply = compose({
       headline: "Hi — I'm Trainee, your career agent.",
       facts: [
@@ -9743,6 +9848,9 @@ const CareerRouter = (() => {
       if (elq) return elq;
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
+      // ROUTING FAMILIES (2026-10-23): an onboarding ask aimed at the product ("how do I get started with you") is not
+      // a path ask; it is answered before this gate's "how do i get" shape can claim it.
+      { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
         const ig = handleIntelGuidance(text, c);
         if (ig) return ig;
@@ -9992,10 +10100,12 @@ const CareerRouter = (() => {
     // plan_paths' quant...path shape) keeps its owner, and only the
     // otherwise-unowned guidance-shaped asks reach the guidance
     // engine instead of the generic fallback.
+    { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
     if (guidanceIntentFor(t)) {
       const ig = handleIntelGuidance(text, c);
       if (ig) return ig;
     }
+    { const fam = routeFamily(text, c); if (fam) return fam; }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {
@@ -12221,6 +12331,6 @@ const CareerRouter = (() => {
   // own parser whether a turn names a company/title, so its
   // targeted KB lookup beyond the recency window can never drift
   // from the parser that will resolve the named role in-turn.
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf };
+  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

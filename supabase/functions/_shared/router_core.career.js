@@ -11868,6 +11868,51 @@ const CareerGuidance = (() => {
   const USCIS_SOURCE = { label: "USCIS Policy Manual — students and employment", url: "https://www.uscis.gov/policy-manual/volume-2-part-f-chapter-5", as_of: "2026-10-13" };
   const KNOWLEDGE_AS_OF = "2026-10-13";
 
+  const FIELD_ENTRY = {
+    hr: { re: /\b(hr|human resources|people operations|recruiting|talent acquisition)\b/, label: "HR", roles: ["HR coordinator", "recruiting coordinator", "people operations assistant"], proof: "draft an onboarding checklist and a structured interview guide for one sample role" },
+    ux: { re: /\b(ux|ui|user experience|product design|interaction design)\b/, label: "UX design", roles: ["junior UX/UI designer", "UX research assistant", "product design intern"], proof: "a two-case-study portfolio that shows the research, the iterations and the final design" },
+    data: { re: /\b(data analysis|data analytics|data analyst|analytics|data science|business intelligence)\b/, label: "data analysis", roles: ["data analyst", "business analyst", "reporting analyst"], proof: "one public-dataset analysis in SQL with a short write-up of its limits" },
+    marketing: { re: /\b(marketing|digital marketing|social media|content marketing)\b/, label: "marketing", roles: ["marketing coordinator", "social media or content coordinator", "marketing analyst"], proof: "a small campaign plan with one measurable goal" },
+    software: { re: /\b(software|software engineering|coding|programming|web development)\b/, label: "software engineering", roles: ["junior software engineer", "QA or test engineer", "technical support engineer"], proof: "a small deployed project with tests and a README" },
+    tech: { re: /\b(tech|the tech industry|it)\b/, label: "tech", roles: ["IT support or help desk", "customer success at a software company", "QA tester", "technical support"], proof: "a support FAQ for a real product, or a small documented home-lab setup" },
+    product: { re: /\b(product management|product manager)\b/, label: "product management", roles: ["associate product manager", "product analyst", "project coordinator"], proof: "a one-page product brief: the problem, the users and one metric" },
+    project: { re: /\b(project management|project manager)\b/, label: "project management", roles: ["project coordinator", "operations coordinator", "program assistant"], proof: "a project plan with a timeline, owners and risks" },
+    finance: { re: /\b(finance|accounting|financial analysis)\b/, label: "finance", roles: ["staff accountant", "financial analyst", "accounts payable or receivable specialist"], proof: "a budget-versus-actual workbook with a short variance memo" },
+    sales: { re: /\b(sales|business development)\b/, label: "sales", roles: ["sales development representative", "account coordinator", "customer success associate"], proof: "a short outreach plan for a sample product" },
+    teaching: { re: /\b(teaching|education)\b/, label: "teaching", roles: ["teaching assistant", "substitute teacher", "tutor"], caveat: "Classroom teaching in public schools requires a state license, and the rules differ by state." },
+    healthcare_admin: { re: /\b(healthcare administration|health care administration|healthcare)\b/, label: "healthcare administration", roles: ["patient services coordinator", "medical office assistant", "healthcare administration assistant"], proof: "map a fictional clinic's appointment workflow and propose one improvement" },
+    law: { re: /\b(law|legal)\b/, label: "law", roles: ["paralegal", "legal assistant", "compliance coordinator"], caveat: "Practicing as a lawyer requires law school and passing a bar exam." },
+    nursing: { re: /\b(nursing)\b/, label: "nursing", roles: ["certified nursing assistant while you train", "patient care technician"], caveat: "Becoming a nurse requires an accredited nursing program and a license." },
+    consulting: { re: /\b(consulting)\b/, label: "consulting", roles: ["business analyst", "associate consultant", "research analyst"], proof: "a one-page recommendation memo on a public company's problem" },
+  };
+  const DEGREE_ENTRY = {
+    biology: { re: /\bbiology\b/, label: "biology", roles: ["clinical research coordinator", "lab technician", "healthcare administration", "science writing or communications", "pharmaceutical or medical device sales", "public health program roles"], proof: "summarize one public health or science study for a general reader" },
+    psychology: { re: /\bpsychology\b/, label: "psychology", roles: ["HR or recruiting coordinator", "UX research assistant", "case management or social services", "market research analyst"], proof: "run five short user interviews about one product and write up the findings" },
+    english: { re: /\benglish\b/, label: "English", roles: ["content or communications coordinator", "editorial assistant", "marketing coordinator", "technical writer"], proof: "rewrite a public product page for two different audiences" },
+    history: { re: /\bhistory\b/, label: "history", roles: ["research or policy assistant", "paralegal", "museum or archive roles", "communications coordinator"], proof: "a two-page research brief on a current issue, with sources" },
+    political_science: { re: /\bpolitical science\b/, label: "political science", roles: ["policy or legislative assistant", "paralegal", "campaign or advocacy coordinator", "communications coordinator"], proof: "a one-page policy memo with sources" },
+    economics: { re: /\beconomics\b/, label: "economics", roles: ["data or business analyst", "financial analyst", "consulting analyst", "policy research assistant"], proof: "one public-dataset analysis with a short written conclusion" },
+    chemistry: { re: /\bchemistry\b/, label: "chemistry", roles: ["lab or quality-control technician", "regulatory affairs assistant", "technical sales", "environmental health and safety"], proof: "summarize one product's safety data sheet for a non-chemist" },
+    communications: { re: /\bcommunications?\b/, label: "communications", roles: ["PR or communications coordinator", "marketing coordinator", "social media coordinator", "content writer"], proof: "a press release and three social posts for one sample announcement" },
+    business: { re: /\bbusiness\b/, label: "business", roles: ["operations coordinator", "sales development representative", "financial analyst", "project coordinator"], proof: "a one-page decision memo using a small sample dataset" },
+    sociology: { re: /\bsociology\b/, label: "sociology", roles: ["case management or social services", "HR coordinator", "nonprofit program coordinator", "market research assistant"], proof: "a short survey and a write-up of what it found" },
+    mathematics: { re: /\bmath(?:ematics)?\b/, label: "mathematics", roles: ["data analyst", "actuarial analyst (professional exams required)", "financial analyst", "tutor"], proof: "one public-dataset analysis with the method written out" },
+    computer_science: { re: /\bcomputer science\b/, label: "computer science", roles: ["junior software engineer", "QA or test engineer", "IT support"], proof: "a small deployed project with tests and a README" },
+  };
+  function namedFieldAsk(t) {
+    const into = t.match(/\b(?:into|get into|break into|move into|switch(?:ing)? to|transition(?:ing)? (?:in)?to|pivot(?:ing)? (?:in)?to|careers? in|a career in|work in|jobs? in)\s+([a-z][a-z /&-]{1,40})/);
+    let field = null;
+    if (into) for (const [key, f] of Object.entries(FIELD_ENTRY)) if (f.re.test(into[1])) { field = { key, label: f.label }; break; }
+    let degree = null;
+    const dm = t.match(/\b(?:with|have|got|earning|finishing)\s+(?:a|an|my)\s+([a-z]+(?:\s+[a-z]+)?)\s+(?:degree|major)\b|\b([a-z]+(?:\s+[a-z]+)?)\s+(?:degree|major)\b/);
+    const degreeText = dm ? (dm[1] || dm[2]) : null;
+    if (!field && degreeText) for (const [key, d] of Object.entries(DEGREE_ENTRY)) if (d.re.test(degreeText)) { degree = { key, label: d.label }; break; }
+    if (!field && !degree) return null;
+    const fm = t.match(/\b(?:from|i'?m an?|i am an?)\s+([a-z][a-z ]{2,30}?)(?=\s+(?:who|and|into|to|but|wanting|looking|that)\b|[,.?!]|$)/);
+    const ex = [...t.matchAll(/\b(?:besides|other than|except|apart from|not in)\s+([a-z]+)/g)].map((m) => m[1]);
+    const excluded = ex.flatMap((w) => (w === "research" ? ["research", "lab"] : [w]));
+    return { field, degree, degreeText, from: fm ? fm[1].trim() : null, excluded };
+  }
   function planPaths(ctx) {
     const c = ctx || {};
     const profile = c.profile || null;
@@ -11946,6 +11991,32 @@ const CareerGuidance = (() => {
         unknowns: ["Any specific school's placement figure — this product holds no ABA dataset; the schools' own required disclosures are the source, and no number is quoted without them."],
         nextStep: "Tell me where you are on the ladder — pre-law, applying, or in school — and I will lay out that rung in full.",
         text: `Big Law is the most gated path of the set. There is effectively no undergraduate door — the firms hire summer associates from law schools through on-campus interviewing, and the summer offer converts to the full-time seat. The real ladder is LSAT and admissions, then 1L grades, then OCI at the start of 2L, then the summer-associate class. The data that governs the choice is the ABA-required employment disclosure every law school must publish: large-firm placement is concentrated in a minority of schools, and outside them the same degree leads somewhere else entirely. Debt must be stated in the same breath: private law school commonly leaves graduates with six-figure debt, which only the large-firm outcome services comfortably — so the school decision is the career decision, and it is made from the disclosures, not from rankings.`,
+      });
+    }
+    const named = namedFieldAsk(topicText);
+    if (named) {
+      const entries = (named.field ? FIELD_ENTRY[named.field.key] : DEGREE_ENTRY[named.degree.key]) || null;
+      const shown = entries ? entries.roles.filter((r) => !named.excluded.some((x) => r.toLowerCase().includes(x))) : [];
+      const fromText = named.from ? `What you did in ${named.from} is yours to map to it; I won't assume what transfers.` : "";
+      const subject = named.field ? named.field.label : `a ${named.degree.label} degree`;
+      const parts = [];
+      if (shown.length) parts.push(`Common entry points ${named.field ? `into ${subject}` : `with ${subject}`}: ${shown.join(", ")}.`);
+      else parts.push(`I have no authored entry points for ${named.field ? subject : named.degreeText || subject} yet, so I won't invent any.`);
+      if (fromText) parts.push(fromText);
+      if (entries && entries.proof) parts.push(`A cheap first test: ${entries.proof}.`);
+      if (entries && entries.caveat) parts.push(entries.caveat);
+      parts.push("These come from general career knowledge, not your record or market data, and whether one fits you depends on real postings near you.");
+      return finalize("plan_paths", {
+        headline: named.field ? `Moving into ${subject}: where people start, and a first test.` : `Where ${subject} leads: common starting points.`,
+        sources: kbSources,
+        plan: [
+          { action: `Read five real ${named.field ? subject : "entry-level"} postings and list the three requirements they share`, timeframe: "this week" },
+          { action: "Map each requirement to something you have done, and mark the real gaps", timeframe: "this week" },
+          { action: entries && entries.proof ? `Close one gap with a small work sample: ${entries.proof}` : "Close one gap with a small, visible work sample", timeframe: "next two weeks" },
+        ],
+        unknowns: ["Which roles fit you, and what employers near you actually require, stay unknown until real postings are read; no requirement is invented here."],
+        nextStep: shown.length ? `Want me to look for ${shown[0]} roles?` : "Which field should I look at with you?",
+        text: parts.join(" "),
       });
     }
     return finalize("plan_paths", Recommendations.planPaths(c));
@@ -12833,11 +12904,13 @@ const CareerRouter = (() => {
   }
   const COMMON_WORDS = new Set(["sample", "samples", "tracked", "tracking", "contact", "contacts", "content", "contents", "field", "fields", "held", "reason", "reasons", "format", "formats", "formatted", "honesty", "honestly", "bounces", "bounced", "bouncing", "lifts", "lifted", "tue", "mon", "wed", "thu", "fri", "sat", "sun", "approved", "approval", "rule", "rules", "round", "rounds", "score", "scores", "prep", "comes", "back", "hiring", "manager", "deeper", "versus", "earlier", "changes", "change", "changed", "adjusted", "logged", "roadmap", "brief", "briefs", "final", "versus", "actual", "actually", "assessment", "assessments", "paused", "interviews", "companies", "schools", "resumes", "packets", "trackers", "seasons", "timelines", "passwords", "scored", "counters", "closes", "funding", "funded", "they", "them", "then", "than", "this", "that", "these", "those", "there", "their", "have", "gave", "has", "had", "having", "with", "from", "your", "yours", "what", "when", "where", "which", "while", "would", "could", "should", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can", "cannot", "did", "do", "does", "doing", "done", "down", "during", "each", "few", "for", "further", "get", "got", "gets", "go", "goes", "going", "gone", "he", "her", "here", "hers", "him", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just", "know", "known", "let", "like", "make", "makes", "many", "may", "me", "might", "more", "most", "must", "my", "no", "nor", "not", "now", "of", "off", "on", "once", "only", "or", "other", "our", "ours", "out", "over", "own", "per", "same", "she", "so", "some", "such", "take", "takes", "tell", "the", "through", "to", "too", "under", "until", "up", "very", "was", "way", "we", "were", "will", "you",
     "step", "steps", "list", "lists", "listed", "left", "life", "live", "lives", "half", "close", "closed", "fund", "funds", "top", "week", "weeks", "send", "sent", "sends", "work", "works", "word", "words", "world", "team", "teams", "deal", "deals", "call", "calls", "meet", "talk", "walk", "week", "year", "years", "time", "times", "day", "days", "thing", "things", "people", "person", "place", "point", "case", "cases", "part", "parts", "week", "group", "groups", "play", "plays", "area", "areas", "book", "books", "money", "story", "stories", "fact", "facts", "month", "months", "lot", "door", "doors", "side", "sides", "kind", "kinds", "head", "heads", "hand", "hands", "life", "part", "week", "child", "week", "eye", "eyes", "woman", "week", "place", "week", "work", "week", "case", "week", "point", "week", "number", "numbers", "night", "nights", "water", "room", "rooms", "mother", "father", "power", "city", "cities", "week", "story", "young", "fact", "month", "different", "lot", "right", "study", "book", "eye", "job", "jobs", "word", "though", "business", "issue", "issues", "side", "kind", "head", "far", "black", "long", "both", "little", "house", "yes", "after", "since", "long", "provide", "service", "around", "friend", "important", "father", "sit", "away", "until", "power", "hour", "game", "often", "yet", "line", "political", "end", "among", "ever", "stand", "bad", "lose", "however", "member", "pay", "law", "meet", "car", "nearly", "include", "nothing", "either", "still", "once", "least", "letter", "become", "left", "found", "role", "roles", "firm", "firms", "week", "help", "next", "early", "several", "occur", "least", "alone", "win", "wins", "won", "past", "last", "best", "rest", "test", "fast", "cost", "post", "host", "vast", "lost", "just", "must", "cast", "dust", "exit", "exam", "text", "sex", "next", "context", "firms", "forms", "farms", "first", "fish", "firm", "girl", "girls", "visit", "list", "lift", "left", "gift", "shift", "draft", "daft", "craft", "graft", "wave", "waves", "cave", "gave", "have", "save", "pave", "wage", "wake", "wale", "wane", "want", "ward", "ware", "warm", "warn", "warp", "wars", "wash", "wasp", "weak", "wear", "webs", "week", "weep", "well", "went", "were", "west", "what", "when", "stop", "step", "shop", "shot", "show", "slot", "slow", "snap", "snow", "soap", "sock", "soda", "sofa", "soft", "soil", "sold", "sole", "some", "song", "soon", "sort", "soul", "soup", "sour", "span", "spar", "spin", "spot", "star", "stay", "stem", "step", "stir", "stop", "such", "suit", "sure", "surf", "halt", "hall", "halo", "half", "halved", "salt", "malt", "balt", "talk", "tall", "call", "fall", "wall", "ball", "mall", "gall", "pall", "fall", "sell", "tell", "well", "bell", "cell", "fell", "hell", "yell", "never", "newer", "lever", "fever", "sever", "every", "even", "ever", "oven", "over", "eves", "deny", "defy", "very", "pause", "cause", "clause", "pauses", "mouse", "house", "phase", "praise", "please", "closed", "close", "closes", "closet", "cloned", "crosed", "cancel", "cancer", "cancels", "chancel", "channel", "panel", "camel", "came", "camp", "cane", "cans", "cape", "card", "care", "cart", "case", "cash", "cast", "cats", "cave"]);
+  const REAL_WORD_NEIGHBORS = new Set(["alain", "alt", "analyse", "analyses", "analysis", "baker", "banner", "banners", "barker", "bender", "bind", "bound", "bout", "bright", "bunker", "caves", "champaign", "closer", "cock", "contracts", "cores", "counted", "crack", "cracker", "crafts", "dairy", "daisy", "daly", "dave", "director", "directors", "dock", "drift", "eight", "fave", "fellow", "fender", "fight", "films", "fine", "finn", "finnish", "fires", "fist", "forma", "gail", "gain", "gender", "hale", "hart", "hast", "hat", "headline", "heap", "helm", "hemp", "holes", "hollow", "holt", "hound", "hummer", "intra", "jacket", "jules", "kraft", "lender", "light", "lit", "lock", "loft", "mack", "manor", "mayor", "mick", "mind", "monk", "mound", "neat", "nest", "net", "nitro", "normal", "officer", "ounce", "packed", "parse", "pocket", "poles", "pound", "rack", "rave", "reader", "resumed", "rock", "rolex", "rolls", "ropes", "roses", "ruler", "rulers", "safely", "sailor", "sampler", "saves", "scopes", "sender", "sensor", "shalt", "shooter", "shores", "sight", "sind", "sound", "states", "stats", "statue", "stores", "tack", "taylor", "tee", "tender", "thee", "theo", "thy", "tie", "tight", "toe", "trace", "tract", "tracy", "trick", "truck", "vice", "wade", "wages", "waive", "wales", "walt", "weave", "wight", "wind", "wives", "wound", "wright"]);
   function detypo(text) {
     return s(text).replace(/[A-Za-z]{3,}/g, (w) => {
       const lw = w.toLowerCase();
       if (ROUTE_VOCAB.has(lw)) return w;
       if (COMMON_WORDS.has(lw)) return w;
+      if (REAL_WORD_NEIGHBORS.has(lw)) return w;
       let hit = null;
       for (const cand of ROUTE_VOCAB) {
         if (Math.abs(cand.length - lw.length) > 1) continue;
@@ -17021,6 +17094,7 @@ const CareerRouter = (() => {
     if (/\bgraduat|\bgrad school\b|\bwhich major\b|\bstraight out of college\b|\bfrom undergrad\b/.test(t)) return "graduation_window";
     if (/\bcredential\b|\blicense\b|\brequirement\b[^.]*\breal\b/.test(t)) return "classify_credential";
     if (/\bhow do i get\b|\bpath\b|\bladder\b|\bwhich fits me\b|\bget into\b|\bbreak into\b|\bwhere do i start\b|\bhow do i start\b|\bbig law\b|\bmbb\b|\bquant\b[^.]*\bpath\b|\bwhat would i do\b/.test(t)) return "plan_paths";
+    if (/\bwhat (?:jobs|careers|roles|work|kind of jobs)\b[^.?]*\b(?:can|could) i\b|\b(?:move|moving|switch|switching|transition|transitioning|pivot|pivoting|go|going)\s+from\b[^.?]*\b(?:into|to)\b|\bwith (?:a|an|my) [a-z]+(?: [a-z]+)? degree\b|\bchange careers?\b/.test(t)) return "plan_paths";
     if (/\bfatal for\b|\bno sugarcoating\b|\bactually require\b|\bactually help\b|\boffsets the brand gap\b|\bmarket (bad|brutal)\b|\bdata science entry\b|\bstartup entry\b/.test(t)) return "honest_evidence";
     return null;
   }
@@ -18796,6 +18870,84 @@ const CareerRouter = (() => {
     if (staged && (!target || !target.company || coLc(staged.company) === coLc(target.company))) return staged;
     return null;
   }
+  const FAM_CAREER = /\b(jobs?|careers?|resumes?|cv|interviews?|applications?|apply|applied|applying|internships?|intern|roles?|positions?|openings?|hiring|recruiters?|salary|offers?|employers?|compan(?:y|ies)|cover letter|networking|degree|major|graduat\w*)\b/;
+  const FAM_ROLE_NOUN = /\b(jobs?|roles?|internships?|positions?|openings?|gigs?)\b/;
+  function routeOnboardingNeeds(text, ctx) {
+    const t = lc(s(text).trim()).replace(/[’]/g, "'");
+    if (/\bwhat (?:do|would|will) you need\b|\bwhat (?:info(?:rmation)?|details) do you need\b|\bwhat (?:should|do|can) i (?:tell|give|send|share with) you\b|\bwhat do i need to (?:give|tell|send) you\b|\bhow do i (?:set (?:this|it|you) up\b|(?:get started|begin|start)(?: with (?:you|this|trainee)| here)?[\s?!.]*$)|\bwhere do i begin[\s?!.]*$|\bhow (?:do|can) i start using\b/.test(t)) {
+      const reply = compose({ headline: "Here is what I work from, and all of it comes from you.", facts: [
+        "The role or field you want, and where: a city, or remote.",
+        "Your school and year, or the work you have done so far.",
+        "Your resume, if you have one: paste it here and I read it as drafts you confirm before anything is built on them.",
+        "Nothing about you is assumed beyond what you tell me, and you can correct any of it.",
+      ], nextStep: "What role or field should I start with?" });
+      return { intent: "career_onboarding_needs", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
+  function routeFamily(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw).replace(/[’]/g, "'");
+    if (!t) return null;
+    if (/^(?:(?:hi|hey|hello|yo|ok|okay|so|um)[\s,!.]+)*(?:who (?:are you|is this)|what (?:exactly )?(?:are you|is this|is trainee)|what(?:'s| is) this(?: thing| app)?|what do you do|what can you (?:do|help with)(?: for me)?|how does (?:this|it) work|what(?:'s| is) up|whats up|wassup|sup)[\s?!.]*$/.test(t)) return greetingResult();
+    if ((/\b(send|sends|sent|submit|submits|submitted|apply|applies|applied|email|emails|emailed|message|messages|messaged|reach out|contact|post)\b/.test(t)
+        && /\bwithout (?:asking|checking|telling|me\b|my (?:permission|approval|ok|okay|consent|say[- ]so|yes|go[- ]ahead))|\bon (?:your|its) own\b|\bautomatically\b|\bbehind my back\b|\bbefore i (?:say yes|approve|agree|ok|okay|confirm|see)\b|\b(?:unless|until) i (?:approve|say|confirm|ok|okay|agree)\b/.test(t))
+        || /\bnothing (?:goes|gets|is|should be|will be|should go|can go)\b[^.]*\b(?:sent|submitted|out)\b/.test(t)) {
+      const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
+      const facts = ["Every application, email, or message is shown to you first, the exact form or text, and it goes only after you approve it.", "If anything in it changes after you approve, it stops and comes back to you."];
+      if (worker && worker.status === "NOT_WIRED") facts.push("Submitting to employers is not wired in this conversation, so a prepared application stops at your approval.");
+      const reply = compose({ headline: "Nothing goes out without your approval.", facts, nextStep: "Want me to start by finding roles that fit you?" });
+      return { intent: "career_approval_rule", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (/\b(?:have you|did you|have i|did i)\b[^.?]*\b(?:applied|apply|sent)\b|\bapplied (?:anywhere|to anything|for me)\b|\bhow many\b[^.?]*\b(?:applied|applications?)\b|\bwhere am i with\b|\bhow (?:are|is) my (?:job )?applications?\b|\bupdates? on\b[^.?]*\b(?:applied|applications?)\b|\bapplications? (?:going|go through|gone through)\b/.test(t)) {
+      const ts = handleTrackStatus(text, ctx);
+      if (ts) return ts;
+    }
+    if (/\b(?:applications?|forms?|apply|applying)\b/.test(t) && /\b(?:ask|asks|asking|fields?|questions?|information|info|details|fill(?: out| in)?|requires?|required|needs?|need ready)\b/.test(t) && /\b(?:what|which|walk me through|typical|usually)\b/.test(t)) {
+      const reply = compose({ headline: "What application forms usually ask for.", facts: [
+        "Most forms ask for the same core: your name and contact details, your resume, whether you are authorized to work and need sponsorship, your education, and links such as a portfolio.",
+        "Some add short questions about why the role or the company, and demographic questions are voluntary.",
+        "For a real posting I prepare the application and show you every answer before anything is sent; a question your record can't answer is asked, never guessed.",
+      ], nextStep: "Want to name a role so I can prepare a real one?" });
+      return { intent: "career_application_fields", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    { const ob = routeOnboardingNeeds(text, ctx); if (ob) return ob; }
+    if (/\b(?:resume|cv|résumé)\b/.test(t) && /\b(?:have|got|get|received|on file|on record|using|use|copy|on my account|there)\b/.test(t) && (/\?\s*$/.test(t) || /^(?:do|did|does|is|are|have|has|what|which|where)\b/.test(t))) {
+      const profile = ctx.profile || {};
+      const file = profile.resume && (profile.resume.filename || profile.resume.sha256) ? profile.resume : null;
+      const ingested = (profile.facts || []).filter((f) => f && f.source === "resume-ingest");
+      const drafts = ingested.filter((f) => f.needs_confirmation).length;
+      let headline, facts, nextStep;
+      if (file) {
+        headline = `Yes: ${file.filename || "a resume file"} is on file.`;
+        facts = ["Everything I tailor or fill is built from that file and the facts you have confirmed, never from anything invented."];
+        nextStep = "Want me to tailor it to a role?";
+      } else if (ingested.length) {
+        headline = "Yes: the resume you pasted is on record.";
+        facts = [`I read it as ${ingested.length} facts${drafts ? `, ${drafts} still drafts awaiting your word` : ", all confirmed"}.`, "Nothing is tailored or submitted from a draft until you confirm it."];
+        nextStep = drafts ? "Say \"yes, that's my resume\" to confirm them." : "Want me to tailor it to a role?";
+      } else {
+        headline = "No resume is on file yet.";
+        facts = ["Paste it here and I read it as drafts you confirm before anything is built on them.", "Until then, I work only from what you tell me."];
+        nextStep = "Want to paste it now?";
+      }
+      return { intent: "career_resume_on_file", reply: compose({ headline, facts, nextStep }), resultStatus: file || ingested.length ? "completed" : "awaiting_user", sends: 0 };
+    }
+    if (/\b(?:prepare|prep|preparing|get ready|ready)\b[^.?]*\binterview\b|\binterview\b[^.?]*\b(?:prepare|prep|preparing|get ready)\b/.test(t)) {
+      const pr = handlePrepExtras(text, ctx) || handlePrepQuestion(text, ctx) || handlePrepNeedsProfile(text, ctx);
+      if (pr) return pr;
+    }
+    if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
+        && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
+      if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
+      return handleDiscovery(text, ctx, {});
+    }
+    if (!FAM_CAREER.test(t) && /\b(weather|forecast|poems?|poetry|songs?|lyrics|jokes?|riddles?|recipes?|bake|baking|cook|cooking|restaurants?|pizza|movies?|films?|tv shows?|netflix|who won|the score|scores?|super bowl|nba|nfl|mlb|lakers|homework|calculus|algebra|equations?|capital of|trivia|horoscope)\b/.test(t)) {
+      const reply = compose({ headline: "That is outside what I can help with.", facts: ["I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews."], nextStep: "Is there something in your job search I can take on?" });
+      return { intent: "career_out_of_scope", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
   function namedApplyContextOf(ctx) {
     const m = threadMirrorOf(ctx);
     return (m && m.namedApply && typeof m.namedApply === "object") ? m.namedApply : null;
@@ -18805,6 +18957,9 @@ const CareerRouter = (() => {
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
+    return greetingResult();
+  }
+  function greetingResult() {
     const reply = compose({
       headline: "Hi — I'm Trainee, your career agent.",
       facts: [
@@ -19517,6 +19672,7 @@ const CareerRouter = (() => {
       if (elq) return elq;
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
+      { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
       if (/\bhow do i get\b|\bwhat does it take\b[^.]*\b(get into|land|break into|get in)\b|\beven realistic\b|\bis .* realistic\b|\bfatal for\b|\bhonest odds\b|\bwhich fits me\b|\bstraight out of college\b|\bgrad school\b|\bwhich major\b|\bcareer switcher\b|\bany hope\b|\btake my job\b|\bactually require\b|\bactually help for\b|\boffsets the brand gap\b|\bcan i get faang\b|\bmarket bad\b|\bquant path\b|\bbig law\b|\bfrom undergrad\b|\bhow few\b|\bvc seats\b|\bdata science entry\b|\bstartup entry\b|\binternational student\b|\bprereqs\b|\bmcat\b|\bclearance timelines\b|\bh-1b\b|\bthe real ladder\b|\bno sugarcoating\b|\bcompany file built\b|\bvs\.?\b[^.]*\bfor me\b|\bmbb path\b|\bgoes stale\b|\badvice\b[^.]*\b(wrong|outdated)\b/.test(t)) {
         const ig = handleIntelGuidance(text, c);
         if (ig) return ig;
@@ -19680,10 +19836,12 @@ const CareerRouter = (() => {
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
       return handleDiscovery(text, c, {});
     }
+    { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
     if (guidanceIntentFor(t)) {
       const ig = handleIntelGuidance(text, c);
       if (ig) return ig;
     }
+    { const fam = routeFamily(text, c); if (fam) return fam; }
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {
       return { intent: "career_fallback", reply: Reply ? Reply.fallback("unmatched") : "I didn't catch that.", resultStatus: "awaiting_user" };
     }
@@ -21093,7 +21251,7 @@ const CareerRouter = (() => {
     syncThreadOut(c);
     return res;
   }
-  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf };
+  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction, namedRoleTargetOf, detypo };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
 

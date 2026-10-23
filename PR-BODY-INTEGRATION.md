@@ -45,3 +45,11 @@ The integration branch previously sat on F1 @ `bdeb6f63` (item 4 only), so the i
 - Screenshots refreshed in `~/workspace/frontend-fix-proof-2026-10-23/f1/`: `item3-queue-f2-card-mounted.png` (fixed card mounted: "Answers verified: 2/3", event-less school answer loud UNVERIFIED, "Submit when complete: OFF") and `item3-post-approval-through-card.png` ("Approval recorded for the reviewed set exactly as shown"). NEW: `item3-feed-single-confirmation.png` — the integrated build's feed for a confirmed row carries exactly ONE "Confirmed by the employer" line, at the email timestamp (2026-10-23T08:12:00.000Z), alongside its Queued/Applying events — the item-6 dedup survives the integration.
 
 Synthetic data only. No merges into trunk/main, no deploy, no submissions, flag OFF.
+
+## Gate fix — 2026-10-23 (test-paths)
+
+Coordinator gate CI on `c56f27af` was RED on exactly one step: `test-paths`. `tests/career-dashboard-f2-integration-browser.test.cjs` resolved Playwright through a hardcoded fallback path (`/home/hatch/workspace/sporve-agent-clone/node_modules/playwright`), and the gate bans `/workspace/` strings in gated tests. The require now uses the pattern the other browser tests use — `require(process.env.UPMORE_PLAYWRIGHT_PATH || "playwright")` (mirrors `tests/career-approval-card-browser.test.cjs`). One line changed; no behavior or assertion changes. Verified locally: gate `STEP test-paths OK`; integration browser e2e 3/3 and adapter suite 4/4 re-run green after the change (`UPMORE_PLAYWRIGHT_PATH` set via env, `UPMORE_CHROMIUM_SANDBOX=off` posture on this VM).
+
+Also confirmed for the record: this branch does NOT lack the item-6 feed dedup — it is based on f1 @ `ce2f10c6`, which contains it (see the rebase section above; `item3-feed-single-confirmation.png` shows the single confirmation line in the integrated build).
+
+Synthetic data only. No merges into trunk/main, no deploy, no submissions, flag OFF.

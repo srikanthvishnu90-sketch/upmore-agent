@@ -22,7 +22,7 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"), path = require("node:path");
 const root = path.resolve(__dirname, "..");
-const { chromium } = require(process.env.UPMORE_PLAYWRIGHT_PATH || "/home/hatch/workspace/sporve-agent-clone/node_modules/playwright");
+const { chromium } = require(process.env.UPMORE_PLAYWRIGHT_PATH || "playwright");
 
 const readIf = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
 const DASH_SRC = fs.readFileSync(path.join(root, "src/career-dashboard.js"), "utf8");

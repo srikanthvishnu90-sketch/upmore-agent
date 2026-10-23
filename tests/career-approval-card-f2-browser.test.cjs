@@ -28,7 +28,11 @@ const { chromium } = require(process.env.UPMORE_PLAYWRIGHT_PATH || "playwright")
 const MODULE_SRC = fs.readFileSync(path.join(root, "packages/domain/175-career-approval-ui.js"), "utf8");
 const TOKENS_CSS = fs.readFileSync(path.join(root, "src/trainee-design-tokens.css"), "utf8");
 const CARD_CSS = fs.readFileSync(path.join(root, "src/career-approval-review.css"), "utf8");
-const STAGED_SHA = "0a67147cb950acfa85720c9de4de0ab1129294cf673b09c8b1db733cdbfff8e5";
+// Wholly synthetic fixture data (coordinator item 2, 2026-10-23):
+// fictional person, school and employer, .invalid URLs. Verified
+// answers carry provenance — a confirmation event bound to the
+// answer's own fact — the only basis for the VERIFIED chip.
+const STAGED_SHA = "0123456789abcdef".repeat(4);
 const POSTURE = (process.env.UPMORE_CHROMIUM_SANDBOX || "on").toLowerCase();
 let browser;
 before(async () => {
@@ -42,30 +46,30 @@ before(async () => {
 after(async () => { if (browser) await browser.close(); });
 
 const FIXTURE = {
-  runId: "batch-1ada7107528f", cardSha256: STAGED_SHA, eventId: "evt-f2-staged",
+  runId: "batch-f2fixture0001", cardSha256: STAGED_SHA, eventId: "evt-f2-staged",
   title: "Apply to 2 software engineering intern roles?",
   world: "TEST profile — staged batch (executor stored record, flag OFF)",
   applications: [
     {
-      id: "app-fdse", jobTitle: "Forward Deployed Software Engineer, Internship - Commercial",
-      company: "Palantir", location: "Chicago, IL",
-      url: "https://jobs.lever.co/palantir/d5486403-c050-4920-b2e0-91b69b61ebb2",
+      id: "app-fdse", jobTitle: "Platform Engineer, Internship - Commercial",
+      company: "Alderpoint Labs", location: "Chicago, IL",
+      url: "https://jobs.example.invalid/alderpoint-labs/3f8a1c2e-5b7d-4e90-a1c3-6d8f0b2e4a55",
       matchReason: "TEST match record: software engineering internships in Chicago; data and JavaScript work the profile states.",
       fields: [
-        { name: "full_name", label: "Full name", value: "TEST — Vishnu Srikanth", verification: "verified" },
-        { name: "school", label: "School", value: "DePaul University (Driehaus College of Business)", verification: "verified" },
-        { name: "graduation_year", label: "Graduation year", value: "2029", verification: "verified" },
+        { name: "full_name", label: "Full name", value: "TEST — Rowan Ellery", factId: "F-001", provenance: { source: "owner_confirmed", confirmation_event_id: "evt-synth-F-001", fact_id: "F-001" }, verification: "verified" },
+        { name: "school", label: "School", value: "Northgate University (Halloran College of Business)", factId: "F-005", provenance: { source: "owner_confirmed", confirmation_event_id: "evt-synth-F-005", fact_id: "F-005" }, verification: "verified" },
+        { name: "graduation_year", label: "Graduation year", value: "2030", factId: "F-007", provenance: { source: "owner_confirmed", confirmation_event_id: "evt-synth-F-007", fact_id: "F-007" }, verification: "verified" },
         { name: "eeo", label: "EEO self-identification", value: "Decline to self-identify", verification: "unverified" },
       ],
       blank: ["Cover letter (optional)"],
     },
     {
       id: "app-swe", jobTitle: "Software Engineer, Internship",
-      company: "Palantir", location: "New York, NY",
-      url: "https://jobs.lever.co/palantir/7d69cf8a-06fd-4f05-bd84-27149db29c4d",
+      company: "Alderpoint Labs", location: "New York, NY",
+      url: "https://jobs.example.invalid/alderpoint-labs/9c4d7e1a-2f5b-48c0-b6a9-1e3d5f7a9c02",
       matchReason: "TEST match record: software engineering internship; location outside the stated Chicago preference — shown for review.",
       fields: [
-        { name: "full_name", label: "Full name", value: "TEST — Vishnu Srikanth", verification: "verified" },
+        { name: "full_name", label: "Full name", value: "TEST — Rowan Ellery", factId: "F-001", provenance: { source: "owner_confirmed", confirmation_event_id: "evt-synth-F-001", fact_id: "F-001" }, verification: "verified" },
         { name: "relocation", label: "Willing to relocate to New York", value: "Yes", verification: "unverified" },
       ],
       blank: [],
@@ -106,8 +110,8 @@ const app = (page, id) => page.locator(`.f2-app[data-app-id="${id}"]`);
 test("(a)+(c) render: every answer visible; the unverified answer is loud in class and computed style", async (t) => {
   const page = await surface(t);
   const body = await page.locator("#card").innerText();
-  for (const s of ["Forward Deployed Software Engineer, Internship - Commercial", "Software Engineer, Internship",
-    "Palantir", "Chicago, IL", "New York, NY", "DePaul University (Driehaus College of Business)",
+  for (const s of ["Platform Engineer, Internship - Commercial", "Software Engineer, Internship",
+    "Alderpoint Labs", "Chicago, IL", "New York, NY", "Northgate University (Halloran College of Business)",
     "Decline to self-identify", "Willing to relocate to New York", "Cover letter (optional)",
     "Answers verified: 4/6", STAGED_SHA]) {
     assert.ok(body.includes(s), `visible on the card: ${s}`);
@@ -150,7 +154,7 @@ test("(b) approve per application, edit per field, reject with a reason — then
   assert.equal(commits.length, 1);
   assert.deepEqual(commits[0].approved.map((x) => x.id), ["app-fdse"]);
   assert.deepEqual(commits[0].dropped, [{ id: "app-swe", reason: "Not relocating to New York" }]);
-  assert.deepEqual(commits[0].binding, { runId: "batch-1ada7107528f", cardSha256: STAGED_SHA });
+  assert.deepEqual(commits[0].binding, { runId: "batch-f2fixture0001", cardSha256: STAGED_SHA });
   assert.match(await page.locator(".f2-status").innerText(), /Nothing has been submitted to an employer/);
 });
 
@@ -164,6 +168,36 @@ test("(b) batch approve approves the whole reviewed set in one action", async (t
   assert.equal(commits.length, 1);
   assert.deepEqual(commits[0].approved.map((x) => x.id), ["app-fdse", "app-swe"]);
   assert.deepEqual(commits[0].dropped, []);
+});
+
+test("(f) an edited application is NEVER presented as approved-and-recorded (coordinator repro, 2026-10-23)", async (t) => {
+  const page = await surface(t);
+  // the coordinator's repro: edit the relocation answer (Yes -> No),
+  // then "Approve all remaining", then "Record approval for the
+  // reviewed set". The commit payload holds the edited application
+  // back — the screen must say so, per application, at that moment.
+  await app(page, "app-swe").locator('.f2-field[data-field="relocation"] [data-f2-action="edit-field"]').click();
+  await app(page, "app-swe").locator('.f2-field[data-field="relocation"] [data-f2-edit-input]').fill("No");
+  await app(page, "app-swe").locator('.f2-field[data-field="relocation"] [data-f2-action="edit-save"]').click();
+  await page.locator('[data-f2-action="approve-all"]').click();
+  await page.locator('[data-f2-action="commit"]').click();
+  const commits = await page.evaluate(() => window.__commits);
+  assert.equal(commits.length, 1);
+  assert.deepEqual(commits[0].heldBack.map((x) => x.id), ["app-swe"], "the partition holds the edited application back");
+  assert.match(commits[0].heldBack[0].reason, /fresh prepared card/);
+  assert.deepEqual(commits[0].approved.map((x) => x.id), ["app-fdse"]);
+  // THE PRESENTATION must match the partition:
+  const sweState = await app(page, "app-swe").locator(".f2-app-state").innerText();
+  assert.doesNotMatch(sweState, /^Approved/, "the edited application must not present as Approved after recording");
+  assert.match(sweState, /Held back/, "the edited application shows held back");
+  assert.match(sweState, /NOT recorded/, "— as not recorded");
+  assert.match(sweState, /fresh prepared card/, "— with the reason");
+  const fdseState = await app(page, "app-fdse").locator(".f2-app-state").innerText();
+  assert.match(fdseState, /recorded/i, "the untouched application shows its approval was recorded");
+  const status = await page.locator(".f2-status").innerText();
+  assert.doesNotMatch(status, /reviewed set exactly as shown/, "the footer must not claim the whole set was recorded as shown");
+  assert.match(status, /Held back/, "the footer names the held-back outcome");
+  assert.match(status, /Nothing has been submitted to an employer/);
 });
 
 test("submit-when-complete is built disabled and inert, even to a forced click", async (t) => {

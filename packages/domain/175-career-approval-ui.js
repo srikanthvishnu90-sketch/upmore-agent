@@ -464,6 +464,15 @@ const CareerApprovalUi = (() => {
   //     field carries its confirmation_event_id.
   // An edited answer is re-marked "edited" and never counts as
   // verified — the original stays on the record beside it.
+  // Coordinator fixes (2026-10-23): (1) the recording outcome is
+  // rendered PER APPLICATION from the commit partition itself
+  // (recordCommitOutcome) — an application the partition holds back
+  // is shown held back / NOT recorded with its reason at the moment
+  // of recording, never as approved-and-recorded; (2) VERIFIED is
+  // derived from a provenance field on the answer record (a
+  // confirmation event bound to the answer's own fact) — a bare
+  // "verified" claim with absent or unverifiable provenance renders
+  // UNVERIFIED, however true the value happens to be.
   // The commit (tapReviewCommit) runs the EXISTING tap above (155's
   // mint) unchanged, and only when the reviewed set is the WHOLE
   // card: the mint binds the exact card payload, so a set changed
@@ -476,13 +485,54 @@ const CareerApprovalUi = (() => {
   const REVIEW_STATES = ["pending", "approved", "rejected"];
   const displayValue = (v) => (typeof v === "string" ? v : v == null ? "" : JSON.stringify(v));
 
+  // Provenance: the evidence a VERIFIED chip stands on. Normalized
+  // from the answer record's provenance field ({source,
+  // confirmation_event_id, fact_id} in any key spelling) or a
+  // prepared field's own confirmation_event_id. A provenance with
+  // no confirmation event — an assumption, a derivation, a claim —
+  // is NOT evidence and verifies nothing.
+  function provenanceOf(f) {
+    const raw = f && typeof f.provenance === "object" && f.provenance ? f.provenance : null;
+    const topEvent = f ? (f.confirmation_event_id || f.confirmationEventId || null) : null;
+    if (!raw && !topEvent) return null;
+    const event = raw ? (raw.confirmation_event_id || raw.confirmationEventId || raw.event_id || null) : topEvent;
+    return {
+      source: raw && raw.source ? s(raw.source) : (event ? "prepared_field" : null),
+      confirmationEventId: event ? s(event) : null,
+      factRef: raw
+        ? (raw.fact_id || raw.factId || raw.fact_ref || raw.factRef || null)
+        : (f.factId || null),
+    };
+  }
+  // Verified iff a confirmation event exists AND its fact binding
+  // matches the answer's own factId exactly (a binding on either
+  // side must match the other; an event for a different fact — or
+  // for no fact the answer carries — verifies nothing here). This
+  // is the v1 ledger rule (event + fact_refs[0] === factId) stated
+  // once, for every input shape.
+  function provenanceVerifies(prov, factId) {
+    if (!prov || !prov.confirmationEventId) return false;
+    const ref = prov.factRef != null ? s(prov.factRef) : null;
+    const own = factId != null ? s(factId) : null;
+    return ref === own;
+  }
+
   function fieldFromCanonical(f) {
     if (!f || !s(f.name) || !s(f.label)) return null;
+    const factId = f.factId || null;
+    const provenance = provenanceOf(f);
+    // VERIFIED is derived from provenance evidence ONLY: a caller
+    // claiming "verified" without verifiable provenance gets
+    // "unverified" (loud), never the chip. "edited" is preserved —
+    // it is produced by the card's own edit op, not by a claim.
+    const verification = f.verification === "edited"
+      ? "edited"
+      : provenanceVerifies(provenance, factId) ? "verified" : "unverified";
     return {
       name: s(f.name), label: s(f.label),
       value: f.value, shown: f.shown != null ? f.shown : displayValue(f.value),
-      kind: f.kind || "text", factId: f.factId || null,
-      verification: ["verified", "unverified", "edited"].includes(f.verification) ? f.verification : "unverified",
+      kind: f.kind || "text", factId,
+      provenance, verification,
       issues: Array.isArray(f.issues) ? f.issues.map((x) => s(x)).filter(Boolean) : [],
       originalValue: f.originalValue != null ? f.originalValue : null,
       editedAt: f.editedAt || null,
@@ -499,7 +549,7 @@ const CareerApprovalUi = (() => {
       location: a.location ? s(a.location) : null, url: a.url ? s(a.url) : null,
       matchReason: a.matchReason ? s(a.matchReason) : null,
       payloadSha256: a.payloadSha256 || null,
-      state: "pending", rejectReason: null, edited: false,
+      state: "pending", rejectReason: null, edited: false, outcome: null,
       fields, blank: Array.isArray(a.blank) ? a.blank.map((x) => s(x)).filter(Boolean) : [],
     };
   }
@@ -509,12 +559,18 @@ const CareerApprovalUi = (() => {
     const ledger = Array.isArray(e.ledger) ? e.ledger : [];
     const fields = e.answers.map((ans) => {
       const row = ledger.find((r) => r && r.field_id === ans.name);
-      const verified = !!(row && row.confirmation_event_id && Array.isArray(row.fact_refs) && row.fact_refs[0] === ans.factId);
+      // The ledger row IS the provenance; fieldFromCanonical derives
+      // the verdict from it (confirmation event + fact binding).
+      const provenance = row ? {
+        source: "provenance_ledger",
+        confirmation_event_id: row.confirmation_event_id || null,
+        fact_id: Array.isArray(row.fact_refs) && row.fact_refs.length ? row.fact_refs[0] : null,
+      } : null;
       return {
         name: s(ans.name), label: s(ans.label), value: ans.value,
         shown: ans.shown != null ? ans.shown : displayValue(ans.value),
         kind: ans.kind || "text", factId: ans.factId || null,
-        verification: verified ? "verified" : "unverified",
+        provenance,
         issues: [], originalValue: null, editedAt: null,
       };
     });
@@ -529,11 +585,18 @@ const CareerApprovalUi = (() => {
     if (!p || !Array.isArray(p.fields) || !r || !Array.isArray(r.answers)) return null;
     const fields = p.fields.map((f) => {
       const ans = r.answers.find((x) => x && x.name === f.name) || {};
+      // The prepared field's confirmation event IS the provenance;
+      // fieldFromCanonical derives the verdict from it.
+      const provenance = f.confirmation_event_id ? {
+        source: "prepared_field",
+        confirmation_event_id: f.confirmation_event_id,
+        fact_id: f.factId || null,
+      } : null;
       return {
         name: s(f.name), label: s(f.label), value: f.value,
         shown: ans.shown != null ? ans.shown : displayValue(f.value),
         kind: ans.kind || "text", factId: f.factId || null,
-        verification: f.confirmation_event_id ? "verified" : "unverified",
+        provenance,
         issues: [], originalValue: null, editedAt: null,
       };
     });
@@ -607,11 +670,15 @@ const CareerApprovalUi = (() => {
   function findApp(card, appId) {
     return card && Array.isArray(card.applications) ? card.applications.find((a) => a.id === appId) || null : null;
   }
+  // A recording outcome describes the set AS IT STOOD when the seam
+  // recorded it. Any further review action changes the set, so the
+  // outcome is cleared rather than left standing as a stale claim.
+  const clearOutcomes = (next) => { for (const a of next.applications) a.outcome = null; return next; };
   function reviewApprove(card, appId) {
     const app = findApp(card, appId);
     if (!app) return { ok: false, code: "APP_NOT_ON_CARD", reason: `application "${appId}" is not on this card` };
     if (app.state === "rejected") return { ok: false, code: "APP_REJECTED", reason: "this application was rejected on this card; a rejection is final here — a fresh card can carry it again" };
-    const next = clone(card);
+    const next = clearOutcomes(clone(card));
     findApp(next, appId).state = "approved";
     return { ok: true, card: next };
   }
@@ -619,7 +686,7 @@ const CareerApprovalUi = (() => {
     const app = findApp(card, appId);
     if (!app) return { ok: false, code: "APP_NOT_ON_CARD", reason: `application "${appId}" is not on this card` };
     if (!s(reason).trim()) return { ok: false, code: "REJECT_REASON_REQUIRED", reason: "a dropped application always carries its reason (plan rule 2) — supply one" };
-    const next = clone(card);
+    const next = clearOutcomes(clone(card));
     const target = findApp(next, appId);
     target.state = "rejected";
     target.rejectReason = s(reason).trim();
@@ -632,7 +699,7 @@ const CareerApprovalUi = (() => {
     if (app.state === "rejected") return { ok: false, code: "APP_REJECTED", reason: "a rejected application is not edited on this card" };
     const field = app.fields.find((f) => f.name === fieldName);
     if (!field) return { ok: false, code: "FIELD_NOT_ON_CARD", reason: `field "${fieldName}" is not on application "${appId}"` };
-    const next = clone(card);
+    const next = clearOutcomes(clone(card));
     const targetApp = findApp(next, appId);
     const target = targetApp.fields.find((f) => f.name === fieldName);
     if (target.originalValue == null) target.originalValue = target.value;
@@ -645,7 +712,7 @@ const CareerApprovalUi = (() => {
     return { ok: true, card: next };
   }
   function approveAllPending(card) {
-    const next = clone(card);
+    const next = clearOutcomes(clone(card));
     for (const app of next.applications) if (app.state === "pending") app.state = "approved";
     return { ok: true, card: next };
   }
@@ -666,6 +733,29 @@ const CareerApprovalUi = (() => {
       });
     }
     return { approved, dropped, heldBack, binding: { runId: card ? card.runId : null, cardSha256: card ? card.cardSha256 : null } };
+  }
+
+  // The recording outcome, per application, from the partition
+  // itself (coordinator fix 2026-10-23, item 1): after the commit
+  // seam records, each application carries exactly what the
+  // partition said — recorded, dropped with its reason, or held
+  // back with its reason — and BOTH renderers show that outcome in
+  // place of the bare review state. An edited application therefore
+  // can never sit on screen as "Approved" under a footer claiming
+  // the set was recorded exactly as shown: it reads held back /
+  // NOT recorded, with the fresh-card reason, at the moment of
+  // recording. The set must bind to this card; a foreign set is
+  // refused by name rather than painted onto the wrong card.
+  function recordCommitOutcome(card, set) {
+    if (!card || !set || !set.binding || set.binding.runId !== card.runId || set.binding.cardSha256 !== card.cardSha256) {
+      return { ok: false, code: "OUTCOME_SET_MISMATCH", reason: "the recording outcome set does not bind to this card (runId + cardSha256)" };
+    }
+    const next = clone(card);
+    const byId = new Map(next.applications.map((a) => [a.id, a]));
+    for (const x of set.approved || []) { const a = byId.get(x.id); if (a) a.outcome = { status: "recorded" }; }
+    for (const x of set.dropped || []) { const a = byId.get(x.id); if (a) a.outcome = { status: "dropped", reason: x.reason || null }; }
+    for (const x of set.heldBack || []) { const a = byId.get(x.id); if (a) a.outcome = { status: "held_back", reason: x.reason || null }; }
+    return { ok: true, card: next };
   }
 
   // The commit: the EXISTING tap (155's mint / stored-batch mint)
@@ -715,7 +805,11 @@ const CareerApprovalUi = (() => {
       if (a.url) out.push(`   Posting: ${a.url}`);
       for (const f of a.fields) out.push(`   ${fieldTextLine(f)}`);
       out.push(`   Left blank: ${a.blank.length ? a.blank.join("; ") : "none"}`);
-      out.push(`   Review: ${a.state === "approved" ? "approved" : a.state === "rejected" ? `rejected — ${a.rejectReason}` : "awaiting your review"}`);
+      out.push(`   Review: ${a.outcome && a.outcome.status === "held_back"
+        ? `held back — NOT recorded: ${a.outcome.reason || ""}`
+        : a.outcome && a.outcome.status === "recorded"
+          ? "approved — approval recorded"
+          : a.state === "approved" ? "approved" : a.state === "rejected" ? `rejected — ${a.rejectReason}` : "awaiting your review"}`);
     });
     out.push("");
     out.push(coverageLine(card));
@@ -748,11 +842,15 @@ const CareerApprovalUi = (() => {
         `<span class="f2-editor" hidden><input type="text" data-f2-edit-input value="${esc(displayValue(f.shown != null ? f.shown : f.value))}"><button type="button" data-f2-action="edit-save" data-app="${esc(a.id)}" data-field="${esc(f.name)}">Save answer</button></span>`,
         `</div>`,
       ].join("")).join("\n");
-      const stateLine = a.state === "approved"
-        ? `<p class="f2-app-state f2-app-state--approved">Approved</p>`
-        : a.state === "rejected"
-          ? `<p class="f2-app-state f2-app-state--rejected">Rejected — ${esc(a.rejectReason || "")}</p>`
-          : `<p class="f2-app-state">Awaiting your review</p>`;
+      const stateLine = a.outcome && a.outcome.status === "held_back"
+        ? `<p class="f2-app-state f2-app-state--heldback" data-outcome="held_back">Held back — NOT recorded: ${esc(a.outcome.reason || "")}</p>`
+        : a.outcome && a.outcome.status === "recorded"
+          ? `<p class="f2-app-state f2-app-state--approved" data-outcome="recorded">Approved — approval recorded</p>`
+          : a.state === "approved"
+            ? `<p class="f2-app-state f2-app-state--approved">Approved</p>`
+            : a.state === "rejected"
+              ? `<p class="f2-app-state f2-app-state--rejected">Rejected — ${esc(a.rejectReason || "")}</p>`
+              : `<p class="f2-app-state">Awaiting your review</p>`;
       return [
         `<article class="f2-app" data-app-id="${esc(a.id)}" data-state="${esc(a.state)}">`,
         `<h3 class="f2-app-title">${esc(a.jobTitle || a.id)}</h3>`,
@@ -842,7 +940,32 @@ const CareerApprovalUi = (() => {
         const set = reviewCommitSet(card);
         try {
           const res = await h.commit(set, card);
-          if (res && res.ok) setStatus(res.text || "Approval recorded for the reviewed set exactly as shown. Nothing has been submitted to an employer.");
+          if (res && res.ok) {
+            // The outcome is painted PER APPLICATION from the
+            // partition itself, and the footer is composed from the
+            // partition too: the seam's ok covers exactly what the
+            // partition says — when anything was held back or
+            // dropped, the footer names it with its reason instead
+            // of claiming the set was recorded exactly as shown.
+            const complete = !set.dropped.length && !set.heldBack.length
+              && set.approved.length === (card.applications || []).length;
+            const out = recordCommitOutcome(card, set);
+            if (out.ok) {
+              card = out.card;
+              render();
+              if (typeof h.onChange === "function") h.onChange(card);
+            }
+            if (complete) {
+              setStatus(res.text || "Approval recorded for the reviewed set exactly as shown. Nothing has been submitted to an employer.");
+            } else {
+              const parts = [];
+              if (set.approved.length) parts.push(`Recorded: ${set.approved.map((x) => x.id).join(", ")}.`);
+              for (const x of set.heldBack) parts.push(`Held back — NOT recorded: ${x.id} — ${x.reason}.`);
+              for (const x of set.dropped) parts.push(`Dropped: ${x.id} — ${x.reason}.`);
+              parts.push("Nothing has been submitted to an employer.");
+              setStatus(parts.join(" "));
+            }
+          }
           else setStatus(`Not recorded: ${(res && res.code) || "REFUSED"} — ${(res && res.reason) || "the approval seam refused."}`);
         } catch (e) {
           setStatus(`Not recorded: COMMIT_ERROR — ${e && e.message ? e.message.slice(0, 160) : "the approval seam errored."}`);
@@ -862,7 +985,7 @@ const CareerApprovalUi = (() => {
     tapApprove, claimBatch,
     buildAskCard, renderAskCardText, renderAskCardHtml, tapAskCard,
     buildReviewCard, reviewCoverage, reviewApprove, reviewReject, editReviewField,
-    approveAllPending, reviewCommitSet, tapReviewCommit, reviewChannelActions,
+    approveAllPending, reviewCommitSet, recordCommitOutcome, tapReviewCommit, reviewChannelActions,
     renderReviewText, renderReviewHtml, wireReviewCard,
     _sha256: sha256,
   };

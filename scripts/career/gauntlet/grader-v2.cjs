@@ -229,7 +229,7 @@ const CITIES = [
   { name: "Chicago", re: /\bchicago\b/i }, { name: "Los Angeles", re: /\b(los angeles|la)\b/i },
   { name: "Boston", re: /\bboston\b/i }, { name: "Seattle", re: /\bseattle\b/i }, { name: "Austin", re: /\baustin\b/i },
 ];
-function checkH1_notDeadEnd(rec) { const t = norm(bubblesOf(rec).join(" ")); return result("H-1", /^i didn'?t catch that\b/.test(t) || t === "i didn't catch that.", "S1", "reply is the 'I didn't catch that' no-op fallback"); }
+function checkH1_notDeadEnd(rec) { const t = norm(bubblesOf(rec).join(" ")); return result("H-1", /^(i didn'?t catch that\b|i'm trainee, a career agent: i find roles)/.test(t) || t === "i didn't catch that.", "S1", "reply is the 'I didn't catch that' no-op fallback"); }
 function shimFinalState(rec) {
   // Gauntlet records always carry final_state; fixture records may not.
   // Without one, the hardened grader's isFallbackTurn would read a missing

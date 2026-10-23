@@ -191,7 +191,7 @@ test("fallback: every kind is plain, short and lint-clean", () => {
   }
   assert.equal(
     Reply.fallback("unmatched"),
-    "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there."
+    "I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews. I may have missed what you meant, so what should we work on first?"
   );
   assert.ok(Reply.lint(Reply.fallback("nonsense-kind")).ok, "unknown kind degrades to a clean fallback");
 });

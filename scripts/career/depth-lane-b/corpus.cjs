@@ -5,7 +5,7 @@
 // M2 typo'd/rambling, M3 multi-intent. Turn pass = not the fallback AND
 // every `pass` regex matches the delivered text AND no `fail` regex does.
 // Chain complete = every turn passes. Judged on the WORST band.
-const FB = "I didn't catch that";
+const FB = "I didn't catch that|I'm Trainee, a career agent: I find roles";
 module.exports = [
   // ---------------- NEGOTIATION ----------------
   { id: "N1", family: "negotiation", band: "M1", turns: [

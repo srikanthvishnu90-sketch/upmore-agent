@@ -125,7 +125,7 @@ test("BUG-272: the v227 journey — restating an on-record fact in a new thread 
   const r = say(u, "B", "I'm based in Denver");
   assert.match(r.out.reply, /Already on your record/, "the restatement is acknowledged as already on record");
   assert.ok(!/Recorded — that is on your record now/.test(r.out.reply), "no fresh-capture claim is made");
-  assert.ok(!/I didn't catch that/.test(r.out.reply), "never the generic fallback again");
+  assert.ok(!/I didn't catch that|I'm Trainee, a career agent: I find roles/.test(r.out.reply), "never the generic fallback again");
   assert.deepEqual(accountFacts(u), before, "the committed record is byte-identical — the turn wrote nothing");
   assert.ok((((r.out.result || {}).restated_facts) || []).some((f) => f.kind === "geography"), "the result names the restated fact");
 });

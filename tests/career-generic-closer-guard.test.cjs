@@ -332,5 +332,5 @@ test("140 rows 55/56/58 (already fixed at 6c0ab5e — regression pin): fallbacks
 });
 
 test("140 row 57 (FLAGGED deliberate exclusion — pinned, NOT fixed): unmatched fallback stays byte-identical", () => {
-  assert.equal(Reply.fallback("unmatched"), "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.");
+  assert.equal(Reply.fallback("unmatched"), "I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews. I may have missed what you meant, so what should we work on first?");
 });

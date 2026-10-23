@@ -35,7 +35,7 @@ function run(label, turns, ctx) {
   const s = L.H.session("INTG-" + label, "grand");
   return turns.map((say) => L.chatTurn(s, say, ctx));
 }
-const isFallback = (r) => !r.result || r.result.intent === "career_fallback" || /didn't catch that/.test((r.delivered || []).join(" "));
+const isFallback = (r) => !r.result || r.result.intent === "career_fallback" || /didn't catch that|I'm Trainee, a career agent: I find roles/.test((r.delivered || []).join(" "));
 
 test("integration: negotiation opens on an arrival-verb offer statement", () => {
   const rs = run("neg", [

@@ -198,7 +198,7 @@ async function ob04() {
   const t3 = turn(s, "OB-04", 3, DEF.ARTIFACT_ASK, { profile });
   const artifactText3 = [...t3.delivered, t3.raw, t3.resultJson].join("\n");
   const leaked3 = tokensIn(artifactText3);
-  const artifactProduced3 = !!t3.handler && !t3.contained && t3.delivered.length > 0 && !/Something went wrong|I didn't catch/.test(artifactText3);
+  const artifactProduced3 = !!t3.handler && !t3.contained && t3.delivered.length > 0 && !/Something went wrong|I didn't catch|I'm Trainee, a career agent: I find roles/.test(artifactText3);
   const t4 = turn(s, "OB-04", 4, "yes", { profile, interviewAnswer: true });
   const t5 = turn(s, "OB-04", 5, DEF.ARTIFACT_ASK, { profile });
   const artifactText5 = [...t5.delivered, t5.raw, t5.resultJson].join("\n");

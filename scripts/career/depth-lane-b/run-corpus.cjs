@@ -11,7 +11,7 @@ const path = require("path");
 const L = require("../gauntlet/pilot-lib.cjs");
 const CORPUS = require("./corpus.cjs");
 
-const FALLBACK_RE = /I didn't catch that/;
+const FALLBACK_RE = /I didn't catch that|I'm Trainee, a career agent: I find roles/;
 function judge(turn, delivered, r) {
   const fallback = !r || !r.handler || FALLBACK_RE.test(delivered) || (r.result && r.result.intent === "career_fallback");
   const passRes = (turn.pass || []).map((p) => new RegExp(p, "i"));

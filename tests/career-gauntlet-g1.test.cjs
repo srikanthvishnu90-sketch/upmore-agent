@@ -39,7 +39,7 @@ const snap = (name) => loadJson(path.join(CGDIR, name));
 function assertCgContract(caseId, text) {
   const c = CASES[caseId];
   assert.ok(text && text.length > 40, `${caseId}: substantive reply, not a fallback (A1)`);
-  assert.doesNotMatch(text, /I didn't catch that/i, `${caseId}: not the unmatched fallback`);
+  assert.doesNotMatch(text, /I didn't catch that|I'm Trainee, a career agent: I find roles/i, `${caseId}: not the unmatched fallback`);
   for (const pat of c.required_any || []) {
     assert.match(text, new RegExp(pat, "i"), `${caseId}: required_any /${pat}/ present (A2)`);
   }

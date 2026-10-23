@@ -33,7 +33,7 @@ const { CareerHost } = require(path.join(ROOT, "supabase/functions/_shared/caree
 const NOW = Date.parse("2026-10-20T15:00:00.000Z");
 const WHITELIST = ["paused", "preferred_locations", "erase", "stated_facts"];
 const clone = (v) => JSON.parse(JSON.stringify(v));
-const isFallback = (out) => !out || !out.reply || String(out.reply).startsWith("I didn't catch that");
+const isFallback = (out) => !out || !out.reply || String(out.reply).match(/^(I didn't catch that|I'm Trainee, a career agent: I find roles)/);
 
 function makeHost() {
   return CareerHost.createCareerHost({

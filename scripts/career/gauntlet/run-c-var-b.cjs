@@ -73,7 +73,7 @@ const BROKEN = {
 // X = { T (all delivered text), texts, results, res (last result), profile,
 //       v (variant record), legs, queueFinal, evResults, corpusIds }
 const has = (X, re) => re.test(X.T);
-const FALLBACK_ONLY = (X) => X.texts.length > 0 && X.texts.every((t) => /didn't catch that/i.test(t));
+const FALLBACK_ONLY = (X) => X.texts.length > 0 && X.texts.every((t) => /didn't catch that|I'm Trainee, a career agent: I find roles/i.test(t));
 const noSends = (X) => X.results.every((r) => !r || r.sends == null || r.sends === 0) && !X.results.some((r) => r && r.submission && r.submission.status === "submitted_accepted");
 const draftOf = (X) => { for (const r of X.results) if (r && r.draft) return typeof r.draft === "string" ? r.draft : JSON.stringify(r.draft); return null; };
 

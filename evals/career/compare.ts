@@ -70,7 +70,7 @@ export const HYGIENE: { id: string; what: string; test: (r: string) => boolean }
   { id: "ai_talk", what: "talks about being an AI or a language model", test: (r) => /\b(as an ai|i'?m (just )?an ai|language model|i am an ai)\b/i.test(r) },
   { id: "filler_opener", what: "opens with filler (great question, certainly, absolutely, sure thing)", test: (r) => /^\s*(great question|certainly|absolutely|sure thing|of course!)/i.test(r) },
   { id: "many_questions", what: "asks more than two questions at once", test: (r) => (r.match(/\?/g) || []).length > 2 },
-  { id: "non_answer", what: "a non-answer (didn't catch that, rephrase, don't understand)", test: (r) => /\b(i didn'?t catch that|could you (please )?rephrase|i don'?t understand( what you mean)?|not sure what you mean)\b/i.test(r) },
+  { id: "non_answer", what: "a non-answer (didn't catch that, rephrase, don't understand)", test: (r) => /^I'm Trainee, a career agent: I find roles/.test(r.trim()) || /\b(i didn'?t catch that|could you (please )?rephrase|i don'?t understand( what you mean)?|not sure what you mean)\b/i.test(r) },
   { id: "empty", what: "no reply", test: (r) => !r.trim() },
 ];
 export function hygiene(replies: string[]): { replies: number; hits: Record<string, number> } {

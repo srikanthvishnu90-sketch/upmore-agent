@@ -11,7 +11,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const L = require("../scripts/career/gauntlet/pilot-lib.cjs");
 
-const FALLBACK = /I didn't catch that/;
+const FALLBACK = /I didn't catch that|I'm Trainee, a career agent: I find roles/;
 function coldReply(ask) {
   const profile = L.gauntletProfile("p1-early-career-swe");
   const s = L.H.session("GE-" + Math.random().toString(36).slice(2, 9), "grand");

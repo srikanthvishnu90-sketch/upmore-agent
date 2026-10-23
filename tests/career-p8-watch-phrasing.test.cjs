@@ -56,7 +56,7 @@ test("P8 t1 verbatim creates the Data Analyst watch (Chicago, new-grad) when a p
   const r = seam.runTurn(P8_T1, ctx);
   assert.equal(r.intent, "career_watch_create", r.reply);
   assert.equal(r.resultStatus, "prepared", r.reply);
-  assert.doesNotMatch(r.reply, /didn't catch that/i);
+  assert.doesNotMatch(r.reply, /didn't catch that|I'm Trainee, a career agent: I find roles/i);
   const wp = seam.extractSnapshot(ctx).stores.alertWatchState[A.PROFILE_KEY(USER)];
   assert.ok(wp, "the watch profile must be saved");
   assert.equal(wp.interests.length, 1);
@@ -69,7 +69,7 @@ test("P8 t2 verbatim confirms the just-created watch and creates nothing twice",
   const ctx = seam.createTurnCtx({ userId: USER, threadId: "p8-2", now: NOW, snapshot: null, profile: PROFILE122 });
   seam.runTurn(P8_T1, ctx);
   const r2 = seam.runTurn(P8_T2, ctx);
-  assert.doesNotMatch(r2.reply, /didn't catch that/i, r2.reply);
+  assert.doesNotMatch(r2.reply, /didn't catch that|I'm Trainee, a career agent: I find roles/i, r2.reply);
   assert.match(r2.reply, /Data Analyst/, r2.reply);
   const wp = seam.extractSnapshot(ctx).stores.alertWatchState[A.PROFILE_KEY(USER)];
   assert.equal(wp.interests.length, 1, "the affirmation must not duplicate the watch");
@@ -80,7 +80,7 @@ test("P8 t1 verbatim with no profile reaches the watch intent's profile gate —
   const r = seam.runTurn(P8_T1, ctx);
   assert.equal(r.intent, "career_watch_create", r.reply);
   assert.match(r.reply, /profile on file/i, r.reply);
-  assert.doesNotMatch(r.reply, /didn't catch that/i);
+  assert.doesNotMatch(r.reply, /didn't catch that|I'm Trainee, a career agent: I find roles/i);
 });
 
 test("control: a bare affirmation with no recent watch is not watch business", () => {

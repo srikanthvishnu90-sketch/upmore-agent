@@ -36,7 +36,7 @@ const posting = (n) => ({ id: `JOB-S-${n}`, job_id: `JOB-S-${n}`, canonicalKey: 
 const MARKET = [1, 2, 3, 4, 5].map(posting);
 const boardFor = (p) => Object.assign({}, Portal.createSandboxBoard({}), { atsFamily: p.atsFamily });
 const ASKS = ["what's the batch status", "where is my batch"];
-const FALLBACK = /I didn't catch that/;
+const FALLBACK = /I didn't catch that|I'm Trainee, a career agent: I find roles/;
 
 const seam = CareerHost.createCareerHost({
   CareerAccess: D("120-career-access.js"), CareerOnboarding: D("130-career-onboarding.js"), CareerRouter: D("142-career-router.js"),

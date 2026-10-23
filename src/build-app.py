@@ -42,6 +42,12 @@ for marker, filename, wrapped in [
     ('<!--__CAREER_APPROVAL_CARD__-->', 'career-approval-card.js', True),
     ('<!--__CAREER_DASHBOARD__-->', 'career-dashboard.js', True),
     ('/*__CAREER_DASHBOARD_CSS__*/', 'career-dashboard.css', False),
+    # F1–F2 integration (2026-10-23): the real F2 review card (module 175) and
+    # the dashboard slot adapter that mounts it into the awaiting-approval slots.
+    ('<!--__CAREER_APPROVAL_UI__-->', '../packages/domain/175-career-approval-ui.js', True),
+    ('<!--__CAREER_DASHBOARD_F2_MOUNT__-->', 'career-dashboard-f2-mount.js', True),
+    ('/*__TRAINEE_DESIGN_TOKENS_CSS__*/', 'trainee-design-tokens.css', False),
+    ('/*__CAREER_APPROVAL_REVIEW_CSS__*/', 'career-approval-review.css', False),
     ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
     ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),

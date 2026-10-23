@@ -1138,6 +1138,8 @@
   .bill-row .btn { margin-right:8px; margin-top:8px; }
   #bills .btn { min-height:44px; }
 /*__CAREER_DASHBOARD_CSS__*/
+/*__TRAINEE_DESIGN_TOKENS_CSS__*/
+/*__CAREER_APPROVAL_REVIEW_CSS__*/
 </style>
 </head>
 <body>
@@ -2022,6 +2024,8 @@
 <!--__CHAT_CONTROLLER__-->
 <!--__CAREER_APPROVAL_CARD__-->
 <!--__CAREER_DASHBOARD__-->
+<!--__CAREER_APPROVAL_UI__-->
+<!--__CAREER_DASHBOARD_F2_MOUNT__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -8005,8 +8009,11 @@
   /* F1 dashboard (2026-10-22): feed, queue, tracker and inline receipts over the
      person's own career_apply_jobs + career_apply_prepared rows (owner-read RLS).
      Rendering lives in src/career-dashboard.js; this only fetches and hands over.
-     The approval card itself is F2's component — its slots stay empty here until
-     that component mounts into them via TraineeDashboard.mountCards. */
+     F1–F2 integration (2026-10-23): the approval card is F2's component
+     (packages/domain/175-career-approval-ui.js); src/career-dashboard-f2-mount.js
+     mounts it into the awaiting-approval slots via TraineeDashboard.mountCards,
+     with 175's own tapReviewCommit as the commit seam. If the adapter failed to
+     load, the slots stay empty rather than showing an invented card. */
   async function renderCareerDashboard() {
     const host = $('careerDashboard');
     if (!host || typeof TraineeDashboard !== 'object') return;
@@ -8019,7 +8026,10 @@
       ]);
       if (jobs.error) throw jobs.error;
       if (prepared.error) throw prepared.error;
-      TraineeDashboard.mount(host, { jobs: jobs.data || [], prepared: prepared.data || [], outcomes: [] }, {});
+      const deps = typeof TraineeDashboardF2Mount === 'object'
+        ? { cards: { mountFn: TraineeDashboardF2Mount.createMountFn() } }
+        : {};
+      TraineeDashboard.mount(host, { jobs: jobs.data || [], prepared: prepared.data || [], outcomes: [] }, deps);
     } catch (e) {
       host.textContent = "Couldn't load your applications — check your connection and try again.";
     }

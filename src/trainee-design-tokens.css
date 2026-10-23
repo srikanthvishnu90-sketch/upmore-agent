@@ -1,0 +1,22 @@
+/* Trainee design tokens — ONE place for the palette and type
+   (BUILDER-PLAN-48H design rules, 2026-10-22, Vishnu's taste).
+   Graphite + silver base; deep plum is the ONE accent and appears
+   only through --accent-plum, on active/primary states. If the
+   owner picks #4A2F5E over #6B4F7E, the change is the one line
+   marked below. Serif for headers, Inter for body. Semantic colors
+   (danger/ok) are not accents — they are meanings, kept separate. */
+:root {
+  --graphite: #1E1F24;
+  --graphite-2: #26282F;
+  --graphite-3: #31343C;
+  --silver: #C7CAD1;
+  --silver-dim: #9BA0A8;
+  --ink: #EDEEF1;
+  --accent-plum: #6B4F7E; /* THE plum — one token; owner may swap to #4A2F5E here only */
+  --plum-light: #A58FB8;
+  --danger: #E5534B;
+  --danger-bg: rgba(229, 83, 75, 0.14);
+  --ok: #4CC38A;
+  --font-head: Georgia, "Times New Roman", serif;
+  --font-body: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

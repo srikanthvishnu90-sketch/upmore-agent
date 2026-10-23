@@ -92,3 +92,69 @@ test("(d) control: 'practice' as a noun is not a practice request", () => {
     assert.ok(!/^Here is your question/.test(r), `${q} -> ${r.slice(0, 120)}`);
   }
 });
+
+// (e) Coordinator probe on b3307448: resume-guidance and two-field decision asks had no owner. Synthetic cases only.
+for (const q of ["what are best practices for resumes?", "how should I format my resume?", "what makes a good resume", "give me resume tips", "how long should my resume be?"]) {
+  test(`(e) resume guidance: "${q}" is answered as guidance`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_resume_guidance", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, /result|number/i); assert.match(r, /tailor/i);
+    for (const b of Reply.splitBubbles(r)) assert.ok(Reply.lint(b).ok, `${b} -> ${Reply.lint(b).violations}`);
+  });
+}
+test("(e) control: a real document ask still reaches document delivery", () => {
+  assert.equal(ask("send me my resume pdf").intent, "career_document_delivery");
+});
+for (const [q, a, b] of [["should I practice law or medicine?", /law/i, /medic/i], ["should I go into law or medicine?", /law/i, /medic/i], ["law or medicine, which should I pick?", /law/i, /medic/i], ["should I become a lawyer or a doctor?", /law/i, /medic/i], ["should I study nursing or teaching?", /nurs/i, /teach/i]]) {
+  test(`(e) decision: "${q}" names both fields and does not pick for the person`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_field_decision", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, a); assert.match(r, b);
+    for (const bb of Reply.splitBubbles(r)) assert.ok(Reply.lint(bb).ok, `${bb} -> ${Reply.lint(bb).violations}`);
+  });
+}
+test("(e) decision: a licensed field carries its training path", () => {
+  const r = String(ask("should I go into law or medicine?").reply);
+  assert.match(r, /bar exam/); assert.match(r, /residency/);
+});
+test("(e) control: two companies are not a field decision", () => {
+  assert.notEqual(ask("should I apply to Google or Meta?").intent, "career_field_decision");
+});
+
+// (f) Found reading (e)'s replies: a resume-improvement ask reached tailoring, which said "The target is set — the
+// role you named" when no role was named; a review ask fell back. Synthetic cases only.
+test("(f) 'how do I make my resume better' is guidance, not a tailoring target", () => {
+  const o = ask("how do I make my resume better"), r = String(o.reply);
+  assert.equal(o.intent, "career_resume_guidance", `${o.intent}: ${r.slice(0, 160)}`);
+});
+test("(f) a tailor ask that names no role never claims a target is set", () => {
+  const r = String(ask("tailor my resume").reply);
+  assert.ok(!/target is set|the role you named/i.test(r), r.slice(0, 200));
+  assert.match(r, /resume/i);
+});
+test("(f) a tailor ask that names a role reads that role back", () => {
+  const r = String(ask("tailor my resume for a data analyst role").reply);
+  assert.match(r, /data analyst/i, r.slice(0, 200));
+});
+test("(f) control: a tailor ask naming a company keeps its target", () => {
+  const o = ask("tailor my resume to the Google software engineering internship");
+  assert.equal(o.intent, "career_tailor"); assert.match(String(o.reply), /Google/);
+});
+for (const q of ["can you review my resume?", "resume feedback please", "is my resume good?", "can you look at my resume?"]) {
+  test(`(f) review: "${q}" says no resume is on file and gives what it checks`, () => {
+    const o = ask(q), r = String(o.reply);
+    assert.equal(o.intent, "career_resume_guidance", `${o.intent}: ${r.slice(0, 160)}`);
+    assert.match(r, /no resume (?:of yours )?(?:is )?on file/i, r.slice(0, 200));
+    for (const b of Reply.splitBubbles(r)) assert.ok(Reply.lint(b).ok, `${b} -> ${Reply.lint(b).violations}`);
+  });
+}
+test("(f) control: 'do you have my resume?' stays the on-file answer", () => {
+  assert.equal(ask("do you have my resume?").intent, "career_resume_on_file");
+});
+test("(f) a cover-letter ask that names no role never claims a target is set", () => {
+  const r = String(ask("write me a cover letter").reply);
+  assert.ok(!/target is set|the role you named|\bnull\b/i.test(r), r.slice(0, 200));
+});
+test("(f) control: improving a resume FOR a target is tailoring", () => {
+  assert.equal(ask("improve my resume for this posting").intent, "career_tailor");
+});

@@ -38038,6 +38038,8 @@ const CareerRouter = (() => {
   function handleDocumentDelivery(text, ctx) {
     const t = lc(text);
     if (!isDocumentDeliveryAsk(t)) return null;
+    // 2026-10-23: advice about a document is not the document ("give me resume tips" went to delivery).
+    if (/\b(tips?|advice|pointers|best practices?|suggestions|feedback)\b/.test(t) && !/\b(pdf|docx|file)\b/.test(t)) return null;
     // A tailor cue in the same breath belongs to the tailor branch —
     // the stand-down below lets the combined ask reach it, and the
     // document it renders rides that turn's result (the agent-chat
@@ -39304,7 +39306,11 @@ const CareerRouter = (() => {
       const roleM = s(text).match(/\b(software engineering|data|finance|investment banking|product|consulting|marketing|engineering)\s+(internship|intern|role)\b/i);
       return { label: `the ${comp}${roleM ? ` ${roleM[1].toLowerCase()} ${roleM[2].toLowerCase()}` : " role"}`, cir, company: comp };
     }
-    return { label: "the role you named", cir: null, company: null };
+    // 2026-10-23: a role named without a company is read back in the person's words; with none named, no target is
+    // claimed (the reply said "The target is set — the role you named" to a bare "tailor my resume").
+    const rm = lc(s(text)).match(/\b(?:for|to)\s+(?:a|an|the|this|that)\s+([a-z][a-z /&-]{1,40}?)\s+(role|job|position|internship|opening)\b/);
+    if (rm) return { label: `the ${rm[1].trim()} ${rm[2]}`, cir: null, company: null };
+    return { label: null, cir: null, company: null };
   }
   function handleTailorNeedsFacts(text, ctx) {
     const target = tailorTargetOf(text, ctx);
@@ -39315,14 +39321,18 @@ const CareerRouter = (() => {
     if (target.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.tailorTarget = { company: target.company, label: target.label, askText: s(text).slice(0, 300) }; }
     const facts = ["Tailoring runs on confirmed facts only — your resume's real experience, education, and projects. There is no resume or profile on file in this conversation yet, so any 'tailored' version produced now would be invented, and invented resumes are the one thing this product never ships."];
     if (target.cir) { const bar = cirFieldText(target.cir.hiring_bar_summary); if (bar) facts.push(`The target's bar, from its company file: ${bar.split(/(?<=[.!?])\s/)[0]} That is what your real material will be cut against.`); }
-    const reply = compose({ headline: `The target is set — ${target.label}. One input is missing: your resume.`, facts, nextStep: "Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation." });
+    const reply = target.label
+      ? compose({ headline: `The target is set — ${target.label}. One input is missing: your resume.`, facts, nextStep: "Paste your resume (or its facts: school, year, experience), and the tailored version for this exact target is produced in this conversation." })
+      : compose({ headline: "Tailoring needs two inputs: your resume and the role it is for.", facts, nextStep: "Paste your resume (or its facts: school, year, experience) and name the role or paste the posting, and the tailored version is produced in this conversation." });
     return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0, artifact: null };
   }
   function handleCoverLetterNeedsFacts(text, ctx) {
     const target = tailorTargetOf(text, ctx);
     const facts = ["A cover letter here is written from your confirmed facts in the company's own register — never from a template with the name swapped. No resume or profile is on file in this conversation yet, so there is nothing true to write it from."];
     if (target.cir) { const bar = cirFieldText(target.cir.hiring_bar_summary); if (bar) facts.push(`What the target's file supports: ${bar.split(/(?<=[.!?])\s/)[0]}`); }
-    const reply = compose({ headline: `The letter's target is set — ${target.label}. It needs your facts before it can be written.`, facts, nextStep: "Paste your resume or tell me the experience the letter should carry, and the draft is written in this conversation." });
+    const reply = target.label
+      ? compose({ headline: `The letter's target is set — ${target.label}. It needs your facts before it can be written.`, facts, nextStep: "Paste your resume or tell me the experience the letter should carry, and the draft is written in this conversation." })
+      : compose({ headline: "A cover letter needs two inputs: your facts and the role it is for.", facts, nextStep: "Paste your resume or tell me the experience the letter should carry, and name the role or paste the posting, and the draft is written in this conversation." });
     return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0, artifact: null };
   }
   // COMPLEXITY WAVE (BUG-173): a single-question prep ask ("hit me
@@ -44845,6 +44855,69 @@ const CareerRouter = (() => {
     }
     return null;
   }
+  // 2026-10-23 (coordinator probe): general resume guidance had no owner ("what are best practices for resumes?",
+  // "how should I format my resume?" fell back). Authored general guidance, consistent with how this product
+  // tailors: confirmed facts only, results with numbers, one version per posting.
+  function routeResumeGuidance(text, ctx) {
+    const t = lc(s(text).trim()).replace(/[’]/g, "'");
+    if (!/\b(?:resume|resumes|cv|résumé)\b/.test(t)) return null;
+    const review = /\b(?:review|feedback|critique|look (?:at|over)|check|rate|grade)\b|\bis my (?:resume|cv) (?:good|ok|okay|strong|bad)\b/.test(t);
+    if (!review && !/\b(?:tips?|advice|pointers|best practices?|format|formatting|structure|layout|look like|length|how long|one page|stand out|mistakes?|improve|better|good|great|strong)\b|\bhow (?:should|do|can) i (?:write|format|structure|make|improve)\b/.test(t)) return null;
+    const profile = ctx.profile || {};
+    const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");
+    // A review ask is told plainly what can be judged: with no resume on file there is nothing of theirs to judge yet;
+    // with one, a judgment means something only against a target, which tailoring does.
+    const head = review ? (onFile ? "Here is what I check your resume against; it is judged best against a real posting, which tailoring does." : "No resume of yours is on file yet, so I can't judge yours; here is what I check one against.") : "What makes a resume work.";
+    const reply = compose({ headline: head, facts: [
+      "Keep it to one page unless you have many years of relevant work; readers skim, so the top third carries the most weight.",
+      "Each bullet says what you did and the result, with a number where you have one: time saved, money, users, accuracy.",
+      "Tailor it to each posting: lead with the experience and skills that posting asks for, in its words where they are true for you.",
+      "Keep the format plain, with clear headings, one font, and no tables or graphics, so application systems can read it.",
+      "List nothing you can't back up; I build tailored versions only from facts you have confirmed.",
+    ], nextStep: onFile ? "Want me to tailor yours to a role?" : "Want to paste yours so I can tailor it to a role?" });
+    return { intent: "career_resume_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // 2026-10-23 (coordinator probe): a choice between two named fields ("should I go into law or medicine?") had no
+  // owner, and "should I become a lawyer or a doctor?" answered about lawyers alone. Both options must be known
+  // fields, so a choice between companies or offers is never claimed. The training path of a licensed field is
+  // authored general knowledge (US); the choice is the person's and is not made for them.
+  const DECISION_FIELDS = [
+    { key: "law", re: /^(?:law|lawyer|attorney|legal|law school)$/, label: "law", track: "Law: three years of law school after college, then a bar exam." },
+    { key: "medicine", re: /^(?:medicine|doctor|physician|medical|med school|medical school)$/, label: "medicine", track: "Medicine: four years of medical school after college, then a residency of three to seven years, with licensing exams along the way." },
+    { key: "nursing", re: /^(?:nursing|nurse)$/, label: "nursing", track: "Nursing: an accredited nursing program of two to four years, then a licensing exam." },
+    { key: "teaching", re: /^(?:teaching|teacher|education)$/, label: "teaching", track: "Teaching: a degree plus a state teaching license, with rules that differ by state." },
+    { key: "accounting", re: /^(?:accounting|accountant|cpa)$/, label: "accounting", track: "Accounting: a degree, and for the CPA license extra credit hours and a four-part exam." },
+    { key: "pharmacy", re: /^(?:pharmacy|pharmacist)$/, label: "pharmacy", track: "Pharmacy: a four-year PharmD after prerequisite courses, then licensing exams." },
+    { key: "dentistry", re: /^(?:dentistry|dentist|dental school)$/, label: "dentistry", track: "Dentistry: four years of dental school after college, then licensing exams." },
+    { key: "engineering", re: /^(?:engineering|engineer)$/, label: "engineering" },
+    { key: "software", re: /^(?:software|software engineering|coding|programming|computer science|tech)$/, label: "software" },
+    { key: "finance", re: /^(?:finance|banking|investment banking)$/, label: "finance" },
+    { key: "consulting", re: /^(?:consulting|consultant)$/, label: "consulting" },
+    { key: "marketing", re: /^(?:marketing)$/, label: "marketing" },
+    { key: "data", re: /^(?:data|data science|data analysis|analytics)$/, label: "data" },
+    { key: "design", re: /^(?:design|ux|ux design|graphic design)$/, label: "design" },
+    { key: "business", re: /^(?:business)$/, label: "business" },
+    { key: "research", re: /^(?:research|academia)$/, label: "research" },
+  ];
+  function decisionField(raw) {
+    const w = lc(s(raw)).replace(/^(?:a|an|the|go into|get into|going into|into|study|studying|practice|practicing|pursue|pursuing|become|be|do|doing|major in|career in|a career in)\s+/g, "").replace(/^(?:a|an|the)\s+/, "").trim();
+    return DECISION_FIELDS.find((f) => f.re.test(w)) || null;
+  }
+  function routeFieldDecision(text, ctx) {
+    const t = lc(s(text).trim()).replace(/[’]/g, "'").replace(/[?!.]+$/, "");
+    let m = t.match(/\bshould i\s+(?:go into|get into|study|practice|pursue|become|be|do|major in|choose|pick)\s+(.+?)\s+or\s+(.+?)$/)
+      || t.match(/^(.+?)\s+or\s+(.+?),?\s+which (?:one )?(?:should|do) i (?:pick|choose|go with|do|pursue)$/)
+      || t.match(/\b(?:choose|choosing|decide|deciding|torn) between\s+(.+?)\s+(?:and|or)\s+(.+?)$/);
+    if (!m) return null;
+    const a = decisionField(m[1]), b = decisionField(m[2].replace(/\s+(?:instead|then|eventually)$/, ""));
+    if (!a || !b || a.key === b.key) return null;
+    const facts = [];
+    for (const f of [a, b]) if (f.track) facts.push(f.track);
+    facts.push(`Compare ${a.label} and ${b.label} on what you would do all day, the years and cost of training, and which kind of work you have already enjoyed.`);
+    facts.push(`A cheap test: spend a day shadowing someone in each, or take on one small task close to each field's daily work, and notice which you want to repeat.`);
+    const reply = compose({ headline: `${a.label[0].toUpperCase() + a.label.slice(1)} or ${b.label}: how to decide, and the choice stays yours.`, facts, nextStep: `Want me to show what postings in ${a.label} or ${b.label} ask for?` });
+    return { intent: "career_field_decision", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
   function routeFamily(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw).replace(/[’]/g, "'");
@@ -45740,7 +45813,13 @@ const CareerRouter = (() => {
       const clRec = { kind: "cover_letter", ok: !!(letter && letter.ok), reason: (letter && letter.reason) || null, text_present: !!(letter && letter.text), rule: "only_where_portal_asks", registers: ["startup_builder_voice", "bank_formal_voice"] };
       return { intent: "career_tailor", reply, resultStatus: "prepared", sends: 0, cover_letter: letter || undefined, payload: clRec, artifact: clRec };
     }
-    if (/\btailor\b|\btailored per\b|\bresume variants\b|\bvariants\b[^.]*\bresume\b|\banswer bank\b|\btruth audit\b|\bliving resume\b|\bresume diff\b|\bdiff review\b|\bbans? ai\b|\bai[ -]written\b|\bimpact bullets\b|\b(customi[sz]e|adjust|fit)\b[^.]*\bresume\b|\bresume\b[^.]*\bto this\b|\bmake my resume\b/.test(t)) {
+    // 2026-10-23: "how do I make my resume better" names no role, company or posting: it asks for guidance, and the
+    // tailor answer it reached claimed "The target is set" for a target never named.
+    if (/\b(?:make|get) my (?:resume|cv)\s+(?:better|stronger|stand out|good|great|pop)\b|\bimprove my (?:resume|cv)\b/.test(t) && !c.posting && !companyFromText(text, c) && !/\b(?:for|to)\s+(?:a|an|the|this|that)\b/.test(t)) {
+      const rg = routeResumeGuidance(text, c);
+      if (rg) return rg;
+    }
+    if (/\btailor\b|\btailored per\b|\bresume variants\b|\bvariants\b[^.]*\bresume\b|\banswer bank\b|\btruth audit\b|\bliving resume\b|\bresume diff\b|\bdiff review\b|\bbans? ai\b|\bai[ -]written\b|\bimpact bullets\b|\b(customi[sz]e|adjust|fit)\b[^.]*\bresume\b|\bresume\b[^.]*\bto this\b|\bmake my resume\b|\b(?:improve|update|fix)\b[^.]*\bresume\b[^.]*\b(?:for|to)\s+(?:a|an|the|this|that)\b/.test(t)) {
       // COMPLEXITY WAVE (BUG-173): profile-less, the chain cannot
       // tailor — but the ask gets its honest answer (target named,
       // the one missing input named) instead of the silent null.
@@ -46143,6 +46222,9 @@ const CareerRouter = (() => {
       // other turn passes through untouched.
       const elq = handleEligibilityAsk(text, c);
       if (elq) return elq;
+      // 2026-10-23: a choice between two named fields is answered on both, ahead of the role library (which answered
+      // "should I become a lawyer or a doctor?" about lawyers alone).
+      { const fd = routeFieldDecision(text, c); if (fd) return fd; }
       const iq = (/\?/.test(s(text)) || /\b(tell me|what|how|look for|hiring|comp|culture|interview process|file built|compare|pay|stats|statistics|library)\b/.test(t)) ? handleIntel(text, c) : null;
       if (iq) return iq;
       // ROUTING FAMILIES (2026-10-23): an onboarding ask aimed at the product ("how do I get started with you") is not
@@ -46402,6 +46484,7 @@ const CareerRouter = (() => {
       const ig = handleIntelGuidance(text, c);
       if (ig) return ig;
     }
+    { const rg = routeResumeGuidance(text, c); if (rg) return rg; }
     { const fam = routeFamily(text, c); if (fam) return fam; }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).

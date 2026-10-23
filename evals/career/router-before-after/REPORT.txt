@@ -1,0 +1,5 @@
+rba-cand-r1-39891633497: router 373453f3 · 16/30 both-pass (53.3%) · $0.013
+rba-cand-r2-39891633497: router 373453f3 · 15/30 both-pass (50.0%) · $0.013
+rba-v248-r1-39891633497: router cea914fe · 14/30 both-pass (46.7%) · $0.012
+rba-v248-r2-39891633497: router cea914fe · 15/30 both-pass (50.0%) · $0.013
+total $0.051 of $5

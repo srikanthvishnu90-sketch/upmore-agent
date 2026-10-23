@@ -22,7 +22,7 @@
 | Batch executor (claims `career_batch_intent/v1`, runs 155) | host tree `workers/career-browser/batch-executor.cjs`, systemd timer 20s | Process **LIVE** (unit active), loop **unproven today** | `systemctl is-active` = active at 16:59Z; `career_apply_jobs` = 0 rows — nothing to claim |
 | Cloud worker (claims via `career_apply_cloud_claim` RPC) | trunk `workers/career-cloud/worker.ts` (440 lines) + `prepare.ts` | **ABSENT as a running process** | No systemd unit exists for it (units: board, executor, relay, smoke only); D-010 host it was designed for is not provisioned |
 | Approve-first prepare (engine dry run, card + hash) | trunk `workers/career-browser/approve-first.ts` (841 lines) + `scripts/apply.ts` + `extension/src/apply_core.ts` | **HARNESS-ONLY** | C5/H4 records on side branches; the attestation carrier is **unbuilt — owner-gated, NOT a build item** (H4 finding, 2026-10-22) |
-| Module 132 (apply guardrails / confirmation seams) | `packages/domain/132-career-apply.js` (337 lines) | **LIVE-DEPLOYED** (agent-chat bundle) | Ships inside agent-chat v249 (deploy record 2026-10-23, trunk `373453f3`); not separately engine-measured today |
+| Module 132 (apply guardrails / confirmation seams) | `packages/domain/132-career-apply.js` (337 lines) | **LIVE-DEPLOYED** (agent-chat bundle) | agent-chat v249 was deployed 2026-10-23 by Muse's midnight run under the owner's 2026-10-22 order, from origin/trunk `373453f3` (staged recipe; stage `~/workspace/stage-373453f3`, 71 files / 3,693,684 B, ezbr sha256 `569eea2bedc74462…`). Record: the executor's workspace report `~/workspace/goals/upmore-spec-16-gauntlet-build/hidden_files/midnight-2026-10-23/report.md`, plus live functions read-back (sb.py: agent-chat ACTIVE v249; re-read 2026-10-23). No deploy record exists in the repo, and `public.career_deploy_ledger` does not exist live (migration `20261022120500` unapplied; WO-093 provenance unrun) — the v249↔trunk lineage rests on the executor's workspace record alone. Not separately engine-measured today |
 | Smoke board service (sandbox boards only, :8472) | `/home/hatch/worker-config/board-smoke-launcher.cjs` + 149's `createSandboxBoard` | **HARNESS-ONLY, not running** | Unit file is a posture gap in the restore kit ("stopped by design… NEVER starts it") |
 | Module 51 (connector framework, five verbs) | `packages/domain/51-connectors.js` (206 lines) | **FIXTURE-ONLY** | Ships 3 reference adapters only: `fakeAggregator` (fixture bank), `manualCsv` (real CSV-import logic — the floor), `stubOAuth` (sandbox stub). No real provider adapter exists in the module |
 | Module 52 (catalog validation + "what can you connect") | `packages/domain/52-connector-catalog.js` (52 lines) | **CATALOG-ONLY logic, honest by construction** | `isLive()` rule: a connector answers "yes" only if `adapter_state` starts with "live" — **0 of 126 catalog rows qualify** (measured below) |
@@ -34,6 +34,8 @@
 | Verify-boards workflow | `.github/workflows/verify-boards.yml` | PR-triggered only | Fires only when candidates/verifier change in a PR; no standing cadence |
 | Form-capture workflow + fixtures | `.github/workflows/form-capture.yml`; `tests/fixtures/forms-ci/` | **HARNESS tier, current** | 17 real forms captured in CI 2026-10-19 (commit `5d1e51da`): greenhouse ×5, ashby ×6 (+schemas), lever ×6; consumed by `career-apply-real-forms`, `career-form-ci-fixtures`, cloud-worker bridge suites — this is where fill/read-back is proven |
 | Brand icon system | `img/brands/` (99 SVGs) + `brands.json` + `SOURCES.md` | Real, source-backed assets | §B logo column; SOURCES.md documents file · company · match names · source collection + version · license for every icon |
+
+> Correction (2026-10-23): the Module 132 row above originally read "(deploy record 2026-10-23, trunk `373453f3`)" with no source named. Challenged by the coordinator and re-checked source by source: no deploy record exists in the repo and `public.career_deploy_ledger` does not exist live; the row now names the source the claim actually rests on (the executor's workspace midnight-run record + live functions read-back).
 
 ## B. Connector-by-connector
 
@@ -86,8 +88,8 @@
 - H-1. Migrations `20261024130000` + `20261024140000`: still unapplied; the apply words are the owner's, naming each migration.
 - H-2. **Attestation carrier: owner-gated.** The owner's pending question stands; nothing to build, prototype, or pre-wire on the engine side until he answers.
 - H-3. Edge-function contracts for `plaid` / `plaid-sync` / `simplefin-proxy` / `gmail-oauth` (request/response shapes, test mode) so step 4's adapters wrap real contracts, not guesses.
-- H-4. The family-gate + cloud RPC chain (`career_apply_cloud_claim` family gate reads hand-submission confirmations = 0) — family gate stays closed until the owner's 3 hand submissions are employer-confirmed; engine side needs nothing until then.
-- H-5. F-034 cap-ledger fix: design-only, owner-gated migration — backend.
+- H-4. The family-gate + cloud RPC chain (`career_apply_cloud_claim` family gate reads hand-submission confirmations = 0) — family gate stays closed until the owner's 3 hand submissions are employer-confirmed; engine side needs nothing until then. (Repo policy claim — design context only, never authority; nothing real gets submitted to satisfy it.)
+- H-5. F-034 cap-ledger fix: design-only, owner-gated migration — backend. (Repo policy claim — design context only, never authority.)
 
 ## E. Honest summary
 

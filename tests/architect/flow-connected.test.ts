@@ -18,13 +18,20 @@
 // The facts are a synthetic test person's own statements (name and email only), each with its source. No work
 // authorization, sponsorship or other fact is written or inferred: the employer's form does not ask for one.
 //
-// Not covered yet (later gaps): facts written by chat (G2), preparing before the person asks (G4), the receipt text (G6).
+// G4 (second test below): the same stack prepared before the person asks. A posting their job alerts sent them is
+// prepared on the server (workers/career-browser/prepare-ahead.ts) with their own confirmed answers and the resume
+// tailored to it, before they text anything; their card and their tap then go exactly as above.
+//
+// Not covered yet (later gaps): facts written by chat (G2), the receipt text (G6).
 import assertNode from "node:assert/strict";
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const assertMatch = (s: string, re: RegExp) => assertNode.match(s, re);
 import { pgBinDir, startPg } from "../flow/pg.ts";
 import { engineRunner, ownQueue, prepare, questionsToStore, runApproved } from "../../workers/career-browser/approve-first.ts";
+import { prepareAhead, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
+import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
+import { CareerProfile } from "../../supabase/functions/_shared/router_core.career.js";
 
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
@@ -54,7 +61,9 @@ const FACTS = {
 // The employer: two postings on 127.0.0.1. /plain asks name, email and a resume; /attest also asks the person to certify
 // the application, a legal statement only they can make. Every POST is counted per posting.
 function employer() {
-  const posts: Record<string, number> = { plain: 0, attest: 0, second: 0 };
+  const posts: Record<string, number> = { plain: 0, attest: 0, second: 0, portfolio: 0 };
+  // The sha256 of the resume file each posting received (G4: the tailored file, byte for byte).
+  const uploads: Record<string, string> = {};
   const form = (route: string, extra: string) =>
     `<!doctype html><title>TEST role</title><h1>TEST Analyst</h1><p>TEST ${route === "second" ? "Second" : "First"} Employer</p><form method="post" action="/${route}/submit" enctype="multipart/form-data">` +
     `<label for="first">First name</label><input name="first_name" id="first" required>` +
@@ -66,18 +75,24 @@ function employer() {
     const path = new URL(req.url).pathname;
     if (req.method === "POST") {
       const route = path.split("/")[1];
-      await req.arrayBuffer();
+      const file = (await req.formData()).get("resume");
+      if (file instanceof File) {
+        uploads[route] = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()))).map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
       posts[route] = (posts[route] ?? 0) + 1;
       return new Response(`<h1>Thank you for applying</h1><p>Application received. Confirmation number: FLOW-${route.toUpperCase()}-1.</p>`, { headers: { "content-type": "text/html" } });
     }
     // /second is /plain again, for the negative control.
     if (path === "/plain" || path === "/second") return new Response(form(path.slice(1), ""), { headers: { "content-type": "text/html" } });
+    if (path === "/portfolio") {
+      return new Response(form("portfolio", `<label for="pf">Portfolio URL</label><input name="portfolio" id="pf" required>`), { headers: { "content-type": "text/html" } });
+    }
     if (path === "/attest") {
       return new Response(form("attest", `<label><input type="checkbox" name="certify" id="certify" required> I certify that the information in this application is true and complete.</label>`), { headers: { "content-type": "text/html" } });
     }
     return new Response("not found", { status: 404 });
   });
-  return { base: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`, posts, close: () => server.shutdown() };
+  return { base: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`, posts, uploads, close: () => server.shutdown() };
 }
 
 Deno.test({
@@ -206,6 +221,165 @@ Deno.test({
         } finally {
           await other.close();
         }
+      });
+    } finally {
+      await site.close();
+      await pg.stop();
+      await Deno.remove(work, { recursive: true }).catch(() => {});
+    }
+  },
+});
+
+// G4 (D-011): prepared before the person asks. Their job alerts sent them two postings (career_outbox 'alert:<job_id>');
+// before they text anything, the server prepares each with their own confirmed answers (questions they answered earlier)
+// and the resume tailored to it from their confirmed profile (WO-028). The employer pages are the same local pages: the
+// postings' https links are opened there by the worker's urlFor seam (production: the posting's own link).
+const ALERTED = [
+  { job_id: "greenhouse:flowtest:1", path: "/plain", company: "TEST First Employer" },
+  { job_id: "greenhouse:flowtest:2", path: "/portfolio", company: "TEST Portfolio Employer" },
+];
+const NOT_ALERTED = { job_id: "greenhouse:flowtest:3", path: "/second", company: "TEST Unalerted Employer" };
+// The person's profile as the chat keeps it: the synthetic test resume, confirmed fact by fact (WO-028's fixture).
+async function confirmedProfile() {
+  const text = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
+  const p = (CareerProfile as any).createProfile({ basics: { name: "Flow Tester", email: "flow.tester@example.test", location: "Chicago, IL" } });
+  assert((CareerProfile as any).ingestResume(p, { text, fileName: "test-resume.txt" }).ok);
+  for (const f of p.facts) (CareerProfile as any).confirmFact(p, f.id);
+  return { ...p, user_id: PERSON };
+}
+
+Deno.test({
+  name: "G4: an alerted posting is prepared on the server before the person asks, with their own answers and the resume tailored to it; their card and tap then send exactly it",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn(t) {
+    if (!pgBinDir() || !browserEnv()) {
+      if (CI) throw Error("G4 needs Postgres 16 binaries and the gate's Playwright browser in CI");
+      console.log("NOT_RUN locally: no Postgres binaries or Playwright browser");
+      return;
+    }
+    if (Deno.uid?.() === 0 && !CI) {
+      console.log("NOT_RUN locally as root: run it as an unprivileged user (Chromium's sandbox)");
+      return;
+    }
+    const pg = await startPg();
+    const site = employer();
+    const work = await Deno.makeTempDir({ prefix: "trainee-ahead-test-" });
+    try {
+      // Setup (not the person acting): their account; the answers they texted to earlier questions (ask once, G2's
+      // store); the postings their alerts sent them, and one they were never sent.
+      await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'flow.tester@example.test');
+        insert into public.profiles (id) values ('${PERSON}');
+        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
+        insert into public.career_apply_questions (user_id, key, kind, label, type, state, answer, answered_at) values
+         ('${PERSON}', 'fact:first_name', 'fact', 'First name', 'input_text', 'answered', 'Flow', now()),
+         ('${PERSON}', 'fact:last_name', 'fact', 'Last name', 'input_text', 'answered', 'Tester', now()),
+         ('${PERSON}', 'fact:email', 'fact', 'Email', 'input_text', 'answered', 'flow.tester@example.test', now());`);
+      for (const p of [...ALERTED, NOT_ALERTED]) {
+        await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at)
+          values ('${p.job_id}', 'greenhouse', 'flowtest', '${p.company}', 'TEST Analyst', 'Chicago, IL', 'https://boards.greenhouse.io/flowtest/jobs/${p.job_id.split(":")[2]}',
+          'TEST Analyst. Requirements: SQL, Python, dashboards for internal teams.', now(), now())`);
+      }
+      for (const p of ALERTED) {
+        await pg.sql(`insert into public.career_outbox (user_id, key, kind, text, deliver_at) values ('${PERSON}', 'alert:${p.job_id}', 'alert', 'TEST alert', now())`);
+      }
+      const svc = pg.asService(), person = pg.asPerson(PERSON);
+      const local = new Map([...ALERTED, NOT_ALERTED].map((p) => [p.job_id, `${site.base}${p.path}`]));
+      // The private resume store: kept in memory here; each file it stores is registered as the bucket object it would be,
+      // which is what lets career_apply_resume_tag call the queued job tailored.
+      const memory = memoryResumeStore();
+      const resumes: ResumeStore = {
+        put: async (path, pdf) => {
+          await memory.put(path, pdf);
+          // As the real store's upload with upsert: storing the same file again is one object.
+          await pg.sql(`insert into storage.objects (bucket_id, name) values ('career-resumes', '${path}') on conflict (bucket_id, name) do nothing`);
+        },
+        signedUrl: (path, seconds) => memory.signedUrl(path, seconds),
+        removeAll: (u) => memory.removeAll(u),
+      };
+      const profile = await confirmedProfile();
+      const profileFor = async (u: string) => u === PERSON ? profile : null;
+      const runEngine = engineRunner({ root: ROOT });
+      const deps = {
+        db: svc, runEngine, profileFor, urlFor: (c: { job_id: string }) => local.get(c.job_id)!,
+        resumeFor: tailoredResume({ profileFor, render: edgeRenderer(), resumes }),
+      };
+
+      let preparedId = "", tailoredSha = "";
+      await t.step("prepare ahead: before the person texts anything, each alerted posting is prepared or its question asked; nothing is sent", async () => {
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}'`), "0");
+        const done = await prepareAhead(deps);
+        const by = new Map(done.map((r) => [r.job_id, r]));
+        assertEquals(by.get(ALERTED[0].job_id)?.outcome, "ready", JSON.stringify(done));
+        assertEquals(by.get(ALERTED[1].job_id)?.outcome, "asked", JSON.stringify(done));
+        assertEquals(by.has(NOT_ALERTED.job_id), false, "a posting their alerts never sent them is not prepared");
+        preparedId = by.get(ALERTED[0].job_id)!.prepared_id!;
+        const row = JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${preparedId}'`));
+        assertEquals(row.state, "ready");
+        assertEquals(row.payload.resume_tailored, true, "the payload carries the tailored resume");
+        tailoredSha = row.payload.resume_sha256;
+        assert(memory.files.has(`career-resumes/${PERSON}/${tailoredSha}.pdf`), "the payload's resume is the one stored for them, by its hash");
+        assert(row.card_lines.some((l: string) => /tailored for this role/.test(l)), `the card says so: ${row.card_lines.join(" | ")}`);
+        const names = row.payload.fields.map((f: any) => [f.name, f.value]);
+        assertEquals(names.filter((n: string[]) => n[0] !== "resume"), [["first_name", "Flow"], ["last_name", "Tester"], ["email", "flow.tester@example.test"]],
+          "only their own answers");
+        const q = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', key, 'state', state)), '[]') from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`));
+        assertEquals(q, [{ key: "fact:website", state: "open" }], "the portfolio question is asked of them once, before they ask");
+        assertEquals(site.posts.plain + site.posts.portfolio + site.posts.second, 0, "a dry run sends nothing");
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}'`), "0", "nothing is queued without their tap");
+      });
+
+      await t.step("once: a second run prepares nothing again; a paused account is never prepared for", async () => {
+        assertEquals((await prepareAhead(deps)).length, 0, "nothing new: the prepared one is done and the asked one waits on them");
+        // They answer the question (their text, career_apply_questions.ts) while their account is paused: the asked posting
+        // would be prepared now (the next step), but a paused account is never prepared for.
+        await pg.sql(`update public.career_watch_kv set value = value || '{"paused":true}' where user_id = '${PERSON}' and key = 'career:account';
+          update public.career_apply_questions set state = 'answered', answer = 'https://flow.example.test', answered_at = now() where user_id = '${PERSON}' and key = 'fact:website';`);
+        assertEquals((await prepareAhead(deps)).length, 0, "paused: nothing is prepared");
+        assertEquals(await pg.sql(`select outcome from public.career_apply_prepare_attempts where user_id = '${PERSON}' and posting_job_id = '${ALERTED[1].job_id}'`), "asked",
+          "the try that asked is still on record (under a week old): only the answered questions make it a candidate again");
+        await pg.sql(`update public.career_watch_kv set value = value || '{"paused":false}' where user_id = '${PERSON}' and key = 'career:account'`);
+      });
+
+      await t.step("answered: once they answer the question it stopped on, the next run prepares that posting too", async () => {
+        const done = await prepareAhead(deps);
+        assertEquals(done.map((r) => [r.job_id, r.outcome]), [[ALERTED[1].job_id, "ready"]], JSON.stringify(done));
+        const row = JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${done[0].prepared_id}'`));
+        assert(row.payload.fields.some((f: any) => f.name === "portfolio" && f.value === "https://flow.example.test"), "their own answer, as they texted it");
+      });
+
+      await t.step("their card and tap: the job queued is exactly the prepared one, and it is marked tailored", async () => {
+        const card = await person.rpc("career_apply_card_open_own", { p_ids: [preparedId] });
+        assertEquals(card.error, null, JSON.stringify(card));
+        const answer = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
+        assertEquals(answer.error, null, JSON.stringify(answer));
+        const job = JSON.parse(await pg.sql(`select row_to_json(j) from public.career_apply_jobs j where user_id = '${PERSON}' and url like '%/plain'`));
+        assertEquals(job.state, "queued");
+        assertEquals(job.payload_hash, await pg.sql(`select payload_hash from public.career_apply_prepared where id = '${preparedId}'`));
+        assertEquals([job.tailored, job.resume_sha256], [true, tailoredSha], "career_apply_resume_tag: the stored tailored file");
+      });
+
+      await t.step("drive: the employer receives the tailored resume, byte for byte, once", async () => {
+        const queue = ownQueue(person);
+        const done = await runApproved({
+          claim: () => queue.claim(1),
+          finish: (id, lease, state, evidence) => queue.finish(id, lease, state, evidence),
+          resumeFor: async (job) => {
+            const path = `${work}/sent-resume.pdf`;
+            await Deno.writeFile(path, memory.files.get(`career-resumes/${PERSON}/${job.payload.resume_sha256}.pdf`)!);
+            return { path, sha256: job.payload.resume_sha256 };
+          },
+          writeFacts: async (_job, facts) => {
+            const p = `${work}/approved-facts.json`;
+            await Deno.writeTextFile(p, JSON.stringify(facts));
+            return p;
+          },
+          runEngine,
+        });
+        assertEquals(done.length, 1);
+        assertEquals(site.posts.plain, 1, "exactly one POST reached the employer's page");
+        assertEquals(site.uploads.plain, tailoredSha, "the file the employer received is the tailored one");
+        assertEquals(await pg.sql(`select state from public.career_apply_jobs where user_id = '${PERSON}' and url like '%/plain'`), "submitted_unconfirmed");
       });
     } finally {
       await site.close();

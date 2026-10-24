@@ -113,6 +113,13 @@ export async function prepare(o: {
     ...(o.resumeTag?.tailored
       ? { resume_tailored: true, ...(o.resumeTag.persona ? { resume_persona: o.resumeTag.persona } : {}) }
       : {}),
+    // What this preparation is: planned against the form as it first stood, never filled or checked on it before the
+    // approval (the discovery boundary). The approved run fills it, reads every answer back and stops before the click
+    // on any difference; a question the form shows only once filled makes the application incomplete, never assumed.
+    ...(ev.discovery?.read_only
+      ? { preparation: { verification: "planned_not_fill_verified", completeness: "unknown_until_filled",
+        lookups: Array.isArray(ev.discovery.lookups) ? ev.discovery.lookups.map((l: any) => String(l.field)) : [] } }
+      : {}),
   };
   // What the person reads before the yes: every answer as the form itself shows it (the engine's readback, so a select
   // reads "Yes", never its internal value "1"), the resume once by name, and where it goes. Nothing on the card that the
@@ -136,6 +143,14 @@ export async function prepare(o: {
       ]
       : []),
     `Sends to ${payload.destination}`,
+    ...(payload.preparation
+      ? [
+        "Planned from your answers; the form is not filled yet. It is filled and every answer checked on the form only after you say yes. If the form then differs or asks something this card does not show, nothing is sent and you are asked.",
+        ...(ev.discovery.lookups as any[]).map((l: any) =>
+          `${l.label}: the employer's own suggestion for it is picked only after you say yes; if none matches, nothing is sent.`
+        ),
+      ]
+      : []),
   ];
   let approved_snapshot: { schema: any[]; original: typeof payload } | undefined;
   if (Array.isArray(ev.schema)) {
@@ -365,6 +380,10 @@ export async function runApproved(d: {
           reason: run.result.reason ?? null,
           confirmation_id: run.result.confirmation_id ?? null,
           evidence_path: run.result.evidence_path ?? null,
+          // The form asked something more once it was filled: the application, prepared without it, was incomplete.
+          ...((run.result as any).after_fill
+            ? { incomplete: "QUESTION_APPEARED_AFTER_FILL", questions: ((run.result as any).fields ?? []).map(String).slice(0, 20) }
+            : {}),
         };
       }
     } catch (e: any) {

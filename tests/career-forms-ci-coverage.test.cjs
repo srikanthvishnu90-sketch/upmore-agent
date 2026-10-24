@@ -772,15 +772,24 @@ test("widget-gap guard: attestation-class fields stop for the person on every wi
 });
 
 test("widget-gap guard: an unfilled required select cannot be counted filled in the pin", () => {
-  // The measured drive recorded TSMG's eeo[gender] as value_did_not_persist.
-  // Claiming it filled in the pin — without the drive changing — must be
-  // rejected by the gate (pin sums and the reconciliation exact-set both break).
-  // The per-form tests' deepEqual of measured fills against the pin is what
-  // binds any fuller rewrite of the pin to a real drive; this guard names the
-  // outcome-flip path specifically.
+  // The tamper target is a required select the measured drive leaves unfilled.
+  // This guard was written (20427bc8) against TSMG's eeo[gender], which the
+  // drive then recorded as value_did_not_persist. The Lever re-pin f9e79bdd
+  // ("native selects take the profile's values") measured eeo[gender] filled,
+  // and the 2026-10-24 reconciliation re-drive at 82cb014a reproduced it filled
+  // with exact read-back (docs/engine/FORMS-CI-COVERAGE-RECONCILIATION-2026-10-24.md)
+  // — that field no longer names an unfilled select, so the flip target is the
+  // same form's remaining unfilled required select: the attestation select,
+  // pinned outcome attestation_stop. Claiming it filled in the pin — without
+  // the drive changing — must be rejected by the gate (pin sums and the
+  // reconciliation exact-set both break). The per-form tests' deepEqual of
+  // measured fills against the pin is what binds any fuller rewrite of the
+  // pin to a real drive; this guard names the outcome-flip path specifically.
+  // The gate assertions below are unchanged from 20427bc8; only the flip
+  // target and this comment moved, on the measured record above.
   const tampered = JSON.parse(JSON.stringify(EXPECTED));
   const tsmg = tampered.capturedForms.find((f) => f.id.startsWith("lever-tsmg"));
-  const i = tsmg.expectation.fills.findIndex(([n]) => n === "eeo[gender]");
+  const i = tsmg.expectation.fills.findIndex(([n]) => n === "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]");
   assert.ok(i >= 0 && tsmg.expectation.fills[i][1] !== "filled", "pin shape changed");
   tsmg.expectation.fills[i][1] = "filled";
   assert.equal(recordedClaimConsistent(tampered), false);

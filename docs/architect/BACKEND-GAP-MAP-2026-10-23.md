@@ -107,6 +107,19 @@ caller.
 - Inbox confirmation (`CAREER_MAIL_TRACKING`) is off, so the cloud gate (3 email-confirmed submissions per portal) can
   only open by waiver.
 
+Status, 2026-10-24 (branch `arch/backend-g6-receipts`, not merged):
+- **Receipts:** shown on a real database (slice 1, e300defb).
+- **Before picture and proof in the record:** slice 2.
+  - `apply.ts` takes `before-click.png` after every check before the click, and records the proof: each picture by
+    file, sha256 and time, the click's time, the approval and payload hashes, and the final URL.
+  - Without the before picture there is no click (`BEFORE_CLICK_PROOF_MISSING`, not sent).
+  - Without the after picture, "confirmed" is said as `submitted_unconfirmed` (`AFTER_SUBMIT_PROOF_MISSING`).
+  - `runApproved` keeps the proof in the queue row's `evidence`; G1's drive step checks each hash against the file.
+- **Still open:**
+  - The pictures themselves stay on the device or VM; only their hashes are in the row.
+  - The receipt does not show them to the person.
+  - Inbox confirmation is off.
+
 ### G7. Jobs never reach a user
 
 - **In code:** `search_jobs`, `set_job_alerts` and `queue_applications` exist only in the agent brain, which is pinned

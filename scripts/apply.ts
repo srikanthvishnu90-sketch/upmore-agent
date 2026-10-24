@@ -40,6 +40,8 @@ const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
 const { readOnly } = require("./career/render-form.cjs");
 const { fnPostingLocation } = require("./career/page-functions.cjs");
 const sha = (b: any) => crypto.createHash("sha256").update(b).digest("hex");
+// D-024: a picture in the proof, by its file name, hash and the time it was taken (never its bytes).
+const shotProof = (file: string) => ({ file: path.basename(file), sha256: sha(fs.readFileSync(file)), at: fs.statSync(file).mtimeMs });
 // A confirmed answer for a single checkbox: "Yes" checks it as surely as "true" does.
 const yesish = (v: unknown) => /^(true|yes|y|on|checked)$/i.test(String(v ?? "").trim());
 // A form asking for an identity number stops before anything is filled: those are the person's to type, never held or
@@ -1086,8 +1088,19 @@ export async function runApply(args: string[]) {
         });
       });
       fenced = true;
+      // D-024 (G6): the page as it stands at the click, after every check above passed, is the "before" of the proof.
+      // Without it there is no click: nothing has been sent, so the application is not sent and may be tried again.
+      const beforeClick = path.join(evidenceDir, "before-click.png");
+      try {
+        await send({ type: "screenshot", path: beforeClick });
+        fs.chmodSync(beforeClick, 0o600);
+      } catch {
+        throw fail("BEFORE_CLICK_PROOF_MISSING");
+      }
+      evidence.proof = { before_click: shotProof(beforeClick), approval_hash: approvalHash, payload_hash: payloadHash };
       // WO-096: the code the employer emails is for this click; mail from before it is never read as its code.
       const clickAt = Date.now();
+      evidence.proof.click_at = clickAt;
       allowSubmit = true;
       let cap: any;
       if (personSubmits) {
@@ -1250,9 +1263,19 @@ export async function runApply(args: string[]) {
         if (denied) throw fail("HOST_REDIRECT_REFUSED");
       }
       evidence.observation = obs;
-      const judged = classifyOutcome(obs);
+      // D-024: the employer's answer after the click, the "after" of the proof (the last picture of it taken above).
+      try {
+        evidence.proof.after_submit = shotProof(path.join(evidenceDir, "after-submit.png"));
+      } catch { /* no picture of the answer: said below */ }
+      evidence.proof.final_url = page.url();
+      const classified = classifyOutcome(obs);
+      // Without both pictures the product never says the application went through as confirmed.
+      const judged = classified.state === "confirmed" && !evidence.proof.after_submit
+        ? { ...classified, state: "submitted_unconfirmed", reason: "AFTER_SUBMIT_PROOF_MISSING" }
+        : classified;
       // What the person does about a code still asked for, by name (WO-096); never the code.
-      const result = judged.state === "needs_user" && judged.reason === "email_code" && stop ? { ...judged, stop } : judged;
+      const answered = judged.state === "needs_user" && judged.reason === "email_code" && stop ? { ...judged, stop } : judged;
+      const result = { ...answered, proof: evidence.proof };
       const recorded = write(result);
       store.withLock(id, () => {
         const j = store.get(id);
@@ -1269,6 +1292,7 @@ export async function runApply(args: string[]) {
     const result = {
       state: sent ? "unknown_outcome" : "not_submitted",
       reason: sent ? "READBACK_REQUIRED" : notSentReason,
+      ...(evidence.proof ? { proof: evidence.proof } : {}),
     };
     if (fenced) {
       store.withLock(id, () => {

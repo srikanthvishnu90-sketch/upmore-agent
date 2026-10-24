@@ -24,6 +24,8 @@ export interface EngineResult {
     confirmation_id?: string | null;
     evidence_path?: string;
     fields?: string[];
+    // D-024: the engine's proof of a click (scripts/apply.ts), kept with the queue's record.
+    proof?: Record<string, unknown>;
   };
   evidence: any;
 }
@@ -365,6 +367,9 @@ export async function runApproved(d: {
           reason: run.result.reason ?? null,
           confirmation_id: run.result.confirmation_id ?? null,
           evidence_path: run.result.evidence_path ?? null,
+          // D-024 (G6): the proof is kept with the record: each picture by file, hash and time, the click's time, the
+          // approval and payload hashes and the final URL (the pictures themselves stay in evidence_path).
+          ...(run.result.proof ? { proof: run.result.proof } : {}),
         };
       }
     } catch (e: any) {

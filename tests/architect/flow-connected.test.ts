@@ -45,6 +45,9 @@ import PROACTIVE_INDEX from "../../supabase/functions/career-proactive/index.ts"
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { type OpenQuestion, QUESTIONS_INTENT, type QuestionStore, questionsTurn, type Shown, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
 
+async function sha256hex(b: Uint8Array) {
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
 
@@ -230,6 +233,17 @@ Deno.test({
         const row = JSON.parse(await pg.sql(`select row_to_json(j) from public.career_apply_jobs j where user_id = '${PERSON}' and url like '%/plain'`));
         assertEquals(row.state, "submitted_unconfirmed", "a page's thank-you is never 'confirmed' (only the employer's email is)");
         assertMatch(JSON.stringify(row), /FLOW-PLAIN-1/);
+        // G6 (D-024): the proof is kept with the record: a picture of the page at the click, taken after every check
+        // before it, and one of the employer's answer after it, each named by its hash and time, in the row itself.
+        const proof = row.evidence?.proof;
+        assert(proof, `the row keeps the proof: ${JSON.stringify(row.evidence)}`);
+        for (const [shot, file] of [["before_click", "before-click.png"], ["after_submit", "after-submit.png"]]) {
+          assertEquals(proof[shot]?.file, file, shot);
+          const bytes = await Deno.readFile(`${row.evidence.evidence_path}/${file}`);
+          assertEquals(proof[shot].sha256, await sha256hex(bytes), `${shot}: the row's hash is the picture's`);
+        }
+        assert(proof.before_click.at <= proof.click_at && proof.click_at <= proof.after_submit.at,
+          `before the click, then the click, then the answer: ${JSON.stringify(proof)}`);
         assertEquals((await queue.claim(1)).length, 0, "nothing is left to claim: an application is driven once");
       });
 

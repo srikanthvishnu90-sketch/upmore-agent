@@ -19,9 +19,21 @@
 //
 // Per form, the LAST failure record wins (a form can be re-driven inside
 // the suite): an assertion_failed event, else a drive_threw event, else —
-// when the form has drive events but no assertions_passed after its last
-// drive_start — the no-verdict (test-timeout) signature with the last step
-// in flight and its elapsed offset.
+// when the form's last drive never completed (no drive_end in its
+// sequence) and produced no verdict — the no-verdict (test-timeout)
+// signature with the last step in flight and its elapsed offset.
+//
+// The no-verdict rule keys on the drive never completing, NOT on a
+// missing assertions_passed event. Root cause of the false positives at
+// ef267711 (lever-tsmg, lever-lyrahealth printed as timeout signatures
+// although their drives completed in ~10-17 s and their tests passed):
+// assertions_passed is emitted ONLY by the per-form test; the widget-gap
+// guard tests re-drive WPP/TSMG/LyraHealth through driveForm directly,
+// and those re-drives complete (drive_end) with no assertion-verdict
+// event by design — the guard's verdict lives in its own assertions,
+// not in diag events. Reading a completed re-drive's missing verdict
+// event as a timeout was the bug; a completed drive is never a timeout
+// signature.
 
 "use strict";
 const fs = require("fs");
@@ -58,7 +70,11 @@ function main() {
     const passedIdx = lastIdx("assertions_passed");
     const startIdx = lastIdx("drive_start");
     if (failIdx >= 0 && failIdx > passedIdx) {
-      const endIdx = lastIdx("drive_end");
+      // The failing drive's own drive_end is the one just before the
+      // assertion event — a later guard re-drive of the same form must
+      // not re-attribute the elapsed time.
+      let endIdx = -1;
+      for (let i = failIdx - 1; i >= 0; i--) if (evs[i].step === "drive_end") { endIdx = i; break; }
       const end = endIdx >= 0 ? evs[endIdx] : null;
       const ms = end && typeof end.totalMs === "number" ? end.totalMs : lastAtMs(failIdx);
       const drive = end && end.driveError ? ` driveError: ${String(end.driveError).slice(0, 300)}` : "";
@@ -86,7 +102,7 @@ function main() {
     } else if (threwIdx >= 0 && threwIdx > passedIdx) {
       const ms = lastAtMs(threwIdx);
       console.log(`::error title=forms-ci ${form}::step=drive_threw elapsedMs=${ms != null ? ms : "?"} error: ${esc(String(evs[threwIdx].error || "").slice(0, 800))}`);
-    } else if (startIdx >= 0 && passedIdx < startIdx) {
+    } else if (startIdx >= 0 && passedIdx < startIdx && !evs.slice(startIdx).some((e) => e.step === "drive_end")) {
       const last = evs[evs.length - 1];
       const ms = lastAtMs(evs.length - 1);
       const field = typeof last.field === "string" ? ` field=${last.field}` : "";

@@ -142,12 +142,16 @@ PY
 }
 
 # CI partition (2026-10-23): the single gate job's 30-minute cap cancelled every run on the widget-carrying
-# branches (see .github/workflows/ci.yml's comment history) — the node step below runs the whole career+shared
-# list in one invocation, and the Chromium-driving suites are its growth. GATE_PARTITION splits ONLY that
-# step's suite list between two parallel CI jobs: core (everything else, all other steps included) and browser
-# (the suites that drive a real Chromium, listed here). Scheduling only: the union of the two partitions is
-# the full list, and a browser-listed suite missing from the gate's selection fails the gate outright rather
-# than silently dropping out of CI. Unset, the gate is exactly what it was — one step, every suite.
+# branches (see .github/workflows/ci.yml's comment history). Attribution, corrected the same day: the arch
+# line's gate — this same script, byte-identical — succeeds at 19.0-19.2 min; what crossed the cap is
+# test-time growth, and the heavy add is ONE suite, tests/career-forms-ci-coverage.test.cjs (40 serial fixture
+# drives). The react-select battery is not the cause (it runs in ~11 s, and pre-battery trees cancelled too).
+# GATE_PARTITION splits ONLY the node step's suite list between parallel CI jobs: core (everything else, all
+# other steps included), browser (the remaining suites that drive a real Chromium, listed here) and coverage
+# (the forms-ci suite alone, in its own job, so its drive time is nobody else's sum). Scheduling only: the
+# union of the partitions is the full list, and a listed suite missing from the gate's selection fails the
+# gate outright rather than silently dropping out of CI. Unset, the gate is exactly what it was — one step,
+# every suite.
 browser_node_tests=(
   tests/career-approval-card-browser.test.cjs
   tests/career-extension-agent-submits.test.cjs
@@ -157,7 +161,6 @@ browser_node_tests=(
   tests/career-extension-workday.test.cjs
   tests/career-extension-yesno.test.cjs
   tests/career-fact-import-panel.test.cjs
-  tests/career-forms-ci-coverage.test.cjs
   tests/career-greenhouse-savedform.test.cjs
   tests/career-owned-worker-browser.test.cjs
   tests/career-portal-browser.test.cjs
@@ -169,34 +172,42 @@ browser_node_tests=(
   tests/career-widget-attach.test.cjs
   tests/career-workday-native-fields.test.cjs
 )
+coverage_node_tests=(
+  tests/career-forms-ci-coverage.test.cjs
+)
 partition=${GATE_PARTITION:-all}
-if [[ $partition != all && $partition != core && $partition != browser ]]; then
-  echo "GATE_PARTITION must be all, core or browser (got: $partition)" >&2
+if [[ $partition != all && $partition != core && $partition != browser && $partition != coverage ]]; then
+  echo "GATE_PARTITION must be all, core, browser or coverage (got: $partition)" >&2
   exit 1
 fi
 node_all_tests=("${career_tests[@]}" "${shared_tests[@]}")
 declare -A browser_node_set=()
 for test_file in "${browser_node_tests[@]}"; do browser_node_set["$test_file"]=1; done
+declare -A coverage_node_set=()
+for test_file in "${coverage_node_tests[@]}"; do coverage_node_set["$test_file"]=1; done
 node_core_tests=()
 node_browser_tests=()
+node_coverage_tests=()
 for test_file in "${node_all_tests[@]}"; do
-  if [[ ${browser_node_set[$test_file]:-0} == 1 ]]; then
+  if [[ ${coverage_node_set[$test_file]:-0} == 1 ]]; then
+    node_coverage_tests+=("$test_file")
+  elif [[ ${browser_node_set[$test_file]:-0} == 1 ]]; then
     node_browser_tests+=("$test_file")
   else
     node_core_tests+=("$test_file")
   fi
 done
-if (( ${#node_browser_tests[@]} != ${#browser_node_tests[@]} )); then
-  echo "GATE PARTITION BROKEN: ${#node_browser_tests[@]} of ${#browser_node_tests[@]} browser-listed suites are in the gate's selection; a listed suite was renamed or removed without updating the partition" >&2
+if (( ${#node_browser_tests[@]} != ${#browser_node_tests[@]} || ${#node_coverage_tests[@]} != ${#coverage_node_tests[@]} )); then
+  echo "GATE PARTITION BROKEN: ${#node_browser_tests[@]} of ${#browser_node_tests[@]} browser-listed and ${#node_coverage_tests[@]} of ${#coverage_node_tests[@]} coverage-listed suites are in the gate's selection; a listed suite was renamed or removed without updating the partition" >&2
   exit 1
 fi
 if [[ $partition != all ]]; then
-  printf 'GATE PARTITION %s: core %s suites, browser %s suites, total %s\n' "$partition" "${#node_core_tests[@]}" "${#node_browser_tests[@]}" "${#node_all_tests[@]}"
+  printf 'GATE PARTITION %s: core %s suites, browser %s suites, coverage %s suites, total %s\n' "$partition" "${#node_core_tests[@]}" "${#node_browser_tests[@]}" "${#node_coverage_tests[@]}" "${#node_all_tests[@]}"
 fi
 
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
-if [[ $partition != browser ]]; then
+if [[ $partition != browser && $partition != coverage ]]; then
   # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
   step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
   step apply-cli-typecheck deno check scripts/apply.ts
@@ -205,10 +216,12 @@ if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"
 elif [[ $partition == core ]]; then
   step career-and-shared-tests-core node --test --test-concurrency=2 "${node_core_tests[@]}"
-else
+elif [[ $partition == browser ]]; then
   step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_browser_tests[@]}"
+else
+  step career-and-shared-tests-coverage node --test --test-concurrency=2 "${node_coverage_tests[@]}"
 fi
-if [[ $partition != browser ]]; then
+if [[ $partition != browser && $partition != coverage ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check

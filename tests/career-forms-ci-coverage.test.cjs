@@ -821,6 +821,40 @@ for (const form of CAPTURED) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// BOARD ISOLATION (2026-10-24) — fail-first for the cross-drive contamination
+// root cause (coordinator-accepted, builder-reported; the exact CI interleave
+// is labeled inference): every drive in this suite used to send its commands
+// under ONE constant boardId, "forms-ci-coverage". node:test abandons a
+// timed-out test without cancelling it, so a drive that crosses its 600 s
+// timeout keeps running as a zombie next to the following test's drive: the
+// next drive's discover replaces the shared board's observation version, the
+// zombie's readback is refused STALE_OBSERVATION by the version gate, and the
+// zombie's error-path close deletes the board mid-drive — the CI failures on
+// andurilindustries + wppmedia (check-run 120851290550) were exactly this,
+// not outcome drift. This test drives two captured forms CONCURRENTLY
+// through the one helper daemon: on the shared board their commands
+// interleave on a single page and at least one record cannot match its pin;
+// on per-drive boards both records must equal their pins exactly.
+// ---------------------------------------------------------------------------
+test("forms-ci coverage: board isolation — two concurrent drives cannot contaminate each other", { timeout: 300000 }, async () => {
+  const a = CAPTURED.find((f) => f.id === "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5");
+  const b = CAPTURED.find((f) => f.id === "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027");
+  assert.ok(a && b, "the isolation pair is missing from the captured set");
+  const [ra, rb] = await Promise.all([driveForm(a), driveForm(b)]);
+  for (const [form, rec] of [[a, ra], [b, rb]]) {
+    assert.ok(!rec.driveError, `${form.id}: concurrent drive errored: ${rec.driveError}`);
+    if (!process.env.FORMS_CI_COVERAGE_EMIT) {
+      const exp = (EXPECTED.capturedForms.find((x) => x.id === form.id) || {}).expectation;
+      assert.deepEqual(
+        { rawFields: rec.rawFields ?? null, mapped: rec.mapped ?? null, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null },
+        { rawFields: exp.rawFields, mapped: exp.mapped, filledCount: exp.filledCount, readbackMatched: exp.readbackMatched },
+        `${form.id}: concurrent drive outcome differs from its pin — the drives contaminated each other`);
+      assert.deepEqual((rec.fills || []).map((f) => [f.name, f.outcome]), exp.fills, `${form.id}: concurrent per-field outcomes differ from the pin`);
+    }
+  }
+});
+
 test("forms-ci coverage: the replay stayed read-only and never reached a submit path", { timeout: 600000 }, async () => {
   if (cmdTypesSent.length === 0) {
     // Standalone (e.g. --test-name-pattern selecting only this test): no drive

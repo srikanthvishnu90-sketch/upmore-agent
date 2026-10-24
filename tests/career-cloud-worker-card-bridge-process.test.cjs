@@ -28,7 +28,13 @@ const get = (name: string) => Deno.args[Deno.args.indexOf(name) + 1];
 const dir = get("--record-dir"), mode = get("--test-mode");
 const nonce = Deno.args.includes("--cloud-authorize-nonce") ? get("--cloud-authorize-nonce") : "0".repeat(64);
 const prefix = "CLOUD_AUTH ";
-const record = (name: string, value: unknown) => Deno.writeTextFile(dir + "/" + name + ".json", JSON.stringify(value));
+// Each record is whole or absent: the worker SIGKILLs this child on a protocol failure (a duplicate request), and a
+// record cut off between its truncate and its write would be an empty file. It is written aside, then renamed in.
+const record = async (name: string, value: unknown) => {
+  const tmp = dir + "/." + name + "." + crypto.randomUUID() + ".tmp";
+  await Deno.writeTextFile(tmp, JSON.stringify(value));
+  await Deno.rename(tmp, dir + "/" + name + ".json");
+};
 await record("child", { mode, nonce, stdio: Deno.args.includes("--cloud-authorize-stdio"),
   secretsPresent: ${JSON.stringify(secretNames)}.filter((k) => Deno.env.get(k) !== undefined) });
 const reader = Deno.stdin.readable.pipeThrough(new TextDecoderStream()).getReader();
@@ -114,12 +120,23 @@ console.log("DRIVER " + JSON.stringify({ calls, argumentCounts, result, error })
     child.once("error", (e) => { clearTimeout(timer); reject(e); });
     child.once("close", (code, signal) => { clearTimeout(timer); resolve({ code, signal, stdout, stderr }); });
   });
-  const jsonFile = (name) => fs.existsSync(path.join(dir, name + ".json"))
-    ? JSON.parse(fs.readFileSync(path.join(dir, name + ".json"), "utf8")) : null;
+  // The driver has awaited the child's exit, so a record that is absent stays absent. One that is there but does not
+  // parse yet is waited for (up to 2 s), then named with its bytes: never a bare JSON error.
+  const jsonFile = async (name) => {
+    const file = path.join(dir, name + ".json");
+    for (const until = Date.now() + 2000; ;) {
+      if (!fs.existsSync(file)) return null;
+      const text = fs.readFileSync(file, "utf8");
+      try { return JSON.parse(text); } catch {
+        if (Date.now() > until) throw Error(mode + ": the child's " + name + ".json record is incomplete: " + JSON.stringify(text));
+        await new Promise((r) => setTimeout(r, 25));
+      }
+    }
+  };
   const output = raw.stdout.split("\n").find((l) => l.startsWith("DRIVER "));
   const r = { ...raw, parent: output ? JSON.parse(output.slice(7)) : null,
-    child: jsonFile("child"), request: jsonFile("request"), response: jsonFile("response"),
-    effect: jsonFile("effect"), elapsedMs: Date.now() - started };
+    child: await jsonFile("child"), request: await jsonFile("request"), response: await jsonFile("response"),
+    effect: await jsonFile("effect"), elapsedMs: Date.now() - started };
   measured.push({ mode, authorization, elapsedMs: r.elapsedMs, code: r.code, signal: r.signal,
     childStarted: !!r.child, child: r.child, request: r.request, response: r.response, effect: r.effect, parent: r.parent });
   assert.equal(r.code, 0, r.stdout + r.stderr);

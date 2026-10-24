@@ -140,23 +140,42 @@ Status, 2026-10-24 (branch `arch/backend-g6-receipts`, not merged):
 - **What the proof is, and is not.** Each picture is what the page showed. It binds that picture to this application
   and approval. It is not proof that the employer accepted anything, cryptographically or otherwise. Only the
   employer's own answer, read on the page or in the person's mail (WO-032), makes "confirmed".
-- **Sensitivity.**
-  - The pictures and `evidence.json` stay in the engine's private evidence directory: 0700 directories, created by
-    `privateDir`; 0600 files.
-  - Their hashes, never their bytes, are in the queue's row.
+- **Sensitivity.** What is written where, and who can read it:
+
+  | Written | Holds | Where | Mode |
+  |---|---|---|---|
+  | `evidence.json` | the approved answers (the one place their text is kept), the result | the run's evidence directory | 0600 (written aside, renamed in) |
+  | `proof-<seq>-<kind>.png`, `before-review.png`, `after-submit.png`, `after-code.png` | the page as it showed | the run's evidence directory | 0600: every file of the directory is set 0600 when the record is written, whichever step took it |
+  | the evidence directory | the above | `evidence-*` under the engine's state directory, `trainee-evidence-*` (the person's runner), a uuid (cloud, removed after each run) | 0700 (`privateDir`) |
+  | the queue's row, the job store | hashes (`fields_sha256`, one per field), names, the result; never an answer's text | database row; `~/.local/state/upmore/apply` | store files 0600 |
+  | the engine's output | field names and the fact behind each; an answer only when the person reviews at their own terminal (`Deno.stdin.isTerminal()`) | the person's terminal, a worker's log | no answer when piped |
+
   - The cloud worker masks every answer in its pictures (`UPMORE_MASK_SCREENSHOTS`). The person's own runs keep the
     plain picture they can check.
-  - Nothing is put in the repo. No workflow uploads the engine's evidence directory.
-  - Tests use the synthetic persona only.
   - The engine never holds a password, a one-time code or an identity number in a field it fills: it stops before
-    filling (`ACCOUNT_LOGIN_REQUIRED`, `IDENTITY_NUMBER_REQUESTED`), and an emailed code is never stored or printed.
-- **Retention: none today (open, the owner's decision).** Nothing deletes private evidence. The engine's state
-  directory keeps every run's pictures and `evidence.json` until someone deletes them. In tests, `engineRunner`
-  leaves its `/tmp/trainee-evidence-*` directories behind (CI runners are discarded; local runs are not).
-  - Proposed for the owner: keep an application's evidence 90 days after its final state, then delete the
-    directory and keep only the row's hashes.
-  - The person can delete theirs at any time, and the account's erasure deletes it.
-  - Not built: a deletion on the person's device is the owner's call.
+    filling (`ACCOUNT_LOGIN_REQUIRED`, `IDENTITY_NUMBER_REQUESTED`). An emailed code is never stored or printed, and
+    `after-code.png` masks every input.
+  - **Test:** `tests/architect/proof-g6.test.ts` "proof, private" runs the real engine through `runApproved` with the
+    engine creating its own evidence directory (as in production), synthetic persona only (a `PROOF-TEST-` fact on
+    `example.test`). It asserts: the directory 0700; every file 0600; the engine's output holds no answer; the queue's
+    record and its proof hold no answer, and `fields_sha256` is hex; only `evidence.json` holds an answer's text.
+    - Fail-first at 32bdc668: red, `after-submit.png` was 0644 (the helper's `submit_and_capture` wrote it unset).
+    - Mutations, each red: the 0600 sweep removed (`after-submit.png is 0600`); the terminal gate removed (`the
+      engine printed Proofa`).
+  - `tests/architect/evidence-retention.test.ts`: nothing of the evidence is tracked in the repo, and no workflow's
+    `upload-artifact` names it.
+- **Retention and cleanup: proposed 90 days, the owner sets it.** `scripts/career/evidence-retention.ts`:
+  - It removes an evidence directory whose newest file is older than the period.
+  - It removes only what is plainly one: the engine's name, owned by this user, 0700, not a link, holding only
+    the evidence's own files. Anything else is left and named (a link, not private, another file).
+  - Without `--delete` it only lists. `deno run -A scripts/career/evidence-retention.ts [--days N] [--root DIR] [--delete]`.
+  - `PROPOSED_RETENTION_DAYS = 90` is a proposal. Nothing runs it on a schedule: deleting on the person's device
+    is the owner's call. The cloud worker already removes each run's directory when the run ends.
+  - The row's hashes stay; they are not the person's text.
+  - **Test:** `tests/architect/evidence-retention.test.ts`: old removed, recent kept, a listing removes nothing, a
+    directory's age is its newest file's; a link (and its target), a non-private directory, one holding another
+    file, another name: never removed. Six mutations of the module, each red (links followed, non-private
+    accepted, foreign files accepted, a listing deletes, the directory's own time only, any name).
 - **Still open:**
   - The pictures stay on the device or VM; only their hashes are in the row.
   - The receipt does not show them.

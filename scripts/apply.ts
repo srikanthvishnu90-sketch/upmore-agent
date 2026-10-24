@@ -486,6 +486,11 @@ export async function runApply(args: string[]) {
   const write = (raw: any) => {
     const result = typedCode ? JSON.parse(redactCode(JSON.stringify(raw), typedCode)) : raw;
     evidence.result = result;
+    // Every file of the evidence is the person's alone (0600), whichever step took it: the pictures, the record.
+    for (const name of fs.readdirSync(evidenceDir)) {
+      const file = path.join(evidenceDir, name);
+      if (fs.lstatSync(file).isFile()) fs.chmodSync(file, 0o600);
+    }
     const tmp = path.join(evidenceDir, crypto.randomUUID() + ".tmp"), fd = fs.openSync(tmp, "wx", 0o600);
     try {
       fs.writeFileSync(fd, redactCode(JSON.stringify(evidence, null, 2), typedCode) + "\n");
@@ -1028,8 +1033,11 @@ export async function runApply(args: string[]) {
       evidence.final_url = page.url();
       await send({ type: "screenshot", path: path.join(evidenceDir, "before-review.png") });
       fs.chmodSync(path.join(evidenceDir, "before-review.png"), 0o600);
+      // The answers are shown to the person reviewing them at their own terminal. Any other reader of this output (a
+      // worker, a pipe, a CI log) gets the field and the fact behind it, never the answer itself.
+      const reviewing = Deno.stdin.isTerminal();
       for (const f of evidence.fields) {
-        console.log(JSON.stringify({ name: f.name, label: f.label, value: f.value, factId: f.factId }));
+        console.log(JSON.stringify({ name: f.name, label: f.label, ...(reviewing ? { value: f.value } : {}), factId: f.factId }));
       }
       const shown = Object.entries(pageFields || {});
       if (shown.length) {

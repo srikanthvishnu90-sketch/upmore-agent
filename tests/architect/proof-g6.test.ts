@@ -62,7 +62,7 @@ function employer() {
 }
 
 // Prepare the application for real, then drive it through runApproved as the queue would, as application `id`.
-async function drive(o: { id: string; fault?: string; evidenceDir?: (work: string) => Promise<string>; tamper?: (r: any) => void }) {
+async function drive(o: { id: string; fault?: string; evidenceDir?: (work: string) => Promise<string>; tamper?: (r: any) => void; ownDir?: boolean }) {
   const site = employer();
   const work = await Deno.makeTempDir({ prefix: "trainee-proof-" });
   try {
@@ -76,7 +76,9 @@ async function drive(o: { id: string; fault?: string; evidenceDir?: (work: strin
     const job: Job = { id: o.id, lease_token: "33333333-3333-4333-8333-333333333333", url: `${site.base}/apply`, user_id: PERSON, payload: prepared.payload };
     const finished: any[] = [];
     let claimed = false;
-    const fixedDir = o.evidenceDir ? await o.evidenceDir(work) : null;
+    // ownDir: a path that does not exist yet, so the engine itself creates the evidence directory (as in production).
+    const fixedDir = o.evidenceDir ? await o.evidenceDir(work) : o.ownDir ? `${work}/engine-evidence` : null;
+    let engineOutput = "";
     await runApproved({
       claim: async () => claimed ? [] : (claimed = true, [job]),
       finish: async (id, lease, state, evidence) => void finished.push({ id, lease, state, evidence }),
@@ -94,6 +96,7 @@ async function drive(o: { id: string; fault?: string; evidenceDir?: (work: strin
             args: ["run", "-A", `${ROOT}/scripts/apply.ts`, ...args, "--state-dir", `${work}/engine-state`, "--evidence-dir", fixedDir],
             stdout: "piped", stderr: "piped",
           }).output();
+          engineOutput = new TextDecoder().decode(out.stdout) + new TextDecoder().decode(out.stderr);
           const line = new TextDecoder().decode(out.stdout).split("\n").filter((l) => l.startsWith("RESULT ")).at(-1);
           r = line ? { result: JSON.parse(line.slice(7)), evidence: null } : null;
         } else {
@@ -104,7 +107,17 @@ async function drive(o: { id: string; fault?: string; evidenceDir?: (work: strin
       },
     });
     console.log(`${o.id.slice(0, 8)} fault=${o.fault ?? "-"}: ${JSON.stringify(finished[0]?.state)} ${JSON.stringify(finished[0]?.evidence)} posts=${site.posts.length}`);
-    return { finished: finished[0], posts: site.posts };
+    // What the engine left on disk, read before the work directory is removed: each entry's mode, and its bytes.
+    const disk: { name: string; mode: number; bytes: Uint8Array }[] = [];
+    let dirMode = -1;
+    if (fixedDir && o.ownDir) {
+      dirMode = (await Deno.stat(fixedDir)).mode! & 0o777;
+      for await (const e of Deno.readDir(fixedDir)) {
+        const p = `${fixedDir}/${e.name}`;
+        disk.push({ name: e.name, mode: (await Deno.lstat(p)).mode! & 0o777, bytes: await Deno.readFile(p) });
+      }
+    }
+    return { finished: finished[0], posts: site.posts, engineOutput, disk, dirMode };
   } finally {
     await site.close();
     await Deno.remove(work, { recursive: true }).catch(() => {});
@@ -207,4 +220,30 @@ Deno.test("proof: the application id the proof is bound to is a canonical uuid; 
     const text = new TextDecoder().decode(out.stdout) + new TextDecoder().decode(out.stderr);
     assert(/INVALID_ARGUMENTS/.test(text), `${id}: ${text.slice(-300)}`);
   }
+});
+
+Deno.test({
+  ...opts,
+  name: "proof, private: the evidence is kept 0700/0600 where the engine writes it; no answer is printed; the record and the proof hold hashes only",
+  async fn() {
+    if (!guard()) return;
+    // Synthetic only: the person is a test person, the email on a reserved test domain (RFC 2606), and every fact says so.
+    assert(Object.values(FACTS.answers).every((a) => /synthetic/.test(a.provenance) && a.factId.startsWith("PROOF-TEST-")));
+    assert(FACTS.answers.email.value.endsWith("@example.test"));
+    const r = await drive({ id: APP_A, ownDir: true });
+    eq(r.posts, ["Proofa"], "the application went out once");
+    // Where it is kept: the engine's own evidence directory, created private, every file in it private.
+    eq(r.dirMode, 0o700, "the evidence directory is 0700");
+    assert(r.disk.length >= 4, JSON.stringify(r.disk.map((d) => d.name)));
+    for (const d of r.disk) eq([d.name, d.mode], [d.name, 0o600], `${d.name} is 0600`);
+    // The synthetic person's answers are never printed: not on the engine's output (which a worker's or CI's log keeps).
+    for (const v of ["Proofa", "proofa.tester@example.test"]) assert(!r.engineOutput.includes(v), `the engine printed ${v}`);
+    // The queue's record, and the proof in it, hold hashes and names, never an answer's text.
+    for (const v of ["Proofa", "proofa.tester@example.test"]) assert(!JSON.stringify(r.finished.evidence).includes(v), `the record holds ${v}`);
+    const held = r.finished.evidence.proof.before_click.fields_sha256;
+    assert(Object.values(held).every((h: any) => /^[0-9a-f]{64}$/.test(h)), JSON.stringify(held));
+    // The answers themselves are kept in one place only, the private evidence.json the approved run is checked against.
+    const withAnswers = r.disk.filter((d) => new TextDecoder().decode(d.bytes).includes("Proofa")).map((d) => d.name);
+    eq(withAnswers, ["evidence.json"], "only evidence.json holds an answer's text");
+  },
 });

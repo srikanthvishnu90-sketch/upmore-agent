@@ -18,6 +18,9 @@ import { createRequire } from "node:module";
 import { syncWatchAlerts } from "../../supabase/functions/_shared/career_watch_alerts.ts";
 import { memoryAlertStore, type AlertRow } from "../../supabase/functions/_shared/career_alert_store.ts";
 import { runAlerts } from "../../supabase/functions/_shared/career_proactive_run.ts";
+import { alertStillWanted } from "../../supabase/functions/_shared/career_watch_alerts.ts";
+import { ALERTS_OFF_NOTE, deliverDue, memoryChannel } from "../../supabase/functions/_shared/channel.ts";
+import { supabaseChannelStore } from "../../supabase/functions/_shared/channel_store.ts";
 
 const require = createRequire(import.meta.url);
 const D = (n: string) => require(`../../packages/domain/${n}`);
@@ -254,4 +257,156 @@ Deno.test("Z6 a missed stop of one watch: the run matches the watch record's wat
   eq((await store.get(USER))?.prefs.interests?.length, 2, "the copy still has both (the failure is real)");
   const seen = T0 + 2 * HOUR;
   eq((await run(p, [posting("da", "Data Analyst", "Acme", "New York, NY", seen), posting("ib", "Investment Banking Analyst", "Acme", "Chicago, IL", seen)], T0 + 3 * HOUR)).sort(), ["ib"], "only the watch still on record");
+});
+
+// Delivery boundary, coordinator 2026-10-24 14:13: an alert queued before "pause my job alerts" or "stop watching ..."
+// changes only the watch, not the account pause (career_user_quiet), so delivery checks the job alerts again itself.
+// What the run queued goes to the texting channel, which asks at delivery whether each alert is still wanted.
+async function deliver(p: any, board: any[], at: number, wanted?: (m: any) => Promise<boolean>) {
+  const queued = p.store.dump().outbox.map((o: any, i: number) => ({ id: String(i + 1), userId: o.userId, contact: "+15555550100", key: o.key, text: o.text, deliver_at: o.at, attempts: 0 }));
+  const ch: any = memoryChannel(queued);
+  ch.alertWanted = wanted ?? (async (m: any) => alertStillWanted(m.key, { row: await p.store.get(m.userId), record: (await p.watches([m.userId])).get(m.userId), posting: board.find((x) => `alert:${x.job_id}` === m.key) }));
+  const sent: string[] = [];
+  const r = await deliverDue({ store: ch, now: at, send: async (_c, b) => { sent.push(b.join(" ")); return { ok: true, id: "p" }; } });
+  const rows = ch.rows();
+  return { r, sent, delivered: rows.filter((x: any) => x.status === "delivered").map((x: any) => x.key).sort(), off: rows.filter((x: any) => x.error === ALERTS_OFF_NOTE).map((x: any) => x.key).sort(), queuedLeft: rows.filter((x: any) => x.status === "queued").map((x: any) => x.key) };
+}
+
+Deno.test("D1 an alert queued before \"pause my job alerts\" is not delivered", async () => {
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  const board = [posting("a", "Data Analyst", "Acme", "New York, NY", T0 + HOUR)];
+  eq(await run(p, board, T0 + 2 * HOUR), ["a"], "queued");
+  await p.say("pause my job alerts", T0 + 2 * HOUR + 60000);
+  const d = await deliver(p, board, T0 + 3 * HOUR);
+  eq(d.delivered, [], "nothing delivered");
+  eq(d.off, ["alert:a"], "marked: the job alerts no longer ask for it");
+});
+
+Deno.test("D2 \"stop watching\" one of two watches after both alerts were queued: only the other is delivered", async () => {
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  await p.say("Watch for investment banking analyst roles in Chicago");
+  const seen = T0 + HOUR, board = [posting("da", "Data Analyst", "Acme", "New York, NY", seen), posting("ib", "Investment Banking Analyst", "Acme", "Chicago, IL", seen)];
+  eq((await run(p, board, T0 + 2 * HOUR)).sort(), ["da", "ib"], "both queued");
+  await p.say("stop watching data analyst roles", T0 + 2 * HOUR + 60000);
+  const d = await deliver(p, board, T0 + 3 * HOUR);
+  eq(d.delivered, ["alert:ib"], "the watch still on");
+  eq(d.off, ["alert:da"], "the stopped watch's alert is not sent");
+});
+
+Deno.test("D3 erased after the alert was queued; or the posting closed since: not delivered", async () => {
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  const board = [posting("a", "Data Analyst", "Acme", "New York, NY", T0 + HOUR), posting("b", "Data Analyst", "Acme", "Remote", T0 + HOUR)];
+  eq((await run(p, board, T0 + 2 * HOUR)).sort(), ["a", "b"], "queued");
+  (board[1] as any).closed_at = new Date(T0 + 2 * HOUR + 1000).toISOString();
+  const closed = await deliver(p, board, T0 + 3 * HOUR);
+  eq([closed.delivered, closed.off], [["alert:a"], ["alert:b"]], "the closed posting's alert is not sent");
+  const q = person();
+  await q.say("Watch for data analyst roles in New York");
+  eq(await run(q, [board[0]], T0 + 2 * HOUR), ["a"], "queued");
+  await q.say("forget my career profile", T0 + 2 * HOUR + 60000);
+  eq((await deliver(q, [board[0]], T0 + 3 * HOUR)).delivered, [], "erased: nothing");
+});
+
+Deno.test("D4 a check that cannot be read: the alert waits for the next run, never sent", async () => {
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  const board = [posting("a", "Data Analyst", "Acme", "New York, NY", T0 + HOUR)];
+  await run(p, board, T0 + 2 * HOUR);
+  const d = await deliver(p, board, T0 + 3 * HOUR, async () => { throw new Error("unreadable"); });
+  eq([d.delivered, d.r.deferred, d.queuedLeft], [[], 1, ["alert:a"]], "deferred, still queued");
+  eq((await deliver(p, board, T0 + 3 * HOUR)).delivered, ["alert:a"], "still wanted, readable: delivered");
+});
+
+// The production store's check, over a fake client that answers the three reads it makes.
+function fakeAdmin(t: { prefs?: any; record?: any; posting?: any; fail?: string }) {
+  const reads: string[] = [];
+  return {
+    reads,
+    from(table: string) {
+      const q: any = { filters: {} as Record<string, unknown> };
+      q.select = () => q;
+      q.eq = (k: string, v: unknown) => { q.filters[k] = v; return q; };
+      q.maybeSingle = async () => {
+        reads.push(`${table}:${JSON.stringify(q.filters)}`);
+        if (t.fail === table) return { data: null, error: { message: "synthetic read failure" } };
+        const data = table === "career_alert_prefs" ? (t.prefs ? { prefs: t.prefs } : null)
+          : table === "career_watch_kv" ? (t.record ? { value: t.record } : null)
+          : table === "career_postings" ? (t.posting ?? null) : null;
+        return { data, error: null };
+      };
+      return q;
+    },
+  };
+}
+Deno.test("D5 the production channel store reads the alert settings, the watch record and the posting, and fails closed", async () => {
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  const prefs = (await p.store.get(USER))!.prefs, record = (await p.watches([USER])).get(USER);
+  const row = { id: "1", userId: USER, contact: "+15555550100", key: "alert:a", text: "x", deliver_at: 0, attempts: 0 };
+  const yes = posting("a", "Data Analyst", "Acme", "New York, NY", T0);
+  const admin = fakeAdmin({ prefs, record, posting: yes });
+  eq(await supabaseChannelStore(admin).alertWanted!(row), true, "wanted");
+  eq(admin.reads, [`career_alert_prefs:{"user_id":"${USER}"}`, `career_watch_kv:{"user_id":"${USER}","key":"career:watch-profile:${USER}"}`, `career_postings:{"job_id":"a"}`], "the three reads");
+  eq(await supabaseChannelStore(fakeAdmin({ prefs, record: { ...(record as any), opt_out: { global: true, companies: [] } }, posting: yes })).alertWanted!(row), false, "paused watch");
+  eq(await supabaseChannelStore(fakeAdmin({ prefs, record: null, posting: yes })).alertWanted!(row), false, "watch record gone");
+  eq(await supabaseChannelStore(fakeAdmin({ prefs: null, record, posting: yes })).alertWanted!(row), false, "no alert settings");
+  eq(await supabaseChannelStore(fakeAdmin({ prefs, record, posting: null })).alertWanted!(row), false, "posting gone");
+  for (const fail of ["career_alert_prefs", "career_watch_kv", "career_postings"]) {
+    let threw = false;
+    try { await supabaseChannelStore(fakeAdmin({ prefs, record, posting: yes, fail })).alertWanted!(row); } catch { threw = true; }
+    assert(threw, `${fail} unreadable: throws (delivery defers)`);
+  }
+});
+
+Deno.test("D6 a stop whose write failed: delivery matches the watch record, not the stale copy", async () => {
+  const { sw, store } = flaky(), p = person(store);
+  await p.say("Watch for data analyst roles in New York");
+  await p.say("Watch for investment banking analyst roles in Chicago");
+  const seen = T0 + HOUR, board = [posting("da", "Data Analyst", "Acme", "New York, NY", seen), posting("ib", "Investment Banking Analyst", "Acme", "Chicago, IL", seen)];
+  eq((await run(p, board, T0 + 2 * HOUR)).sort(), ["da", "ib"], "both queued");
+  sw.failing = true;
+  await p.say("stop watching data analyst roles", T0 + 2 * HOUR + 60000);
+  eq((await store.get(USER))?.prefs.interests?.length, 2, "the copy still has both (the failure is real)");
+  eq((await deliver(p, board, T0 + 3 * HOUR)).delivered, ["alert:ib"], "only the watch on record");
+});
+
+Deno.test("D7 settings made elsewhere, turned off after the alert was queued: not delivered", async () => {
+  const store = memoryAlertStore(), p: any = { store, watches: async () => new Map() };
+  await store.save({ id: USER, tz: "America/New_York", prefs: { on: true, keywords: ["data analyst"], locations: ["new york"], remote_ok: true, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 },
+    last_checked_at: new Date(T0).toISOString(), instant_sent_today: 0, sent_on: null, last_report_on: null, held: [] });
+  const board = [posting("a", "Data Analyst", "Acme", "New York, NY", T0 + HOUR)];
+  eq(await run(p, board, T0 + 2 * HOUR), ["a"], "queued");
+  const row = (await store.get(USER))!;
+  await store.save({ ...row, prefs: { ...row.prefs, on: false } });
+  eq((await deliver(p, board, T0 + 3 * HOUR)).delivered, [], "off: nothing");
+});
+
+// What a resume does to a row that is still due: resumed before delivery reaches it, the row goes out (the person
+// wants alerts again and the posting still fits); delivery that ran during the pause marked it not sent, and that is
+// final: a resume never sends it later, and the next run does not queue it again (watching restarts from the resume).
+Deno.test("D8 resume: before delivery, the queued alert goes out; after delivery skipped it, it never goes out", async () => {
+  const board = [posting("a", "Data Analyst", "Acme", "New York, NY", T0 + HOUR)];
+  const p = person();
+  await p.say("Watch for data analyst roles in New York");
+  eq(await run(p, board, T0 + 2 * HOUR), ["a"], "queued");
+  await p.say("pause my job alerts", T0 + 2 * HOUR + 60000);
+  await p.say("resume my job alerts", T0 + 2 * HOUR + 120000);
+  eq((await deliver(p, board, T0 + 3 * HOUR)).delivered, ["alert:a"], "resumed before delivery: delivered");
+
+  const q = person();
+  await q.say("Watch for data analyst roles in New York");
+  eq(await run(q, board, T0 + 2 * HOUR), ["a"], "queued");
+  await q.say("pause my job alerts", T0 + 2 * HOUR + 60000);
+  const queued = q.store.dump().outbox.map((o: any, i: number) => ({ id: String(i + 1), userId: o.userId, contact: "+15555550100", key: o.key, text: o.text, deliver_at: o.at, attempts: 0 }));
+  const ch: any = memoryChannel(queued);
+  ch.alertWanted = async (m: any) => alertStillWanted(m.key, { row: await q.store.get(m.userId), record: (await q.watches([m.userId])).get(m.userId), posting: board.find((x) => `alert:${x.job_id}` === m.key) });
+  const sent: string[] = [], send = async (_c: string, b: string[]) => { sent.push(b.join(" ")); return { ok: true as const, id: "p" }; };
+  await deliverDue({ store: ch, now: T0 + 3 * HOUR, send });
+  await q.say("resume my job alerts", T0 + 4 * HOUR);
+  await deliverDue({ store: ch, now: T0 + 5 * HOUR, send });
+  eq([sent, ch.rows().map((x: any) => x.status)], [[], ["skipped_opt_out"]], "skipped during the pause: final, not sent after the resume");
+  eq(await run(q, board, T0 + 6 * HOUR), [], "and the next run does not queue it again");
 });

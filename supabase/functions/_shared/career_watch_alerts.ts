@@ -12,8 +12,8 @@
 //   - forget everything: the settings removed.
 // What a watch carries over: its role's title terms (keywords) and blockers (exclude_words), its places and remote, its
 // bands (intern, new grad) as levels, its firms (only these), the firms it and the opt-out exclude.
-import { type AlertInterest, DEFAULT_PREFS } from "./career_alerts.ts";
-import { type AlertStore, startWatching, validPrefs } from "./career_alert_store.ts";
+import { type AlertInterest, DEFAULT_PREFS, matchPosting } from "./career_alerts.ts";
+import { type AlertRow, type AlertStore, startWatching, validPrefs } from "./career_alert_store.ts";
 import { type Floor, validFloor } from "./career_floor.ts";
 
 export const WATCH_PROFILE_KEY = (userId: string) => `career:watch-profile:${userId}`;
@@ -85,4 +85,22 @@ export async function syncWatchAlerts(o: {
   const row = startWatching(prev, { userId: o.userId, prefs: { ...v.prefs, interests }, tz: prev?.tz ?? DEFAULT_TZ, now: o.now });
   await o.store.save(row);
   return { action: "saved" };
+}
+
+// At delivery (channel.ts deliverDue): whether a queued job alert (career_outbox key alert:<job_id>) or report
+// (report:<day>) is still the person's to get, from their alert settings now, the watch record behind a row their
+// watches made, and the posting. Settings gone or off, the watch record gone, paused or empty, or a posting that no
+// longer fits (gone, closed, or a watch stopped since): not sent. Nothing that cannot be shown to fit is sent.
+export const isAlertKey = (key: string) => /^(alert|report):/.test(String(key ?? ""));
+export function alertStillWanted(key: string, now: { row: Pick<AlertRow, "prefs"> | null; record: unknown; posting?: unknown }): boolean {
+  const row = now.row;
+  if (!row || !row.prefs?.on) return false;
+  let prefs = row.prefs;
+  if (prefs.interests?.length) {
+    const wp: any = now.record ?? null, interests = interestsFromWatch(wp);
+    if (!interests.length || wp?.opt_out?.global) return false;
+    prefs = { ...prefs, interests };
+  }
+  if (String(key).startsWith("alert:")) return !!now.posting && matchPosting(now.posting, prefs);
+  return isAlertKey(key);
 }

@@ -40,6 +40,9 @@ export interface ChannelStore {
   optedOut(contact: string): Promise<boolean>;
   // WO-091c: the person's account is paused, opted out or erased (career_user_quiet). Absent: only STOP holds a row.
   quiet?(userId: string): Promise<boolean>;
+  // A queued job alert or report (key alert:… or report:…) still wanted now: the person's alert settings, the watch behind
+  // them and the posting, read at delivery (career_watch_alerts.ts, alertStillWanted). Absent: not checked (memory stores).
+  alertWanted?(row: OutboxRow): Promise<boolean>;
   setOptOut(contact: string, out: boolean, at: number): Promise<void>;
   contactsSentOn(day: string, channel?: Channel): Promise<number>; // distinct contacts sent to on a UTC day (on one channel, if named)
   sentTo(contact: string, day: string): Promise<boolean>;
@@ -58,6 +61,7 @@ const BACKOFF_MS = [60000, 5 * 60000, 30 * 60000]; // after attempt 1, 2, 3
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 export const HELD_NOTE = "held: outside WhatsApp's 24-hour window; it goes out whole when the person next writes";
 export const PAUSED_NOTE = "not sent: the person paused Trainee (or stopped or erased it) after this was queued";
+export const ALERTS_OFF_NOTE = "not sent: the person's job alerts no longer ask for this (paused, stopped or changed after it was queued)";
 
 // budgetMs: a run that has used its time stops before the next row (a long card is many bubbles, each paced by the
 // provider); what it claimed and did not reach goes back for the next run (the store's release), never half sent.
@@ -113,6 +117,14 @@ export async function deliverDue(o: {
       const q = await isQuiet(m.userId);
       if (q === null) { r.deferred++; continue; }
       if (q) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: PAUSED_NOTE }); r.skipped_opt_out++; continue; }
+    }
+    // A job alert or report queued before the person paused or stopped their alerts by text (their watch, not the
+    // account) is checked again now. Not wanted: not sent. A check that cannot be read leaves the row for the next run.
+    if (/^(alert|report):/.test(m.key) && o.store.alertWanted) {
+      let wanted: boolean | null;
+      try { wanted = await o.store.alertWanted(m); } catch (e) { console.error("deliver: the job alerts could not be read:", e instanceof Error ? e.message : String(e)); wanted = null; }
+      if (wanted === null) { r.deferred++; continue; }
+      if (!wanted) { await o.store.mark(m.id, { status: "skipped_opt_out", at: o.now, error: ALERTS_OFF_NOTE }); r.skipped_opt_out++; continue; }
     }
     const window = adapter.limits.windowMs ?? null;
     const stall = () => { if (isReply(m.key)) stalled.add(m.userId); };

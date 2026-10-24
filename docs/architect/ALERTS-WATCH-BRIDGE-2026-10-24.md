@@ -56,6 +56,35 @@ decides alone. `runAlerts` (`career_proactive_run.ts`, `verifiedWatches`) reads 
 
 Rows made elsewhere (no `interests`) are not checked against a watch record and send as before.
 
+### Fail closed at delivery: a queued alert is checked again before it is sent
+
+Planning is not the last word. One run can queue several alerts, and the account pause that delivery already re-checks
+(`career_user_quiet`: `career:account` paused, STOP, erase) does not cover a pause or a stop said by text, which changes
+only the watch. So `deliverDue` (`channel.ts`) asks again for every queued `alert:<job>` and `report:<day>` row, after
+the STOP and account-pause checks and before the send. The production store (`channel_store.ts`, `alertWanted`) reads
+the alert settings, the watch record behind them (`career_watch_kv`) and the posting (`career_postings`), and
+`alertStillWanted` (`career_watch_alerts.ts`) decides:
+
+| Now | The queued row |
+|---|---|
+| Settings gone or off | Not sent: `skipped_opt_out`, note `ALERTS_OFF_NOTE` |
+| Watch record gone (erased), paused, or no watch left | Not sent, same mark |
+| An alert whose posting no longer fits the watches on record (a watch stopped, the posting closed or gone) | Not sent, same mark |
+| Any of the three reads fails | Deferred: left queued for the next run, never sent on a guess |
+| Still wanted | Delivered as before |
+
+Replies (`reply:`), receipts, cards and other kinds are not job alerts and are not checked here.
+
+**What a resume does to a row still due.** If the person resumes before delivery reaches the row, it goes out (they
+want alerts again and the posting still fits). If delivery reached it during the pause, it was marked not sent, and that
+is final: a resume never sends it later, and the next run does not queue it again (the outbox key is once ever, and
+watching restarts from the resume).
+
+**What stays racy.** The check runs once per row, just before the provider send. A pause or stop that lands after the
+check and before the provider accepts the message (one provider call, or a long card paced bubble by bubble) does not
+stop it; nor does one that lands after the row was sent. A row a run has already claimed is checked by that run only.
+The window is that one send, not the queue.
+
 The account pause ("STOP") is unchanged: `career_quiet_users` already keeps the scheduled run from acting for a
 paused, opted-out or erased person.
 
@@ -110,6 +139,15 @@ bridge, and the real `runAlerts` over a fake board, then reads the outbox.
 - Z4 no watch reader, or one that fails: no watch row sends; settings made elsewhere still do.
 - Z5 career-proactive passes the committed watch records to the run.
 - Z6 a missed stop of one of two watches: the run matches only the watch still on record.
+- D1 an alert queued before "pause my job alerts" is not delivered (marked not sent).
+- D2 "stop watching" one of two watches after both alerts were queued: only the other is delivered.
+- D3 a posting closed since, or an erase since: not delivered.
+- D4 a check that cannot be read: the alert stays queued and waits; delivered once readable and still wanted.
+- D5 the production store makes the three reads, answers false for a paused watch, a gone record, no settings, a gone
+  posting, and throws (delivery defers) when any read fails.
+- D6 a stop whose write failed: delivery matches the watch record, not the stale copy.
+- D7 settings made elsewhere, turned off after queueing: not delivered.
+- D8 resume before delivery: delivered; resume after delivery skipped it: never delivered, never queued again.
 
 **Fail-first for Z1–Z6** at 29a0b0c5 (the first push of this branch): Z1 and Z2 sent the alert after the pause and the
 erase, Z3's repair returned "unchanged", Z4 sent without a reader, Z5 found no reader wired; 8 passed, 5 failed (Z6 was
@@ -140,7 +178,15 @@ router watch into alert settings.
 | V6 | the bridge compares before and after only | Z3 |
 | V7 | career-proactive does not pass the records | Z5 |
 
-W1–W10 were run at 29a0b0c5; V1–V7 at this commit, restored 14/14.
+| G1 | no check at delivery (dd6425fb's delivery) | D1, D2, D3, D4, D6, D7, D8 |
+| G2 | an unreadable check sends | D4 |
+| G3 | the production store does not check | D5 |
+| P1 | pause not checked at delivery | D5 |
+| P2 | the posting not matched again | D2, D3, D5, D6 |
+| P3 | the stale copy's watches matched at delivery | D6 |
+| P4 | settings off not checked at delivery | D7 |
+
+W1–W10 were run at 29a0b0c5, V1–V7 at dd6425fb (restored 14/14), G1–G3 and P1–P4 at the delivery commit (restored 22/22).
 
 ## Decisions for the owner
 

@@ -2217,7 +2217,16 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => !/sponsor/.test(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+        const assertsSponsorshipNeed = (l) => {
+          if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+          return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+        };
+        const assertsSeparateSponsorshipPosition = (l) => {
+          const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+          if (!clause) return false;
+          return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
+        };
+        const free = options.filter((o) => !assertsSponsorshipNeed(low(o.label)) && !assertsSeparateSponsorshipPosition(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
         if (free.length === 1) return free[0].value;
         break;
       }

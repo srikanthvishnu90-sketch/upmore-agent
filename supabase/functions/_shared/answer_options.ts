@@ -301,14 +301,44 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
-      // ELIGIBILITY-SEPARATION-PROPOSAL.md: a yes to work authorization
-      // alone never picks an option that also takes a sponsorship
-      // position ("Yes, I am authorized and do not require
-      // sponsorship") — that is a combined answer, and combined
-      // questions are answered from both facts by career_apply.ts
-      // (authorizedWithoutSponsorship). Only an option that speaks to
-      // authorization alone can be picked from this fact alone.
-      const free = options.filter((o) => !/sponsor/.test(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+      // ELIGIBILITY-SEPARATION-PROPOSAL.md, as corrected on the
+      // spent-s1 regression: work authorization and sponsorship are
+      // separate facts, and this fact alone fills only an option that
+      // speaks to authorization alone. Two kinds of options are not
+      // that, and neither exclusion is the bare substring "sponsor":
+      // (1) an option that positively asserts a sponsorship NEED
+      // ("will require sponsorship", "require sponsorship", "need
+      // sponsorship", "sponsorship is required") — a need assertion
+      // belongs to the sponsorship fact alone; phrasings that negate
+      // the need are the authorized-without-sponsorship class and
+      // stay fillable ("without sponsorship", "will not / do not
+      // require sponsorship", "no sponsorship", "sponsorship not
+      // required"). (2) a COMBINED answer: an option phrased as a
+      // compound reply — a leading yes/no or a coordinating
+      // conjunction — that takes its own sponsorship position in a
+      // predicated clause ("Yes, I am authorized and do not require
+      // sponsorship"). Picking it from this fact alone would assert
+      // a sponsorship position the authorization fact does not
+      // carry; combined answers are answered from both facts by
+      // career_apply.ts (authorizedWithoutSponsorship). A status
+      // label whose sponsorship wording is a modifier of the
+      // authorization status itself, with no predicated clause and
+      // no compound phrasing ("Authorized to work in the U.S.
+      // without sponsorship"), is not combined and stays fillable —
+      // the first landing's !/sponsor/ test dropped exactly that
+      // option on spent-s1 and left the required dropdown empty.
+      // Which class is correct comes from the profile's
+      // work-authorization fact, never inferred from sponsorship.
+      const assertsSponsorshipNeed = (l: string) => {
+        if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+        return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+      };
+      const assertsSeparateSponsorshipPosition = (l: string) => {
+        const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+        if (!clause) return false;
+        return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
+      };
+      const free = options.filter((o) => !assertsSponsorshipNeed(low(o.label)) && !assertsSeparateSponsorshipPosition(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
       if (free.length === 1) return free[0].value;
       break;
     }

@@ -3712,7 +3712,20 @@ const CareerRouter = (() => {
       { title: "Merged open-source contributions", hours: 8,
         why: "One to three merged PRs — docs and bug fixes count — are third-party verifiable, which is why the spec calls them strong: someone else's maintainer accepted the work.",
         steps: ["Find a project you actually use; read its contribution guide", "Take a labelled good-first-issue or a docs gap", "Shepherd the PR through review to merge"],
-        done: "Done when the PRs are merged and linked — the merge is the evidence." } ] }
+        done: "Done when the PRs are merged and linked — the merge is the evidence." } ] },
+    design: { label: "product design / UX", options: [
+      { title: "Real-client mini project: redesign one flow for a small organization", hours: 18,
+        why: "Spec 8B.1's first design artifact, and its honest note governs the family: design hiring is portfolio-first, and a case study is a short story — problem, process, results — with the thinking shown evolving, not polished shots alone. Hours here and below are planning estimates, not spec figures.",
+        steps: ["Find a real small organization with one flow that hurts (a clinic's booking page, a nonprofit's donate flow) and get the owner's agreement", "Run 3 to 5 user interviews and write the problem statement from them", "Work 2 sketches-to-prototype iterations, showing how the thinking changed", "Usability-test with 5 participants, write the findings, ship or hand off the result, and ask the owner for a quote"],
+        done: "Done when the case study is published as that story — problem, your role, the process artifacts, the outcome — and labeled hypothetical if any part of it was." },
+      { title: "Accessibility audit of a real site against WCAG 2.2 AA", hours: 10,
+        why: "A documented audit is inspectable expertise: 10 real issues with screenshots, severity, and a fix proposal each — the spec's D2, and the kind of artifact a hiring manager can check in minutes.",
+        steps: ["Pick a real site and work its main flows against WCAG 2.2 AA, issue by issue", "Document 10 issues, each with a screenshot, a severity, and the fix you propose", "Where you can, fix and re-test, and record what changed"],
+        done: "Done when the audit lists 10 issues with screenshots, severities and fix proposals, and any re-test results are recorded beside them." },
+      { title: "Design system starter: a small Figma component library, applied", hours: 12,
+        why: "The spec's D3: tokens and usage rules, not just components — and it only counts once it is applied to one real screen set, which is what separates a system from a sticker sheet.",
+        steps: ["Define the tokens first (color, type, spacing) and write the rules for each", "Build the small component library on those tokens in Figma", "Apply it to one real screen set and note every place the system bent or broke"],
+        done: "Done when the library, the tokens and the usage rules exist and one real screen set is built from them." } ] }
   };
   function powFamilyOf(ctx, text) {
     const hay = [s(text || "")];
@@ -3720,6 +3733,7 @@ const CareerRouter = (() => {
     const p = (ctx && ctx.profile) || {};
     hay.push(s(p.target_role), s(p.targetRole), s(p.headline), s(p.current_role), Array.isArray(p.target_roles) ? p.target_roles.join(" ") : s(p.target_roles), Array.isArray(p.skills) ? p.skills.join(" ") : s(p.skills));
     const h = lc(hay.join(" "));
+    if (/\bux\b|ui\/ux|product design|ux design|visual design|interaction design|\bdesigner\b/.test(h)) return "design";
     if (/\bdata analyst|data science|analytics|business intelligence|dashboards?\b/.test(h)) return "data";
     if (/\bsoftware|developer|programmer|\bswe\b/.test(h)) return "swe";
     return null;

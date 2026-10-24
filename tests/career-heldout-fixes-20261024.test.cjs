@@ -101,3 +101,19 @@ test("held-out fix UNPAUSE: after 'pause everything', 'ok turn them back on' lif
   notFallback(t2, "turn back on");
   assert.match(String(t2.reply), /lift|resum|back on|no longer paused/i, t2.reply);
 });
+
+// ---------- POW: the design family (spec3 8B.1) recommends + paces ---
+test("held-out fix POW: design-family recommender, stated budget paced verbatim, selection, proof card", () => {
+  const w = makeWorld(); const U = "hfix-pow";
+  w.say(U, "i want to get into ux design, i've done a couple figma projects in class");
+  const t2 = w.say(U, "what proof of work would help me for product design roles?");
+  assert.equal(t2.intent, "career_proof_of_work", t2.reply);
+  const t3 = w.say(U, "i've got like 6 hrs a week");
+  assert.equal(t3.intent, "career_proof_of_work", t3.reply);
+  assert.match(String(t3.reply), /6 hours a week/, t3.reply);
+  const t4 = w.say(U, "the second one sounds best");
+  assert.equal(t4.intent, "career_proof_of_work", t4.reply);
+  assert.match(String(t4.reply), /[Aa]ccessibility|WCAG/, t4.reply);
+  const t5 = w.say(U, "ok whats the proof card for it");
+  assert.equal(t5.intent, "career_proof_of_work", t5.reply);
+});

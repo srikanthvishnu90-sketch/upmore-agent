@@ -2533,6 +2533,37 @@ const CareerRouter = (() => {
     return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline, facts: [CAPABILITY_LINE], nextStep: "Name anything from that list and it starts now; the ask you just made is noted as a gap, not silently dropped." }) };
   }
 
+  // LIFE-EVENT STATEMENTS (generalization, 2026-10-24): a
+  // first-person statement of an employment event — leaving a job,
+  // losing one, deciding on a specific offer, starting a new role
+  // — is news to respond to, not a target to store (the capture
+  // exclusion in statedCareerTargetOf keeps it out of the goal
+  // slot). The reply is short and human, and it offers ONE next
+  // step. A QUESTION about an event ("should i quit?") is not this
+  // shape and keeps its own routes.
+  function handleLifeEventStatement(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || /\?/.test(raw) || raw.split(/\s+/).length > 14) return null;
+    const t = lc(raw);
+    if (!/^(i|i'm|i've|my)\b/.test(t)) return null;
+    const jobObj = /\b(job|role|position|notice)\b/.test(t);
+    let kind = null;
+    if (/\b(laid off|let go|fired|terminated|made redundant|lost my job)\b/.test(t) || /\b(my )?(role|position|job) was (eliminated|cut|removed)\b/.test(t)) kind = "loss";
+    else if (/\b(accept|decline|turn down|reject)\b[^.]*\b(offer|job)\b/.test(t)) kind = /\b(decline|turn down|reject)\b/.test(t) ? "decline" : "accept";
+    else if (jobObj && /\b(quit|quitting|resign|resigning|hand in (my )?notice|handing in (my )?notice|leave|leaving|walk away)\b/.test(t)) kind = "departure";
+    else if (/\b(start|starting|begin|beginning)\b[^.]*\b(new job|new role|job|role)\b/.test(t)) kind = "start";
+    if (!kind) return null;
+    const shapes = {
+      departure: { headline: "That's a big decision — said plainly, and heard.", facts: ["I have not stored that as a career goal: it is an event to plan around, not a target to aim a search at."], nextStep: "If you want, the practical order is: notice and handover first, then the search that follows — say the word and we line it up." },
+      loss: { headline: "I'm sorry — that is a hard day, and it lands how it lands.", facts: ["That is not stored as a goal; it is an event, and the only things that matter next are your runway and your first moves."], nextStep: "When you are ready, the first useful step is a short list: last day, benefits timing, and the roles we aim at first — say the word and we build it." },
+      accept: { headline: "Decision made — and it is a real one to have in front of you.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the acceptance itself: dates, the written confirmation, and what to check before day one — say the word and we draft it." },
+      decline: { headline: "Decision made — cleanly is what matters now.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the decline note itself: short, warm, the door left open — say the word and we draft it." },
+      start: { headline: "A new start — that is real news.", facts: ["That is an event on your timeline, not a goal to store."], nextStep: "If you want, the useful next step is a first-week plan: who to meet, what to learn first, and what a good first month looks like." },
+    };
+    const sh = shapes[kind];
+    return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose(sh) };
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -7157,7 +7188,15 @@ const CareerRouter = (() => {
     if (/\bh-1b\b|\bvisa\b|\binternational student\b|\bwork authorization\b|\bopt\b|\bcpt\b/.test(t)) return "work_authorization";
     if (/\bsponsorship\b|\bsponsor\b/.test(t)) return "sponsorship_history";
     if (/\bcertificat|\bcourse\b[^.]*\bworth\b|\bworth buying\b|\bbootcamp\b/.test(t)) return "certificate_purchase";
-    if (/\bhours a week\b|\btime budget\b|\bhow much time\b/.test(t)) return "time_budget_plan";
+    if (/\bhours a week\b|\btime budget\b/.test(t)) return "time_budget_plan";
+    // NARROWED (generalization, 2026-10-24): a bare "how much time"
+    // is NOT a time-budget ask — it is just as often the duration
+    // of an external process ("how much time do i have for
+    // unemployment"), which this matcher answered with the study-
+    // plan template. The budget intent requires the time to be the
+    // USER'S OWN allocatable time: an activity they would spend it
+    // on, or a weekly allocation frame.
+    if (/\bhow much time\b/.test(t) && /\b(study|prep|practice|spend|set aside|devote|allocat|schedule|job search|applications?|per week|each week|weekly)\b/.test(t)) return "time_budget_plan";
     if (/\bmentor\b/.test(t)) return "mentor_source";
     if (/\bsuspicious\b|\bscam\b|\btoo good to be true\b|\blegit\b/.test(t)) return "suspicious_posting";
     if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers|to)\b|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
@@ -10555,6 +10594,12 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // LIFE EVENTS (2026-10-24): an employment-event statement
+    // claims here, beside the goal frame — the goal frame must
+    // never be the surface that answers it (it read a quitting
+    // statement as a goal declaration and stored it).
+    const lifeEvent = handleLifeEventStatement(text, c);
+    if (lifeEvent) return lifeEvent;
     // GOAL FRAME (spine): a goal declaration is a RECORD turn and
     // its recall a read of that record — claimed here, beside the
     // early recall claim, ahead of recommendations, the pending-mock
@@ -11945,6 +11990,27 @@ const CareerRouter = (() => {
   // early claim, so a pending mock cannot grade a new target as an answer.
   // Labeled answers, requests, quotes and hypothetical/question turns do
   // not enter this frame; the target must actually name a career opening.
+  // INTENT STATEMENTS ARE NOT GOALS (generalization, 2026-10-24):
+  // this parser read ANY "I want … <job noun>" clause as a sought
+  // target — including "i want to quit my job tomorrow", where the
+  // job noun is the object of an EVENT verb (quit / accept /
+  // decline …) acting on a SPECIFIC held job ("my job", "this job
+  // offer"), not a target being sought. The distinction is
+  // positional: an event verb before the job noun, with a
+  // possessive/demonstrative holding that noun (or a departure
+  // verb at all), makes the clause an event report; a bare sought
+  // noun ("product management jobs in chicago") stays a target.
+  function aspirationIsEvent(value) {
+    const toks = lc(value).replace(/[^a-z\s-]/g, " ").split(/\s+/).filter(Boolean);
+    const nounIdx = toks.findIndex((w) => /^(job|jobs|role|roles|position|positions|offer|offers)$/.test(w));
+    if (nounIdx < 1) return false;
+    const EVENT_VERBS = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "accept", "accepting", "decline", "declining", "reject", "rejecting", "start", "starting", "begin", "hand", "walk"]);
+    const DEPARTURE = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "decline", "declining", "reject", "rejecting", "walk"]);
+    const verbIdx = toks.findIndex((w) => EVENT_VERBS.has(w));
+    if (verbIdx < 0 || verbIdx > nounIdx) return false;
+    const held = toks.slice(Math.max(0, nounIdx - 2), nounIdx).some((w) => /^(my|this|that|the)$/.test(w));
+    return held || DEPARTURE.has(toks[verbIdx]);
+  }
   function statedCareerTargetOf(text) {
     if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
     for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
@@ -11953,6 +12019,7 @@ const CareerRouter = (() => {
       const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
       if (!m) continue;
       const value = m[1].trim();
+      if (aspirationIsEvent(value)) continue; // an event about a held job is not a sought target
       if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
       if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
       if (value.length > 200) continue;

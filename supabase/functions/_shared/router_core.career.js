@@ -14663,6 +14663,29 @@ const CareerRouter = (() => {
     return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline, facts: [CAPABILITY_LINE], nextStep: "Name anything from that list and it starts now; the ask you just made is noted as a gap, not silently dropped." }) };
   }
 
+  function handleLifeEventStatement(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || /\?/.test(raw) || raw.split(/\s+/).length > 14) return null;
+    const t = lc(raw);
+    if (!/^(i|i'm|i've|my)\b/.test(t)) return null;
+    const jobObj = /\b(job|role|position|notice)\b/.test(t);
+    let kind = null;
+    if (/\b(laid off|let go|fired|terminated|made redundant|lost my job)\b/.test(t) || /\b(my )?(role|position|job) was (eliminated|cut|removed)\b/.test(t)) kind = "loss";
+    else if (/\b(accept|decline|turn down|reject)\b[^.]*\b(offer|job)\b/.test(t)) kind = /\b(decline|turn down|reject)\b/.test(t) ? "decline" : "accept";
+    else if (jobObj && /\b(quit|quitting|resign|resigning|hand in (my )?notice|handing in (my )?notice|leave|leaving|walk away)\b/.test(t)) kind = "departure";
+    else if (/\b(start|starting|begin|beginning)\b[^.]*\b(new job|new role|job|role)\b/.test(t)) kind = "start";
+    if (!kind) return null;
+    const shapes = {
+      departure: { headline: "That's a big decision — said plainly, and heard.", facts: ["I have not stored that as a career goal: it is an event to plan around, not a target to aim a search at."], nextStep: "If you want, the practical order is: notice and handover first, then the search that follows — say the word and we line it up." },
+      loss: { headline: "I'm sorry — that is a hard day, and it lands how it lands.", facts: ["That is not stored as a goal; it is an event, and the only things that matter next are your runway and your first moves."], nextStep: "When you are ready, the first useful step is a short list: last day, benefits timing, and the roles we aim at first — say the word and we build it." },
+      accept: { headline: "Decision made — and it is a real one to have in front of you.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the acceptance itself: dates, the written confirmation, and what to check before day one — say the word and we draft it." },
+      decline: { headline: "Decision made — cleanly is what matters now.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the decline note itself: short, warm, the door left open — say the word and we draft it." },
+      start: { headline: "A new start — that is real news.", facts: ["That is an event on your timeline, not a goal to store."], nextStep: "If you want, the useful next step is a first-week plan: who to meet, what to learn first, and what a good first month looks like." },
+    };
+    const sh = shapes[kind];
+    return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose(sh) };
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -17901,7 +17924,8 @@ const CareerRouter = (() => {
     if (/\bh-1b\b|\bvisa\b|\binternational student\b|\bwork authorization\b|\bopt\b|\bcpt\b/.test(t)) return "work_authorization";
     if (/\bsponsorship\b|\bsponsor\b/.test(t)) return "sponsorship_history";
     if (/\bcertificat|\bcourse\b[^.]*\bworth\b|\bworth buying\b|\bbootcamp\b/.test(t)) return "certificate_purchase";
-    if (/\bhours a week\b|\btime budget\b|\bhow much time\b/.test(t)) return "time_budget_plan";
+    if (/\bhours a week\b|\btime budget\b/.test(t)) return "time_budget_plan";
+    if (/\bhow much time\b/.test(t) && /\b(study|prep|practice|spend|set aside|devote|allocat|schedule|job search|applications?|per week|each week|weekly)\b/.test(t)) return "time_budget_plan";
     if (/\bmentor\b/.test(t)) return "mentor_source";
     if (/\bsuspicious\b|\bscam\b|\btoo good to be true\b|\blegit\b/.test(t)) return "suspicious_posting";
     if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers|to)\b|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
@@ -20334,6 +20358,8 @@ const CareerRouter = (() => {
     if (pmStop) return pmStop;
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    const lifeEvent = handleLifeEventStatement(text, c);
+    if (lifeEvent) return lifeEvent;
     const goalTurn = handleGoalFrame(text, c);
     if (goalTurn) return goalTurn;
     const bulletLoop = handleResumeBulletLoop(text, c);
@@ -21153,6 +21179,17 @@ const CareerRouter = (() => {
     if (/\b(my|your|his|her|their|our|the|a|an|and|&|of|in|on|at|to|for|with|by)$/i.test(t)) return true;
     return false;
   };
+  function aspirationIsEvent(value) {
+    const toks = lc(value).replace(/[^a-z\s-]/g, " ").split(/\s+/).filter(Boolean);
+    const nounIdx = toks.findIndex((w) => /^(job|jobs|role|roles|position|positions|offer|offers)$/.test(w));
+    if (nounIdx < 1) return false;
+    const EVENT_VERBS = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "accept", "accepting", "decline", "declining", "reject", "rejecting", "start", "starting", "begin", "hand", "walk"]);
+    const DEPARTURE = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "decline", "declining", "reject", "rejecting", "walk"]);
+    const verbIdx = toks.findIndex((w) => EVENT_VERBS.has(w));
+    if (verbIdx < 0 || verbIdx > nounIdx) return false;
+    const held = toks.slice(Math.max(0, nounIdx - 2), nounIdx).some((w) => /^(my|this|that|the)$/.test(w));
+    return held || DEPARTURE.has(toks[verbIdx]);
+  }
   function statedCareerTargetOf(text) {
     if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
     for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
@@ -21161,6 +21198,7 @@ const CareerRouter = (() => {
       const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
       if (!m) continue;
       const value = m[1].trim();
+      if (aspirationIsEvent(value)) continue;
       if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
       if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
       if (value.length > 200) continue;

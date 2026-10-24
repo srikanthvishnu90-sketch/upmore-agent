@@ -358,6 +358,15 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // work-authorization fact, never inferred from sponsorship.
       const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
       if (free.length === 1) return free[0].value;
+      // Consistency with the widget gate (apply_core's optionRule, same two classes): when this menu carries
+      // a classified option and the QUESTION is a plain authorization question, the yes/no landing below the
+      // switch must not reach it either — the generic fall-through knows nothing of the classes and would
+      // land on a need assertion or a combined answer from this fact alone. The one sanctioned route to a
+      // combined answer stays open: when the question itself asks the combined thing (career_apply's
+      // WITHOUT_SPONSOR test on the label), byMeaning has already derived the value from BOTH facts before
+      // this call, and the fall-through's landing is that derivation's, not this fact's alone.
+      const classified = (o: Opt) => assertsSponsorshipNeed(o.label) || assertsSeparateSponsorshipPosition(o.label);
+      if (options.some(classified) && !/\bwithout\b.{0,40}\bsponsor/i.test(question)) return byYesNo("yes", options.filter((o) => !classified(o)));
       break;
     }
     case "education_level": {

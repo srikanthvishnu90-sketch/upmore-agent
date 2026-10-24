@@ -2241,6 +2241,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         if (yesNoOf(v) !== "yes") break;
         const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
         if (free.length === 1) return free[0].value;
+        const classified = (o) => assertsSponsorshipNeed(o.label) || assertsSeparateSponsorshipPosition(o.label);
+        if (options.some(classified) && !/\bwithout\b.{0,40}\bsponsor/i.test(question)) return byYesNo("yes", options.filter((o) => !classified(o)));
         break;
       }
       case "education_level": {

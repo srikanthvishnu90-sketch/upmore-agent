@@ -96,6 +96,20 @@ test("chooser (a): an affirmative option asserting a sponsorship need is never c
   assert.equal(v, null, "no option on this menu derives from the person's facts: asked, never clicked");
 });
 
+test("chooser (a): a COMBINED answer is never chosen from the authorization fact alone", () => {
+  // Convergence pin (widget-gap x eligibility separation): the compound takes its own sponsorship
+  // position ("do not require sponsorship") that the authorization fact does not carry. The widget gate
+  // vetoes the separate-position class, and chooseOption's work_authorization rule classifies it
+  // identically — both paths refuse it here. Combined answers are answered from both facts by the
+  // planner (career_apply's authorizedWithoutSponsorship), never clicked from one fact alone; the
+  // exported-predicate side of this pin lives in tests/architect/widget-eligibility-compound.test.ts.
+  const v = choose(field("question_auth", "Are you legally authorized to work in the United States?"), [
+    "Yes, I am authorized and do not require sponsorship",
+    "No, I am not authorized to work in the United States",
+  ]);
+  assert.equal(v, null, "the combined answer is asked, never chosen from the authorization fact alone");
+});
+
 test("chooser (a): a wrong degree is not chosen for the person's degree fact", () => {
   const v = choose(field("question_degree", "Degree"), ["Master's Degree", "Doctorate"]);
   assert.equal(v, null);

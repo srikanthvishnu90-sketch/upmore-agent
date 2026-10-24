@@ -33,8 +33,9 @@
    posting pool is evals/career/conversations.json's own postings (the pool the
    repo's conversation eval runs behind search).
 
-   The single assertion is mechanical: every turn returns a result object.
-   Routing quality is NOT asserted — it is recorded. A turn whose intent comes
+   There are NO assertions in the record path: the recorder keeps the router's
+   actual result per turn, and any mechanical sanity problem is attached to
+   the record as an annotation. Routing quality is NOT asserted — it is recorded. A turn whose intent comes
    back null with the 140 fallback text is the composed generic fallback (the
    router matched nothing; containment fills the reply) and is recorded with
    fallback:true — the same shape the surface shows a user. Each turn emits
@@ -42,7 +43,6 @@
      node --test --test-reporter=spec tests/career-textpath-measure-20261024.test.cjs
    Check: node --test tests/career-textpath-measure-20261024.test.cjs */
 const { test } = require("node:test");
-const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -82,22 +82,36 @@ function makeWorld() {
 function runSet(feature, userId, turns) {
   const w = makeWorld();
   turns.forEach((text, i) => {
+    // RECORDER RULE (2026-10-24, coordinator): a turn's record is the router's
+    // actual result, kept whole. No assertion runs before or inside record
+    // construction; a mechanical sanity problem is attached as `annotation`
+    // on the record, never a replacement for it. A null intent with the 140
+    // fallback text is the composed generic fallback and records fallback:true.
+    let out = null;
+    let thrown = null;
+    try { out = w.say(userId, `t-${userId}`, text); } catch (e) { thrown = e; }
     let rec;
-    try {
-      const out = w.say(userId, `t-${userId}`, text);
-      assert.ok(out && typeof out === "object", `${feature} turn ${i + 1} returns a result object`);
+    if (thrown) {
+      rec = {
+        feature, turn: i + 1, user: text, intent: "THREW", handler: null,
+        resultStatus: null, contained: null, replyClass: "threw", fallback: false, reply: "",
+        annotation: `runTurn threw: ${String((thrown && thrown.message) || thrown).slice(0, 200)}`,
+      };
+    } else {
       const reply = String((out && out.reply) || "");
+      const replyClass = FALLBACK_RE.test(reply) ? "fallback_text" : (reply.trim() ? "substantive" : "empty");
       rec = {
         feature, turn: i + 1, user: text,
-        intent: out.intent ?? null,
-        handler: out.handler ?? null,
-        resultStatus: out.resultStatus ?? null,
-        contained: out.contained ?? null,
-        fallback: Boolean(out.intent == null || out.intent === "career_fallback" || FALLBACK_RE.test(reply)),
+        intent: (out && out.intent) ?? null,
+        handler: (out && out.handler) ?? null,
+        resultStatus: (out && out.resultStatus) ?? null,
+        contained: (out && out.contained) ?? null,
+        replyClass,
+        fallback: Boolean(!out || out.intent == null || out.intent === "career_fallback" || replyClass === "fallback_text"),
         reply: reply.replace(/\s+/g, " ").slice(0, 280),
       };
-    } catch (e) {
-      rec = { feature, turn: i + 1, user: text, intent: "THREW", handler: null, resultStatus: null, contained: null, fallback: false, reply: String((e && e.message) || e).slice(0, 200) };
+      if (!out || typeof out !== "object") rec.annotation = "result was not an object";
+      else if (!("intent" in out)) rec.annotation = "result object carried no intent key";
     }
     console.log("MEASURE|" + JSON.stringify(rec));
   });

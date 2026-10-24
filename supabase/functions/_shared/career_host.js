@@ -315,6 +315,28 @@ const CareerHost = (() => {
       if (o.watchState && Object.keys(o.watchState).length) {
         ctx.alertWatchState = cloneJson(o.watchState);
       }
+      // WATCH RESURRECTION GUARD (2026-10-24): a snapshot taken
+      // BEFORE an erase must not revive the watch the erase deleted.
+      // The commit stamps every snapshot with the account's privacy
+      // epoch (extractSnapshot below; the SQL commit stamps the same
+      // field) and an erase bumps that epoch while deleting the
+      // canonical watch row — so after an erase the load returns an
+      // EMPTY watchState beside any stale snapshot a caller still
+      // holds, and the empty-seed rule above let the stale box ride
+      // in and be committed back as a live watch. When the account's
+      // epoch is ahead of the snapshot's stamp, the snapshot's watch
+      // box is pre-erase state: drop it, and let the canonical seed
+      // (empty, post-erase) be the only watch state this turn holds.
+      // A non-empty seed already outranks the box (handled above);
+      // an account with no epoch disables the guard, so every
+      // pre-epoch composition behaves exactly as before.
+      const acctEpoch = o.account && Number.isSafeInteger(o.account.epoch) ? o.account.epoch : null;
+      const snapEpoch = o.snapshot && Number.isSafeInteger(o.snapshot.privacy_epoch) ? o.snapshot.privacy_epoch : null;
+      if (acctEpoch != null && acctEpoch > 0 && (snapEpoch == null || snapEpoch < acctEpoch)
+        && !(o.watchState && Object.keys(o.watchState).length)) {
+        delete ctx.alertWatchState;
+      }
+      ctx._accountEpoch = acctEpoch;
       // An explicitly passed EMPTY watchState is "no seed", never a
       // wipe: it used to delete the box the snapshot restore above had
       // just carried in, so a watch created in one turn was gone by
@@ -486,7 +508,14 @@ const CareerHost = (() => {
           }
         } catch { /* a failed write-back loses one turn's carry, never the turn */ }
       }
-      return { v: 1, scope: { userId: ctx.userId }, stores };
+      // The snapshot carries the account's privacy epoch, stamped
+      // the way the SQL commit stamps it (an erase turn's snapshot
+      // is stamped with the NEW epoch): the resurrection guard in
+      // createTurnCtx reads this stamp to tell a pre-erase snapshot
+      // from a current one.
+      const epoch = (ctx && Number.isSafeInteger(ctx._accountEpoch) ? ctx._accountEpoch : 0)
+        + (ctx && ctx._hostPatch && ctx._hostPatch.erase === true ? 1 : 0);
+      return { v: 1, scope: { userId: ctx.userId }, stores, privacy_epoch: epoch };
     }
 
     return { createTurnCtx, runTurn, extractSnapshot, isHostControlled, STATE_KEYS: STATE_KEYS.slice() };

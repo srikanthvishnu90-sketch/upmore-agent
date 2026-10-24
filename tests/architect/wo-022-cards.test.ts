@@ -13,6 +13,7 @@ import {
 } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { prepare, runApproved } from "../../workers/career-browser/approve-first.ts";
 import { planReceipts } from "../../supabase/functions/_shared/career_apply_receipts.ts";
+import { proofFor } from "./proof-fixture.ts";
 
 function eq(a: unknown, b: unknown, m = "") {
   const x = JSON.stringify(a), y = JSON.stringify(b);
@@ -233,7 +234,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
     runEngine: async (args) => {
       ran.push(args);
       return {
-        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C" },
+        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C", proof: proofFor(args) },
         evidence: {},
       };
     },

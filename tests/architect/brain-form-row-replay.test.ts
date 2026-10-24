@@ -5,6 +5,7 @@ import { hashApplyPayload } from '../../supabase/functions/_shared/career_apply_
 import { applicationApprovalHash, approvalSources, planApplication, trustedFacts } from '../../scripts/apply.ts';
 import { contractFill, planForm, trustedManifest } from '../../extension/src/apply_core.ts';
 import { decodeRowQuestionType } from '../../supabase/functions/_shared/row_answer.ts';
+import { proofFor } from './proof-fixture.ts';
 const OWNER='SYNTHETIC-row-owner', JOB='workday:synthetic.test:R1';
 const ARTIFACT={filename:'synthetic.pdf',sha256:'b'.repeat(64)};
 const SOURCE={value:JSON.stringify([{employer:'Synthetic Analytics',title:'Analyst',start:'2023',end:'present'},{employer:'Synthetic Retail',title:'Associate',start:'2020',end:'2022'}]),factId:'TEST-row-history',confirmed:true,provenance:'owner stated these synthetic work entries',confirmation_event_id:'evt-synthetic-work'};
@@ -50,7 +51,7 @@ Deno.test('row replay: schema, options, source and answer changes stay bound to 
 });
 Deno.test('row replay: unchanged approved worker run reproduces fields; changed live schema stops at engine approval',async()=>{
  const{payload,approval}=await fixture();for(const changed of [false,true]){let facts:any,observed='',finish:any;const schema=clone(SCHEMA);if(changed)schema[0].label='Changed company label';
-  await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async(_job,f)=>{facts=f;return'synthetic.json'},runEngine:async(args)=>{const replay=planned(facts,schema);observed=await engineHash(replay.fields,replay.manifest,schema);assert(args[args.indexOf('--approved')+1]===approval,'worker lost original engine approval');return{result:{state:observed===approval?'confirmed':'not_submitted',reason:observed===approval?'synthetic-only fixture':'APPROVED_APPLICATION_CHANGED'},evidence:{}}}});
+  await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async(_job,f)=>{facts=f;return'synthetic.json'},runEngine:async(args)=>{const replay=planned(facts,schema);observed=await engineHash(replay.fields,replay.manifest,schema);assert(args[args.indexOf('--approved')+1]===approval,'worker lost original engine approval');return{result:{state:observed===approval?'confirmed':'not_submitted',reason:observed===approval?'synthetic-only fixture':'APPROVED_APPLICATION_CHANGED',...(observed===approval?{proof:proofFor(args)}:{})},evidence:{}}}});
   assert(finish.state===(changed?'not_submitted':'confirmed'),JSON.stringify(finish));
  }
 });

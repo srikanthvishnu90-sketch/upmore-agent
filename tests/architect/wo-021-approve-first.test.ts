@@ -10,6 +10,7 @@ import {
 } from "../../workers/career-browser/approve-first.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
+import { proofFor } from "./proof-fixture.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -118,7 +119,7 @@ function harness(over: Partial<Parameters<typeof runApproved>[0]> = {}) {
     runEngine: async (args: string[]) => {
       calls.push(args);
       return {
-        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1" },
+        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1", proof: proofFor(args) },
         evidence: {},
       };
     },
@@ -197,7 +198,7 @@ function loop(client: ReturnType<typeof fakeClient>, o: { rounds: number; engine
     writeFacts: async () => "/facts.json",
     runEngine: o.engine ?? (async (args: string[]) => {
       runs.push(args);
-      return { result: { state: "confirmed", reason: "employer confirmation on the page" }, evidence: {} };
+      return { result: { state: "confirmed", reason: "employer confirmation on the page", proof: proofFor(args) }, evidence: {} };
     }),
     stop: () => n++ >= o.rounds,
     sleep: async () => {},
@@ -265,4 +266,23 @@ Deno.test("WO-021/13 a service key is recognized so a person's computer can refu
   eq(jwtRole(tok("service_role")), "service_role");
   eq(jwtRole(tok("authenticated")), "authenticated");
   eq(jwtRole("not-a-token"), null);
+});
+
+Deno.test("WO-021/G6 an employer's answer with no proof of the click is never recorded as confirmed", async () => {
+  const h = harness({
+    runEngine: async () => ({ result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1" }, evidence: {} }),
+  });
+  await runApproved(h.deps);
+  eq(h.finished, [{ id: "J1", lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
+});
+
+Deno.test("WO-021/G6 a proof bound to another application is refused, and the outcome is never confirmed", async () => {
+  const h = harness({
+    runEngine: async (args: string[]) => ({
+      result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1", proof: { ...proofFor(args), application_id: "J-OTHER" } },
+      evidence: {},
+    }),
+  });
+  await runApproved(h.deps);
+  eq(h.finished, [{ id: "J1", lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
 });

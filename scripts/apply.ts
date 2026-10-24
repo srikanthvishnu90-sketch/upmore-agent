@@ -177,7 +177,7 @@ function options(args: string[]) {
     // request goes through, only if it carries the approved answers, and its shape (keys, never values) is recorded.
     else if (k === "--person-submits") o["person-submits"] = true;
     // --application-id <uuid>: the queue's application this approved run drives; the proof is bound to it (D-024).
-    else if (k === "--application-id" && /^[0-9a-f-]{36}$/.test(args[i + 1] || "")) o["application-id"] = args[++i];
+    else if (k === "--application-id" && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(args[i + 1] || "")) o["application-id"] = args[++i];
     // --approved <hash>: the person already approved this exact application (the approval hash a dry run printed, or
     // a texted yes on its card). The run fills and reads back as always and submits without asking again only if the
     // application is still exactly the one approved; any difference stops it with nothing sent.

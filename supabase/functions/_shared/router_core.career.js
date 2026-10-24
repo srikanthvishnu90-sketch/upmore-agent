@@ -18921,6 +18921,59 @@ const CareerRouter = (() => {
       try { const h = Doorstep.haltQueue(c, text); if (h) return h; } catch {   }
     }
     const paused = pausedOf(c);
+    const RESUME_PHRASE_RE = /\bturn (them|it|everything|that|things) back on\b|\bturn (my |the )?(job )?alerts back on\b|\bturn (it|them|everything) on again\b|\bunpause\b|\blift the pause\b|\bremove the pause\b|\bend the pause\b/;
+    const wpNow = loadWatchProfileSync(c);
+    const watchStopped = !!(wpNow && wpNow.opt_out && wpNow.opt_out.global);
+    const liftWatchStop = () => {
+      const A = getAssign(); if (!A || !wpNow) return null;
+      A.setOptOut(wpNow, { global: false, companies: ((wpNow.opt_out || {}).companies || []) });
+      if (!saveWatchProfileSync(c, wpNow)) return null;
+      return wpNow;
+    };
+    const watchBackOnReply = (extraFact) => {
+      const delivery = c.workerCapabilities && c.workerCapabilities.job_alert_delivery;
+      const facts = [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are active again in this conversation; automatic alert delivery is not wired in this handler." : "Your saved watches are active again; the host's next tick matches and reminds on them as before."];
+      for (const i of (wpNow.interests || [])) facts.push(`Watching: ${watchInterestLine(i)}.`);
+      if (extraFact) facts.push(extraFact);
+      return compose({ headline: "Job alerts are back on.", facts, nextStep: "Want the current watch list read back?" });
+    };
+    {
+      const mir = threadMirrorOf(c);
+      const asked = mir && mir.pauseScopeAsk && (nowOf(c) - (mir.pauseScopeAsk.at || 0)) < 10 * 60000 ? mir.pauseScopeAsk : null;
+      const scopeM = t.match(/^\s*(both|the pause|pause|the alerts|my alerts|alerts|job alerts)\b/);
+      if (asked && scopeM) {
+        const wmir = threadMirrorForWrite(c); if (wmir) delete wmir.pauseScopeAsk;
+        const scope = scopeM[1] === "both" ? "both" : /pause/.test(scopeM[1]) ? "pause" : "alerts";
+        if (scope === "both" || scope === "pause") liftPause(c, text);
+        const liftedWp = (scope === "both" || scope === "alerts") ? liftWatchStop() : null;
+        if (scope === "pause") {
+          const reply = compose({ headline: "Done — the pause is lifted.", facts: ["Outreach and submissions can be queued again, and every send still waits for your approval.", "Your job alerts stay stopped — say \"resume my job alerts\" when you want them back."], nextStep: "Tell me what to pick back up first." });
+          return { intent: "queue_resume", resultStatus: "completed", reply, sends: 0, global_pause: c.globalPause };
+        }
+        if (scope === "alerts") {
+          if (!liftedWp) return null;
+          return { intent: "career_watch_manage", resultStatus: "completed", reply: watchBackOnReply("The global pause still stands — every queue stays held until you lift it."), sends: 0, watch_profile: liftedWp };
+        }
+        const reply = compose({ headline: "Done — both are lifted.", facts: ["The global pause is lifted: outreach and submissions can be queued again, every send still waiting for your approval.", "Your job alerts are back on: the saved watches are active exactly as they stood before the stop."], nextStep: "Tell me what to pick back up first." });
+        return { intent: "queue_resume", resultStatus: "completed", reply, sends: 0, global_pause: c.globalPause };
+      }
+    }
+    if (RESUME_PHRASE_RE.test(t)) {
+      if (paused && watchStopped) {
+        const wmir = threadMirrorForWrite(c); if (wmir) wmir.pauseScopeAsk = { at: nowOf(c) };
+        const reply = compose({ headline: "Two different things are stopped — which should I lift?", facts: ["The global pause stands: every queue (outreach sends, follow-ups, application submissions) is held.", "Your job alerts are also stopped: the saved watches are on file but nothing reminds while the stop stands."], nextStep: "Say \"the pause\", \"my alerts\", or \"both\" — and only that scope moves." });
+        return { intent: "pause_status", resultStatus: "awaiting_user", reply, sends: 0, paused: true, global_pause: c.globalPause };
+      }
+      if (!paused && watchStopped) {
+        const liftedWp = liftWatchStop();
+        if (liftedWp) return { intent: "career_watch_manage", resultStatus: "completed", reply: watchBackOnReply(null), sends: 0, watch_profile: liftedWp };
+      }
+      if (!paused && !watchStopped) {
+        const wasLifted = c.globalPause && c.globalPause.set === false && c.globalPause.liftedAt;
+        const reply = compose({ headline: "No — nothing is paused right now.", facts: [wasLifted ? `The pause was lifted at ${fmtWhen(c.globalPause.liftedAt) || "earlier in this conversation"}, and no new pause has been set since.` : "No global pause is set on your account in this conversation, and no job alerts are stopped.", "Sends, follow-ups, and submissions are not being held by a pause — each still waits for its own approval, as always."], nextStep: "Say 'stop everything' for the full halt, or 'stop my job alerts' to stop just the alerts." });
+        return { intent: "pause_status", resultStatus: "completed", reply, sends: 0, paused: false };
+      }
+    }
     if (paused && (UNPAUSE_RE.test(t) || (/\bnever mind\b/.test(t) && /\b(keep going|go on|continue|lift|resume)\b/.test(t)))) {
       const { prev } = liftPause(c, text);
       const qs = c.queueState && c.queueState.outreach_queue;
@@ -19184,7 +19237,8 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const t = lc(text);
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
-    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t);
+    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t)
+      || /\bturn (them|it|everything) back on\b/.test(t);
     const isStopAlerts = /\bstop my (job )?alerts\b|\bstop all my alerts\b|\bturn off my (job )?alerts\b/.test(t);
     const isKeep = /\bkeep them\b|\bkeep my (job )?alerts\b/.test(t);
     const isStop = /\b(stop watching|remove (the )?watch|delete (the )?watch|unwatch)\b/.test(t);
@@ -19917,7 +19971,7 @@ const CareerRouter = (() => {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|turn (them|it|everything) back on|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
@@ -19935,7 +19989,7 @@ const CareerRouter = (() => {
       const rec = recommendations.recommend(Object.assign({}, c, { recommendationIntent, text: s(text) }));
       return { intent: "career_recommendations", reply: rec.text, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
     }
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|turn (them|it|everything) back on|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }

@@ -109,15 +109,57 @@ caller.
 
 Status, 2026-10-24 (branch `arch/backend-g6-receipts`, not merged):
 - **Receipts:** shown on a real database (slice 1, e300defb).
-- **Before picture and proof in the record:** slice 2.
-  - `apply.ts` takes `before-click.png` after every check before the click, and records the proof: each picture by
-    file, sha256 and time, the click's time, the approval and payload hashes, and the final URL.
-  - Without the before picture there is no click (`BEFORE_CLICK_PROOF_MISSING`, not sent).
-  - Without the after picture, "confirmed" is said as `submitted_unconfirmed` (`AFTER_SUBMIT_PROOF_MISSING`).
-  - `runApproved` keeps the proof in the queue row's `evidence`; G1's drive step checks each hash against the file.
+- **Before picture and proof in the record:** slice 2, hardened after the coordinator's review of ce89f34a.
+  - **One capture function for every picture.** Each picture goes into its own new file (`proof-<seq>-<kind>.png`),
+    numbered in the run's own order. It is recorded the moment it is taken, frozen once recorded, with:
+    - its sha256 and its time;
+    - the run's id;
+    - the application's id (the queue passes `--application-id`).
+
+    No file that was already there is ever read as a picture.
+  - **Order is the run's own sequence**, never file mtimes: before-click, then the click, then the after picture.
+  - **The before picture** is taken after every check before the click, with what each field held at that moment,
+    read back from the page as one sha256 per field. A long answer can run past what a picture shows. The answers'
+    text is not kept again.
+  - **No before picture, no click:** `BEFORE_CLICK_PROOF_MISSING`, not sent, may be tried again.
+  - **The after picture** is taken once the outcome was read. Its failure is kept (`after_submit: null`,
+    `after_submit_error`), never covered by an older file.
+  - **Without the after picture, never "confirmed"**, in the engine and again in `runApproved`.
+  - **`runApproved` keeps a proof only if it is bound to this application and this approval.** Otherwise the record
+    gets `proof_refused: PROOF_NOT_THIS_APPLICATION`, and the outcome is never "confirmed".
+  - **Test:** `tests/architect/proof-g6.test.ts`, with the employer's server as witness, run through `runApproved` and
+    the real engine. G1's drive step checks each hash against its file, the order and the binding.
+    - **Fail-first** at ce89f34a: control, 1, 3 and 4 red. Case 2 (a stale picture) was already refused there by the
+      engine's empty-directory guard.
+    - **Mutations**, each red on its case:
+      - M1, the before-click failure swallowed: the click goes on.
+      - M2, the empty-directory guard removed and an existing picture taken as the new one.
+      - M3, the binding check removed.
+      - M4b, both "confirmed" downgrades removed. M4a, the engine's alone, is masked by `runApproved`'s.
+    - Green on Chrome 156 and Chromium 141: proof-g6, flow-connected and flow-integrated, 8 tests, 21 steps each.
+- **What the proof is, and is not.** Each picture is what the page showed. It binds that picture to this application
+  and approval. It is not proof that the employer accepted anything, cryptographically or otherwise. Only the
+  employer's own answer, read on the page or in the person's mail (WO-032), makes "confirmed".
+- **Sensitivity.**
+  - The pictures and `evidence.json` stay in the engine's private evidence directory: 0700 directories, created by
+    `privateDir`; 0600 files.
+  - Their hashes, never their bytes, are in the queue's row.
+  - The cloud worker masks every answer in its pictures (`UPMORE_MASK_SCREENSHOTS`). The person's own runs keep the
+    plain picture they can check.
+  - Nothing is put in the repo. No workflow uploads the engine's evidence directory.
+  - Tests use the synthetic persona only.
+  - The engine never holds a password, a one-time code or an identity number in a field it fills: it stops before
+    filling (`ACCOUNT_LOGIN_REQUIRED`, `IDENTITY_NUMBER_REQUESTED`), and an emailed code is never stored or printed.
+- **Retention: none today (open, the owner's decision).** Nothing deletes private evidence. The engine's state
+  directory keeps every run's pictures and `evidence.json` until someone deletes them. In tests, `engineRunner`
+  leaves its `/tmp/trainee-evidence-*` directories behind (CI runners are discarded; local runs are not).
+  - Proposed for the owner: keep an application's evidence 90 days after its final state, then delete the
+    directory and keep only the row's hashes.
+  - The person can delete theirs at any time, and the account's erasure deletes it.
+  - Not built: a deletion on the person's device is the owner's call.
 - **Still open:**
-  - The pictures themselves stay on the device or VM; only their hashes are in the row.
-  - The receipt does not show them to the person.
+  - The pictures stay on the device or VM; only their hashes are in the row.
+  - The receipt does not show them.
   - Inbox confirmation is off.
 
 ### G7. Jobs never reach a user

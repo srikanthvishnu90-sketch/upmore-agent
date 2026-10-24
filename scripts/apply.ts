@@ -40,8 +40,6 @@ const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
 const { readOnly } = require("./career/render-form.cjs");
 const { fnPostingLocation } = require("./career/page-functions.cjs");
 const sha = (b: any) => crypto.createHash("sha256").update(b).digest("hex");
-// D-024: a picture in the proof, by its file name, hash and the time it was taken (never its bytes).
-const shotProof = (file: string) => ({ file: path.basename(file), sha256: sha(fs.readFileSync(file)), at: fs.statSync(file).mtimeMs });
 // A confirmed answer for a single checkbox: "Yes" checks it as surely as "true" does.
 const yesish = (v: unknown) => /^(true|yes|y|on|checked)$/i.test(String(v ?? "").trim());
 // A form asking for an identity number stops before anything is filled: those are the person's to type, never held or
@@ -178,6 +176,8 @@ function options(args: string[]) {
     // forms that submit from a script (Greenhouse job-boards, Ashby), whose request is not a bound form post. Exactly one
     // request goes through, only if it carries the approved answers, and its shape (keys, never values) is recorded.
     else if (k === "--person-submits") o["person-submits"] = true;
+    // --application-id <uuid>: the queue's application this approved run drives; the proof is bound to it (D-024).
+    else if (k === "--application-id" && /^[0-9a-f-]{36}$/.test(args[i + 1] || "")) o["application-id"] = args[++i];
     // --approved <hash>: the person already approved this exact application (the approval hash a dry run printed, or
     // a texted yes on its card). The run fills and reads back as always and submits without asking again only if the
     // application is still exactly the one approved; any difference stops it with nothing sent.
@@ -463,6 +463,23 @@ export async function runApply(args: string[]) {
   let typedCode: EmailCode | null = null;
   // The employer's own hidden fields, as the page set them before anything was filled (name -> value).
   let pageFields: Record<string, string> | null = null;
+  // D-024: each picture of the proof is taken into its own new file, numbered in this run's order, and recorded with
+  // its hash, time and this run's and application's identity the moment it is taken. Nothing is read from a file
+  // that was already there: an older picture, of this run or another, can never stand in for a new one.
+  const runId = crypto.randomUUID();
+  let proofSeq = 0;
+  const capture = async (kind: string, extra: Record<string, unknown> = {}) => {
+    const seq = ++proofSeq, file = path.join(evidenceDir, `proof-${seq}-${kind}.png`);
+    if (fs.existsSync(file)) throw fail("PROOF_FILE_EXISTS");
+    // Local test pages only: a picture that cannot be taken (proof-g6.test.ts).
+    if (target.local && Deno.env.get("UPMORE_TEST_PROOF_FAULT") === kind) throw fail("PROOF_CAPTURE_FAILED");
+    await send({ type: "screenshot", path: file });
+    fs.chmodSync(file, 0o600);
+    return Object.freeze({
+      kind, file: path.basename(file), sha256: sha(fs.readFileSync(file)), seq, at: Date.now(),
+      run_id: runId, application_id: o["application-id"] ?? null, ...extra,
+    });
+  };
   const write = (raw: any) => {
     const result = typedCode ? JSON.parse(redactCode(JSON.stringify(raw), typedCode)) : raw;
     evidence.result = result;
@@ -1089,18 +1106,30 @@ export async function runApply(args: string[]) {
       });
       fenced = true;
       // D-024 (G6): the page as it stands at the click, after every check above passed, is the "before" of the proof.
-      // Without it there is no click: nothing has been sent, so the application is not sent and may be tried again.
-      const beforeClick = path.join(evidenceDir, "before-click.png");
+      // A long answer can run past what a picture shows, so what each field held at that moment is read back too, and
+      // kept as a hash per field only (it binds the picture to these answers without keeping their text again).
+      // Without the picture there is no click: nothing has been sent, so the application is not sent and may be
+      // tried again.
+      const clickRead = await send({ type: "readback", bindings: Object.values(history) });
+      const held = Object.fromEntries(Object.entries(clickRead.answers).sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, value]) => [name, sha(JSON.stringify(value))]));
+      let beforeClick;
       try {
-        await send({ type: "screenshot", path: beforeClick });
-        fs.chmodSync(beforeClick, 0o600);
+        beforeClick = await capture("before-click", { fields_sha256: held });
       } catch {
         throw fail("BEFORE_CLICK_PROOF_MISSING");
       }
-      evidence.proof = { before_click: shotProof(beforeClick), approval_hash: approvalHash, payload_hash: payloadHash };
+      evidence.proof = {
+        run_id: runId,
+        application_id: o["application-id"] ?? null,
+        approval_hash: approvalHash,
+        payload_hash: payloadHash,
+        before_click: beforeClick,
+      };
       // WO-096: the code the employer emails is for this click; mail from before it is never read as its code.
       const clickAt = Date.now();
-      evidence.proof.click_at = clickAt;
+      // The click's place in this run's own order: after the before picture, before the after picture.
+      evidence.proof.click = Object.freeze({ seq: ++proofSeq, at: clickAt });
       allowSubmit = true;
       let cap: any;
       if (personSubmits) {
@@ -1263,11 +1292,16 @@ export async function runApply(args: string[]) {
         if (denied) throw fail("HOST_REDIRECT_REFUSED");
       }
       evidence.observation = obs;
-      // D-024: the employer's answer after the click, the "after" of the proof (the last picture of it taken above).
+      // D-024: the "after" of the proof, the page as it shows once the outcome above was read: a picture of what the
+      // page showed, not proof that the employer accepted anything. Its failure is kept, never covered by an older file.
       try {
-        evidence.proof.after_submit = shotProof(path.join(evidenceDir, "after-submit.png"));
-      } catch { /* no picture of the answer: said below */ }
+        evidence.proof.after_submit = await capture("after-submit", { final_url: page.url() });
+      } catch (e: any) {
+        evidence.proof.after_submit = null;
+        evidence.proof.after_submit_error = String(e?.code || e?.message || e).slice(0, 200);
+      }
       evidence.proof.final_url = page.url();
+      Object.freeze(evidence.proof);
       const classified = classifyOutcome(obs);
       // Without both pictures the product never says the application went through as confirmed.
       const judged = classified.state === "confirmed" && !evidence.proof.after_submit

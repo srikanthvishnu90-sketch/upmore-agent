@@ -234,16 +234,19 @@ Deno.test({
         assertEquals(row.state, "submitted_unconfirmed", "a page's thank-you is never 'confirmed' (only the employer's email is)");
         assertMatch(JSON.stringify(row), /FLOW-PLAIN-1/);
         // G6 (D-024): the proof is kept with the record: a picture of the page at the click, taken after every check
-        // before it, and one of the employer's answer after it, each named by its hash and time, in the row itself.
+        // before it, and one of the page after it, each named by its hash, its time and its place in the run's own
+        // order, and bound at capture to this run, this application and this approval.
         const proof = row.evidence?.proof;
         assert(proof, `the row keeps the proof: ${JSON.stringify(row.evidence)}`);
-        for (const [shot, file] of [["before_click", "before-click.png"], ["after_submit", "after-submit.png"]]) {
-          assertEquals(proof[shot]?.file, file, shot);
-          const bytes = await Deno.readFile(`${row.evidence.evidence_path}/${file}`);
+        for (const shot of ["before_click", "after_submit"]) {
+          assertMatch(String(proof[shot]?.file), new RegExp(`^proof-\\d+-${shot.replace("_", "-")}\\.png$`));
+          const bytes = await Deno.readFile(`${row.evidence.evidence_path}/${proof[shot].file}`);
           assertEquals(proof[shot].sha256, await sha256hex(bytes), `${shot}: the row's hash is the picture's`);
+          assertEquals([proof[shot].run_id, proof[shot].application_id], [proof.run_id, row.id], `${shot} is bound to this run and application`);
         }
-        assert(proof.before_click.at <= proof.click_at && proof.click_at <= proof.after_submit.at,
-          `before the click, then the click, then the answer: ${JSON.stringify(proof)}`);
+        assert(proof.before_click.seq < proof.click.seq && proof.click.seq < proof.after_submit.seq,
+          `before the click, then the click, then the page after it, in the run's own order: ${JSON.stringify(proof)}`);
+        assertEquals(proof.application_id, row.id);
         assertEquals((await queue.claim(1)).length, 0, "nothing is left to claim: an application is driven once");
       });
 

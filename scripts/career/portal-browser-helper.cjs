@@ -428,6 +428,14 @@ async function fillOnceHandles(board, cmd) {
   if (b.inputType === "select") {
     const hit = matchOption(b.options || [], value);
     if (!hit) return { filled: false, reason: "option_not_found", wanted: String(value) };
+    // A select's first option with an empty value is its placeholder prompt
+    // ("Select...", "Please select an option"), not an answer: selecting it
+    // leaves the field unanswered even though the DOM takes the value (a
+    // placeholder pick on a Shield AI card select was counted as a fill in
+    // the forms-ci coverage measurement, 2026-10-23). Refuse it by name.
+    if (hit.value === "" && (b.options || []).indexOf(hit) === 0) {
+      return { filled: false, reason: "placeholder_option", wanted: String(value) };
+    }
     await nodes[0].selectOption({ value: hit.value });
     return { filled: true, expect: hit.label };
   }
@@ -444,6 +452,15 @@ async function fillOnceHandles(board, cmd) {
   if (b.inputType === "checkbox") {
     if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
     return { filled: true, expect: value === true || value === "true" ? true : "__absent__" };
+  }
+  // A number input takes a number: a non-numeric value (a date string sent to
+  // an education-year field measured DRIVER_ERROR in the forms-ci coverage
+  // pack, 2026-10-23) is refused by name instead of crashing the fill, so the
+  // caller records a truthful non-fill and moves on.
+  const elType = await nodes[0].evaluate((el) => (el.tagName === "INPUT" ? el.type : "")).catch(() => "");
+  if (elType === "number") {
+    const t = String(value).trim();
+    if (t === "" || Number.isNaN(Number(t))) return { filled: false, reason: "value_not_numeric", wanted: String(value) };
   }
   await nodes[0].fill(String(value));
   return { filled: true, expect: String(value) };

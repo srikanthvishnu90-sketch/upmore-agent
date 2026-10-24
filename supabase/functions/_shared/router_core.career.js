@@ -14569,6 +14569,43 @@ const CareerRouter = (() => {
     }) };
   }
 
+  const ERASE_STATE_KEYS = ["profile", "osStore", "doorstepState", "queueState", "globalPause", "trackStore", "suppression", "applyLog", "applicationLog", "outreach", "outreachContacts", "contacts", "sendingAccounts", "artifacts", "discovery", "plan", "offer", "portalRecords", "statusRecords", "tasks", "resumeTexts", "pastedText", "posting", "statedFacts", "intentQueue", "_relayedSuppressions", "alertWatchState", "batchApplyState", "offerBenchmark"];
+  function handleErasePath(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (/\bis it gone\b|\bis (it|everything) (deleted|erased|gone)\b|\bdid you (delete|erase)\b/.test(t)) {
+      if (mir && mir.erasedAt) return { intent: "career_erase_status", resultStatus: "complete", reply: compose({ headline: "Yes — it is gone.", facts: ["Your saved career profile and active context were removed when you confirmed the erase, your watches were cleared, and career work is paused.", "What an erase does not rewrite is the chat and audit text itself — it stays out of your active context and nothing is built on it."], nextStep: "Anything you state from here starts a fresh record, only from your own words." }) };
+      if (mir && mir.eraseConfirm) return { intent: "career_erase_status", resultStatus: "awaiting_user", reply: compose({ headline: "Not yet — nothing has been deleted.", facts: ["The erase is still waiting on your yes to the confirmation above; until that yes, your record stands exactly as it was."], nextStep: "Say “yes, erase it” to execute it, or say “keep it” and the request closes with nothing removed." }) };
+      return { intent: "career_erase_status", resultStatus: "complete", reply: compose({ headline: "Nothing has been erased in this conversation.", facts: ["No erase has run here, so your record still stands. If you want it gone, say “delete everything” and the erase opens by naming exactly what it removes — nothing is deleted before your confirming yes."], nextStep: "Say “delete everything” to open the erase, or ask what is on your record and it is read back." }) };
+    }
+    if (mir && mir.eraseConfirm && (nowOf(ctx) - (Date.parse(mir.eraseConfirm.at || "") || 0)) <= 5 * 60 * 1000) {
+      const yesErase = /^(yes|yeah|yep|confirm|confirmed)[.!]*$/.test(t) || /^(yes|yeah|yep)[,.]?\s+(i'?m sure|im sure|sure|erase it|delete it|do it)[.!]*$/.test(t) || /\b(erase|delete) (it|everything|all of it)\b/.test(t);
+      const keepIt = /\b(keep it|don'?t|do not|no|stop|cancel|wait)\b/.test(t) && !yesErase;
+      if (keepIt) {
+        const wmir = threadMirrorForWrite(ctx);
+        if (wmir) delete wmir.eraseConfirm;
+        return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Kept — the erase request is closed and nothing was removed.", facts: ["Your record stands exactly as it was before the ask."], nextStep: "Say the word any time you want the erase opened again." }) };
+      }
+      if (yesErase) {
+        for (const key of ERASE_STATE_KEYS) { try { delete ctx[key]; } catch {   } }
+        for (const key of ["negotiationThread", "careerPath", "prepThread", "_careerLastWork"]) { try { delete ctx[key]; } catch {   } }
+        ctx.globalPause = { set: true, at: new Date(nowOf(ctx)).toISOString(), source: "account_control" };
+        ctx._hostPatch = { erase: true, paused: true };
+        const wmir = threadMirrorForWrite(ctx);
+        if (wmir) { for (const k of Object.keys(wmir)) delete wmir[k]; wmir.erasedAt = new Date(nowOf(ctx)).toISOString(); }
+        return { intent: "career_profile_erased", resultStatus: "complete", sends: 0, reply: "I removed your saved career profile and active career context, cleared account watches and paused career work. Existing chat/audit records may retain earlier text; it is excluded from active context. No uncertain action was retried." };
+      }
+      return null;
+    }
+    if (/\b(delete|erase|forget|wipe|remove)\b[^.]*\b(everything|all of it|all my|my (data|info|information|profile|record|details))\b/.test(t) || /^(delete|erase|forget) (everything|it all)[.!]*$/.test(t)) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.eraseConfirm = { at: new Date(nowOf(ctx)).toISOString() };
+      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "It does not rewrite the chat transcript or audit records — that text is excluded from your active context instead, the same line the product's own erase draws."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
+    }
+    return null;
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -20244,6 +20281,8 @@ const CareerRouter = (() => {
     if (goalTurn) return goalTurn;
     const bulletLoop = handleResumeBulletLoop(text, c);
     if (bulletLoop) return bulletLoop;
+    const erasePath = handleErasePath(text, c);
+    if (erasePath) return erasePath;
     const pendingAffirm = handlePendingAffirmation(text, c);
     if (pendingAffirm) return pendingAffirm;
     const resumeIngest = handleResumePasteIngest(text, c);

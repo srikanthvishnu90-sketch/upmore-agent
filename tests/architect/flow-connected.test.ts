@@ -20,7 +20,9 @@
 //
 // G4 (second test below): the same stack prepared before the person asks. A posting their job alerts sent them is
 // prepared on the server (workers/career-browser/prepare-ahead.ts) with their own confirmed answers and the resume
-// tailored to it, before they text anything; their card and their tap then go exactly as above.
+// tailored to it, before they text anything; their card and their tap then go exactly as above. A posting that asks for a
+// cover letter gets one drafted ahead from their confirmed facts (essay_draft.ts, the chat's own drafter); it is shown
+// whole only when they ask for it ("draft 1"), saved only by "use 1", and then sent word for word.
 //
 // Not covered yet (later gaps): facts written by chat (G2), the receipt text (G6).
 import assertNode from "node:assert/strict";
@@ -32,6 +34,7 @@ import { engineRunner, ownQueue, prepare, questionsToStore, runApproved } from "
 import { prepareAhead, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
 import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
 import { CareerProfile } from "../../supabase/functions/_shared/router_core.career.js";
+import { type OpenQuestion, QUESTIONS_INTENT, type QuestionStore, questionsTurn, type Shown, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
 
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
@@ -61,11 +64,11 @@ const FACTS = {
 // The employer: two postings on 127.0.0.1. /plain asks name, email and a resume; /attest also asks the person to certify
 // the application, a legal statement only they can make. Every POST is counted per posting.
 function employer() {
-  const posts: Record<string, number> = { plain: 0, attest: 0, second: 0, portfolio: 0 };
-  // The sha256 of the resume file each posting received (G4: the tailored file, byte for byte).
-  const uploads: Record<string, string> = {};
+  const posts: Record<string, number> = { plain: 0, attest: 0, second: 0, portfolio: 0, cover: 0 };
+  // The sha256 of the resume file each posting received (G4: the tailored file, byte for byte), and the cover letter text.
+  const uploads: Record<string, string> = {}, letters: Record<string, string> = {};
   const form = (route: string, extra: string) =>
-    `<!doctype html><title>TEST role</title><h1>TEST Analyst</h1><p>TEST ${route === "second" ? "Second" : "First"} Employer</p><form method="post" action="/${route}/submit" enctype="multipart/form-data">` +
+    `<!doctype html><title>TEST role</title><h1>TEST Analyst</h1><p>TEST ${route === "second" ? "Second" : route === "cover" ? "Cover" : "First"} Employer</p><form method="post" action="/${route}/submit" enctype="multipart/form-data">` +
     `<label for="first">First name</label><input name="first_name" id="first" required>` +
     `<label for="last">Last name</label><input name="last_name" id="last" required>` +
     `<label for="email">Email</label><input name="email" id="email" type="email" required>` +
@@ -75,7 +78,8 @@ function employer() {
     const path = new URL(req.url).pathname;
     if (req.method === "POST") {
       const route = path.split("/")[1];
-      const file = (await req.formData()).get("resume");
+      const data = await req.formData(), file = data.get("resume"), letter = data.get("cover_letter");
+      if (typeof letter === "string") letters[route] = letter;
       if (file instanceof File) {
         uploads[route] = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()))).map((b) => b.toString(16).padStart(2, "0")).join("");
       }
@@ -87,12 +91,15 @@ function employer() {
     if (path === "/portfolio") {
       return new Response(form("portfolio", `<label for="pf">Portfolio URL</label><input name="portfolio" id="pf" required>`), { headers: { "content-type": "text/html" } });
     }
+    if (path === "/cover") {
+      return new Response(form("cover", `<label for="cl">Cover letter</label><textarea name="cover_letter" id="cl" required></textarea>`), { headers: { "content-type": "text/html" } });
+    }
     if (path === "/attest") {
       return new Response(form("attest", `<label><input type="checkbox" name="certify" id="certify" required> I certify that the information in this application is true and complete.</label>`), { headers: { "content-type": "text/html" } });
     }
     return new Response("not found", { status: 404 });
   });
-  return { base: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`, posts, uploads, close: () => server.shutdown() };
+  return { base: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`, posts, uploads, letters, close: () => server.shutdown() };
 }
 
 Deno.test({
@@ -122,7 +129,9 @@ Deno.test({
       await Deno.writeTextFile(factsPath, JSON.stringify(FACTS));
       await Deno.writeFile(resumePath, new TextEncoder().encode("%PDF-1.4\n% synthetic flow-test resume\n%%EOF\n"));
       const person = pg.asPerson(PERSON);
-      const runEngine = engineRunner({ root: ROOT });
+      // The engine's own record of what it sent (its daily limit counts it) lives in this run's directory, never in a home
+      // directory that earlier runs filled.
+      const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
       const account = (await person.rpc("career_apply_account_own")).data;
       assertEquals(account, { epoch: 0, version: 0, paused: false });
 
@@ -239,6 +248,14 @@ const ALERTED = [
   { job_id: "greenhouse:flowtest:2", path: "/portfolio", company: "TEST Portfolio Employer" },
 ];
 const NOT_ALERTED = { job_id: "greenhouse:flowtest:3", path: "/second", company: "TEST Unalerted Employer" };
+// Alerted later (the cover-letter steps): its form asks for a cover letter typed into a text box. Another employer, so it
+// is served from its own site (the engine names a local page's employer by its host).
+const COVER = { job_id: "greenhouse:flowtest:4", path: "/cover", company: "TEST Cover Employer" };
+// What the stub model writes when asked for the cover letter: only what the person's confirmed facts say (F-002, F-004 of
+// the fixture) and the company's name, so the drafter's own fact check passes it. The model is a stub; nothing is paid for.
+const LETTER = "I built a reporting dashboard in React and Python used by 200 internal users at TEST Systems Inc, and I cut weekly " +
+  "reporting time by 40% by automating data pulls from PostgreSQL. I also built DeployBoard in Go to deploy containerised apps on " +
+  "Kubernetes for 12 student teams. I want to bring that work on dashboards for internal teams to TEST Cover Employer.";
 // The person's profile as the chat keeps it: the synthetic test resume, confirmed fact by fact (WO-028's fixture).
 async function confirmedProfile() {
   const text = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
@@ -263,7 +280,7 @@ Deno.test({
       return;
     }
     const pg = await startPg();
-    const site = employer();
+    const site = employer(), coverSite = employer();
     const work = await Deno.makeTempDir({ prefix: "trainee-ahead-test-" });
     try {
       // Setup (not the person acting): their account; the answers they texted to earlier questions (ask once, G2's
@@ -275,7 +292,7 @@ Deno.test({
          ('${PERSON}', 'fact:first_name', 'fact', 'First name', 'input_text', 'answered', 'Flow', now()),
          ('${PERSON}', 'fact:last_name', 'fact', 'Last name', 'input_text', 'answered', 'Tester', now()),
          ('${PERSON}', 'fact:email', 'fact', 'Email', 'input_text', 'answered', 'flow.tester@example.test', now());`);
-      for (const p of [...ALERTED, NOT_ALERTED]) {
+      for (const p of [...ALERTED, NOT_ALERTED, COVER]) {
         await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at)
           values ('${p.job_id}', 'greenhouse', 'flowtest', '${p.company}', 'TEST Analyst', 'Chicago, IL', 'https://boards.greenhouse.io/flowtest/jobs/${p.job_id.split(":")[2]}',
           'TEST Analyst. Requirements: SQL, Python, dashboards for internal teams.', now(), now())`);
@@ -284,7 +301,7 @@ Deno.test({
         await pg.sql(`insert into public.career_outbox (user_id, key, kind, text, deliver_at) values ('${PERSON}', 'alert:${p.job_id}', 'alert', 'TEST alert', now())`);
       }
       const svc = pg.asService(), person = pg.asPerson(PERSON);
-      const local = new Map([...ALERTED, NOT_ALERTED].map((p) => [p.job_id, `${site.base}${p.path}`]));
+      const local = new Map([...ALERTED, NOT_ALERTED, COVER].map((p) => [p.job_id, `${p === COVER ? coverSite.base : site.base}${p.path}`]));
       // The private resume store: kept in memory here; each file it stores is registered as the bucket object it would be,
       // which is what lets career_apply_resume_tag call the queued job tailored.
       const memory = memoryResumeStore();
@@ -299,7 +316,9 @@ Deno.test({
       };
       const profile = await confirmedProfile();
       const profileFor = async (u: string) => u === PERSON ? profile : null;
-      const runEngine = engineRunner({ root: ROOT });
+      // The engine's own record of what it sent (its daily limit counts it) lives in this run's directory, never in a home
+      // directory that earlier runs filled.
+      const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
       const deps = {
         db: svc, runEngine, profileFor, urlFor: (c: { job_id: string }) => local.get(c.job_id)!,
         resumeFor: tailoredResume({ profileFor, render: edgeRenderer(), resumes }),
@@ -359,9 +378,10 @@ Deno.test({
         assertEquals([job.tailored, job.resume_sha256], [true, tailoredSha], "career_apply_resume_tag: the stored tailored file");
       });
 
-      await t.step("drive: the employer receives the tailored resume, byte for byte, once", async () => {
+      // Their own computer runs what they approved (the queue's claim and finish, as the person).
+      const drive = () => {
         const queue = ownQueue(person);
-        const done = await runApproved({
+        return runApproved({
           claim: () => queue.claim(1),
           finish: (id, lease, state, evidence) => queue.finish(id, lease, state, evidence),
           resumeFor: async (job) => {
@@ -376,13 +396,105 @@ Deno.test({
           },
           runEngine,
         });
+      };
+
+      await t.step("drive: the employer receives the tailored resume, byte for byte, once", async () => {
+        const done = await drive();
         assertEquals(done.length, 1);
-        assertEquals(site.posts.plain, 1, "exactly one POST reached the employer's page");
+        assertEquals(site.posts.plain, 1, `exactly one POST reached the employer's page: ${JSON.stringify(done)}`);
         assertEquals(site.uploads.plain, tailoredSha, "the file the employer received is the tailored one");
         assertEquals(await pg.sql(`select state from public.career_apply_jobs where user_id = '${PERSON}' and url like '%/plain'`), "submitted_unconfirmed");
       });
+
+      // The cover letter. The drafter is the chat's own (essay_draft.ts draftEssay: the employer's AI policy first, only
+      // confirmed facts, every name and number traced); the model is a stub that counts its calls.
+      const modelCalls: unknown[] = [];
+      const draftModel = async (payload: unknown) => {
+        modelCalls.push(payload);
+        return { content: [{ type: "text", text: LETTER }], stop_reason: "end_turn" };
+      };
+      // The chat's question store: the production store's database calls (open, answer, the drafts written ahead) over the
+      // service role, as the edge function holds it; the rest is what the chat host keeps (which questions were shown,
+      // the thread's last reply), here in memory.
+      const real = supabaseQuestionStore({ rpc: (name: string, args?: unknown) => svc.rpc(name, args) });
+      let shown: Shown | null = null;
+      const asQuestions = async (where: string): Promise<OpenQuestion[]> =>
+        JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('id', id, 'key', key, 'kind', kind, 'label', label, 'type', type,
+          'options', options, 'company', company, 'job_ids', job_ids, 'misfit', misfit, 'answer', answer, 'ai_policy', ai_policy)), '[]')
+          from public.career_apply_questions where user_id = '${PERSON}' and ${where}`));
+      const store: QuestionStore = {
+        open: real.open, answer: real.answer, drafted: real.drafted,
+        countOpen: async () => Number(await pg.sql(`select count(*) from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`)),
+        get: (_u, ids) => asQuestions(`id = any('{${ids.join(",")}}'::uuid[])`),
+        onPostings: (_u, jobIds) => asQuestions(`job_ids && '{${jobIds.join(",")}}'::text[]`),
+        shown: async () => shown,
+        setShown: async (_u, s) => { shown = structuredClone(s); },
+        lastAssistantIntent: async () => QUESTIONS_INTENT, // every reply below is the questions' (the host records its intent)
+      };
+      const text = (message: string) =>
+        questionsTurn({ message, userId: PERSON, threadId: "thread-flow-1", now: Date.now(), store, draft: { model: draftModel, facts: () => profile.facts } });
+      let letterQuestion = "";
+
+      await t.step("cover letter ahead: a posting that asks for one gets it drafted from their confirmed facts before they ask; nothing is saved or sent", async () => {
+        // A fact they mentioned but never confirmed: it must never reach the drafter's model.
+        const unconfirmed = (CareerProfile as any).addFact(profile, {
+          kind: "experience", title: "Desk Lead, ZETAQUANT Trading (TEST)", text: "Desk Lead, ZETAQUANT Trading (TEST) Ran a trading desk of 900 people",
+          bullets: ["Ran a trading desk of 900 people"], source: "chat", needs_confirmation: true,
+        });
+        assert(unconfirmed.needs_confirmation === true, JSON.stringify(unconfirmed));
+        await pg.sql(`insert into public.career_outbox (user_id, key, kind, text, deliver_at) values ('${PERSON}', 'alert:${COVER.job_id}', 'alert', 'TEST alert', now())`);
+        const done = await prepareAhead({ ...deps, draftModel });
+        assertEquals(done.map((r) => [r.job_id, r.outcome]), [[COVER.job_id, "asked"]], JSON.stringify(done));
+        assertMatch(done[0].detail, /cover letter drafted/);
+        assertEquals(modelCalls.length, 1, "one draft, written once");
+        const sent = JSON.stringify(modelCalls[0]);
+        assert(sent.includes("TEST Systems Inc"), "the drafter was given their confirmed facts");
+        assert(!sent.includes("ZETAQUANT"), "an unconfirmed fact never reaches the model");
+        const q = await asQuestions(`state = 'open'`);
+        assertEquals(q.map((x) => [x.kind, x.label, x.answer]), [["essay", "Cover letter", null]], "the cover letter is asked of them, unanswered");
+        letterQuestion = q[0].id;
+        assertEquals(await pg.sql(`select text from public.career_apply_question_drafts where question_id = '${letterQuestion}'`), LETTER,
+          "the draft waits beside the question");
+        assertEquals(coverSite.posts.cover, 0, "nothing is sent");
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}' and url like '%/cover'`), "0",
+          "nothing is prepared on a draft they have not read");
+      });
+
+      await t.step("their text: the questions say a draft is ready; it is shown whole only when they ask; only \"use 1\" saves it", async () => {
+        const list = await text("what do you need from me");
+        assertEquals(list?.status, "shown", JSON.stringify(list));
+        assertMatch(list!.reply, /1\. Cover letter/);
+        assertMatch(list!.reply, /A draft of 1 is ready, written only from your confirmed facts\. Say "draft 1" to read it/);
+        const early = await text("use 1");
+        assertEquals(early?.status, "draft_none", "a draft they have not read is never saved");
+        assertEquals((await asQuestions(`id = '${letterQuestion}'`))[0].answer, null);
+        const read = await text("draft 1");
+        assertEquals(read?.status, "drafted_ahead", JSON.stringify(read));
+        assert(read!.reply.includes(LETTER), "shown whole, word for word");
+        assertMatch(read!.reply, /Nothing is saved yet/);
+        assertEquals(modelCalls.length, 1, "the draft written ahead is shown; the model is not called again");
+        assertEquals((await asQuestions(`id = '${letterQuestion}'`))[0].answer, null, "reading it saves nothing");
+        const use = await text("use 1");
+        assertEquals(use?.status, "answered", JSON.stringify(use));
+        assertEquals((await asQuestions(`id = '${letterQuestion}'`))[0].answer, LETTER, "saved as drafted, by their word");
+      });
+
+      await t.step("answered: the next run prepares the posting with their letter; their tap sends it word for word", async () => {
+        const done = await prepareAhead({ ...deps, draftModel });
+        assertEquals(done.map((r) => [r.job_id, r.outcome]), [[COVER.job_id, "ready"]], JSON.stringify(done));
+        assertEquals(modelCalls.length, 1, "nothing is drafted again");
+        const row = JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${done[0].prepared_id}'`));
+        assert(row.payload.fields.some((f: any) => f.name === "cover_letter" && f.value === LETTER), JSON.stringify(row.payload.fields));
+        const card = await person.rpc("career_apply_card_open_own", { p_ids: [done[0].prepared_id] });
+        assertEquals(card.error, null, JSON.stringify(card));
+        assertEquals((await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] })).error, null);
+        assertEquals((await drive()).length, 1);
+        assertEquals(coverSite.posts.cover, 1, "exactly one POST");
+        assertEquals(coverSite.letters.cover, LETTER, "the employer received the letter they chose, word for word");
+      });
     } finally {
       await site.close();
+      await coverSite.close();
       await pg.stop();
       await Deno.remove(work, { recursive: true }).catch(() => {});
     }

@@ -14,12 +14,20 @@
 // A posting it cannot tailor for is not prepared (no_resume): nothing goes out with a resume the person did not get.
 // Every try is recorded (career_apply_prepare_attempt_for), so a posting is retried once a week at most, or as soon as
 // the questions it stopped on are answered.
+// The cover letter: when a posting asks for one typed into a text box, it is drafted from the person's confirmed facts by
+// the chat's own drafter (essay_draft.ts draftEssay: the employer's AI policy first, every name and number traced to a
+// confirmed fact) and kept beside the question (career_apply_question_draft_put_for). It is never their answer: the chat
+// shows it whole when they ask, only their "use N" saves it, and the posting is then prepared again with it.
 //
 // Usage (the worker host, the service role; never on a schedule from here):
-//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... deno run -A workers/career-browser/prepare-ahead.ts once [--limit N]
+//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... deno run -A workers/career-browser/prepare-ahead.ts once [--limit N] [--draft-cover-letters]
+// --draft-cover-letters calls the model (the gateway's provider, paid) once or twice for each cover letter drafted; without
+// it none is drafted ahead, and the person can still say "draft N" in the chat.
 import { engineFacts, engineRunner, prepare, questionsToStore, type ResumeTag, type RunEngine, type TextAnswer } from "./approve-first.ts";
 import { trustedManifest } from "../../extension/src/apply_core.ts";
 import { type ResumeStore, tailorForPosting, type TailorDeps } from "../../supabase/functions/_shared/career_tailor.ts";
+import { draftEssay, type ModelFn } from "../../supabase/functions/_shared/essay_draft.ts";
+import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
 
 export interface Candidate {
   user_id: string; job_id: string; company: string; title: string; url: string; location: string; description: string;
@@ -36,6 +44,8 @@ export interface AheadDeps {
   profileFor?: (userId: string) => Promise<any | null>;
   // The link the engine opens. Production: the posting's own. Tests point an https posting at a local employer page.
   urlFor?: (c: Candidate) => string;
+  // The model the chat's drafter writes with; absent (or no profile), no cover letter is drafted ahead.
+  draftModel?: ModelFn;
   now?: () => number;
   tmpRoot?: string;
 }
@@ -66,7 +76,12 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
       // Their own answers to questions they were asked, and their profile's confirmed facts: the trust contract decides.
       const rows: TextAnswer[] = must(await d.db.rpc("career_apply_answers_for", { p_user: c.user_id }), "read their answers") ?? [];
       const profile = d.profileFor ? await d.profileFor(c.user_id) : null;
-      const file = { user_id: c.user_id, answers: {}, saved: {}, ...(profile && Array.isArray(profile.facts) ? { facts: profile.facts } : {}) };
+      // The posting's own company (career_postings), which the engine names the application by (else the board's tenant):
+      // the 30-day one-company rule and the person's card then count employers, not job boards.
+      const file = {
+        user_id: c.user_id, answers: {}, saved: {}, posting: { company: c.company },
+        ...(profile && Array.isArray(profile.facts) ? { facts: profile.facts } : {}),
+      };
       const merged = engineFacts(file, rows);
       const trusted = trustedManifest({ owner: c.user_id, file: merged, rows, resume: null }).answers;
       const factsPath = `${dir}/facts.json`;
@@ -79,12 +94,19 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
       });
       if (!r.ready) {
         const result: any = r.result;
-        const ask = result.reason === "needs_answers" ? questionsToStore(result, { facts: trusted, answered: new Set(rows.map((x) => x.key)) }) : null;
+        // The questions name the posting's own company too (the engine's stop names the board's tenant or the page's host).
+        const ask = result.reason === "needs_answers"
+          ? questionsToStore({ ...result, company: c.company || result.company }, { facts: trusted, answered: new Set(rows.map((x) => x.key)) })
+          : null;
         if (ask?.questions.length) {
           const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
             p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: ask.posting, p_questions: ask.questions,
           }), "store the questions");
-          out.push({ user_id: c.user_id, job_id: c.job_id, outcome: "asked", detail: `${n} question(s) asked` });
+          const letters = d.draftModel && profile ? await coverLettersAhead(d.db, d.draftModel, c, ask, profile) : 0;
+          out.push({
+            user_id: c.user_id, job_id: c.job_id, outcome: "asked",
+            detail: `${n} question(s) asked${letters ? `; ${letters} cover letter${letters === 1 ? "" : "s"} drafted for them to read` : ""}`,
+          });
         } else await record("refused", String(result.reason ?? result.state ?? "not ready"), undefined, result.posting);
         continue;
       }
@@ -99,6 +121,28 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
     }
   }
   return out;
+}
+
+// The cover letters a posting asks for, typed into a text box (question_map.ts essay_cover_letter), each drafted once and
+// kept beside its question. A draft that fails any of the drafter's checks is not kept: the question stays theirs.
+// deno-lint-ignore no-explicit-any
+async function coverLettersAhead(db: ServiceRpc, model: ModelFn, c: Candidate, ask: { posting: string; questions: any[] }, profile: any): Promise<number> {
+  let kept = 0;
+  for (const q of ask.questions) {
+    if (q.kind !== "essay" || mapQuestion({ label: String(q.label), type: String(q.type), options: [] }).fact !== "essay_cover_letter") continue;
+    const r = await draftEssay({
+      q: { id: "", label: String(q.label), type: String(q.type), kind: "essay", company: q.company ?? c.company, job_ids: [ask.posting], ai_policy: q.ai_policy ?? null },
+      siblingLabels: ask.questions.filter((x) => x !== q).flatMap((x) => [String(x.label), String(x.ai_policy ?? "")]),
+      deps: { model, facts: () => (Array.isArray(profile.facts) ? profile.facts : []) },
+    });
+    if (!r.ok) { console.error(`prepare-ahead: no cover letter drafted for ${c.job_id} (${r.why}: ${r.detail.join("; ").slice(0, 200)})`); continue; }
+    const saved = await db.rpc("career_apply_question_draft_put_for", {
+      p_user: c.user_id, p_engine_job_id: ask.posting, p_key: q.key, p_text: r.text, p_fact_ids: r.factIds.slice(0, 20),
+    });
+    if (saved.error) console.error(`prepare-ahead: the cover letter for ${c.job_id} was not kept (${saved.error.message})`);
+    else if (saved.data) kept++;
+  }
+  return kept;
 }
 
 // The resume tailored to the posting (WO-028, career_tailor.ts), the bytes kept as they were stored so the engine sends
@@ -142,7 +186,7 @@ export function storedProfile(admin: any) {
 if (import.meta.main) {
   const [cmd, ...rest] = Deno.args;
   if (cmd !== "once") {
-    console.error("usage: prepare-ahead.ts once [--limit N]   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)");
+    console.error("usage: prepare-ahead.ts once [--limit N] [--draft-cover-letters]   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)");
     Deno.exit(2);
   }
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -153,10 +197,16 @@ if (import.meta.main) {
   const i = rest.indexOf("--limit"), limit = i >= 0 ? Number(rest[i + 1]) : 50;
   const root = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
   const profileFor = storedProfile(admin);
+  // The chat's own model door (agent-chat handler-career.ts drafts with the same configuration), only when asked.
+  const { callModel, modelConfig, newMeter } = await import("../../supabase/functions/_shared/model_gateway.ts");
+  const meter = newMeter(), cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+  const draftModel: ModelFn | undefined = rest.includes("--draft-cover-letters")
+    ? (payload) => callModel(cfg, payload, { meter, role: "chat" }) : undefined;
   const done = await prepareAhead({
-    db: admin, runEngine: engineRunner({ root }), profileFor,
+    db: admin, runEngine: engineRunner({ root }), profileFor, draftModel,
     resumeFor: tailoredResume({ profileFor, render: edgeRenderer(), resumes: supabaseResumeStore(admin) }),
   }, { limit: Number.isInteger(limit) && limit > 0 ? limit : 50 });
   for (const r of done) console.log(`${r.outcome.toUpperCase()} ${r.job_id} (${r.detail})`);
   console.log(`${done.filter((r) => r.outcome === "ready").length} of ${done.length} prepared before they asked; nothing was sent.`);
+  if (draftModel) console.log(`model calls for cover letters: ${meter.calls} (${meter.failed} failed), $${(meter.usd_micros / 1e6).toFixed(4)}${meter.unpriced ? `, ${meter.unpriced} unpriced` : ""}`);
 }

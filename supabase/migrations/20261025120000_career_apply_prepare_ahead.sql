@@ -22,6 +22,11 @@
 --    never silent.
 -- 4. career_apply_answers_for(p_user): the person's own answers to asked questions (career_apply_answers_own for the
 --    service role), the confirmed facts a server-side preparation may use beside what their profile holds.
+-- 5. The cover letter drafted ahead (career_apply_question_drafts): when a posting asks for a cover letter typed into a
+--    text box, the worker drafts one from the person's confirmed facts (essay_draft.ts, the chat's own drafter) and keeps
+--    it beside that open question (career_apply_question_draft_put_for). It is never their answer: the chat shows it whole
+--    when they ask for it ("draft 2") and only their "use 2" saves it (career_apply_questions.ts), after which the posting
+--    is prepared again with it. career_apply_question_drafts_as(p_user, p_ids) reads the drafts of their open questions.
 
 create table if not exists public.career_apply_prepare_attempts (
  user_id uuid not null references public.profiles(id) on delete cascade,
@@ -122,9 +127,46 @@ language sql stable security definer set search_path = public, pg_temp as $$
  select id, key, kind, answer, answered_at from public.career_apply_questions where user_id = p_user and state = 'answered' order by answered_at
 $$;
 
+create table if not exists public.career_apply_question_drafts (
+ question_id uuid primary key references public.career_apply_questions(id) on delete cascade,
+ user_id uuid not null references public.profiles(id) on delete cascade,
+ text text not null check (length(btrim(text)) between 1 and 2000),
+ fact_ids text[] not null default '{}' check (cardinality(fact_ids) <= 20),
+ drafted_at timestamptz not null default now()
+);
+alter table public.career_apply_question_drafts enable row level security;
+revoke all on public.career_apply_question_drafts from public, anon, authenticated;
+
+-- The draft goes beside the person's own open written question of that posting, or nowhere (null): never on an answered
+-- question, another person's, or a question that is not a written answer.
+create or replace function public.career_apply_question_draft_put_for(p_user uuid, p_engine_job_id text, p_key text, p_text text, p_fact_ids text[])
+returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
+declare q uuid;
+begin
+ if p_user is null or nullif(p_engine_job_id, '') is null or nullif(p_key, '') is null or p_text is null
+  or length(btrim(p_text)) not between 1 and 2000 or cardinality(coalesce(p_fact_ids, '{}')) > 20 then raise exception 'invalid draft'; end if;
+ select id into q from public.career_apply_questions
+  where user_id = p_user and key = p_key and state = 'open' and kind = 'essay' and p_engine_job_id = any(job_ids);
+ if q is null then return null; end if;
+ insert into public.career_apply_question_drafts (question_id, user_id, text, fact_ids, drafted_at)
+ values (q, p_user, p_text, coalesce(p_fact_ids, '{}'), now())
+ on conflict (question_id) do update set text = excluded.text, fact_ids = excluded.fact_ids, drafted_at = excluded.drafted_at;
+ return q;
+end $$;
+
+create or replace function public.career_apply_question_drafts_as(p_user uuid, p_ids uuid[])
+returns table (question_id uuid, text text, fact_ids text[], drafted_at timestamptz)
+language sql stable security definer set search_path = public, pg_temp as $$
+ select d.question_id, d.text, d.fact_ids, d.drafted_at from public.career_apply_question_drafts d
+ join public.career_apply_questions q on q.id = d.question_id and q.user_id = p_user and q.state = 'open'
+ where d.user_id = p_user and d.question_id = any(coalesce(p_ids, '{}'))
+$$;
+
 revoke all on function public.career_apply_prepare_candidates(timestamptz, integer, integer),
  public.career_apply_prepare_for(uuid, text, jsonb, text[]), public.career_apply_prepare_attempt_for(uuid, text, text, text, uuid, text),
- public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid) from public, anon, authenticated;
+ public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid),
+ public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]) from public, anon, authenticated;
 grant execute on function public.career_apply_prepare_candidates(timestamptz, integer, integer),
  public.career_apply_prepare_for(uuid, text, jsonb, text[]), public.career_apply_prepare_attempt_for(uuid, text, text, text, uuid, text),
- public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid) to service_role;
+ public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid),
+ public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]) to service_role;

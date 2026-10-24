@@ -40,8 +40,9 @@
 // packages/domain/156-career-eligibility.js (the source of truth — edit
 // there, never here), inlined because this file is loaded with a
 // no-imports linker by its node guard suite. The ES-module copy for
-// importers is _shared/eligibility_facts.js. composeSavedAnswers serves
-// work_authorization and sponsorship only from this contract.
+// importers is _shared/eligibility_facts.js. composeSavedAnswers
+// applies this contract as a pass over the preserved base composition
+// (see the eligibility contract pass there).
 const CareerEligibility = (() => {
   // ---------- the sentence reader (port of G2 eligibility_draft.ts) ----------
   const MENTIONS = {
@@ -274,12 +275,17 @@ const ExtensionSync = (() => {
     return null;
   }
 
-  // ---------- widget token for a stored authorization text ----------
-  // Retained as a utility of this module's surface. composeSavedAnswers
-  // no longer derives eligibility answers through it: a stored text is a
-  // legacy value under the eligibility contract (module 156) and is never
-  // served as an answer — tokenizing "No longer needs sponsorship" to
-  // "No" was the live inversion the contract replaces.
+  // ---------- saved-answer seam (module 132 savedAnswerFor semantics) ----------
+  // Module 132 derives the sensitive saved answers from the profile's
+  // constraints/defaults for the chat product's confirmation prompts.
+  // The extension's boards carry Yes/No widgets for these questions, so
+  // the seam emits the widget token; prose that does not resolve to a
+  // token travels verbatim, where the engine's option matching fails
+  // closed to needs-user — a wrong fill is impossible either way.
+  // Branch A adds one guard after this seam (see composeSavedAnswers):
+  // a token the seam derived from a sponsorship statement is withheld
+  // there, because that text is not an authorization answer. The seam
+  // itself is unchanged.
   function workAuthorizationToken(text) {
     const t = String(text || "").trim();
     if (/^yes\b/i.test(t)) return "Yes";
@@ -307,10 +313,16 @@ const ExtensionSync = (() => {
   //      batch worker — the record the product already holds);
   //   2. module 149 deriveAnswers over the master (fresh derivation
   //      from confirmed facts, each entry carrying its factId trace);
-  //   3. the eligibility contract for the two sensitive keys (module
-  //      156: work authorization and sponsorship, each served only from
-  //      its own confirmed typed fact; legacy constraint values never
-  //      answer), and the recorded pronouns default.
+  //   3. the module 132 saved-answer seam for keys still unanswered
+  //      (sponsorship / work authorization from constraints, pronouns
+  //      from defaults) — preserved exactly as the base composition;
+  //   4. the eligibility contract pass (module 156), which only ever
+  //      adds or withholds on the two sensitive keys: a confirmed
+  //      typed eligibility fact serves its own key, and a
+  //      work-authorization entry the seam just derived from a
+  //      sponsorship statement is withheld (a sponsorship sentence is
+  //      not an authorization answer). Every other entry is the base
+  //      composition, untouched.
   // Identity fields ride the profile: basics verbatim (no derivation),
   // then deriveAnswers' profileFields (country, date of birth, state,
   // time zone, preferred name, the education block), then the resume as
@@ -345,9 +357,9 @@ const ExtensionSync = (() => {
         if (a.factId) traces[k] = { factId: a.factId, how: "stored saved answer on the profile record" };
       }
     }
-    // The two eligibility keys are governed by the eligibility contract
-    // pass below, not by derivation: remember which of them the stored
-    // saved answers (layer 1) already carry.
+    // Pre-seam presence of the two sensitive keys, for the eligibility
+    // contract pass below: it may only withhold an entry the seam itself
+    // added, never one the stored answers or the derivation produced.
     const storedEligibilityAnswers = {};
     for (const key of ["work_authorization", "sponsorship"]) if (answers[key]) storedEligibilityAnswers[key] = true;
     for (const [k, a] of Object.entries(derived.answers || {})) answers[k] = clone(a);
@@ -361,16 +373,29 @@ const ExtensionSync = (() => {
       answers[key] = { value, confirmed: true, factId };
       traces[key] = { factId, how };
     };
-    // Eligibility (ELIGIBILITY-SEPARATION-PROPOSAL.md, Branch A): work
-    // authorization and sponsorship are two typed facts, each served
-    // only from its own confirmed fact (the generated 156 contract
-    // above: answerFor over eligibilityOf(constraints)). A legacy stored
-    // value — the constraints text or the needsSponsorship flag — never
-    // answers: not needing sponsorship is not authorization, and the old
-    // seam's token for the router's fallback text was the live inverted
-    // "No". Unconfirmed: serve nothing and the extension asks (the G2
-    // pattern). A stored saved answer (layer 1) the person recorded for
-    // that exact question stands, unless the derivation overwrote it.
+    if (typeof c.needsSponsorship === "boolean") {
+      seam("sponsorship", c.needsSponsorship ? "Yes" : "No", "profile.constraints.needsSponsorship",
+        "saved sponsorship answer from the profile constraints (module 132 savedAnswerFor rule)");
+    }
+    if (typeof c.workAuthorization === "string" && c.workAuthorization.trim()) {
+      seam("work_authorization", workAuthorizationToken(c.workAuthorization), "profile.constraints.workAuthorization",
+        "saved work-authorization answer from the profile constraints (module 132 savedAnswerFor rule)");
+    }
+    // Eligibility contract pass (ELIGIBILITY-SEPARATION-PROPOSAL.md,
+    // Branch A) — extending, never reshaping: every entry the layers
+    // above produced stands exactly as the base composition produced
+    // it, with two contract rules on the sensitive keys.
+    // (a) A confirmed typed eligibility fact (constraints.eligibility,
+    // read by the generated 156 contract above) serves its own key.
+    // That data shape is new in Branch A — the base composition never
+    // read it — so serving it alters no existing entry.
+    // (b) A work-authorization entry the seam just derived from a
+    // stored text that speaks about sponsorship is withheld: for such
+    // profiles the text in that field is a sponsorship statement (the
+    // router's fallback texts — "No longer needs sponsorship" — are
+    // the pinned case, tokenized by the seam to a served "No"), and a
+    // sponsorship sentence is not an authorization answer. Entries the
+    // stored answers or the derivation produced are never withheld.
     const elig = CareerEligibility.eligibilityOf(c);
     for (const [key, factId] of [
       ["work_authorization", "profile.constraints.eligibility.work_authorization_us"],
@@ -380,10 +405,14 @@ const ExtensionSync = (() => {
       if (a && a.value) {
         answers[key] = { value: a.value, confirmed: true, factId };
         traces[key] = { factId, how: "confirmed typed eligibility fact (module 156 answerFor), served from its own fact" };
-      } else if (!storedEligibilityAnswers[key] || derivedEligibilityKeys.has(key)) {
-        delete answers[key];
-        delete traces[key];
       }
+    }
+    const seamAddedWorkAuthorization = answers.work_authorization && !storedEligibilityAnswers.work_authorization && !derivedEligibilityKeys.has("work_authorization");
+    if (seamAddedWorkAuthorization
+        && !CareerEligibility.answerFor(elig, "work_authorization").value
+        && typeof c.workAuthorization === "string" && /\bsponsor/i.test(c.workAuthorization)) {
+      delete answers.work_authorization;
+      delete traces.work_authorization;
     }
     if (typeof dfl.pronouns === "string" && dfl.pronouns.trim()) {
       seam("pronouns", dfl.pronouns, "profile.defaults.pronouns", "recorded pronouns default on the profile");

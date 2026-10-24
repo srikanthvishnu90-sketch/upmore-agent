@@ -20,16 +20,19 @@ Spec: `docs/architect/ELIGIBILITY-SEPARATION-PROPOSAL.md` (governs; §7 defines 
   `extension_sync.js` with a linker that rejects imports, so a static import
   of `eligibility_facts.js` would break that suite at load. One source (156),
   three carriers, hash-verified identical bodies.
-- **`extension_sync.js` seam** — `composeSavedAnswers` now serves
-  `work_authorization` and `sponsorship` only from a confirmed typed fact,
-  each from its own fact (factIds
-  `profile.constraints.eligibility.work_authorization_us` /
-  `profile.constraints.eligibility.sponsorship`). The legacy seam —
-  sponsorship from the `needsSponsorship` flag, work authorization by
-  tokenizing the stored text — is removed; that tokenizer turned the
-  router's "No longer needs sponsorship" into a served "No". Unconfirmed:
-  nothing is served (the extension asks, the G2 pattern); a stored saved
-  answer the person recorded for that exact question stands.
+- **`extension_sync.js` seam** — the base composition is preserved exactly
+  (layers 1–3, including the module 132 seam servings), and an eligibility
+  contract pass rides on top, extending only: (a) a confirmed typed fact
+  (`constraints.eligibility`, module 156) serves its own key under the
+  factIds `profile.constraints.eligibility.work_authorization_us` /
+  `profile.constraints.eligibility.sponsorship` — a data shape the base
+  never read; (b) a work-authorization entry the seam just derived from a
+  stored text that speaks about sponsorship is withheld — that text is a
+  sponsorship statement (the router's "No longer needs sponsorship" is the
+  pinned case, tokenized by the seam to a served "No"), not an
+  authorization answer. Stored-answer and derivation entries are never
+  withheld. See "Regression fix" below for why the pass is shaped this
+  way.
 - **`answer_options.ts`** — the `work_authorization` case no longer picks an
   option whose label also takes a sponsorship position; combined questions
   stay with `career_apply.ts`'s both-facts path, per §4.
@@ -76,18 +79,36 @@ Spec: `docs/architect/ELIGIBILITY-SEPARATION-PROPOSAL.md` (governs; §7 defines 
    schema `note` string is consumed as data, so changing it is behavior;
    Branch A records the separation as a comment and leaves the string for
    the landing decision.
-3. **Predicted delta in `tests/career-extension-sync.test.cjs`** (outside
-   the allowed diff — not edited): its fixture personas carry
-   `workAuthorization: "US citizen (TEST)"`, `needsSponsorship: false`, and
-   the suite asserts the legacy servings (work_authorization "Yes" /
-   sponsorship "No" under the legacy factIds, both counted as filled).
-   Under Branch A those servings stop — §9 names exactly this as the cost
-   ("extension-sync stops serving a sponsorship answer from the legacy
-   flag… consistent with D-007"). The suite cannot execute on this VM
-   (jsdom is provisioned only in CI, under `extension/tools/`, which is not
-   in the repo), so this delta is predicted from the suite's own
-   assertions, not measured here; the first CI run will surface it for the
-   architect to re-pin.
+3. **`tests/career-extension-sync.test.cjs` — resolved by the regression
+   fix below.** As first landed, Branch A removed the legacy seam
+   servings its fixture personas assert (work_authorization "Yes" /
+   sponsorship "No" under the legacy factIds for a stored "US citizen
+   (TEST)" text), and the suite went red at its composition test. The fix
+   preserves those servings; the suite is fully green on the final
+   branch (20/20, run locally with jsdom provisioned from the npm cache —
+   the suite cannot load without it, which is why the first landing
+   reported it as unrunnable here).
+
+## Regression fix (post-review, commit "Regression fix: preserve the
+extension-sync composition; the eligibility pass extends, never reshapes")
+
+Root cause: the first landing deleted every unconfirmed eligibility
+serving in `composeSavedAnswers`. The existing composition contract —
+pinned by `tests/career-extension-sync.test.cjs` — serves Alex's and
+Maya's work_authorization/sponsorship from the legacy seam over
+constraints whose stored text is a citizenship statement ("US citizen
+(TEST)"), an authorization statement the seam legitimately tokenizes to
+"Yes". Deleting the seam's entries made `answers.work_authorization`
+undefined and the composition test threw reading `.value`. The
+acceptance tests' profiles are the opposite data class: their stored
+text is a sponsorship sentence (or the router's fallback text), which is
+the defect the proposal exists to kill. The fix separates the two
+classes instead of deleting the seam: base composition preserved
+bit-for-bit; the contract pass adds typed-fact servings (new data
+shape) and withholds only a seam-derived work-authorization entry whose
+stored text speaks about sponsorship. Verified: career-extension-sync
+20/20 green (base also 20/20), the 29 acceptance tests unchanged at
+9 passed / 20 failed with the same nine passing, G2 eligibility 14/14.
 
 ## Affected existing suites — base vs branch
 
@@ -108,9 +129,11 @@ Deno (gate invocation per file):
 
 Node:
 
-- `tests/career-extension-sync.test.cjs` — unrunnable on this VM on both
-  trees (identical import-time failure: jsdom not provisioned); see
-  deviation 3 for its predicted, spec-priced delta.
+- `tests/career-extension-sync.test.cjs` — 20/20 green on base and on
+  the final branch (run locally after provisioning jsdom offline from
+  the npm cache into the suite's `packages/extension/tools/` path; the
+  first landing could not run it here, which is how the regression
+  below escaped local verification).
 - `tests/career-decline-one-class.test.cjs` — 2 passed / 1 failed on both
   trees; the failure is `Cannot find module 'esbuild'` (not provisioned),
   identical base and branch. Its answer_options assertion was mirrored

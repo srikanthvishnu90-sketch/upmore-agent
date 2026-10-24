@@ -2917,17 +2917,36 @@ const CareerRouter = (() => {
       } catch { claimOnRecord = false; }
     }
     const unverifiedClaim = materialImperative && (claimToken || admission) && (admission || !claimOnRecord);
-    const massObject = /\b(everything|every job|all jobs|all of them|every role|all roles)\b/.test(t) || /\b(\d{2,})\s*(jobs|applications|roles)\b/.test(t);
+    const noReview = /\b(automatically|while i sleep|tonight|right now|don'?t need to see|no review|without (me|my) (seeing|reviewing)|just do it|all of them|don'?t ask)\b/.test(t);
+    // HELD-OUT (2026-10-24): "submit applications for me overnight
+    // while i sleep, don't ask me each time" named no everything/
+    // all-jobs object and no count, so it escaped massObject — but
+    // a bare plural object PLUS a no-review marker IS the same ask
+    // (unreviewed, unbounded). Question-shaped turns are excluded:
+    // asking WHETHER applications went in is a status question,
+    // never this refusal.
+    const barePluralMass = /\b(applications|jobs|roles)\b/.test(t) && noReview && !/\?\s*$/.test(t) && !/^(did|have|has|do|does|were|was|are)\b/.test(t);
+    const massObject = /\b(everything|every job|all jobs|all of them|every role|all roles)\b/.test(t) || /\b(\d{2,})\s*(jobs|applications|roles)\b/.test(t) || barePluralMass;
     const massCount = Number((t.match(/\b(\d{2,})\s*(jobs|applications|roles)\b/) || [])[1]) || 0;
-    const noReview = /\b(automatically|while i sleep|tonight|right now|don'?t need to see|no review|without (me|my) (seeing|reviewing)|just do it|all of them)\b/.test(t);
     const massApply = /\b(apply|submit|send in)\b/.test(t) && massObject && (noReview || massCount >= 50);
-    if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply) return null;
+    // HELD-OUT (2026-10-24): the insistence shape — "nobody checks
+    // anyway, just add one at a bank". The fabrication's object is
+    // carried by the conversation (the internship just refused);
+    // what the turn itself carries is a verification-dismissal
+    // plus an add/put/write verb. That pairing is the refusal
+    // trigger; neither half alone is (a dismissal without the verb
+    // is commentary, an add without the dismissal is an edit ask
+    // for the normal flows).
+    const dismissal = /\b(nobody|no one)\s+(checks|verifies|will (check|verify|find out|know))\b|\bthey (never|don'?t)\s+(check|verify)\b|\bnever (checked|verified)\b/.test(t);
+    const dismissalFabricate = dismissal && /\b(add|put|write|include)\b/.test(t);
+    if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply && !dismissalFabricate) return null;
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
     if (massApply) facts.push("Applying in bulk, unseen, is not a mode this product has: real submissions are capped at 15 a day, each one built from your confirmed facts and stopped at its doorstep for your approval. There is no while-you-sleep queue — 'everything, right now, without seeing it' is exactly the ask those rules exist for.");
     if (unverifiedClaim) facts.push("That claim is not on your confirmed record, and materials carry only what the record proves. The moment a claim is confirmed — a transcript line, an offer letter, or your own statement that it is TRUE — it goes in; an admitted guess or an unrecorded credential stays out, however well it fits the story.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
+    if (dismissalFabricate) facts.push("\"Nobody checks\" is exactly when it matters: an invented claim on your materials surfaces in the first real conversation, and the check is not the only way it ends — the record is. What is true and confirmed goes in the moment it is on your record; what is not stays out, checked or not.");
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
     const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     // BUG-108: the refusal decision is a typed record — what was
@@ -2939,6 +2958,7 @@ const CareerRouter = (() => {
     if (unverifiedClaim) refused.push("unverified_claim_on_materials");
     if (falseClaim) refused.push("fabricated_referral_claim");
     if (fabricate) refused.push("fabricated_facts");
+    if (dismissalFabricate) refused.push("dismissed_verification_fabrication");
     const rf = { kind: "safety_refusal", refused, alternative: "shortlist_first_paced_campaign", sends: 0 };
     return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0, payload: rf, artifact: rf };
   }

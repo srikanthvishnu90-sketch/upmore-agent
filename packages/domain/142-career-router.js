@@ -3625,6 +3625,127 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
     return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // PROOF OF WORK (spec3 section 8; text-path measurement
+  // 2026-10-24): the per-job project recommender (8.8) and the
+  // Proof Card (8.0) existed only as spec text — the ask fell to
+  // the generic fallback, its time-budget follow-up was taken by
+  // the company-intel branch (which restated the stated 4 hours a
+  // week as 2), and the selection and proof-card turns had no
+  // consumer at all. The recommendations are the spec's own
+  // family lists (8.2 data, 8.1 SWE — the two families the spec
+  // ships first, line 515), fitted to the record: the role family
+  // comes from the user's stated facts, each idea carries its
+  // scoped plan, estimated hours, a "done" definition and the
+  // honest odds note 8.8 requires. The frame on the thread mirror
+  // owns the follow-ups: a budget turn records the user's STATED
+  // budget (quoted back verbatim, never re-derived), a selection
+  // turn picks the named option, and the proof-card turn answers
+  // from 8.0's seven fields as a skeleton for the chosen project.
+  const POW_FAMILIES = {
+    data: { label: "data analyst", options: [
+      { title: "End-to-end dashboard analysis of a messy real dataset", hours: 14,
+        why: "It answers the rejection reason head-on — the full chain in one artifact: SQL extraction, documented cleaning, a dashboard, and a one-page recommendation memo; the spec is blunt that the memo matters more than the chart.",
+        steps: ["Pick a messy public dataset and state the business question it answers; extract the raw tables with SQL", "Clean it in SQL, writing down every cleaning decision and why", "Build the dashboard around the question — no chart without a decision it informs", "Write the one-page memo leading with the 'so what', then fill the proof card"],
+        done: "Done when the dashboard is live at a link, the repo holds the SQL and the cleaning notes, and the memo fits one page." },
+      { title: "SQL proof set with a data-quality audit", hours: 10,
+        why: "Your record already states SQL — this makes it inspectable: 15 to 20 explained queries (joins, window functions, CTEs) on a public relational dataset, plus an audit of what was wrong with the data.",
+        steps: ["Pick a public relational dataset and write the 15 to 20 questions first", "Answer each in SQL with a plain-English explanation under it", "Audit the data itself: the defects found and how each was handled"],
+        done: "Done when every query carries its explanation and the audit lists each defect and its handling." },
+      { title: "Scheduled pipeline dashboard on live data", hours: 16,
+        why: "A scrape-pipeline-dashboard that updates itself proves the scheduled, live-data side of analyst work — and the artifact keeps evidencing after you stop touching it.",
+        steps: ["Choose a live source and the question its changes answer", "Build the scrape and the load on a schedule, with run logging", "Point the dashboard at it and let it run unattended for two weeks"],
+        done: "Done when the pipeline has run unattended for two weeks and the dashboard shows the run history." } ] },
+    swe: { label: "software engineering", options: [
+      { title: "Small full-stack app that real people use", hours: 20,
+        why: "The spec's first SWE artifact: auth, a database, a deploy, tests and CI, aimed at a real niche — a club signup tool, a local business booking page — with 5 to 20 real users if you can get them, reported as actual numbers.",
+        steps: ["Pick the niche and the one workflow it must nail; sketch the data model", "Build auth, the core flow and the database; deploy early", "Add tests and CI; put it in front of the first real users", "Write up the numbers you actually got and fill the proof card"],
+        done: "Done when the deploy is live, CI is green, and at least a handful of real users have been through it." },
+      { title: "Backend service with a load test", hours: 16,
+        why: "An API with rate limiting, logging and tests, closed by a load test with results — the service half of engineering, evidenced end to end.",
+        steps: ["Design the API surface and the data model on paper first", "Build it with rate limiting and structured logging", "Test it, then load-test it and write up the results"],
+        done: "Done when the repo shows the tests, the load test and its numbers, and a README that runs it from a clean clone." },
+      { title: "Merged open-source contributions", hours: 8,
+        why: "One to three merged PRs — docs and bug fixes count — are third-party verifiable, which is why the spec calls them strong: someone else's maintainer accepted the work.",
+        steps: ["Find a project you actually use; read its contribution guide", "Take a labelled good-first-issue or a docs gap", "Shepherd the PR through review to merge"],
+        done: "Done when the PRs are merged and linked — the merge is the evidence." } ] }
+  };
+  function powFamilyOf(ctx, text) {
+    const hay = [s(text || "")];
+    try { for (const f of statedFactsOf(ctx) || []) hay.push(s(f.value), s(f.text)); } catch { /* the facts are optional */ }
+    const p = (ctx && ctx.profile) || {};
+    hay.push(s(p.target_role), s(p.targetRole), s(p.headline), s(p.current_role), Array.isArray(p.target_roles) ? p.target_roles.join(" ") : s(p.target_roles), Array.isArray(p.skills) ? p.skills.join(" ") : s(p.skills));
+    const h = lc(hay.join(" "));
+    if (/\bdata analyst|data science|analytics|business intelligence|dashboards?\b/.test(h)) return "data";
+    if (/\bsoftware|developer|programmer|\bswe\b/.test(h)) return "swe";
+    return null;
+  }
+  function handleProofOfWork(text, ctx) {
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const frame = mir && mir.powFrame && (nowOf(ctx) - (mir.powFrame.at || 0)) < 60 * 60000 ? mir.powFrame : null;
+    // (a) The proof card — spec3 8.0's seven fields, as a skeleton
+    // for the chosen project when one stands.
+    if (/\bproof card\b/.test(t)) {
+      const fam = frame ? POW_FAMILIES[frame.family] : null;
+      const opt = fam && frame ? (fam.options[(frame.selected || 1) - 1] || fam.options[0]) : null;
+      const facts = [
+        opt ? `For: ${opt.title}.` : "The card is the same seven fields for every project.",
+        "Problem, in one sentence, and who it is for — the question the project answers, named before anything was built.",
+        "What was built: the live demo, repo or doc link — the card carries links, not screenshots.",
+        "3 decisions and the tradeoff behind each — the dataset choice, the cleaning call, the chart or design choice, in your own words from the build.",
+        "Result: real numbers, or the honest line — 'no users yet, here is what I tested'.",
+        "What I would change, time spent, tools, and the date — time is recorded as it actually lands, against the plan.",
+        "And the resume line it produces: Project name | tools | link, plus two bullets."
+      ];
+      const reply = compose({ headline: opt ? `The proof card for "${opt.title}".` : "What goes on a proof card.", facts, nextStep: "The card fills in as each piece finishes — ask for it any time and it reads back against the project." });
+      return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (frame) {
+      const fam = POW_FAMILIES[frame.family];
+      // (b) Selection — "ok let's do the first one".
+      const selM = t.match(/\b(first|second|third)\s+one\b/);
+      if (selM && fam) {
+        const idx = { first: 1, second: 2, third: 3 }[selM[1]];
+        const opt = fam.options[idx - 1];
+        if (opt) {
+          mir.powFrame = Object.assign({}, frame, { selected: idx, at: nowOf(ctx) });
+          const facts = [`Chosen: ${opt.title} — about ${opt.hours} hours in total${frame.budgetPhrase ? `, paced at your stated ${frame.budgetPhrase}` : ""}.`, `First steps: ${opt.steps[0]}. Then: ${opt.steps[1] || opt.done}`, opt.done];
+          const reply = compose({ headline: `Locked in: project ${idx}.`, facts, nextStep: "Work the first step, then tell me how it went and the plan re-paces itself. Ask 'what goes on the proof card for it?' whenever you want the card's shape." });
+          return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+        }
+      }
+      // (c) The time budget — the user's STATED figure, quoted
+      // back and paced against, never re-derived or rounded into
+      // a different number.
+      const budM = s(text).match(/(\d+)\s*(?:hours?|hrs?)\s*(?:a|per|\/)\s*(week|day)/i);
+      if (budM && (/\bonly have\b|\bweekends?\b|\bi have\b|\babout\b|\blike\b/.test(t) || frame)) {
+        const perWeek = /week/i.test(budM[2]) ? Number(budM[1]) : Number(budM[1]) * 5;
+        const phrase = `${budM[1]} hours a ${/week/i.test(budM[2]) ? "week" : "day"}`;
+        mir.powFrame = Object.assign({}, frame, { budgetPhrase: phrase, budgetPerWeek: perWeek, at: nowOf(ctx) });
+        const opt = fam ? fam.options[(frame.selected || 1) - 1] || fam.options[0] : null;
+        const facts = [`Budget recorded: ${phrase} — the plan is paced to exactly that, and no plan here ever exceeds the time you state.`];
+        if (opt) {
+          const weekends = Math.max(1, Math.ceil(opt.hours / perWeek));
+          facts.push(`Against the first project (${opt.title}, about ${opt.hours} hours): roughly ${weekends} week${weekends === 1 ? "" : "s"} at that pace — ${opt.steps.map((st, i) => `step ${i + 1}: ${st.charAt(0).toLowerCase()}${st.slice(1)}`).join("; ")}.`);
+        }
+        const reply = compose({ headline: `Paced to your ${phrase}.`, facts, nextStep: "Say 'let's do the first one' and it locks in at that pace — or name another option." });
+        return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+    }
+    // (d) The recommender ask itself — spec3 8.8.
+    if (/\bwhat project should i build\b|\bprojects? should i build\b|\bbuild to prove\b|\bprove i can do this work\b|\bproof[ -]of[ -]work\b|\bwhat (project|projects) (can|could) i (build|do)\b/.test(t)) {
+      const family = powFamilyOf(ctx, text);
+      if (!family) return null;
+      const fam = POW_FAMILIES[family];
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.powFrame = { family, selected: null, budgetPhrase: null, at: nowOf(ctx) };
+      const facts = fam.options.map((o, i) => `${i + 1}. ${o.title} (about ${o.hours} hours). ${o.why} ${o.done}`);
+      facts.push("Honest odds, as the recommender owes you: a finished project strengthens your evidence for this work — it does not guarantee interviews, and an unfinished one evidences nothing.");
+      const reply = compose({ headline: `Projects that prove ${fam.label} work, fitted to your record.`, facts, nextStep: "Tell me the time you actually have each week and I will pace the first one to it — or pick one now." });
+      return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
   // QUESTION SETS (text-path measurement 2026-10-24): "give me 3
   // interview questions for a data analyst role" is a SET ask. The
   // session serves one question at a time and stands down on sets
@@ -9773,6 +9894,8 @@ const CareerRouter = (() => {
     {
       const pqs = handlePrepQuestionSet(text, c);
       if (pqs) return pqs;
+      const pow = handleProofOfWork(text, c);
+      if (pow) return pow;
     }
     // COMPLEXITY WAVE (BUG-176): the drafting conversation's second
     // turns — draft continuations, revisions, send attempts, decline

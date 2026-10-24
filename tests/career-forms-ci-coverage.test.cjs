@@ -782,11 +782,31 @@ test("forms-ci coverage: the coverage gate rejects unsupported claims (gate unit
   assert.equal(coverageClaim({ capturedForms: [], coverage: {} }).claimable, false);
 });
 
+// Per-form test budgets. The shared limit stays 600 s for every form but
+// one. Anduril's drive cannot finish inside it — not from machine slowness
+// but from the helper's own per-fill budgets on custom-select fills that
+// end value_did_not_persist (measured on the local Anduril diag,
+// ~/workspace/forms-ci-repro/diag-anduril.jsonl, 2026-10-24): the 28
+// completed fills sum to 590,421 ms — five fills at ~71 s (country
+// 71,373 ms; question_9753036007 70,719 ms; question_9753040007
+// 70,757 ms; question_9753041007 71,270 ms; question_9753043007
+// 71,214 ms), twelve at ~19 s (18,449–19,968 ms), the rest sub-second —
+// before open/discover (~3.5 s), the remaining fills and readback.
+// Completed standalone drives measure 674 s (local) and ~607 s to
+// readback_start in CI (check-run 120851290550). Anduril's own test
+// therefore carries a 900 s budget: the worst measured complete drive
+// (674 s) plus roughly one-third headroom. This is a budget for this one
+// form's test, not an inflation of the shared limit — no other form's
+// measured drive comes close (WPP standalone, the next slowest: 473 s).
+// The helper's poll budgets themselves are product behavior — they
+// encode live-board patience for slow option services — and are NOT
+// shortened to make this test faster.
+const SLOW_FORM_BUDGETS = { "greenhouse-andurilindustries-4802172007": 900000 };
 for (const form of CAPTURED) {
   // Timeout headroom as in the Ashby pack: a fill is sub-second uncontended, but a
   // starved executor must fail loudly rather than be mistaken for a driver verdict.
   // The pinned outcomes below are the assertion; the waits are not.
-  test(`forms-ci coverage: ${form.id}`, { timeout: 600000 }, async (t) => {
+  test(`forms-ci coverage: ${form.id}`, { timeout: SLOW_FORM_BUDGETS[form.id] || 600000 }, async (t) => {
     let rec;
     const drive = newDrive(form.id, t && t.signal);
     try {

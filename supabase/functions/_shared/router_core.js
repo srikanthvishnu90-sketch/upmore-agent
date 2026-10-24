@@ -39171,8 +39171,8 @@ const CareerRouter = (() => {
     // an apply/submit verb aimed at everything or a large count,
     // with a no-review/urgency marker or a count of 50+.
     const materialImperative = /\b(put|write|add|list|say|state|claim|include)\b[^.]*\b(on|in|into|to)\b[^.]*\b(my\s+)?(cover letter|resume|cv|application)\b/.test(t);
-    const claimToken = /\bgpa\s*(?:is\s*)?[0-9]\.[0-9]\b|\bpresident of\b|\bchair of\b|\bvp of\b|\bintern(ship|ed)?\s+(at|with)\s+[A-Z]|\bworked at\s+[A-Z]|\b[A-Z][a-z]+ (?:Sachs|Partners|Capital|Bank|Ltd|Inc)\s+internship\b/.test(s(text));
-    const admission = /\bdidn'?t actually\b|\bnever (did|worked|interned|had|was)\b|\bdon'?t (actually\s+)?have\b|\bonly shadowed\b|\bmade (it|that|this) up\b|\bisn'?t (even\s+)?true\b|\bnot true\b/.test(t);
+    const claimToken = /\bgpa\s*(?:is\s*)?[0-9]\.[0-9]\b|\bpresident of\b|\bchair of\b|\bvp of\b|\bintern(ship|ed)?\s+(at|with)\s+[A-Z]|\bworked at\s+[A-Z]|\b[A-Z][a-z]+ (?:Sachs|Partners|Capital|Bank|Ltd|Inc)\s+internship\b|\b(?:us|u\.s\.|american|united states)\s+citizen\b|\bcitizenship\b/.test(s(text));
+    const admission = /\bdidn'?t actually\b|\bnever (did|worked|interned|had|was)\b|\bdon'?t (actually\s+)?have\b|\bonly shadowed\b|\bmade (it|that|this) up\b|\bisn'?t (even\s+)?true\b|\bnot true\b|\bi'?m not\b[^.!?]*\b(but|doesn'?t matter|don'?t care)\b|\bi am not\b[^.!?]*\b(but|doesn'?t matter)\b/.test(t);
     let claimOnRecord = false;
     if (materialImperative && (claimToken || admission) && ctx.profile) {
       try {
@@ -39205,7 +39205,7 @@ const CareerRouter = (() => {
     // trigger; neither half alone is (a dismissal without the verb
     // is commentary, an add without the dismissal is an edit ask
     // for the normal flows).
-    const dismissal = /\b(nobody|no one)\s+(checks|verifies|will (check|verify|find out|know))\b|\bthey (never|don'?t)\s+(check|verify)\b|\bnever (checked|verified)\b/.test(t);
+    const dismissal = /\b(nobody|no one)\s+(checks|verifies|verified|will (check|verify|verified|find out|know))\b|\bthey (never|don'?t)\s+(check|verify|verified)\b|\bnever (checked|verified)\b/.test(t);
     const dismissalFabricate = dismissal && /\b(add|put|write|include)\b/.test(t);
     if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply && !dismissalFabricate) return null;
     const facts = [];
@@ -48024,6 +48024,19 @@ const CareerRouter = (() => {
     // (1) Per-clause declarative capture. WO-095: gated — a request
     // clause (and a request sentence's non-first-person parameter
     // clauses) never reaches a frame.
+    // FALSE-ATTESTATION VETO (held-out batch 2, 2026-10-24): "just
+    // put that i'm a us citizen on the application, i'm not but it
+    // doesn't matter" — the embedded claim clause reads as a
+    // declarative and the positive attestation frames below RECORDED
+    // "US citizen" from a turn whose own second half denies it. A
+    // materials imperative (put/write/say ... on the application/
+    // resume/form) carrying a self-negation anywhere in the turn
+    // vetoes the POSITIVE attestation writes (citizenship,
+    // sponsorship) for the whole turn: a missed write costs a
+    // re-ask, a false attestation write is the product's worst
+    // fact error. The refusal layer answers the turn itself.
+    const attestVeto = /\b(put|write|add|say|state|claim|list|mark|check)\b[^.]*\b(on|in|into)\b[^.]*\b(application|resume|cv|form|cover letter)\b/i.test(raw)
+      && /\b(i'?m|i am)\s+not\b|\bnot true\b|\bdon'?t actually\b|\bisn'?t true\b/i.test(raw);
     for (const cl of gatedFactClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
       // DEPTH LANE A (floor): a clause whose SUBJECT is a third person
@@ -48167,9 +48180,9 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:i|we)\s+(?:do\s+not|don'?t|dont|no\s+longer|won'?t|will\s+not|never|shouldn'?t|should\s+not)\s+(?:(?:ever|actually|really)\s+)?(?:need|require)\s+(?:any\s+|visa\s+|work\s+|employer\s+)*sponsorship\b/i))
         || (m = cl.match(/\b(?:i'?m|i am|im)\s+not\s+(?:going\s+to\s+)?(?:need|require|needing|requiring)\s+(?:any\s+|visa\s+|work\s+)*sponsorship\b/i))
         || (m = cl.match(/\bno\s+(?:visa\s+)?sponsorship\s+(?:is\s+)?(?:needed|required)\b|\b(?:i|we)\s+(?:do\s+not|don'?t)\s+need\s+(?:a\s+)?visa\b/i))) push("sponsorship", "does not need sponsorship", m[0]);
-      else if ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i))) push("sponsorship", "needs sponsorship", m[0]);
+      else if (!attestVeto && ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i)))) push("sponsorship", "needs sponsorship", m[0]);
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:not|no\s+longer)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "not a US citizen", m[0]);
-      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
+      else if (!attestVeto && (m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
     }
     // (2) Offer-thread capture: an offer the user STATES (firm,
     // amount, deadline, role — any subset) becomes the thread's

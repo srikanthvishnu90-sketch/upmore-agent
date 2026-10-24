@@ -19661,7 +19661,7 @@ const CareerRouter = (() => {
     if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
       const run = BatchApply.restoreRun(standing);
       if (!run) return null;
-      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
+      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
       if (!ap.ok) {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
@@ -25978,6 +25978,9 @@ const CareerBatchApply = (() => {
     }
     if (!approval || approval.approvedByUser !== true) {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
+    }
+    if (run.userId && approval.userId && approval.userId !== run.userId) {
+      return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
     }
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {

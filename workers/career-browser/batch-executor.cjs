@@ -174,7 +174,7 @@ function createBatchExecutor(deps) {
     // profile-freshness against the live profile is the chat path's
     // check (the router recomputes it); here the digest asserts the
     // card as stored, and the set hash was re-verified just above.
-    const ap = Batch.approveRun(run, { approvedByUser: true, now: nowOf(), profileSha256: run.profileSha256 || null, ...(exclude.length ? { exclude } : {}) });
+    const ap = Batch.approveRun(run, { approvedByUser: true, now: nowOf(), userId: intent.userId || null, profileSha256: run.profileSha256 || null, ...(exclude.length ? { exclude } : {}) });
     if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
     const deps = await buildDeps(intent.userId, []);
     const baseRecords = ((deps.log && deps.log.records) || []).slice();

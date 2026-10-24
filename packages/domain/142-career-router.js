@@ -9564,7 +9564,7 @@ const CareerRouter = (() => {
     if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
       const run = BatchApply.restoreRun(standing);
       if (!run) return null;
-      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
+      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
       if (!ap.ok) {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };

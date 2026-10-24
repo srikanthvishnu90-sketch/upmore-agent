@@ -538,6 +538,16 @@ const CareerBatchApply = (() => {
     if (!approval || approval.approvedByUser !== true) {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
     }
+    // ACCOUNT BINDING (2026-10-24): the run stores its owner at
+    // creation (createRun's run.userId, from the creating ctx).
+    // An approval arriving as a DIFFERENT account does not bind —
+    // checked before the set hash, the expiry and the digest are
+    // consulted, because a digest binds a profile, never an
+    // identity: two accounts can hold identical profiles, and
+    // only the owner comparison separates them.
+    if (run.userId && approval.userId && approval.userId !== run.userId) {
+      return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
+    }
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };

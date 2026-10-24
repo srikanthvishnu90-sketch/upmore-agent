@@ -2119,13 +2119,22 @@ const CareerRouter = (() => {
   // NAMING THE LAST THING DISCUSSED. Every formal pending state
   // stands this resolver down — those bindings own their replies
   // exactly as before.
+  // The bare-reply classification, shared by the resolver below
+  // and the discussion recorder (recordActiveWork): one shape
+  // test at the dispatch level, so a closing or affirmation turn
+  // is recognised the same way everywhere it matters.
+  function bareReplyFamilyOf(text) {
+    const t = lc(s(text).trim());
+    if (/^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t)) return "yes";
+    if (/^(no|nope|nah|not really)[.!]*$/.test(t)) return "no";
+    if (/^(undo|undo it|undo that)[.!]*$/.test(t)) return "undo";
+    if (/^(never ?mind|forget it|skip it)[.!]*$/.test(t)) return "nevermind";
+    return null;
+  }
   function handleBareReply(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw);
-    const fam = /^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t) ? "yes"
-      : /^(no|nope|nah|not really)[.!]*$/.test(t) ? "no"
-      : /^(undo|undo it|undo that)[.!]*$/.test(t) ? "undo"
-      : /^(never ?mind|forget it|skip it)[.!]*$/.test(t) ? "nevermind" : null;
+    const fam = bareReplyFamilyOf(raw);
     if (!fam) return null;
     const mir = threadMirrorOf(ctx);
     // Scoped-binding discipline (clarification 2026-10-24
@@ -2154,7 +2163,11 @@ const CareerRouter = (() => {
     if (standing.length >= 2) {
       return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Two things are open at once, and I will not guess which that was for.", facts: [`${FRAME_LABELS[standing[0]].charAt(0).toUpperCase() + FRAME_LABELS[standing[0]].slice(1)} is standing, and so is ${FRAME_LABELS[standing[1]]}.`, "A bare reply cannot bind to both, and I have not treated it as a confirmation of either — nothing has changed."], nextStep: "Name the one you mean and the answer lands there." }) };
     }
-    const named = last ? `The last thing we discussed was ${last.label || "the last exchange"}${last.ask ? ` — “${s(last.ask).slice(0, 80)}”` : ""}.` : "Nothing has been discussed yet in this conversation.";
+    const named = last
+      ? (last.unserved
+        ? `The last thing you raised was — “${s(last.ask).slice(0, 80)}” — and I have not been able to act on it yet.`
+        : `The last thing we discussed was ${last.label || "the last exchange"}${last.ask ? ` — “${s(last.ask).slice(0, 80)}”` : ""}.`)
+      : "Nothing has been discussed yet in this conversation.";
     if (fam === "yes") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Yes to what?", facts: [named, "No question is waiting on a yes, so I have not treated that as approval of anything, and nothing has changed."], nextStep: "Name the action you want and it runs." }) };
     if (fam === "no") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "No to what?", facts: [named, "No question is waiting on a no, so nothing has been refused or changed."], nextStep: "Name what you do want and we go there." }) };
     if (fam === "undo") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Undo what?", facts: [named, "There is no pending action from that discussion for me to reverse. If a completed step is what you mean, name it and I will say exactly what can and cannot be undone."], nextStep: "Name the step and its state is read back first." }) };
@@ -2749,30 +2762,60 @@ const CareerRouter = (() => {
   }
 
   // CATCH-ALL (generalization mech 1): the LAST resort before the
-  // banner, placed after every handler in dispatch. A question or
-  // a request about the user's career that matched NO handler
-  // gets an honest in-scope reply with three parts — what it
-  // understood (the user's own clause), what it can do right now
-  // (the real capability list), and ONE clarifying question. The
-  // generic banner remains only for non-career or empty text:
-  // the career relation is either a domain object in the turn
-  // itself or a standing career context the turn points back at,
-  // and the speech act must be a question or a request — a bare
-  // statement keeps the routes that own statements.
+  // banner, placed after every handler in dispatch. An in-scope
+  // turn that matched NO handler gets the honest reply — it says
+  // it did not catch what to do, lists only the capabilities this
+  // router really serves, and asks ONE bounded question (the
+  // amended shape below). The generic banner remains only for
+  // empty text or clearly non-career text.
+  //
+  // REACHABILITY (coordinator's held-out rerun at 42621793,
+  // 2026-10-24: the catch-all fired ONCE in 30 turns while 17
+  // unmatched in-scope asks still exited as the banner). The
+  // first gate required a question/request SPEECH ACT and a
+  // closed domain word list, in conjunction — so career
+  // statements, reported speech, bare fragments and context-only
+  // follow-ups were all declined here. A declined turn exits as
+  // the banner two ways: the legacy keyword tail just below
+  // (when a legacy keyword happens to be present), or a null the
+  // host's containment wraps in the same banner text. The gate
+  // is now a SCOPE test only, a disjunction of signals at this
+  // one decision point: career vocabulary in the turn · a
+  // standing career context the turn points back at (frames,
+  // thread work, or the recorded discussion) · the user's own
+  // work-life stake (first person + an employment event or
+  // state) · a career-development ask (a learning or credential
+  // choice put to a career agent). No signal -> decline, and a
+  // finance-only ask stands down so the money product's own
+  // scope answer keeps its turn.
   function handleCareerCatchAll(text, ctx) {
     const raw = s(text).trim();
     if (!raw) return null;
     const t = lc(raw);
-    const isQuestion = /\?/.test(raw) || /^(what|why|how|when|where|which|who|whom|can|could|would|should|is|are|was|were|do|does|did|am i|will|may)\b/.test(t);
-    let isRequest = false;
-    if (!isQuestion) { try { isRequest = clauseIsRequest(stripLead(raw)); } catch { isRequest = false; } }
-    if (!isQuestion && !isRequest) return null;
-    const DOMAIN = /\b(job|jobs|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promotion|raise|reference|resign|interview|application|applying|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|role|roles|position|positions|vesting|severance|start date|onboarding)\b/;
-    let related = DOMAIN.test(t);
+    try { const ps = intentPartsOf(raw); if (ps.length && ps.every((p) => p.key === "finance")) return null; } catch { /* finance detection must never block the floor */ }
+    const LEXICON = /\b(jobs?|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promot\w*|raise|references?|resign|interview|applications?|apply|applying|postings?|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|roles?|positions?|vesting|severance|start date|onboarding|interns?|internships?|final round|performance (plan|review|improvement))\b/;
+    let related = LEXICON.test(t);
     if (!related) {
       const frames = frameMarksOf(ctx);
       const c2 = threadContextOf(ctx) || {};
-      related = Object.keys(frames).length > 0 || !!(c2.lastWork || c2.discovery || (Array.isArray(c2.rows) && c2.rows.length));
+      const mir = threadMirrorOf(ctx);
+      // Only a SERVED discussion is standing context: a raised-
+      // but-unserved topic was never established as career
+      // context (the product could not act on it), so it must
+      // not pull every later turn of the thread in scope.
+      const servedDiscussion = !!(mir && mir.lastDiscussion && typeof mir.lastDiscussion === "object" && !mir.lastDiscussion.unserved);
+      related = Object.keys(frames).length > 0 || !!(c2.lastWork || c2.discovery || (Array.isArray(c2.rows) && c2.rows.length)) || servedDiscussion;
+    }
+    if (!related) {
+      const firstPerson = /\b(i|i'm|i've|i'll|im|my|me|mine)\b/.test(t);
+      const worklife = /\b(ghosted|ghosting|heard nothing|no response|never heard|passed over|written up|demot\w*|laid off|let go|fired|cut my (hours|shifts|pay))\b/.test(t);
+      related = firstPerson && worklife;
+    }
+    if (!related) {
+      const develop = /\b(learn|learning|study|studying|skills?|courses?|certifications?|certificates?|masters|master's|degrees?|bootcamp|training)\b/.test(t);
+      let asksOrOwns = /\?/.test(raw) || /^(what|why|how|when|where|which|who|whom|can|could|would|should|is|are|was|were|do|does|did|am i|will|may)\b/.test(t) || /\b(i|i'm|i've|i'll|im|my|me)\b/.test(t);
+      if (!asksOrOwns) { try { asksOrOwns = clauseIsRequest(stripLead(raw)); } catch { asksOrOwns = false; } }
+      related = develop && asksOrOwns;
     }
     if (!related) return null;
     // AMENDED shape (coordinator 2026-10-24 14:09): the reply
@@ -13708,8 +13751,18 @@ const CareerRouter = (() => {
     if (res.intent === "career_fallback" || res.intent === "honest_unavailable") return;
     // LAST DISCUSSION (mech 2): record what this serve makes the
     // conversation about, before the frame marks below.
+    // CLOSING/AFFIRMATION TURNS ARE NOT TOPICS (coordinator's
+    // held-out rerun, 2026-10-24): the resolver's own serves used
+    // to rewrite this record with the bare turn's text as the
+    // ask, so the NEXT bare reply named the closing phrase as
+    // the topic ("The last thing we discussed was — never
+    // mind"). A bare or closing turn REPORTS on the discussion;
+    // it never becomes it. The filter sits here, at the single
+    // recording choke point, so every serve inherits it —
+    // whichever handler a bare turn binds to, its text is never
+    // recorded as what the conversation is about.
     try {
-      if (res.intent && res.reply && DISCUSSION_INTENT_RE.test(res.intent)) {
+      if (res.intent && res.reply && DISCUSSION_INTENT_RE.test(res.intent) && res.intent !== "conversation_bare_reply" && !bareReplyFamilyOf(text)) {
         const wmir = threadMirrorForWrite(c);
         if (wmir) wmir.lastDiscussion = { intent: res.intent, label: discussionLabelOf(res.intent), ask: s(text).slice(0, 120), pendingQuestion: lastSentenceIsQuestion(res.reply), at: new Date(nowOf(c)).toISOString() };
       }
@@ -14316,6 +14369,27 @@ const CareerRouter = (() => {
     // thread's active work (mirrored out by syncThreadOut below),
     // so a later noun-less follow-up can be answered from it.
     recordActiveWork(c, res, text);
+    // RAISED BUT UNSERVED (coordinator's held-out rerun,
+    // 2026-10-24): the discussion record above is serve-gated,
+    // so a turn no handler served wrote nothing — and after two
+    // unserved turns a bare reply read the empty record and
+    // claimed "Nothing has been discussed yet in this
+    // conversation", which is false: the user raised things;
+    // the product failed to serve them. An unserved turn now
+    // records what was RAISED — the user's own words, marked
+    // unserved, never a pending question — in the same slot, so
+    // the resolver names the real last topic and the false
+    // empty-history claim is unreachable in any conversation
+    // whose turns reached this router.
+    if (!res || res.intent === "career_fallback") {
+      try {
+        const raised = s(text).trim();
+        if (raised) {
+          const wmir = threadMirrorForWrite(c);
+          if (wmir) wmir.lastDiscussion = { intent: null, label: "the last thing you raised", ask: raised.slice(0, 120), pendingQuestion: false, unserved: true, at: new Date(nowOf(c)).toISOString() };
+        }
+      } catch { /* a discussion mark must never break a turn */ }
+    }
     if (parts.length === 1 && parts[0].key === "finance" && (!res || res.intent === "career_fallback")) {
       syncThreadOut(c);
       return financeScopeResult();

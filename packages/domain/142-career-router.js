@@ -8544,7 +8544,7 @@ const CareerRouter = (() => {
     try { const m = threadMirrorForWrite(c); if (m) m.pause = lifted; } catch { /* mirror is an aid */ }
     return { lifted, prev };
   }
-  const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b/;
+  const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b|\bturn (them|it|everything|that|things) back on\b|\bturn (my |the )?(job )?alerts back on\b|\bturn (it|them|everything) on again\b/;
   const PAUSE_INSPECT_RE = /\b(are we|is it|is everything|is the outreach|is the queue|am i)\b[^.?!]*\b(paused|stopped|halted)\b|\bwhat\b[^.?!]*\bpaused\b|\bdid (it|that) work\b|\bpause (status|state)\b|\bis (it|everything) (still )?(on hold|held)\b/;
   function handlePauseControl(text, ctx) {
     const c = ctx || {};

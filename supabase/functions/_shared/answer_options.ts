@@ -301,7 +301,14 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
-      const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+      // ELIGIBILITY-SEPARATION-PROPOSAL.md: a yes to work authorization
+      // alone never picks an option that also takes a sponsorship
+      // position ("Yes, I am authorized and do not require
+      // sponsorship") — that is a combined answer, and combined
+      // questions are answered from both facts by career_apply.ts
+      // (authorizedWithoutSponsorship). Only an option that speaks to
+      // authorization alone can be picked from this fact alone.
+      const free = options.filter((o) => !/sponsor/.test(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
       if (free.length === 1) return free[0].value;
       break;
     }

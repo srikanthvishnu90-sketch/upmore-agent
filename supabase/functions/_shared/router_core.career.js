@@ -14624,6 +14624,25 @@ const CareerRouter = (() => {
     return null;
   }
 
+  function handleDisclosureAsk(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (mir && mir.disclosure && raw.split(/\s+/).length <= 6 && (/^(lol\s+)?(no|nope|nah)\b/.test(t) || /\bdon'?t\b|\bnever ?mind\b|\bforget it\b|\bstop\b/.test(t))) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.disclosure;
+      return { intent: "conversation_ack", resultStatus: "awaiting_user", reply: compose({ headline: "Dropped — nothing was sent, and nothing will be.", facts: ["The disclosure ask is closed. No message went to anyone, and none leaves this conversation without your approval on the exact words."], nextStep: "Say what you want to work on instead and it starts there." }) };
+    }
+    const thirdParty = /\b(my )?(boss|manager|employer|supervisor)\b/.test(t);
+    const discloseVerb = /\b(tell|message|email|text|inform|let)\b/.test(t);
+    if (thirdParty && discloseVerb) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.disclosure = { at: new Date(nowOf(ctx)).toISOString() };
+      return { intent: "disclosure_clarify", resultStatus: "awaiting_user", reply: compose({ headline: "Nothing is sent — a message like that never fires off from a one-line ask.", facts: ["Who exactly would receive it — your direct manager, or someone else?", "What exactly would it say — that you are looking, that you are interviewing, or that you are leaving? Those are three very different messages.", "And what is the scope — one person, once, or your wider team as well?"], nextStep: "Answer those three and the words are drafted here for your approval; you send them yourself, or approve them here first. Nothing moves before that." }) };
+    }
+    return null;
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -20303,6 +20322,8 @@ const CareerRouter = (() => {
     if (erasePath) return erasePath;
     const holdInstr = handleHoldInstruction(text, c);
     if (holdInstr) return holdInstr;
+    const discl = handleDisclosureAsk(text, c);
+    if (discl) return discl;
     const pendingAffirm = handlePendingAffirmation(text, c);
     if (pendingAffirm) return pendingAffirm;
     const resumeIngest = handleResumePasteIngest(text, c);

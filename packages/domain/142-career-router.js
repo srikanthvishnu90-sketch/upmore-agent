@@ -2468,6 +2468,33 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // THIRD-PARTY DISCLOSURE (root-cause item 5): "tell my boss im
+  // looking" is neither a blanket refusal nor the banner. It is a
+  // clarification: who exactly, what content, what scope — with
+  // the standing truth stated plainly, that nothing is sent
+  // without approval (and no channel to a boss exists in this
+  // path at all, so nothing sends in any case). The retraction
+  // binds to the pending clarification; a retraction shape with
+  // nothing pending claims nothing.
+  function handleDisclosureAsk(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (mir && mir.disclosure && raw.split(/\s+/).length <= 6 && (/^(lol\s+)?(no|nope|nah)\b/.test(t) || /\bdon'?t\b|\bnever ?mind\b|\bforget it\b|\bstop\b/.test(t))) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.disclosure;
+      return { intent: "conversation_ack", resultStatus: "awaiting_user", reply: compose({ headline: "Dropped — nothing was sent, and nothing will be.", facts: ["The disclosure ask is closed. No message went to anyone, and none leaves this conversation without your approval on the exact words."], nextStep: "Say what you want to work on instead and it starts there." }) };
+    }
+    const thirdParty = /\b(my )?(boss|manager|employer|supervisor)\b/.test(t);
+    const discloseVerb = /\b(tell|message|email|text|inform|let)\b/.test(t);
+    if (thirdParty && discloseVerb) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.disclosure = { at: new Date(nowOf(ctx)).toISOString() };
+      return { intent: "disclosure_clarify", resultStatus: "awaiting_user", reply: compose({ headline: "Nothing is sent — a message like that never fires off from a one-line ask.", facts: ["Who exactly would receive it — your direct manager, or someone else?", "What exactly would it say — that you are looking, that you are interviewing, or that you are leaving? Those are three very different messages.", "And what is the scope — one person, once, or your wider team as well?"], nextStep: "Answer those three and the words are drafted here for your approval; you send them yourself, or approve them here first. Nothing moves before that." }) };
+    }
+    return null;
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -10518,6 +10545,8 @@ const CareerRouter = (() => {
     // must land before any route that could read them as content.
     const holdInstr = handleHoldInstruction(text, c);
     if (holdInstr) return holdInstr;
+    const discl = handleDisclosureAsk(text, c);
+    if (discl) return discl;
     // PENDING AFFIRMATION: binds a bare affirmation to the pending
     // state that asked for it (a prepared tailoring's "apply those
     // changes", the record read-back's "yes that's right") — ahead

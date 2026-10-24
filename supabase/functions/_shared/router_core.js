@@ -36728,6 +36728,15 @@ const CareerRouter = (() => {
       } });
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
+    // F-001 (gap 2, 2026-10-24): the served shortlist is retained on
+    // the discovery record — the apply claim that references it
+    // ("apply to the top 3", "apply to the first one") binds to
+    // THESE roles (handleShortlistApply), and its reply names them
+    // from the run's own records. Identity + display fields only;
+    // the posting objects resolve from the turn's pool.
+    try {
+      ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastShortlist: top.map((r) => ({ id: r.id || null, title: r.title, company: r.company, location: r.location || null, url: r.url || postingUrlOf(r.posting) || null })) });
+    } catch { /* retention is an aid, never a blocker */ }
     const publicFacts = {
       shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
       ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
@@ -45822,6 +45831,65 @@ const CareerRouter = (() => {
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
   }
 
+  // F-001 (gap 2, 2026-10-24): the apply claim that REFERENCES the
+  // served shortlist — "apply to the top 3 for me", "apply to the
+  // first one" — matched no seam: 155's parseApplyAsk requires a
+  // family noun, the named-role seam requires a named target, and
+  // the discovery retained no list for an ordinal to bind to, so
+  // the claim fell to the generic fallback and surfaced zero
+  // postings (MUSE-F-001's live shape: the apply reply names no
+  // roles and carries no links). The claim now binds to the
+  // retained shortlist (handleDiscovery keeps it on ctx.discovery),
+  // resolves its postings from the turn's pool, and runs the SAME
+  // batch seam over exactly that slice — the reply is 155's own
+  // summary, opened by the slice it bound to, each role with its
+  // posting's own link. Nothing submits: the run stops wherever
+  // the batch machinery stops it, and an approval still arrives
+  // only as structured ctx, never from this text. With no
+  // shortlist standing the claim is not this seam's — no run and
+  // no link is ever fabricated for it.
+  function handleShortlistApply(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    if (!c.profile) return null;
+    const t = lc(text);
+    const ordM = t.match(/\bapply to (?:the )?(first|second|third|fourth|fifth) one\b/);
+    const topM = t.match(/\bapply to (?:the )?(?:top|best) (\d{1,2}|one|two|three|four|five)\b/);
+    const allM = /\bapply to (?:all of (?:them|those)|them all)\b/.test(t);
+    if (!ordM && !topM && !allM) return null;
+    const disc = c.discovery || {};
+    const list = Array.isArray(disc.lastShortlist) ? disc.lastShortlist : [];
+    if (!list.length) return null;
+    const WORD_N = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+    let slice = null;
+    if (ordM) { const idx = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 }[ordM[1]]; slice = list.slice(idx - 1, idx); }
+    else if (topM) { const n = /^\d+$/.test(topM[1]) ? Number(topM[1]) : WORD_N[topM[1]]; slice = list.slice(0, n); }
+    else slice = list.slice();
+    if (!slice.length) return null;
+    const pool = (c.batchDeps || {}).postings || c.postings || (c.discovery && c.discovery.postings) || [];
+    const resolve = (entry) => pool.find((p) => p && entry.id && p.id === entry.id)
+      || pool.find((p) => p && entry.url && (p.url === entry.url || (Array.isArray(p.source_urls) && p.source_urls.includes(entry.url))))
+      || pool.find((p) => p && lc(p.title || p.role) === lc(entry.title) && lc(p.company) === lc(entry.company));
+    const postings = slice.map(resolve).filter(Boolean);
+    if (!postings.length) return null;
+    const depsIn = c.batchDeps || {};
+    const log = depsIn.log || c.batchLog || { records: [] };
+    const familyText = (disc.lastParams && disc.lastParams.roleText) || "shortlisted roles";
+    const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText, count: postings.length, now: nowOf(c) });
+    const named = postings.map((p) => `${p.title || "role"} at ${p.company}${p.url ? ` (${p.url})` : ""}`).join("; ");
+    if (depsIn.delegateBatch === true) {
+      run.status = "queued_prepare";
+      c.batchApplyState = BatchApply.serializeRun(run);
+      return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
+        reply: `I've handed this to the browser worker to prepare — from the list I just showed you: ${named}. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    BatchApply.prepareRun(run, batchDepsFor(c, log, postings));
+    c.batchApplyState = BatchApply.serializeRun(run);
+    const lines = BatchApply.speakSummary(run);
+    lines.unshift(`From the list I just showed you: ${named}.`);
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: lines.join("\n") };
+  }
+
   // ---------- LOOP TASK 1: the natural-language batch status ----------
   // The apply reply itself invites the user to "ask me for the batch
   // status", and the only readback that existed was the STRUCTURED
@@ -45926,6 +45994,11 @@ const CareerRouter = (() => {
     if (paused) return paused;
     // LOOP ACCEPTANCE (155): the batch-apply ask and its approval
     // continuation run the apply loop itself (see handleBatchApply).
+    // F-001 (gap 2): the shortlist-referencing claim ("apply to the
+    // top 3", "apply to the first one") is claimed first — it binds
+    // to the discovery's retained list, never to a family parse.
+    const shortlistRes = handleShortlistApply(text, c);
+    if (shortlistRes) return shortlistRes;
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
     // MUSE-F-002: a plain-words batch status ask ("what's the batch status", "where is my batch") is answered from the

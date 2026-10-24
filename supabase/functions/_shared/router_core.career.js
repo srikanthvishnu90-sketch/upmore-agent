@@ -14280,6 +14280,32 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
   }
+  function handlePendingAffirmation(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || raw.split(/\s+/).length > 8) return null;
+    if (/\b(no|not|wrong|wait|stop|don'?t|never)\b/i.test(raw)) return null;
+    const mir = threadMirrorOf(ctx);
+    if (!mir) return null;
+    const now = nowOf(ctx);
+    const recent = (at, windowMs) => { const ms = typeof at === "number" ? at : Date.parse(at || ""); return !isNaN(ms) && (now - ms) <= windowMs && (now - ms) >= -60 * 1000; };
+    if (/\bapply\s+(those|these|the)\s+changes\b/i.test(raw) || /^(yes|yeah|yep|sure|ok|okay)[,.]?\s+apply\b/i.test(raw)) {
+      const rec = mir.tailor;
+      if (!rec || rec.applied || !recent(rec.at, 30 * 60 * 1000)) return null;
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir && wmir.tailor) wmir.tailor.applied = true;
+      const reply = compose({ headline: `Applied — the tailored version is now your standing version for ${rec.title || "that role"}.`, facts: ["The tailoring's changes are the version your packet for this posting is built from. Your master resume on your profile is untouched, and nothing has been sent or submitted — an application still stops at its own doorstep for your tap."], nextStep: "Want the application packet prepared from this version, or another role tailored?" });
+      return { intent: "career_tailor", reply, resultStatus: "completed", sends: 0 };
+    }
+    if (!/^(yes|yeah|yep|sure|ok|okay|correct|right|exactly|confirmed|that'?s right|that is right)\b/i.test(raw)) return null;
+    if (/\b(set|do|send|apply|use|make|start|create|watch|find|show|draft|tailor|write|run)\b/i.test(raw)) return null;
+    if (mir.resumeIngest) return null;
+    if (!mir.affirmRecord || !recent(mir.affirmRecord.at, 3 * 60 * 1000)) return null;
+    const all = statedFactsOf(ctx);
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) delete wmir.affirmRecord;
+    const reply = compose({ headline: "Confirmed — your record stands exactly as read back.", facts: all.length ? [`On record: ${all.map(factLine).join("; ")}.`] : ["Your record stands as stated; nothing was added or changed by the yes."], nextStep: "Tell me what to run on it first — a search, a watch, a draft — and it runs on these facts." });
+    return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+  }
   function bulletClauseOf(fact) {
     const text = s((fact && (fact.text || fact.title)) || "");
     const dash = text.indexOf(" - ");
@@ -19551,6 +19577,8 @@ const CareerRouter = (() => {
     if (goalTurn) return goalTurn;
     const bulletLoop = handleResumeBulletLoop(text, c);
     if (bulletLoop) return bulletLoop;
+    const pendingAffirm = handlePendingAffirmation(text, c);
+    if (pendingAffirm) return pendingAffirm;
     const resumeIngest = handleResumePasteIngest(text, c);
     if (resumeIngest) return resumeIngest;
     const resumeConfirm = handleResumeIngestConfirm(text, c);
@@ -20796,6 +20824,7 @@ const CareerRouter = (() => {
     if (/\?/.test(s(text))) return null;
     if (s(text).split(/\s+/).length > 22) return null;
     const all = statedFactsOf(ctx);
+    try { const m = threadMirrorForWrite(ctx); if (m) m.affirmRecord = { at: nowOf(ctx) }; } catch {   }
     const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }

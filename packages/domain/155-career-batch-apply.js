@@ -542,11 +542,20 @@ const CareerBatchApply = (() => {
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
     }
+    // FAIL CLOSED (2026-10-24): the two checks below are only as
+    // strong as their inputs. A run that does not CARRY the fields
+    // (prepared before they existed — legacy runs exist) or an
+    // approval that does not SUPPLY them is not a card a yes can
+    // land on: absent or unparseable expiry/digest refuses here,
+    // never skips. The refusal's first move is always the same:
+    // re-review needed: I will re-prepare and show a fresh card.
+    if (!Number.isFinite(run.cardExpiresAt) || typeof approval.now !== "number" || !Number.isFinite(approval.now) || !run.profileSha256 || !approval.profileSha256) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card does not carry the verifiable expiry and profile binding an approval must land on, so no approval can bind to it" };
+    }
     // EXPIRY (2026-10-24): a yes that arrives after the card's
     // window does not bind. The window rides the run
     // (cardExpiresAt, set at prepare from the session-reuse TTL);
-    // runs prepared before it existed carry none and are not
-    // retro-expired.
+    // presence is guaranteed by the fail-closed check above.
     if (typeof approval.now === "number" && run.cardExpiresAt && approval.now >= run.cardExpiresAt) {
       return { ok: false, code: "APPROVAL_CARD_EXPIRED", reason: "this review card has expired — prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. The batch must be re-prepared, and the new card is the one a yes can bind to" };
     }
@@ -554,8 +563,8 @@ const CareerBatchApply = (() => {
     // from the profile as it stood at prepare; if the profile has
     // changed since — an edited answer, a corrected fact — the yes
     // was given against answers that no longer stand, and it does
-    // not bind. Skipped when either side carries no digest (runs
-    // prepared before the digest existed).
+    // not bind. Presence on both sides is guaranteed by the
+    // fail-closed check above; this is the value comparison.
     if (run.profileSha256 && approval.profileSha256 && approval.profileSha256 !== run.profileSha256) {
       return { ok: false, code: "APPROVAL_PROFILE_CHANGED", reason: "your profile changed since this card was prepared, so its answers were built from facts that no longer stand — the batch must be re-prepared from your current profile and re-approved" };
     }

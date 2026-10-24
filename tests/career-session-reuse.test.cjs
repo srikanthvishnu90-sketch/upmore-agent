@@ -257,7 +257,7 @@ test("155 execute: cross-invocation approval resumes the SAME session — one dr
   const key = run.selected[0];
   const sessionId = appOf(run).boardSession.sessionId;
   const restored = crossInvocation(run);
-  assert.equal(Batch.approveRun(restored, { approvedByUser: true }).ok, true);
+  assert.equal(Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 }).ok, true);
   const ex = Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
   assert.equal(ex.ok, true, JSON.stringify(ex));
   const app = restored.apps[key];
@@ -286,7 +286,7 @@ test("155 execute: a drifted page falls back to a fresh drive, named — and sti
   const rec = reg.sessions.get(appOf(run).boardSession.sessionId);
   rec.page.fill("phone", "+1 000 555 9999");
   const restored = crossInvocation(run);
-  Batch.approveRun(restored, { approvedByUser: true });
+  Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 });
   const ex = Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
   assert.equal(ex.ok, true);
   assert.equal(restored.apps[key].stage, "submitted");
@@ -303,7 +303,7 @@ test("155 execute: a dead session falls back (SESSION_NOT_LIVE); an expired bind
   const rec = reg.sessions.get(appOf(run).boardSession.sessionId);
   rec.alive = false;
   const restored = crossInvocation(run);
-  Batch.approveRun(restored, { approvedByUser: true });
+  Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 });
   Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
   assert.equal(restored.apps[key].stage, "submitted");
   assert.equal(eventsOf(restored, "session_resume_fallback")[0].code, "SESSION_NOT_LIVE");
@@ -313,7 +313,7 @@ test("155 execute: a dead session falls back (SESSION_NOT_LIVE); an expired bind
   const key2 = run2.selected[0];
   const restored2 = crossInvocation(run2);
   restored2.apps[key2].boardSession.expiresAt = NOW - 1; // the window closed before the approval arrived
-  Batch.approveRun(restored2, { approvedByUser: true });
+  Batch.approveRun(restored2, { approvedByUser: true, now: NOW, profileSha256: restored2.profileSha256 });
   Batch.executeRun(restored2, makeDeps(reg2, { now: NOW + 60000 }));
   assert.equal(restored2.apps[key2].stage, "submitted");
   assert.equal(reg2.calls.filter((c) => c.resume).length, 0, "an expired binding is not addressed at all — the fresh drive is the path");
@@ -327,7 +327,7 @@ test("155 execute: a tampered stored payload is never submitted — the binding 
   const approvedSha = run.apps[key].payloadSha256;
   const restored = crossInvocation(run);
   restored.apps[key].doorstep.payload = Object.assign({}, restored.apps[key].doorstep.payload, { email: "tampered@example.test" });
-  Batch.approveRun(restored, { approvedByUser: true });
+  Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 });
   Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
   const fb = eventsOf(restored, "session_resume_fallback");
   assert.equal(fb.length, 1);
@@ -353,7 +353,7 @@ test("155 WO-094: the carded certification completes on the SAME live page — n
   const prepRec = reg.sessions.get(run.apps[key].boardSession.sessionId);
   assert.ok(!prepRec.boards[0].stats.filled.includes("certify_true"), "nothing is certified before the card's yes");
   const restored = crossInvocation(run);
-  assert.equal(Batch.approveRun(restored, { approvedByUser: true }).ok, true);
+  assert.equal(Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 }).ok, true);
   Batch.executeRun(restored, makeDeps(reg, { now: NOW + 60000 }));
   assert.equal(restored.apps[key].stage, "submitted", JSON.stringify(restored.apps[key].stop || restored.summary));
   assert.equal(reg.calls.filter((c) => !c.resume).length, 1, "no fresh session was created for the certification");
@@ -371,7 +371,7 @@ test("155 resume: a binding whose stored hash differs from the approved hash is 
   const run = preparedRun(reg);
   const key = run.selected[0];
   const restored = crossInvocation(run);
-  Batch.approveRun(restored, { approvedByUser: true });
+  Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 });
   // the stored payload is re-hashed consistently, so only the approval comparison can catch it
   const forged = Object.assign({}, restored.apps[key].doorstep.payload, { email: "forged@example.test" });
   restored.apps[key].doorstep = Object.assign({}, restored.apps[key].doorstep, { payload: forged, payloadSha256: crypto.createHash("sha256").update(JSON.stringify(forged)).digest("hex") });

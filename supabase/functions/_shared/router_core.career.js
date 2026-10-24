@@ -19676,6 +19676,10 @@ const CareerRouter = (() => {
       if (run) {
         const sm = BatchApply.summarizeRun(run);
         if (run.status === "awaiting_approval") {
+          if (!Number.isFinite(run.cardExpiresAt) || !run.profileSha256) {
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_REVIEW_NEEDED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this card predates the binding checks (it carries no verifiable expiry or profile binding), so no approval can land on it. re-review needed: I will re-prepare and show a fresh card. Ask me to prepare the batch again and the new card is the one a yes can bind to.` };
+          }
           if (run.cardExpiresAt && nowOf(c) >= run.cardExpiresAt) {
             return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_CARD_EXPIRED", batchRun: sm, sends: 0,
               reply: `Nothing was submitted — this review card has expired: prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. Next step: ask me to prepare the batch again, and approve the new card while it stands.` };
@@ -25978,6 +25982,9 @@ const CareerBatchApply = (() => {
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
+    }
+    if (!Number.isFinite(run.cardExpiresAt) || typeof approval.now !== "number" || !Number.isFinite(approval.now) || !run.profileSha256 || !approval.profileSha256) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card does not carry the verifiable expiry and profile binding an approval must land on, so no approval can bind to it" };
     }
     if (typeof approval.now === "number" && run.cardExpiresAt && approval.now >= run.cardExpiresAt) {
       return { ok: false, code: "APPROVAL_CARD_EXPIRED", reason: "this review card has expired — prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. The batch must be re-prepared, and the new card is the one a yes can bind to" };

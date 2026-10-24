@@ -167,7 +167,14 @@ function createBatchExecutor(deps) {
     // P1 text yes: the applications the owner left off the card ride the
     // approve intent (exclude_keys); 155 refuses any key not on the card.
     const exclude = Array.isArray(binding.exclude_keys) ? binding.exclude_keys : [];
-    const ap = Batch.approveRun(run, exclude.length ? { approvedByUser: true, exclude } : { approvedByUser: true });
+    // Fail-closed binding (2026-10-24): approveRun requires the
+    // approval to SUPPLY its binding fields. The executor's truthful
+    // supplies are its own clock for `now` and the run's STORED
+    // profile digest — the executor holds no newer profile, so
+    // profile-freshness against the live profile is the chat path's
+    // check (the router recomputes it); here the digest asserts the
+    // card as stored, and the set hash was re-verified just above.
+    const ap = Batch.approveRun(run, { approvedByUser: true, now: nowOf(), profileSha256: run.profileSha256 || null, ...(exclude.length ? { exclude } : {}) });
     if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
     const deps = await buildDeps(intent.userId, []);
     const baseRecords = ((deps.log && deps.log.records) || []).slice();

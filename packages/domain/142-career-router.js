@@ -9588,6 +9588,15 @@ const CareerRouter = (() => {
       if (run) {
         const sm = BatchApply.summarizeRun(run);
         if (run.status === "awaiting_approval") {
+          if (!Number.isFinite(run.cardExpiresAt) || !run.profileSha256) {
+            // FAIL CLOSED (2026-10-24): a legacy card — prepared
+            // before the binding fields existed — can take no
+            // approval at all, so the yes is never told to go and
+            // approve it there. The only honest move is a fresh
+            // card, said in the shape the binding layer uses.
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_REVIEW_NEEDED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this card predates the binding checks (it carries no verifiable expiry or profile binding), so no approval can land on it. re-review needed: I will re-prepare and show a fresh card. Ask me to prepare the batch again and the new card is the one a yes can bind to.` };
+          }
           if (run.cardExpiresAt && nowOf(c) >= run.cardExpiresAt) {
             return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_CARD_EXPIRED", batchRun: sm, sends: 0,
               reply: `Nothing was submitted — this review card has expired: prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. Next step: ask me to prepare the batch again, and approve the new card while it stands.` };

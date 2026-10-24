@@ -19795,8 +19795,9 @@ const CareerRouter = (() => {
     const t = lc(text);
     const ordM = t.match(/\bapply to (?:the )?(first|second|third|fourth|fifth) one\b/);
     const topM = t.match(/\bapply to (?:the )?(?:top|best) (\d{1,2}|one|two|three|four|five)\b/);
+    const firstM = t.match(/\bapply to (?:the )?first (\d{1,2}|two|three|four|five)\b/);
     const allM = /\bapply to (?:all of (?:them|those)|them all)\b/.test(t);
-    if (!ordM && !topM && !allM) return null;
+    if (!ordM && !topM && !allM && !firstM) return null;
     const disc = c.discovery || {};
     const list = Array.isArray(disc.lastShortlist) ? disc.lastShortlist : [];
     if (!list.length) return null;
@@ -19804,6 +19805,7 @@ const CareerRouter = (() => {
     let slice = null;
     if (ordM) { const idx = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 }[ordM[1]]; slice = list.slice(idx - 1, idx); }
     else if (topM) { const n = /^\d+$/.test(topM[1]) ? Number(topM[1]) : WORD_N[topM[1]]; slice = list.slice(0, n); }
+    else if (firstM) { const n = /^\d+$/.test(firstM[1]) ? Number(firstM[1]) : WORD_N[firstM[1]]; slice = list.slice(0, n); }
     else slice = list.slice();
     if (!slice.length) return null;
     const pool = (c.batchDeps || {}).postings || c.postings || (c.discovery && c.discovery.postings) || [];

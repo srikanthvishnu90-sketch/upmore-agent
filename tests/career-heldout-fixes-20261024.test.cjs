@@ -117,3 +117,17 @@ test("held-out fix POW: design-family recommender, stated budget paced verbatim,
   const t5 = w.say(U, "ok whats the proof card for it");
   assert.equal(t5.intent, "career_proof_of_work", t5.reply);
 });
+
+// ---------- APP: 'apply to the first two' binds to the shortlist -----
+test("held-out fix APP: 'apply to the first two' binds to the just-shown shortlist; the yes answers from the run", () => {
+  const w = makeWorld(); const U = "hfix-app";
+  w.say(U, "i'm a finance junior at depaul, graduating 2027");
+  const t2 = w.say(U, "show me investment banking intern roles in chicago");
+  notFallback(t2, "discovery");
+  const t3 = w.say(U, "apply to the first two");
+  assert.equal(t3.intent, "career_batch_apply", t3.reply);
+  assert.match(String(t3.reply), /From the list I just showed you/, t3.reply);
+  const t5 = w.say(U, "yes submit them");
+  assert.equal(t5.intent, "career_batch_apply", t5.reply);
+  assert.equal(t5.result && t5.result.sends, 0, "nothing was submitted");
+});

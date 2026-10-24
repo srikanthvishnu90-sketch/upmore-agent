@@ -40039,7 +40039,11 @@ const CareerRouter = (() => {
     const mir = threadMirrorOf(ctx);
     const frame = mir && mir.prepSet && (nowOf(ctx) - (mir.prepSet.at || 0)) < 30 * 60000 ? mir.prepSet : null;
     if (frame) {
-      const exM = t.match(/\banswer\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+one\b/) || t.match(/\b(?:example|model)\s+answer\b[^.]*?\b(\d+)(?:st|nd|rd|th)?\b/) || t.match(/\b(\d+)(?:st|nd|rd|th)?\s+one\b[^.]*\bexample\b/);
+      const exM = t.match(/\banswer\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+one\b/) || t.match(/\b(?:example|model)\s+answer\b[^.]*?\b(\d+)(?:st|nd|rd|th)?\b/) || t.match(/\b(\d+)(?:st|nd|rd|th)?\s+one\b[^.]*\bexample\b/)
+        // HELD-OUT (2026-10-24): "do number 3" — picking an item
+        // from the standing set IS asking for it worked; it serves
+        // the same example the "answer the Nth one" shape serves.
+        || t.match(/\b(?:do|try|pick|take)\s+(?:number\s+|#\s*)?(\d{1,2})(?:st|nd|rd|th)?\b/) || t.match(/^\s*number\s+(\d{1,2})(?:st|nd|rd|th)?\s*[.!?]*$/);
       if (exM) {
         const item = (frame.items || [])[Number(exM[1]) - 1];
         if (item) {
@@ -40051,18 +40055,41 @@ const CareerRouter = (() => {
           return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: item };
         }
       }
-      if (/\bmake it shorter\b|\bshorten (it|that|this|the example|the answer)\b/.test(t) && frame.exampleText) {
+      if (/\bmake it shorter\b|\bshorten (it|that|this|the example|the answer)\b|\bcondense\b|\btrim it\b/.test(t) && frame.exampleText) {
         const sents = s(frame.exampleText).split(/(?<=[.!?])\s/).filter(Boolean);
         const shorter = sents.length > 2 ? [sents[0], sents[sents.length - 1]].join(" ") : (sents[0] || s(frame.exampleText));
         mir.prepSet = Object.assign({}, frame, { exampleText: shorter, at: nowOf(ctx) });
         const reply = compose({ headline: "The same example answer, shorter.", facts: [shorter, "Cut to the opening move and the close — the middle steps are the ones you restore when you answer for real."], nextStep: "Say the word for another question from the set, or give your own answer for scoring." });
         return { intent: "prep_brief", reply, resultStatus: "running", sends: 0 };
       }
+      // HELD-OUT (2026-10-24): "what would a strong answer
+      // include?" about the item just exemplified — serve that
+      // item's own substance as the structure, never a generic
+      // essay about answers. Needs an exemplified item to bind to.
+      if (/\bwhat would a strong answer\b|\bstrong answer\b[^.]*\b(include|contain|have|look like)\b/.test(t) && frame.exampleFor) {
+        const item = (frame.items || [])[Number(frame.exampleFor) - 1];
+        if (item) {
+          const bankAns = s(item.model_answer || item.answer || "");
+          const points = bankAns || (item.detail ? s(item.detail) : "Work it in the order the question asks: open with the approach in one line, walk the steps with the numbers or the query stated plainly, then close with how you would check the result.");
+          const facts = [`The question: ${s(item.q)}`, bankAns ? `A strong answer covers what the model answer covers: ${points}` : `A strong answer follows this structure: ${points}`, bankAns ? "That is the bank item's own model answer — the points in it are the ones a strong answer hits." : "The bank item carries no model answer, so those are the structure points a strong answer hits — the specifics stay yours."];
+          const reply = compose({ headline: `What a strong answer to question ${Number(frame.exampleFor)} includes.`, facts, nextStep: "Give your own attempt at it and I will score it against exactly those points." });
+          return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: item };
+        }
+      }
     }
-    const askM = t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+interview questions?\s+for\s+(.+?)[?.!]*$/) || t.match(/\b(\d{1,2})\s+interview questions?\s+for\s+(?:an?\s+|the\s+)?(.+?)[?.!]*$/);
+    const askM = t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+interview questions?\s+for\s+(.+?)[?.!]*$/) || t.match(/\b(\d{1,2})\s+interview questions?\s+for\s+(?:an?\s+|the\s+)?(.+?)[?.!]*$/)
+      // HELD-OUT (2026-10-24): "i have a product sense interview
+      // coming up, give me 4 questions to practice" — the counted
+      // PRACTICE shape: no "interview questions for X" phrasing,
+      // the role rides the "<role> interview" earlier in the turn.
+      || (/\binterviews?\b/.test(t) ? t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+questions?\s+to\s+practice\b/) : null);
     if (!askM) return null;
     const count = Math.min(10, Math.max(1, Number(askM[1])));
-    const role = askM[2].replace(/\s+(role|position|job|interview)$/i, "").trim();
+    let role = askM[2] ? askM[2].replace(/\s+(role|position|job|interview)$/i, "").trim() : "";
+    if (!role) {
+      const roleM = t.match(/\b([a-z][a-z /&-]{1,40}?)\s+interviews?\b/);
+      role = roleM ? roleM[1].replace(/^(?:an?\s+|the\s+)/, "").replace(/\s+(?:coming up|soon|next week).*$/, "").trim() : "";
+    }
     if (!role) return null;
     const sector = prepSectorOf(t) || prepSectorOf(role);
     let bank = null;

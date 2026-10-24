@@ -2041,6 +2041,19 @@ const CareerRouter = (() => {
     }
     if (!/^(yes|yeah|yep|sure|ok|okay|correct|right|exactly|confirmed|that'?s right|that is right)\b/i.test(raw)) return null;
     if (/\b(set|do|send|apply|use|make|start|create|watch|find|show|draft|tailor|write|run)\b/i.test(raw)) return null;
+    // PRECEDENCE (regression, career-next-step-routing test 7,
+    // 2026-10-24): a bare-affirmation shape that ASKS for the next
+    // step — "ok and then?" — is a question, not a confirmation,
+    // and inside an open outreach plan the plan's own standing
+    // next step owns it. This consumer stood both down nowhere, so
+    // it captured the follow-up and answered with the record
+    // confirmation ("your record stands exactly as read back")
+    // where the plan's approval step, naming the target, was the
+    // route. Both stand-downs live here, in the bare-affirmation
+    // branch only: the explicit apply-changes branch above is an
+    // instruction, not an affirmation, and is untouched.
+    if (/\?/.test(raw) || /\b(and then|what next|what now|so what)\b/i.test(raw)) return null;
+    if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
     if (mir.resumeIngest) return null;
     if (!mir.affirmRecord || !recent(mir.affirmRecord.at, 3 * 60 * 1000)) return null;
     const all = statedFactsOf(ctx);

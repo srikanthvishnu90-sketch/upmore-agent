@@ -21877,7 +21877,52 @@ const CareerProfile = (() => {
   // ---- plain-text resume ingestion -> DRAFT facts only ----
   const SECTION_KIND = { education: "education", experience: "experience", "work experience": "experience", employment: "experience", projects: "project", "personal projects": "project", leadership: "leadership", awards: "award", certifications: "certification", skills: "skill", "technical skills": "skill" };
   function parseResumeText(text) {
-    const lines = String(text || "").split(/\r?\n/);
+    // CHAT PASTE SHAPE (text-path measurement 2026-10-24): a resume
+    // pasted into a chat is often ONE paragraph with its section
+    // headers inline ("... Experience: Data Analyst at ... Skills:
+    // SQL, ... Education: ..."). The line parser below reads a
+    // header only as a whole line, so such a paste produced zero
+    // drafts and the ingest honestly reported "empty" for a full
+    // resume. A line carrying TWO OR MORE inline section markers is
+    // segmented at those markers before parsing; a single stray
+    // marker inside prose changes nothing, and multi-line resumes
+    // parse exactly as before.
+    const markerKeys = Object.keys(SECTION_KIND).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const markerRe = new RegExp(`(^|[.!?]\\s+|\\s)(${markerKeys.join("|")})\\s*:`, "gi");
+    const lines = [];
+    for (const rawLine of String(text || "").split(/\r?\n/)) {
+      const marks = [...rawLine.matchAll(markerRe)];
+      if (marks.length < 2) { lines.push(rawLine); continue; }
+      const firstHead = marks[0].index + marks[0][1].length;
+      const pre = rawLine.slice(0, firstHead).trim();
+      if (pre) {
+        // HELD-OUT (2026-10-24): the lead of a segmented paste is
+        // usually name + the CURRENT ROLE narrated in prose ("…
+        // Marketing Coordinator at Brightpath Media. Ran email
+        // campaigns…") with no "Experience:" marker of its own —
+        // the line parser below would drop it as a header block
+        // and the role the user leads with would vanish. When the
+        // lead carries a role-at-company shape with narrative
+        // after it, it IS the experience section: emit it as one,
+        // with a leading "Name - " segment stripped. A lead that
+        // is only a name/contact line does not match and parses
+        // exactly as before.
+        const nameStrip = pre.match(/^([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,3})\s+[-—]\s+(.+)$/);
+        const leadBody = nameStrip ? nameStrip[2] : pre;
+        if (/\b(?:at|@)\s+[A-Z][\w&.'-]+/.test(leadBody) && /[.!?]\s+\S/.test(leadBody)) {
+          lines.push("Experience:");
+          lines.push(leadBody);
+        } else lines.push(pre);
+      }
+      for (let i = 0; i < marks.length; i++) {
+        const m = marks[i];
+        const contentStart = m.index + m[0].length;
+        const contentEnd = i + 1 < marks.length ? marks[i + 1].index + marks[i + 1][1].length : rawLine.length;
+        lines.push(`${m[2].trim()}:`);
+        const content = rawLine.slice(contentStart, contentEnd).trim();
+        if (content) lines.push(content);
+      }
+    }
     const drafts = [];
     let section = null, current = null;
     const flush = () => { if (current) { drafts.push(current); current = null; } };
@@ -36701,6 +36746,15 @@ const CareerRouter = (() => {
       } });
     } catch { /* search memory is an aid, never a blocker */ }
     const top = ranked.slice(0, limit);
+    // F-001 (gap 2, 2026-10-24): the served shortlist is retained on
+    // the discovery record — the apply claim that references it
+    // ("apply to the top 3", "apply to the first one") binds to
+    // THESE roles (handleShortlistApply), and its reply names them
+    // from the run's own records. Identity + display fields only;
+    // the posting objects resolve from the turn's pool.
+    try {
+      ctx.discovery = Object.assign({}, ctx.discovery || {}, { lastShortlist: top.map((r) => ({ id: r.id || null, title: r.title, company: r.company, location: r.location || null, url: r.url || postingUrlOf(r.posting) || null })) });
+    } catch { /* retention is an aid, never a blocker */ }
     const publicFacts = {
       shortlist: top.map((r) => ({ id: r.id, title: r.title, company: r.company, location: r.location, url: r.url || null, score: r.score, bucket: r.bucket, reason: r.reason, caveat: r.caveat })),
       ranked: ranked.map((r) => ({ id: r.id, title: r.title, company: r.company, url: r.url || null, score: r.score, reason: r.reason, caveat: r.caveat })),
@@ -37999,6 +38053,13 @@ const CareerRouter = (() => {
     if (!surgeryCue) return null;
     const draft = planDraftOf(ctx);
     if (!draft) {
+      // FRAME CARRY (generalization mech 3): a draft produced by
+      // ANY serve stands on the thread's draft frame, not only a
+      // plan draft — when one stands, this handler's "no draft"
+      // answer would be false, so it stands down and the frame
+      // resolver revises the standing draft.
+      const fr = frameMarksOf(ctx);
+      if (fr.draft && typeof fr.draft === "object") return null;
       // Surgery on nothing is answered as exactly that: no draft
       // exists in this conversation to revise.
       const reply = compose({ headline: "There is no draft in this conversation to revise yet.", facts: ["No letter or outreach draft has been produced here — the cover-letter ask is still waiting on the facts it is written from, and no outreach draft has been drafted from the plan.", "The moment a draft exists, revisions like shorter or more casual apply to it directly, and the original is kept on the record."], nextStep: "Give me the facts for the letter, or say 'draft the first one' on the plan, and revision has something real to work on." });
@@ -38127,7 +38188,24 @@ const CareerRouter = (() => {
   }
   function handleResumePasteIngest(text, ctx) {
     const raw = s(text);
-    if (raw.length < 300 || raw.split(/\r?\n/).length < 6) return null;
+    // CHAT PASTE SHAPE (text-path measurement 2026-10-24): a resume
+    // pasted into a chat is usually ONE paragraph — the shape gate
+    // below (long AND multi-line) read every such paste as "not a
+    // resume" and the turn fell to the generic fallback. An
+    // explicitly framed paste ("here's my resume: ...") is admitted
+    // past this gate on the same content proof the long shape gets
+    // below — 122's parser must still read >= 3 drafts across >= 2
+    // kinds, experience or education among them (122 now segments
+    // inline section headers). The frame admits the paste TO the
+    // proof, never past it.
+    const framedPaste = /^\s*(here'?s|here is|this is)\s+my\s+(resume|cv)\b/i.test(raw) || /^\s*my\s+(resume|cv)\s*:/i.test(raw);
+    // HELD-OUT (2026-10-24): a SHORT one-paragraph paste with no
+    // frame still reads as a resume when it carries the document's
+    // own section markers inline (>= 2 of skills/education/
+    // experience/... with colons) — the markers are the document
+    // speaking, and the content proof below still decides.
+    const markerPaste = (raw.match(/\b(?:skills|education|experience|work history|summary|certifications|projects)\s*:/gi) || []).length >= 2;
+    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste && !markerPaste) return null;
     if (ctx.pastedText) return null; // a posting paste already claimed this turn upstream
     if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
     if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
@@ -38215,6 +38293,907 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
   }
+  // PENDING AFFIRMATION (text-path measurement 2026-10-24): a bare
+  // affirmation binds to the pending state that asked for it —
+  // today the ONLY affirmation consumer in this router was the
+  // watch's (career_watch_affirm), so "yes that's right" after the
+  // record read-back and "yes, apply those changes" after a
+  // prepared tailoring fell to the generic fallback even though
+  // both turns had a named pending object. Two bindings, both
+  // gated on the standing record and a short recency window:
+  //   - an explicit APPLY shape against a standing, unapplied
+  //     tailoring (mir.tailor, written by handleTailor): the
+  //     tailored version becomes the standing version for that
+  //     posting — the applied marker is the state change; the
+  //     master resume is untouched and nothing sends or submits.
+  //   - a bare affirmation against the record read-back marker
+  //     (mir.affirmRecord, written by handleStatedFactsReply): the
+  //     record already stands — the turn acknowledges it as
+  //     confirmed and reads it forward. It stands down while a
+  //     resume ingest awaits its own confirmation word (that
+  //     confirmation is the ingest's), and on any turn carrying an
+  //     instruction verb (that is a new task, not an affirmation).
+  // ── STANDING FRAMES (root-cause fix, coordinator steer
+  // 2026-10-24): the blind run at 6c069f43 served 10/45 — nearly
+  // every first turn served and nearly every FOLLOW-UP fell to the
+  // generic banner, because what the conversation was standing on
+  // (a plan, a tracker answer, a comparison, a brief, a refusal, a
+  // pending offer) evaporated between turns: path plans, tracker
+  // answers and comparison serves wrote NO durable state, so a
+  // short follow-up had nothing to bind to. The fix is structural:
+  // every serve that opens a conversational frame RECORDS it in
+  // the thread mirror (written from recordActiveWork, the single
+  // choke point that sees every served result), and short
+  // follow-ups resolve against the standing frames BEFORE the
+  // generic routes are consulted. No frame → the caller falls
+  // through to the honest layers, never a fabricated answer.
+  function frameMarksOf(ctx) {
+    const m = threadMirrorOf(ctx);
+    return (m && m.frames && typeof m.frames === "object" && !Array.isArray(m.frames)) ? m.frames : {};
+  }
+  function markFrame(ctx, kind, data) {
+    const wmir = threadMirrorForWrite(ctx);
+    if (!wmir) return;
+    if (!wmir.frames || typeof wmir.frames !== "object" || Array.isArray(wmir.frames)) wmir.frames = {};
+    wmir.frames[kind] = Object.assign({ at: new Date(nowOf(ctx)).toISOString() }, data || {});
+  }
+  function sentenceMatching(txt, re) {
+    const parts = s(txt).split(/(?<=[.!?])\s+/).map((p) => p.trim()).filter(Boolean);
+    for (const p of parts) if (re.test(p)) return p;
+    return parts[0] || "";
+  }
+  // Deterministic draft compression for the draft frame's
+  // revision turns: whole paragraphs first (keep the opening,
+  // the ask, and the close), sentences when the draft is one
+  // block. Only length changes — no words are authored.
+  function shortenedDraftText(text) {
+    const lines = s(text).split(/\n+/).map((x) => x.trim()).filter(Boolean);
+    if (lines.length >= 4) return [lines[0], lines[1], lines[lines.length - 2], lines[lines.length - 1]].join("\n\n");
+    if (lines.length === 3) return [lines[0], lines[1], lines[2]].join("\n\n");
+    const sents = s(text).split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    if (sents.length > 3) return [sents[0], sents[1], sents[sents.length - 1]].join(" ");
+    return s(text);
+  }
+  function moneyOf(n) { return n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`; }
+  // LAST DISCUSSION (generalization mech 2): every substantive
+  // conversational serve records what the conversation is now
+  // ABOUT — intent-derived label, the user's ask, and whether the
+  // serve itself ended on a question (a pending question). The
+  // bare-reply resolver reads it to name the last thing discussed.
+  const DISCUSSION_INTENT_RE = /^(tracking_|negotiation_|prep_|mock|path_plan|career_os|career_discovery|career_internship|outreach_|eligibility|profile_correction|career_goal|career_watch|rejection_|career_catchall|career_life_event|conversation_|disclosure|career_erase|career_profile|honest_unavailable|people_matching)/;
+  function discussionLabelOf(intent) {
+    const table = [
+      [/^tracking_/, "your application tracker"], [/^negotiation_/, "the offer discussion"],
+      [/^(prep_|mock)/, "interview prep"], [/^(path_plan|career_os)/, "the career plan"],
+      [/^(career_discovery|career_internship)/, "the role search"], [/^outreach_/, "the outreach work"],
+      [/^eligibility/, "the eligibility question"], [/^profile_correction/, "your record"],
+      [/^career_goal/, "your career goal"], [/^career_watch/, "your job-alert watch"],
+      [/^rejection_/, "the rejection follow-up"], [/^career_life_event/, "the career event you just named"],
+      [/^career_catchall/, "your last question"], [/^honest_unavailable/, "the request I could not run"],
+      [/^people_matching/, "the people-matching question"], [/^career_erase/, "the erase"],
+      [/^disclosure/, "the disclosure question"], [/^conversation_/, "the last exchange"],
+    ];
+    for (const [re, label] of table) if (re.test(intent || "")) return label;
+    return "the last thing we discussed";
+  }
+  function lastSentenceIsQuestion(reply) {
+    const parts = s(reply).split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    return parts.length ? /\?$/.test(parts[parts.length - 1]) : false;
+  }
+  // BARE-REPLY RESOLVER (generalization mech 2): a bare yes / no /
+  // undo / never mind / go with NO pending question and NO standing
+  // offer used to fall to the banner (or, worse, be captured as a
+  // record confirm). It now gets the "yes to what?" class of reply
+  // NAMING THE LAST THING DISCUSSED. Every formal pending state
+  // stands this resolver down — those bindings own their replies
+  // exactly as before.
+  function handleBareReply(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const fam = /^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t) ? "yes"
+      : /^(no|nope|nah|not really)[.!]*$/.test(t) ? "no"
+      : /^(undo|undo it|undo that)[.!]*$/.test(t) ? "undo"
+      : /^(never ?mind|forget it|skip it)[.!]*$/.test(t) ? "nevermind" : null;
+    if (!fam) return null;
+    const mir = threadMirrorOf(ctx);
+    // Scoped-binding discipline (clarification 2026-10-24
+    // 14:11): the formal pendings (read-back, tailoring,
+    // bullets, ingest, disclosure, erase) are all claimed by
+    // their owners EARLIER in dispatch — if one of them owned
+    // this turn it has already fired. Standing this resolver
+    // down for them as well created a dead zone where both
+    // declined and the banner answered. What still stands this
+    // resolver down is only what a bare reply must never
+    // reinterpret: a pending QUESTION (the serve ended on one),
+    // a standing OFFER, or a campaign plan awaiting its own
+    // scoped approval.
+    if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
+    const nt = negotiationThreadOf(ctx);
+    if (nt && (nt.company || nt.amount || (Array.isArray(nt.offers) && nt.offers.length))) return null;
+    const frames = frameMarksOf(ctx);
+    if (frames.negotiation && frames.negotiation.offers) return null;
+    const last = mir && mir.lastDiscussion && typeof mir.lastDiscussion === "object" ? mir.lastDiscussion : null;
+    if (last && last.pendingQuestion) return null;
+    // TWO COMPETING FRAMES (14:11): two standing frames that
+    // could each own the reply make it ambiguous — name BOTH
+    // and ask which, instead of binding to the most recent.
+    const FRAME_LABELS = { plan: "the career plan", tracker: "your application tracker", followup: "the follow-up on the silent application", draft: "the held draft", brief: "the interview brief", negotiation: "the offer discussion", rejection: "the rejection follow-up", gate: "the application gate question", heldStop: "the stopped outreach", workauth: "the work-authorization question", declined: "the request I could not run" };
+    const standing = Object.keys(FRAME_LABELS).filter((k) => frames[k] && typeof frames[k] === "object").sort((a, b) => (Date.parse(frames[b].at || "") || 0) - (Date.parse(frames[a].at || "") || 0));
+    if (standing.length >= 2) {
+      return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Two things are open at once, and I will not guess which that was for.", facts: [`${FRAME_LABELS[standing[0]].charAt(0).toUpperCase() + FRAME_LABELS[standing[0]].slice(1)} is standing, and so is ${FRAME_LABELS[standing[1]]}.`, "A bare reply cannot bind to both, and I have not treated it as a confirmation of either — nothing has changed."], nextStep: "Name the one you mean and the answer lands there." }) };
+    }
+    const named = last ? `The last thing we discussed was ${last.label || "the last exchange"}${last.ask ? ` — “${s(last.ask).slice(0, 80)}”` : ""}.` : "Nothing has been discussed yet in this conversation.";
+    if (fam === "yes") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Yes to what?", facts: [named, "No question is waiting on a yes, so I have not treated that as approval of anything, and nothing has changed."], nextStep: "Name the action you want and it runs." }) };
+    if (fam === "no") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "No to what?", facts: [named, "No question is waiting on a no, so nothing has been refused or changed."], nextStep: "Name what you do want and we go there." }) };
+    if (fam === "undo") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Undo what?", facts: [named, "There is no pending action from that discussion for me to reverse. If a completed step is what you mean, name it and I will say exactly what can and cannot be undone."], nextStep: "Name the step and its state is read back first." }) };
+    return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Closed for now.", facts: [last ? `${named} I have not changed anything based on that.` : "Nothing has been discussed yet in this conversation, so there is nothing to close."], nextStep: "Say the word when you want to pick anything back up." }) };
+  }
+
+  // TRACKER FOLLOW-UPS (split out of the frame resolver): the
+  // whole-turn shapes are claimed EARLY in dispatch, ahead of the
+  // career-path gate — a bare "stuck" is that gate's signal class,
+  // but "anything stuck" with a tracker answer standing is a
+  // question about the tracked pipeline, and the standing frame
+  // outranks the generic signal. Frame-gated and whole-turn, so
+  // a genuine career-stuck turn (no tracker frame, or a longer
+  // turn) keeps its own route untouched.
+  function handleTrackerFollowUp(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    if (raw.split(/\s+/).length > 14) return null;
+    if (isNextStepFollowUp(raw)) return null;
+    const frames = frameMarksOf(ctx);
+    if (!(frames.tracker && typeof frames.tracker === "object")) return null;
+    const c = threadContextOf(ctx) || {};
+    const rows = Array.isArray(c.rows) ? c.rows : [];
+    // TRACKER frame: the answer was a state read; its follow-ups
+    // are answered by RE-READING the live record, never by memory
+    // of the earlier reply and never by another route's guess.
+    {
+      const rowLine = (r) => `${s(r.company) || "A role"} — ${s(r.stage) || "stage not recorded"}.`;
+      if (/^(are you sure|you sure|really|sure)[?!.]*$/.test(t) || /\bare you sure\b/.test(t)) {
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: rows.length ? `Re-read just now: the tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}.` : "Re-read just now: the tracker holds no applications.",
+          facts: rows.length ? rows.slice(0, 5).map(rowLine) : ["Nothing is tracked, so nothing is waiting on you and nothing was sent through me."],
+          nextStep: rows.length ? "Ask about any one of them by company and its own line is read back." : "Name a role and the first tracked application starts there.",
+        }) };
+      }
+      if (/^(and )?(last|this) (week|month)[?!.]*$/.test(t)) {
+        const dated = rows.filter((r) => Date.parse(s(r.at || r.date || r.applied_at || "")) > 0);
+        if (!rows.length) return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: "None then either — the tracker holds no applications at all.",
+          facts: ["No applications are recorded in any week, so the count is zero in both."],
+          nextStep: "Name a role and the first tracked application starts there.",
+        }) };
+        if (!dated.length) return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: `The tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}, and the record does not date them.`,
+          facts: ["Without dates on the record, a per-week count would be a guess — so the honest count is the total above."],
+          nextStep: "Ask about any one of them by company and its own line is read back.",
+        }) };
+        const weekAgo = nowOf(ctx) - 7 * 24 * 3600 * 1000;
+        const inLast = dated.filter((r) => Date.parse(s(r.at || r.date || r.applied_at)) >= weekAgo).length;
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: `Last week: ${inLast} application${inLast === 1 ? "" : "s"} on the record.`,
+          facts: dated.slice(0, 5).map(rowLine),
+          nextStep: "Ask about any one of them by company and its own line is read back.",
+        }) };
+      }
+      if (/\bwhich ones need me\b|\bwhat needs me\b|\banything stuck\b|\bwhat'?s stuck\b|\bwhich (ones )?need/.test(t)) {
+        const open = rows.filter((r) => !/reject|withdraw|declin|accepted|signed|closed/i.test(s(r.stage)));
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: rows.length ? (open.length ? "These are the ones still open:" : "None need you — every tracked application sits in a closed state.") : "None — the tracker holds no applications.",
+          facts: rows.length ? (open.length ? open.slice(0, 5).map(rowLine) : rows.slice(0, 5).map(rowLine)) : ["Nothing is waiting on you, because nothing is tracked yet."],
+          nextStep: rows.length ? "Name one and its next move is worked out." : "Name a role and the first tracked application starts there.",
+        }) };
+      }
+    }
+    return null;
+  }
+
+  // The open-context-first resolver: claims ONLY short turns whose
+  // whole shape is a continuation, a data supply for a standing
+  // comparison, a verification, or a constraint on a standing
+  // plan — and only when the frame it binds to actually stands.
+  // W-NEXTSTEP shapes stand down (that layer owns them); longer
+  // turns carrying fresh content keep their own routes.
+  function handleFrameContinuation(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    if (raw.split(/\s+/).length > 14) return null;
+    if (isNextStepFollowUp(raw)) return null;
+    const frames = frameMarksOf(ctx);
+    const has = (k) => !!(frames[k] && typeof frames[k] === "object");
+    if (!Object.keys(frames).length) return null;
+    const c = threadContextOf(ctx) || {};
+    const rows = Array.isArray(c.rows) ? c.rows : [];
+
+    // Two selectable frames standing + a deictic pick: owned by
+    // NEITHER frame — ask which, naming both (the root-cause
+    // order's clarify rule), instead of letting one route guess.
+    const selectShape = /\b(use|pick|choose|take|go with) (the )?(second|first|that one|this one)\b/.test(t) || /^(the )?(second|first) one[.!?]*$/.test(t);
+    if (selectShape) {
+      const standing = [];
+      if (c.discovery) standing.push("the roles from the search");
+      if (has("negotiation") && frames.negotiation.compare) standing.push("the offers in the comparison");
+      if (standing.length >= 2) {
+        return { intent: "conversation_clarify", resultStatus: "awaiting_user", reply: compose({
+          headline: "Which one do you mean?",
+          facts: [`Two things are standing that the pick could point at: ${standing.join(", and ")}.`],
+          nextStep: "Name which set — the role or the offer — and that is the one that moves.",
+        }) };
+      }
+    }
+
+    // REJECTION frame: the thread is about one rejection; asking
+    // why and drafting the ask are the thread's own next turns.
+    if (has("rejection")) {
+      if (/\bcan i ask why\b|\bshould i ask why\b|\bask (them|him|her) why\b/.test(t)) {
+        return { intent: "rejection_followup", resultStatus: "awaiting_user", reply: compose({
+          headline: "Yes — one short, gracious note asking for feedback is standard, and it costs you nothing.",
+          facts: ["Most firms reply with little or nothing; the ones that do often name the one decisive thing, and that is exactly what the next application needs.", "Ask for ONE thing that would have strengthened the application — a specific ask gets a specific answer; “any feedback?” gets none."],
+          nextStep: "Say “write it” and the note is composed here, held for your approval — nothing sends.",
+        }) };
+      }
+      if (/\bwrite (something|it|one)\b|\bdraft/.test(t)) {
+        return { intent: "rejection_followup", resultStatus: "awaiting_user", reply: compose({
+          headline: "Here is the polite version — held here, nothing sent:",
+          longBody: "Subject: Thank you — and one question\n\nHi [recruiter name],\n\nThank you for considering me, and for the team's time. If you are willing to share the one thing that would have made my application stronger, I would genuinely use it.\n\nEither way, I wish the team and [company] well.",
+          facts: ["The brackets are filled from your record the moment you name the recruiter and the company — nothing is guessed."],
+          nextStep: "Approve the filled version here and it can go; edit any line first and the edit is what stands.",
+        }) };
+      }
+    }
+
+    // PREP BRIEF frame: the brief stands; prep questions bind to it.
+    if (has("brief") || (c.lastWork && c.lastWork.kind === "prep")) {
+      if (/\bwhat if they ask/.test(t)) {
+        const topic = (/\bask about (?:my |your )?(.+?)[?!.]*$/.exec(t) || [])[1] || "that";
+        return { intent: "prep_brief", resultStatus: "awaiting_user", reply: compose({
+          headline: `If they ask about ${topic}, answer it in three beats.`,
+          facts: [`Name it plainly, in one line — no apology tour: what ${topic} was, stated as a fact.`, "Then what it produced: be ready to name the concrete thing it built — a skill, a piece of work, a result. That part comes from your own record; nothing is invented here.", "Then land on this role: why that experience is evidence FOR the job, in one sentence."],
+          nextStep: "Say your version out loud here and it gets tightened against the brief; or run the mock and this question is in it.",
+        }) };
+      }
+      if (/^how (should|do) i prep/.test(t) || /\bhow to prep\b/.test(t)) {
+        return { intent: "prep_brief", resultStatus: "awaiting_user", reply: compose({
+          headline: "Prep against the standing brief, in three blocks.",
+          facts: ["Stories first: three STAR stories with real numbers from your record, told out loud once each — the brief's questions all draw on these.", "Their work second: what the firm actually does and where this role sits in it — the brief names the gaps where no company file stands yet.", "Questions last: two questions only they can answer, which is what the end of the interview is for."],
+          nextStep: "Name the company and the brief sharpens to its file; or start the mock now and the prep is tested, not just listed.",
+        }) };
+      }
+    }
+
+    // COMPARISON / NEGOTIATION frame: figures supplied FOR the
+    // standing comparison run it; a verdict binds to the stored
+    // figures; a pushback binds to the negotiation.
+    if (has("negotiation")) {
+      const neg = frames.negotiation;
+      const amounts = [...t.matchAll(/\$?\s*(\d{2,3})\s?k\b/g)].map((m) => Number(m[1]) * 1000);
+      if (neg.compare && amounts.length >= 2) {
+        const seg = t.split(/\bsecond\b/);
+        const modeOf = (x) => /\bremote\b/.test(x) ? "remote" : /\bhybrid\b/.test(x) ? "hybrid" : /\bonsite|on-site|in office|in-office\b/.test(x) ? "on-site" : null;
+        const cityM = /\bin ([a-z][a-z .]{1,20})/.exec(seg[1] || "");
+        const offers = [
+          { amount: amounts[0], mode: modeOf(seg[0]) },
+          { amount: amounts[1], mode: modeOf(seg[1] || ""), city: cityM ? cityM[1].trim() : null },
+        ];
+        markFrame(ctx, "negotiation", Object.assign({}, neg, { compare: true, offers }));
+        const line = (o, i) => `Offer ${i === 0 ? "one" : "two"}: ${moneyOf(o.amount)}${o.mode ? `, ${o.mode}` : ""}${o.city ? ` in ${o.city}` : ""}.`;
+        const hi = offers[0].amount >= offers[1].amount ? offers[0] : offers[1];
+        const lo = hi === offers[0] ? offers[1] : offers[0];
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "Side by side, on the figures you gave:",
+          facts: [line(offers[0], 0), line(offers[1], 1), `On base alone, the ${moneyOf(hi.amount)} offer is ahead by ${moneyOf(hi.amount - lo.amount)} a year${hi.city ? ` — before what living and working in ${hi.city} costs, which is not a figure I will invent` : ""}.`],
+          nextStep: "Say which weighs more for you — the money, or the working setup — and the verdict closes from your own figures.",
+        }) };
+      }
+      if (/\bwhich is better\b|\bwhich one is better\b|\bwhich should i (take|pick|choose)\b/.test(t)) {
+        if (neg.offers && neg.offers.length >= 2) {
+          const [a, b] = neg.offers;
+          const hi = a.amount >= b.amount ? a : b;
+          const lo = hi === a ? b : a;
+          return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+            headline: `On your figures, the ${moneyOf(hi.amount)} offer leads on pay — by ${moneyOf(hi.amount - lo.amount)} a year.`,
+            facts: [`Whether it is better FOR YOU turns on two things not on your record: what ${hi.city ? `living in ${hi.city}` : "the on-site setup"} costs you against ${lo.mode || "the other setup"}, and how much the ${lo.mode || "other"} setup itself is worth to you.`, `If that setup is worth more than ${moneyOf(hi.amount - lo.amount)} a year to you, the ${moneyOf(lo.amount)} offer is the better one; if not, the ${moneyOf(hi.amount)} offer is.`],
+            nextStep: "Say which way you lean and the verdict closes; or name the deciding cost and it is counted in.",
+          }) };
+        }
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "The comparison needs the offers themselves.",
+          facts: ["Give me each offer's base and setup — remote or on-site, and where — and the verdict is computed from those figures only, nothing from a table I do not keep."],
+          nextStep: "State the two offers the way you received them.",
+        }) };
+      }
+      if (/\btoo high\b|\bif they say\b|\bpush ?back\b|\bthey (say|said) no\b/.test(t)) {
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "If they say it's too high, do not drop on the spot — a first pushback is the negotiation working.",
+          facts: ["Answer with the band, not a new number: my ask sits at the level this role itself posts; what I care about is the whole package — where is there room?", "If the base truly cannot move, trade instead: signing, review timing, title, start date — each is worth money and none of them costs them the band."],
+          nextStep: "Paste their exact pushback when it comes and the reply is drafted from it, held for your approval.",
+        }) };
+      }
+    }
+
+    // PLAN frame: a step-ask takes the plan's own first move; a
+    // constraint statement is RECORDED (the user's own assertion)
+    // and the plan re-aims around it.
+    if (has("plan")) {
+      const plan = frames.plan;
+      if (/\bwhat do i do first\b|\bwhere do i start\b|\bfirst move\b|\bwhat'?s first\b/.test(t)) {
+        if (plan.family === "path") {
+          const probe = sentenceMatching(plan.text || "", /test|tell them apart|cheapest|tell the/i);
+          return { intent: "path_plan", resultStatus: "awaiting_user", reply: compose({
+            headline: "First move on the standing plan: run its cheap test.",
+            facts: [probe ? `The plan's own words: ${probe}` : "One small, real piece of the target role's work, done this week — the smallest test that shows whether the work itself fits."],
+            nextStep: "What the test shows decides path A or path B; report the result here and the plan re-aims from it.",
+          }) };
+        }
+        const ns = composedNextStep(ctx);
+        if (ns) return { intent: "career_next_step", resultStatus: "awaiting_user", reply: compose(ns) };
+      }
+      if (!/\?/.test(raw) && raw.split(/\s+/).length <= 10 && (/^(i|i've|my)\b/.test(t) || /\bexperience\b|\bbackground\b/.test(t))) {
+        recordThreadFact(ctx, "experience", raw.replace(/[.!]+$/, ""), raw);
+        return { intent: "path_plan", resultStatus: "awaiting_user", reply: compose({
+          headline: "Noted — it is on your record now, and it changes move one, not the destination.",
+          facts: ["A plan built for someone switching fields treats a missing background as the thing the first move must PRODUCE: the cheap test exists to create exactly that evidence."],
+          nextStep: "Run the test and the record stops saying “none” — it says what the test produced.",
+        }) };
+      }
+    }
+
+    // GATE frame (a bulk send was refused with the reviewed path
+    // explained): insistence restates the gate — briefly, once —
+    // instead of re-running the whole refusal or falling silent.
+    if (has("gate") && raw.split(/\s+/).length <= 8 && /\b(do it|send it|send them|just do it|i said)\b/.test(t)) {
+      const mir = threadMirrorOf(ctx);
+      return { intent: "outreach_clarification", resultStatus: "awaiting_user", reply: compose({
+        headline: "Still no — and that refusal is the product keeping its promise.",
+        facts: ["A bulk send to everyone is not a thing I do, with or without insistence. What exists is the reviewed path: a shortlist you see, drafts you approve, sent one at a time from your own account.", ...(mir && mir.hold ? ["Your hold stands as well: nothing sends while it is on."] : [])],
+        nextStep: "Say “shortlist” and the reviewed path starts there.",
+      }) };
+    }
+
+    // HELD-STOP frame (a person-ask stopped honestly): the
+    // wording question is the thread's own next turn — a draft,
+    // held, with its placeholders named as placeholders.
+    if (has("heldStop") && /\bwhat do i say\b|\bwhat should i say\b|\bsay to them\b|\bwhat do i write\b/.test(t)) {
+      const co = frames.heldStop.company;
+      return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+        headline: "Say it like this — a draft, held here; nothing is sent:",
+        longBody: `Hi [name] — I'm [your year] at [your school], aiming at the work your team does${co ? ` at ${co}` : ""}, and I'd value 15 minutes on how you got there and what the work is actually like. No ask beyond the conversation.`,
+        facts: ["The brackets are filled from your own facts — state them and they go in; nothing is guessed, and no referral is promised or implied."],
+        nextStep: "When the words are right, you send it yourself or approve it here first.",
+      }) };
+    }
+
+    // FOLLOW-UP frame (generalization mech 3): a silence report
+    // (applied, heard nothing) opens this frame; its own next
+    // turns — the deictic advice ask, and "draft it" — resolve
+    // from the frame: the pattern named, the two clean moves,
+    // and the follow-up draft itself, held.
+    if (has("followup")) {
+      const fu = frames.followup;
+      const co = fu.company || "that company";
+      if (/^(draft|write) (it|that|one)\b|\bdraft the follow-?up\b/.test(t)) {
+        const body = `Subject: Following up — my application\n\nHi ${co} team,\n\nI applied two weeks ago and wanted to check where my application stands. I remain very interested in the role, and I am glad to provide anything further that would help your review.\n\nThank you for your time,\n[your name]`;
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", sends: 0, draft: { kind: "follow_up_email", text: body, status: "held", target: fu.company || null }, reply: compose({
+          headline: "The follow-up, drafted — held here, nothing sent:",
+          longBody: body,
+          facts: ["It says only what is true: when you applied, that you are checking, and that you remain interested. No new claims are made for you."],
+          nextStep: "Approve it here and it can go; edit any line first and the edit is what stands.",
+        }) };
+      }
+      if (/\bwhat should i do\b|\bwhat do i do\b|\bchase\b|\bgive up\b|\bis it dead\b|\bstill waiting\b/.test(t) || (/\bthat\b/.test(t) && /\bdo\b/.test(t))) {
+        return { intent: "tracking_status", resultStatus: "awaiting_user", reply: compose({
+          headline: `${co} — the silence itself is the data point.`,
+          facts: ["The row stands at applied, with no reply since you reported it. Silence after an application usually means the queue has not reached a decision — it is not a decision made against you.", "The two clean moves are one short follow-up, which restarts their clock without burning anything, or leaving the row open and spending the attention on live applications."],
+          nextStep: "Say “draft it” and the follow-up is composed here, held for your approval — nothing sends.",
+        }) };
+      }
+    }
+
+    // DRAFT frame (generalization mech 3): a held draft stands on
+    // the thread; its revisions and its sent-status questions
+    // resolve against the draft itself. Revisions stand down when
+    // a negotiation thread stands (the negotiation machinery owns
+    // its drafts' revisions) and when the turn carries fresh
+    // content (figures, fields) for those routes.
+    if (has("draft")) {
+      const dr = frames.draft;
+      if (/\b(did you|have you) send\b|\bwas it sent\b|\bis it sent\b|\bdid (it|that) go out\b/.test(t)) {
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+          headline: "Not sent — it stands as a held draft.",
+          facts: ["Drafts in this thread are held for your approval by construction; nothing goes out on a draft's own momentum, and this one has not moved.", "It goes only when you approve the exact words here."],
+          nextStep: "Say “show it” and the draft is read back, or name the edit and the revision stands instead.",
+        }) };
+      }
+      const nt = negotiationThreadOf(ctx);
+      const negStands = nt && (nt.company || nt.ask || (Array.isArray(nt.offers) && nt.offers.length));
+      if (!negStands && raw.split(/\s+/).length <= 7 && (/^(make|keep) it (shorter|briefer|tighter|longer|warmer|firmer|softer|more concise)\b/.test(t) || /^(shorten|tighten|trim|condense) (it|that|this|the draft)\b/.test(t))) {
+        if (dr.text) {
+          const shorter = shortenedDraftText(dr.text);
+          markFrame(ctx, "draft", Object.assign({}, dr, { text: shorter }));
+          return { intent: dr.intent || "outreach_draft", resultStatus: "awaiting_user", sends: 0, draft: { kind: dr.kind || "draft", text: shorter, status: "held", target: dr.company || null }, reply: compose({
+            headline: "The tighter version — same draft, held:",
+            longBody: shorter,
+            facts: ["Only length changed: the ask, the facts and the closing are the standing draft's own."],
+            nextStep: "Approve this version here and it can go; the longer one is replaced on the thread.",
+          }) };
+        }
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+          headline: "That revision needs the draft's text in front of me.",
+          facts: ["A draft stands on this thread, but its text is not retained in the thread record, so revising it from memory would risk changing your words.", "Paste the draft and the revision is made on your exact text."],
+          nextStep: "Paste it here and the tighter version comes straight back, held.",
+        }) };
+      }
+    }
+
+    // GENERIC DEICTIC CONTINUATION (generalization mech 3): a
+    // short advice-shaped turn whose only reference is a deictic
+    // ("what should i do about that") resolves against the MOST
+    // RECENT standing frame — the same mechanism for every frame
+    // kind, answered from the frame's own recorded state.
+    if ((/\b(that|it|this|them)\b/.test(t) && /\b(do|now|next|about|happen|still|mean)\b/.test(t)) || /^(what|how) about (that|it|this)\b/.test(t)) {
+      const entries = Object.entries(frames).filter(([, v]) => v && typeof v === "object").sort((a, b) => (Date.parse(b[1].at || "") || 0) - (Date.parse(a[1].at || "") || 0));
+      if (entries.length) {
+        const [kind, fr] = entries[0];
+        const label = { plan: "the standing plan", tracker: "your application tracker", brief: "the interview brief", negotiation: "the offer discussion", gate: "the sending gate", heldStop: "the referral question", workauth: "your work authorization", rejection: "the rejection", followup: "the unanswered application", draft: "the held draft", declined: "the declined request" }[kind] || "the last thing we worked on";
+        const line = kind === "plan" ? "Its first move is still the plan's own cheap test; what that test shows re-aims everything after it."
+          : kind === "tracker" ? (rows.length ? `The tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}; each one is read from its own row, never from memory.` : "The tracker holds no applications, so there is nothing pending to act on.")
+          : kind === "brief" ? "The brief stands as served; the mock is how it gets tested rather than just read."
+          : kind === "negotiation" ? "The discussion stands on the figures you gave; nothing about it has moved since."
+          : kind === "gate" ? "Nothing has been sent, and the reviewed path — shortlist, drafts, your approval — is still the only path."
+          : kind === "workauth" ? `${fr.status || "Your status"} stands on your record as you stated it; the timeline question turns on the EAD end date.`
+          : "It stands exactly as it was left; nothing about it has changed since it was served.";
+        return { intent: "career_next_step", resultStatus: "awaiting_user", reply: compose({
+          headline: `On ${label}:`,
+          facts: [line],
+          nextStep: "Name the part you want moved and it moves; or name a new thing and we start it.",
+        }) };
+      }
+    }
+
+    // DECLINED frame (an action this router cannot do was declined
+    // honestly): corrections, amounts and cancels bind to the
+    // DECLINED request — there is nothing standing to move, cancel
+    // or select from, and the reply says exactly that.
+    if (has("declined")) {
+      const d = frames.declined;
+      if (/\bactually\b|\bmake it\b|\bchange it\b|\bcancel\b|\bnever ?mind\b|\bforget it\b|\bgive me\b|\buse the\b|\bpick\b/.test(t)) {
+        return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({
+          headline: `Nothing to change there — the ${d.label || "request"} was never set up, because it is not something I can do yet.`,
+          facts: ["No reminder, draft or list is standing from that ask, so there is nothing to move, cancel or pick from — saying otherwise would be inventing state."],
+          nextStep: "What I can do stands in the list above; name one and it starts.",
+        }) };
+      }
+    }
+
+    // THANKS CLOSE: a bare thanks with a frame standing and no
+    // record to recite gets a plain conversational close — the
+    // bare-acknowledgment layer below only speaks when there is a
+    // record to read back, and the banner is not a close.
+    if (/^(ok|okay|thanks|thank you|thx|got it|perfect|great)([ ,.!]+(thanks|thank you|that helped|that helps|a lot))*[.!]*$/.test(t) || /^ok thanks\b/.test(t)) {
+      return { intent: "conversation_ack", reply: "Anytime. Everything stands exactly as we left it — the thread keeps it, and the next move is yours whenever you're ready." };
+    }
+    return null;
+  }
+
+  // WORK-AUTHORIZATION thread (the C4 shape): a sponsorship
+  // QUESTION is eligibility's (the gate there is widened to the
+  // question class); a work-auth STATEMENT is the user's own
+  // assertion — recorded as their fact, never graded by a company
+  // file — and its run-out follow-up answers from that record:
+  // the date lives on their EAD, nowhere else, and is never
+  // invented.
+  function handleWorkAuthThread(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const frames = frameMarksOf(ctx);
+    const sf = statedFactsOf(ctx);
+    const sponsorFact = sf && Array.isArray(sf.facts) ? sf.facts.find((f) => f.kind === "sponsorship") : null;
+    if (/\bwhen does (that|it|this|opt|my (opt|visa|ead|status)) (run out|expire|end)\b|\brun out\b/.test(t) && (frames.workauth || sponsorFact)) {
+      const status = (frames.workauth && frames.workauth.status) || (sponsorFact && sponsorFact.value) || "That status";
+      return { intent: "eligibility_check", resultStatus: "awaiting_user", reply: compose({
+        headline: `${status} runs out on the end date printed on your EAD — and that date is not on your record yet.`,
+        facts: ["The end date on the Employment Authorization Document is the only source for it; I will not guess it or borrow one.", "Say the date and it goes on your record, and from then on your timeline — applications, start dates — is counted from the real date."],
+        nextStep: "State the EAD end date whenever you have the card in hand.",
+      }) };
+    }
+    const stmt = /\bi'?m on\b/.test(t) && /\b(opt|cpt|f-?1|h-?1b|visa)\b/.test(t) || /\bi have (opt|cpt|work authorization)\b/.test(t);
+    if (stmt) {
+      const status = /stem opt/.test(t) ? "STEM OPT" : /\bopt\b/.test(t) ? "OPT" : /\bcpt\b/.test(t) ? "CPT" : /h-?1b/.test(t) ? "H-1B" : /f-?1|student visa/.test(t) ? "F-1 student visa" : "work authorization";
+      recordThreadFact(ctx, "sponsorship", status, raw);
+      markFrame(ctx, "workauth", { status });
+      return { intent: "eligibility_check", resultStatus: "awaiting_user", reply: compose({
+        headline: `${status} is on your record now — as your statement, exactly as you gave it.`,
+        facts: ["That answers the sponsorship half of your question: on a current work authorization you can start a role without the employer sponsoring you; sponsorship only enters when the authorization window ends.", "Whether a SPECIFIC posting accepts it is graded against the posting itself — bring the posting and it is checked line by line."],
+        nextStep: "Tell me the end date on your EAD and your timeline is counted from the real date.",
+      }) };
+    }
+    return null;
+  }
+
+  // SALARY ASK with no standing offer (the C15 shape): the
+  // negotiation gate only speaks when an offer thread stands, so
+  // a cold ask fell to the banner. It is served as an ANCHOR
+  // answer — method only, no figure quoted from a table this
+  // product does not keep — and it opens the negotiation frame so
+  // the pushback follow-up binds to it.
+  function handleSalaryAsk(text, ctx) {
+    const t = lc(text);
+    if (!/\b(salary|pay|comp)\b/.test(t) || !/\bask\b|\bhow much\b/.test(t) || !/\b(good|right|fair|reasonable|should|what)\b/.test(t)) return null;
+    const nt = negotiationThreadOf(ctx);
+    if (nt && (nt.company || nt.ask || (Array.isArray(nt.offers) && nt.offers.length))) return null; // a real offer thread owns salary talk
+    markFrame(ctx, "negotiation", { salaryAsk: true, compare: false });
+    return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+      headline: "Anchor on the role's own band — never on a number from thin air.",
+      facts: ["A good ask sits at the top of the band the posting itself states, or just above it when your record carries the exact experience the posting names.", "I keep no salary table for this role, so no figure is quoted from memory: bring the posting — or the company and title — and the ask is built from what is stated there and what is on your record.", "An ask you can defend line by line survives pushback; a round number cannot."],
+      nextStep: "Name the role and company, or paste the posting, and the ask is built from its stated band.",
+    }) };
+  }
+
+  // ERASE PATH (root-cause item 3, the C14 shape): the host's own
+  // erase control is an EXACT-match command ("delete my career
+  // profile") that executes immediately; the conversational ask
+  // ("delete everything you know about me") had no owner at all
+  // and fell to the banner. The conversational path is SAFER than
+  // the command: it opens a confirmation that names what will go,
+  // and only an explicit yes TO THAT QUESTION executes — wired to
+  // the same effects the host's erase performs (the same state
+  // keys deleted, the same _hostPatch, the same honest language
+  // about what an erase does not reach). A generic yes anywhere
+  // else confirms nothing about data.
+  const ERASE_STATE_KEYS = ["profile", "osStore", "doorstepState", "queueState", "globalPause", "trackStore", "suppression", "applyLog", "applicationLog", "outreach", "outreachContacts", "contacts", "sendingAccounts", "artifacts", "discovery", "plan", "offer", "portalRecords", "statusRecords", "tasks", "resumeTexts", "pastedText", "posting", "statedFacts", "intentQueue", "_relayedSuppressions", "alertWatchState", "batchApplyState", "offerBenchmark"];
+  function handleErasePath(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    // "is it gone" answers from the REAL state: an erase receipt
+    // on the fresh mirror, a pending confirmation, or neither.
+    if (/\bis it gone\b|\bis (it|everything) (deleted|erased|gone)\b|\bdid you (delete|erase)\b/.test(t)) {
+      if (mir && mir.erasedAt) return { intent: "career_erase_status", resultStatus: "complete", reply: compose({ headline: "From this conversation's record — yes.", facts: ["When you confirmed the erase, your saved career profile and active context were removed from this conversation's record, its watches were cleared, and career work was paused.", "That is the conversation record. Permanent deletion from account storage is a separate step, verified against the stored account — I am not claiming it from this chat."], nextStep: "Anything you state from here starts a fresh record, only from your own words." }) };
+      if (mir && mir.eraseConfirm) return { intent: "career_erase_status", resultStatus: "awaiting_user", reply: compose({ headline: "Not yet — nothing has been deleted.", facts: ["The erase is still waiting on your yes to the confirmation above; until that yes, your record stands exactly as it was."], nextStep: "Say “yes, erase it” to execute it, or say “keep it” and the request closes with nothing removed." }) };
+      return { intent: "career_erase_status", resultStatus: "complete", reply: compose({ headline: "Nothing has been erased in this conversation.", facts: ["No erase has run here, so your record still stands. If you want it gone, say “delete everything” and the erase opens by naming exactly what it removes — nothing is deleted before your confirming yes."], nextStep: "Say “delete everything” to open the erase, or ask what is on your record and it is read back." }) };
+    }
+    // The confirming yes: only while the erase confirmation is
+    // the pending question, and only an explicit erase-shaped yes.
+    if (mir && mir.eraseConfirm && (nowOf(ctx) - (Date.parse(mir.eraseConfirm.at || "") || 0)) <= 5 * 60 * 1000) {
+      const yesErase = /^(yes|yeah|yep|confirm|confirmed)[.!]*$/.test(t) || /^(yes|yeah|yep)[,.]?\s+(i'?m sure|im sure|sure|erase it|delete it|do it)[.!]*$/.test(t) || /\b(erase|delete) (it|everything|all of it)\b/.test(t);
+      const keepIt = /\b(keep it|don'?t|do not|no|stop|cancel|wait)\b/.test(t) && !yesErase;
+      if (keepIt) {
+        const wmir = threadMirrorForWrite(ctx);
+        if (wmir) delete wmir.eraseConfirm;
+        return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Kept — the erase request is closed and nothing was removed.", facts: ["Your record stands exactly as it was before the ask."], nextStep: "Say the word any time you want the erase opened again." }) };
+      }
+      if (yesErase) {
+        for (const key of ERASE_STATE_KEYS) { try { delete ctx[key]; } catch { /* a missing key is already erased */ } }
+        // The hydrated views of mirror state are not state keys
+        // (the host's erase never faces them — it runs before
+        // hydration); left standing they would re-mirror into the
+        // fresh mirror at syncThreadOut and resurrect the record.
+        for (const key of ["negotiationThread", "careerPath", "prepThread", "_careerLastWork"]) { try { delete ctx[key]; } catch { /* already gone */ } }
+        ctx.globalPause = { set: true, at: new Date(nowOf(ctx)).toISOString(), source: "account_control" };
+        ctx._hostPatch = { erase: true, paused: true };
+        const wmir = threadMirrorForWrite(ctx);
+        if (wmir) { for (const k of Object.keys(wmir)) delete wmir[k]; wmir.erasedAt = new Date(nowOf(ctx)).toISOString(); }
+        return { intent: "career_profile_erased", resultStatus: "complete", sends: 0, reply: "From this conversation's record: I removed your saved career profile and active career context, cleared account watches and paused career work. Existing chat/audit records may retain earlier text; it is excluded from active context. That is this conversation's record and its watches — a claim about permanent deletion from account storage is a separate, verified step, and I am not making it here. No uncertain action was retried." };
+      }
+      return null; // an unrelated turn while the confirmation stands falls through; the confirmation stays open
+    }
+    // The ask itself: open the confirmation, delete nothing.
+    if (/\b(delete|erase|forget|wipe|remove)\b[^.]*\b(everything|all of it|all my|my (data|info|information|profile|record|details))\b/.test(t) || /^(delete|erase|forget) (everything|it all)[.!]*$/.test(t)) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.eraseConfirm = { at: new Date(nowOf(ctx)).toISOString() };
+      return { intent: "career_erase_confirm", resultStatus: "awaiting_user", reply: compose({ headline: "Before anything is deleted — here is exactly what an erase removes.", facts: ["It goes: your saved career facts and profile, your job watches and alerts, your application tracker, and the standing plans, drafts and conversation state I act on.", "It does not rewrite the chat transcript or audit records — that text is excluded from your active context instead, the same line the product's own erase draws."], nextStep: "Say “yes, erase it” if that is what you want. Nothing is deleted until that yes — and a yes to anything else does not count." }) };
+    }
+    return null;
+  }
+
+  // HOLD INSTRUCTIONS (root-cause item 4): "dont send anything
+  // yet" is an instruction about the conversation's pending work,
+  // and it had no owner — it fell to the banner while the work it
+  // meant to stop stood unheld. A hold is a STATE: recorded on the
+  // thread mirror, acknowledged as standing, and read back by the
+  // routes that talk about sending (the gate restatement names
+  // it). Lifting it takes its own explicit words.
+  function handleHoldInstruction(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (/\b(lift|remove|clear|drop) the hold\b|\bhold is off\b|\byou can send (again|now)\b/.test(t)) {
+      if (!(mir && mir.hold)) return null;
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.hold;
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Hold lifted.", facts: ["Sending is back on the table — under the standing rule, which the hold never changed: nothing goes out without your approval on the exact words."], nextStep: "Name what should move first and it is prepared for your approval." }) };
+    }
+    // CLAIM DISCIPLINE: only a turn whose WHOLE content is the
+    // hold instruction claims — a substantive ask that carries a
+    // "don't send it yet" clause (a negotiation draft ask, say)
+    // belongs to its own route, which holds its drafts itself.
+    const holdWhole = /^((ok|okay|wait|also|please|hey)[,.]?\s+)?(don'?t|do not) send( anything| it| them| that)?( yet| for now)?[.!]*$/.test(t)
+      || /^(send nothing|no sending|hold off on sending( anything)?|nothing (gets |is )?sent( yet)?)[.!]*$/.test(t)
+      || /^(don'?t|do not) (message|email|text|contact) (anyone|anybody|them|him|her)( yet)?[.!]*$/.test(t);
+    if (holdWhole) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.hold = { at: new Date(nowOf(ctx)).toISOString(), scope: "sending" };
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Held — nothing will be sent.", facts: ["The hold is on this conversation's record now: drafts and plans stand where they are, and no message goes out from this thread while it stands.", "Sending already required your approval on the exact words; the hold adds a stop in front of even that."], nextStep: "Everything else keeps working — drafting, planning, tracking. Say “lift the hold” when sending is back on the table." }) };
+    }
+    return null;
+  }
+
+  // THIRD-PARTY DISCLOSURE (root-cause item 5): "tell my boss im
+  // looking" is neither a blanket refusal nor the banner. It is a
+  // clarification: who exactly, what content, what scope — with
+  // the standing truth stated plainly, that nothing is sent
+  // without approval (and no channel to a boss exists in this
+  // path at all, so nothing sends in any case). The retraction
+  // binds to the pending clarification; a retraction shape with
+  // nothing pending claims nothing.
+  function handleDisclosureAsk(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (mir && mir.disclosure && raw.split(/\s+/).length <= 6 && (/^(lol\s+)?(no|nope|nah)\b/.test(t) || /\bdon'?t\b|\bnever ?mind\b|\bforget it\b|\bstop\b/.test(t))) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.disclosure;
+      return { intent: "conversation_ack", resultStatus: "awaiting_user", reply: compose({ headline: "Dropped — nothing was sent, and nothing will be.", facts: ["The disclosure ask is closed. No message went to anyone, and none leaves this conversation without your approval on the exact words."], nextStep: "Say what you want to work on instead and it starts there." }) };
+    }
+    const thirdParty = /\b(my )?(boss|manager|employer|supervisor)\b/.test(t);
+    const discloseVerb = /\b(tell|message|email|text|inform|let)\b/.test(t);
+    // Disclosure CONTENT (looking / leaving / interviewing) or a
+    // short direct ask — a longer turn that merely mentions a boss
+    // (a raise draft, a project update) keeps its own route.
+    const discloseContent = /\b(looking|leaving|interviewing|job (hunting|search)|searching|new job|another (job|role)|quit)\b/.test(t);
+    if (thirdParty && discloseVerb && (discloseContent || raw.split(/\s+/).length <= 12)) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.disclosure = { at: new Date(nowOf(ctx)).toISOString() };
+      return { intent: "disclosure_clarify", resultStatus: "awaiting_user", reply: compose({ headline: "Nothing is sent — a message like that never fires off from a one-line ask.", facts: ["Who exactly would receive it — your direct manager, or someone else?", "What exactly would it say — that you are looking, that you are interviewing, or that you are leaving? Those are three very different messages.", "And what is the scope — one person, once, or your wider team as well?"], nextStep: "Answer those three and the words are drafted here for your approval; you send them yourself, or approve them here first. Nothing moves before that." }) };
+    }
+    return null;
+  }
+
+  // HONEST CAN'T-DO (root-cause item 6): an action request this
+  // router does not serve — a reminder, LinkedIn headline help, a
+  // scheduling ask — and the plain capability question reached
+  // the generic banner, which reads as a product that cannot say
+  // what it is. The honest layer answers instead: what it cannot
+  // do yet, and the REAL capability list — drawn from the routes
+  // this router actually serves, nothing aspirational. The
+  // declined request is recorded as a frame (mir.frames.declined)
+  // so its corrections and cancels bind to it (item 1's resolver)
+  // instead of hallucinating a standing object. An honest reply
+  // is not a completed action and is never counted as one.
+  const CAPABILITY_LINE = "Here is what I can do: find and screen roles against your record; set job-alert watches; tailor your resume and build application packets; run interview prep — briefs, mocks and question practice; track your applications; and draft outreach and negotiation messages, always held for your approval.";
+  function handleHonestUnavailableAction(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    if (/\bwhat can you (actually |really )?(do|help with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t)) {
+      return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: "Fair question — here is the real list.", facts: [CAPABILITY_LINE], nextStep: "Name one and it starts now." }) };
+    }
+    let label = null, headline = null;
+    if (/\bremind me to\b|\bset (a |me a )?reminder\b|\breminder\b/.test(t)) { label = "reminder"; headline = "I can't do that yet — I don't run reminders."; }
+    else if (/\bheadline\b/.test(t) || /\blinkedin\b[^.]*\b(profile|summary|boring|weak|bland)\b/.test(t) || /\bmy (linkedin|profile) (is|sounds|looks) (boring|bad|weak|bland|generic)\b/.test(t)) { label = "LinkedIn headline"; headline = "I can't do that yet — I don't rewrite LinkedIn headlines."; }
+    else if (/^(schedule|book|reserve|order|buy)\b/.test(t) || /\b(schedule|book) (a|me|the)\b/.test(t)) { label = "scheduling request"; headline = "I can't do that yet — I don't book or schedule things."; }
+    if (!label) return null;
+    markFrame(ctx, "declined", { label, ask: raw.slice(0, 140) });
+    return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline, facts: [CAPABILITY_LINE], nextStep: "Name anything from that list and it starts now; the ask you just made is noted as a gap, not silently dropped." }) };
+  }
+
+  // LIFE-EVENT STATEMENTS (generalization, 2026-10-24): a
+  // first-person statement of an employment event — leaving a job,
+  // losing one, deciding on a specific offer, starting a new role
+  // — is news to respond to, not a target to store (the capture
+  // exclusion in statedCareerTargetOf keeps it out of the goal
+  // slot). The reply is short and human, and it offers ONE next
+  // step. A QUESTION about an event ("should i quit?") is not this
+  // shape and keeps its own routes.
+  function handleLifeEventStatement(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || /\?/.test(raw) || raw.split(/\s+/).length > 14) return null;
+    const t = lc(raw);
+    if (!/^(i|i'm|i've|my)\b/.test(t)) return null;
+    const jobObj = /\b(job|role|position|notice)\b/.test(t);
+    let kind = null;
+    if (/\b(laid off|let go|fired|terminated|made redundant|lost my job)\b/.test(t) || /\b(my )?(role|position|job) was (eliminated|cut|removed)\b/.test(t)) kind = "loss";
+    else if (/\b(accept|decline|turn down|reject)\b[^.]*\b(offer|job)\b/.test(t)) kind = /\b(decline|turn down|reject)\b/.test(t) ? "decline" : "accept";
+    else if (jobObj && /\b(quit|quitting|resign|resigning|hand in (my )?notice|handing in (my )?notice|leave|leaving|walk away)\b/.test(t)) kind = "departure";
+    else if (/\b(start|starting|begin|beginning)\b[^.]*\b(new job|new role|job|role)\b/.test(t)) kind = "start";
+    if (!kind) return null;
+    // AMENDED shape (coordinator 2026-10-24 14:09 (2)): ONE
+    // human line of acknowledgment, then ask what they want
+    // help with. The guard is at the SAVE: this handler writes
+    // nothing — no goal, no fact — and the goal-capture
+    // exclusion in statedCareerTargetOf keeps the statement
+    // out of the record absent an explicit confirm.
+    const headlines = {
+      departure: "That's a big decision — heard, and said plainly.",
+      loss: "I'm sorry. That is a hard day.",
+      accept: "Decision made — that's real news.",
+      decline: "Decision made — cleanly, by the sound of it.",
+      start: "A new start — that's real news.",
+    };
+    return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose({ headline: headlines[kind], facts: [], nextStep: "What do you want help with first?" }) };
+  }
+
+  // CATCH-ALL (generalization mech 1): the LAST resort before the
+  // banner, placed after every handler in dispatch. A question or
+  // a request about the user's career that matched NO handler
+  // gets an honest in-scope reply with three parts — what it
+  // understood (the user's own clause), what it can do right now
+  // (the real capability list), and ONE clarifying question. The
+  // generic banner remains only for non-career or empty text:
+  // the career relation is either a domain object in the turn
+  // itself or a standing career context the turn points back at,
+  // and the speech act must be a question or a request — a bare
+  // statement keeps the routes that own statements.
+  function handleCareerCatchAll(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    const isQuestion = /\?/.test(raw) || /^(what|why|how|when|where|which|who|whom|can|could|would|should|is|are|was|were|do|does|did|am i|will|may)\b/.test(t);
+    let isRequest = false;
+    if (!isQuestion) { try { isRequest = clauseIsRequest(stripLead(raw)); } catch { isRequest = false; } }
+    if (!isQuestion && !isRequest) return null;
+    const DOMAIN = /\b(job|jobs|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promotion|raise|reference|resign|interview|application|applying|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|role|roles|position|positions|vesting|severance|start date|onboarding)\b/;
+    let related = DOMAIN.test(t);
+    if (!related) {
+      const frames = frameMarksOf(ctx);
+      const c2 = threadContextOf(ctx) || {};
+      related = Object.keys(frames).length > 0 || !!(c2.lastWork || c2.discovery || (Array.isArray(c2.rows) && c2.rows.length));
+    }
+    if (!related) return null;
+    // AMENDED shape (coordinator 2026-10-24 14:09): the reply
+    // does NOT claim understanding and does NOT restate the
+    // user's intent as if parsed. It says it did not catch what
+    // to do, lists only the capabilities this router REALLY
+    // serves, and asks ONE bounded question. For entitlement
+    // topics (benefits and kin), where specifics are set by
+    // jurisdiction, the only topic content allowed is that it
+    // depends on where the user lives and that their state
+    // agency is the source — no deadlines, no amounts, no
+    // canned specifics.
+    const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
+    const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
+    const facts = [];
+    if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
+    facts.push(CAPABILITY_LINE);
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
+      headline: "I did not catch what to do with that one.",
+      facts,
+      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
+    }) };
+  }
+
+  function handlePendingAffirmation(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw || raw.split(/\s+/).length > 8) return null;
+    if (/\b(no|not|wrong|wait|stop|don'?t|never)\b/i.test(raw)) return null;
+    const mir = threadMirrorOf(ctx);
+    if (!mir) return null;
+    const now = nowOf(ctx);
+    const recent = (at, windowMs) => { const ms = typeof at === "number" ? at : Date.parse(at || ""); return !isNaN(ms) && (now - ms) <= windowMs && (now - ms) >= -60 * 1000; };
+    if (/\bapply\s+(those|these|the)\s+changes\b/i.test(raw) || /^(yes|yeah|yep|sure|ok|okay)[,.]?\s+apply\b/i.test(raw)) {
+      const rec = mir.tailor;
+      if (!rec || rec.applied || !recent(rec.at, 30 * 60 * 1000)) return null;
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir && wmir.tailor) wmir.tailor.applied = true;
+      const reply = compose({ headline: `Applied — the tailored version is now your standing version for ${rec.title || "that role"}.`, facts: ["The tailoring's changes are the version your packet for this posting is built from. Your master resume on your profile is untouched, and nothing has been sent or submitted — an application still stops at its own doorstep for your tap."], nextStep: "Want the application packet prepared from this version, or another role tailored?" });
+      return { intent: "career_tailor", reply, resultStatus: "completed", sends: 0 };
+    }
+    if (!/^(yes|yeah|yep|sure|ok|okay|correct|right|exactly|confirmed|that'?s right|that is right)\b/i.test(raw)) return null;
+    if (/\b(set|do|send|apply|use|make|start|create|watch|find|show|draft|tailor|write|run)\b/i.test(raw)) return null;
+    // PRECEDENCE (regression, career-next-step-routing test 7,
+    // 2026-10-24): a bare-affirmation shape that ASKS for the next
+    // step — "ok and then?" — is a question, not a confirmation,
+    // and inside an open outreach plan the plan's own standing
+    // next step owns it. This consumer stood both down nowhere, so
+    // it captured the follow-up and answered with the record
+    // confirmation ("your record stands exactly as read back")
+    // where the plan's approval step, naming the target, was the
+    // route. Both stand-downs live here, in the bare-affirmation
+    // branch only: the explicit apply-changes branch above is an
+    // instruction, not an affirmation, and is untouched.
+    if (/\?/.test(raw) || /\b(and then|what next|what now|so what)\b/i.test(raw)) return null;
+    if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
+    if (mir.resumeIngest) return null;
+    // ROOT-CAUSE (2026-10-24): a read-back is the pending question
+    // only while it is the FRESHEST thing the conversation is
+    // standing on. When a later serve opened another frame (a
+    // tracker answer, a comparison, a plan), a bare yes belongs
+    // to that frame's thread — capturing it here would stamp the
+    // record "confirmed" for a question nobody just asked.
+    if (mir.affirmRecord) {
+      const framesNow = frameMarksOf(ctx);
+      const affirmAt = typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : (Date.parse(mir.affirmRecord.at || "") || 0);
+      if (Object.values(framesNow).some((fr) => fr && ((typeof fr.at === "number" ? fr.at : Date.parse(fr.at || "")) || 0) > affirmAt)) return null;
+    }
+    if (!mir.affirmRecord || !recent(mir.affirmRecord.at, 3 * 60 * 1000)) return null;
+    const all = statedFactsOf(ctx);
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) delete wmir.affirmRecord;
+    const reply = compose({ headline: "Confirmed — your record stands exactly as read back.", facts: all.length ? [`On record: ${all.map(factLine).join("; ")}.`] : ["Your record stands as stated; nothing was added or changed by the yes."], nextStep: "Tell me what to run on it first — a search, a watch, a draft — and it runs on these facts." });
+    return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
+  }
+  // BULLET LOOP (spec3 section 5; text-path measurement 2026-10-24):
+  // the resume-fix conversation the spec describes — the user names
+  // a bullet ("make the Brightpath bullet stronger"), supplies the
+  // result in their own words, and accepts the revised version
+  // ("yes, use that version"). At this head every one of those turns
+  // fell to the generic fallback: no state ever proposed a version,
+  // so there was nothing for the follow-ups to bind to. The loop
+  // carries its state on the thread mirror; the revision folds the
+  // user's OWN metric sentence into the bullet (no number is ever
+  // invented here), and acceptance writes the revised bullet onto
+  // the standing fact — a draft fact stays a draft, so the revision
+  // confirms with the resume as a whole, never ahead of it.
+  function bulletClauseOf(fact, label) {
+    const text = s((fact && (fact.text || fact.title)) || "");
+    const dash = text.indexOf(" - ");
+    const body = (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+    // HELD-OUT (2026-10-24): a pasted experience fact can be a
+    // whole paragraph ("Marketing Coordinator at Brightpath Media.
+    // Ran email campaigns…") — the loop's clause must be the ONE
+    // sentence the user named (the label's sentence), because the
+    // reply composer renders a fact's first sentence and a
+    // paragraph-clause would carry the folded metric past that
+    // cut, silently dropping the user's own number from the
+    // version they are shown. No label match -> today's behavior.
+    if (label) {
+      const sents = body.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+      const hit = sents.find((x) => lc(x).includes(lc(label)));
+      if (hit) return hit.replace(/\.$/, "");
+    }
+    return body;
+  }
+  function handleResumeBulletLoop(text, ctx) {
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const pending = mir && mir.bulletFix && typeof mir.bulletFix === "object" ? mir.bulletFix : null;
+    const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    const fresh = pending && pending.at && (nowOf(ctx) - pending.at) <= 15 * 60 * 1000 && (nowOf(ctx) - pending.at) >= -60 * 1000;
+    if (pending && fresh && profile) {
+      const fact = (profile.facts || []).find((f) => f && f.id === pending.factId) || null;
+      if (fact && pending.stage === "awaiting_accept" && pending.revised) {
+        const raw = s(text).trim();
+        if (raw.split(/\s+/).length <= 8 && /^(yes|yeah|yep|sure|ok|okay|use|take|keep|apply)\b/i.test(raw) && !/\b(no|not|wait|stop|don'?t)\b/i.test(raw)) {
+          fact.bullets = [pending.revised];
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) delete wmir.bulletFix;
+          const reply = compose({ headline: "That version stands on the bullet now.", facts: [`${pending.company} bullet: "${pending.revised}"`, fact.needs_confirmation ? "It is recorded on the resume draft you pasted; it confirms with the rest of the resume when you confirm it — nothing is built on a draft before that word." : "It replaces the old wording on your record; the entry itself — title, company, dates — is untouched."], nextStep: "Name another bullet to strengthen, or say the word and we tailor this resume to a role." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
+      if (fact && pending.stage === "awaiting_metric") {
+        const raw = s(text).trim();
+        if (/\d/.test(raw) && !/\?/.test(raw) && raw.length >= 12 && !/^(yes|no)\b/i.test(raw)) {
+          const metric = raw.replace(/\.$/, "");
+          const revised = `${pending.clause.charAt(0).toUpperCase() + pending.clause.slice(1)} — ${metric}.`;
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) wmir.bulletFix = Object.assign({}, pending, { stage: "awaiting_accept", revised, at: nowOf(ctx) });
+          const reply = compose({ headline: "Here is the stronger version, with your result folded in.", facts: [`"${revised}"`, "Every number in it is yours, stated in your words — nothing in the version is an estimate of mine."], nextStep: "Say \"yes, use that version\" and it replaces the bullet on your resume; or give me a different result and I re-cut it." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
+        }
+      }
+    }
+    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/)
+      // HELD-OUT (2026-10-24): the verdict-first shape — "the email
+      // bullet is weak, make it stronger".
+      || t.match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/);
+    if (!askM || !profile) return null;
+    const label = askM[1].trim();
+    if (!label || label.length > 60) return null;
+    const fact = (profile.facts || []).find((f) => f && (f.kind === "experience" || f.kind === "project") && lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`).includes(label)) || null;
+    if (!fact) return null;
+    const clause = bulletClauseOf(fact, label);
+    if (!clause) return null;
+    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/i);
+    const companyLabel = rawAskM && rawAskM[1] ? rawAskM[1].trim() : label;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) wmir.bulletFix = { factId: fact.id || null, company: companyLabel, clause, stage: "awaiting_metric", at: nowOf(ctx) };
+    const reply = compose({ headline: "Here is that bullet as it stands.", facts: [`"${clause}."`, "A stronger bullet leads with the result — what changed because of this work: time saved, money, people reached, errors caught. This one names the work but not its result yet."], nextStep: "Give me the result in your words — a number where you have one — and I fold it in and show you the version before anything changes." });
+    return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
   function handleSendAttempt(text, ctx) {
     const t = lc(text);
     // CHANNEL-DOC-1: a document asked for delivery to the user in this
@@ -38233,6 +39212,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (draft) facts.push("What exists is the held sample draft you just reviewed — it has no named recipient yet, because the list it sends to has not been built, and a sample with a bracketed name cannot send to anyone.");
     else if (plan) facts.push("What exists is the plan — its list has not been built, no draft has been approved, and there is no wave standing ready to go.");
+    else if (frameMarksOf(ctx).draft) facts.push("What exists is a held draft from this conversation — it has not been sent, and it goes only when you approve its exact words here.");
     else facts.push("Nothing is built in this conversation to send: no list, no draft, no approved plan — so there is no wave that could go out.");
     facts.push("Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send — inside the daily cap. That gate is not skipped by asking in chat.");
     const reply = compose({ headline: "Nothing was sent — here is exactly where it stands.", facts, nextStep: plan ? "Approve the plan and the list builds; the counts come back here before the first send." : "Name the target and I will build the plan the send has to stand on." });
@@ -38403,6 +39383,14 @@ const CareerRouter = (() => {
     const hasCtx = !!((th && (th.firm || th.amount || th.hourly || th.deadline || th.counter)) || off.company || off.base_salary || off.hourly_rate);
     if (!hasCtx) {
       if (!figAsk) return null;
+      // A figure ask carrying no MONEY figure is not a counter
+      // revision: "make it 1 a day, not 3" names another frame's
+      // number (a watch cap), and capturing it here answered an
+      // alerts correction with offer talk (text-path measurement
+      // 2026-10-24). The deflection below exists for money-shaped
+      // revisions ("make it $54 an hour instead") whose record is
+      // genuinely missing — those keep it, verbatim.
+      if (!figs.hourly && !figs.annual && !/\$\s?\d/.test(t)) return null;
       return { intent: "negotiation_revision", resultStatus: "needs_context", sends: 0, reply: compose({ headline: "There is no counter on record here to revise yet.", facts: ["This conversation holds no offer and no counter yet, so there is nothing for the new figure to attach to — a revision never invents the record it revises."], nextStep: "Tell me the offer first — the firm, the figures exactly as stated, and the deadline — and the counter gets recorded against it." }) };
     }
     const startM = s(text).match(/\bstart(?:ing)?\s+(?:on\s+)?((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})\b/i);
@@ -38490,6 +39478,30 @@ const CareerRouter = (() => {
     facts.push("Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.");
     const reply = compose({ headline: `Plan corrected: ${newFirm}${oldFirm ? `, not ${oldFirm}` : ""}.`, facts, nextStep: "Approve the corrected plan and the list builds against the new target — counts first, drafts after." });
     return Object.assign({}, res, { reply });
+  }
+  // PLAN FOCUS (text-path measurement 2026-10-24): a narrowing turn
+  // inside an open outreach plan — "let's focus on people at Ferrow
+  // Bank" — had no consumer: the correction above owns REPLACEMENTS
+  // ("not X — Y instead"), and a focus names no old firm to strike,
+  // so the turn fell to the generic fallback mid-flow. The focus
+  // re-points the standing plan at the one named firm — the plan
+  // record itself is rewritten, so the recap, the draft and the
+  // send gate all read the narrowed target — and the reply speaks
+  // the new scope as the plan's own.
+  function handlePlanFocus(text, ctx) {
+    const plan = ctx.plan;
+    if (!plan || plan.kind !== "campaign_plan") return null;
+    const m = s(text).match(/\bfocus on\s+(?:people\s+at\s+|people\s+from\s+|analysts?\s+at\s+|bankers?\s+at\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/)
+      || s(text).match(/\bnarrow\s+(?:it\s+|the\s+plan\s+)?to\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/);
+    if (!m) return null;
+    const firm = m[1].trim();
+    if (!firm) return null;
+    plan.firms = [firm]; plan.firms_named = true; plan.firm_set = null;
+    if (plan.target) plan.target = Object.assign({}, plan.target, { firms: [firm], firms_named: true, firms_source: "named", firm_set: null, proposed_default: null, vague: false });
+    plan.focused_at = new Date(nowOf(ctx)).toISOString();
+    const facts = [`The plan's scope is now ${firm} only — the proposed set it replaces is out, and every later step (the list build, the draft, the send gate) reads this narrowed target.`, "Nothing has been sent and no list has been built yet; the counts come back before any draft, as with every plan."];
+    const reply = compose({ headline: `Plan focused: ${firm}.`, facts, nextStep: "Want the first draft built on this focus, or another firm added back first?" });
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: plan.target || null };
   }
   // COMPLEXITY WAVE (BUG-174): "so now what's the plan?" — answered
   // from the persisted plan when one stands, and from the thread's
@@ -38930,8 +39942,8 @@ const CareerRouter = (() => {
     // an apply/submit verb aimed at everything or a large count,
     // with a no-review/urgency marker or a count of 50+.
     const materialImperative = /\b(put|write|add|list|say|state|claim|include)\b[^.]*\b(on|in|into|to)\b[^.]*\b(my\s+)?(cover letter|resume|cv|application)\b/.test(t);
-    const claimToken = /\bgpa\s*(?:is\s*)?[0-9]\.[0-9]\b|\bpresident of\b|\bchair of\b|\bvp of\b|\bintern(ship|ed)?\s+(at|with)\s+[A-Z]|\bworked at\s+[A-Z]|\b[A-Z][a-z]+ (?:Sachs|Partners|Capital|Bank|Ltd|Inc)\s+internship\b/.test(s(text));
-    const admission = /\bdidn'?t actually\b|\bnever (did|worked|interned|had|was)\b|\bdon'?t (actually\s+)?have\b|\bonly shadowed\b|\bmade (it|that|this) up\b|\bisn'?t (even\s+)?true\b|\bnot true\b/.test(t);
+    const claimToken = /\bgpa\s*(?:is\s*)?[0-9]\.[0-9]\b|\bpresident of\b|\bchair of\b|\bvp of\b|\bintern(ship|ed)?\s+(at|with)\s+[A-Z]|\bworked at\s+[A-Z]|\b[A-Z][a-z]+ (?:Sachs|Partners|Capital|Bank|Ltd|Inc)\s+internship\b|\b(?:us|u\.s\.|american|united states)\s+citizen\b|\bcitizenship\b/.test(s(text));
+    const admission = /\bdidn'?t actually\b|\bnever (did|worked|interned|had|was)\b|\bdon'?t (actually\s+)?have\b|\bonly shadowed\b|\bmade (it|that|this) up\b|\bisn'?t (even\s+)?true\b|\bnot true\b|\bi'?m not\b[^.!?]*\b(but|doesn'?t matter|don'?t care)\b|\bi am not\b[^.!?]*\b(but|doesn'?t matter)\b/.test(t);
     let claimOnRecord = false;
     if (materialImperative && (claimToken || admission) && ctx.profile) {
       try {
@@ -38944,17 +39956,36 @@ const CareerRouter = (() => {
       } catch { claimOnRecord = false; }
     }
     const unverifiedClaim = materialImperative && (claimToken || admission) && (admission || !claimOnRecord);
-    const massObject = /\b(everything|every job|all jobs|all of them|every role|all roles)\b/.test(t) || /\b(\d{2,})\s*(jobs|applications|roles)\b/.test(t);
+    const noReview = /\b(automatically|while i sleep|tonight|right now|don'?t need to see|no review|without (me|my) (seeing|reviewing)|just do it|all of them|don'?t ask)\b/.test(t);
+    // HELD-OUT (2026-10-24): "submit applications for me overnight
+    // while i sleep, don't ask me each time" named no everything/
+    // all-jobs object and no count, so it escaped massObject — but
+    // a bare plural object PLUS a no-review marker IS the same ask
+    // (unreviewed, unbounded). Question-shaped turns are excluded:
+    // asking WHETHER applications went in is a status question,
+    // never this refusal.
+    const barePluralMass = /\b(applications|jobs|roles)\b/.test(t) && noReview && !/\?\s*$/.test(t) && !/^(did|have|has|do|does|were|was|are)\b/.test(t);
+    const massObject = /\b(everything|every job|all jobs|all of them|every role|all roles)\b/.test(t) || /\b(\d{2,})\s*(jobs|applications|roles)\b/.test(t) || barePluralMass;
     const massCount = Number((t.match(/\b(\d{2,})\s*(jobs|applications|roles)\b/) || [])[1]) || 0;
-    const noReview = /\b(automatically|while i sleep|tonight|right now|don'?t need to see|no review|without (me|my) (seeing|reviewing)|just do it|all of them)\b/.test(t);
     const massApply = /\b(apply|submit|send in)\b/.test(t) && massObject && (noReview || massCount >= 50);
-    if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply) return null;
+    // HELD-OUT (2026-10-24): the insistence shape — "nobody checks
+    // anyway, just add one at a bank". The fabrication's object is
+    // carried by the conversation (the internship just refused);
+    // what the turn itself carries is a verification-dismissal
+    // plus an add/put/write verb. That pairing is the refusal
+    // trigger; neither half alone is (a dismissal without the verb
+    // is commentary, an add without the dismissal is an edit ask
+    // for the normal flows).
+    const dismissal = /\b(nobody|no one)\s+(checks|verifies|verified|will (check|verify|verified|find out|know))\b|\bthey (never|don'?t)\s+(check|verify|verified)\b|\bnever (checked|verified)\b/.test(t);
+    const dismissalFabricate = dismissal && /\b(add|put|write|include)\b/.test(t);
+    if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply && !dismissalFabricate) return null;
     const facts = [];
     if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
     if (massApply) facts.push("Applying in bulk, unseen, is not a mode this product has: real submissions are capped at 15 a day, each one built from your confirmed facts and stopped at its doorstep for your approval. There is no while-you-sleep queue — 'everything, right now, without seeing it' is exactly the ask those rules exist for.");
     if (unverifiedClaim) facts.push("That claim is not on your confirmed record, and materials carry only what the record proves. The moment a claim is confirmed — a transcript line, an offer letter, or your own statement that it is TRUE — it goes in; an admitted guess or an unrecorded credential stays out, however well it fits the story.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
     if (fabricate && !falseClaim) facts.push("Invented facts in outreach are the one move that can end this before it starts: they surface in the first real conversation, every time.", `Grounded in your own confirmed profile facts, as of ${asOfMonthYear(ctx)} — the real fast path is built from those, and only those.`);
+    if (dismissalFabricate) facts.push("\"Nobody checks\" is exactly when it matters: an invented claim on your materials surfaces in the first real conversation, and the check is not the only way it ends — the record is. What is true and confirmed goes in the moment it is on your record; what is not stays out, checked or not.");
     facts.push("The true path: a shortlist built from real sources, verified emails, drafts in your voice, your one approval — then a paced wave inside the caps.");
     const reply = compose({ headline: "I won't do that — here is what I will do instead.", facts, nextStep: "Say the word and I build the shortlist first." });
     // BUG-108: the refusal decision is a typed record — what was
@@ -38966,6 +39997,7 @@ const CareerRouter = (() => {
     if (unverifiedClaim) refused.push("unverified_claim_on_materials");
     if (falseClaim) refused.push("fabricated_referral_claim");
     if (fabricate) refused.push("fabricated_facts");
+    if (dismissalFabricate) refused.push("dismissed_verification_fabrication");
     const rf = { kind: "safety_refusal", refused, alternative: "shortlist_first_paced_campaign", sends: 0 };
     return { intent: "intent_refusal", reply, resultStatus: "blocked", sends: 0, payload: rf, artifact: rf };
   }
@@ -39696,6 +40728,232 @@ const CareerRouter = (() => {
     const company = companyFromText(text, ctx);
     const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
     return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
+  }
+  // PROOF OF WORK (spec3 section 8; text-path measurement
+  // 2026-10-24): the per-job project recommender (8.8) and the
+  // Proof Card (8.0) existed only as spec text — the ask fell to
+  // the generic fallback, its time-budget follow-up was taken by
+  // the company-intel branch (which restated the stated 4 hours a
+  // week as 2), and the selection and proof-card turns had no
+  // consumer at all. The recommendations are the spec's own
+  // family lists (8.2 data, 8.1 SWE — the two families the spec
+  // ships first, line 515), fitted to the record: the role family
+  // comes from the user's stated facts, each idea carries its
+  // scoped plan, estimated hours, a "done" definition and the
+  // honest odds note 8.8 requires. The frame on the thread mirror
+  // owns the follow-ups: a budget turn records the user's STATED
+  // budget (quoted back verbatim, never re-derived), a selection
+  // turn picks the named option, and the proof-card turn answers
+  // from 8.0's seven fields as a skeleton for the chosen project.
+  const POW_FAMILIES = {
+    data: { label: "data analyst", options: [
+      { title: "End-to-end dashboard analysis of a messy real dataset", hours: 14,
+        why: "It answers the rejection reason head-on — the full chain in one artifact: SQL extraction, documented cleaning, a dashboard, and a one-page recommendation memo; the spec is blunt that the memo matters more than the chart.",
+        steps: ["Pick a messy public dataset and state the business question it answers; extract the raw tables with SQL", "Clean it in SQL, writing down every cleaning decision and why", "Build the dashboard around the question — no chart without a decision it informs", "Write the one-page memo leading with the 'so what', then fill the proof card"],
+        done: "Done when the dashboard is live at a link, the repo holds the SQL and the cleaning notes, and the memo fits one page." },
+      { title: "SQL proof set with a data-quality audit", hours: 10,
+        why: "Your record already states SQL — this makes it inspectable: 15 to 20 explained queries (joins, window functions, CTEs) on a public relational dataset, plus an audit of what was wrong with the data.",
+        steps: ["Pick a public relational dataset and write the 15 to 20 questions first", "Answer each in SQL with a plain-English explanation under it", "Audit the data itself: the defects found and how each was handled"],
+        done: "Done when every query carries its explanation and the audit lists each defect and its handling." },
+      { title: "Scheduled pipeline dashboard on live data", hours: 16,
+        why: "A scrape-pipeline-dashboard that updates itself proves the scheduled, live-data side of analyst work — and the artifact keeps evidencing after you stop touching it.",
+        steps: ["Choose a live source and the question its changes answer", "Build the scrape and the load on a schedule, with run logging", "Point the dashboard at it and let it run unattended for two weeks"],
+        done: "Done when the pipeline has run unattended for two weeks and the dashboard shows the run history." } ] },
+    swe: { label: "software engineering", options: [
+      { title: "Small full-stack app that real people use", hours: 20,
+        why: "The spec's first SWE artifact: auth, a database, a deploy, tests and CI, aimed at a real niche — a club signup tool, a local business booking page — with 5 to 20 real users if you can get them, reported as actual numbers.",
+        steps: ["Pick the niche and the one workflow it must nail; sketch the data model", "Build auth, the core flow and the database; deploy early", "Add tests and CI; put it in front of the first real users", "Write up the numbers you actually got and fill the proof card"],
+        done: "Done when the deploy is live, CI is green, and at least a handful of real users have been through it." },
+      { title: "Backend service with a load test", hours: 16,
+        why: "An API with rate limiting, logging and tests, closed by a load test with results — the service half of engineering, evidenced end to end.",
+        steps: ["Design the API surface and the data model on paper first", "Build it with rate limiting and structured logging", "Test it, then load-test it and write up the results"],
+        done: "Done when the repo shows the tests, the load test and its numbers, and a README that runs it from a clean clone." },
+      { title: "Merged open-source contributions", hours: 8,
+        why: "One to three merged PRs — docs and bug fixes count — are third-party verifiable, which is why the spec calls them strong: someone else's maintainer accepted the work.",
+        steps: ["Find a project you actually use; read its contribution guide", "Take a labelled good-first-issue or a docs gap", "Shepherd the PR through review to merge"],
+        done: "Done when the PRs are merged and linked — the merge is the evidence." } ] },
+    design: { label: "product design / UX", options: [
+      { title: "Real-client mini project: redesign one flow for a small organization", hours: 18,
+        why: "Spec 8B.1's first design artifact, and its honest note governs the family: design hiring is portfolio-first, and a case study is a short story — problem, process, results — with the thinking shown evolving, not polished shots alone. Hours here and below are planning estimates, not spec figures.",
+        steps: ["Find a real small organization with one flow that hurts (a clinic's booking page, a nonprofit's donate flow) and get the owner's agreement", "Run 3 to 5 user interviews and write the problem statement from them", "Work 2 sketches-to-prototype iterations, showing how the thinking changed", "Usability-test with 5 participants, write the findings, ship or hand off the result, and ask the owner for a quote"],
+        done: "Done when the case study is published as that story — problem, your role, the process artifacts, the outcome — and labeled hypothetical if any part of it was." },
+      { title: "Accessibility audit of a real site against WCAG 2.2 AA", hours: 10,
+        why: "A documented audit is inspectable expertise: 10 real issues with screenshots, severity, and a fix proposal each — the spec's D2, and the kind of artifact a hiring manager can check in minutes.",
+        steps: ["Pick a real site and work its main flows against WCAG 2.2 AA, issue by issue", "Document 10 issues, each with a screenshot, a severity, and the fix you propose", "Where you can, fix and re-test, and record what changed"],
+        done: "Done when the audit lists 10 issues with screenshots, severities and fix proposals, and any re-test results are recorded beside them." },
+      { title: "Design system starter: a small Figma component library, applied", hours: 12,
+        why: "The spec's D3: tokens and usage rules, not just components — and it only counts once it is applied to one real screen set, which is what separates a system from a sticker sheet.",
+        steps: ["Define the tokens first (color, type, spacing) and write the rules for each", "Build the small component library on those tokens in Figma", "Apply it to one real screen set and note every place the system bent or broke"],
+        done: "Done when the library, the tokens and the usage rules exist and one real screen set is built from them." } ] }
+  };
+  function powFamilyOf(ctx, text) {
+    const hay = [s(text || "")];
+    try { for (const f of statedFactsOf(ctx) || []) hay.push(s(f.value), s(f.text)); } catch { /* the facts are optional */ }
+    const p = (ctx && ctx.profile) || {};
+    hay.push(s(p.target_role), s(p.targetRole), s(p.headline), s(p.current_role), Array.isArray(p.target_roles) ? p.target_roles.join(" ") : s(p.target_roles), Array.isArray(p.skills) ? p.skills.join(" ") : s(p.skills));
+    const h = lc(hay.join(" "));
+    if (/\bux\b|ui\/ux|product design|ux design|visual design|interaction design|\bdesigner\b/.test(h)) return "design";
+    if (/\bdata analyst|data science|analytics|business intelligence|dashboards?\b/.test(h)) return "data";
+    if (/\bsoftware|developer|programmer|\bswe\b/.test(h)) return "swe";
+    return null;
+  }
+  function handleProofOfWork(text, ctx) {
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const frame = mir && mir.powFrame && (nowOf(ctx) - (mir.powFrame.at || 0)) < 60 * 60000 ? mir.powFrame : null;
+    // (a) The proof card — spec3 8.0's seven fields, as a skeleton
+    // for the chosen project when one stands.
+    if (/\bproof card\b/.test(t)) {
+      const fam = frame ? POW_FAMILIES[frame.family] : null;
+      const opt = fam && frame ? (fam.options[(frame.selected || 1) - 1] || fam.options[0]) : null;
+      const facts = [
+        opt ? `For: ${opt.title}.` : "The card is the same seven fields for every project.",
+        "Problem, in one sentence, and who it is for — the question the project answers, named before anything was built.",
+        "What was built: the live demo, repo or doc link — the card carries links, not screenshots.",
+        "3 decisions and the tradeoff behind each — the dataset choice, the cleaning call, the chart or design choice, in your own words from the build.",
+        "Result: real numbers, or the honest line — 'no users yet, here is what I tested'.",
+        "What I would change, time spent, tools, and the date — time is recorded as it actually lands, against the plan.",
+        "And the resume line it produces: Project name | tools | link, plus two bullets."
+      ];
+      const reply = compose({ headline: opt ? `The proof card for "${opt.title}".` : "What goes on a proof card.", facts, nextStep: "The card fills in as each piece finishes — ask for it any time and it reads back against the project." });
+      return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    if (frame) {
+      const fam = POW_FAMILIES[frame.family];
+      // (b) Selection — "ok let's do the first one".
+      const selM = t.match(/\b(first|second|third)\s+one\b/);
+      if (selM && fam) {
+        const idx = { first: 1, second: 2, third: 3 }[selM[1]];
+        const opt = fam.options[idx - 1];
+        if (opt) {
+          mir.powFrame = Object.assign({}, frame, { selected: idx, at: nowOf(ctx) });
+          const facts = [`Chosen: ${opt.title} — about ${opt.hours} hours in total${frame.budgetPhrase ? `, paced at your stated ${frame.budgetPhrase}` : ""}.`, `First steps: ${opt.steps[0]}. Then: ${opt.steps[1] || opt.done}`, opt.done];
+          const reply = compose({ headline: `Locked in: project ${idx}.`, facts, nextStep: "Work the first step, then tell me how it went and the plan re-paces itself. Ask 'what goes on the proof card for it?' whenever you want the card's shape." });
+          return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+        }
+      }
+      // (c) The time budget — the user's STATED figure, quoted
+      // back and paced against, never re-derived or rounded into
+      // a different number.
+      const budM = s(text).match(/(\d+)\s*(?:hours?|hrs?)\s*(?:a|per|\/)\s*(week|day)/i);
+      if (budM && (/\bonly have\b|\bweekends?\b|\bi have\b|\babout\b|\blike\b/.test(t) || frame)) {
+        const perWeek = /week/i.test(budM[2]) ? Number(budM[1]) : Number(budM[1]) * 5;
+        const phrase = `${budM[1]} hours a ${/week/i.test(budM[2]) ? "week" : "day"}`;
+        mir.powFrame = Object.assign({}, frame, { budgetPhrase: phrase, budgetPerWeek: perWeek, at: nowOf(ctx) });
+        const opt = fam ? fam.options[(frame.selected || 1) - 1] || fam.options[0] : null;
+        const facts = [`Budget recorded: ${phrase} — the plan is paced to exactly that, and no plan here ever exceeds the time you state.`];
+        if (opt) {
+          const weekends = Math.max(1, Math.ceil(opt.hours / perWeek));
+          facts.push(`Against the first project (${opt.title}, about ${opt.hours} hours): roughly ${weekends} week${weekends === 1 ? "" : "s"} at that pace — ${opt.steps.map((st, i) => `step ${i + 1}: ${st.charAt(0).toLowerCase()}${st.slice(1)}`).join("; ")}.`);
+        }
+        const reply = compose({ headline: `Paced to your ${phrase}.`, facts, nextStep: "Say 'let's do the first one' and it locks in at that pace — or name another option." });
+        return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+    }
+    // (d) The recommender ask itself — spec3 8.8.
+    if (/\bwhat project should i build\b|\bprojects? should i build\b|\bbuild to prove\b|\bprove i can do this work\b|\bproof[ -]of[ -]work\b|\bwhat (project|projects) (can|could) i (build|do)\b/.test(t)) {
+      const family = powFamilyOf(ctx, text);
+      if (!family) return null;
+      const fam = POW_FAMILIES[family];
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.powFrame = { family, selected: null, budgetPhrase: null, at: nowOf(ctx) };
+      const facts = fam.options.map((o, i) => `${i + 1}. ${o.title} (about ${o.hours} hours). ${o.why} ${o.done}`);
+      facts.push("Honest odds, as the recommender owes you: a finished project strengthens your evidence for this work — it does not guarantee interviews, and an unfinished one evidences nothing.");
+      const reply = compose({ headline: `Projects that prove ${fam.label} work, fitted to your record.`, facts, nextStep: "Tell me the time you actually have each week and I will pace the first one to it — or pick one now." });
+      return { intent: "career_proof_of_work", reply, resultStatus: "awaiting_user", sends: 0 };
+    }
+    return null;
+  }
+  // QUESTION SETS (text-path measurement 2026-10-24): "give me 3
+  // interview questions for a data analyst role" is a SET ask. The
+  // session serves one question at a time and stands down on sets
+  // by design, and the single-question handler serves one — so the
+  // counted ask fell to the generic fallback, and its follow-ups
+  // ("answer the 2nd one as an example", "now make it shorter")
+  // had no frame at all: the shortening turn was taken by the
+  // outreach-draft surgery, which answered about a draft that does
+  // not exist. The set is served from 127's bank for the asked
+  // sector (sector items first), and the set frame on the thread
+  // mirror owns the follow-ups: an example answer comes from the
+  // bank item itself — its model answer where the bank carries
+  // one, its structure points where it does not, never an invented
+  // model — and a shortening turn shortens THAT example. The frame
+  // claim is dispatched ahead of the draft-surgery capture.
+  function handlePrepQuestionSet(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const frame = mir && mir.prepSet && (nowOf(ctx) - (mir.prepSet.at || 0)) < 30 * 60000 ? mir.prepSet : null;
+    if (frame) {
+      const exM = t.match(/\banswer\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+one\b/) || t.match(/\b(?:example|model)\s+answer\b[^.]*?\b(\d+)(?:st|nd|rd|th)?\b/) || t.match(/\b(\d+)(?:st|nd|rd|th)?\s+one\b[^.]*\bexample\b/)
+        // HELD-OUT (2026-10-24): "do number 3" — picking an item
+        // from the standing set IS asking for it worked; it serves
+        // the same example the "answer the Nth one" shape serves.
+        || t.match(/\b(?:do|try|pick|take)\s+(?:number\s+|#\s*)?(\d{1,2})(?:st|nd|rd|th)?\b/) || t.match(/^\s*number\s+(\d{1,2})(?:st|nd|rd|th)?\s*[.!?]*$/);
+      if (exM) {
+        const item = (frame.items || [])[Number(exM[1]) - 1];
+        if (item) {
+          const bankAns = s(item.model_answer || item.answer || "");
+          const example = bankAns || (item.detail ? s(item.detail) : "Work it in the order the question asks: open with the approach in one line, walk the steps with the numbers or the query stated plainly, then close with how you would check the result — that structure is the example; the specifics come from your own work when you answer for real.");
+          mir.prepSet = Object.assign({}, frame, { exampleFor: Number(exM[1]), exampleText: example, at: nowOf(ctx) });
+          const facts = [`The question: ${s(item.q)}`, `An example answer: ${example}`, bankAns ? "That example is the bank item's own model answer — adapt the facts to your work, keep the structure." : "The bank item carries no model answer, so that example is the structure a strong answer follows — the specifics stay yours to supply."];
+          const reply = compose({ headline: `Example answer for question ${Number(exM[1])}.`, facts, nextStep: "Want it shorter, or your own attempt at it scored instead?" });
+          return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: item };
+        }
+      }
+      if (/\bmake it shorter\b|\bshorten (it|that|this|the example|the answer)\b|\bcondense\b|\btrim it\b/.test(t) && frame.exampleText) {
+        const sents = s(frame.exampleText).split(/(?<=[.!?])\s/).filter(Boolean);
+        const shorter = sents.length > 2 ? [sents[0], sents[sents.length - 1]].join(" ") : (sents[0] || s(frame.exampleText));
+        mir.prepSet = Object.assign({}, frame, { exampleText: shorter, at: nowOf(ctx) });
+        const reply = compose({ headline: "The same example answer, shorter.", facts: [shorter, "Cut to the opening move and the close — the middle steps are the ones you restore when you answer for real."], nextStep: "Say the word for another question from the set, or give your own answer for scoring." });
+        return { intent: "prep_brief", reply, resultStatus: "running", sends: 0 };
+      }
+      // HELD-OUT (2026-10-24): "what would a strong answer
+      // include?" about the item just exemplified — serve that
+      // item's own substance as the structure, never a generic
+      // essay about answers. Needs an exemplified item to bind to.
+      if (/\bwhat would a strong answer\b|\bstrong answer\b[^.]*\b(include|contain|have|look like)\b/.test(t) && frame.exampleFor) {
+        const item = (frame.items || [])[Number(frame.exampleFor) - 1];
+        if (item) {
+          const bankAns = s(item.model_answer || item.answer || "");
+          const points = bankAns || (item.detail ? s(item.detail) : "Work it in the order the question asks: open with the approach in one line, walk the steps with the numbers or the query stated plainly, then close with how you would check the result.");
+          const facts = [`The question: ${s(item.q)}`, bankAns ? `A strong answer covers what the model answer covers: ${points}` : `A strong answer follows this structure: ${points}`, bankAns ? "That is the bank item's own model answer — the points in it are the ones a strong answer hits." : "The bank item carries no model answer, so those are the structure points a strong answer hits — the specifics stay yours."];
+          const reply = compose({ headline: `What a strong answer to question ${Number(frame.exampleFor)} includes.`, facts, nextStep: "Give your own attempt at it and I will score it against exactly those points." });
+          return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: item };
+        }
+      }
+    }
+    const askM = t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+interview questions?\s+for\s+(.+?)[?.!]*$/) || t.match(/\b(\d{1,2})\s+interview questions?\s+for\s+(?:an?\s+|the\s+)?(.+?)[?.!]*$/)
+      // HELD-OUT (2026-10-24): "i have a product sense interview
+      // coming up, give me 4 questions to practice" — the counted
+      // PRACTICE shape: no "interview questions for X" phrasing,
+      // the role rides the "<role> interview" earlier in the turn.
+      || (/\binterviews?\b/.test(t) ? t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+questions?\s+to\s+practice\b/) : null);
+    if (!askM) return null;
+    const count = Math.min(10, Math.max(1, Number(askM[1])));
+    let role = askM[2] ? askM[2].replace(/\s+(role|position|job|interview)$/i, "").trim() : "";
+    if (!role) {
+      const roleM = t.match(/\b([a-z][a-z /&-]{1,40}?)\s+interviews?\b/);
+      role = roleM ? roleM[1].replace(/^(?:an?\s+|the\s+)/, "").replace(/\s+(?:coming up|soon|next week).*$/, "").trim() : "";
+    }
+    if (!role) return null;
+    const sector = prepSectorOf(t) || prepSectorOf(role);
+    let bank = null;
+    try { bank = Prep.questionBank({ sector: sector || undefined, role, roleFamily: sector || role, cir: cirFor(text, ctx), stories: [] }); } catch { bank = null; }
+    const qs = ((bank && bank.questions) || []).filter((x) => x && s(x.q));
+    if (!qs.length) return null;
+    const seen = new Set(); const ordered = [];
+    const segs = [qs.filter((x) => x.source && /^interview_bank/.test(s(x.source.type))), qs.filter((x) => /technical|coding|system_design|fundamentals/i.test(s(x.round))), qs];
+    for (const seg of segs) for (const x of seg) { const k = lc(s(x.q)); if (!seen.has(k)) { seen.add(k); ordered.push(x); } }
+    const items = ordered.slice(0, count).map((x) => ({ q: s(x.q), round: s(x.round) || null, model_answer: s(x.model_answer || x.answer || "") || null, detail: s(x.detail || "") || null }));
+    if (!items.length) return null;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) wmir.prepSet = { role, sector: sector || null, items, at: nowOf(ctx) };
+    try { const th = prepThreadForWrite(ctx); th.served = [...(Array.isArray(th.served) ? th.served : []), ...items.map((i) => i.q)]; th.lastServedAt = nowOf(ctx); } catch { /* the set stands without the session record */ }
+    const facts = items.map((it, i) => `${i + 1}. ${it.q}`);
+    facts.push(`Drawn from the ${PREP_SECTOR_LABEL[sector] || sector || "general"} interview bank — the researched question set for the role, not invented questions.`);
+    const reply = compose({ headline: `${items.length} interview questions for ${role}.`, facts, nextStep: "Pick one and answer it for scoring, or say 'answer the 2nd one as an example' and I will show the model shape first." });
+    return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, questions: items };
   }
   // FIX LANE T1 (TG-LONGPLAN-FALLBACK, live Telegram battery
   // 2026-10-20 turn 4): "Give me a complete plan for preparing for a
@@ -42432,7 +43690,15 @@ const CareerRouter = (() => {
     if (/\bh-1b\b|\bvisa\b|\binternational student\b|\bwork authorization\b|\bopt\b|\bcpt\b/.test(t)) return "work_authorization";
     if (/\bsponsorship\b|\bsponsor\b/.test(t)) return "sponsorship_history";
     if (/\bcertificat|\bcourse\b[^.]*\bworth\b|\bworth buying\b|\bbootcamp\b/.test(t)) return "certificate_purchase";
-    if (/\bhours a week\b|\btime budget\b|\bhow much time\b/.test(t)) return "time_budget_plan";
+    if (/\bhours a week\b|\btime budget\b/.test(t)) return "time_budget_plan";
+    // NARROWED (generalization, 2026-10-24): a bare "how much time"
+    // is NOT a time-budget ask — it is just as often the duration
+    // of an external process ("how much time do i have for
+    // unemployment"), which this matcher answered with the study-
+    // plan template. The budget intent requires the time to be the
+    // USER'S OWN allocatable time: an activity they would spend it
+    // on, or a weekly allocation frame.
+    if (/\bhow much time\b/.test(t) && /\b(study|prep|practice|spend|set aside|devote|allocat|schedule|job search|applications?|per week|each week|weekly)\b/.test(t)) return "time_budget_plan";
     if (/\bmentor\b/.test(t)) return "mentor_source";
     if (/\bsuspicious\b|\bscam\b|\btoo good to be true\b|\blegit\b/.test(t)) return "suspicious_posting";
     if (/\bcareer switcher\b|\bswitch(ing)? (fields|careers|to)\b|\bchanged my mind\b|\binterest\b[^.]*\bchange/.test(t)) return "interest_change";
@@ -44359,7 +45625,7 @@ const CareerRouter = (() => {
     try { const m = threadMirrorForWrite(c); if (m) m.pause = lifted; } catch { /* mirror is an aid */ }
     return { lifted, prev };
   }
-  const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b/;
+  const UNPAUSE_RE = /\bunpause\b|\blift (the )?pause\b|\bremove (the )?pause\b|\bend (the )?pause\b|\bpause (is )?(off|lifted|over)\b|\bkeep going\b|\bresume (the|it|everything|sending|outreach)\b|\bturn (them|it|everything|that|things) back on\b|\bturn (my |the )?(job )?alerts back on\b|\bturn (it|them|everything) on again\b/;
   const PAUSE_INSPECT_RE = /\b(are we|is it|is everything|is the outreach|is the queue|am i)\b[^.?!]*\b(paused|stopped|halted)\b|\bwhat\b[^.?!]*\bpaused\b|\bdid (it|that) work\b|\bpause (status|state)\b|\bis (it|everything) (still )?(on hold|held)\b/;
   function handlePauseControl(text, ctx) {
     const c = ctx || {};
@@ -44370,6 +45636,75 @@ const CareerRouter = (() => {
       try { const h = Doorstep.haltQueue(c, text); if (h) return h; } catch { /* fall through */ }
     }
     const paused = pausedOf(c);
+    // RESUME-PHRASE SCOPE (coordinator probe, 2026-10-24): "turn
+    // them back on" reached the record-affirmation consumer and
+    // "confirmed" the user's record — with nothing standing, and
+    // even right after "stop my job alerts". The phrase belongs
+    // to the standing state, and this layer runs before every
+    // other route, so it is decided here, by scope:
+    //   queue pause + alert stop -> "them" is ambiguous: ASK.
+    //   alert stop only          -> the alerts resume here (the
+    //     affirmation consumer sits between this layer and the
+    //     watch gates, so falling through would re-capture it).
+    //   nothing standing         -> the not-paused answer; the
+    //     phrase never confirms a record.
+    // The phrase set is the narrow one — shapes that can only
+    // mean resuming a stopped state (never "resume" the noun).
+    const RESUME_PHRASE_RE = /\bturn (them|it|everything|that|things) back on\b|\bturn (my |the )?(job )?alerts back on\b|\bturn (it|them|everything) on again\b|\bunpause\b|\blift the pause\b|\bremove the pause\b|\bend the pause\b/;
+    const wpNow = loadWatchProfileSync(c);
+    const watchStopped = !!(wpNow && wpNow.opt_out && wpNow.opt_out.global);
+    const liftWatchStop = () => {
+      const A = getAssign(); if (!A || !wpNow) return null;
+      A.setOptOut(wpNow, { global: false, companies: ((wpNow.opt_out || {}).companies || []) });
+      if (!saveWatchProfileSync(c, wpNow)) return null;
+      return wpNow;
+    };
+    const watchBackOnReply = (extraFact) => {
+      const delivery = c.workerCapabilities && c.workerCapabilities.job_alert_delivery;
+      const facts = [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are active again in this conversation; automatic alert delivery is not wired in this handler." : "Your saved watches are active again; the host's next tick matches and reminds on them as before."];
+      for (const i of (wpNow.interests || [])) facts.push(`Watching: ${watchInterestLine(i)}.`);
+      if (extraFact) facts.push(extraFact);
+      return compose({ headline: "Job alerts are back on.", facts, nextStep: "Want the current watch list read back?" });
+    };
+    // A scoped answer to the clarification asked just above.
+    {
+      const mir = threadMirrorOf(c);
+      const asked = mir && mir.pauseScopeAsk && (nowOf(c) - (mir.pauseScopeAsk.at || 0)) < 10 * 60000 ? mir.pauseScopeAsk : null;
+      const scopeM = t.match(/^\s*(both|the pause|pause|the alerts|my alerts|alerts|job alerts)\b/);
+      if (asked && scopeM) {
+        const wmir = threadMirrorForWrite(c); if (wmir) delete wmir.pauseScopeAsk;
+        const scope = scopeM[1] === "both" ? "both" : /pause/.test(scopeM[1]) ? "pause" : "alerts";
+        if (scope === "both" || scope === "pause") liftPause(c, text);
+        const liftedWp = (scope === "both" || scope === "alerts") ? liftWatchStop() : null;
+        if (scope === "pause") {
+          const reply = compose({ headline: "Done — the pause is lifted.", facts: ["Outreach and submissions can be queued again, and every send still waits for your approval.", "Your job alerts stay stopped — say \"resume my job alerts\" when you want them back."], nextStep: "Tell me what to pick back up first." });
+          return { intent: "queue_resume", resultStatus: "completed", reply, sends: 0, global_pause: c.globalPause };
+        }
+        if (scope === "alerts") {
+          if (!liftedWp) return null;
+          return { intent: "career_watch_manage", resultStatus: "completed", reply: watchBackOnReply("The global pause still stands — every queue stays held until you lift it."), sends: 0, watch_profile: liftedWp };
+        }
+        const reply = compose({ headline: "Done — both are lifted.", facts: ["The global pause is lifted: outreach and submissions can be queued again, every send still waiting for your approval.", "Your job alerts are back on: the saved watches are active exactly as they stood before the stop."], nextStep: "Tell me what to pick back up first." });
+        return { intent: "queue_resume", resultStatus: "completed", reply, sends: 0, global_pause: c.globalPause };
+      }
+    }
+    if (RESUME_PHRASE_RE.test(t)) {
+      if (paused && watchStopped) {
+        const wmir = threadMirrorForWrite(c); if (wmir) wmir.pauseScopeAsk = { at: nowOf(c) };
+        const reply = compose({ headline: "Two different things are stopped — which should I lift?", facts: ["The global pause stands: every queue (outreach sends, follow-ups, application submissions) is held.", "Your job alerts are also stopped: the saved watches are on file but nothing reminds while the stop stands."], nextStep: "Say \"the pause\", \"my alerts\", or \"both\" — and only that scope moves." });
+        return { intent: "pause_status", resultStatus: "awaiting_user", reply, sends: 0, paused: true, global_pause: c.globalPause };
+      }
+      if (!paused && watchStopped) {
+        const liftedWp = liftWatchStop();
+        if (liftedWp) return { intent: "career_watch_manage", resultStatus: "completed", reply: watchBackOnReply(null), sends: 0, watch_profile: liftedWp };
+      }
+      if (!paused && !watchStopped) {
+        const wasLifted = c.globalPause && c.globalPause.set === false && c.globalPause.liftedAt;
+        const reply = compose({ headline: "No — nothing is paused right now.", facts: [wasLifted ? `The pause was lifted at ${fmtWhen(c.globalPause.liftedAt) || "earlier in this conversation"}, and no new pause has been set since.` : "No global pause is set on your account in this conversation, and no job alerts are stopped.", "Sends, follow-ups, and submissions are not being held by a pause — each still waits for its own approval, as always."], nextStep: "Say 'stop everything' for the full halt, or 'stop my job alerts' to stop just the alerts." });
+        return { intent: "pause_status", resultStatus: "completed", reply, sends: 0, paused: false };
+      }
+      // paused && !watchStopped falls through to branch (2).
+    }
     // (2) unpause — only meaningful while a pause stands; when none
     // stands the words belong to whatever route owns them ("resume"
     // is also a document, and this gate must never eat that ask).
@@ -44729,22 +46064,102 @@ const CareerRouter = (() => {
     const A = getAssign(); if (!A) return null;
     const t = lc(text);
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
-    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t);
+    const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t)
+      // Backstop for the pronoun shape ("turn them back on") when
+      // a path reaches this handler without the ownership layer —
+      // it only ever acts on the standing opt-out below.
+      || /\bturn (them|it|everything) back on\b/.test(t);
+    // ALERTS VOCABULARY (text-path measurement 2026-10-24): the eval
+    // corpus's own words for this family — "stop my alerts" (C25),
+    // "keep them" (C25's undo), "what alerts do I have?" (C14) and
+    // the per-day cap ("max 3 a day" C14, "only 1 a day" C22, "just
+    // 1 a day" C25, and the cap correction "make it 1 a day, not 3")
+    // — matched NONE of the watch shapes, so every one of those turns
+    // fell to the generic fallback and the correction was captured
+    // by negotiation revision. "Stop my alerts" is the opt-out (the
+    // C25 undo — "keep them" — only makes sense against a standing
+    // record), never an interest deletion.
+    const isStopAlerts = /\bstop my (job )?alerts\b|\bstop all my alerts\b|\bturn off my (job )?alerts\b/.test(t);
+    const isKeep = /\bkeep them\b|\bkeep my (job )?alerts\b/.test(t);
     const isStop = /\b(stop watching|remove (the )?watch|delete (the )?watch|unwatch)\b/.test(t);
-    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b|\bwhat'?s on my watch\b|\bshow me my watch\b|\bshow my watch\b|\bwhat'?s my watch\b|\bon my watch\b/.test(t);
-    if (!isPause && !isResume && !isStop && !isList) return null;
+    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b|\bwhat'?s on my watch\b|\bshow me my watch\b|\bshow my watch\b|\bwhat'?s my watch\b|\bon my watch\b|\bwhat alerts do i have\b|\bwhat alerts have i\b|\bwhat are my alerts\b/.test(t);
+    const capM = t.match(/\b(?:max|maximum|up to|only|just|make it)\s+(\d{1,3})\s*(?:a|per)\s+day\b/) || t.match(/^\s*(?:and\s+)?(\d{1,3})\s*(?:a|per)\s+day\b/)
+      // HELD-OUT (2026-10-24): the limit in the user's verb —
+      // "set the limit to 2 daily", "limit them to 2".
+      || t.match(/\bset the limit to\s+(\d{1,3})\b/) || t.match(/\blimit\s+(?:it|them|alerts?|the alerts)\s+to\s+(\d{1,3})\b/);
+    const capN = capM ? Number(capM[1]) : null;
+    // HELD-OUT (2026-10-24): the cap READ ("how many alerts am i
+    // getting per day max?") and the add-a-city fragment ("also
+    // austin too actually") — both are watch-frame turns with no
+    // other shape word in them.
+    const isCapRead = /\bhow many alerts\b/.test(t);
+    const addCityM = t.match(/\b(?:also|add)\s+(chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|austin|denver|atlanta|miami|london)\b/);
+    if (!isPause && !isResume && !isStop && !isList && !isStopAlerts && capN == null && !isCapRead && !addCityM) return null;
     const wp = loadWatchProfileSync(ctx);
     if (!wp) {
       const reply = compose({ headline: "You have no job watches on file.", facts: ["No watch profile exists for you in this store yet, so there is nothing to list, pause, or remove — nothing was changed."], nextStep: "Say \"watch for\" plus a role — for example, \"watch for investment banking analyst roles in Chicago\" — and the first watch is set." });
       return { intent: "career_watch_manage", reply, resultStatus: "awaiting_user", sends: 0, watch_profile: null };
     }
-    if (isPause || isResume) {
-      A.setOptOut(wp, { global: isPause, companies: ((wp.opt_out || {}).companies || []) });
+    if (isPause || isResume || isStopAlerts) {
+      A.setOptOut(wp, { global: (isPause || isStopAlerts) && !isResume, companies: ((wp.opt_out || {}).companies || []) });
       if (!saveWatchProfileSync(ctx, wp)) return null;
       const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
-      const reply = isPause
-        ? compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." })
-        : compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+      const reply = isResume
+        ? compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" })
+        : isStopAlerts
+          ? compose({ headline: "Job alerts stopped.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay stopped in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the stop and queues no reminders while it stands."], nextStep: "Say \"keep them\" or \"resume my job alerts\" whenever you want them back." })
+          : compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    // CAP: a per-day alert cap is a standing watch setting, recorded
+    // on the watch profile itself (152's validation governs the
+    // record's shape; the cap rides as a profile field and reads back
+    // with the list). With no interests standing there is nothing to
+    // cap and the turn falls through exactly as before. C25's undo
+    // shape ("wait no, keep them but just 1 a day") lifts the stop in
+    // the same turn it names — and only when it names it (isKeep).
+    if (capN != null) {
+      if (!wp.interests.length) return null;
+      wp.alert_cap_per_day = capN;
+      let resumed = false;
+      if (isKeep && wp.opt_out && wp.opt_out.global) { A.setOptOut(wp, { global: false, companies: ((wp.opt_out || {}).companies || []) }); resumed = true; }
+      if (!saveWatchProfileSync(ctx, wp)) return null;
+      const facts = wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`);
+      facts.push(`Cap: at most ${capN} alert${capN === 1 ? "" : "s"} a day across your watches.`);
+      if (resumed) facts.push("Your alerts were stopped; the \"keep them\" brings them back on, at the new cap.");
+      else if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently stopped, so the cap is recorded but nothing reminds until you resume alerts.");
+      const reply = compose({ headline: `Alert cap set: ${capN} a day.`, facts, nextStep: "Want the watch list read back, or another role watched?" });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (isCapRead) {
+      const facts = wp.interests.length ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`) : ["Your watch profile holds no interests right now, so no alerts are being generated at all."];
+      facts.push(wp.alert_cap_per_day ? `Cap: at most ${wp.alert_cap_per_day} alert${wp.alert_cap_per_day === 1 ? "" : "s"} a day across your watches — that is the most you can get per day.` : "No daily cap is set, so alerts come as matches land — there is no per-day maximum on your watches right now.");
+      if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently stopped, so the count today is zero until you resume them.");
+      const reply = compose({ headline: wp.alert_cap_per_day ? `Your alert cap: at most ${wp.alert_cap_per_day} a day.` : "No daily alert cap is set.", facts, nextStep: "Say \"set the limit to N\" to set one, or name another role to watch." });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (addCityM) {
+      const city = WATCH_CITIES.find((x) => lc(x) === addCityM[1]) || addCityM[1];
+      if (!wp.interests.length) return null;
+      let changed = 0;
+      for (const i of wp.interests) {
+        const locs = Array.isArray(i.locations) ? i.locations : [];
+        if (!locs.some((x) => lc(x) === lc(city))) { i.locations = [...locs, city]; changed += 1; }
+      }
+      if (!saveWatchProfileSync(ctx, wp)) return null;
+      const facts = wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`);
+      facts.unshift(changed ? `${city} is added to your watch locations — matches there now count for your alerts.` : `${city} was already on your watch locations; nothing changed.`);
+      const reply = compose({ headline: `${city} added to your watches.`, facts, nextStep: "Want another city, a cap, or the full list read back?" });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (isKeep) {
+      if (wp.opt_out && wp.opt_out.global) {
+        A.setOptOut(wp, { global: false, companies: ((wp.opt_out || {}).companies || []) });
+        if (!saveWatchProfileSync(ctx, wp)) return null;
+        const reply = compose({ headline: "Job alerts are back on.", facts: ["Your saved watches stand exactly as they were; the stop is lifted and the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+        return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+      }
+      const reply = compose({ headline: "Your alerts are on — they stay on.", facts: wp.interests.length ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`) : ["Your watch profile holds no interests right now, so nothing is polling — name a role and the first watch is set."], nextStep: "Want the watch list read back, or another role watched?" });
       return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
     }
     if (isList) {
@@ -44754,6 +46169,7 @@ const CareerRouter = (() => {
         ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`)
         : ["Your watch profile exists but holds no interests right now — it polls nothing and reminds nothing."];
       if (wp.opt_out && wp.opt_out.global) facts.push("Job alerts are PAUSED for you: watches are recorded, and no reminders go out until you resume them.");
+      if (wp.alert_cap_per_day) facts.push(`Cap: at most ${wp.alert_cap_per_day} alert${wp.alert_cap_per_day === 1 ? "" : "s"} a day across your watches.`);
       const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
       if (delivery && delivery.status === "NOT_WIRED") facts.push("Automatic alert delivery is not wired in this handler; these watches are saved in this conversation only.");
       if (queued) facts.push(`${queued} reminder${queued === 1 ? " is" : "s are"} already queued for delivery.`);
@@ -45057,7 +46473,13 @@ const CareerRouter = (() => {
   // search. An update goes through the same door as any resume: pasted, read as drafts, confirmed by the person.
   function routeResumeUpdate(text, ctx) {
     const t = lc(s(text)).replace(/[’]/g, "'");
-    if (!/\b(?:update|updating|refresh|redo|revise|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    // HELD-OUT (2026-10-24): the cleanup ask in the user's own
+    // shapes — a cleanup verb on the resume, the resume called a
+    // mess, or "help me clean it up" after the resume was named.
+    const cleanupAsk = /\b(?:clean|clean up|polish|tidy|spruce up)\b[^.?]*\b(?:resume|cv)\b/.test(t)
+      || /\bmy (?:resume|cv)\b[^.?]*\b(?:mess|messed up|rough|dated|weak)\b/.test(t)
+      || /\bhelp me\b[^.?]*\b(?:clean|polish|tidy|fix|spruce)\b[^.?]*\b(?:it|resume|cv)\b/.test(t);
+    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t) && !cleanupAsk) return null;
     if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
     const profile = ctx.profile || {};
     const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");
@@ -45352,16 +46774,37 @@ const CareerRouter = (() => {
     if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
     return p;
   }
+  // A conversational yes: a bare affirmation, or an affirmation
+  // carrying the submit itself ("yes go ahead and submit them").
+  // Tight on purpose — it only ever fires against a standing batch
+  // (handleBatchApply's gate), and it can only answer, never act.
+  function batchYesShape(text) {
+    const t = lc(text).trim().replace(/[.!]+$/, "");
+    if (!t || t.length > 60) return false;
+    if (!/^(yes|yeah|yep|yup|ok|okay|sure|go ahead|do it|please do|submit|send)([\s,]|$)/.test(t)) return false;
+    return t.split(/\s+/).length <= 7 || /\b(submit|send|apply|them|all|ahead)\b/.test(t);
+  }
   function handleBatchApply(text, c) {
     const BatchApply = getBatchApply();
     if (!BatchApply) return null;
     const depsIn = c.batchDeps || {};
     const log = depsIn.log || c.batchLog || { records: [] };
     const standing = c.batchApplyState || null;
+    // PAUSE STAND-DOWN (2026-10-24): the pause gate keys on
+    // action-shaped TEXT, and a bare "yes" carrying the structured
+    // approval is not action-shaped — so an approval could land
+    // while the account stood paused. The pause covers every queue
+    // by its own statement; the approval branch therefore stands
+    // down on pausedOf before it ever reaches approveRun.
+    if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true && pausedOf(c)) {
+      const runP = BatchApply.restoreRun(standing);
+      return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_WHILE_PAUSED", batchRun: runP ? BatchApply.summarizeRun(runP) : null, sends: 0,
+        reply: "I did not submit anything: your account is paused, and the pause covers every queue — an approval can't land while it stands. Next step: lift the pause (say \"unpause\" or \"lift the pause\"), then approve the card — if its window has passed by then, I'll re-prepare it first." };
+    }
     if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
       const run = BatchApply.restoreRun(standing);
       if (!run) return null;
-      const ap = BatchApply.approveRun(run, { approvedByUser: true });
+      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
       if (!ap.ok) {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
@@ -45370,6 +46813,49 @@ const CareerRouter = (() => {
       c.batchApplyState = BatchApply.serializeRun(run);
       const sm = ex.summary || BatchApply.summarizeRun(run);
       return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+    }
+    // CONVERSATIONAL YES (2026-10-24): a typed yes against a standing
+    // batch is answered by the batch frame from the run's own
+    // readiness — it NEVER approves and NEVER submits (approval is
+    // the structured ctx above, from the card tap). Before this
+    // branch the yes fell to the generic fallback even mid-batch:
+    // after "apply to the top 3" on a not-ready batch, "yes go ahead
+    // and submit them" got "I may have missed what you meant". What
+    // the yes gets now is the truth: where the batch stands and the
+    // exact next step.
+    if (standing && batchYesShape(text)) {
+      const run = BatchApply.restoreRun(standing);
+      if (run) {
+        const sm = BatchApply.summarizeRun(run);
+        if (run.status === "awaiting_approval") {
+          if (!Number.isFinite(run.cardExpiresAt) || !run.profileSha256) {
+            // FAIL CLOSED (2026-10-24): a legacy card — prepared
+            // before the binding fields existed — can take no
+            // approval at all, so the yes is never told to go and
+            // approve it there. The only honest move is a fresh
+            // card, said in the shape the binding layer uses.
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_REVIEW_NEEDED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this card predates the binding checks (it carries no verifiable expiry or profile binding), so no approval can land on it. re-review needed: I will re-prepare and show a fresh card. Ask me to prepare the batch again and the new card is the one a yes can bind to.` };
+          }
+          if (run.cardExpiresAt && nowOf(c) >= run.cardExpiresAt) {
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_CARD_EXPIRED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this review card has expired: prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. Next step: ask me to prepare the batch again, and approve the new card while it stands.` };
+          }
+          const names = run.selected.map((k) => run.apps[k]).filter((a) => a && a.stage === "doorstep").map((a) => `${a.title || "role"} at ${a.company}`).join("; ");
+          return { intent: "career_batch_apply", resultStatus: "awaiting_card_approval", batchRun: sm, sends: 0,
+            reply: `Nothing was submitted. Your batch is prepared and waiting at its review card${names ? ` — ${names}` : ""}. A typed yes in chat can't approve it: approval comes from the card itself, so the next step is to open the batch card and approve it there — that approval is bound to exactly these applications, and if anything about them changed since the card was shown, it refuses and the batch goes back for re-preparation.` };
+        }
+        if (run.status === "queued_prepare") {
+          return { intent: "career_batch_apply", resultStatus: "queued", batchRun: sm, sends: 0,
+            reply: `Nothing was submitted — this batch is still being prepared, so there is nothing ready to approve yet. Next step: ask me for the batch status and I'll read back exactly where it stands.` };
+        }
+        if (run.status === "approved" || (run.status === "completed" && (sm.submitted || 0) > 0)) {
+          return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+        }
+        return { intent: "career_batch_apply", resultStatus: "blocked", code: "BATCH_NOT_READY", batchRun: sm, sends: 0,
+          reply: [`Nothing was submitted — this batch is not ready, so a yes can't send it.`, ...BatchApply.speakSummary(run),
+            `Next step: each stopped application above names what it needs before it can be prepared; once a batch reaches its review card, approval comes from that card — a chat yes never submits.`].join("\n") };
+      }
     }
     const ask = BatchApply.parseApplyAsk(text);
     if (!ask) return null;
@@ -45397,6 +46883,72 @@ const CareerRouter = (() => {
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
     c.batchApplyState = BatchApply.serializeRun(run);
     return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+  }
+
+  // F-001 (gap 2, 2026-10-24): the apply claim that REFERENCES the
+  // served shortlist — "apply to the top 3 for me", "apply to the
+  // first one" — matched no seam: 155's parseApplyAsk requires a
+  // family noun, the named-role seam requires a named target, and
+  // the discovery retained no list for an ordinal to bind to, so
+  // the claim fell to the generic fallback and surfaced zero
+  // postings (MUSE-F-001's live shape: the apply reply names no
+  // roles and carries no links). The claim now binds to the
+  // retained shortlist (handleDiscovery keeps it on ctx.discovery),
+  // resolves its postings from the turn's pool, and runs the SAME
+  // batch seam over exactly that slice — the reply is 155's own
+  // summary, opened by the slice it bound to, each role with its
+  // posting's own link. Nothing submits: the run stops wherever
+  // the batch machinery stops it, and an approval still arrives
+  // only as structured ctx, never from this text. With no
+  // shortlist standing the claim is not this seam's — no run and
+  // no link is ever fabricated for it.
+  function handleShortlistApply(text, c) {
+    const BatchApply = getBatchApply();
+    if (!BatchApply) return null;
+    if (!c.profile) return null;
+    const t = lc(text);
+    const ordM = t.match(/\bapply to (?:the )?(first|second|third|fourth|fifth) one\b/);
+    const topM = t.match(/\bapply to (?:the )?(?:top|best) (\d{1,2}|one|two|three|four|five)\b/);
+    // HELD-OUT (2026-10-24): "apply to the first two" — the
+    // counted-from-the-top shape without the word "top": the
+    // slice is the list's first N, exactly the topM slice with a
+    // different surface word ("first one" is its N=1 case and
+    // stays with the ordinal branch below).
+    const firstM = t.match(/\bapply to (?:the )?first (\d{1,2}|two|three|four|five)\b/);
+    const allM = /\bapply to (?:all of (?:them|those)|them all)\b/.test(t);
+    if (!ordM && !topM && !allM && !firstM) return null;
+    const disc = c.discovery || {};
+    const list = Array.isArray(disc.lastShortlist) ? disc.lastShortlist : [];
+    if (!list.length) return null;
+    const WORD_N = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+    let slice = null;
+    if (ordM) { const idx = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5 }[ordM[1]]; slice = list.slice(idx - 1, idx); }
+    else if (topM) { const n = /^\d+$/.test(topM[1]) ? Number(topM[1]) : WORD_N[topM[1]]; slice = list.slice(0, n); }
+    else if (firstM) { const n = /^\d+$/.test(firstM[1]) ? Number(firstM[1]) : WORD_N[firstM[1]]; slice = list.slice(0, n); }
+    else slice = list.slice();
+    if (!slice.length) return null;
+    const pool = (c.batchDeps || {}).postings || c.postings || (c.discovery && c.discovery.postings) || [];
+    const resolve = (entry) => pool.find((p) => p && entry.id && p.id === entry.id)
+      || pool.find((p) => p && entry.url && (p.url === entry.url || (Array.isArray(p.source_urls) && p.source_urls.includes(entry.url))))
+      || pool.find((p) => p && lc(p.title || p.role) === lc(entry.title) && lc(p.company) === lc(entry.company));
+    const postings = slice.map(resolve).filter(Boolean);
+    if (!postings.length) return null;
+    const depsIn = c.batchDeps || {};
+    const log = depsIn.log || c.batchLog || { records: [] };
+    const familyText = (disc.lastParams && disc.lastParams.roleText) || "shortlisted roles";
+    const run = BatchApply.createRun({ userId: c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText, count: postings.length, now: nowOf(c) });
+    const named = postings.map((p) => `${p.title || "role"} at ${p.company}${p.url ? ` (${p.url})` : ""}`).join("; ");
+    if (depsIn.delegateBatch === true) {
+      run.status = "queued_prepare";
+      c.batchApplyState = BatchApply.serializeRun(run);
+      return { intent: "career_batch_apply", resultStatus: "queued", batchRun: BatchApply.summarizeRun(run), batchDelegate: { phase: "prepare", runId: run.id }, sends: 0,
+        reply: `I've handed this to the browser worker to prepare — from the list I just showed you: ${named}. Nothing has been filled or submitted yet — ask me for the batch status and I'll read back exactly where it stands.` };
+    }
+    BatchApply.prepareRun(run, batchDepsFor(c, log, postings));
+    c.batchApplyState = BatchApply.serializeRun(run);
+    const lines = BatchApply.speakSummary(run);
+    lines.unshift(`From the list I just showed you: ${named}.`);
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: lines.join("\n") };
   }
 
   // ---------- LOOP TASK 1: the natural-language batch status ----------
@@ -45503,6 +47055,11 @@ const CareerRouter = (() => {
     if (paused) return paused;
     // LOOP ACCEPTANCE (155): the batch-apply ask and its approval
     // continuation run the apply loop itself (see handleBatchApply).
+    // F-001 (gap 2): the shortlist-referencing claim ("apply to the
+    // top 3", "apply to the first one") is claimed first — it binds
+    // to the discovery's retained list, never to a family parse.
+    const shortlistRes = handleShortlistApply(text, c);
+    if (shortlistRes) return shortlistRes;
     const batchRes = handleBatchApply(text, c);
     if (batchRes) return batchRes;
     // MUSE-F-002: a plain-words batch status ask ("what's the batch status", "where is my batch") is answered from the
@@ -45539,6 +47096,12 @@ const CareerRouter = (() => {
     // unless the ask resolves to a recorded company/fact.
     const earlyRecall = handleConversationRecall(text, c, { early: true });
     if (earlyRecall) return earlyRecall;
+    // LIFE EVENTS (2026-10-24): an employment-event statement
+    // claims here, beside the goal frame — the goal frame must
+    // never be the surface that answers it (it read a quitting
+    // statement as a goal declaration and stored it).
+    const lifeEvent = handleLifeEventStatement(text, c);
+    if (lifeEvent) return lifeEvent;
     // GOAL FRAME (spine): a goal declaration is a RECORD turn and
     // its recall a read of that record — claimed here, beside the
     // early recall claim, ahead of recommendations, the pending-mock
@@ -45547,6 +47110,36 @@ const CareerRouter = (() => {
     // with a list verdict; the goal itself was never stored).
     const goalTurn = handleGoalFrame(text, c);
     if (goalTurn) return goalTurn;
+    // BULLET LOOP (spec3 section 5): a pending bullet revision owns
+    // its follow-ups (the user's metric, the acceptance) ahead of
+    // the ingest confirmation — "yes, use that version" names the
+    // proposed version, and eating it as a whole-resume confirmation
+    // would land a different act than the one the user named.
+    const bulletLoop = handleResumeBulletLoop(text, c);
+    if (bulletLoop) return bulletLoop;
+    // ERASE PATH (2026-10-24): the conversational erase ask and
+    // its confirming yes claim HERE — ahead of the affirmation
+    // consumer, so a "yes, erase it" can never be read as a
+    // record confirmation, and a generic yes anywhere else can
+    // never be read as an erase.
+    const erasePath = handleErasePath(text, c);
+    if (erasePath) return erasePath;
+    // HOLD + DISCLOSURE (2026-10-24): a hold instruction and a
+    // third-party disclosure ask (and its retraction) claim here
+    // too — both are instructions about pending work, and both
+    // must land before any route that could read them as content.
+    const holdInstr = handleHoldInstruction(text, c);
+    if (holdInstr) return holdInstr;
+    const discl = handleDisclosureAsk(text, c);
+    if (discl) return discl;
+    // PENDING AFFIRMATION: binds a bare affirmation to the pending
+    // state that asked for it (a prepared tailoring's "apply those
+    // changes", the record read-back's "yes that's right") — ahead
+    // of the ingest claim, whose own confirmation is shape-gated to
+    // the resume and stands down for both of these (see
+    // handlePendingAffirmation's stand-downs).
+    const pendingAffirm = handlePendingAffirmation(text, c);
+    if (pendingAffirm) return pendingAffirm;
     // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its
@@ -45571,7 +47164,7 @@ const CareerRouter = (() => {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|turn (them|it|everything) back on|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
@@ -45581,7 +47174,7 @@ const CareerRouter = (() => {
     // phrasing matched none of them and fell to containment on the
     // deployed product. "Watch out …" is advice-seeking and stays out
     // (negative lookahead); the manage claim above still runs first.
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -45603,7 +47196,7 @@ const CareerRouter = (() => {
     // ALERTS HOST WIRING (W4): alert-watch intents (152) — manage before
     // create, so "stop watching X" / "what am I watching" are never read as
     // new-watch asks. Both step aside when 152 is absent from the bundle.
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|turn (them|it|everything) back on|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b|how many alerts\b|set the limit to\s+\d+\b|limit (it|them|alerts?) to\s+\d+\b|(also|add)\s+(austin|denver|chicago|new york|san francisco|boston|seattle|los angeles|houston|dallas|atlanta|miami|london)\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
@@ -45611,7 +47204,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -45711,6 +47304,17 @@ const CareerRouter = (() => {
     if (refusal) return refusal;
     const appendix = handleAppendixSafety(text, c);
     if (appendix) return appendix;
+    // QUESTION SETS (2026-10-24): an open prep-set frame owns its
+    // follow-ups ahead of the draft-surgery capture below — a
+    // shortening turn inside a prep set shortens the served
+    // example, not a draft — and the counted set ask itself is
+    // claimed here for the same reason: nothing downstream owns it.
+    {
+      const pqs = handlePrepQuestionSet(text, c);
+      if (pqs) return pqs;
+      const pow = handleProofOfWork(text, c);
+      if (pow) return pow;
+    }
     // COMPLEXITY WAVE (BUG-176): the drafting conversation's second
     // turns — draft continuations, revisions, send attempts, decline
     // drafts, and offer-detail statements — owned here, before the
@@ -45897,6 +47501,14 @@ const CareerRouter = (() => {
     // The handler stands down on anything without a parseable
     // current/target role pair, a promotion shape, or a live path
     // thread, so the carve-out claims nothing else.
+    // STANDING TRACKER FRAME (2026-10-24): whole-turn follow-ups
+    // to a standing tracker answer claim here, ahead of the
+    // career-path gate below — its bare "stuck" class would
+    // otherwise read "anything stuck" as a career-ladder turn.
+    {
+      const tfu = handleTrackerFollowUp(text, c);
+      if (tfu) return tfu;
+    }
     {
       const cpE = careerPathGateHit(text, c, false);
       if (cpE) return cpE;
@@ -45945,6 +47557,20 @@ const CareerRouter = (() => {
     // WO-095: "line up analysts there first" is a people ask too — it
     // used to be answered by the fact capture (which recorded the ask's
     // level as a fact); with the assertion gate the plan owns it.
+    // COLD NETWORKING ASK (spec1 section 7; text-path measurement
+    // 2026-10-24): "who should I network with for banking?" is the
+    // networking family's own opening question — it carries the
+    // verb but no people NOUN from the A3 gate below ("banking" is
+    // not "bankers"), so it fell to the generic fallback while the
+    // long canonical ask beside it planned fine. The plan IS the
+    // answer to "who": its target, its proposed set named as a
+    // proposal, and its sources. Hiring-bar shapes keep the A3
+    // gate's stand-down.
+    if (/\bwho\s+(should|shall|can|could|do|would)\s+i\s+(network|reach out|connect)\b/.test(t)
+      && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b/.test(t)) {
+      const cp = handleCampaignPlan(text, c);
+      if (cp) return cp;
+    }
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network|line up)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
@@ -46399,6 +48025,19 @@ const CareerRouter = (() => {
       // other turn passes through untouched.
       const elq = handleEligibilityAsk(text, c);
       if (elq) return elq;
+      // STANDING FRAMES (2026-10-24): a work-auth statement and
+      // its follow-ups, a cold salary ask, and short follow-ups
+      // against standing frames resolve HERE — after the specific
+      // claims above, ahead of intel/guidance/negotiation, which
+      // otherwise guess at (or ignore) what the conversation is
+      // standing on. Each handler self-gates tightly and stands
+      // down when its frame does not stand.
+      const waq = handleWorkAuthThread(text, c);
+      if (waq) return waq;
+      const sal = handleSalaryAsk(text, c);
+      if (sal) return sal;
+      const frc = handleFrameContinuation(text, c);
+      if (frc) return frc;
       // 2026-10-23: a choice between two named fields is answered on both, ahead of the role library (which answered
       // "should I become a lawyer or a doctor?" about lawyers alone).
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
@@ -46422,6 +48061,8 @@ const CareerRouter = (() => {
       if (gc2) return gc2;
       const pc = handlePlanCorrection(text, c);
       if (pc) return pc;
+      const pf = handlePlanFocus(text, c);
+      if (pf) return pf;
       const pr = handlePlanRecap(text, c);
       if (pr) return pr;
     }
@@ -46664,6 +48305,16 @@ const CareerRouter = (() => {
     }
     { const rg = routeResumeGuidance(text, c); if (rg) return rg; }
     { const fam = routeFamily(text, c); if (fam) return fam; }
+    { const hua = handleHonestUnavailableAction(text, c); if (hua) return hua; }
+    // BARE REPLIES (generalization mech 2): after every binding
+    // that could own them — a bare yes/no/undo/never mind with no
+    // pending question and no standing offer resolves here,
+    // naming the last thing discussed.
+    { const brp = handleBareReply(text, c); if (brp) return brp; }
+    // CATCH-ALL (generalization mech 1): after EVERY handler,
+    // before the banner — an unmatched in-scope question or
+    // request gets the honest three-part reply.
+    { const ca = handleCareerCatchAll(text, c); if (ca) return ca; }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {
@@ -46850,6 +48501,27 @@ const CareerRouter = (() => {
   // early claim, so a pending mock cannot grade a new target as an answer.
   // Labeled answers, requests, quotes and hypothetical/question turns do
   // not enter this frame; the target must actually name a career opening.
+  // INTENT STATEMENTS ARE NOT GOALS (generalization, 2026-10-24):
+  // this parser read ANY "I want … <job noun>" clause as a sought
+  // target — including "i want to quit my job tomorrow", where the
+  // job noun is the object of an EVENT verb (quit / accept /
+  // decline …) acting on a SPECIFIC held job ("my job", "this job
+  // offer"), not a target being sought. The distinction is
+  // positional: an event verb before the job noun, with a
+  // possessive/demonstrative holding that noun (or a departure
+  // verb at all), makes the clause an event report; a bare sought
+  // noun ("product management jobs in chicago") stays a target.
+  function aspirationIsEvent(value) {
+    const toks = lc(value).replace(/[^a-z\s-]/g, " ").split(/\s+/).filter(Boolean);
+    const nounIdx = toks.findIndex((w) => /^(job|jobs|role|roles|position|positions|offer|offers)$/.test(w));
+    if (nounIdx < 1) return false;
+    const EVENT_VERBS = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "accept", "accepting", "decline", "declining", "reject", "rejecting", "start", "starting", "begin", "hand", "walk"]);
+    const DEPARTURE = new Set(["quit", "quitting", "resign", "resigning", "leave", "leaving", "decline", "declining", "reject", "rejecting", "walk"]);
+    const verbIdx = toks.findIndex((w) => EVENT_VERBS.has(w));
+    if (verbIdx < 0 || verbIdx > nounIdx) return false;
+    const held = toks.slice(Math.max(0, nounIdx - 2), nounIdx).some((w) => /^(my|this|that|the)$/.test(w));
+    return held || DEPARTURE.has(toks[verbIdx]);
+  }
   function statedCareerTargetOf(text) {
     if (/^\s*(?:my answer|answer|my response|here'?s my answer|here is my answer)\s*:/i.test(s(text))) return null;
     for (const sentence of unquotedText(text).split(/(?<=[.!?])\s+|[\r\n]+/)) {
@@ -46858,6 +48530,7 @@ const CareerRouter = (() => {
       const m = clause.match(/^(?:I\s+want\s+|I(?:'m|\s+am)\s+aiming\s+for\s+)([^.!?]+)[.!]?$/i);
       if (!m) continue;
       const value = m[1].trim();
+      if (aspirationIsEvent(value)) continue; // an event about a held job is not a sought target
       if (!/\b(?:jobs?|roles?|positions?|internships?|apprenticeships?|fellowships?)\b/i.test(value)) continue;
       if (/\b(?:answers?|questions?|mock|practice|rehears(?:e|al)|drafts?|resumes?|cover letters?)\b/i.test(value)) continue;
       if (value.length > 200) continue;
@@ -47204,6 +48877,19 @@ const CareerRouter = (() => {
     // (1) Per-clause declarative capture. WO-095: gated — a request
     // clause (and a request sentence's non-first-person parameter
     // clauses) never reaches a frame.
+    // FALSE-ATTESTATION VETO (held-out batch 2, 2026-10-24): "just
+    // put that i'm a us citizen on the application, i'm not but it
+    // doesn't matter" — the embedded claim clause reads as a
+    // declarative and the positive attestation frames below RECORDED
+    // "US citizen" from a turn whose own second half denies it. A
+    // materials imperative (put/write/say ... on the application/
+    // resume/form) carrying a self-negation anywhere in the turn
+    // vetoes the POSITIVE attestation writes (citizenship,
+    // sponsorship) for the whole turn: a missed write costs a
+    // re-ask, a false attestation write is the product's worst
+    // fact error. The refusal layer answers the turn itself.
+    const attestVeto = /\b(put|write|add|say|state|claim|list|mark|check)\b[^.]*\b(on|in|into)\b[^.]*\b(application|resume|cv|form|cover letter)\b/i.test(raw)
+      && /\b(i'?m|i am)\s+not\b|\bnot true\b|\bdon'?t actually\b|\bisn'?t true\b/i.test(raw);
     for (const cl of gatedFactClausesOf(raw)) {
       if (!clauseIsAssertion(cl)) continue;
       // DEPTH LANE A (floor): a clause whose SUBJECT is a third person
@@ -47215,7 +48901,7 @@ const CareerRouter = (() => {
       if (/^\s*(?:he|she|they)\s+(?:is|was|are|were|studies|studied|works|worked|goes|went|interned|majors|majored)\b/i.test(cl)) continue;
       let m;
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+a\s+(first|second|third|fourth)[- ]year\b/i))) push("year", { first: "freshman", second: "sophomore", third: "junior", fourth: "senior" }[m[1].toLowerCase()], m[0]);
-      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+)?(?:rising\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
+      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:a\s+(?:[a-z][a-z&/-]{0,20}\s+)?)?(?:rising\s+)?(sophomore|junior|senior|freshman|frosh|grad student|graduate student)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       else if ((m = cl.match(/^(?:so|ok|okay|yeah|and)?\s*(sophomore|junior|senior|freshman)\b/i))) push("year", m[1].toLowerCase(), m[0]);
       if ((m = cl.match(/\b(?:i\s+)?(?:study|studying|majoring in|major in)\s+([a-z][a-z &]{2,40})/i))) pushMajors(m[1], m[0]);
       else if ((m = cl.match(/\bmy majors?\s+(?:is|are)\s+([a-z][a-z &,]{2,40})/i))) pushMajors(m[1], m[0]);
@@ -47347,9 +49033,9 @@ const CareerRouter = (() => {
       if ((m = cl.match(/\b(?:i|we)\s+(?:do\s+not|don'?t|dont|no\s+longer|won'?t|will\s+not|never|shouldn'?t|should\s+not)\s+(?:(?:ever|actually|really)\s+)?(?:need|require)\s+(?:any\s+|visa\s+|work\s+|employer\s+)*sponsorship\b/i))
         || (m = cl.match(/\b(?:i'?m|i am|im)\s+not\s+(?:going\s+to\s+)?(?:need|require|needing|requiring)\s+(?:any\s+|visa\s+|work\s+)*sponsorship\b/i))
         || (m = cl.match(/\bno\s+(?:visa\s+)?sponsorship\s+(?:is\s+)?(?:needed|required)\b|\b(?:i|we)\s+(?:do\s+not|don'?t)\s+need\s+(?:a\s+)?visa\b/i))) push("sponsorship", "does not need sponsorship", m[0]);
-      else if ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i))) push("sponsorship", "needs sponsorship", m[0]);
+      else if (!attestVeto && ((m = cl.match(/\b(?:i|we)\s+(?:will\s+|do\s+|still\s+|'ll\s+|’ll\s+)?(?:need|require)\s+(?:visa\s+|work\s+|employer\s+)*sponsorship\b/i)) || (m = cl.match(/\bi'?ll\s+(?:need|require)\s+(?:visa\s+|work\s+)*sponsorship\b/i)))) push("sponsorship", "needs sponsorship", m[0]);
       if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:not|no\s+longer)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "not a US citizen", m[0]);
-      else if ((m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
+      else if (!attestVeto && (m = cl.match(/\b(?:i'?m|i am|im)\s+(?:an?\s+)?(?:us|u\.s\.|american|united\s+states)\s+citizen\b/i))) push("citizenship", "US citizen", m[0]);
     }
     // (2) Offer-thread capture: an offer the user STATES (firm,
     // amount, deadline, role — any subset) becomes the thread's
@@ -47654,6 +49340,12 @@ const CareerRouter = (() => {
     if (/\?/.test(s(text))) return null;
     if (s(text).split(/\s+/).length > 22) return null;
     const all = statedFactsOf(ctx);
+    // PENDING AFFIRMATION (text-path measurement 2026-10-24): this
+    // read-back is a yes/no surface — the user's bare "yes that's
+    // right" in reply is the confirmation of the record as read.
+    // Mark it pending so handlePendingAffirmation can bind that
+    // turn instead of dropping it to the generic fallback.
+    try { const m = threadMirrorForWrite(ctx); if (m) m.affirmRecord = { at: nowOf(ctx) }; } catch { /* the reply stands alone */ }
     const reply = compose({ headline: "Recorded — that is on your record now, in your words.", facts: [`On record so far: ${all.map(factLine).join("; ")}.`, "These facts are what your searches, drafts, and prep are built from — nothing about you is assumed beyond what you state, and you can correct any of it the same way you stated it."], nextStep: "Tell me the next fact, or say what you want to do first and it runs on these." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
@@ -47800,7 +49492,7 @@ const CareerRouter = (() => {
     // (c) Company-scoped recall: "what do you remember about my
     // <Co> plans?" — every fact keyed to, valued with, or evidenced
     // by that company, plus the target-firm fact when it matches.
-    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b/.test(t)) {
+    if (/\bwhat\s+do\s+you\s+(remember|know)\b/.test(t) || /\bwhat\s+have\s+you\s+(got|recorded|saved)\b/.test(t) || /\bremind\s+me\b(?!\s+to\s+\w)/.test(t)) {
       const named = all.filter((f) => f.value && t.includes(coKey(f.value)) && coKey(f.value).length > 2)
         .map((f) => coKey(f.value));
       const keyed = all.map((f) => f.key).filter(Boolean);
@@ -47994,7 +49686,12 @@ const CareerRouter = (() => {
   // is never invented to fill the gap.
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
-    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t)) return null;
+    // A work-authorization QUESTION ("do i need sponsorship for
+    // this role?") is this handler's own class even when it never
+    // says "eligible" — without the question class it fell through
+    // to the internship tail, which read "need … role" as a search.
+    const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
+    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t) && !waQuestion) return null;
     if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
@@ -48277,6 +49974,37 @@ const CareerRouter = (() => {
     const c = ctx || {};
     if (!res || !res.intent) return;
     if (res.intent === "career_fallback" || res.intent === "honest_unavailable") return;
+    // LAST DISCUSSION (mech 2): record what this serve makes the
+    // conversation about, before the frame marks below.
+    try {
+      if (res.intent && res.reply && DISCUSSION_INTENT_RE.test(res.intent)) {
+        const wmir = threadMirrorForWrite(c);
+        if (wmir) wmir.lastDiscussion = { intent: res.intent, label: discussionLabelOf(res.intent), ask: s(text).slice(0, 120), pendingQuestion: lastSentenceIsQuestion(res.reply), at: new Date(nowOf(c)).toISOString() };
+      }
+    } catch { /* a discussion mark must never break a serve */ }
+    // STANDING FRAMES (2026-10-24): every serve that opens a
+    // conversational frame records it, so a short follow-up can
+    // bind to what the conversation is standing on. Marks are
+    // keyed by frame kind and carry only what the serve itself
+    // established — the user's ask, the plan's own text, the
+    // company a stop named.
+    try {
+      const askT = lc(text);
+      if (res.intent === "path_plan") markFrame(c, "plan", { family: "path", ask: s(text).slice(0, 140), text: s((res.payload && res.payload.text) || "").slice(0, 600) });
+      else if (res.intent === "career_os_plan") markFrame(c, "plan", { family: "os", ask: s(text).slice(0, 140) });
+      else if (res.intent === "tracking_status" || res.intent === "tracking_log") { markFrame(c, "tracker", { ask: s(text).slice(0, 140) }); if (/\breject/.test(askT)) markFrame(c, "rejection", { ask: s(text).slice(0, 140) }); if (/\b(heard nothing|no response|no reply|haven'?t heard|have not heard|not heard|never heard|silence|silent|ghost)/.test(askT)) markFrame(c, "followup", { ask: s(text).slice(0, 140), company: (res.application && res.application.company) || null, stage: (res.application && res.application.stage) || null }); }
+      else if (res.intent === "prep_brief") markFrame(c, "brief", { ask: s(text).slice(0, 140) });
+      else if (/^negotiation_/.test(res.intent)) markFrame(c, "negotiation", { compare: /\bcompare|two offers|versus|\bvs\b/.test(askT), ask: s(text).slice(0, 140) });
+      else if (res.intent === "people_matching_stop") { const coM = /\bat\s+([a-z][a-z&.' -]{1,30}?)(?:\s+who|\s+that|\s+for|[?.!,]|$)/.exec(askT); markFrame(c, "heldStop", { ask: s(text).slice(0, 140), company: coM ? coM[1].trim() : null }); }
+      else if (res.intent === "outreach_clarification" && /\beveryone\b|\bmass\b|\bblast\b|all of them/.test(askT)) markFrame(c, "gate", { ask: s(text).slice(0, 140) });
+      // DRAFT frame (generalization mech 3): any serve that
+      // produces a draft opens the draft frame — the draft's own
+      // text rides the frame (bounded), so a revision or a
+      // sent-status question resolves against the draft itself
+      // instead of whichever route guesses at it.
+      const dObj = res.draft && typeof res.draft === "object" ? res.draft : null;
+      if (dObj || /_draft$/.test(res.intent || "")) markFrame(c, "draft", { ask: s(text).slice(0, 140), intent: res.intent, kind: (dObj && dObj.kind) || null, company: (dObj && (dObj.target || dObj.company)) || res.company || null, text: s((dObj && (dObj.text || dObj.body)) || "").slice(0, 1500), status: (dObj && dObj.status) || "held" });
+    } catch { /* a frame mark must never break a serve */ }
     let kind = null;
     if (/^prep_/.test(res.intent) && res.intent !== "prep_needs_profile") kind = "prep";
     else if (/^negotiation_/.test(res.intent)) kind = "negotiation";
@@ -54222,6 +55950,17 @@ const CareerBatchApply = (() => {
       }
     }
     run.cardSha256 = cardSha(run);
+    // APPROVAL INVALIDATION (2026-10-24): the card binds a yes only
+    // while (a) it is inside its validity window and (b) the profile
+    // its answers were built from still stands. The window is the
+    // module's own session-reuse window: prepared forms are the
+    // product of that window, and a yes landing hours later on forms
+    // prepared hours earlier is exactly what approveRun must refuse.
+    // The profile digest covers the answer-bearing profile the
+    // drives consumed (deps.profile, pre-cover-note), canonicalized
+    // so key order cannot fake a change or hide one.
+    run.cardExpiresAt = doorstepApps.length ? now + SESSION_REUSE_TTL_MS : null;
+    run.profileSha256 = doorstepApps.length ? profileDigestOf(d.profile || {}) : null;
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
     // Coverage fraction first: how many of the selected came through,
@@ -54313,6 +56052,20 @@ const CareerBatchApply = (() => {
     return pairs.length ? sha256(pairs.join("|")) : null;
   }
 
+  // Canonical digest of the answer-bearing profile: recursively
+  // key-sorted JSON, hashed. Both sides of an approval compute it
+  // the same way — prepareRun stores it on the run; the router
+  // recomputes it over the CURRENT profile at the approval turn
+  // and hands it to approveRun inside the approval object.
+  function profileDigestOf(profile) {
+    const canon = (v) => {
+      if (Array.isArray(v)) return v.map(canon);
+      if (v && typeof v === "object") { const o = {}; for (const k of Object.keys(v).sort()) o[k] = canon(v[k]); return o; }
+      return v;
+    };
+    return sha256(JSON.stringify(canon(profile || {})));
+  }
+
   // ---------------- J3: one yes -> per-application hash-bound approvals ----
   function approveRun(run, approval) {
     if (!run || run.status !== "awaiting_approval") {
@@ -54321,9 +56074,53 @@ const CareerBatchApply = (() => {
     if (!approval || approval.approvedByUser !== true) {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
     }
+    // ACCOUNT BINDING (2026-10-24): the run stores its owner at
+    // creation (createRun's run.userId, from the creating ctx).
+    // An approval arriving as a DIFFERENT account does not bind —
+    // checked before the set hash, the expiry and the digest are
+    // consulted, because a digest binds a profile, never an
+    // identity: two accounts can hold identical profiles, and
+    // only the owner comparison separates them.
+    // FAIL CLOSED on a MISSING owner (coordinator, 2026-10-24):
+    // the comparison above only refused when BOTH sides named an
+    // owner — a run or an approval carrying no userId bound
+    // anyway, the same hole shape as the absent expiry/digest.
+    // No owner on either side = not bindable, same re-review line.
+    if (!run.userId || !approval.userId) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card or this approval names no owning account, and a yes can only land on a card bound to the account approving it" };
+    }
+    if (approval.userId !== run.userId) {
+      return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
+    }
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
+    }
+    // FAIL CLOSED (2026-10-24): the two checks below are only as
+    // strong as their inputs. A run that does not CARRY the fields
+    // (prepared before they existed — legacy runs exist) or an
+    // approval that does not SUPPLY them is not a card a yes can
+    // land on: absent or unparseable expiry/digest refuses here,
+    // never skips. The refusal's first move is always the same:
+    // re-review needed: I will re-prepare and show a fresh card.
+    if (!Number.isFinite(run.cardExpiresAt) || typeof approval.now !== "number" || !Number.isFinite(approval.now) || !run.profileSha256 || !approval.profileSha256) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card does not carry the verifiable expiry and profile binding an approval must land on, so no approval can bind to it" };
+    }
+    // EXPIRY (2026-10-24): a yes that arrives after the card's
+    // window does not bind. The window rides the run
+    // (cardExpiresAt, set at prepare from the session-reuse TTL);
+    // presence is guaranteed by the fail-closed check above.
+    if (typeof approval.now === "number" && run.cardExpiresAt && approval.now >= run.cardExpiresAt) {
+      return { ok: false, code: "APPROVAL_CARD_EXPIRED", reason: "this review card has expired — prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. The batch must be re-prepared, and the new card is the one a yes can bind to" };
+    }
+    // PROFILE CHANGE (2026-10-24): the card's answers were built
+    // from the profile as it stood at prepare; if the profile has
+    // changed since — an edited answer, a corrected fact — the yes
+    // was given against answers that no longer stand, and it does
+    // not bind. Presence on both sides is guaranteed by the
+    // fail-closed check above; this is the value comparison.
+    if (run.profileSha256 && approval.profileSha256 && approval.profileSha256 !== run.profileSha256) {
+      return { ok: false, code: "APPROVAL_PROFILE_CHANGED", reason: "your profile changed since this card was prepared, so its answers were built from facts that no longer stand — the batch must be re-prepared from your current profile and re-approved" };
     }
     // P1 text yes ("yes but not 2"): the owner may leave applications
     // OFF the card he was shown — never add one. Every excluded key must
@@ -54614,7 +56411,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

@@ -1,0 +1,2778 @@
+{
+ "pack": "forms-ci-coverage",
+ "families": [
+  "greenhouse",
+  "lever"
+ ],
+ "coverage": {
+  "formsCaptured": 11,
+  "questionsMapped": 271,
+  "questionsFilled": 193,
+  "questionsReadBackExactly": 186,
+  "claims": "scoped only: per-form claims in capturedForms[].claim and per-widget-class claims in widgetClassClaims — no aggregate claim is made"
+ },
+ "capturedForms": [
+  {
+   "id": "greenhouse-prolificacademicltd-4979452101",
+   "family": "greenhouse",
+   "company": "Prolific",
+   "sourceUrl": "https://job-boards.greenhouse.io/prolificacademicltd/jobs/4979452101",
+   "capturedAt": "2026-10-19T07:23:43.461Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 11,
+    "mapped": 11,
+    "bindError": null,
+    "filledCount": 9,
+    "readbackMatched": 9,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "question_9668367101",
+      "filled"
+     ],
+     [
+      "question_9668368101",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9668369101",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "first_name": "text input",
+     "last_name": "text input",
+     "preferred_name": "text input",
+     "email": "text input",
+     "country": "custom select (react-select)",
+     "iti-0__search-input": "text input",
+     "phone": "text input",
+     "resume": "file input",
+     "question_9668367101": "text input",
+     "question_9668368101": "custom select (react-select)",
+     "question_9668369101": "text input"
+    },
+    "reconciliation": [
+     {
+      "name": "country",
+      "label": "Country",
+      "status": "core-contact",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9668368101",
+      "label": "Are you currently based in and can verify right to work from one of the following countries? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 37 options for this field; the drive attempted the profile-correct option \"United States\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 9 of 11 mapped questions filled, 9 read back exactly; 2 mapped-not-filled field(s) reconciled per field in this record: 2 custom select(s) unverified-against-live."
+   }
+  },
+  {
+   "id": "greenhouse-eosfitness-4336050009",
+   "family": "greenhouse",
+   "company": "EOS Fitness",
+   "sourceUrl": "https://job-boards.greenhouse.io/eosfitness/jobs/4336050009",
+   "capturedAt": "2026-10-19T07:23:48.097Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 36,
+    "mapped": 36,
+    "bindError": null,
+    "filledCount": 21,
+    "readbackMatched": 21,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "cover_letter",
+     "question_6872426009",
+     "question_6872427009",
+     "question_6872429009"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "cover_letter",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "start-year--0",
+      "filled"
+     ],
+     [
+      "end-year--0",
+      "filled"
+     ],
+     [
+      "question_6872424009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872425009[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872426009",
+      "filled"
+     ],
+     [
+      "question_6872427009",
+      "filled"
+     ],
+     [
+      "question_6872428009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872429009",
+      "filled"
+     ],
+     [
+      "question_6872430009",
+      "conditional_not_triggered"
+     ],
+     [
+      "question_6872431009",
+      "filled"
+     ],
+     [
+      "question_6872432009[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872433009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872434009",
+      "filled"
+     ],
+     [
+      "question_6872435009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872436009",
+      "filled"
+     ],
+     [
+      "question_6872437009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872438009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872439009",
+      "filled"
+     ],
+     [
+      "question_6872440009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872441009",
+      "filled"
+     ],
+     [
+      "question_6872442009",
+      "filled"
+     ],
+     [
+      "question_6872443009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872444009",
+      "value_did_not_persist"
+     ],
+     [
+      "question_6872445009",
+      "filled"
+     ],
+     [
+      "question_6872446009",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "first_name": "text input",
+     "last_name": "text input",
+     "preferred_name": "text input",
+     "email": "text input",
+     "country": "custom select (react-select)",
+     "iti-0__search-input": "text input",
+     "phone": "text input",
+     "resume": "file input",
+     "cover_letter": "file input",
+     "school--0": "custom select (react-select)",
+     "degree--0": "custom select (react-select)",
+     "start-year--0": "number input",
+     "end-year--0": "number input",
+     "question_6872424009": "custom select (react-select)",
+     "question_6872425009[]": "custom select (react-select)",
+     "question_6872426009": "file input",
+     "question_6872427009": "file input",
+     "question_6872428009": "custom select (react-select)",
+     "question_6872429009": "file input",
+     "question_6872430009": "custom select (react-select)",
+     "question_6872431009": "text input",
+     "question_6872432009[]": "custom select (react-select)",
+     "question_6872433009": "custom select (react-select)",
+     "question_6872434009": "text input",
+     "question_6872435009": "custom select (react-select)",
+     "question_6872436009": "text input",
+     "question_6872437009": "custom select (react-select)",
+     "question_6872438009": "custom select (react-select)",
+     "question_6872439009": "text input",
+     "question_6872440009": "custom select (react-select)",
+     "question_6872441009": "text input",
+     "question_6872442009": "text input",
+     "question_6872443009": "custom select (react-select)",
+     "question_6872444009": "custom select (react-select)",
+     "question_6872445009": "text input",
+     "question_6872446009": "text input"
+    },
+    "reconciliation": [
+     {
+      "name": "country",
+      "label": "Country*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "school--0",
+      "label": "School",
+      "status": "required-conditional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "degree--0",
+      "label": "Degree",
+      "status": "required-conditional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872424009",
+      "label": "Do you currently have your Personal Training certification up to date? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872425009[]",
+      "label": "Please select the certifications you currently have or are working on achieving below:*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872428009",
+      "label": "Do you currently have your CPR certification up to date?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872430009",
+      "label": "If no, are you able to and willing to acquire a CPR Certification within 30 days of employment?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "conditional_not_triggered",
+      "attemptedValue": "not attempted (conditional gate)",
+      "reason": "Custom select (react-select): this \"If no…\" follow-up applies only when its parent question — the CPR-current question question_6872428009 — is answered No. The persona's answer to the parent is \"Yes\", so the condition does not hold: the drive did not attempt the field (outcome conditional_not_triggered) and it is not counted. The capture also carries no menu DOM for the widget, so its live behavior stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872432009[]",
+      "label": "What days and times are you available?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872433009",
+      "label": "Have you worked at EōS Fitness before? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872435009",
+      "label": "Does any of your family or anyone you live with have an affiliation with this company or any of its affiliates?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872437009",
+      "label": "If hired, can you show proof you are at least 18 years old? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872438009",
+      "label": "If hired, can you show proof of authorization to work in the United States? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872440009",
+      "label": "Can you perform essential job functions as outlined in the job description, either with or without reasonable accommodation? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872443009",
+      "label": "SMS Messages Consent",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_6872444009",
+      "label": "Were you referred by a current EōS team member?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 21 of 36 mapped questions filled, 21 read back exactly; 15 mapped-not-filled field(s) reconciled per field in this record: 15 custom select(s) unverified-against-live, 1 conditional follow-up(s) gated on the persona's parent answer."
+   }
+  },
+  {
+   "id": "greenhouse-spacex-8643277002",
+   "family": "greenhouse",
+   "company": "spacex",
+   "sourceUrl": "https://job-boards.greenhouse.io/spacex/jobs/8643277002",
+   "capturedAt": "2026-10-19T07:23:52.223Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 31,
+    "mapped": 31,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "question_37413364002"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "candidate-location",
+      "value_did_not_persist"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "discipline--0",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413363002",
+      "filled"
+     ],
+     [
+      "question_37413364002",
+      "filled"
+     ],
+     [
+      "question_37413365002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413366002",
+      "filled"
+     ],
+     [
+      "question_37413367002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413368002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413369002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413370002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413371002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413372002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413373002[]",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413374002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413375002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413376002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413377002",
+      "value_did_not_persist"
+     ],
+     [
+      "question_37413378002",
+      "filled"
+     ],
+     [
+      "gender",
+      "value_did_not_persist"
+     ],
+     [
+      "hispanic_ethnicity",
+      "value_did_not_persist"
+     ],
+     [
+      "veteran_status",
+      "value_did_not_persist"
+     ]
+    ],
+    "fieldClasses": {
+     "first_name": "text input",
+     "last_name": "text input",
+     "preferred_name": "text input",
+     "email": "text input",
+     "country": "custom select (react-select)",
+     "iti-0__search-input": "text input",
+     "phone": "text input",
+     "candidate-location": "custom select (react-select)",
+     "resume": "file input",
+     "school--0": "custom select (react-select)",
+     "degree--0": "custom select (react-select)",
+     "discipline--0": "custom select (react-select)",
+     "question_37413363002": "text input",
+     "question_37413364002": "file input",
+     "question_37413365002": "custom select (react-select)",
+     "question_37413366002": "text input",
+     "question_37413367002": "custom select (react-select)",
+     "question_37413368002": "custom select (react-select)",
+     "question_37413369002": "custom select (react-select)",
+     "question_37413370002": "custom select (react-select)",
+     "question_37413371002": "custom select (react-select)",
+     "question_37413372002": "custom select (react-select)",
+     "question_37413373002[]": "custom select (react-select)",
+     "question_37413374002": "custom select (react-select)",
+     "question_37413375002": "custom select (react-select)",
+     "question_37413376002": "custom select (react-select)",
+     "question_37413377002": "custom select (react-select)",
+     "question_37413378002": "text input",
+     "gender": "custom select (react-select)",
+     "hispanic_ethnicity": "custom select (react-select)",
+     "veteran_status": "custom select (react-select)"
+    },
+    "reconciliation": [
+     {
+      "name": "country",
+      "label": "Country*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "candidate-location",
+      "label": "Location (City)*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic City",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic City\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "school--0",
+      "label": "School*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "degree--0",
+      "label": "Degree*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "discipline--0",
+      "label": "Discipline",
+      "status": "required-conditional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic Discipline",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Discipline\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413365002",
+      "label": "How did you hear about this job?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Campus - SpaceX event (indicate below)",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Campus - SpaceX event (indicate below)\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413367002",
+      "label": "GPA (Undergraduate)*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "3.9 out of 4.0",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"3.9 out of 4.0\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413368002",
+      "label": "GPA (Graduate)*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Other/Not Applicable",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Other/Not Applicable\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413369002",
+      "label": "GPA (Doctorate)*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Not applicable/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Not applicable/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413370002",
+      "label": "SAT Score*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 156 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413371002",
+      "label": "ACT Score*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 19 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413372002",
+      "label": "GRE Score*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 156 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413373002[]",
+      "label": "Active Security Clearance(s)*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"No\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413374002",
+      "label": "SpaceX & SpaceXAI Employment History*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 6 options for this field; the drive attempted the profile-correct option \"I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413375002",
+      "label": "Can you perform all of the essential functions of this role with or without reasonable accommodations?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413376002",
+      "label": "Are you legally authorized to work in the United States?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "I am authorized to work in the United States for any employer",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"I am authorized to work in the United States for any employer\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_37413377002",
+      "label": "Citizenship Status*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "(a) U.S. citizen or national of the United States",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 6 options for this field; the drive attempted the profile-correct option \"(a) U.S. citizen or national of the United States\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "gender",
+      "label": "Gender",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "hispanic_ethnicity",
+      "label": "Are you Hispanic/Latino?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Decline to self-identify\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "veteran_status",
+      "label": "Veteran Status",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 31 mapped questions filled, 11 read back exactly; 20 mapped-not-filled field(s) reconciled per field in this record: 20 custom select(s) unverified-against-live."
+   }
+  },
+  {
+   "id": "greenhouse-andurilindustries-4802172007",
+   "family": "greenhouse",
+   "company": "Anduril",
+   "sourceUrl": "https://job-boards.greenhouse.io/andurilindustries/jobs/4802172007",
+   "capturedAt": "2026-10-19T07:23:56.175Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 33,
+    "mapped": 33,
+    "bindError": null,
+    "filledCount": 12,
+    "readbackMatched": 12,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume",
+     "cover_letter"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "cover_letter",
+      "filled"
+     ],
+     [
+      "school--0",
+      "value_did_not_persist"
+     ],
+     [
+      "degree--0",
+      "value_did_not_persist"
+     ],
+     [
+      "discipline--0",
+      "value_did_not_persist"
+     ],
+     [
+      "end-month--0",
+      "value_did_not_persist"
+     ],
+     [
+      "end-year--0",
+      "filled"
+     ],
+     [
+      "question_9753034007",
+      "filled"
+     ],
+     [
+      "question_9753035007",
+      "filled"
+     ],
+     [
+      "question_9753036007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753037007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753038007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753039007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753040007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753041007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753042007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753043007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753044007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_12415488007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9753998007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9755019007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9802058007",
+      "value_did_not_persist"
+     ],
+     [
+      "question_9802065007",
+      "filled"
+     ],
+     [
+      "gender",
+      "value_did_not_persist"
+     ],
+     [
+      "hispanic_ethnicity",
+      "value_did_not_persist"
+     ],
+     [
+      "veteran_status",
+      "value_did_not_persist"
+     ]
+    ],
+    "fieldClasses": {
+     "first_name": "text input",
+     "last_name": "text input",
+     "preferred_name": "text input",
+     "email": "text input",
+     "country": "custom select (react-select)",
+     "iti-0__search-input": "text input",
+     "phone": "text input",
+     "resume": "file input",
+     "cover_letter": "file input",
+     "school--0": "custom select (react-select)",
+     "degree--0": "custom select (react-select)",
+     "discipline--0": "custom select (react-select)",
+     "end-month--0": "custom select (react-select)",
+     "end-year--0": "number input",
+     "question_9753034007": "text input",
+     "question_9753035007": "text input",
+     "question_9753036007": "custom select (react-select)",
+     "question_9753037007": "custom select (react-select)",
+     "question_9753038007": "custom select (react-select)",
+     "question_9753039007": "custom select (react-select)",
+     "question_9753040007": "custom select (react-select)",
+     "question_9753041007": "custom select (react-select)",
+     "question_9753042007": "custom select (react-select)",
+     "question_9753043007": "custom select (react-select)",
+     "question_9753044007": "custom select (react-select)",
+     "question_12415488007": "custom select (react-select)",
+     "question_9753998007": "custom select (react-select)",
+     "question_9755019007": "custom select (react-select)",
+     "question_9802058007": "custom select (react-select)",
+     "question_9802065007": "text input",
+     "gender": "custom select (react-select)",
+     "hispanic_ethnicity": "custom select (react-select)",
+     "veteran_status": "custom select (react-select)"
+    },
+    "reconciliation": [
+     {
+      "name": "country",
+      "label": "Country*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "school--0",
+      "label": "School*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "degree--0",
+      "label": "Degree*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "discipline--0",
+      "label": "Discipline*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic Discipline",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Discipline\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "end-month--0",
+      "label": "End date month*",
+      "status": "required-conditional",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "June",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"June\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753036007",
+      "label": "CLEARANCE ELIGIBILITY - This position may require eligibility to obtain and maintain a U.S. security clearance.*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753037007",
+      "label": "If you have held a U.S. security clearance in the past, what clearance level have you held? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "N/A - have never held U.S. security clearance",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"N/A - have never held U.S. security clearance\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753038007",
+      "label": "EXPORT CONTROLS - This position requires access to information and technology that is subject to U.S. export controls. Your responses to the questions below will be used solely to determine your eligibility under U.S. law to receive information and materials subject to U.S. export controls.*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "A United States citizen or national",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"A United States citizen or national\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753039007",
+      "label": "U.S. WORK AUTHORIZATION*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753040007",
+      "label": "Will you require sponsorship from Anduril for employment now or in the future (e.g, H1B visa)?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753041007",
+      "label": "U.S. Person status and/or U.S. clearance eligibility is required for this role due to access requirements for U.S. export-controlled information/facilities and/or depending on program, are you eligible to meet this requirement? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753042007",
+      "label": "HISTORY WITH ANDURIL*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753043007",
+      "label": "Have you ever been employed by Anduril or any company that Anduril has acquired?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753044007",
+      "label": "CONFLICT OF INTEREST*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_12415488007",
+      "label": "What is your top location preference? *",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Costa Mesa, CA",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Costa Mesa, CA\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9753998007",
+      "label": "Do you have a minimum of 3 months - 2 years of technical work to include technical internship and able to start full time in 2026?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9755019007",
+      "label": "Are you open to a rotational program?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_9802058007",
+      "label": "How did you hear about Anduril?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Google job search",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 22 options for this field; the drive attempted the profile-correct option \"Google job search\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "gender",
+      "label": "Gender",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "hispanic_ethnicity",
+      "label": "Are you Hispanic/Latino?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Decline to self-identify\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "veteran_status",
+      "label": "Veteran Status",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 12 of 33 mapped questions filled, 12 read back exactly; 21 mapped-not-filled field(s) reconciled per field in this record: 21 custom select(s) unverified-against-live."
+   }
+  },
+  {
+   "id": "greenhouse-wppmedia-5437567008",
+   "family": "greenhouse",
+   "company": "WPP Media",
+   "sourceUrl": "https://job-boards.greenhouse.io/wppmedia/jobs/5437567008",
+   "capturedAt": "2026-10-19T07:24:00.214Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "recaptcha_enterprise"
+   ],
+   "expectation": {
+    "rawFields": 28,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 11,
+    "readbackMatched": 11,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "first_name",
+      "filled"
+     ],
+     [
+      "last_name",
+      "filled"
+     ],
+     [
+      "preferred_name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "country",
+      "value_did_not_persist"
+     ],
+     [
+      "iti-0__search-input",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "candidate-location",
+      "value_did_not_persist"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "question_18820173008",
+      "filled"
+     ],
+     [
+      "question_18820174008",
+      "filled"
+     ],
+     [
+      "question_18820175008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820176008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820177008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820178008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820179008",
+      "value_did_not_persist"
+     ],
+     [
+      "question_18820180008",
+      "filled"
+     ],
+     [
+      "question_18820181008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017729008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017730008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017731008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017732008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017733008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017898008",
+      "conditional_not_triggered"
+     ],
+     [
+      "4017899008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017900008",
+      "value_did_not_persist"
+     ],
+     [
+      "4017901008",
+      "value_did_not_persist"
+     ],
+     [
+      "gdpr_demographic_data_consent_given",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "4017729008": "custom select (react-select)",
+     "4017730008": "custom select (react-select)",
+     "4017731008": "custom select (react-select)",
+     "4017732008": "custom select (react-select)",
+     "4017733008": "custom select (react-select)",
+     "4017898008": "custom select (react-select)",
+     "4017899008": "custom select (react-select)",
+     "4017900008": "custom select (react-select)",
+     "4017901008": "custom select (react-select)",
+     "first_name": "text input",
+     "last_name": "text input",
+     "preferred_name": "text input",
+     "email": "text input",
+     "country": "custom select (react-select)",
+     "iti-0__search-input": "text input",
+     "phone": "text input",
+     "candidate-location": "custom select (react-select)",
+     "resume": "file input",
+     "question_18820173008": "text input",
+     "question_18820174008": "text input",
+     "question_18820175008": "custom select (react-select)",
+     "question_18820176008": "custom select (react-select)",
+     "question_18820177008": "custom select (react-select)",
+     "question_18820178008": "custom select (react-select)",
+     "question_18820179008": "custom select (react-select)",
+     "question_18820180008": "text input",
+     "question_18820181008": "custom select (react-select)",
+     "gdpr_demographic_data_consent_given": "checkbox"
+    },
+    "reconciliation": [
+     {
+      "name": "country",
+      "label": "Country*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "candidate-location",
+      "label": "Location (City)*",
+      "status": "core-contact",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Synthetic City",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic City\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820175008",
+      "label": "Are you currently an intern, freelancer, or employee at WPP or one of its agencies?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820176008",
+      "label": "Current WPP Agency (if applicable)",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "AKQA",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 60 options for this field; the drive attempted the profile-correct option \"AKQA\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820177008",
+      "label": "Have you previously worked at a WPP Agency?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820178008",
+      "label": "Are you lawfully authorized to work in the country where this job is located?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820179008",
+      "label": "Will you now or at any point in the future require sponsorship to maintain lawful employment in the country where this job is located?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "question_18820181008",
+      "label": "What is your current notice period?*",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Immediately Available",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"Immediately Available\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017729008",
+      "label": "What gender identity do you most closely identify with?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017730008",
+      "label": "What is your sexual orientation?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 7 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017731008",
+      "label": "What is your religion?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 9 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017732008",
+      "label": "I identify my race/ethnicity as (select all that apply)",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 18 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017733008",
+      "label": "Do you consider yourself to have a disability, impairment or long-term health condition",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017898008",
+      "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)",
+      "status": "required-conditional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "conditional_not_triggered",
+      "attemptedValue": "not attempted (conditional gate)",
+      "reason": "Custom select (react-select), required-conditional: this follow-up applies only when its parent question — the disability question 4017733008 — is answered with an affirmative Yes. The persona's answer to the parent is the EEO decline (\"Decline to self-identify\"), so the condition does not hold: the drive did not attempt the field (outcome conditional_not_triggered) and it is not counted. The capture also carries no menu DOM for the widget, so its live behavior stays unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017899008",
+      "label": "Do you identify as Trans?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017900008",
+      "label": "Which age range do you belong to?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "16-24",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 8 options for this field; the drive attempted the profile-correct option \"16-24\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     },
+     {
+      "name": "4017901008",
+      "label": "Did you receive free school meals, school uniform or PE kit funding?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "custom select (react-select)",
+      "outcome": "value_did_not_persist",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
+      "unverifiedAgainstLive": true
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 28 mapped questions filled, 11 read back exactly; 17 mapped-not-filled field(s) reconciled per field in this record: 17 custom select(s) unverified-against-live, 1 conditional follow-up(s) gated on the persona's parent answer."
+   }
+  },
+  {
+   "id": "lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7",
+   "family": "lever",
+   "company": "TSMG",
+   "sourceUrl": "https://jobs.lever.co/tsmg/9e43a7f6-3476-482f-9cdd-ed5b73fb9df7/apply",
+   "capturedAt": "2026-10-19T07:24:22.097Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 18,
+    "mapped": 18,
+    "bindError": null,
+    "filledCount": 17,
+    "readbackMatched": 17,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [
+     "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://tsmg.io/terms-and-conditions/) and Whistleblowers Policy (https://tsmg.io/whistleblowers-policy/).✱"
+    ],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]",
+      "filled"
+     ],
+     [
+      "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+      "attestation_stop"
+     ],
+     [
+      "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "filled"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "filled"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "resume": "file input",
+     "name": "text input",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "urls[Twitter]": "text input",
+     "urls[GitHub]": "text input",
+     "urls[Portfolio]": "text input",
+     "urls[Other]": "text input",
+     "cards[415e4314-19c5-45c4-8523-12565bb87917][field0]": "text input",
+     "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]": "native select",
+     "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]": "native select",
+     "eeo[gender]": "native select",
+     "eeo[race]": "native select",
+     "eeo[veteran]": "native select",
+     "consent[marketing]": "checkbox"
+    },
+    "reconciliation": [
+     {
+      "name": "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
+      "label": "By clicking 'I agree,' you are confirming that you have read and agree to the Privacy Policy (https://tsmg.io/privacy-policy/), Terms & Conditions (https://tsmg.io/terms-and-conditions/) and Whistleblowers Policy (https://tsmg.io/whistleblowers-policy/).✱",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "native select",
+      "outcome": "attestation_stop",
+      "attemptedValue": "not attempted (attestation stop)",
+      "reason": "Native <select>, attestation-class: the field asks the applicant to certify or agree (\"By clicking 'I agree,' you are confirming that you have read and agree to the Pr…\"). Attestation-class fields always stop for the person — the drive does not attempt them, on any widget class, and they are never counted filled (widget-gap lane, 2026-10-23). On the base drive this field was attempted and not persisted."
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 17 of 18 mapped questions filled, 17 read back exactly; 1 mapped-not-filled field(s) reconciled per field in this record: 1 attestation-class stop(s)."
+   }
+  },
+  {
+   "id": "lever-cgsfederal-0130d854-9bae-48d4-8ef0-e9da1ee778a5",
+   "family": "lever",
+   "company": "CGS Federal (Contact Government Services)",
+   "sourceUrl": "https://jobs.lever.co/cgsfederal/0130d854-9bae-48d4-8ef0-e9da1ee778a5/apply",
+   "capturedAt": "2026-10-19T07:24:26.702Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 29,
+    "mapped": 16,
+    "bindError": null,
+    "filledCount": 15,
+    "readbackMatched": 14,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "opportunityLocationId",
+      "option_not_found"
+     ],
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "pronouns",
+      "filled"
+     ],
+     [
+      "customPronounsOption",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]",
+      "filled"
+     ],
+     [
+      "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "opportunityLocationId": "native select",
+     "resume": "file input",
+     "name": "text input",
+     "pronouns": "checkbox group",
+     "customPronounsOption": "checkbox",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "urls[GitHub]": "text input",
+     "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field0]": "text input",
+     "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field1]": "radio group",
+     "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field2]": "radio group",
+     "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field3]": "text input",
+     "cards[86462725-f24f-4502-896c-f18ef32d2f0c][field4]": "text input"
+    },
+    "reconciliation": [
+     {
+      "name": "opportunityLocationId",
+      "label": "Which location are you applying for? ✱",
+      "status": "required",
+      "schemaRequired": true,
+      "widgetClass": "native select",
+      "outcome": "option_not_found",
+      "attemptedValue": "Synthetic City",
+      "reason": "Native <select>: the drive attempted the persona's location fact \"Synthetic City\"; none of the captured options (Atlanta, GA / Hybrid / Remote / Charlotte, NC) matches it, and the executor reported option_not_found. The drive does not invent a location preference, so the field stays unfilled on this evidence."
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 15 of 16 mapped questions filled, 14 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 1 mapped-not-filled field(s) reconciled per field in this record: 1 native select(s) with no captured option matching the profile value."
+   }
+  },
+  {
+   "id": "lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027",
+   "family": "lever",
+   "company": "Veeva",
+   "sourceUrl": "https://jobs.lever.co/veeva/9ac55b31-df46-4acb-b305-2c0b7ed56027/apply",
+   "capturedAt": "2026-10-19T07:24:31.222Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 16,
+    "mapped": 14,
+    "bindError": null,
+    "filledCount": 14,
+    "readbackMatched": 14,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]",
+      "filled"
+     ],
+     [
+      "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]",
+      "filled"
+     ],
+     [
+      "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "filled"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "filled"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "resume": "file input",
+     "name": "text input",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field0]": "radio group",
+     "cards[651d37ec-0ef2-40dc-9bf5-6f5973ab81c0][field1]": "radio group",
+     "cards[f7ecb5fe-3e81-46f9-9b63-f1a6b71d53c3][field0]": "checkbox",
+     "eeo[gender]": "native select",
+     "eeo[race]": "native select",
+     "eeo[veteran]": "native select",
+     "consent[marketing]": "checkbox"
+    },
+    "reconciliation": []
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 14 of 14 mapped questions filled, 14 read back exactly; 0 mapped-not-filled field(s) reconciled per field in this record."
+   }
+  },
+  {
+   "id": "lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3",
+   "family": "lever",
+   "company": "Shield AI",
+   "sourceUrl": "https://jobs.lever.co/shieldai/ba945088-38ec-4e58-8f66-01c0497a3bd3/apply",
+   "capturedAt": "2026-10-19T07:24:35.767Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 59,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 28,
+    "readbackMatched": 27,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]",
+      "filled"
+     ],
+     [
+      "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]",
+      "filled"
+     ],
+     [
+      "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]",
+      "filled"
+     ],
+     [
+      "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]",
+      "filled"
+     ],
+     [
+      "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]",
+      "filled"
+     ],
+     [
+      "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "filled"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "filled"
+     ],
+     [
+      "eeo[disability]",
+      "filled"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "resume": "file input",
+     "name": "text input",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "urls[Twitter]": "text input",
+     "urls[GitHub]": "text input",
+     "urls[Portfolio]": "text input",
+     "urls[Other]": "text input",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field0]": "radio group",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field1]": "radio group",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field2]": "text input",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field3]": "text input",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field4]": "text input",
+     "cards[07fdf1f1-9952-493d-a9b7-320969a56fed][field5]": "text input",
+     "cards[a90569ad-6b52-448e-9792-055f7c122285][field0]": "radio group",
+     "cards[a90569ad-6b52-448e-9792-055f7c122285][field1]": "text input",
+     "cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]": "native select",
+     "cards[f27077c2-d069-4885-b031-ee14b393fd41][field1]": "checkbox group",
+     "cards[f27077c2-d069-4885-b031-ee14b393fd41][field2]": "text input",
+     "cards[0712feed-8da9-4a01-9d5f-cc96fcbd4bcc][field0]": "radio group",
+     "eeo[gender]": "native select",
+     "eeo[race]": "radio group",
+     "eeo[veteran]": "native select",
+     "eeo[disability]": "native select",
+     "consent[marketing]": "checkbox"
+    },
+    "reconciliation": []
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 28 of 28 mapped questions filled, 27 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 0 mapped-not-filled field(s) reconciled per field in this record."
+   }
+  },
+  {
+   "id": "lever-weloglobal-6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d",
+   "family": "lever",
+   "company": "Welo Global",
+   "sourceUrl": "https://jobs.lever.co/weloglobal/6e0ac589-3fba-429a-8ce4-5c48a2cf0e2d/apply",
+   "capturedAt": "2026-10-19T07:24:40.435Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 46,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 28,
+    "readbackMatched": 27,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]",
+      "filled"
+     ],
+     [
+      "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]",
+      "filled"
+     ],
+     [
+      "cards[06861205-3484-4dac-b617-20073e0f48a1][field1]",
+      "filled"
+     ],
+     [
+      "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]",
+      "filled"
+     ],
+     [
+      "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field1]",
+      "filled"
+     ],
+     [
+      "cards[913bd467-d4e0-4704-b53a-5e38d194b0dc][field0]",
+      "filled"
+     ],
+     [
+      "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]",
+      "filled"
+     ],
+     [
+      "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]",
+      "filled"
+     ],
+     [
+      "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
+      "filled"
+     ],
+     [
+      "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
+      "filled"
+     ],
+     [
+      "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]",
+      "filled"
+     ],
+     [
+      "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]",
+      "filled"
+     ],
+     [
+      "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]",
+      "filled"
+     ],
+     [
+      "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]",
+      "filled"
+     ],
+     [
+      "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field1]",
+      "filled"
+     ],
+     [
+      "eeo[gender]",
+      "filled"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "resume": "file input",
+     "name": "text input",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "urls[GitHub]": "text input",
+     "urls[Portfolio]": "text input",
+     "urls[Other]": "text input",
+     "cards[ea44e8ee-a90c-4125-a2c0-61b6180b3745][field0]": "radio group",
+     "cards[06861205-3484-4dac-b617-20073e0f48a1][field0]": "radio group",
+     "cards[06861205-3484-4dac-b617-20073e0f48a1][field1]": "text input",
+     "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field0]": "radio group",
+     "cards[0866b7a2-6029-4d89-a1c4-80f92a9faed2][field1]": "text input",
+     "cards[913bd467-d4e0-4704-b53a-5e38d194b0dc][field0]": "text input",
+     "cards[8cfe1243-a612-4d22-850f-c7427a4367bf][field0]": "radio group",
+     "cards[fc56d2b7-dcb1-47f3-8761-bdd604ba056e][field0]": "radio group",
+     "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]": "native select",
+     "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]": "checkbox group",
+     "cards[4e69e9e4-107b-4a16-9a05-17dce7ea3d23][field0]": "text input",
+     "cards[bc571b09-c6fd-4b46-a743-940fa5876863][field0]": "radio group",
+     "cards[dbbf1c66-75e9-49fb-ae8a-c73636628369][field0]": "radio group",
+     "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field0]": "radio group",
+     "cards[9a17bc30-3d83-438e-9d5b-a921cca3a0a1][field1]": "text input",
+     "eeo[gender]": "native select",
+     "eeo[race]": "native select",
+     "eeo[veteran]": "native select"
+    },
+    "reconciliation": []
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 28 of 28 mapped questions filled, 27 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 0 mapped-not-filled field(s) reconciled per field in this record."
+   }
+  },
+  {
+   "id": "lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d",
+   "family": "lever",
+   "company": "Lyra Health",
+   "sourceUrl": "https://jobs.lever.co/lyrahealth/35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d/apply",
+   "capturedAt": "2026-10-19T07:24:43.827Z",
+   "captureMethod": "CI run of .github/workflows/form-capture.yml on ci/form-capture (commit 5d1e51da, 2026-10-19) — scripts/career/render-form.cjs",
+   "captureBotCheck": [
+    "hcaptcha"
+   ],
+   "expectation": {
+    "rawFields": 91,
+    "mapped": 28,
+    "bindError": null,
+    "filledCount": 27,
+    "readbackMatched": 23,
+    "submitControl": true,
+    "driveError": null,
+    "driveErrorDetail": null,
+    "fileQuestions": [
+     "resume"
+    ],
+    "attestation": [
+     "If you are a Lyra employee, do you certify you have reviewed the Internal Mobility Policy and meet the requirements?"
+    ],
+    "fills": [
+     [
+      "resume",
+      "filled"
+     ],
+     [
+      "name",
+      "filled"
+     ],
+     [
+      "pronouns",
+      "filled"
+     ],
+     [
+      "customPronounsOption",
+      "filled"
+     ],
+     [
+      "email",
+      "filled"
+     ],
+     [
+      "phone",
+      "filled"
+     ],
+     [
+      "location",
+      "filled"
+     ],
+     [
+      "org",
+      "filled"
+     ],
+     [
+      "urls[LinkedIn]",
+      "filled"
+     ],
+     [
+      "urls[Twitter]",
+      "filled"
+     ],
+     [
+      "urls[GitHub]",
+      "filled"
+     ],
+     [
+      "urls[Portfolio]",
+      "filled"
+     ],
+     [
+      "urls[Other]",
+      "filled"
+     ],
+     [
+      "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]",
+      "filled"
+     ],
+     [
+      "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]",
+      "filled"
+     ],
+     [
+      "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "attestation_stop"
+     ],
+     [
+      "eeo[gender]",
+      "filled"
+     ],
+     [
+      "eeo[race]",
+      "filled"
+     ],
+     [
+      "eeo[veteran]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]",
+      "filled"
+     ],
+     [
+      "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]",
+      "filled"
+     ],
+     [
+      "consent[marketing]",
+      "filled"
+     ]
+    ],
+    "fieldClasses": {
+     "resume": "file input",
+     "name": "text input",
+     "pronouns": "checkbox group",
+     "customPronounsOption": "checkbox",
+     "email": "text input",
+     "phone": "text input",
+     "location": "text input",
+     "org": "text input",
+     "urls[LinkedIn]": "text input",
+     "urls[Twitter]": "text input",
+     "urls[GitHub]": "text input",
+     "urls[Portfolio]": "text input",
+     "urls[Other]": "text input",
+     "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field0]": "radio group",
+     "cards[dad87a9b-052f-4cbc-a67d-b9fd6d8189ff][field1]": "radio group",
+     "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field0]": "radio group",
+     "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field1]": "checkbox group",
+     "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field2]": "text input",
+     "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]": "radio group",
+     "eeo[gender]": "native select",
+     "eeo[race]": "native select",
+     "eeo[veteran]": "native select",
+     "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]": "radio group",
+     "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field1]": "checkbox group",
+     "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field2]": "radio group",
+     "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field3]": "checkbox group",
+     "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field4]": "radio group",
+     "consent[marketing]": "checkbox"
+    },
+    "reconciliation": [
+     {
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "If you are a Lyra employee, do you certify you have reviewed the Internal Mobility Policy and meet the requirements?",
+      "status": "optional",
+      "schemaRequired": false,
+      "widgetClass": "radio group",
+      "outcome": "attestation_stop",
+      "attemptedValue": "not attempted (attestation stop)",
+      "reason": "Radio group, attestation-class: the field asks the applicant to certify or agree (\"If you are a Lyra employee, do you certify you have reviewed the Internal Mobili…\"). Attestation-class fields always stop for the person — the drive does not attempt them, on any widget class, and they are never counted filled (widget-gap lane, 2026-10-23). On the base drive this field was counted filled; that count is withdrawn."
+     }
+    ]
+   },
+   "claim": {
+    "status": "claimable",
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 27 of 28 mapped questions filled, 23 read back exactly (4 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 1 mapped-not-filled field(s) reconciled per field in this record: 1 attestation-class stop(s)."
+   }
+  }
+ ],
+ "alreadyPinnedElsewhere": [
+  {
+   "id": "ashby-openai-8fb1615c-34bf-47c4-a1d1-b7b2f836bbd3",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-airwallex-cba0ab2e-5ab8-416b-ac9b-115638e3c65c",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-lilt-production-959498b8-a18e-457b-9e93-07662c38f3d3",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-snowflake-479e06f1-273d-4a1b-af56-6543761ebd75",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-crusoe-b1b99030-d393-4329-80fe-5bc2e4c93b03",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  },
+  {
+   "id": "ashby-harvey-977e6184-2dc4-422b-8ab3-bc26bb73f778",
+   "family": "ashby",
+   "pinnedBy": "Ashby verdict pack (branch muse/2026-10-23-ashby-verdict-pack @ fac7aa1a, tests/fixtures/ashby-verdict-pack-expected.json) — 87/87 questions mapped, filled+verified, read back exactly across the 6 forms"
+  }
+ ],
+ "notCaptured": [
+  {
+   "id": "greenhouse-databricks-8805655002",
+   "family": "greenhouse",
+   "manifestStatus": "no_application"
+  },
+  {
+   "id": "smartrecruiters-dominos-744000156228029",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-crossmark1-743999658732332",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-sonsoftinc-743999659849811",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-aecom2-744000156234495",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-boschgroup-744000156241489",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  },
+  {
+   "id": "smartrecruiters-sgs-744000156234274",
+   "family": "smartrecruiters",
+   "manifestStatus": "blocked_403"
+  }
+ ],
+ "palantirCapturesInFormsCi": 0,
+ "widgetClassClaims": [
+  {
+   "family": "greenhouse",
+   "widgetClass": "text input",
+   "mapped": 49,
+   "filled": 49,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+  },
+  {
+   "family": "greenhouse",
+   "widgetClass": "custom select (react-select)",
+   "mapped": 75,
+   "filled": 0,
+   "verdict": "unverified-against-live",
+   "note": "Every non-filled field of this class is labeled unverified-against-live per field in the reconciliation: the stripped capture carries no menu DOM for these widgets, so the drive cannot open or set them here and whether the profile-correct option (from the captured boards-API evidence, where the capture carries it) persists on the live form is unverified. Live comparison held, not scheduled."
+  },
+  {
+   "family": "greenhouse",
+   "widgetClass": "file input",
+   "mapped": 11,
+   "filled": 11,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+  },
+  {
+   "family": "greenhouse",
+   "widgetClass": "number input",
+   "mapped": 3,
+   "filled": 3,
+   "verdict": "covered",
+   "note": "All 3 education-year number inputs now fill with the profile's numeric year and read back exactly (widget-gap lane, 2026-10-23); on the base drive they were attempted with a date string and returned DRIVER_ERROR."
+  },
+  {
+   "family": "greenhouse",
+   "widgetClass": "checkbox",
+   "mapped": 1,
+   "filled": 1,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "file input",
+   "mapped": 6,
+   "filled": 6,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "text input",
+   "mapped": 68,
+   "filled": 68,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "native select",
+   "mapped": 20,
+   "filled": 18,
+   "verdict": "partial",
+   "note": "Native selects now take the profile's value (widget-gap lane, 2026-10-23): EEO selects the decline option, the country select the persona's country, the relocation card a real option. Still unfilled: 1 attestation-class select (stops for the person, never counted) and 1 location-choice select whose captured options hold no match for the persona's location (option_not_found)."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "checkbox",
+   "mapped": 7,
+   "filled": 7,
+   "verdict": "covered",
+   "note": "Every mapped field of this class filled."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "checkbox group",
+   "mapped": 7,
+   "filled": 7,
+   "verdict": "partial",
+   "note": "Fills persisted; read-back exceptions are named per form in the doc (pronouns groups)."
+  },
+  {
+   "family": "lever",
+   "widgetClass": "radio group",
+   "mapped": 24,
+   "filled": 23,
+   "verdict": "partial",
+   "note": "One radio field is attestation-class (a Lyra certification question): it stops for the person and is never counted filled (widget-gap lane, 2026-10-23) — on the base drive it was counted filled. Every other mapped radio filled."
+  }
+ ]
+}

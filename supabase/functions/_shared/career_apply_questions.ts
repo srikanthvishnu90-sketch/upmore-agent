@@ -21,6 +21,7 @@ import { factType, mapQuestion, NEVER_BY_TEXT } from "./question_map.ts";
 import { readAiPolicy } from "./ai_policy.ts";
 import { type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
 import { needsText, type Situation } from "./career_situation.ts";
+import { draftNote, eligibilityDraft, eligibilityFactOf, type Said } from "./eligibility_draft.ts";
 
 export interface OpenQuestion {
   id: string;
@@ -48,6 +49,9 @@ export interface QuestionStore {
   // Every stored question (open or answered) on these postings: the employer's AI policy may be any of them (WO-030).
   // Without it no essay is drafted.
   onPostings?(userId: string, jobIds: string[]): Promise<OpenQuestion[]>;
+  // G2: the person's own chat messages about sponsorship or work authorization, word for word with when they were said.
+  // Without it, nothing is offered from them.
+  statements?(userId: string): Promise<Said[]>;
 }
 
 export const QUESTIONS_INTENT = "career_apply_questions";
@@ -176,7 +180,10 @@ const offerDraft = (q: OpenQuestion) =>
   q.kind === "essay" && !["prohibited", "unread"].includes(readAiPolicy([q.label, q.ai_policy ?? ""]).policy);
 
 // The questions that fit one text: at most 5, under 1,600 characters with two or more, and the first always.
-export function questionsText(qs: OpenQuestion[], total: number): { take: OpenQuestion[]; text: string } | null {
+// G2: notes(q, n) adds a line under a question (the person's own earlier words, offered as a draft).
+export function questionsText(
+  qs: OpenQuestion[], total: number, notes?: (q: OpenQuestion, n: number) => string | null,
+): { take: OpenQuestion[]; text: string } | null {
   const ask = qs.filter((q) => !NEVER_BY_TEXT.test(q.label));
   if (!ask.length) return null;
   const take: OpenQuestion[] = [];
@@ -191,7 +198,7 @@ export function questionsText(qs: OpenQuestion[], total: number): { take: OpenQu
       draftable >= 0 ? `For a written answer, say "draft ${draftable + 1}" and I'll draft it from your confirmed facts for you to check first.` : "",
       rest > 0 ? `${rest} more after these.` : "",
     ].filter(Boolean).join(" ");
-    return [head, ...list.map((q, i) => line(q, i + 1)), foot].join("\n");
+    return [head, ...list.flatMap((q, i) => [line(q, i + 1), notes?.(q, i + 1) ?? ""].filter(Boolean)), foot].join("\n");
   };
   for (const q of ask.slice(0, PER_TEXT)) {
     if (take.length && build([...take, q]).length > TEXT_BUDGET) break;
@@ -216,7 +223,11 @@ export async function questionsTurn(
 ): Promise<{ reply: string; status: string } | null> {
   if (isAsk(o.message)) {
     const [open, total] = await Promise.all([o.store.open(o.userId, 20), o.store.countOpen(o.userId)]);
-    const t = questionsText(open, Math.max(total, open.length));
+    const offers = await eligibilityOffers(o.store, o.userId, open);
+    const t = questionsText(open, Math.max(total, open.length), (q, n) => {
+      const d = offers.get(q.id);
+      return d ? draftNote(d.draft, d.value, n) : null;
+    });
     const rest = o.situation ? needsText(o.situation, { questionsShown: !!t }) : null;
     if (!t) {
       if (rest) return { reply: rest, status: "none" };
@@ -226,7 +237,14 @@ export async function questionsTurn(
         status: "none",
       };
     }
-    await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at: new Date(o.now).toISOString() });
+    const at = new Date(o.now).toISOString();
+    // G2: an offered draft waits beside the questions shown, and only "use N" saves it (draftTurn), as an essay draft does.
+    const drafts: Record<string, PendingDraft> = {};
+    t.take.forEach((q, i) => {
+      const d = offers.get(q.id);
+      if (d) drafts[q.id] = { text: d.value, at, n: i + 1 };
+    });
+    await o.store.setShown(o.userId, { thread: o.threadId, ids: t.take.map((q) => q.id), at, ...(Object.keys(drafts).length ? { drafts } : {}) });
     return { reply: rest ? `${t.text}\n\n${rest}` : t.text, status: "shown" };
   }
   // An answer counts only while the questions were this thread's last word, and only for a day. This runs on every turn,
@@ -275,6 +293,29 @@ export async function questionsTurn(
     left > 0 && !open.length ? `${left} more question${left === 1 ? "" : "s"} waiting; say "what do you need from me" for ${left === 1 ? "it" : "them"}.` : "",
   ].filter(Boolean).join("\n");
   return { reply, status: open.length ? "partial" : "answered" };
+}
+
+// G2: for each open sponsorship or work-authorization question, the person's own newest clear statement about it, when
+// it fits the question's own choices. A reader that fails offers nothing; the questions are shown as before.
+async function eligibilityOffers(store: QuestionStore, userId: string, open: OpenQuestion[]) {
+  const out = new Map<string, { draft: NonNullable<ReturnType<typeof eligibilityDraft>>; value: string }>();
+  const asked = open.map((q) => ({ q, fact: eligibilityFactOf(q) })).filter((x) => x.fact !== null);
+  if (!asked.length || !store.statements) return out;
+  let said: Said[];
+  try {
+    said = await store.statements(userId);
+  } catch (e) {
+    console.error("questions: statements not read", e instanceof Error ? e.message : String(e));
+    return out;
+  }
+  for (const { q, fact } of asked) {
+    if (NEVER_BY_TEXT.test(q.label)) continue;
+    const draft = eligibilityDraft(fact!, said);
+    if (!draft) continue;
+    const c = checkAnswer(q, draft.value);
+    if (c.ok) out.set(q.id, { draft, value: c.value });
+  }
+  return out;
 }
 
 // "draft 2", "redo 2", "use 2": only for a number shown, while the questions are this thread's last word, for a day.
@@ -404,6 +445,19 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
         await admin.from("career_apply_questions").select(COLS).eq("user_id", userId).overlaps("job_ids", jobIds).limit(200),
         "read the posting's questions",
       ) ?? []).map(shape);
+    },
+    // G2: the person's own messages (their threads, role user) that mention sponsorship or authorization, newest 200.
+    async statements(userId) {
+      const threads = (must(await admin.from("agent_threads").select("id").eq("user_id", userId).limit(500), "read the person's threads") ?? [])
+        .map((t: any) => t.id);
+      if (!threads.length) return [];
+      const rows = must(
+        await admin.from("agent_messages").select("content,created_at").in("thread_id", threads).eq("role", "user")
+          .or("content.ilike.%sponsor%,content.ilike.%authori%,content.ilike.%eligible to work%,content.ilike.%permitted to work%,content.ilike.%work authoris%")
+          .order("created_at", { ascending: false }).limit(200),
+        "read the person's own statements",
+      ) ?? [];
+      return rows.filter((r: any) => typeof r.content === "string" && r.created_at).map((r: any) => ({ text: r.content, at: String(r.created_at) }));
     },
     async lastAssistantIntent(threadId) {
       const rows = must(

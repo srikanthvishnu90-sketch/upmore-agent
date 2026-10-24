@@ -1,0 +1,123 @@
+<!doctype html>
+<!-- SYNTHETIC FIXTURE — constructed 2026-10-24 for react-select capability testing
+     (tests/career-extension-react-select.test.cjs). NOT captured from any site;
+     no captured-form provenance of any kind. The markup models the react-select
+     library's rendered DOM (control / value-container / select__input / Toggle
+     flyout button / select__menu / select__option) and a stand-in script plays
+     the employer's part, so the product's own widget driver can be exercised
+     against menus that actually open. An attestation-class widget beside a plain one: the attestation always stops for the person. -->
+<html><head><meta charset="utf-8"><title>synthetic react-select: attestation</title>
+<style>
+  .select__option { display:block; padding:8px 12px; min-height:20px; cursor:pointer; }
+  .select__menu { border:1px solid #888; }
+  .select__single-value { display:inline-block; }
+  .synthetic-field { margin:16px 0; }
+</style></head>
+<body>
+<div id="app"></div>
+<script>
+window.__SYNTHETIC_FIELDS = [
+ {
+  "id": "question_agree",
+  "label": "I agree to the Privacy Policy and Terms",
+  "required": true,
+  "options": [
+   "I agree",
+   "I do not agree"
+  ]
+ },
+ {
+  "id": "country",
+  "label": "Country",
+  "required": true,
+  "options": [
+   "Canada",
+   "United States",
+   "Mexico"
+  ]
+ }
+];
+</script>
+<script>
+for (const f of window.__SYNTHETIC_FIELDS) {
+  const wrap = document.createElement("div");
+  wrap.className = "synthetic-field";
+  wrap.innerHTML =
+    '<div class="select"><div class="select__container">' +
+    '<label id="' + f.id + '-label" for="' + f.id + '" class="label select__label">' + f.label +
+    (f.required ? '<span aria-hidden="true">*</span>' : '') + '</label>' +
+    '<div class="select-shell"><div class="select__control">' +
+    '<div class="select__value-container">' +
+    '<div class="select__placeholder" id="react-select-' + f.id + '-placeholder">Select...</div>' +
+    '<div class="select__input-container" data-value="">' +
+    '<input class="select__input" id="' + f.id + '" role="combobox" aria-expanded="false" aria-controls="react-select-' + f.id + '-listbox" value="">' +
+    '</div></div>' +
+    '<div class="select__indicators"><button type="button" aria-label="Toggle flyout" class="select__toggle">&#9662;</button></div>' +
+    '</div></div></div></div>';
+  document.getElementById("app").appendChild(wrap);
+}
+</script>
+<script>
+// The employer's part (a react-select stand-in): the menu exists only once the
+// toggle is pressed; picking an option renders it as the single value and closes
+// the menu; Escape closes it; opening one menu closes any other. Per-field
+// variants: "never-open" (the toggle does nothing), "empty" (the menu opens with
+// only a no-options notice), "wrong-render" (whatever option is picked, the
+// widget renders a DIFFERENT option's text as its value).
+(function () {
+  const cfg = Object.fromEntries(window.__SYNTHETIC_FIELDS.map((f) => [f.id, f]));
+  document.querySelectorAll(".select__container").forEach((container) => {
+    const input = container.querySelector("input.select__input");
+    const conf = cfg[input.id]; if (!conf) return;
+    const control = container.querySelector(".select__control");
+    const toggle = container.querySelector("button[aria-label*='flyout' i]");
+    let menu = null;
+    const close = () => { if (menu) { menu.remove(); menu = null; } input.setAttribute("aria-expanded", "false"); };
+    const pick = (text) => {
+      const shown = conf.variant === "wrong-render"
+        ? conf.options[(conf.options.indexOf(text) + 1) % conf.options.length] : text;
+      const vc = container.querySelector(".select__value-container");
+      const ph = vc.querySelector(".select__placeholder"); if (ph) ph.remove();
+      const old = vc.querySelector(".select__single-value"); if (old) old.remove();
+      const sv = document.createElement("div");
+      sv.className = "select__single-value";
+      sv.textContent = shown;
+      vc.insertBefore(sv, vc.querySelector(".select__input-container"));
+      input.value = "";
+      close();
+    };
+    const open = () => {
+      if (menu || conf.variant === "never-open") return;
+      menu = document.createElement("div"); menu.className = "select__menu";
+      const list = document.createElement("div");
+      list.className = "select__menu-list"; list.setAttribute("role", "listbox");
+      list.id = "react-select-" + input.id + "-listbox";
+      if (conf.variant === "empty") {
+        const n = document.createElement("div");
+        n.className = "select__menu-notice--no-options";
+        n.textContent = "No options";
+        list.appendChild(n);
+      } else {
+        conf.options.forEach((text, i) => {
+          const o = document.createElement("div");
+          o.className = "select__option"; o.setAttribute("role", "option");
+          o.id = "react-select-" + input.id + "-option-" + i;
+          o.textContent = text;
+          o.addEventListener("mousedown", (e) => { e.preventDefault(); pick(text); });
+          list.appendChild(o);
+        });
+      }
+      menu.appendChild(list);
+      control.parentElement.appendChild(menu);
+      input.setAttribute("aria-expanded", "true");
+    };
+    if (toggle) toggle.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      if (menu) close();
+      else { document.querySelectorAll(".select__menu").forEach((m) => m.remove()); open(); }
+    });
+    input.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  });
+})();
+</script>
+</body></html>

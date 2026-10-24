@@ -28,7 +28,12 @@ select t.ok((select not tailored and resume_sha256=repeat('d',64) from career_ap
 select t.ok((select not tailored and resume_persona is null and resume_sha256=repeat('b',64) from career_apply_jobs where job_id='TEST-T4'),'no tailored claim: untailored, the resume still recorded');
 select t.ok((select not tailored and resume_sha256 is null from career_apply_jobs where job_id='TEST-T5'),'a malformed hash records nothing');
 select t.ok((select tailored and resume_persona is null from career_apply_jobs where job_id='TEST-T6'),'a persona name past 24 characters is not kept');
-update career_apply_jobs set payload=payload||'{"resume_tailored":true}' where job_id='TEST-T4';
+-- G3 (20261025100000): an approved payload changes only when a refused application is approved again, to a payload that
+-- hashes to its new approval; this is that path.
+update career_apply_jobs set state='not_submitted' where job_id='TEST-T4';
+update career_apply_jobs set payload=payload||'{"resume_tailored":true}',
+ payload_hash=career_apply_payload_hash(payload||'{"resume_tailored":true}'), approval_hash=career_apply_payload_hash(payload||'{"resume_tailored":true}')
+ where job_id='TEST-T4';
 select t.ok((select tailored and resume_persona='banking' from career_apply_jobs where job_id='TEST-T4'),'a changed payload is tagged again from the file');
 -- The real enqueue path is tagged the same way.
 insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-000000000961','career:account','{"epoch":1,"version":1,"paused":false}');

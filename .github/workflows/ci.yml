@@ -6,11 +6,35 @@ permissions:
   contents: read
 jobs:
   gate:
+    name: gate (core)
     runs-on: ubuntu-24.04
     # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
     # cancelled it (5470fe98). Consolidating the fix line onto trunk (PR #156) added ~270 tests and the 15-minute cap
     # cancelled the first run. Headroom, not a target: a slower gate is still a finding.
+    # 2026-10-23: the 30-minute cap cancelled every run on the widget-carrying branches — 12 push runs, all
+    # cancelled at ~30.3 min (integration efb68e46, 2f1e236a, eb24100e, 9e98a70e; widget-gap 4dce7cea, e8ce6423,
+    # e37521e4, 5af0a3af, f9e79bdd, dd24a4f1, b9974d32, 61566669) — while the arch/eligibility line, which does not
+    # carry the react-select battery, passed. The growth is the node step: one invocation over the whole
+    # career+shared list (267 suites at this head) whose Chromium-driving members each pay browser launches and
+    # serial form drives. Remedy: GATE_PARTITION splits that step's list between this job (core: 248 suites,
+    # every other step included) and gate-browser (the 19 Chromium-driving suites), running in parallel — see
+    # scripts/gate.sh. Every suite still runs and still gates: neither job is advisory or continue-on-error, and
+    # a failure in either fails the run. The fix VM could not time the drives locally (no deno there, a
+    # Playwright/browser revision mismatch, unprivileged user namespaces restricted), so the split rests on the
+    # CI record above and the suite counts; the per-job durations of the first green runs belong in this comment
+    # next, and a partition nearing the cap is the next finding, not a reason to raise it quietly.
+    # Correction, later the same day: the attribution above misplaces the growth. Five of the cancelled widget-gap
+    # runs (61566669, b9974d32, dd24a4f1, f9e79bdd, 5af0a3af) predate the react-select battery entirely, and the
+    # battery itself runs in ~11 s — it is exonerated. The heavy add is one suite,
+    # tests/career-forms-ci-coverage.test.cjs (40 serial fixture drives against a 2,778-line expected pin; a
+    # single fixture drive measured at 148 s locally), on top of an arch-line gate that succeeds at 19.0-19.2 min
+    # with this same gate script byte-identical. The split is therefore three-way: this job (core, still 248
+    # suites), gate-browser (the other 18 Chromium suites) and gate-coverage (the forms-ci suite alone, in its
+    # own parallel job). Inventory, assertions and artifact coverage are unchanged: wherever the suite runs it
+    # reads its committed pin and writes only to a temp dir, and its verdict gates exactly as before.
     timeout-minutes: 30
+    env:
+      GATE_PARTITION: core
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,6 +79,148 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
+  gate-browser:
+    name: gate (browser)
+    runs-on: ubuntu-24.04
+    # The other Chromium-driving suites of the gate, split out 2026-10-23 (see the gate job's comment history
+    # and scripts/gate.sh's partition note; the forms-ci coverage suite has its own job, gate-coverage).
+    # Runs in parallel with gate (core); neither job is advisory, and a failure here fails the run exactly as
+    # it did inside the single job.
+    timeout-minutes: 30
+    env:
+      GATE_PARTITION: browser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Install tooling and use the runner's packaged Chrome
+        run: |
+          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
+          # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
+          npm ci --prefix tools --no-audit --no-fund
+          # tests/career-extension-sync.test.cjs loads jsdom from packages/extension/tools' own lockfile.
+          npm ci --prefix packages/extension/tools --no-audit --no-fund
+          # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
+          # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
+          (cd tools && npx --no-install playwright install chromium)
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
+          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
+          echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
+      - name: Allow sandboxed Chromium user namespaces for this gate job
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Career gate
+        # The gate's result is also written as annotations (readable through the checks API, where a job log may not
+        # be): the step summary lines, then the failing tests' names.
+        run: |
+          set -o pipefail
+          bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"
+      - name: Gate result as annotations
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/gate.log" || exit 0
+          summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
+          [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
+          failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
+          [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
+          # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
+          sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          exit 0
+  gate-coverage:
+    name: gate (forms-ci coverage)
+    runs-on: ubuntu-24.04
+    # The forms-ci coverage suite alone (see the gate job's correction note): 40 serial Chromium fixture drives
+    # whose cost is irreducible inside any shared job's sum, so the suite gets a parallel job of its own. It
+    # reads its committed expected pin and writes only to a temp dir; its verdict gates exactly as it did inside
+    # the single job — nothing about the suite, its assertions or its artifacts changes, only its scheduling.
+    # The 60 here is measured, not padded: timed locally on the fix VM, this suite's first form drives took
+    # 152.7 s and 327.6 s apiece (a second local run independently put the same first drive at 148 s), and
+    # there are 11 form drives plus the suite's own re-drives — the suite alone sums past any 30-minute job
+    # it shares, and past 30 even solo on a slow VM. Speeding the drives instead (a shared browser context)
+    # was rejected: the suite's fresh-session-per-form isolation is part of what its pins prove, and changing
+    # it would change the artifact, not just the schedule. So the coverage job's budget is set from the
+    # measurement, to be re-baselined from the first green CI run's duration and recorded in the gate job's
+    # history. Headroom, not a target: the finding stands — this suite's serial drive cost is the gate's
+    # long pole, and it grows with every captured form.
+    timeout-minutes: 60
+    env:
+      GATE_PARTITION: coverage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Install tooling and use the runner's packaged Chrome
+        run: |
+          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
+          # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
+          npm ci --prefix tools --no-audit --no-fund
+          # tests/career-extension-sync.test.cjs loads jsdom from packages/extension/tools' own lockfile.
+          npm ci --prefix packages/extension/tools --no-audit --no-fund
+          # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
+          # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
+          (cd tools && npx --no-install playwright install chromium)
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
+          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
+          echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
+      - name: Allow sandboxed Chromium user namespaces for this gate job
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Set the coverage diagnostics path
+        # The coverage suite's diagnostics (2026-10-24): an append-only JSONL of
+        # per-drive steps/elapsed + failing tests' assertion text, uploaded
+        # below and summarized by the suite itself into this job's step summary
+        # and ::error annotations. Observation only — no outcome reads it. The
+        # path is set here, not in job-level env: the runner context is not
+        # available there (its use at job level invalidated the whole workflow
+        # at 3d870456/c18462d1 — zero jobs ran).
+        run: echo "FORMS_CI_COVERAGE_DIAG=$RUNNER_TEMP/forms-ci-coverage-diag.jsonl" >> "$GITHUB_ENV"
+      - name: Career gate
+        # The gate's result is also written as annotations (readable through the checks API, where a job log may not
+        # be): the step summary lines, then the failing tests' names.
+        run: |
+          set -o pipefail
+          bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"
+      - name: Gate result as annotations
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/gate.log" || exit 0
+          summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
+          [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
+          failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
+          [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
+          # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
+          sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          # forms-ci coverage diagnostics read-back (2026-10-24): the diag JSONL is appended event-by-event
+          # during the drives, so it exists even when a test timeout kills the suite file before its
+          # test.after summary can run — and the suite's own ::error prints are TAP-prefixed under
+          # node --test and never parsed. This reader emits the failure records (fixture id, failing step,
+          # elapsed ms, error text) from the JSONL's already-redacted fields only, as ::error lines in
+          # this step's raw output, where the workflow-command parser does see them.
+          if [ -n "${FORMS_CI_COVERAGE_DIAG:-}" ] && [ -f "$FORMS_CI_COVERAGE_DIAG" ]; then
+            node scripts/forms-ci-diag-annotations.cjs "$FORMS_CI_COVERAGE_DIAG" || true
+          fi
+          exit 0
+      - name: Upload forms-ci coverage diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms-ci-coverage-diag
+          path: ${{ runner.temp }}/forms-ci-coverage-diag.jsonl
+          if-no-files-found: ignore
   database:
     runs-on: ubuntu-24.04
     steps:

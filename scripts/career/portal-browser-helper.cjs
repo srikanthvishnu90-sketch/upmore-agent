@@ -428,6 +428,14 @@ async function fillOnceHandles(board, cmd) {
   if (b.inputType === "select") {
     const hit = matchOption(b.options || [], value);
     if (!hit) return { filled: false, reason: "option_not_found", wanted: String(value) };
+    // A select's first option with an empty value is its placeholder prompt
+    // ("Select...", "Please select an option"), not an answer: selecting it
+    // leaves the field unanswered even though the DOM takes the value (a
+    // placeholder pick on a Shield AI card select was counted as a fill in
+    // the forms-ci coverage measurement, 2026-10-23). Refuse it by name.
+    if (hit.value === "" && (b.options || []).indexOf(hit) === 0) {
+      return { filled: false, reason: "placeholder_option", wanted: String(value) };
+    }
     await nodes[0].selectOption({ value: hit.value });
     return { filled: true, expect: hit.label };
   }
@@ -445,8 +453,126 @@ async function fillOnceHandles(board, cmd) {
     if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
     return { filled: true, expect: value === true || value === "true" ? true : "__absent__" };
   }
+  // A number input takes a number: a non-numeric value (a date string sent to
+  // an education-year field measured DRIVER_ERROR in the forms-ci coverage
+  // pack, 2026-10-23) is refused by name instead of crashing the fill, so the
+  // caller records a truthful non-fill and moves on.
+  const elType = await nodes[0].evaluate((el) => (el.tagName === "INPUT" ? el.type : "")).catch(() => "");
+  if (elType === "number") {
+    const t = String(value).trim();
+    if (t === "" || Number.isNaN(Number(t))) return { filled: false, reason: "value_not_numeric", wanted: String(value) };
+  }
   await nodes[0].fill(String(value));
   return { filled: true, expect: String(value) };
+}
+
+/* The option matcher the widget drive runs inside the page: scan the
+ * rendered option pools and mark (data-upmore-opt) the option that
+ * names the wanted value, strongest match first. Returns the marked
+ * option's text, or null. Shared by the ladder's poll and the
+ * menu-first read, so both judge a rendered list by exactly the same
+ * strengths. */
+function fnMarkMatchingOption({ tok, full, declineSrc }) {
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  document.querySelectorAll("[data-upmore-opt]").forEach((e) => e.removeAttribute("data-upmore-opt"));
+  const pools = [".select__option", '[role="option"]', '[role="listbox"] *', ".pac-item", '[class*="suggestion"] *', '[class*="autocomplete"] *'];
+  // Match strength, strongest first: exact normalized; then the
+  // wanted value's own first segment; then decline-class (only
+  // when the WANTED value is itself decline-class — D8/BUG-067);
+  // then first-token containment; then an option that is a
+  // normalized PREFIX of the wanted value. Weaker hits are used
+  // only when nothing stronger exists anywhere in the list.
+  const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
+  let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
+  const declineRe = new RegExp(declineSrc);
+  const isDecline = (s) => declineRe.test(norm(s));
+  const wantedDecline = isDecline(full);
+  for (const sel of pools) {
+    for (const el of Array.from(document.querySelectorAll(sel))) {
+      if (!vis(el)) continue;
+      const t = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+      if (!t || t.length >= 90) continue;
+      if (norm(t) === norm(full)) { el.setAttribute("data-upmore-opt", "1"); return t; }
+      if (!segHit && seg && norm(t) === norm(seg)) segHit = { el, t };
+      if (!declineHit && wantedDecline && isDecline(t)) declineHit = { el, t };
+      if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
+      if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
+    }
+  }
+  const hit = segHit || declineHit || tokenHit || prefixHit;
+  if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
+  return null;
+}
+/* The pick fallback the widget drive runs inside the page when React
+ * re-created the marked option node before the real click could land:
+ * find the option fresh by its text and dispatch the pointer sequence
+ * on it directly (react-select selects on mousedown). */
+function fnPickMarkedOption(t) {
+  const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const pools = [".select__option", '[role="option"]', '[role="listbox"] *'];
+  for (const sel of pools) {
+    for (const el of Array.from(document.querySelectorAll(sel))) {
+      if (!vis(el)) continue;
+      const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+      if (txt === t || norm(txt) === norm(t)) {
+        for (const type of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+        return true;
+      }
+    }
+  }
+  return false;
+}
+/* MENU-FIRST READ (2026-10-24): the drive's opening click has already
+ * opened the widget's menu. Before anything is typed into the search
+ * box — typing filters the menu by the typed text, and an option whose
+ * label shares no token with the wanted value (the board's decline
+ * wording against "Decline to self-identify") filters itself out of
+ * its own menu, reachable again only at the ladder's cleared-search
+ * rung, sixteen fixed polls later — read the options the opened menu
+ * actually renders and judge the wanted value against that list with
+ * the ladder's own matcher. A pick counts only when the widget's own
+ * single-value renders it (the same verification the ladder's pick and
+ * cmdFill apply). When the opened menu renders no options at all (a
+ * scriptless capture, a search-first widget), renders no match, or a
+ * pick does not land, this returns null and the ladder below runs
+ * unchanged: the menu read is a first look, never a second verdict.
+ * A value the widget already renders earns the ladder's own early
+ * return before any pick — a landed value is never re-picked. */
+async function pickFromOpenMenu(board, b, wanted, tok) {
+  const page = board.page;
+  const existing = await page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+  if (existing) {
+    const nGot = normPersist(existing), nWant = normPersist(wanted);
+    if (nGot === nWant || (nGot.length >= 4 && nWant.startsWith(nGot)) || nWant.endsWith(nGot)) {
+      return { expect: existing, chosenText: wanted, via: "widget_option_pick" };
+    }
+    return null;
+  }
+  // The menu renders a beat after the opening click; poll briefly for
+  // any rendered option. Presence only — the matcher judges the list.
+  let rendered = false;
+  for (let i = 0; i < 6 && !rendered; i++) {
+    rendered = await page.evaluate(() => {
+      const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+      return Array.from(document.querySelectorAll('.select__option, [role="option"]')).some(vis);
+    }).catch(() => false);
+    if (!rendered) await page.waitForTimeout(150);
+  }
+  if (!rendered) return null;
+  const chosen = await page.evaluate(fnMarkMatchingOption, { tok, full: wanted, declineSrc: EEO_DECLINE_SOURCE }).catch(() => null);
+  if (!chosen) return null;
+  const clicked = await page.click('[data-upmore-opt="1"]', { timeout: 5000 }).then(() => true).catch(() => false);
+  if (!clicked) await page.evaluate(fnPickMarkedOption, chosen).catch(() => false);
+  await page.waitForTimeout(300);
+  let svText = null;
+  for (let svTry = 0; svTry < 4 && !svText; svTry++) {
+    svText = await page.evaluate(fnWidgetValue, b.selector).catch(() => null);
+    if (!svText) await page.waitForTimeout(300);
+  }
+  if (!svText) { await page.keyboard.press("Escape").catch(() => {}); return null; }
+  return { expect: svText, chosenText: chosen, via: "widget_option_pick" };
 }
 
 /* The react-select widget drive (BUG-207/BUG-237, ported): the visible
@@ -472,6 +598,11 @@ async function driveWidget(board, cmd) {
   // live widget answers in milliseconds, a dead one fails inside
   // one bounded drive and the fill loop moves on.
   await page.click(b.selector, { timeout: 8000 }).catch(() => {});
+  // MENU-FIRST READ: judge the opened menu's rendered options before
+  // typing anything (see pickFromOpenMenu). A landed pick returns
+  // here; anything else falls through to the ladder below, unchanged.
+  const menuPick = await pickFromOpenMenu(board, b, wanted, tok);
+  if (menuPick) return menuPick;
   await page.fill(b.selector, "", { timeout: 5000 }).catch(() => {});
   await page.type(b.selector, wanted, { delay: 25, timeout: 5000 }).catch(() => {});
   let chosen = null;
@@ -526,38 +657,7 @@ async function driveWidget(board, cmd) {
         await page.waitForTimeout(400);
       }
     }
-    chosen = await page.evaluate(({ tok, full, declineSrc }) => {
-      const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
-      const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-      document.querySelectorAll("[data-upmore-opt]").forEach((e) => e.removeAttribute("data-upmore-opt"));
-      const pools = [".select__option", '[role="option"]', '[role="listbox"] *', ".pac-item", '[class*="suggestion"] *', '[class*="autocomplete"] *'];
-      // Match strength, strongest first: exact normalized; then the
-      // wanted value's own first segment; then decline-class (only
-      // when the WANTED value is itself decline-class — D8/BUG-067);
-      // then first-token containment; then an option that is a
-      // normalized PREFIX of the wanted value. Weaker hits are used
-      // only when nothing stronger exists anywhere in the list.
-      const seg = full.split(/\s+[-–—,]\s+/)[0].trim();
-      let segHit = null, tokenHit = null, prefixHit = null, declineHit = null;
-      const declineRe = new RegExp(declineSrc);
-      const isDecline = (s) => declineRe.test(norm(s));
-      const wantedDecline = isDecline(full);
-      for (const sel of pools) {
-        for (const el of Array.from(document.querySelectorAll(sel))) {
-          if (!vis(el)) continue;
-          const t = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
-          if (!t || t.length >= 90) continue;
-          if (norm(t) === norm(full)) { el.setAttribute("data-upmore-opt", "1"); return t; }
-          if (!segHit && seg && norm(t) === norm(seg)) segHit = { el, t };
-          if (!declineHit && wantedDecline && isDecline(t)) declineHit = { el, t };
-          if (!tokenHit && t.toLowerCase().includes(tok)) tokenHit = { el, t };
-          if (!prefixHit && norm(t).length >= 4 && norm(full).startsWith(norm(t))) prefixHit = { el, t };
-        }
-      }
-      const hit = segHit || declineHit || tokenHit || prefixHit;
-      if (hit) { hit.el.setAttribute("data-upmore-opt", "1"); return hit.t; }
-      return null;
-    }, { tok, full: wanted, declineSrc: EEO_DECLINE_SOURCE }).catch(() => null);
+    chosen = await page.evaluate(fnMarkMatchingOption, { tok, full: wanted, declineSrc: EEO_DECLINE_SOURCE }).catch(() => null);
     if (chosen) {
       const clicked = await page.click('[data-upmore-opt="1"]', { timeout: 5000 }).then(() => true).catch(() => false);
       if (!clicked) {
@@ -566,22 +666,7 @@ async function driveWidget(board, cmd) {
         // to a pick executed in ONE evaluate turn: find the option
         // fresh and dispatch the pointer sequence on it directly
         // (react-select selects on mousedown).
-        await page.evaluate((t) => {
-          const vis = (el) => !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
-          const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-          const pools = [".select__option", '[role="option"]', '[role="listbox"] *'];
-          for (const sel of pools) {
-            for (const el of Array.from(document.querySelectorAll(sel))) {
-              if (!vis(el)) continue;
-              const txt = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
-              if (txt === t || norm(txt) === norm(t)) {
-                for (const type of ["mousedown", "mouseup", "click"]) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
-                return true;
-              }
-            }
-          }
-          return false;
-        }, chosen).catch(() => false);
+        await page.evaluate(fnPickMarkedOption, chosen).catch(() => false);
       }
       await page.waitForTimeout(300);
       // The readback expectation is the widget's OWN rendering of the

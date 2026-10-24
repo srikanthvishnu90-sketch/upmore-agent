@@ -245,6 +245,56 @@ export function levelOption(level: string, options: Opt[]): string | null {
   return null;
 }
 
+// The two-class eligibility classification (ELIGIBILITY-SEPARATION-PROPOSAL.md, as corrected on the spent-s1
+// regression), exported so EVERY path that classifies an option uses the same tests: chooseOption's
+// work_authorization rule below, and the widget contract gate (apply_core's optionRule, which refuses what
+// these classes mark when an option is offered to a single fact). Work authorization and sponsorship are
+// separate facts, and one fact alone fills only an option that speaks to that fact alone:
+// (1) assertsSponsorshipNeed — an option that POSITIVELY asserts a sponsorship need ("will require
+// sponsorship", "require sponsorship", "need sponsorship", "sponsorship is required / necessary"). A need
+// assertion belongs to the sponsorship fact alone; phrasings that negate the need are the
+// authorized-without-sponsorship class, not this one ("without sponsorship", "will not / do not require
+// sponsorship", "no sponsorship", "sponsorship not required"). The exclusion is never the bare substring
+// "sponsor": the first landing's !/sponsor/ test dropped Workday's "Authorized to work in the U.S. without
+// sponsorship" — the only fillable option on spent-s1 — and left the required dropdown empty.
+// (2) assertsSeparateSponsorshipPosition — a COMBINED answer: an option phrased as a compound reply (a
+// leading yes/no, or a coordinating conjunction) that takes its own sponsorship position in a predicated
+// clause ("Yes, I am authorized and do not require sponsorship"). Picking it from one fact alone would
+// assert a sponsorship position that fact does not carry; combined answers are answered from both facts by
+// career_apply.ts (authorizedWithoutSponsorship). A status label whose sponsorship wording merely modifies
+// the authorization status itself, with no predicated clause and no compound phrasing ("Authorized to
+// work in the U.S. without sponsorship"), is not combined and stays fillable.
+export function assertsSponsorshipNeed(label: string): boolean {
+  const l = low(label);
+  if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed|necessary)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+  return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+}
+export function assertsSeparateSponsorshipPosition(label: string): boolean {
+  const l = low(label);
+  const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+  if (!clause) return false;
+  return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
+}
+
+// An option that asserts unrestricted authorization: for any employer, or without sponsorship, with no restriction
+// and no future or present-employer qualification — the option chooseOption's work_authorization rule names for an
+// affirmative authorization fact, stated once here so every reader tests the same predicate.
+export function unrestrictedAuthorization(label: string): boolean {
+  const t = low(label);
+  return /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(t) &&
+    !/will (need|require)|in the future|present employer|current employer/.test(t);
+}
+
+// One option tested against the person's stated degree level: the level's own wording, never a degree in progress —
+// the per-option test of chooseOption's education rule, stated once here so every reader tests the same predicate.
+export function degreeOptionFor(factValue: string, label: string): boolean {
+  const v = low(factValue);
+  const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
+  if (!re) return false;
+  const t = low(label);
+  return re.test(t) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(t);
+}
+
 export function chooseOption(fact: string, value: string, options: Opt[], question = ""): string | null {
   if (!options.length) return null;
   const v = low(value);
@@ -301,8 +351,22 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
-      const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+      // The two-class classification above, applied verbatim: this fact alone fills only an option that
+      // speaks to authorization alone — never a positive sponsorship need, never a combined answer that
+      // takes its own sponsorship position. Combined answers are answered from both facts by
+      // career_apply.ts (authorizedWithoutSponsorship). Which class is correct comes from the profile's
+      // work-authorization fact, never inferred from sponsorship.
+      const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
       if (free.length === 1) return free[0].value;
+      // Consistency with the widget gate (apply_core's optionRule, same two classes): when this menu carries
+      // a classified option and the QUESTION is a plain authorization question, the yes/no landing below the
+      // switch must not reach it either — the generic fall-through knows nothing of the classes and would
+      // land on a need assertion or a combined answer from this fact alone. The one sanctioned route to a
+      // combined answer stays open: when the question itself asks the combined thing (career_apply's
+      // WITHOUT_SPONSOR test on the label), byMeaning has already derived the value from BOTH facts before
+      // this call, and the fall-through's landing is that derivation's, not this fact's alone.
+      const classified = (o: Opt) => assertsSponsorshipNeed(o.label) || assertsSeparateSponsorshipPosition(o.label);
+      if (options.some(classified) && !/\bwithout\b.{0,40}\bsponsor/i.test(question)) return byYesNo("yes", options.filter((o) => !classified(o)));
       break;
     }
     case "education_level": {
@@ -313,7 +377,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // the first. "Bachelor of Arts" and "Bachelor of Science" differ in meaning, and the person is asked.
       // WO-052: "Bachelor's in a relevant engineering or science discipline" asks whether the field fits this job too.
       if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
-      const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+      const hits = options.filter((o) => degreeOptionFor(value, o.label));
       const core = (l: string) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
       if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
       return only(hits);

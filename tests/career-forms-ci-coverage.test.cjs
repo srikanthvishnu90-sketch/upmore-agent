@@ -521,4 +521,127 @@ test("forms-ci coverage: the replay stayed read-only and never reached a submit 
     "the runner sent a command type outside the read/fill set: " + cmdTypesSent.join(","));
 });
 
+// ---------------------------------------------------------------------------
+// WIDGET-GAP GUARDS (2026-10-23 widget-gap lane, base 04eb62af) — fail-first.
+// These tests were written and run RED against the pre-change machinery before
+// any implementation (record in PR-BODY.md):
+//  - the drive policy answered every option field with its FIRST option — for
+//    native selects that is the placeholder, and one Shield AI card select was
+//    counted filled on its placeholder;
+//  - a non-numeric string into a number input crashed the fill as DRIVER_ERROR;
+//  - conditional follow-ups were attempted unconditionally;
+//  - attestation-class fields were attempted, and one (a Lyra radio) was
+//    counted filled.
+// The guards below pin the corrected behavior by name so none of it regresses.
+// ---------------------------------------------------------------------------
+const FORM_BY_ID = Object.fromEntries(CAPTURED.map((f) => [f.id, f]));
+async function discoverBindings(form) {
+  const open = await send({ type: "open", url: `${base}/${form.id}` });
+  assert.equal(open.ok, true, JSON.stringify(open));
+  const disc = await send({ type: "discover" });
+  assert.equal(disc.ok, true, JSON.stringify(disc));
+  const { bindings, schema } = bindFields(disc.data.fields);
+  return { bindings, schema, version: disc.data.observation.version };
+}
+
+test("widget-gap guard: the EEO select policy is the decline option, and a wrong-option pick is caught by read-back", { timeout: 300000 }, async () => {
+  const form = FORM_BY_ID["lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027"];
+  const { bindings, schema, version } = await discoverBindings(form);
+  const s = schema.find((x) => x.name === "eeo[gender]");
+  const b = bindings[s.name];
+  // The policy value for an EEO select is the planner's decline text (module 149
+  // §6.1 default; ruling F-084) — never the placeholder, never a substantive answer.
+  assert.equal(valueFor(b, s, form), "Decline to self-identify");
+  // A drive that picks a WRONG option persists it — and the suite's profile
+  // expectation must reject that read-back, so the field cannot be counted filled.
+  const wrong = await send({ type: "fill", binding: b, value: "Male", observationVersion: version });
+  assert.equal(wrong.ok && wrong.data.filled, true, JSON.stringify(wrong));
+  const read = await send({ type: "readback", bindings: [b], observationVersion: version });
+  assert.equal(read.data.answers[b.field_id], "Male");
+  assert.notEqual(
+    JSON.stringify(read.data.answers[b.field_id]),
+    JSON.stringify(expectedFor(b, valueFor(b, s, form))),
+    "a wrong-option pick read back as the profile value — the fill would be counted on a wrong answer");
+  await send({ type: "close" });
+});
+
+test("widget-gap guard: selecting a native select's placeholder is not a fill", { timeout: 300000 }, async () => {
+  const form = FORM_BY_ID["lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3"];
+  const { bindings, version } = await discoverBindings(form);
+  const b = bindings["cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]"];
+  const placeholder = (b.options || [])[0];
+  assert.ok(placeholder && placeholder.value === "", "the Shield card select's first option is no longer an empty-value placeholder — fixture shape changed");
+  const r = await send({ type: "fill", binding: b, value: placeholder.label, observationVersion: version });
+  assert.ok(!(r.ok && r.data.filled), "the placeholder option was counted as a fill: " + JSON.stringify(r));
+  assert.equal(r.ok && r.data.reason, "placeholder_option");
+  await send({ type: "close" });
+});
+
+test("widget-gap guard: number inputs take the profile's numeric value and refuse a non-numeric one by name", { timeout: 300000 }, async () => {
+  const form = FORM_BY_ID["greenhouse-eosfitness-4336050009"];
+  const { bindings, schema, version } = await discoverBindings(form);
+  const s = schema.find((x) => x.name === "start-year--0");
+  const b = bindings[s.name];
+  // The policy value for an education-year number input is the persona's year —
+  // not the "06/01/2027" date string the label fallback used to produce.
+  assert.equal(valueFor(b, s, form), "2027");
+  // A non-numeric value is refused by name, not crashed as DRIVER_ERROR.
+  const bad = await send({ type: "fill", binding: b, value: "06/01/2027", observationVersion: version });
+  assert.equal(bad.ok, true, JSON.stringify(bad));
+  assert.deepEqual([bad.data.filled, bad.data.reason], [false, "value_not_numeric"]);
+  // The profile's numeric value goes through the real path and reads back exactly.
+  const good = await send({ type: "fill", binding: b, value: "2027", observationVersion: version });
+  assert.equal(good.ok && good.data.filled, true, JSON.stringify(good));
+  const read = await send({ type: "readback", bindings: [b], observationVersion: version });
+  assert.equal(read.data.answers[b.field_id], "2027");
+  await send({ type: "close" });
+});
+
+test("widget-gap guard: conditional follow-ups are gated on the persona's parent answer", { timeout: 600000 }, async () => {
+  assert.equal(typeof conditionalDecision, "function", "the drive has no conditional gate");
+  const wpp = FORM_BY_ID["greenhouse-wppmedia-5437567008"];
+  // The WPP disability follow-up fills only when the persona's disability answer
+  // is an affirmative Yes; the persona's EEO answer is the decline → gated off.
+  assert.equal(conditionalDecision(wpp, { name: "4017898008" }, { "4017733008": "Decline to self-identify" }), "conditional_not_triggered");
+  assert.equal(conditionalDecision(wpp, { name: "4017898008" }, { "4017733008": "Yes" }), null);
+  const eos = FORM_BY_ID["greenhouse-eosfitness-4336050009"];
+  // The EOS "If no, are you able to…" follow-up fills only when the persona
+  // answered No to the CPR-current question.
+  assert.equal(conditionalDecision(eos, { name: "question_6872430009" }, { "question_6872428009": "Yes" }), "conditional_not_triggered");
+  assert.equal(conditionalDecision(eos, { name: "question_6872430009" }, { "question_6872428009": "No" }), null);
+  // Behavioral: a full drive of WPP records the follow-up as gated — it is not
+  // attempted and reported as a widget failure.
+  const rec = await driveForm(wpp);
+  const entry = (rec.fills || []).find((f) => f.name === "4017898008");
+  assert.ok(entry, "the follow-up is missing from the drive record");
+  assert.equal(entry.outcome, "conditional_not_triggered");
+});
+
+test("widget-gap guard: attestation-class fields stop for the person on every widget class", { timeout: 600000 }, async () => {
+  const tsmg = await driveForm(FORM_BY_ID["lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7"]);
+  const sel = (tsmg.fills || []).find((f) => f.name === "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]");
+  assert.ok(sel, "the attestation select is missing from the drive record");
+  assert.equal(sel.outcome, "attestation_stop");
+  const lyra = await driveForm(FORM_BY_ID["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d"]);
+  const radio = (lyra.fills || []).find((f) => f.name === "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]");
+  assert.ok(radio, "the attestation radio is missing from the drive record");
+  assert.equal(radio.outcome, "attestation_stop");
+});
+
+test("widget-gap guard: an unfilled required select cannot be counted filled in the pin", () => {
+  // The measured drive recorded TSMG's eeo[gender] as value_did_not_persist.
+  // Claiming it filled in the pin — without the drive changing — must be
+  // rejected by the gate (pin sums and the reconciliation exact-set both break).
+  // The per-form tests' deepEqual of measured fills against the pin is what
+  // binds any fuller rewrite of the pin to a real drive; this guard names the
+  // outcome-flip path specifically.
+  const tampered = JSON.parse(JSON.stringify(EXPECTED));
+  const tsmg = tampered.capturedForms.find((f) => f.id.startsWith("lever-tsmg"));
+  const i = tsmg.expectation.fills.findIndex(([n]) => n === "eeo[gender]");
+  assert.ok(i >= 0 && tsmg.expectation.fills[i][1] !== "filled", "pin shape changed");
+  tsmg.expectation.fills[i][1] = "filled";
+  assert.equal(recordedClaimConsistent(tampered), false);
+  assert.equal(coverageClaim(tampered).perForm.find((p) => p.id === tsmg.id).claimable, false);
+});
+
 module.exports = { coverageClaim, coverageSums, recordedClaimConsistent };

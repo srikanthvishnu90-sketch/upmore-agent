@@ -1,138 +1,74 @@
-# Captured-form coverage for the forms-ci captures that had no pinned record — Greenhouse + Lever
+# Widget-gap lane — PR body (branch `muse/2026-10-23-widget-gap`)
 
-## Corrections (2026-10-23) — on top of the measurement record below
+**Base:** `muse/2026-10-23-forms-ci-coverage` @ `04eb62af` (the corrected forms-ci
+coverage pack). This branch is built directly on that head; nothing else is merged in.
+(This file replaces the base branch's PR-BODY.md on this branch only; the base's own
+PR body remains on its branch.)
 
-The original push (`d8f64405`) stands as the measurement record; the four
-coordinator-gated corrections below land as new commits on top and **supersede the
-original summaries where they differ**:
+**Scope (coordinator order, 2026-10-23):** close the measured widget gap in the
+coverage pack, repo-only on the captured fixtures in `tests/fixtures/forms-ci`.
+The pack's reconciliation pinned 97 mapped-not-filled fields: 75 custom
+react-selects + 19 native selects + 3 number inputs, 58 of them schema-required.
+Live-network halt in force throughout: locally served captures only, no external
+fetch/load/API call of any kind; git push is the only network operation used.
 
-1. **All 97 mapped-not-filled fields reconciled per field** (fixture:
-   `expectation.reconciliation` — exact name, label, status from the captured
-   schema, widget class, attempted value, the executor's outcome, its own reason;
-   no bulk labeling). Composition by status class: **required 45 ·
-   required-conditional 13 · optional 32 · core-contact 7**. By reason: 75
-   custom-select non-persistence (unverified-against-live), 19 native-select
-   placeholder-policy non-fills, 3 `DRIVER_ERROR`. The 97 are kept distinct from
-   the separate read-back axis (174 filled vs 167 read back exactly = 7
-   filled-but-not-exact fields, named in the doc).
-2. **Custom-select framing corrected.** The 75 react-select non-fills are no
-   longer described as a capture-replay limitation: on a stripped capture we
-   cannot know whether those selects are required in effect or would persist
-   live. Every affected field/record is labeled **unverified-against-live**; the
-   live comparison is **held, not scheduled**. Related measured finding, stated
-   with its limit: for the 19 Lever native `<select>` non-fills the only
-   attempted value was the placeholder first option under the drive's
-   first-option policy (one same-shaped Lever select filled, so the placeholder
-   alone does not determine the outcome).
-3. **Read-only safety test isolation fixed, fail-first.** Standalone
-   (`--test-name-pattern="read-only"`) on the pre-correction code: **0 pass / 1
-   fail** — the exact-set assertion failed on an empty command log because no
-   drive test had run in that process. The test now drives the smallest captured
-   form itself when no drive has run in-process, then judges that drive's logs;
-   standalone post-fix: **1/1 pass**. Assertions unchanged, including the
-   verbatim naming of offending requests/commands.
-4. **Blanket `claimable: true` dropped.** The coverage block carries sums only.
-   Claims are scoped: per-form claims (`capturedForms[].claim`, 11/11 claimable
-   with per-form bases) and per-widget-class claims (`widgetClassClaims`):
-   Greenhouse custom selects 75 mapped / 0 filled = **unverified-against-live**;
-   Lever native selects 20 mapped / 1 filled = partial; Greenhouse number inputs
-   partial (3 × `DRIVER_ERROR`); Lever checkbox group partial (pronouns read-back
-   exceptions); the remaining classes covered. The gate now enforces the scoped
-   shape (reconciliation completeness, the unverified label, tally equality,
-   absence of the blanket flag) with unit cases for each tamper.
+## What the machinery looked like before (measured)
 
-Derivation note: statuses/widget classes come from the captured schema artifacts
-plus a discover-only re-run of the machinery over the same captures (no fills, no
-new captures, no live contact), which reproduced the pin's mapped counts exactly
-on all 11 forms. A VM replacement mid-corrections wiped the first derivation's
-/tmp scratch; the re-run from durable copies is the derivation of record.
+- The pack's drive policy (`valueFor` in `tests/career-forms-ci-coverage.test.cjs`)
+  answered every option field with its FIRST option's label. For Lever native
+  selects the first option is the placeholder ("Select...", value "") — so no
+  non-placeholder option was ever attempted. One exception proved the shape: a
+  Shield AI card select whose placeholder label ("Please select an option") does
+  not read back as select-like was counted **filled on a placeholder selection**.
+- The 3 number inputs (education years) were attempted with the date string
+  "06/01/2027" (the label `/date/i` fallback) → the helper threw DRIVER_ERROR.
+- Greenhouse react-selects: the captures carry **no menu DOM** (0 `select__menu`
+  nodes, 0 native `<select>` elements in all 5 Greenhouse captures) and are served
+  with scripts stripped, so no widget drive can open or set them here. Option lists
+  for the `question_*` selects exist in the captured boards-API artifact
+  `tests/fixtures/forms-ci/greenhouse-options.json`; country / candidate-location /
+  school / degree / discipline / end-month / hispanic_ethnicity carry no option
+  list anywhere in the captured material.
+- Two conditional follow-ups were attempted unconditionally (WPP disability
+  follow-up; EOS "If no…" CPR follow-up), and two attestation-class fields were
+  attempted — one of them (a Lyra radio) was counted **filled**.
 
-Corrections verification: full coverage suite on the corrected code (this VM):
-**17 pass / 1 fail / 0 skipped of 18** — the one failure is the Lever Shield AI
-drive timing out on its `open` command (120s) under the accumulated load of 15
-preceding Chromium drives (`driveError: drive_error`, all counts null — the drive
-never started; no pin assertion was reached). Re-run standalone on an unloaded
-machine, the identical Shield drive **passes 1/1 in 27s**, including the new
-field-class pins — classified environment/load, not branch-caused and not pin
-drift. Neighbors on the corrected tree: fixtures suite **4/4 pass**; Ashby
-verdict-pack suite (its own worktree) **7/7 pass**.
+## Fail-first record (guards red on the pre-change machinery)
 
----
+Guard tests were added to `tests/career-forms-ci-coverage.test.cjs`
+("widget-gap guard: …") and run against the unmodified base machinery
+(helper + policy @ `04eb62af`) BEFORE any implementation:
 
-The 17 application forms captured in `tests/fixtures/forms-ci/` (2026-10-19 CI capture)
-now all carry pinned captured-form coverage records: the 6 Ashby forms were pinned by
-the Ashby verdict pack, and this branch pins the remaining 11 (5 Greenhouse + 6 Lever)
-by driving each locally served capture through the product's own portal-browser
-helper and shared binder — fail-closed runner, submit controls recorded never
-clicked, GET-only local server. **Recorded coverage (gate-verified sums of the
-per-form pins): 11 forms · 398 fields discovered · 271 questions mapped · 174
-filled+verified · 167 read back exactly.** This is captured-form coverage — not live
-driveability, not production quality. No new captures; no live site was contacted in
-any way; no Palantir capture exists in forms-ci (suite-asserted; the standing hold is
-pinned as a test).
+Run 2026-10-23 (this VM, `UPMORE_CHROMIUM_SANDBOX=off`, name pattern
+"widget-gap guard"): **6 tests — 1 pass / 5 fail** on the pre-change machinery:
 
-## What changed
+- ✖ EEO select policy: policy emitted `'Select ...'` (the placeholder) where the
+  guard requires `'Decline to self-identify'`.
+- ✖ Placeholder guard: the base helper counted the Shield card select's
+  placeholder as a fill — verbatim response
+  `{"filled":true,"verified":true,"attempts":1,"rendered":"Please select an option"}`.
+- ✖ Number inputs: policy emitted `'06/01/2027'` where the guard requires the
+  persona's numeric year `'2027'` (the non-numeric crash half of this guard is
+  exercised after the policy fix; the base outcome for that fill is the pinned
+  DRIVER_ERROR in the fixture).
+- ✖ Conditional gating: `the drive has no conditional gate`.
+- ✖ Attestation stop: the TSMG attestation select measured
+  `'value_did_not_persist'` (attempted) where the guard requires
+  `'attestation_stop'` (the Lyra half of the same guard measures the attestation
+  radio as filled on the base drive — pinned in the base fixture).
+- ✔ Pin-gate guard (an unfilled required select flipped to "filled" in the pin
+  is rejected): **already green on the base gate** — the coverage gate's sums +
+  reconciliation exact-set reject the flip. Recorded honestly: this guard locks
+  an existing property by name; it is not new red.
 
-- `tests/career-forms-ci-coverage.test.cjs` — the coverage suite: inventory tests
-  (drive set == the manifest's captured Greenhouse + Lever application forms; Ashby
-  set == the set pinned by the Ashby pack and never served here; not-captured entries
-  recorded; Palantir hold test), the coverage gate (SmartRecruiters-pack pattern,
-  strengthened so the recorded coverage block must equal the sums of the per-form
-  pins), per-form drive tests against the pin, and the read-only proof (command log
-  is exactly open/discover/fill/readback/close; server saw GETs only).
-- `tests/fixtures/forms-ci-coverage-expected.json` — the pin: per-form provenance
-  (source URL, capture timestamp, capture method, capture-time bot check) + pinned
-  drive expectation (discovered/mapped/filled/read-back counts, per-field fill
-  outcomes with the executor's reasons, file-question and attestation inventories),
-  the already-pinned Ashby set with its citation, the not-captured records, and the
-  coverage block.
-- `docs/engine/FORMS-CI-COVERAGE-2026-10-23.md` — inventory (all 24 manifest
-  entries), the per-family coverage table, exclusions, failure records, boundary.
+## Changes
 
-## Measured findings (from the pin)
+<!-- COMMITS -->
 
-- Greenhouse maps everything discovered (139/139) but fills 61/139 — the non-fill
-  outcomes are 75 react-select non-persistence (**unverified-against-live**, see
-  the corrections section above — not a capture-replay claim) and 3 `DRIVER_ERROR`
-  year inputs. Everything it filled read back exactly (61/61).
-- Lever's binder maps 132/259 discovered (the two largest forms map 28 each) and
-  fills 113/132; 7 filled values did not read back exactly (pronouns ×2, card fields
-  ×3, survey responses ×2), pinned per field.
-- Attestation-class questions: 2 (TSMG "I agree" policies confirmation; Lyra Health
-  Internal Mobility Policy certification) — inventoried as stops. File questions: 17
-  (resume on all 11 forms; cover-letter/question files on EOS, SpaceX, Anduril).
-- 3 fills returned the helper's `DRIVER_ERROR` (year spinbutton inputs on EOS
-  Fitness ×2, Anduril ×1) — deterministic across repeat drives, pinned as measured
-  outcomes.
+## Re-pins
 
-## Fail-first evidence (coverage gate, recorded before the pin was relied on)
-
-1. Headline tamper (`FORMS_CI_COVERAGE_EXPECTED` → coverage block inflated by 1,
-   pins untouched): gate test **red** — 1 fail / 1 pass in the gate test pair,
-   suite exit 1 (run 2026-10-23).
-2. Pin tamper (EOS Fitness `mapped` 36→37 with the coverage block inflated to match,
-   internally consistent): EOS drive test **red** on re-drive — actual
-   `{rawFields: 36, mapped: 36, filledCount: 19, readbackMatched: 19}` vs pinned
-   `mapped: 37`; suite exit 1 (run 2026-10-23).
+<!-- REPINS -->
 
 ## Verification
 
-- **This suite, full run on this branch: 18 tests / 18 pass / 0 fail** (all 11 drive
-  tests against the pin, both gate tests, all 4 inventory tests, the read-only
-  proof; 1,578s on this VM, 2026-10-23).
-- Neighbors: `tests/career-form-ci-fixtures.test.cjs` **4/4 pass** on this branch ·
-  Ashby verdict pack suite **7/7 pass** in its own worktree (its pin intact) ·
-  `tests/career-apply-real-forms.test.cjs`: 1 pass / 17 fail on this branch and
-  **byte-identical failing set on unmodified trunk** — every failure is
-  `BROWSER_SANDBOX_REQUIRED` (apply.ts refuses this VM's sandbox posture in both
-  directions; the established environment red, not a branch effect). This branch's
-  diff is additive only (3 new files + this PR-BODY).
-
-## Boundary
-
-Pre-existing repo fixtures only (2026-10-19 captures). No new captures, no live
-contact of any kind, no Palantir, no production anything (freeze; host down).
-Chromium ran under the helper's recorded sandbox opt-out on this VM
-(`UPMORE_CHROMIUM_SANDBOX=off`). Measurement on this VM was interrupted by VM
-replacements in early attempts; final numbers come from clean per-family runs with
-identical outcomes on repeat drives (EOS Fitness ×5, Anduril ×4, Prolific ×3).
+<!-- VERIFICATION -->

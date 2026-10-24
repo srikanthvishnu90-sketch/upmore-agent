@@ -303,6 +303,12 @@ export const FACT_SCHEMA = {
    "type": "yesno",
    "group": "skills"
   },
+  // ELIGIBILITY-SEPARATION-PROPOSAL.md (Branch A note): work
+  // authorization is its own fact — authorized to work in the US, yes
+  // or no; sponsorship is its own fact (the "sponsorship" entry below),
+  // never part of this one's meaning. The entry's "note" string below is
+  // schema data and is unchanged here; this comment records the
+  // separation the proposal's readers (module 156) implement.
   "work_authorization": {
    "kind": "fact",
    "type": "text",

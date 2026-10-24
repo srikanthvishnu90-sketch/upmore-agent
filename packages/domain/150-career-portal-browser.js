@@ -475,13 +475,20 @@ const CareerPortalBrowser = (() => {
     const boardId = `bb-${boardSeq}`;
     commandLimits.set(boardId, { timeoutMs: o.commandTimeoutMs || 60000, deadlineMs: o.deadlineMs || null });
     const gate = hostAllowed(o.url);
+    // 2026-10-23 (owner, fail-closed; backend gap map G3): this board belongs to the old batch stack (155 -> 149 -> here),
+    // which D-014 retires from applying. It may arm and click only on a local test page (localhost / 127.0.0.1). A real
+    // employer host is refused by construction, before any browser command, and no option, flag or setting turns it back
+    // on: a real submission goes through the D-014 queue and its own gates.
+    // Decided by the hostname itself, not a classification label (149 labels localhost "sandbox", 127.0.0.1 "local_test").
+    const realSubmitClosed = (url) => !["localhost", "127.0.0.1"].includes(hostAllowed(url).host);
+    const closedFromStart = realSubmitClosed(o.url);
     const state = {
       opened: false, closed: false, defs: null, bindings: null,
       filledValues: {}, renderedValues: {}, fillWaits: {}, fillFailures: [], captchaTech: [], finalUrl: null, navSteps: [],
       resumeShaChecked: null, submitAttempted: false, submitCapture: null,
       observation: null, staleRetries: new Set(), bindingHistory: {}, armedPayload: null,
       redirectRefused: null, // BUG-060: typed off-allowlist landing, once set nothing else runs
-      armed: o.submitArmed === true, approvalRef: o.submitArmed === true ? (o.approvalRef || null) : null,
+      armed: o.submitArmed === true && !closedFromStart, approvalRef: o.submitArmed === true && !closedFromStart ? (o.approvalRef || null) : null,
     };
     const refuseIfRedirected = () => {
       if (state.redirectRefused) throw coded("HOST_REDIRECT_REFUSED", `this board landed off the allowlist at ${state.redirectRefused.finalUrl} — no further actions on it (§6.3)`);
@@ -545,6 +552,10 @@ const CareerPortalBrowser = (() => {
       // approval. Anything else arms nothing and says so — the default
       // stays unarmed, and submit() stays the refusal.
       armForSubmit(ctx) {
+        if (closedFromStart) {
+          log("submit_arm_refused", { reason: "OLD_STACK_REAL_SUBMIT_CLOSED" });
+          return { armed: false, reason: "OLD_STACK_REAL_SUBMIT_CLOSED" };
+        }
         if (ctx && ctx.approvedByUser === true && ctx.approvalRef && ctx.payload) state.armedPayload = ctx.payload;
         if (state.armed) return { armed: true, alreadyArmed: true, approvalRef: state.approvalRef };
         const ref = ctx && typeof ctx.approvalRef === "string" ? ctx.approvalRef.trim() : "";
@@ -728,6 +739,10 @@ const CareerPortalBrowser = (() => {
       },
       submit() {
         refuseIfRedirected();
+        // The page it would click on, after any navigation, must still be a local test page.
+        if (closedFromStart || (state.finalUrl && realSubmitClosed(state.finalUrl))) {
+          throw coded("OLD_STACK_REAL_SUBMIT_CLOSED", "the old batch stack never submits to a real employer site; real applications go through the D-014 queue");
+        }
         // The submit leg fires ONLY on an armed board: created armed
         // (opts.submitArmed === true, the test lane) or armed by 149's
         // approval gate via armForSubmit (approval + approvalRef,

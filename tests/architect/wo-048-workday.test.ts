@@ -404,3 +404,22 @@ Deno.test("WO-048/15 a field of a repeating section's row never takes a person-l
   eq(valueOf(r, "workExperience-31--companyName"), "Sample Retail");
   eq(valueOf(r, "workExperience-31--location"), null, "a job's location never stated: left");
 });
+
+Deno.test("WO-048/16 work authorization and sponsorship stay separate facts in the option choice (eligibility separation, spent-s1 regression)", () => {
+  const STATUS = "What is your current work authorization status in the United States?";
+  // A positive sponsorship need belongs to the sponsorship fact alone: never filled from a yes to work
+  // authorization, and passed over for the option that speaks to authorization alone.
+  eq(chooseOption("work_authorization", "Yes", opts("Authorized to work for any employer; sponsorship is necessary", "Not currently authorized to work in the U.S.", "Prefer not to say"), STATUS), null,
+    "sponsorship is necessary: a positive need, not filled from authorization alone");
+  eq(chooseOption("work_authorization", "Yes", opts("Authorized to work for any employer; sponsorship is necessary", "Authorized to work in the U.S. without sponsorship"), STATUS), "Authorized to work in the U.S. without sponsorship",
+    "the necessary-sponsorship option is passed over for the authorized-without-sponsorship one");
+  // A negation is not a need: the authorized-without-sponsorship class stays fillable. The bare word
+  // "sponsor" excludes nothing — the first eligibility landing's !/sponsor/ test emptied this dropdown
+  // on spent-s1 (tests/career-extension-workday.test.cjs).
+  eq(chooseOption("work_authorization", "Yes", opts("Authorized to work in the U.S.; sponsorship is not required", "Not currently authorized to work in the U.S.", "Prefer not to say"), STATUS), "Authorized to work in the U.S.; sponsorship is not required",
+    "sponsorship is not required: a negated need stays fillable");
+  // A combined answer takes its own sponsorship position in a second clause: never picked from the
+  // authorization fact alone (the same pin as the pending eligibility composition's reader/answer_options).
+  eq(chooseOption("work_authorization", "Yes", opts("Yes, I am authorized and do not require sponsorship", "Yes, but I will require sponsorship in the future", "No"), "Are you legally authorized to work in the US?"), null,
+    "a combined answer is answered from both facts, never from authorization alone");
+});

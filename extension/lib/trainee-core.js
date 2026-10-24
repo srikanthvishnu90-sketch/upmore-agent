@@ -581,6 +581,12 @@
         "type": "yesno",
         "group": "skills"
       },
+      // ELIGIBILITY-SEPARATION-PROPOSAL.md (Branch A note): work
+      // authorization is its own fact — authorized to work in the US, yes
+      // or no; sponsorship is its own fact (the "sponsorship" entry below),
+      // never part of this one's meaning. The entry's "note" string below is
+      // schema data and is unchanged here; this comment records the
+      // separation the proposal's readers (module 156) implement.
       "work_authorization": {
         "kind": "fact",
         "type": "text",
@@ -2173,10 +2179,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     return null;
   }
   function assertsSponsorshipNeed(label) {
-    const t = low(label);
-    if (!/sponsorship/.test(t)) return false;
-    if (/without sponsorship|no sponsorship|not require|do not require|does not require|don'?t require|sponsorship (is )?not (required|necessary|needed)/.test(t)) return false;
-    return /\b(require|requires|required|need|needs|needed|necessary)\b[^.]*\bsponsorship\b|\bsponsorship\b[^.]*\b(is\s+)?(required|necessary|needed)\b/.test(t);
+    const l = low(label);
+    if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed|necessary)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+    return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+  }
+  function assertsSeparateSponsorshipPosition(label) {
+    const l = low(label);
+    const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+    if (!clause) return false;
+    return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
   }
   function unrestrictedAuthorization(label) {
     const t = low(label);
@@ -2228,7 +2239,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => unrestrictedAuthorization(o.label));
+        const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
         if (free.length === 1) return free[0].value;
         break;
       }
@@ -2645,14 +2656,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   var MAX_DAILY = 50;
   var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
-  var COUNTED = /* @__PURE__ */ new Set([
+  var COUNTED_STATES = /* @__PURE__ */ new Set([
+    "queued",
+    "driving",
     "confirmed",
     "submitted_unconfirmed",
     "needs_user",
-    "submitting",
-    "queued",
-    "planned"
+    "unknown_outcome",
+    "planned",
+    "submitting"
   ]);
+  var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
   var dailyLimit = (l) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));
   function admitApplication(log, a, now, limits) {
@@ -4423,6 +4437,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
   function optionRule(option, fact, searched, key) {
+    if (assertsSeparateSponsorshipPosition(option)) return null;
     if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
     if (searched) {
       const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);

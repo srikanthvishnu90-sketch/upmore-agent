@@ -9,7 +9,7 @@ import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, t
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
-import { assertsSponsorshipNeed, howHeardChannel, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
+import { assertsSeparateSponsorshipPosition, assertsSponsorshipNeed, howHeardChannel, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
@@ -138,10 +138,14 @@ const SEARCHED = new Set(["location", "city", "state", "school"]);
 const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
 // How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
 function optionRule(option: string, fact: string, searched: boolean, key?: string): string | null {
-  // A positive sponsorship-need assertion is the sponsorship fact's own territory: the authorization fact says the
-  // person is authorized, and no other fact says they need sponsorship — their sponsorship answer does, and only
-  // when it is affirmative. (The bare yes-prefix class below once admitted "Yes, I will require sponsorship" on
-  // the authorization fact alone; the widget-gap battery pins that as a wrong answer, never chosen.)
+  // The two-class eligibility classification (answer_options, shared verbatim with chooseOption): a positive
+  // sponsorship-need assertion is the sponsorship fact's own territory — it derives only from an affirmative
+  // sponsorship fact (the bare yes-prefix class below once admitted "Yes, I will require sponsorship" on the
+  // authorization fact alone; the widget battery pins that as a wrong answer, never chosen) — and a COMBINED
+  // answer, one that takes a separate sponsorship position in a compound phrasing ("Yes, I am authorized and
+  // do not require sponsorship"), derives from NO single fact: combined answers are answered from both facts
+  // by the planner (career_apply's authorizedWithoutSponsorship), never clicked from one fact alone.
+  if (assertsSeparateSponsorshipPosition(option)) return null;
   if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
   if (searched) {
     // A US state code is named by the state ("IL": "Illinois, United States").

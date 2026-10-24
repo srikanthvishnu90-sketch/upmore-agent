@@ -26,10 +26,10 @@ export function supabaseApplyStore(admin:any){
    const now=o.now??Date.now(),daily=dailyLimit({daily:o.daily}),hash=await hashApplyPayload(payload);
    const app={user_id:payload.user_id,job_id:payload.job_id,company:payload.company,payload_hash:hash,approval_hash:approvalHash};
    let admitted=admitApplication([],app,now,{daily});if(!admitted.ok)throw Error(admitted.reason!);
-   const prior=must(await admin.from('career_apply_jobs').select('job_id,company,state,created_at').eq('user_id',payload.user_id));
+   const prior=must(await admin.from('career_apply_jobs').select('job_id,company,state,created_at,claimed_at').eq('user_id',payload.user_id));
    if(!Array.isArray(prior))throw Error('APPLY_STORE_UNAVAILABLE');
    if(prior.some(r=>r.job_id===payload.job_id))throw Error('duplicate_job');
-   admitted=admitApplication(prior.map(r=>({user_id:payload.user_id,job_id:r.job_id,company:r.company,at:Date.parse(r.created_at),state:['driving','unknown_outcome'].includes(r.state)?'submitting':r.state})),app,now,{daily});
+   admitted=admitApplication(prior.map(r=>({user_id:payload.user_id,job_id:r.job_id,company:r.company,at:Date.parse(r.claimed_at??r.created_at),state:['driving','unknown_outcome'].includes(r.state)?'submitting':r.state})),app,now,{daily});
    if(!admitted.ok)throw Error(admitted.reason!);
    return await rpc('career_apply_enqueue',{p_payload:payload,p_hash:hash,p_approval:approvalHash,p_daily:daily});
   },

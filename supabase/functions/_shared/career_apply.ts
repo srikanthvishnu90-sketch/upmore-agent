@@ -45,8 +45,13 @@ export interface Limits { daily?: number }
 // The queue's SQL holds the same bound (career_apply_daily_limit, career_apply_enqueue).
 export const DEFAULT_DAILY = 25, MAX_DAILY = 50, COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
-// States that mean an application reached (or may have reached) the employer; a failed or not-submitted attempt can be retried.
-const COUNTED = new Set(["confirmed", "submitted_unconfirmed", "needs_user", "submitting", "queued", "planned"]);
+// States that mean an application reached (or may have reached) the employer, or is approved to; a failed or
+// not-submitted attempt can be retried. One list (G3): the database's career_apply_counted_states(), plus the engine's
+// own local states (planned, submitting).
+export const COUNTED_STATES: ReadonlySet<string> = new Set([
+  "queued", "driving", "confirmed", "submitted_unconfirmed", "needs_user", "unknown_outcome", "planned", "submitting",
+]);
+const COUNTED = COUNTED_STATES;
 export const normCompany = (c: unknown) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
   .replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
 export const dailyLimit = (l?: Limits) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));

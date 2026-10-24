@@ -245,15 +245,35 @@ export function levelOption(level: string, options: Opt[]): string | null {
   return null;
 }
 
-// A POSITIVE assertion that the person needs sponsorship ("will require sponsorship", "sponsorship is necessary"):
-// another fact's territory — the authorization fact says the person is authorized; whether they need sponsorship is
-// their sponsorship answer, a separate fact. A negation ("without sponsorship", "do not require sponsorship",
-// "sponsorship not required") is the opposite assertion, not this one.
+// The two-class eligibility classification (ELIGIBILITY-SEPARATION-PROPOSAL.md, as corrected on the spent-s1
+// regression), exported so EVERY path that classifies an option uses the same tests: chooseOption's
+// work_authorization rule below, and the widget contract gate (apply_core's optionRule, which refuses what
+// these classes mark when an option is offered to a single fact). Work authorization and sponsorship are
+// separate facts, and one fact alone fills only an option that speaks to that fact alone:
+// (1) assertsSponsorshipNeed — an option that POSITIVELY asserts a sponsorship need ("will require
+// sponsorship", "require sponsorship", "need sponsorship", "sponsorship is required / necessary"). A need
+// assertion belongs to the sponsorship fact alone; phrasings that negate the need are the
+// authorized-without-sponsorship class, not this one ("without sponsorship", "will not / do not require
+// sponsorship", "no sponsorship", "sponsorship not required"). The exclusion is never the bare substring
+// "sponsor": the first landing's !/sponsor/ test dropped Workday's "Authorized to work in the U.S. without
+// sponsorship" — the only fillable option on spent-s1 — and left the required dropdown empty.
+// (2) assertsSeparateSponsorshipPosition — a COMBINED answer: an option phrased as a compound reply (a
+// leading yes/no, or a coordinating conjunction) that takes its own sponsorship position in a predicated
+// clause ("Yes, I am authorized and do not require sponsorship"). Picking it from one fact alone would
+// assert a sponsorship position that fact does not carry; combined answers are answered from both facts by
+// career_apply.ts (authorizedWithoutSponsorship). A status label whose sponsorship wording merely modifies
+// the authorization status itself, with no predicated clause and no compound phrasing ("Authorized to
+// work in the U.S. without sponsorship"), is not combined and stays fillable.
 export function assertsSponsorshipNeed(label: string): boolean {
-  const t = low(label);
-  if (!/sponsorship/.test(t)) return false;
-  if (/without sponsorship|no sponsorship|not require|do not require|does not require|don'?t require|sponsorship (is )?not (required|necessary|needed)/.test(t)) return false;
-  return /\b(require|requires|required|need|needs|needed|necessary)\b[^.]*\bsponsorship\b|\bsponsorship\b[^.]*\b(is\s+)?(required|necessary|needed)\b/.test(t);
+  const l = low(label);
+  if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed|necessary)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+  return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+}
+export function assertsSeparateSponsorshipPosition(label: string): boolean {
+  const l = low(label);
+  const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+  if (!clause) return false;
+  return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
 }
 
 // An option that asserts unrestricted authorization: for any employer, or without sponsorship, with no restriction
@@ -331,7 +351,12 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
-      const free = options.filter((o) => unrestrictedAuthorization(o.label));
+      // The two-class classification above, applied verbatim: this fact alone fills only an option that
+      // speaks to authorization alone — never a positive sponsorship need, never a combined answer that
+      // takes its own sponsorship position. Combined answers are answered from both facts by
+      // career_apply.ts (authorizedWithoutSponsorship). Which class is correct comes from the profile's
+      // work-authorization fact, never inferred from sponsorship.
+      const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
       if (free.length === 1) return free[0].value;
       break;
     }

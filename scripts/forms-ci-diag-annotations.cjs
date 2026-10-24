@@ -23,6 +23,17 @@
 // sequence) and produced no verdict — the no-verdict (test-timeout)
 // signature with the last step in flight and its elapsed offset.
 //
+// One addition to that rule (2026-10-24): when the failing drive THREW,
+// its drive_threw record is emitted ALONGSIDE the assertion_failed line,
+// never shadowed by it. The assertion failure is downstream of the throw —
+// the per-form test records the throw, substitutes an empty record, and
+// the pin comparison then fails on that record ("coverage outcome drifted"
+// with every measured count null). The throw's own text, its stack's top
+// frames and the last step in flight are the root-cause evidence; the
+// first completed CI run with drift records (f1ebac24) showed both
+// Greenhouse failures in exactly this shape and the drive error text
+// never surfaced because the assertion branch won alone.
+//
 // The no-verdict rule keys on the drive never completing, NOT on a
 // missing assertions_passed event. Root cause of the false positives at
 // ef267711 (lever-tsmg, lever-lyrahealth printed as timeout signatures
@@ -69,6 +80,34 @@ function main() {
     const threwIdx = lastIdx("drive_threw");
     const passedIdx = lastIdx("assertions_passed");
     const startIdx = lastIdx("drive_start");
+    // The drive_threw belonging to the drive whose assertion failed: the
+    // last one before the assertion event, within the same drive sequence
+    // (the walk stops at that drive's start, its end, or a pass verdict,
+    // so a throw from an earlier drive or a later guard re-drive of the
+    // same form is never attributed to this failure).
+    let threwBeforeFail = -1;
+    if (failIdx >= 0) {
+      for (let i = failIdx - 1; i >= 0; i--) {
+        if (evs[i].step === "drive_threw") { threwBeforeFail = i; break; }
+        if (evs[i].step === "drive_start" || evs[i].step === "drive_end" || evs[i].step === "assertions_passed") break;
+      }
+    }
+    // Render one drive_threw record: the error text, the stack's top
+    // frames, and the last step in flight with its offset — all stored
+    // fields, already redacted by the suite before they were written.
+    const renderThrew = (idx) => {
+      const ev = evs[idx];
+      const ms = typeof ev.atMs === "number" ? ev.atMs : lastAtMs(idx);
+      let line = `::error title=forms-ci ${form}::step=drive_threw elapsedMs=${ms != null ? ms : "?"}`;
+      if (typeof ev.lastStep === "string") {
+        line += ` lastStep=${ev.lastStep}`;
+        if (typeof ev.lastStepAtMs === "number") line += ` at +${ev.lastStepAtMs}ms`;
+        if (typeof ev.lastStepField === "string") line += ` field=${ev.lastStepField}`;
+      }
+      line += ` error: ${esc(String(ev.error || "").slice(0, 800))}`;
+      if (typeof ev.stackTop === "string" && ev.stackTop) line += ` stack: ${esc(ev.stackTop.slice(0, 700))}`;
+      return line;
+    };
     if (failIdx >= 0 && failIdx > passedIdx) {
       // The failing drive's own drive_end is the one just before the
       // assertion event — a later guard re-drive of the same form must
@@ -99,9 +138,9 @@ function main() {
         }
       } catch {}
       console.log(`::error title=forms-ci ${form}::step=assertion_failed elapsedMs=${ms != null ? ms : "?"} assertion: ${esc(String(evs[failIdx].error || "").slice(0, 800))}${esc(drive)}${esc(driftTxt)}`);
+      if (threwBeforeFail >= 0) console.log(renderThrew(threwBeforeFail));
     } else if (threwIdx >= 0 && threwIdx > passedIdx) {
-      const ms = lastAtMs(threwIdx);
-      console.log(`::error title=forms-ci ${form}::step=drive_threw elapsedMs=${ms != null ? ms : "?"} error: ${esc(String(evs[threwIdx].error || "").slice(0, 800))}`);
+      console.log(renderThrew(threwIdx));
     } else if (startIdx >= 0 && passedIdx < startIdx && !evs.slice(startIdx).some((e) => e.step === "drive_end")) {
       const last = evs[evs.length - 1];
       const ms = lastAtMs(evs.length - 1);

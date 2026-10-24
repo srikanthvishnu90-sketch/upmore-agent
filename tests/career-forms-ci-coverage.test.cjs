@@ -198,6 +198,10 @@ function strip(html) {
 // ---------------------------------------------------------------------------
 const DIAG_PATH = process.env.FORMS_CI_COVERAGE_DIAG || path.join(os.tmpdir(), "forms-ci-coverage-diag.jsonl");
 const diagEvents = [];
+// Per-form drive state (start epoch + last step in flight), kept outside the
+// event log so a drive that THROWS between steps can have its last step and
+// the throw's own offset attached to its drive_threw record by the catcher.
+const driveState = new Map();
 try { fs.writeFileSync(DIAG_PATH, ""); } catch {}
 // Redaction (2026-10-24): today's diagnostic inputs are synthetic by
 // construction (TEST persona, synthetic PDF, public captured fixtures, no
@@ -226,7 +230,7 @@ function redactDiagText(s) {
 function diag(ev) {
   try {
     const rec = { t: new Date().toISOString(), ...ev };
-    for (const k of ["error", "driveError"]) if (typeof rec[k] === "string") rec[k] = redactDiagText(rec[k]);
+    for (const k of ["error", "driveError", "stackTop"]) if (typeof rec[k] === "string") rec[k] = redactDiagText(rec[k]);
     diagEvents.push(rec);
     try { fs.appendFileSync(DIAG_PATH, JSON.stringify(rec) + "\n"); } catch {}
   } catch {}
@@ -448,7 +452,11 @@ const ATTEST_RE = /certify|attest|truthful|accurate to the best|acknowledge|i co
 // question and attestation inventories this pack pins.
 async function driveForm(form) {
   const d0 = Date.now();
-  const dstep = (name, extra) => diag({ form: form.id, step: name, atMs: Date.now() - d0, ...(extra || {}) });
+  const dstep = (name, extra) => {
+    const atMs = Date.now() - d0;
+    driveState.set(form.id, { d0, step: name, atMs, field: extra && typeof extra.field === "string" ? extra.field : null });
+    diag({ form: form.id, step: name, atMs, ...(extra || {}) });
+  };
   dstep("drive_start");
   const rec = { company: form.company || null, family: form.family, manifestFieldCount: form.fields, botCheck: form.bot_check || [] };
   const open = await send({ type: "open", url: `${base}/${form.id}` });
@@ -732,7 +740,25 @@ for (const form of CAPTURED) {
       // A drive that dies before it can measure (open/discover/helper failure) is a
       // measured outcome too — pinned with its reason, never forced into a pass.
       rec = { company: form.company || null, family: form.family, driveError: String((e && e.message) || e) };
-      diag({ form: form.id, step: "drive_threw", error: String((e && e.message) || e).slice(0, 1000) });
+      // The throw IS the measurement for an errored drive: carry its text,
+      // its stack's top frames (paths stripped when diag() redacts the
+      // stackTop field), and the last step in flight with its offset, so the
+      // annotations read-back can name the drive failure itself — the
+      // assertion_failed that follows is downstream of this record (the pin
+      // comparison failing on an empty record), not the failure. Best-effort
+      // like all diagnostics: building this can never change the outcome.
+      const threwDiag = { form: form.id, step: "drive_threw", error: String((e && e.message) || e).slice(0, 1000) };
+      try {
+        if (e && e.stack) threwDiag.stackTop = String(e.stack).split("\n").slice(0, 6).join("\n").slice(0, 1500);
+        const st = driveState.get(form.id);
+        if (st) {
+          threwDiag.atMs = Date.now() - st.d0;
+          threwDiag.lastStep = st.step;
+          threwDiag.lastStepAtMs = st.atMs;
+          if (st.field) threwDiag.lastStepField = st.field;
+        }
+      } catch {}
+      diag(threwDiag);
       try { await send({ type: "close" }, 10000); } catch {}
     }
     results[form.id] = rec;
@@ -964,6 +990,13 @@ test("forms-ci coverage diagnostics: the redactor strips paths/env-style strings
   assert.equal(redactDiagText("open http://127.0.0.1:8123/greenhouse-x failed"), "open http://127.0.0.1:8123 failed");
   assert.equal(redactDiagText("filled"), "filled");
   assert.equal(redactDiagText("fill timed out on question_1: helper response timeout for fill"), "fill timed out on question_1: helper response timeout for fill");
+  // Stack-shaped text (the drive_threw record's stackTop field passes through
+  // the same redactor): absolute paths in frame lines are stripped, while the
+  // frame wording and the line:col offsets survive.
+  const stack = "Error: helper response timeout for open\n    at driveForm (/home/runner/work/repo/tests/x.test.cjs:452:15)\n    at async TestContext.<anonymous> (/home/runner/work/repo/tests/x.test.cjs:731:19)";
+  const cleanStack = redactDiagText(stack);
+  assert.ok(!cleanStack.includes("/home/runner"), "stack path leaked: " + cleanStack);
+  assert.ok(cleanStack.includes("at driveForm (<path>:452:15)"), "stack frame shape kept: " + cleanStack);
 });
 
 module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES, redactDiagText };

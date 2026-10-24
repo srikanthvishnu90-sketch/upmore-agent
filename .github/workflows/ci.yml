@@ -152,6 +152,11 @@ jobs:
     timeout-minutes: 60
     env:
       GATE_PARTITION: coverage
+      # The coverage suite's diagnostics (2026-10-24): an append-only JSONL of
+      # per-drive steps/elapsed + failing tests' assertion text, uploaded below
+      # and summarized by the suite itself into this job's step summary and
+      # ::error annotations. Observation only — no outcome reads it.
+      FORMS_CI_COVERAGE_DIAG: ${{ runner.temp }}/forms-ci-coverage-diag.jsonl
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -196,6 +201,13 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
+      - name: Upload forms-ci coverage diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms-ci-coverage-diag
+          path: ${{ runner.temp }}/forms-ci-coverage-diag.jsonl
+          if-no-files-found: ignore
   database:
     runs-on: ubuntu-24.04
     steps:

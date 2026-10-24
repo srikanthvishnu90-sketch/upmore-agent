@@ -180,6 +180,31 @@ function strip(html) {
     .replace(/\s(src|href)\s*=\s*'(https?:)?\/\/[^']*'/gi, " $1='/__blocked'");
 }
 
+// ---------------------------------------------------------------------------
+// CI DIAGNOSTICS (2026-10-24) — observation only. The two Greenhouse failures
+// in CI (82cb014a and 6d24e437: andurilindustries, wppmedia) were never
+// classifiable because the failing tests' error text, the per-drive elapsed
+// time and the step in flight at failure never left the runner — the gate
+// annotation carries test names only. This block records, per drive, an
+// append-only JSONL event log: step boundaries with ms offsets from drive
+// start, each fill's ms + outcome, drive totals, a drive's thrown error, and
+// a failed form test's assertion text (captured and rethrown unchanged). The
+// log goes to FORMS_CI_COVERAGE_DIAG (the gate-coverage CI job points it at
+// an uploaded artifact); test.after also prints a compact per-drive summary
+// to the gate log, appends it to the GitHub step summary when present, and
+// emits the failures as ::error annotations. Every write is best-effort and
+// wrapped: diagnostics can never change a test outcome — no assertion, pin,
+// timeout or drive step reads any of this.
+// ---------------------------------------------------------------------------
+const DIAG_PATH = process.env.FORMS_CI_COVERAGE_DIAG || path.join(os.tmpdir(), "forms-ci-coverage-diag.jsonl");
+const diagEvents = [];
+try { fs.writeFileSync(DIAG_PATH, ""); } catch {}
+function diag(ev) {
+  const rec = { t: new Date().toISOString(), ...ev };
+  diagEvents.push(rec);
+  try { fs.appendFileSync(DIAG_PATH, JSON.stringify(rec) + "\n"); } catch {}
+}
+
 const SERVE = new Map();
 for (const f of CAPTURED) SERVE.set(f.id, path.join(FORMS, f.html));
 
@@ -395,14 +420,19 @@ const ATTEST_RE = /certify|attest|truthful|accurate to the best|acknowledge|i co
 // record. Identical drive to the Ashby pack's per-form test body, plus the file-
 // question and attestation inventories this pack pins.
 async function driveForm(form) {
+  const d0 = Date.now();
+  const dstep = (name, extra) => diag({ form: form.id, step: name, atMs: Date.now() - d0, ...(extra || {}) });
+  dstep("drive_start");
   const rec = { company: form.company || null, family: form.family, manifestFieldCount: form.fields, botCheck: form.bot_check || [] };
   const open = await send({ type: "open", url: `${base}/${form.id}` });
   assert.equal(open.ok, true, JSON.stringify(open));
   opensCompleted += 1;
+  dstep("open_done");
   rec.captchaOnReplay = open.data.captcha;
   rec.captchaTechOnReplay = open.data.captchaTech;
   const disc = await send({ type: "discover" });
   assert.equal(disc.ok, true, JSON.stringify(disc));
+  dstep("discover_done", { rawFields: disc.data.fields.length });
   const fields = disc.data.fields;
   rec.rawFields = fields.length;
   const controls = disc.data.observation.controls || [];
@@ -410,8 +440,10 @@ async function driveForm(form) {
   let bindings = null, schema = null;
   try {
     ({ bindings, schema } = bindFields(fields));
+    dstep("bind_done", { mapped: schema.length });
   } catch (e) {
     rec.bindError = String((e && e.message) || e);
+    dstep("bind_error", { error: rec.bindError });
   }
   if (schema) {
     rec.mapped = schema.length;
@@ -445,6 +477,8 @@ async function driveForm(form) {
       }
       const v = persona[s.name];
       let r;
+      const f0 = Date.now();
+      dstep("fill_start", { field: s.name });
       try {
         r = await send({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version }, 300000);
       } catch (e) {
@@ -453,16 +487,19 @@ async function driveForm(form) {
         // drive here rather than queueing further commands behind a stuck fill.
         fills.push({ name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: "fill_timeout" });
         rec.driveError = `fill timed out on ${s.name}: ${String((e && e.message) || e)}`;
+        dstep("fill_timeout", { field: s.name, ms: Date.now() - f0, error: String((e && e.message) || e) });
         break;
       }
       const reasonOf = (x) => typeof x === "string" ? x : (x && typeof x === "object" && x.code) ? String(x.code) : JSON.stringify(x ?? "not_filled");
       const entry = { name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: r.ok && r.data.filled ? "filled" : (r.ok ? reasonOf(r.data.reason) : reasonOf(r.error)) };
+      dstep("fill_done", { field: s.name, ms: Date.now() - f0, outcome: entry.outcome });
       fills.push(entry);
       if (entry.outcome === "filled") filledBindings.push({ b, v });
     }
     rec.fills = fills;
     rec.filledCount = filledBindings.length;
     if (!rec.driveError) {
+      dstep("readback_start", { count: filledBindings.length });
       const read = await send({ type: "readback", bindings: filledBindings.map((x) => x.b), observationVersion: version });
       assert.equal(read.ok, true, JSON.stringify(read));
       let matched = 0;
@@ -472,9 +509,11 @@ async function driveForm(form) {
         return { name: b.field_id, match: ok };
       });
       rec.readbackMatched = matched;
+      dstep("readback_done", { matched });
     }
   }
   await send({ type: "close" });
+  dstep("drive_end", { totalMs: Date.now() - d0, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null, driveError: rec.driveError || null });
   return rec;
 }
 
@@ -505,6 +544,55 @@ test.after(async () => {
     try { prior = JSON.parse(fs.readFileSync(process.env.FORMS_CI_COVERAGE_EMIT, "utf8")).results || {}; } catch {}
     fs.writeFileSync(process.env.FORMS_CI_COVERAGE_EMIT, JSON.stringify({ posture: ready, results: { ...prior, ...results } }, null, 1));
   }
+  // CI diagnostics summary (observation only — see the diagnostics block
+  // above): per form, the drive's total ms and outcome, the last step in
+  // flight for a drive that never ended, and any assertion text. Printed to
+  // the gate log, appended to the GitHub step summary when present, and the
+  // failures emitted as ::error annotations so the checks API carries them.
+  try {
+    const byForm = new Map();
+    for (const ev of diagEvents) {
+      if (!ev.form) continue;
+      if (!byForm.has(ev.form)) byForm.set(ev.form, []);
+      byForm.get(ev.form).push(ev);
+    }
+    const esc = (s) => String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+    const rows = [];
+    for (const form of CAPTURED) {
+      const evs = byForm.get(form.id) || [];
+      const end = evs.find((e) => e.step === "drive_end");
+      const fail = evs.find((e) => e.step === "assertion_failed");
+      const threw = evs.find((e) => e.step === "drive_threw");
+      const passed = evs.some((e) => e.step === "assertions_passed");
+      let status;
+      if (!evs.length) status = "not run in this process";
+      else if (fail) status = "ASSERTION FAILED";
+      else if (passed) status = "assertions passed";
+      else status = "NO assertion verdict recorded (test-timeout signature)";
+      let detail = "no events recorded";
+      if (end) detail = `drive_end at +${end.totalMs}ms (filled ${end.filledCount}, readback ${end.readbackMatched}${end.driveError ? ", driveError: " + end.driveError : ""})`;
+      else if (threw) detail = `drive threw: ${String(threw.error).slice(0, 300)}`;
+      else if (evs.length) { const l = evs[evs.length - 1]; detail = `last step ${l.step}${l.field ? " field " + l.field : ""}${l.atMs != null ? " at +" + l.atMs + "ms" : ""}, no drive_end`; }
+      rows.push({ id: form.id, status, detail, fail, threw });
+      console.log(`FORMS-CI-DIAG ${form.id}: ${status} — ${detail}`);
+      if (fail) console.log(`FORMS-CI-DIAG ${form.id} assertion: ${String(fail.error).slice(0, 1200)}`);
+      if (threw) console.log(`FORMS-CI-DIAG ${form.id} drive threw: ${String(threw.error).slice(0, 600)}`);
+    }
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const md = ["## forms-ci coverage diagnostics", "", "| form | verdict | drive record |", "|---|---|---|",
+        ...rows.map((r) => `| ${r.id} | ${r.status} | ${r.detail.replace(/\|/g, "\\|")} |`), ""];
+      for (const r of rows) if (r.fail) md.push(`### ${r.id} — assertion failure`, "", "```", String(r.fail.error).slice(0, 3000), "```", "");
+      for (const r of rows) if (r.threw) md.push(`### ${r.id} — drive threw`, "", "```", String(r.threw.error).slice(0, 1500), "```", "");
+      md.push(`Full per-step event log: the forms-ci-coverage-diag artifact (JSONL, ${diagEvents.length} events).`, "");
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md.join("\n"));
+    }
+    if (process.env.GITHUB_ACTIONS) {
+      for (const r of rows) {
+        if (r.fail) console.log(`::error title=forms-ci ${r.id}::${esc(String(r.fail.error).slice(0, 800))}`);
+        else if (r.status.startsWith("NO assertion verdict")) console.log(`::error title=forms-ci ${r.id}::${esc(r.status + " — " + r.detail)}`);
+      }
+    }
+  } catch {}
 });
 
 test("forms-ci coverage: inventory — the drive set is exactly the captured Greenhouse + Lever application forms", () => {
@@ -617,6 +705,7 @@ for (const form of CAPTURED) {
       // A drive that dies before it can measure (open/discover/helper failure) is a
       // measured outcome too — pinned with its reason, never forced into a pass.
       rec = { company: form.company || null, family: form.family, driveError: String((e && e.message) || e) };
+      diag({ form: form.id, step: "drive_threw", error: String((e && e.message) || e).slice(0, 1000) });
       try { await send({ type: "close" }, 10000); } catch {}
     }
     results[form.id] = rec;
@@ -628,19 +717,27 @@ for (const form of CAPTURED) {
       fs.writeFileSync(process.env.FORMS_CI_COVERAGE_EMIT, JSON.stringify({ posture: ready, results: { ...prior, ...results } }, null, 1));
     } else {
       const exp = (EXPECTED.capturedForms.find((x) => x.id === form.id) || {}).expectation;
-      assert.ok(exp, "no pinned expectation for " + form.id);
-      assert.deepEqual(
-        { rawFields: rec.rawFields ?? null, mapped: rec.mapped ?? null, bindError: rec.bindError ?? null, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null, submitControl: rec.submitControl ?? null, driveError: rec.driveError ? "drive_error" : null },
-        { rawFields: exp.rawFields, mapped: exp.mapped, bindError: exp.bindError, filledCount: exp.filledCount, readbackMatched: exp.readbackMatched, submitControl: exp.submitControl, driveError: exp.driveError },
-        "coverage outcome drifted from the pinned expectation — re-measure and update the fixture in the same commit");
-      if (!rec.driveError) {
-        assert.deepEqual((rec.fills || []).map((f) => [f.name, f.outcome]), exp.fills, "per-field fill outcomes drifted from the pinned expectation");
-        const classes = {};
-        for (const f of rec.fills || []) classes[f.name] = f.cls;
-        assert.deepEqual(classes, exp.fieldClasses, "per-field widget classes drifted from the pinned expectation");
-        assert.deepEqual(rec.fileQuestions || [], exp.fileQuestions, "file-question inventory drifted from the pinned expectation");
-        assert.deepEqual(rec.attestation || [], exp.attestation, "attestation-class inventory drifted from the pinned expectation");
+      try {
+        assert.ok(exp, "no pinned expectation for " + form.id);
+        assert.deepEqual(
+          { rawFields: rec.rawFields ?? null, mapped: rec.mapped ?? null, bindError: rec.bindError ?? null, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null, submitControl: rec.submitControl ?? null, driveError: rec.driveError ? "drive_error" : null },
+          { rawFields: exp.rawFields, mapped: exp.mapped, bindError: exp.bindError, filledCount: exp.filledCount, readbackMatched: exp.readbackMatched, submitControl: exp.submitControl, driveError: exp.driveError },
+          "coverage outcome drifted from the pinned expectation — re-measure and update the fixture in the same commit");
+        if (!rec.driveError) {
+          assert.deepEqual((rec.fills || []).map((f) => [f.name, f.outcome]), exp.fills, "per-field fill outcomes drifted from the pinned expectation");
+          const classes = {};
+          for (const f of rec.fills || []) classes[f.name] = f.cls;
+          assert.deepEqual(classes, exp.fieldClasses, "per-field widget classes drifted from the pinned expectation");
+          assert.deepEqual(rec.fileQuestions || [], exp.fileQuestions, "file-question inventory drifted from the pinned expectation");
+          assert.deepEqual(rec.attestation || [], exp.attestation, "attestation-class inventory drifted from the pinned expectation");
+        }
+      } catch (e) {
+        // Diagnostics only: record the assertion text CI never surfaced, then
+        // rethrow — the failure itself is byte-for-byte the one above.
+        diag({ form: form.id, step: "assertion_failed", error: String((e && e.message) || e).slice(0, 4000) });
+        throw e;
       }
+      diag({ form: form.id, step: "assertions_passed" });
     }
   });
 }

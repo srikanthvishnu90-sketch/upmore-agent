@@ -581,6 +581,12 @@
         "type": "yesno",
         "group": "skills"
       },
+      // ELIGIBILITY-SEPARATION-PROPOSAL.md (Branch A note): work
+      // authorization is its own fact — authorized to work in the US, yes
+      // or no; sponsorship is its own fact (the "sponsorship" entry below),
+      // never part of this one's meaning. The entry's "note" string below is
+      // schema data and is unchanged here; this comment records the
+      // separation the proposal's readers (module 156) implement.
       "work_authorization": {
         "kind": "fact",
         "type": "text",
@@ -2211,7 +2217,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+        const free = options.filter((o) => !/sponsor/.test(low(o.label)) && /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
         if (free.length === 1) return free[0].value;
         break;
       }

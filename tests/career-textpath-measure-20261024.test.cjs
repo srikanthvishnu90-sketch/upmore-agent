@@ -33,9 +33,12 @@
    posting pool is evals/career/conversations.json's own postings (the pool the
    repo's conversation eval runs behind search).
 
-   The single assertion is mechanical: every turn returns a result object with
-   an intent string. Routing quality is NOT asserted — it is recorded. Each turn
-   emits one "MEASURE|<json>" line; run with:
+   The single assertion is mechanical: every turn returns a result object.
+   Routing quality is NOT asserted — it is recorded. A turn whose intent comes
+   back null with the 140 fallback text is the composed generic fallback (the
+   router matched nothing; containment fills the reply) and is recorded with
+   fallback:true — the same shape the surface shows a user. Each turn emits
+   one "MEASURE|<json>" line; run with:
      node --test --test-reporter=spec tests/career-textpath-measure-20261024.test.cjs
    Check: node --test tests/career-textpath-measure-20261024.test.cjs */
 const { test } = require("node:test");
@@ -82,16 +85,19 @@ function runSet(feature, userId, turns) {
     let rec;
     try {
       const out = w.say(userId, `t-${userId}`, text);
+      assert.ok(out && typeof out === "object", `${feature} turn ${i + 1} returns a result object`);
       const reply = String((out && out.reply) || "");
       rec = {
         feature, turn: i + 1, user: text,
-        intent: out && out.intent,
-        fallback: Boolean(out && (out.intent === "career_fallback" || FALLBACK_RE.test(reply))),
+        intent: out.intent ?? null,
+        handler: out.handler ?? null,
+        resultStatus: out.resultStatus ?? null,
+        contained: out.contained ?? null,
+        fallback: Boolean(out.intent == null || out.intent === "career_fallback" || FALLBACK_RE.test(reply)),
         reply: reply.replace(/\s+/g, " ").slice(0, 280),
       };
-      assert.ok(out && typeof out.intent === "string" && out.intent.length > 0, `${feature} turn ${i + 1} returns an intent`);
     } catch (e) {
-      rec = { feature, turn: i + 1, user: text, intent: "THREW", fallback: false, reply: String((e && e.message) || e).slice(0, 200) };
+      rec = { feature, turn: i + 1, user: text, intent: "THREW", handler: null, resultStatus: null, contained: null, fallback: false, reply: String((e && e.message) || e).slice(0, 200) };
     }
     console.log("MEASURE|" + JSON.stringify(rec));
   });

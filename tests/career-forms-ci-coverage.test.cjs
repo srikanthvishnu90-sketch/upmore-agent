@@ -199,10 +199,37 @@ function strip(html) {
 const DIAG_PATH = process.env.FORMS_CI_COVERAGE_DIAG || path.join(os.tmpdir(), "forms-ci-coverage-diag.jsonl");
 const diagEvents = [];
 try { fs.writeFileSync(DIAG_PATH, ""); } catch {}
+// Redaction (2026-10-24): today's diagnostic inputs are synthetic by
+// construction (TEST persona, synthetic PDF, public captured fixtures, no
+// secrets in the job), but that was true by circumstance, not enforced.
+// Free-text diagnostic strings (error / driveError) pass through this
+// redactor before they are stored or printed: absolute filesystem paths
+// and home dirs become <path>, non-local URLs become <url> (the local
+// 127.0.0.1 origin is kept — it is the replay server, not data), and
+// ENV=value-style assignments lose their values. Allowlisted by design:
+// error codes (DRIVER_ERROR), fixture ids, step names, field names, ms
+// and outcomes pass through untouched — they are what the diagnostics
+// exist to carry. Best-effort like everything here: it cannot throw.
+function redactDiagText(s) {
+  try {
+    let out = String(s);
+    out = out.replace(/(?:https?|file):\/\/[^\s"'\\)]+/g, (u) => {
+      try { const p = new URL(u); return (p.hostname === "127.0.0.1" || p.hostname === "localhost") ? p.origin : "<url>"; }
+      catch { return "<url>"; }
+    });
+    out = out.replace(/(^|[\s"'(=])((?:\/[\w.@%+-]+){2,}\/?)/g, "$1<path>");
+    out = out.replace(/(^|[\s"'(])~\/[^\s"']*/g, "$1<path>");
+    out = out.replace(/\b([A-Z][A-Z0-9_]{2,})=([^\s"']+)/g, "$1=<redacted>");
+    return out;
+  } catch { return "<redaction-error>"; }
+}
 function diag(ev) {
-  const rec = { t: new Date().toISOString(), ...ev };
-  diagEvents.push(rec);
-  try { fs.appendFileSync(DIAG_PATH, JSON.stringify(rec) + "\n"); } catch {}
+  try {
+    const rec = { t: new Date().toISOString(), ...ev };
+    for (const k of ["error", "driveError"]) if (typeof rec[k] === "string") rec[k] = redactDiagText(rec[k]);
+    diagEvents.push(rec);
+    try { fs.appendFileSync(DIAG_PATH, JSON.stringify(rec) + "\n"); } catch {}
+  } catch {}
 }
 
 const SERVE = new Map();
@@ -893,4 +920,24 @@ test("widget-gap guard: an unfilled required select cannot be counted filled in 
   assert.equal(coverageClaim(tampered).perForm.find((p) => p.id === tsmg.id).claimable, false);
 });
 
-module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES };
+test("forms-ci coverage diagnostics: the redactor strips paths/env-style strings and keeps codes and outcomes", () => {
+  const dirty = "DRIVER_ERROR launching /home/runner/work/repo/tools/chrome --user-data-dir=/tmp/prof " +
+    "with SOME_TOKEN=abc123secret and https://boards.example.com/postings/123?key=zzz and file:///etc/passwd " +
+    "from ~/notes.txt — outcome value_did_not_persist";
+  const clean = redactDiagText(dirty);
+  assert.ok(clean.includes("DRIVER_ERROR"), "error code must survive: " + clean);
+  assert.ok(clean.includes("value_did_not_persist"), "fill outcome must survive: " + clean);
+  assert.ok(!clean.includes("/home/runner"), "absolute path leaked: " + clean);
+  assert.ok(!clean.includes("abc123secret"), "env-style value leaked: " + clean);
+  assert.ok(clean.includes("SOME_TOKEN=<redacted>"), "env-style name kept, value redacted: " + clean);
+  assert.ok(!clean.includes("boards.example.com"), "non-local URL leaked: " + clean);
+  assert.ok(!clean.includes("/etc/passwd"), "file URL leaked: " + clean);
+  assert.ok(!clean.includes("~/notes.txt"), "home-relative path leaked: " + clean);
+  // The local replay origin is kept (it names the harness, not data), and
+  // plain diagnostic vocabulary is byte-identical after redaction.
+  assert.equal(redactDiagText("open http://127.0.0.1:8123/greenhouse-x failed"), "open http://127.0.0.1:8123 failed");
+  assert.equal(redactDiagText("filled"), "filled");
+  assert.equal(redactDiagText("fill timed out on question_1: helper response timeout for fill"), "fill timed out on question_1: helper response timeout for fill");
+});
+
+module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES, redactDiagText };

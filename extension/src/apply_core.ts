@@ -9,7 +9,7 @@ import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, t
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
-import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
+import { assertsSponsorshipNeed, degreeOptionFor, howHeardChannel, unrestrictedAuthorization, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
@@ -125,21 +125,36 @@ export function chooseWidgetOption(o: {
   const p = r.fill.find((x) => x.name === o.field.name);
   if (!p || !labels.includes(p.value) || (o.factId && p.factId !== o.factId)) return null;
   const [key, fact] = [...Object.entries(o.answers), ...Object.entries(o.saved)].find(([, a]) => a?.factId === p.factId) ?? [];
+  // An attestation or a personal choice is clicked only from the person's own answer to that question (a saved
+  // answer), never from a standing fact — contractFill's judge applies the same rule before the drive; the click
+  // itself is held to it too, so no caller of this chooser can auto-accept an attestation from a fact.
+  if (ownAnswerOnly(o.field.label) && !Object.values(o.saved).some((a) => a?.factId === p.factId)) return null;
   const shown = options.find((x) => x.value === p.value)!.label;
-  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, "")) ? p.value : null;
 }
 // A place or a school is searched by its name, not picked from a fixed list: the employer's entry must name the fact (its
 // first word: "Chicago, Illinois, United States" for "Chicago, IL"). Any other widget is a select whose list opens late.
 const SEARCHED = new Set(["location", "city", "state", "school"]);
 const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
 // How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
-function optionRule(option: string, fact: string, searched: boolean): string | null {
+function optionRule(option: string, fact: string, searched: boolean, key?: string): string | null {
+  // A positive sponsorship-need assertion is the sponsorship fact's own territory: the authorization fact says the
+  // person is authorized, and no other fact says they need sponsorship — their sponsorship answer does, and only
+  // when it is affirmative. (The bare yes-prefix class below once admitted "Yes, I will require sponsorship" on
+  // the authorization fact alone; the widget-gap battery pins that as a wrong answer, never chosen.)
+  if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
   if (searched) {
     // A US state code is named by the state ("IL": "Illinois, United States").
     const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
     return word && optN(option).includes(word) ? "listed-name" : null;
   }
   if (optN(option) === optN(fact)) return "option-exact";
+  // The planner's own fact-keyed rules, tested with the same predicates the matcher uses (answer_options): an
+  // affirmative authorization fact derives the menu's unrestricted-authorization option, and a degree fact
+  // derives the menu's option for that degree — a sentence option is a derivation when the fact's own rule
+  // names it, not only when it repeats the fact's words.
+  if (key === "work_authorization" && yesNoOf(fact) === "yes" && unrestrictedAuthorization(option)) return "option-unrestricted-authorization";
+  if (key === "education_level" && degreeOptionFor(fact, option)) return "option-degree";
   const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
   return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
 }
@@ -944,7 +959,7 @@ function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFa
     if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
     return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
   }
-  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key);
   if (kind === "listed") return n(a.value) === n(tf.value) ? (SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option") : null;
   return n(a.value) === n(tf.value) ? "verbatim" : null;
 }

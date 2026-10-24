@@ -211,9 +211,10 @@ test("synthetic (b): a read-back that renders a different option is not counted 
   if (skip(t)) return;
   const tr = await drive("wrong-render.html");
   const s = tr.steps.country;
-  assert.equal(s.clicked, "United States", "the planner's option was the one picked");
-  assert.notEqual(s.readBack, "United States", "the widget rendered a different option's text");
-  assert.equal(s.ok, false, "the drive reports the mismatch as a failure, by name of its return");
+  assert.deepEqual(s.verdicts, ["United States"], "the planner named the correct option");
+  assert.equal(s.readBack, "Mexico", "the widget rendered a different option's text (the fixture's wrong-render rule: the next option cyclically)");
+  assert.equal(s.clicked, null, "no choice is recorded for a fill the page did not take");
+  assert.equal(s.ok, false, "the drive reports the mismatch as a failure");
   assert.equal(s.counted, false, "a mismatched read-back is never counted filled");
 });
 

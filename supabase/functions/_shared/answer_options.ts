@@ -245,6 +245,37 @@ export function levelOption(level: string, options: Opt[]): string | null {
   return null;
 }
 
+// A POSITIVE assertion that the person needs sponsorship ("will require sponsorship", "sponsorship is necessary"):
+// another fact's territory — the authorization fact says the person is authorized; whether they need sponsorship is
+// their sponsorship answer, a separate fact. A negation ("without sponsorship", "do not require sponsorship",
+// "sponsorship not required") is the opposite assertion, not this one.
+export function assertsSponsorshipNeed(label: string): boolean {
+  const t = low(label);
+  if (!/sponsorship/.test(t)) return false;
+  if (/without sponsorship|no sponsorship|not require|do not require|does not require|don'?t require|sponsorship (is )?not (required|necessary|needed)/.test(t)) return false;
+  return /\b(require|requires|required|need|needs|needed|necessary)\b[^.]*\bsponsorship\b|\bsponsorship\b[^.]*\b(is\s+)?(required|necessary|needed)\b/.test(t);
+}
+
+// An option that asserts unrestricted authorization: for any employer, or without sponsorship, with no restriction
+// and no future or present-employer qualification — the option chooseOption's work_authorization rule names for an
+// affirmative authorization fact, stated once here so the widget contract gate (apply_core's optionRule) tests the
+// same derivation instead of a weaker paraphrase of it.
+export function unrestrictedAuthorization(label: string): boolean {
+  const t = low(label);
+  return /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(t) &&
+    !/will (need|require)|in the future|present employer|current employer/.test(t);
+}
+
+// One option tested against the person's stated degree level: the level's own wording, never a degree in progress —
+// the per-option test of chooseOption's education rule, shared with the widget contract gate for the same reason.
+export function degreeOptionFor(factValue: string, label: string): boolean {
+  const v = low(factValue);
+  const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
+  if (!re) return false;
+  const t = low(label);
+  return re.test(t) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(t);
+}
+
 export function chooseOption(fact: string, value: string, options: Opt[], question = ""): string | null {
   if (!options.length) return null;
   const v = low(value);
@@ -301,7 +332,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
     }
     case "work_authorization": {
       if (yesNoOf(v) !== "yes") break;
-      const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+      const free = options.filter((o) => unrestrictedAuthorization(o.label));
       if (free.length === 1) return free[0].value;
       break;
     }
@@ -313,7 +344,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // the first. "Bachelor of Arts" and "Bachelor of Science" differ in meaning, and the person is asked.
       // WO-052: "Bachelor's in a relevant engineering or science discipline" asks whether the field fits this job too.
       if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
-      const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+      const hits = options.filter((o) => degreeOptionFor(value, o.label));
       const core = (l: string) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
       if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
       return only(hits);

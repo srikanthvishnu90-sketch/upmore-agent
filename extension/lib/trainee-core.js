@@ -2172,6 +2172,23 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
     return null;
   }
+  function assertsSponsorshipNeed(label) {
+    const t = low(label);
+    if (!/sponsorship/.test(t)) return false;
+    if (/without sponsorship|no sponsorship|not require|do not require|does not require|don'?t require|sponsorship (is )?not (required|necessary|needed)/.test(t)) return false;
+    return /\b(require|requires|required|need|needs|needed|necessary)\b[^.]*\bsponsorship\b|\bsponsorship\b[^.]*\b(is\s+)?(required|necessary|needed)\b/.test(t);
+  }
+  function unrestrictedAuthorization(label) {
+    const t = low(label);
+    return /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(t) && !/will (need|require)|in the future|present employer|current employer/.test(t);
+  }
+  function degreeOptionFor(factValue, label) {
+    const v = low(factValue);
+    const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
+    if (!re) return false;
+    const t = low(label);
+    return re.test(t) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(t);
+  }
   function chooseOption(fact, value, options, question = "") {
     if (!options.length) return null;
     const v = low(value);
@@ -2211,7 +2228,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+        const free = options.filter((o) => unrestrictedAuthorization(o.label));
         if (free.length === 1) return free[0].value;
         break;
       }
@@ -2219,7 +2236,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
         const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
         if (!re) return null;
         if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
-        const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+        const hits = options.filter((o) => degreeOptionFor(value, o.label));
         const core = (l) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
         if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
         return only(hits);
@@ -4394,8 +4411,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ...Object.entries(o.answers),
       ...Object.entries(o.saved)
     ].find(([, a]) => a?.factId === p.factId) ?? [];
+    if (ownAnswerOnly(o.field.label) && !Object.values(o.saved).some((a) => a?.factId === p.factId)) return null;
     const shown2 = options.find((x) => x.value === p.value).label;
-    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, "")) ? p.value : null;
   }
   var SEARCHED = /* @__PURE__ */ new Set([
     "location",
@@ -4404,12 +4422,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     "school"
   ]);
   var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
-  function optionRule(option, fact, searched) {
+  function optionRule(option, fact, searched, key) {
+    if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
     if (searched) {
       const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
       return word && optN(option).includes(word) ? "listed-name" : null;
     }
     if (optN(option) === optN(fact)) return "option-exact";
+    if (key === "work_authorization" && yesNoOf(fact) === "yes" && unrestrictedAuthorization(option)) return "option-unrestricted-authorization";
+    if (key === "education_level" && degreeOptionFor(fact, option)) return "option-degree";
     const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
     return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
   }
@@ -5518,7 +5539,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
       return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
     }
-    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key);
     if (kind === "listed") return n(a.value) === n(tf.value) ? SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option" : null;
     return n(a.value) === n(tf.value) ? "verbatim" : null;
   }
@@ -5843,7 +5864,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return false;
     }
     press(hit);
-    const shown2 = await until(() => widgetValue(el), 1e3);
+    const renders = (v) => {
+      const a = norm3(v), b = norm3(label);
+      return a === b || a.length >= 2 && b.endsWith(a) || a.length >= 4 && b.startsWith(a);
+    };
+    const shown2 = await until(() => {
+      const v = widgetValue(el);
+      return v && renders(v) ? v : null;
+    }, 1e3);
     if (shown2) lastChoice = label;
     return !!shown2;
   }

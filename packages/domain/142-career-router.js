@@ -2038,6 +2038,354 @@ const CareerRouter = (() => {
   //     resume ingest awaits its own confirmation word (that
   //     confirmation is the ingest's), and on any turn carrying an
   //     instruction verb (that is a new task, not an affirmation).
+  // ── STANDING FRAMES (root-cause fix, coordinator steer
+  // 2026-10-24): the blind run at 6c069f43 served 10/45 — nearly
+  // every first turn served and nearly every FOLLOW-UP fell to the
+  // generic banner, because what the conversation was standing on
+  // (a plan, a tracker answer, a comparison, a brief, a refusal, a
+  // pending offer) evaporated between turns: path plans, tracker
+  // answers and comparison serves wrote NO durable state, so a
+  // short follow-up had nothing to bind to. The fix is structural:
+  // every serve that opens a conversational frame RECORDS it in
+  // the thread mirror (written from recordActiveWork, the single
+  // choke point that sees every served result), and short
+  // follow-ups resolve against the standing frames BEFORE the
+  // generic routes are consulted. No frame → the caller falls
+  // through to the honest layers, never a fabricated answer.
+  function frameMarksOf(ctx) {
+    const m = threadMirrorOf(ctx);
+    return (m && m.frames && typeof m.frames === "object" && !Array.isArray(m.frames)) ? m.frames : {};
+  }
+  function markFrame(ctx, kind, data) {
+    const wmir = threadMirrorForWrite(ctx);
+    if (!wmir) return;
+    if (!wmir.frames || typeof wmir.frames !== "object" || Array.isArray(wmir.frames)) wmir.frames = {};
+    wmir.frames[kind] = Object.assign({ at: new Date(nowOf(ctx)).toISOString() }, data || {});
+  }
+  function sentenceMatching(txt, re) {
+    const parts = s(txt).split(/(?<=[.!?])\s+/).map((p) => p.trim()).filter(Boolean);
+    for (const p of parts) if (re.test(p)) return p;
+    return parts[0] || "";
+  }
+  function moneyOf(n) { return n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`; }
+
+  // TRACKER FOLLOW-UPS (split out of the frame resolver): the
+  // whole-turn shapes are claimed EARLY in dispatch, ahead of the
+  // career-path gate — a bare "stuck" is that gate's signal class,
+  // but "anything stuck" with a tracker answer standing is a
+  // question about the tracked pipeline, and the standing frame
+  // outranks the generic signal. Frame-gated and whole-turn, so
+  // a genuine career-stuck turn (no tracker frame, or a longer
+  // turn) keeps its own route untouched.
+  function handleTrackerFollowUp(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    if (raw.split(/\s+/).length > 14) return null;
+    if (isNextStepFollowUp(raw)) return null;
+    const frames = frameMarksOf(ctx);
+    if (!(frames.tracker && typeof frames.tracker === "object")) return null;
+    const c = threadContextOf(ctx) || {};
+    const rows = Array.isArray(c.rows) ? c.rows : [];
+    // TRACKER frame: the answer was a state read; its follow-ups
+    // are answered by RE-READING the live record, never by memory
+    // of the earlier reply and never by another route's guess.
+    {
+      const rowLine = (r) => `${s(r.company) || "A role"} — ${s(r.stage) || "stage not recorded"}.`;
+      if (/^(are you sure|you sure|really|sure)[?!.]*$/.test(t) || /\bare you sure\b/.test(t)) {
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: rows.length ? `Re-read just now: the tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}.` : "Re-read just now: the tracker holds no applications.",
+          facts: rows.length ? rows.slice(0, 5).map(rowLine) : ["Nothing is tracked, so nothing is waiting on you and nothing was sent through me."],
+          nextStep: rows.length ? "Ask about any one of them by company and its own line is read back." : "Name a role and the first tracked application starts there.",
+        }) };
+      }
+      if (/^(and )?(last|this) (week|month)[?!.]*$/.test(t)) {
+        const dated = rows.filter((r) => Date.parse(s(r.at || r.date || r.applied_at || "")) > 0);
+        if (!rows.length) return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: "None then either — the tracker holds no applications at all.",
+          facts: ["No applications are recorded in any week, so the count is zero in both."],
+          nextStep: "Name a role and the first tracked application starts there.",
+        }) };
+        if (!dated.length) return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: `The tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}, and the record does not date them.`,
+          facts: ["Without dates on the record, a per-week count would be a guess — so the honest count is the total above."],
+          nextStep: "Ask about any one of them by company and its own line is read back.",
+        }) };
+        const weekAgo = nowOf(ctx) - 7 * 24 * 3600 * 1000;
+        const inLast = dated.filter((r) => Date.parse(s(r.at || r.date || r.applied_at)) >= weekAgo).length;
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: `Last week: ${inLast} application${inLast === 1 ? "" : "s"} on the record.`,
+          facts: dated.slice(0, 5).map(rowLine),
+          nextStep: "Ask about any one of them by company and its own line is read back.",
+        }) };
+      }
+      if (/\bwhich ones need me\b|\bwhat needs me\b|\banything stuck\b|\bwhat'?s stuck\b|\bwhich (ones )?need/.test(t)) {
+        const open = rows.filter((r) => !/reject|withdraw|declin|accepted|signed|closed/i.test(s(r.stage)));
+        return { intent: "tracking_status", resultStatus: "complete", reply: compose({
+          headline: rows.length ? (open.length ? "These are the ones still open:" : "None need you — every tracked application sits in a closed state.") : "None — the tracker holds no applications.",
+          facts: rows.length ? (open.length ? open.slice(0, 5).map(rowLine) : rows.slice(0, 5).map(rowLine)) : ["Nothing is waiting on you, because nothing is tracked yet."],
+          nextStep: rows.length ? "Name one and its next move is worked out." : "Name a role and the first tracked application starts there.",
+        }) };
+      }
+    }
+    return null;
+  }
+
+  // The open-context-first resolver: claims ONLY short turns whose
+  // whole shape is a continuation, a data supply for a standing
+  // comparison, a verification, or a constraint on a standing
+  // plan — and only when the frame it binds to actually stands.
+  // W-NEXTSTEP shapes stand down (that layer owns them); longer
+  // turns carrying fresh content keep their own routes.
+  function handleFrameContinuation(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    if (raw.split(/\s+/).length > 14) return null;
+    if (isNextStepFollowUp(raw)) return null;
+    const frames = frameMarksOf(ctx);
+    const has = (k) => !!(frames[k] && typeof frames[k] === "object");
+    if (!Object.keys(frames).length) return null;
+    const c = threadContextOf(ctx) || {};
+    const rows = Array.isArray(c.rows) ? c.rows : [];
+
+    // Two selectable frames standing + a deictic pick: owned by
+    // NEITHER frame — ask which, naming both (the root-cause
+    // order's clarify rule), instead of letting one route guess.
+    const selectShape = /\b(use|pick|choose|take|go with) (the )?(second|first|that one|this one)\b/.test(t) || /^(the )?(second|first) one[.!?]*$/.test(t);
+    if (selectShape) {
+      const standing = [];
+      if (c.discovery) standing.push("the roles from the search");
+      if (has("negotiation") && frames.negotiation.compare) standing.push("the offers in the comparison");
+      if (standing.length >= 2) {
+        return { intent: "conversation_clarify", resultStatus: "awaiting_user", reply: compose({
+          headline: "Which one do you mean?",
+          facts: [`Two things are standing that the pick could point at: ${standing.join(", and ")}.`],
+          nextStep: "Name which set — the role or the offer — and that is the one that moves.",
+        }) };
+      }
+    }
+
+    // REJECTION frame: the thread is about one rejection; asking
+    // why and drafting the ask are the thread's own next turns.
+    if (has("rejection")) {
+      if (/\bcan i ask why\b|\bshould i ask why\b|\bask (them|him|her) why\b/.test(t)) {
+        return { intent: "rejection_followup", resultStatus: "awaiting_user", reply: compose({
+          headline: "Yes — one short, gracious note asking for feedback is standard, and it costs you nothing.",
+          facts: ["Most firms reply with little or nothing; the ones that do often name the one decisive thing, and that is exactly what the next application needs.", "Ask for ONE thing that would have strengthened the application — a specific ask gets a specific answer; “any feedback?” gets none."],
+          nextStep: "Say “write it” and the note is composed here, held for your approval — nothing sends.",
+        }) };
+      }
+      if (/\bwrite (something|it|one)\b|\bdraft/.test(t)) {
+        return { intent: "rejection_followup", resultStatus: "awaiting_user", reply: compose({
+          headline: "Here is the polite version — held here, nothing sent:",
+          longBody: "Subject: Thank you — and one question\n\nHi [recruiter name],\n\nThank you for considering me, and for the team's time. If you are willing to share the one thing that would have made my application stronger, I would genuinely use it.\n\nEither way, I wish the team and [company] well.",
+          facts: ["The brackets are filled from your record the moment you name the recruiter and the company — nothing is guessed."],
+          nextStep: "Approve the filled version here and it can go; edit any line first and the edit is what stands.",
+        }) };
+      }
+    }
+
+    // PREP BRIEF frame: the brief stands; prep questions bind to it.
+    if (has("brief") || (c.lastWork && c.lastWork.kind === "prep")) {
+      if (/\bwhat if they ask/.test(t)) {
+        const topic = (/\bask about (?:my |your )?(.+?)[?!.]*$/.exec(t) || [])[1] || "that";
+        return { intent: "prep_brief", resultStatus: "awaiting_user", reply: compose({
+          headline: `If they ask about ${topic}, answer it in three beats.`,
+          facts: [`Name it plainly, in one line — no apology tour: what ${topic} was, stated as a fact.`, "Then what it produced: be ready to name the concrete thing it built — a skill, a piece of work, a result. That part comes from your own record; nothing is invented here.", "Then land on this role: why that experience is evidence FOR the job, in one sentence."],
+          nextStep: "Say your version out loud here and it gets tightened against the brief; or run the mock and this question is in it.",
+        }) };
+      }
+      if (/^how (should|do) i prep/.test(t) || /\bhow to prep\b/.test(t)) {
+        return { intent: "prep_brief", resultStatus: "awaiting_user", reply: compose({
+          headline: "Prep against the standing brief, in three blocks.",
+          facts: ["Stories first: three STAR stories with real numbers from your record, told out loud once each — the brief's questions all draw on these.", "Their work second: what the firm actually does and where this role sits in it — the brief names the gaps where no company file stands yet.", "Questions last: two questions only they can answer, which is what the end of the interview is for."],
+          nextStep: "Name the company and the brief sharpens to its file; or start the mock now and the prep is tested, not just listed.",
+        }) };
+      }
+    }
+
+    // COMPARISON / NEGOTIATION frame: figures supplied FOR the
+    // standing comparison run it; a verdict binds to the stored
+    // figures; a pushback binds to the negotiation.
+    if (has("negotiation")) {
+      const neg = frames.negotiation;
+      const amounts = [...t.matchAll(/\$?\s*(\d{2,3})\s?k\b/g)].map((m) => Number(m[1]) * 1000);
+      if (neg.compare && amounts.length >= 2) {
+        const seg = t.split(/\bsecond\b/);
+        const modeOf = (x) => /\bremote\b/.test(x) ? "remote" : /\bhybrid\b/.test(x) ? "hybrid" : /\bonsite|on-site|in office|in-office\b/.test(x) ? "on-site" : null;
+        const cityM = /\bin ([a-z][a-z .]{1,20})/.exec(seg[1] || "");
+        const offers = [
+          { amount: amounts[0], mode: modeOf(seg[0]) },
+          { amount: amounts[1], mode: modeOf(seg[1] || ""), city: cityM ? cityM[1].trim() : null },
+        ];
+        markFrame(ctx, "negotiation", Object.assign({}, neg, { compare: true, offers }));
+        const line = (o, i) => `Offer ${i === 0 ? "one" : "two"}: ${moneyOf(o.amount)}${o.mode ? `, ${o.mode}` : ""}${o.city ? ` in ${o.city}` : ""}.`;
+        const hi = offers[0].amount >= offers[1].amount ? offers[0] : offers[1];
+        const lo = hi === offers[0] ? offers[1] : offers[0];
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "Side by side, on the figures you gave:",
+          facts: [line(offers[0], 0), line(offers[1], 1), `On base alone, the ${moneyOf(hi.amount)} offer is ahead by ${moneyOf(hi.amount - lo.amount)} a year${hi.city ? ` — before what living and working in ${hi.city} costs, which is not a figure I will invent` : ""}.`],
+          nextStep: "Say which weighs more for you — the money, or the working setup — and the verdict closes from your own figures.",
+        }) };
+      }
+      if (/\bwhich is better\b|\bwhich one is better\b|\bwhich should i (take|pick|choose)\b/.test(t)) {
+        if (neg.offers && neg.offers.length >= 2) {
+          const [a, b] = neg.offers;
+          const hi = a.amount >= b.amount ? a : b;
+          const lo = hi === a ? b : a;
+          return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+            headline: `On your figures, the ${moneyOf(hi.amount)} offer leads on pay — by ${moneyOf(hi.amount - lo.amount)} a year.`,
+            facts: [`Whether it is better FOR YOU turns on two things not on your record: what ${hi.city ? `living in ${hi.city}` : "the on-site setup"} costs you against ${lo.mode || "the other setup"}, and how much the ${lo.mode || "other"} setup itself is worth to you.`, `If that setup is worth more than ${moneyOf(hi.amount - lo.amount)} a year to you, the ${moneyOf(lo.amount)} offer is the better one; if not, the ${moneyOf(hi.amount)} offer is.`],
+            nextStep: "Say which way you lean and the verdict closes; or name the deciding cost and it is counted in.",
+          }) };
+        }
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "The comparison needs the offers themselves.",
+          facts: ["Give me each offer's base and setup — remote or on-site, and where — and the verdict is computed from those figures only, nothing from a table I do not keep."],
+          nextStep: "State the two offers the way you received them.",
+        }) };
+      }
+      if (/\btoo high\b|\bif they say\b|\bpush ?back\b|\bthey (say|said) no\b/.test(t)) {
+        return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+          headline: "If they say it's too high, do not drop on the spot — a first pushback is the negotiation working.",
+          facts: ["Answer with the band, not a new number: my ask sits at the level this role itself posts; what I care about is the whole package — where is there room?", "If the base truly cannot move, trade instead: signing, review timing, title, start date — each is worth money and none of them costs them the band."],
+          nextStep: "Paste their exact pushback when it comes and the reply is drafted from it, held for your approval.",
+        }) };
+      }
+    }
+
+    // PLAN frame: a step-ask takes the plan's own first move; a
+    // constraint statement is RECORDED (the user's own assertion)
+    // and the plan re-aims around it.
+    if (has("plan")) {
+      const plan = frames.plan;
+      if (/\bwhat do i do first\b|\bwhere do i start\b|\bfirst move\b|\bwhat'?s first\b/.test(t)) {
+        if (plan.family === "path") {
+          const probe = sentenceMatching(plan.text || "", /test|tell them apart|cheapest|tell the/i);
+          return { intent: "path_plan", resultStatus: "awaiting_user", reply: compose({
+            headline: "First move on the standing plan: run its cheap test.",
+            facts: [probe ? `The plan's own words: ${probe}` : "One small, real piece of the target role's work, done this week — the smallest test that shows whether the work itself fits."],
+            nextStep: "What the test shows decides path A or path B; report the result here and the plan re-aims from it.",
+          }) };
+        }
+        const ns = composedNextStep(ctx);
+        if (ns) return { intent: "career_next_step", resultStatus: "awaiting_user", reply: compose(ns) };
+      }
+      if (!/\?/.test(raw) && raw.split(/\s+/).length <= 10 && (/^(i|i've|my)\b/.test(t) || /\bexperience\b|\bbackground\b/.test(t))) {
+        recordThreadFact(ctx, "experience", raw.replace(/[.!]+$/, ""), raw);
+        return { intent: "path_plan", resultStatus: "awaiting_user", reply: compose({
+          headline: "Noted — it is on your record now, and it changes move one, not the destination.",
+          facts: ["A plan built for someone switching fields treats a missing background as the thing the first move must PRODUCE: the cheap test exists to create exactly that evidence."],
+          nextStep: "Run the test and the record stops saying “none” — it says what the test produced.",
+        }) };
+      }
+    }
+
+    // GATE frame (a bulk send was refused with the reviewed path
+    // explained): insistence restates the gate — briefly, once —
+    // instead of re-running the whole refusal or falling silent.
+    if (has("gate") && raw.split(/\s+/).length <= 8 && /\b(do it|send it|send them|just do it|i said)\b/.test(t)) {
+      const mir = threadMirrorOf(ctx);
+      return { intent: "outreach_clarification", resultStatus: "awaiting_user", reply: compose({
+        headline: "Still no — and that refusal is the product keeping its promise.",
+        facts: ["A bulk send to everyone is not a thing I do, with or without insistence. What exists is the reviewed path: a shortlist you see, drafts you approve, sent one at a time from your own account.", ...(mir && mir.hold ? ["Your hold stands as well: nothing sends while it is on."] : [])],
+        nextStep: "Say “shortlist” and the reviewed path starts there.",
+      }) };
+    }
+
+    // HELD-STOP frame (a person-ask stopped honestly): the
+    // wording question is the thread's own next turn — a draft,
+    // held, with its placeholders named as placeholders.
+    if (has("heldStop") && /\bwhat do i say\b|\bwhat should i say\b|\bsay to them\b|\bwhat do i write\b/.test(t)) {
+      const co = frames.heldStop.company;
+      return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+        headline: "Say it like this — a draft, held here; nothing is sent:",
+        longBody: `Hi [name] — I'm [your year] at [your school], aiming at the work your team does${co ? ` at ${co}` : ""}, and I'd value 15 minutes on how you got there and what the work is actually like. No ask beyond the conversation.`,
+        facts: ["The brackets are filled from your own facts — state them and they go in; nothing is guessed, and no referral is promised or implied."],
+        nextStep: "When the words are right, you send it yourself or approve it here first.",
+      }) };
+    }
+
+    // DECLINED frame (an action this router cannot do was declined
+    // honestly): corrections, amounts and cancels bind to the
+    // DECLINED request — there is nothing standing to move, cancel
+    // or select from, and the reply says exactly that.
+    if (has("declined")) {
+      const d = frames.declined;
+      if (/\bactually\b|\bmake it\b|\bchange it\b|\bcancel\b|\bnever ?mind\b|\bforget it\b|\bgive me\b|\buse the\b|\bpick\b/.test(t)) {
+        return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({
+          headline: `Nothing to change there — the ${d.label || "request"} was never set up, because it is not something I can do yet.`,
+          facts: ["No reminder, draft or list is standing from that ask, so there is nothing to move, cancel or pick from — saying otherwise would be inventing state."],
+          nextStep: "What I can do stands in the list above; name one and it starts.",
+        }) };
+      }
+    }
+
+    // THANKS CLOSE: a bare thanks with a frame standing and no
+    // record to recite gets a plain conversational close — the
+    // bare-acknowledgment layer below only speaks when there is a
+    // record to read back, and the banner is not a close.
+    if (/^(ok|okay|thanks|thank you|thx|got it|perfect|great)([ ,.!]+(thanks|thank you|that helped|that helps|a lot))*[.!]*$/.test(t) || /^ok thanks\b/.test(t)) {
+      return { intent: "conversation_ack", reply: "Anytime. Everything stands exactly as we left it — the thread keeps it, and the next move is yours whenever you're ready." };
+    }
+    return null;
+  }
+
+  // WORK-AUTHORIZATION thread (the C4 shape): a sponsorship
+  // QUESTION is eligibility's (the gate there is widened to the
+  // question class); a work-auth STATEMENT is the user's own
+  // assertion — recorded as their fact, never graded by a company
+  // file — and its run-out follow-up answers from that record:
+  // the date lives on their EAD, nowhere else, and is never
+  // invented.
+  function handleWorkAuthThread(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const frames = frameMarksOf(ctx);
+    const sf = statedFactsOf(ctx);
+    const sponsorFact = sf && Array.isArray(sf.facts) ? sf.facts.find((f) => f.kind === "sponsorship") : null;
+    if (/\bwhen does (that|it|this|opt|my (opt|visa|ead|status)) (run out|expire|end)\b|\brun out\b/.test(t) && (frames.workauth || sponsorFact)) {
+      const status = (frames.workauth && frames.workauth.status) || (sponsorFact && sponsorFact.value) || "That status";
+      return { intent: "eligibility_check", resultStatus: "awaiting_user", reply: compose({
+        headline: `${status} runs out on the end date printed on your EAD — and that date is not on your record yet.`,
+        facts: ["The end date on the Employment Authorization Document is the only source for it; I will not guess it or borrow one.", "Say the date and it goes on your record, and from then on your timeline — applications, start dates — is counted from the real date."],
+        nextStep: "State the EAD end date whenever you have the card in hand.",
+      }) };
+    }
+    const stmt = /\bi'?m on\b/.test(t) && /\b(opt|cpt|f-?1|h-?1b|visa)\b/.test(t) || /\bi have (opt|cpt|work authorization)\b/.test(t);
+    if (stmt) {
+      const status = /stem opt/.test(t) ? "STEM OPT" : /\bopt\b/.test(t) ? "OPT" : /\bcpt\b/.test(t) ? "CPT" : /h-?1b/.test(t) ? "H-1B" : /f-?1|student visa/.test(t) ? "F-1 student visa" : "work authorization";
+      recordThreadFact(ctx, "sponsorship", status, raw);
+      markFrame(ctx, "workauth", { status });
+      return { intent: "eligibility_check", resultStatus: "awaiting_user", reply: compose({
+        headline: `${status} is on your record now — as your statement, exactly as you gave it.`,
+        facts: ["That answers the sponsorship half of your question: on a current work authorization you can start a role without the employer sponsoring you; sponsorship only enters when the authorization window ends.", "Whether a SPECIFIC posting accepts it is graded against the posting itself — bring the posting and it is checked line by line."],
+        nextStep: "Tell me the end date on your EAD and your timeline is counted from the real date.",
+      }) };
+    }
+    return null;
+  }
+
+  // SALARY ASK with no standing offer (the C15 shape): the
+  // negotiation gate only speaks when an offer thread stands, so
+  // a cold ask fell to the banner. It is served as an ANCHOR
+  // answer — method only, no figure quoted from a table this
+  // product does not keep — and it opens the negotiation frame so
+  // the pushback follow-up binds to it.
+  function handleSalaryAsk(text, ctx) {
+    const t = lc(text);
+    if (!/\b(salary|pay|comp)\b/.test(t) || !/\bask\b|\bhow much\b/.test(t) || !/\b(good|right|fair|reasonable|should|what)\b/.test(t)) return null;
+    const nt = negotiationThreadOf(ctx);
+    if (nt && (nt.company || nt.ask || (Array.isArray(nt.offers) && nt.offers.length))) return null; // a real offer thread owns salary talk
+    markFrame(ctx, "negotiation", { salaryAsk: true, compare: false });
+    return { intent: "negotiation_advice", resultStatus: "awaiting_user", reply: compose({
+      headline: "Anchor on the role's own band — never on a number from thin air.",
+      facts: ["A good ask sits at the top of the band the posting itself states, or just above it when your record carries the exact experience the posting names.", "I keep no salary table for this role, so no figure is quoted from memory: bring the posting — or the company and title — and the ask is built from what is stated there and what is on your record.", "An ask you can defend line by line survives pushback; a round number cannot."],
+      nextStep: "Name the role and company, or paste the posting, and the ask is built from its stated band.",
+    }) };
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -10433,6 +10781,14 @@ const CareerRouter = (() => {
     // The handler stands down on anything without a parseable
     // current/target role pair, a promotion shape, or a live path
     // thread, so the carve-out claims nothing else.
+    // STANDING TRACKER FRAME (2026-10-24): whole-turn follow-ups
+    // to a standing tracker answer claim here, ahead of the
+    // career-path gate below — its bare "stuck" class would
+    // otherwise read "anything stuck" as a career-ladder turn.
+    {
+      const tfu = handleTrackerFollowUp(text, c);
+      if (tfu) return tfu;
+    }
     {
       const cpE = careerPathGateHit(text, c, false);
       if (cpE) return cpE;
@@ -10949,6 +11305,19 @@ const CareerRouter = (() => {
       // other turn passes through untouched.
       const elq = handleEligibilityAsk(text, c);
       if (elq) return elq;
+      // STANDING FRAMES (2026-10-24): a work-auth statement and
+      // its follow-ups, a cold salary ask, and short follow-ups
+      // against standing frames resolve HERE — after the specific
+      // claims above, ahead of intel/guidance/negotiation, which
+      // otherwise guess at (or ignore) what the conversation is
+      // standing on. Each handler self-gates tightly and stands
+      // down when its frame does not stand.
+      const waq = handleWorkAuthThread(text, c);
+      if (waq) return waq;
+      const sal = handleSalaryAsk(text, c);
+      if (sal) return sal;
+      const frc = handleFrameContinuation(text, c);
+      if (frc) return frc;
       // 2026-10-23: a choice between two named fields is answered on both, ahead of the role library (which answered
       // "should I become a lawyer or a doctor?" about lawyers alone).
       { const fd = routeFieldDecision(text, c); if (fd) return fd; }
@@ -12565,7 +12934,12 @@ const CareerRouter = (() => {
   // is never invented to fill the gap.
   function handleEligibilityAsk(text, ctx) {
     const t = lc(text);
-    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t)) return null;
+    // A work-authorization QUESTION ("do i need sponsorship for
+    // this role?") is this handler's own class even when it never
+    // says "eligible" — without the question class it fell through
+    // to the internship tail, which read "need … role" as a search.
+    const waQuestion = /\?/.test(s(text)) && /\b(sponsor|sponsorship|visa|work (authorization|permit)|citizenship)\b/.test(t);
+    if (!/\b(eligible|eligibility|qualify|qualifies|qualified)\b/.test(t) && !waQuestion) return null;
     if (!/\?/.test(s(text)) && !/\b(am i|do i|would i|can i|check if i)\b/.test(t)) return null;
     if (/\btailor\b/.test(t)) return null; // a tailor ask owns its posting
     if (/\b(offer|negotiat|signing bonus|counter)\b/.test(t)) return null; // negotiation owns its eligibility-flavored turns
@@ -12848,6 +13222,22 @@ const CareerRouter = (() => {
     const c = ctx || {};
     if (!res || !res.intent) return;
     if (res.intent === "career_fallback" || res.intent === "honest_unavailable") return;
+    // STANDING FRAMES (2026-10-24): every serve that opens a
+    // conversational frame records it, so a short follow-up can
+    // bind to what the conversation is standing on. Marks are
+    // keyed by frame kind and carry only what the serve itself
+    // established — the user's ask, the plan's own text, the
+    // company a stop named.
+    try {
+      const askT = lc(text);
+      if (res.intent === "path_plan") markFrame(c, "plan", { family: "path", ask: s(text).slice(0, 140), text: s((res.payload && res.payload.text) || "").slice(0, 600) });
+      else if (res.intent === "career_os_plan") markFrame(c, "plan", { family: "os", ask: s(text).slice(0, 140) });
+      else if (res.intent === "tracking_status" || res.intent === "tracking_log") { markFrame(c, "tracker", { ask: s(text).slice(0, 140) }); if (/\breject/.test(askT)) markFrame(c, "rejection", { ask: s(text).slice(0, 140) }); }
+      else if (res.intent === "prep_brief") markFrame(c, "brief", { ask: s(text).slice(0, 140) });
+      else if (/^negotiation_/.test(res.intent)) markFrame(c, "negotiation", { compare: /\bcompare|two offers|versus|\bvs\b/.test(askT), ask: s(text).slice(0, 140) });
+      else if (res.intent === "people_matching_stop") { const coM = /\bat\s+([a-z][a-z&.' -]{1,30}?)(?:\s+who|\s+that|\s+for|[?.!,]|$)/.exec(askT); markFrame(c, "heldStop", { ask: s(text).slice(0, 140), company: coM ? coM[1].trim() : null }); }
+      else if (res.intent === "outreach_clarification" && /\beveryone\b|\bmass\b|\bblast\b|all of them/.test(askT)) markFrame(c, "gate", { ask: s(text).slice(0, 140) });
+    } catch { /* a frame mark must never break a serve */ }
     let kind = null;
     if (/^prep_/.test(res.intent) && res.intent !== "prep_needs_profile") kind = "prep";
     else if (/^negotiation_/.test(res.intent)) kind = "negotiation";

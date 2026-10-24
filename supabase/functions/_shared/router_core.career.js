@@ -14590,6 +14590,11 @@ const CareerRouter = (() => {
     if (/\?/.test(raw) || /\b(and then|what next|what now|so what)\b/i.test(raw)) return null;
     if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
     if (mir.resumeIngest) return null;
+    if (mir.affirmRecord) {
+      const framesNow = frameMarksOf(ctx);
+      const affirmAt = typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : (Date.parse(mir.affirmRecord.at || "") || 0);
+      if (Object.values(framesNow).some((fr) => fr && ((typeof fr.at === "number" ? fr.at : Date.parse(fr.at || "")) || 0) > affirmAt)) return null;
+    }
     if (!mir.affirmRecord || !recent(mir.affirmRecord.at, 3 * 60 * 1000)) return null;
     const all = statedFactsOf(ctx);
     const wmir = threadMirrorForWrite(ctx);

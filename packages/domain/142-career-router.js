@@ -9534,6 +9534,16 @@ const CareerRouter = (() => {
     if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
     return p;
   }
+  // A conversational yes: a bare affirmation, or an affirmation
+  // carrying the submit itself ("yes go ahead and submit them").
+  // Tight on purpose — it only ever fires against a standing batch
+  // (handleBatchApply's gate), and it can only answer, never act.
+  function batchYesShape(text) {
+    const t = lc(text).trim().replace(/[.!]+$/, "");
+    if (!t || t.length > 60) return false;
+    if (!/^(yes|yeah|yep|yup|ok|okay|sure|go ahead|do it|please do|submit|send)([\s,]|$)/.test(t)) return false;
+    return t.split(/\s+/).length <= 7 || /\b(submit|send|apply|them|all|ahead)\b/.test(t);
+  }
   function handleBatchApply(text, c) {
     const BatchApply = getBatchApply();
     if (!BatchApply) return null;
@@ -9552,6 +9562,36 @@ const CareerRouter = (() => {
       c.batchApplyState = BatchApply.serializeRun(run);
       const sm = ex.summary || BatchApply.summarizeRun(run);
       return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+    }
+    // CONVERSATIONAL YES (2026-10-24): a typed yes against a standing
+    // batch is answered by the batch frame from the run's own
+    // readiness — it NEVER approves and NEVER submits (approval is
+    // the structured ctx above, from the card tap). Before this
+    // branch the yes fell to the generic fallback even mid-batch:
+    // after "apply to the top 3" on a not-ready batch, "yes go ahead
+    // and submit them" got "I may have missed what you meant". What
+    // the yes gets now is the truth: where the batch stands and the
+    // exact next step.
+    if (standing && batchYesShape(text)) {
+      const run = BatchApply.restoreRun(standing);
+      if (run) {
+        const sm = BatchApply.summarizeRun(run);
+        if (run.status === "awaiting_approval") {
+          const names = run.selected.map((k) => run.apps[k]).filter((a) => a && a.stage === "doorstep").map((a) => `${a.title || "role"} at ${a.company}`).join("; ");
+          return { intent: "career_batch_apply", resultStatus: "awaiting_card_approval", batchRun: sm, sends: 0,
+            reply: `Nothing was submitted. Your batch is prepared and waiting at its review card${names ? ` — ${names}` : ""}. A typed yes in chat can't approve it: approval comes from the card itself, so the next step is to open the batch card and approve it there — that approval is bound to exactly these applications, and if anything about them changed since the card was shown, it refuses and the batch goes back for re-preparation.` };
+        }
+        if (run.status === "queued_prepare") {
+          return { intent: "career_batch_apply", resultStatus: "queued", batchRun: sm, sends: 0,
+            reply: `Nothing was submitted — this batch is still being prepared, so there is nothing ready to approve yet. Next step: ask me for the batch status and I'll read back exactly where it stands.` };
+        }
+        if (run.status === "approved" || (run.status === "completed" && (sm.submitted || 0) > 0)) {
+          return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+        }
+        return { intent: "career_batch_apply", resultStatus: "blocked", code: "BATCH_NOT_READY", batchRun: sm, sends: 0,
+          reply: [`Nothing was submitted — this batch is not ready, so a yes can't send it.`, ...BatchApply.speakSummary(run),
+            `Next step: each stopped application above names what it needs before it can be prepared; once a batch reaches its review card, approval comes from that card — a chat yes never submits.`].join("\n") };
+      }
     }
     const ask = BatchApply.parseApplyAsk(text);
     if (!ask) return null;

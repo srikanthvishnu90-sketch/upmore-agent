@@ -338,9 +338,13 @@ function expectedFor(b, v) {
     // home of what counts as a decline, and boards phrase it differently
     // ("I do not want to answer", "I decline to self-identify for protected
     // veteran status"). The rendered decline option's label is the correct
-    // read-back for the canonical decline value.
-    if (DECLINE_RE.test(String(v))) {
-      const d = (b.options || []).find((x) => DECLINE_RE.test(x.label) || DECLINE_RE.test(x.value));
+    // read-back for the canonical decline value. The matcher runs on
+    // normalized text, exactly as the helper's own matcher does (its
+    // normOpt): the source phrases are lowercase, so testing the raw
+    // capitalized value would miss the class entirely.
+    const normOpt = (s) => String(s || "").toLowerCase().replace(/[’‘]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    if (DECLINE_RE.test(normOpt(v))) {
+      const d = (b.options || []).find((x) => DECLINE_RE.test(normOpt(x.label)) || DECLINE_RE.test(normOpt(x.value)));
       if (d) return d.label;
     }
     return v;

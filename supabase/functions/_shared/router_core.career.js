@@ -14814,6 +14814,33 @@ const CareerRouter = (() => {
     return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose(sh) };
   }
 
+  function handleCareerCatchAll(text, ctx) {
+    const raw = s(text).trim();
+    if (!raw) return null;
+    const t = lc(raw);
+    const isQuestion = /\?/.test(raw) || /^(what|why|how|when|where|which|who|whom|can|could|would|should|is|are|was|were|do|does|did|am i|will|may)\b/.test(t);
+    let isRequest = false;
+    if (!isQuestion) { try { isRequest = clauseIsRequest(stripLead(raw)); } catch { isRequest = false; } }
+    if (!isQuestion && !isRequest) return null;
+    const DOMAIN = /\b(job|jobs|career|work|working|employment|employer|employee|boss|manager|workplace|salary|wages?|pay|compensation|benefits?|unemployment|probation|probationary|notice|contract|offer|promotion|raise|reference|resign|interview|application|applying|resume|cv|cover letter|linkedin|networking|recruiter|recruiting|hiring|hired|profession|occupation|role|roles|position|positions|vesting|severance|start date|onboarding)\b/;
+    let related = DOMAIN.test(t);
+    if (!related) {
+      const frames = frameMarksOf(ctx);
+      const c2 = threadContextOf(ctx) || {};
+      related = Object.keys(frames).length > 0 || !!(c2.lastWork || c2.discovery || (Array.isArray(c2.rows) && c2.rows.length));
+    }
+    if (!related) return null;
+    let clause = stripLead(raw).replace(/\?/g, "").trim();
+    clause = clause.replace(/^(can|could|would|will) you (please )?(explain|tell me|describe|walk me through)\s+/i, "");
+    if (clause.length > 110) clause = clause.slice(0, 110).trim();
+    const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
+    return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
+      headline: `I understand the ${isQuestion ? "question" : "ask"}: ${clause}.`,
+      facts: ["I do not have a dedicated, sourced answer for that exact point in this chat, so I will not guess at it.", CAPABILITY_LINE],
+      nextStep: hasAnchor ? "Do you want the general rule, or what it means for your specific case?" : "Which role or company is it about, and what date does it turn on?",
+    }) };
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -21205,6 +21232,7 @@ const CareerRouter = (() => {
     { const fam = routeFamily(text, c); if (fam) return fam; }
     { const hua = handleHonestUnavailableAction(text, c); if (hua) return hua; }
     { const brp = handleBareReply(text, c); if (brp) return brp; }
+    { const ca = handleCareerCatchAll(text, c); if (ca) return ca; }
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {
       return { intent: "career_fallback", reply: Reply ? Reply.fallback("unmatched") : "I didn't catch that.", resultStatus: "awaiting_user" };
     }

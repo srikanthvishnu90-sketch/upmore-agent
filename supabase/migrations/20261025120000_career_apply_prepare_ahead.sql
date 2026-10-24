@@ -27,6 +27,9 @@
 --    it beside that open question (career_apply_question_draft_put_for). It is never their answer: the chat shows it whole
 --    when they ask for it ("draft 2") and only their "use 2" saves it (career_apply_questions.ts), after which the posting
 --    is prepared again with it. career_apply_question_drafts_as(p_user, p_ids) reads the drafts of their open questions.
+-- 6. career_apply_profile_for(p_user): the profile the chat keeps for the person (agent_flow_state, state.career.stores
+--    .profile), from their most recently updated thread that holds one and does not name another owner. The worker
+--    filters it by the trust contract before any of it is used (prepare-ahead.ts trustedProfile).
 
 create table if not exists public.career_apply_prepare_attempts (
  user_id uuid not null references public.profiles(id) on delete cascade,
@@ -162,11 +165,23 @@ language sql stable security definer set search_path = public, pg_temp as $$
  where d.user_id = p_user and d.question_id = any(coalesce(p_ids, '{}'))
 $$;
 
+create or replace function public.career_apply_profile_for(p_user uuid)
+returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+ select s.state->'career'->'stores'->'profile' from public.agent_flow_state s
+ where s.user_id = p_user and jsonb_typeof(s.state->'career'->'stores'->'profile') = 'object'
+  and (s.state->'career'->'stores'->'profile' ? 'facts' or s.state->'career'->'stores'->'profile' ? 'basics')
+  and coalesce(s.state->'career'->'stores'->'profile'->>'user_id', p_user::text) = p_user::text
+ order by s.updated_at desc, s.thread_id
+ limit 1
+$$;
+
 revoke all on function public.career_apply_prepare_candidates(timestamptz, integer, integer),
  public.career_apply_prepare_for(uuid, text, jsonb, text[]), public.career_apply_prepare_attempt_for(uuid, text, text, text, uuid, text),
  public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid),
- public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]) from public, anon, authenticated;
+ public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]),
+ public.career_apply_profile_for(uuid) from public, anon, authenticated;
 grant execute on function public.career_apply_prepare_candidates(timestamptz, integer, integer),
  public.career_apply_prepare_for(uuid, text, jsonb, text[]), public.career_apply_prepare_attempt_for(uuid, text, text, text, uuid, text),
  public.career_apply_prepare_ask_for(uuid, text, text, jsonb), public.career_apply_answers_for(uuid),
- public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]) to service_role;
+ public.career_apply_question_draft_put_for(uuid, text, text, text, text[]), public.career_apply_question_drafts_as(uuid, uuid[]),
+ public.career_apply_profile_for(uuid) to service_role;

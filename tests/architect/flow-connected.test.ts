@@ -34,6 +34,7 @@ import { engineRunner, ownQueue, prepare, questionsToStore, runApproved } from "
 import { prepareAhead, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
 import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
 import { CareerProfile } from "../../supabase/functions/_shared/router_core.career.js";
+import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { type OpenQuestion, QUESTIONS_INTENT, type QuestionStore, questionsTurn, type Shown, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
 
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
@@ -256,12 +257,19 @@ const COVER = { job_id: "greenhouse:flowtest:4", path: "/cover", company: "TEST 
 const LETTER = "I built a reporting dashboard in React and Python used by 200 internal users at TEST Systems Inc, and I cut weekly " +
   "reporting time by 40% by automating data pulls from PostgreSQL. I also built DeployBoard in Go to deploy containerised apps on " +
   "Kubernetes for 12 student teams. I want to bring that work on dashboards for internal teams to TEST Cover Employer.";
-// The person's profile as the chat keeps it: the synthetic test resume, confirmed fact by fact (WO-028's fixture).
+// The person's profile as the chat keeps it: the synthetic test resume (WO-028's fixture), each fact confirmed the way the
+// chat confirms one (the brain's confirm_profile_fact, its event recorded: the owner's provenance and confirmation event,
+// which is what the trust contract keeps; g4-profile-provenance.test.ts proves the rest is left out).
 async function confirmedProfile() {
   const text = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
   const p = (CareerProfile as any).createProfile({ basics: { name: "Flow Tester", email: "flow.tester@example.test", location: "Chicago, IL" } });
   assert((CareerProfile as any).ingestResume(p, { text, fileName: "test-resume.txt" }).ok);
-  for (const f of p.facts) (CareerProfile as any).confirmFact(p, f.id);
+  const confirm = careerTools({ postings: async () => [], events: { add: async () => {}, recall: async () => [] } as any })
+    .find((x) => x.name === "confirm_profile_fact")!;
+  for (const f of p.facts) {
+    await confirm.run({ id: f.id }, { userId: PERSON, threadId: "thread-flow-1", now: Date.now(), state: { profile: p }, turn: { message: "yes", added: [], before: "" } } as any);
+  }
+  assert(p.facts.every((f: any) => f.confirmation_event_id), "every fact carries its confirmation event");
   return { ...p, user_id: PERSON };
 }
 
@@ -321,7 +329,7 @@ Deno.test({
       const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
       const deps = {
         db: svc, runEngine, profileFor, urlFor: (c: { job_id: string }) => local.get(c.job_id)!,
-        resumeFor: tailoredResume({ profileFor, render: edgeRenderer(), resumes }),
+        resumeFor: tailoredResume({ render: edgeRenderer(), resumes }),
       };
 
       let preparedId = "", tailoredSha = "";

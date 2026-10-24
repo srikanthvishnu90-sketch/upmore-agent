@@ -7,7 +7,9 @@
 //
 // The facts: only what the trust contract keeps (extension/src/apply_core.ts trustedManifest, WO-102). Here that is the
 // person's own answers to questions they were asked (career_apply_answers_for) and, when a profile reader is given, the
-// confirmed facts of their profile, by the same projection the extension uses. Nothing else is a fact.
+// facts of their stored profile that carry the owner's confirmation event (trustedProfile, the allowlist every other
+// submission path applies). Nothing else is a fact: not one the router confirmed without an event, not a draft, not a
+// fact with no confirmation at all. The one filtered profile is what the facts file, the resume and the drafter see.
 // The resume: the one tailored to this posting from their confirmed facts (career_tailor.ts tailorForPosting: truth
 // audit, render, ATS parse), stored privately at career-resumes/<user_id>/<sha256>.pdf and bound into the payload by its
 // hash, with resume_tailored (career_apply_resume_tag marks the queued job tailored only when that exact file is stored).
@@ -38,9 +40,12 @@ export interface PreparedResume { path: string; sha256: string; tag: ResumeTag |
 export interface AheadDeps {
   db: ServiceRpc; // the service role
   runEngine: RunEngine;
-  // The resume tailored to this posting, written to a file in dir; null when it cannot be tailored.
-  resumeFor: (c: Candidate, dir: string) => Promise<PreparedResume | null>;
-  // The person's stored profile (its confirmed facts join the trusted facts); absent: only their answers count.
+  // The resume tailored to this posting from the trusted profile, written to a file in dir; null when it cannot be.
+  // deno-lint-ignore no-explicit-any
+  resumeFor: (c: Candidate, dir: string, profile: any | null) => Promise<PreparedResume | null>;
+  // The person's stored profile, as stored (storedProfile); prepareAhead keeps only its trusted facts. Absent: only their
+  // answers count.
+  // deno-lint-ignore no-explicit-any
   profileFor?: (userId: string) => Promise<any | null>;
   // The link the engine opens. Production: the posting's own. Tests point an https posting at a local employer page.
   urlFor?: (c: Candidate) => string;
@@ -75,7 +80,7 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
     try {
       // Their own answers to questions they were asked, and their profile's confirmed facts: the trust contract decides.
       const rows: TextAnswer[] = must(await d.db.rpc("career_apply_answers_for", { p_user: c.user_id }), "read their answers") ?? [];
-      const profile = d.profileFor ? await d.profileFor(c.user_id) : null;
+      const profile = d.profileFor ? trustedProfile(await d.profileFor(c.user_id), c.user_id, rows) : null;
       // The posting's own company (career_postings), which the engine names the application by (else the board's tenant):
       // the 30-day one-company rule and the person's card then count employers, not job boards.
       const file = {
@@ -86,7 +91,7 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
       const trusted = trustedManifest({ owner: c.user_id, file: merged, rows, resume: null }).answers;
       const factsPath = `${dir}/facts.json`;
       await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
-      const resume = await d.resumeFor(c, dir);
+      const resume = await d.resumeFor(c, dir, profile);
       if (!resume) { await record("no_resume", "no resume could be tailored to this posting from their confirmed facts"); continue; }
       const r = await prepare({
         url: d.urlFor ? d.urlFor(c) : c.url, factsPath, resumePath: resume.path, account: { epoch: Number(c.epoch), version: Number(c.version) },
@@ -145,12 +150,47 @@ async function coverLettersAhead(db: ServiceRpc, model: ModelFn, c: Candidate, a
   return kept;
 }
 
-// The resume tailored to the posting (WO-028, career_tailor.ts), the bytes kept as they were stored so the engine sends
-// exactly the stored file. Production: supabaseResumeStore(admin) and edgeRenderer(); the store's put is what makes the
-// file "one Trainee stored for this person", which career_apply_resume_tag checks before calling the job tailored.
-export function tailoredResume(o: { profileFor: (userId: string) => Promise<any | null>; render: TailorDeps["render"]; resumes: ResumeStore; now?: () => number }) {
-  return async (c: Candidate, dir: string): Promise<PreparedResume | null> => {
-    const profile = await o.profileFor(c.user_id);
+// The person's stored profile with only what the trust contract keeps (WO-102, the allowlist production-sources.cjs
+// trustedMaster applies on the batch path): a fact stays only when it is confirmed (status "confirmed", needs no
+// confirmation), the owner's own, carries a positive owner provenance and the event that confirmed it, is not quarantined
+// (D-007) and is derived from nothing excluded. A profile naming another owner is nobody's. The name and email the resume
+// prints come from the person's own answers (first name, last name, email), or from a basics block that carries its own
+// confirmation event; else none, and no resume is tailored (career_tailor refuses one without them).
+// deno-lint-ignore no-explicit-any
+export function trustedProfile(profile: any, owner: string, rows: TextAnswer[]): any | null {
+  if (!profile || typeof profile !== "object" || (profile.user_id !== undefined && profile.user_id !== owner)) return null;
+  // deno-lint-ignore no-explicit-any
+  const entry = (f: any, id: unknown, value: unknown) => ({
+    value: String(value ?? ""), factId: String(id ?? ""), confirmed: f.status === "confirmed" && f.needs_confirmation === false,
+    ...(f.user_id ? { user_id: f.user_id } : {}), provenance: f.provenance, confirmation_event_id: f.confirmation_event_id,
+    ...(Array.isArray(f.derived_from) ? { derived_from: f.derived_from } : {}),
+  });
+  const facts = Array.isArray(profile.facts) ? profile.facts : [];
+  // deno-lint-ignore no-explicit-any
+  const answers: Record<string, any> = {};
+  // A fact's words are its first non-empty one of these (the brain's own facts carry an empty title).
+  // deno-lint-ignore no-explicit-any
+  const words = (f: any) => [f.value, f.title, f.name, f.text].find((v) => typeof v === "string" && v.trim()) ?? "";
+  facts.forEach((f: any, i: number) => { if (f && typeof f === "object") answers[`fact:${i}`] = entry(f, f.id, words(f)); });
+  const b = profile.basics && typeof profile.basics === "object" ? profile.basics : {};
+  answers.basics = entry(b, b.id || "basics", b.name || b.email || "basics");
+  const kept = trustedManifest({ owner, file: { user_id: owner, answers }, rows: [], resume: null }).answers;
+  const said = (k: string) => {
+    const r = rows.find((x) => x.key === `fact:${k}` && typeof x.answer === "string" && x.answer.trim());
+    return r ? r.answer.trim() : null;
+  };
+  const name = [said("first_name"), said("last_name")].filter(Boolean).join(" ") || said("full_name") || said("name");
+  const basics = kept.basics ? b : { ...(name ? { name } : {}), ...(said("email") ? { email: said("email") } : {}), ...(said("phone") ? { phone: said("phone") } : {}) };
+  return { ...profile, user_id: owner, basics, facts: facts.filter((_f: unknown, i: number) => !!kept[`fact:${i}`]) };
+}
+
+// The resume tailored to the posting (WO-028, career_tailor.ts) from the trusted profile prepareAhead hands it, the bytes
+// kept as they were stored so the engine sends exactly the stored file. Production: supabaseResumeStore(admin) and
+// edgeRenderer(); the store's put is what makes the file "one Trainee stored for this person", which
+// career_apply_resume_tag checks before calling the job tailored.
+export function tailoredResume(o: { render: TailorDeps["render"]; resumes: ResumeStore; now?: () => number }) {
+  // deno-lint-ignore no-explicit-any
+  return async (c: Candidate, dir: string, profile: any | null): Promise<PreparedResume | null> => {
     if (!profile) return null;
     let bytes: Uint8Array | null = null;
     const tee: ResumeStore = {
@@ -169,17 +209,17 @@ export function tailoredResume(o: { profileFor: (userId: string) => Promise<any 
   };
 }
 
-// The profile the chat keeps for the person (the 122 master in agent_flow_state), as extension-sync reads it.
-// deno-lint-ignore no-explicit-any
-export function storedProfile(admin: any) {
+// The profile the chat keeps for the person (the 122 master in agent_flow_state), as stored: their most recently updated
+// thread that holds one and names no other owner (career_apply_profile_for). It is never trusted as read; prepareAhead
+// filters it (trustedProfile). A read that fails is no profile: only their answers count.
+export function storedProfile(admin: ServiceRpc) {
+  // deno-lint-ignore no-explicit-any
   return async (userId: string): Promise<any | null> => {
-    const r = await admin.from("agent_flow_state").select("state").eq("user_id", userId);
-    if (r.error || !Array.isArray(r.data)) return null;
-    for (const row of r.data) {
-      const p = row?.state?.career?.stores?.profile;
-      if (p && typeof p === "object" && (p.basics || p.facts)) return { ...p, user_id: userId };
-    }
-    return null;
+    const r = await admin.rpc("career_apply_profile_for", { p_user: userId });
+    if (r.error) { console.error(`prepare-ahead: their profile was not read (${r.error.message})`); return null; }
+    const p = r.data;
+    if (!p || typeof p !== "object" || Array.isArray(p) || (p.user_id !== undefined && p.user_id !== userId)) return null;
+    return { ...p, user_id: userId };
   };
 }
 
@@ -204,7 +244,7 @@ if (import.meta.main) {
     ? (payload) => callModel(cfg, payload, { meter, role: "chat" }) : undefined;
   const done = await prepareAhead({
     db: admin, runEngine: engineRunner({ root }), profileFor, draftModel,
-    resumeFor: tailoredResume({ profileFor, render: edgeRenderer(), resumes: supabaseResumeStore(admin) }),
+    resumeFor: tailoredResume({ render: edgeRenderer(), resumes: supabaseResumeStore(admin) }),
   }, { limit: Number.isInteger(limit) && limit > 0 ? limit : 50 });
   for (const r of done) console.log(`${r.outcome.toUpperCase()} ${r.job_id} (${r.detail})`);
   console.log(`${done.filter((r) => r.outcome === "ready").length} of ${done.length} prepared before they asked; nothing was sent.`);

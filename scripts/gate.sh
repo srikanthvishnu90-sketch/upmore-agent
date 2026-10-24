@@ -168,6 +168,7 @@ browser_node_tests=(
   tests/career-portal-submit-integrity.test.cjs
   tests/career-posting-location.test.cjs
   tests/career-qa-bug04-resolver.test.cjs
+  tests/career-react-select-menu-first.test.cjs
   tests/career-resume-upload.test.cjs
   tests/career-widget-attach.test.cjs
   tests/career-workday-native-fields.test.cjs

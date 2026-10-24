@@ -129,6 +129,8 @@ const wholePhrase = (hay: string, phrase: string) => {
   const p = phrase.trim();
   return !!p && new RegExp(`(^| )${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`).test(hay);
 };
+// Whether a posting's company is the one a person named ("Goldman Sachs" is "Goldman Sachs & Co. LLC").
+export const sameCompany = (company: unknown, name: unknown) => wholePhrase(normCompany(company), normCompany(name));
 // career_staffing_agencies.ts: only names whose own site or filing says they place workers with client
 // companies, each with its source and checked date. A missing agency is a pass, never a guess.
 const AGENCIES = STAFFING_AGENCIES.map((a) => a.name);

@@ -14346,11 +14346,6 @@ const CareerRouter = (() => {
       : /^(never ?mind|forget it|skip it)[.!]*$/.test(t) ? "nevermind" : null;
     if (!fam) return null;
     const mir = threadMirrorOf(ctx);
-    if (mir) {
-      if (mir.eraseConfirm || mir.disclosure || mir.bulletFix || mir.resumeIngest) return null;
-      if (mir.tailor && !mir.tailor.applied) return null;
-      if (mir.affirmRecord && (nowOf(ctx) - (typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : Date.parse(mir.affirmRecord.at || "")) || 0) <= 3 * 60 * 1000) return null;
-    }
     if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
     const nt = negotiationThreadOf(ctx);
     if (nt && (nt.company || nt.amount || (Array.isArray(nt.offers) && nt.offers.length))) return null;
@@ -14358,6 +14353,11 @@ const CareerRouter = (() => {
     if (frames.negotiation && frames.negotiation.offers) return null;
     const last = mir && mir.lastDiscussion && typeof mir.lastDiscussion === "object" ? mir.lastDiscussion : null;
     if (last && last.pendingQuestion) return null;
+    const FRAME_LABELS = { plan: "the career plan", tracker: "your application tracker", followup: "the follow-up on the silent application", draft: "the held draft", brief: "the interview brief", negotiation: "the offer discussion", rejection: "the rejection follow-up", gate: "the application gate question", heldStop: "the stopped outreach", workauth: "the work-authorization question", declined: "the request I could not run" };
+    const standing = Object.keys(FRAME_LABELS).filter((k) => frames[k] && typeof frames[k] === "object").sort((a, b) => (Date.parse(frames[b].at || "") || 0) - (Date.parse(frames[a].at || "") || 0));
+    if (standing.length >= 2) {
+      return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Two things are open at once, and I will not guess which that was for.", facts: [`${FRAME_LABELS[standing[0]].charAt(0).toUpperCase() + FRAME_LABELS[standing[0]].slice(1)} is standing, and so is ${FRAME_LABELS[standing[1]]}.`, "A bare reply cannot bind to both, and I have not treated it as a confirmation of either — nothing has changed."], nextStep: "Name the one you mean and the answer lands there." }) };
+    }
     const named = last ? `The last thing we discussed was ${last.label || "the last exchange"}${last.ask ? ` — “${s(last.ask).slice(0, 80)}”` : ""}.` : "Nothing has been discussed yet in this conversation.";
     if (fam === "yes") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Yes to what?", facts: [named, "No question is waiting on a yes, so I have not treated that as approval of anything, and nothing has changed."], nextStep: "Name the action you want and it runs." }) };
     if (fam === "no") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "No to what?", facts: [named, "No question is waiting on a no, so nothing has been refused or changed."], nextStep: "Name what you do want and we go there." }) };

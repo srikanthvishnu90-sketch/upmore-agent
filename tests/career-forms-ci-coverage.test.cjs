@@ -255,10 +255,27 @@ const ARTIFACT = { filename: "synthetic.pdf", sha256: crypto.createHash("sha256"
 let base = null, sessionDir = null, helper = null, ready = null, resumeFile = null;
 const cmdTypesSent = [];
 let seq = 0;
-async function send(cmd, ms = 120000) {
+// ---------------------------------------------------------------------------
+// PER-DRIVE BOARDS (2026-10-24) — the fix for the contamination the
+// board-isolation test above pins. Every drive carries a context with its
+// OWN boardId; send() addresses the drive's commands to that board and to
+// no other. The helper keys all board state (page, observation version) by
+// boardId, so two drives — including a timed-out test's abandoned zombie
+// drive running next to the following test's drive — share nothing: a
+// zombie's discover replaces only its own observation, its fills and
+// readback are gated only against its own version, and its error-path
+// close deletes only its own board. Drives that pass no context (the
+// suite's own shutdown) keep the historical shared label, which no drive
+// uses any more.
+// ---------------------------------------------------------------------------
+let driveSeq = 0;
+function newDrive(tag) {
+  return { boardId: `forms-ci-coverage-${tag}-${++driveSeq}`, aborted: false };
+}
+async function send(cmd, ms = 120000, drive = null) {
   const id = String(++seq).padStart(4, "0");
   cmdTypesSent.push(cmd.type);
-  fs.writeFileSync(path.join(sessionDir, `cmd-${id}.json`), JSON.stringify({ boardId: "forms-ci-coverage", ...cmd }));
+  fs.writeFileSync(path.join(sessionDir, `cmd-${id}.json`), JSON.stringify({ boardId: drive ? drive.boardId : "forms-ci-coverage", ...cmd }));
   const respFile = path.join(sessionDir, `resp-${id}.json`);
   const end = Date.now() + ms;
   while (Date.now() < end) {
@@ -450,7 +467,9 @@ const ATTEST_RE = /certify|attest|truthful|accurate to the best|acknowledge|i co
 // Drive one locally served captured form through the helper + binder and return its
 // record. Identical drive to the Ashby pack's per-form test body, plus the file-
 // question and attestation inventories this pack pins.
-async function driveForm(form) {
+async function driveForm(form, drive) {
+  drive = drive || newDrive(form.id);
+  const sendD = (cmd, ms) => send(cmd, ms, drive);
   const d0 = Date.now();
   const dstep = (name, extra) => {
     const atMs = Date.now() - d0;
@@ -459,13 +478,13 @@ async function driveForm(form) {
   };
   dstep("drive_start");
   const rec = { company: form.company || null, family: form.family, manifestFieldCount: form.fields, botCheck: form.bot_check || [] };
-  const open = await send({ type: "open", url: `${base}/${form.id}` });
+  const open = await sendD({ type: "open", url: `${base}/${form.id}` });
   assert.equal(open.ok, true, JSON.stringify(open));
   opensCompleted += 1;
   dstep("open_done");
   rec.captchaOnReplay = open.data.captcha;
   rec.captchaTechOnReplay = open.data.captchaTech;
-  const disc = await send({ type: "discover" });
+  const disc = await sendD({ type: "discover" });
   assert.equal(disc.ok, true, JSON.stringify(disc));
   dstep("discover_done", { rawFields: disc.data.fields.length });
   const fields = disc.data.fields;
@@ -515,7 +534,7 @@ async function driveForm(form) {
       const f0 = Date.now();
       dstep("fill_start", { field: s.name });
       try {
-        r = await send({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version }, 300000);
+        r = await sendD({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version }, 300000);
       } catch (e) {
         // A fill that never answers leaves the daemon's state unknown for this
         // session: record the abort as this form's measured outcome and stop the
@@ -535,7 +554,7 @@ async function driveForm(form) {
     rec.filledCount = filledBindings.length;
     if (!rec.driveError) {
       dstep("readback_start", { count: filledBindings.length });
-      const read = await send({ type: "readback", bindings: filledBindings.map((x) => x.b), observationVersion: version });
+      const read = await sendD({ type: "readback", bindings: filledBindings.map((x) => x.b), observationVersion: version });
       assert.equal(read.ok, true, JSON.stringify(read));
       let matched = 0;
       rec.readback = filledBindings.map(({ b, v }) => {
@@ -547,7 +566,7 @@ async function driveForm(form) {
       dstep("readback_done", { matched });
     }
   }
-  await send({ type: "close" });
+  await sendD({ type: "close" });
   dstep("drive_end", { totalMs: Date.now() - d0, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null, driveError: rec.driveError || null });
   return rec;
 }
@@ -734,8 +753,9 @@ for (const form of CAPTURED) {
   // The pinned outcomes below are the assertion; the waits are not.
   test(`forms-ci coverage: ${form.id}`, { timeout: 600000 }, async () => {
     let rec;
+    const drive = newDrive(form.id);
     try {
-      rec = await driveForm(form);
+      rec = await driveForm(form, drive);
     } catch (e) {
       // A drive that dies before it can measure (open/discover/helper failure) is a
       // measured outcome too — pinned with its reason, never forced into a pass.
@@ -759,7 +779,7 @@ for (const form of CAPTURED) {
         }
       } catch {}
       diag(threwDiag);
-      try { await send({ type: "close" }, 10000); } catch {}
+      try { await send({ type: "close" }, 10000, drive); } catch {}
     }
     results[form.id] = rec;
     if (process.env.FORMS_CI_COVERAGE_EMIT) {
@@ -888,18 +908,20 @@ test("forms-ci coverage: the replay stayed read-only and never reached a submit 
 // The guards below pin the corrected behavior by name so none of it regresses.
 // ---------------------------------------------------------------------------
 const FORM_BY_ID = Object.fromEntries(CAPTURED.map((f) => [f.id, f]));
-async function discoverBindings(form) {
-  const open = await send({ type: "open", url: `${base}/${form.id}` });
+async function discoverBindings(form, drive) {
+  drive = drive || newDrive("guard-" + form.id);
+  const open = await send({ type: "open", url: `${base}/${form.id}` }, 120000, drive);
   assert.equal(open.ok, true, JSON.stringify(open));
-  const disc = await send({ type: "discover" });
+  const disc = await send({ type: "discover" }, 120000, drive);
   assert.equal(disc.ok, true, JSON.stringify(disc));
   const { bindings, schema } = bindFields(disc.data.fields);
-  return { bindings, schema, version: disc.data.observation.version };
+  return { bindings, schema, version: disc.data.observation.version, drive };
 }
 
 test("widget-gap guard: the EEO select policy is the decline option, and a wrong-option pick is caught by read-back", { timeout: 300000 }, async () => {
   const form = FORM_BY_ID["lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027"];
-  const { bindings, schema, version } = await discoverBindings(form);
+  const { bindings, schema, version, drive } = await discoverBindings(form);
+  const sendD = (cmd, ms) => send(cmd, ms, drive);
   const s = schema.find((x) => x.name === "eeo[gender]");
   const b = bindings[s.name];
   // The policy value for an EEO select is the planner's decline text (module 149
@@ -907,47 +929,49 @@ test("widget-gap guard: the EEO select policy is the decline option, and a wrong
   assert.equal(valueFor(b, s, form), "Decline to self-identify");
   // A drive that picks a WRONG option persists it — and the suite's profile
   // expectation must reject that read-back, so the field cannot be counted filled.
-  const wrong = await send({ type: "fill", binding: b, value: "Male", observationVersion: version });
+  const wrong = await sendD({ type: "fill", binding: b, value: "Male", observationVersion: version });
   assert.equal(wrong.ok && wrong.data.filled, true, JSON.stringify(wrong));
-  const read = await send({ type: "readback", bindings: [b], observationVersion: version });
+  const read = await sendD({ type: "readback", bindings: [b], observationVersion: version });
   assert.equal(read.data.answers[b.field_id], "Male");
   assert.notEqual(
     JSON.stringify(read.data.answers[b.field_id]),
     JSON.stringify(expectedFor(b, valueFor(b, s, form))),
     "a wrong-option pick read back as the profile value — the fill would be counted on a wrong answer");
-  await send({ type: "close" });
+  await sendD({ type: "close" });
 });
 
 test("widget-gap guard: selecting a native select's placeholder is not a fill", { timeout: 300000 }, async () => {
   const form = FORM_BY_ID["lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3"];
-  const { bindings, version } = await discoverBindings(form);
+  const { bindings, version, drive } = await discoverBindings(form);
+  const sendD = (cmd, ms) => send(cmd, ms, drive);
   const b = bindings["cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]"];
   const placeholder = (b.options || [])[0];
   assert.ok(placeholder && placeholder.value === "", "the Shield card select's first option is no longer an empty-value placeholder — fixture shape changed");
-  const r = await send({ type: "fill", binding: b, value: placeholder.label, observationVersion: version });
+  const r = await sendD({ type: "fill", binding: b, value: placeholder.label, observationVersion: version });
   assert.ok(!(r.ok && r.data.filled), "the placeholder option was counted as a fill: " + JSON.stringify(r));
   assert.equal(r.ok && r.data.reason, "placeholder_option");
-  await send({ type: "close" });
+  await sendD({ type: "close" });
 });
 
 test("widget-gap guard: number inputs take the profile's numeric value and refuse a non-numeric one by name", { timeout: 300000 }, async () => {
   const form = FORM_BY_ID["greenhouse-eosfitness-4336050009"];
-  const { bindings, schema, version } = await discoverBindings(form);
+  const { bindings, schema, version, drive } = await discoverBindings(form);
+  const sendD = (cmd, ms) => send(cmd, ms, drive);
   const s = schema.find((x) => x.name === "start-year--0");
   const b = bindings[s.name];
   // The policy value for an education-year number input is the persona's year —
   // not the "06/01/2027" date string the label fallback used to produce.
   assert.equal(valueFor(b, s, form), "2027");
   // A non-numeric value is refused by name, not crashed as DRIVER_ERROR.
-  const bad = await send({ type: "fill", binding: b, value: "06/01/2027", observationVersion: version });
+  const bad = await sendD({ type: "fill", binding: b, value: "06/01/2027", observationVersion: version });
   assert.equal(bad.ok, true, JSON.stringify(bad));
   assert.deepEqual([bad.data.filled, bad.data.reason], [false, "value_not_numeric"]);
   // The profile's numeric value goes through the real path and reads back exactly.
-  const good = await send({ type: "fill", binding: b, value: "2027", observationVersion: version });
+  const good = await sendD({ type: "fill", binding: b, value: "2027", observationVersion: version });
   assert.equal(good.ok && good.data.filled, true, JSON.stringify(good));
-  const read = await send({ type: "readback", bindings: [b], observationVersion: version });
+  const read = await sendD({ type: "readback", bindings: [b], observationVersion: version });
   assert.equal(read.data.answers[b.field_id], "2027");
-  await send({ type: "close" });
+  await sendD({ type: "close" });
 });
 
 test("widget-gap guard: conditional follow-ups are gated on the persona's parent answer", { timeout: 600000 }, async () => {
@@ -964,18 +988,18 @@ test("widget-gap guard: conditional follow-ups are gated on the persona's parent
   assert.equal(conditionalDecision(eos, { name: "question_6872430009" }, { "question_6872428009": "No" }), null);
   // Behavioral: a full drive of WPP records the follow-up as gated — it is not
   // attempted and reported as a widget failure.
-  const rec = await driveForm(wpp);
+  const rec = await driveForm(wpp, newDrive("guard-" + wpp.id));
   const entry = (rec.fills || []).find((f) => f.name === "4017898008");
   assert.ok(entry, "the follow-up is missing from the drive record");
   assert.equal(entry.outcome, "conditional_not_triggered");
 });
 
 test("widget-gap guard: attestation-class fields stop for the person on every widget class", { timeout: 600000 }, async () => {
-  const tsmg = await driveForm(FORM_BY_ID["lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7"]);
+  const tsmg = await driveForm(FORM_BY_ID["lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7"], newDrive("guard-tsmg"));
   const sel = (tsmg.fills || []).find((f) => f.name === "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]");
   assert.ok(sel, "the attestation select is missing from the drive record");
   assert.equal(sel.outcome, "attestation_stop");
-  const lyra = await driveForm(FORM_BY_ID["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d"]);
+  const lyra = await driveForm(FORM_BY_ID["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d"], newDrive("guard-lyra"));
   const radio = (lyra.fills || []).find((f) => f.name === "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]");
   assert.ok(radio, "the attestation radio is missing from the drive record");
   assert.equal(radio.outcome, "attestation_stop");

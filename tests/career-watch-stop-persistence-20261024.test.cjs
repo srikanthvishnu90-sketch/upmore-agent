@@ -107,13 +107,19 @@ function makeWorld(userId) {
   world.turn = (threadId, text, load) => {
     world.n += 1;
     const l = load || {};
-    const ctx = seam.createTurnCtx({
+    const opts = {
       userId, threadId, now: NOW_CHAT + world.n * 60000, accountPersistence: true,
       snapshot: l.snapshot !== undefined ? clone(l.snapshot) : clone(world.threads.get(threadId) || null),
       account: clone(world.account),
-      watchState: l.watchState !== undefined ? clone(l.watchState) : clone(world.canonical),
       postings: [], profile: PROFILE,
-    });
+    };
+    // load.watchState === null models a load with NO canonical seed at
+    // all (the property is absent, not empty); any other value —
+    // including {} — is passed through as the seed.
+    if (l.watchState === null) { /* no seed: property omitted */ }
+    else if (l.watchState !== undefined) opts.watchState = clone(l.watchState);
+    else opts.watchState = clone(world.canonical);
+    const ctx = seam.createTurnCtx(opts);
     const out = seam.runTurn(text, ctx);
     const snap = seam.extractSnapshot(ctx);
     world.commit(threadId, ctx, snap);
@@ -262,4 +268,22 @@ test("(a-alerts) stop-my-alerts opt-out, post-stop snapshot + EMPTY seed: no act
   const read = w.turn("t-1", READ, { snapshot: postStopSnap, watchState: {} });
   assert.equal(activeCount(profileOf(read.snap, U)), 0, `the opt-out must survive the empty seed: ${read.out.reply}`);
   assert.equal(await deliveriesFor(U, w.canonical), 0, "no alert may fire while alerts are stopped");
+});
+
+test("(e) PLAIN stop, next turn receives ONLY the stale pre-stop snapshot (NO canonical seed): read-back none, no alert fires", async () => {
+  const U = "user-wp-e";
+  const { w, preStopSnap } = createdThenStopped(U);
+  const read = w.turn("t-1", READ, { snapshot: preStopSnap, watchState: null });
+  assert.equal(activeCount(profileOf(read.snap, U)), 0, `a plain stop must not be resurrectable by a stale snapshot with no seed: ${read.out.reply}`);
+  assert.doesNotMatch(read.out.reply, /You are watching 1 role/, read.out.reply);
+  assert.equal(await deliveriesFor(U, w.canonical), 0, "no alert may fire off a resurrected watch");
+});
+
+test("(f) PLAIN stop, next turn receives the stale pre-stop snapshot + an explicitly EMPTY seed: read-back none, no alert fires", async () => {
+  const U = "user-wp-f";
+  const { w, preStopSnap } = createdThenStopped(U);
+  const read = w.turn("t-1", READ, { snapshot: preStopSnap, watchState: {} });
+  assert.equal(activeCount(profileOf(read.snap, U)), 0, `a plain stop must not be resurrectable by a stale snapshot with an empty seed: ${read.out.reply}`);
+  assert.doesNotMatch(read.out.reply, /You are watching 1 role/, read.out.reply);
+  assert.equal(await deliveriesFor(U, w.canonical), 0, "no alert may fire off a resurrected watch");
 });

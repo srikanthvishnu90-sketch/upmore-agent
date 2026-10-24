@@ -256,6 +256,32 @@ const CareerHost = (() => {
       throw new Error("career host: CareerContainment must provide createContainment + extractReplyText");
     }
 
+    // PLAIN-STOP TOMBSTONES (2026-10-24): a stop recorded by THIS
+    // host instance outranks a stale snapshot presented to it later.
+    // The durable carriers are the canonical KV (the load's seed —
+    // suite cases (a)/(b)/(c)) and the erase epoch (case (c-erase));
+    // this registry is the same record for compositions whose load
+    // carries neither: a turn that receives ONLY a stale pre-stop
+    // snapshot — no seed, or an explicitly empty one — must not
+    // resurrect what an earlier turn on this host stopped. A
+    // tombstone only ever SUPPRESSES: it replaces the very record
+    // that was stopped (matched by its interests signature and its
+    // pre-stop stamp) with the stopped record the stop turn itself
+    // produced, or with absence after an erase; a different watch,
+    // or the same watch re-created later, is never suppressed — a
+    // newer active record clears the tombstone outright.
+    const watchTombstones = new Map(); // userId -> { at, sig, profile|null }
+    const watchProfileOf = (box, userId) => {
+      if (!box || typeof box !== "object") return null;
+      for (const key of Object.keys(box)) {
+        if (key.endsWith(`:${userId}`)) return { key, profile: box[key] };
+      }
+      return null;
+    };
+    const watchProfileActive = (wp) => !!(wp && Array.isArray(wp.interests) && wp.interests.length && !(wp.opt_out && wp.opt_out.global));
+    const watchProfileStamp = (wp) => { const ms = Date.parse((wp && wp.updated_at) || ""); return isNaN(ms) ? null : ms; };
+    const watchProfileSig = (wp) => JSON.stringify(((wp && wp.interests) || []).map((i) => `${(i && i.interest_id) || ""}|${(i && i.role && i.role.title) || ""}`).sort());
+
     // J8 (LOOP ACCEPTANCE tier-1 join): the composition root may install
     // a boardFor resolved through career_task_bridge
     // (createCareerBoardFor). It is RUNTIME wiring only: createTurnCtx
@@ -337,6 +363,31 @@ const CareerHost = (() => {
         delete ctx.alertWatchState;
       }
       ctx._accountEpoch = acctEpoch;
+      // PLAIN-STOP TOMBSTONE (see the registry above): if this host
+      // has recorded a stop for this user, a stale ACTIVE record of
+      // the very watch that was stopped — restored from an old
+      // snapshot because the load carried no (or an empty) canonical
+      // seed — is replaced by the stopped record before any route
+      // can read it as live. A newer active record outranks the
+      // tombstone and clears it.
+      const tomb = watchTombstones.get(ctx.userId);
+      if (tomb && ctx.alertWatchState) {
+        const cur = watchProfileOf(ctx.alertWatchState, ctx.userId);
+        if (cur && watchProfileActive(cur.profile)) {
+          const stamp = watchProfileStamp(cur.profile);
+          if ((stamp == null || stamp <= tomb.at) && watchProfileSig(cur.profile) === tomb.sig) {
+            if (tomb.profile) ctx.alertWatchState[cur.key] = cloneJson(tomb.profile);
+            else delete ctx.alertWatchState[cur.key];
+          } else if (stamp != null && stamp > tomb.at) {
+            watchTombstones.delete(ctx.userId);
+          }
+        }
+      }
+      // The watch record this turn STARTS with (after every guard):
+      // extractSnapshot compares it against the turn's end state to
+      // record a stop that happened inside the turn.
+      const startWatch = ctx.alertWatchState ? watchProfileOf(ctx.alertWatchState, ctx.userId) : null;
+      ctx._watchStartProfile = startWatch ? cloneJson(startWatch.profile) : null;
       // An explicitly passed EMPTY watchState is "no seed", never a
       // wipe: it used to delete the box the snapshot restore above had
       // just carried in, so a watch created in one turn was gone by
@@ -473,6 +524,27 @@ const CareerHost = (() => {
     // Extract the durable per-thread state from a post-turn ctx. JSON-safe
     // by construction: unserializable values are skipped, never thrown.
     function extractSnapshot(ctx) {
+      // PLAIN-STOP TOMBSTONE bookkeeping (see createCareerHost): if
+      // this turn ends with the user's watch stopped (a record that
+      // polls nothing) or deleted, after starting from a live one,
+      // the stop is recorded against this host instance; if the
+      // turn ends with a live watch, any recorded stop is stale
+      // intent and is cleared.
+      try {
+        if (ctx && ctx.userId) {
+          const endWatch = ctx.alertWatchState ? watchProfileOf(ctx.alertWatchState, ctx.userId) : null;
+          const startProfile = ctx._watchStartProfile || null;
+          if (endWatch && watchProfileActive(endWatch.profile)) {
+            watchTombstones.delete(ctx.userId);
+          } else if (startProfile && watchProfileActive(startProfile)) {
+            watchTombstones.set(ctx.userId, {
+              at: typeof ctx.now === "number" ? ctx.now : Date.now(),
+              sig: watchProfileSig(startProfile),
+              profile: endWatch ? cloneJson(endWatch.profile) : null,
+            });
+          }
+        }
+      } catch { /* tombstone bookkeeping never breaks a turn */ }
       const stores = {};
       for (const key of STATE_KEYS) {
         if (ctx && ctx[key] !== undefined) {

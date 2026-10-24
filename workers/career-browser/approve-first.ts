@@ -680,7 +680,9 @@ if (import.meta.main) {
       .map((n) => n.toString(16).padStart(2, "0")).join("");
     const dir = await Deno.makeTempDir({ prefix: "trainee-facts-" });
     const done = await runApproved({
-      claim: async () => [{ id: "local", lease_token: "local", url: payload.url, payload }],
+      // One payload run by hand, outside the queue: nothing is recorded (finish does nothing), and its proof is bound to
+      // a fresh id of the queue's own shape.
+      claim: async () => [{ id: crypto.randomUUID(), lease_token: "local", url: payload.url, payload }],
       finish: async () => {},
       resumeFor: async () => ({ path: resume, sha256 }),
       writeFacts: async (_j, facts) => {

@@ -195,7 +195,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
         const p = prepared.find((x) => x.id === it.prepared_id)!;
         if (approve.includes(it.n)) {
           queue.push({
-            id: `J${it.n}`,
+            id: `00000000-0000-4000-8000-${String(it.n).padStart(12, "0")}`, // a uuid, as the queue makes them
             lease_token: `L${it.n}`,
             url: p.payload.url,
             payload: p.payload,

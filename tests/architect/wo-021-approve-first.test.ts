@@ -11,6 +11,8 @@ import {
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { normLabel } from "../../supabase/functions/_shared/career_apply.ts";
 import { proofFor } from "./proof-fixture.ts";
+// Job ids as the queue makes them (career_apply_jobs.id is a uuid).
+const J1 = "00000000-0000-4000-8000-000000000001", J2 = "00000000-0000-4000-8000-000000000002", J_OTHER = "00000000-0000-4000-8000-000000000009";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -98,7 +100,7 @@ Deno.test("WO-021/3 the approved answers become the engine's facts under each qu
 function harness(over: Partial<Parameters<typeof runApproved>[0]> = {}) {
   const finished: unknown[] = [], calls: string[][] = [];
   const job = {
-    id: "J1",
+    id: J1,
     lease_token: "L1",
     url: "https://x.test/1",
     payload: {
@@ -134,14 +136,14 @@ Deno.test("WO-021/4 the worker submits an approved application with --approved a
   eq(h.calls.length, 1);
   const a = h.calls[0];
   assert(a.includes("--submit") && a[a.indexOf("--approved") + 1] === HASH, JSON.stringify(a));
-  eq(h.finished, [{ id: "J1", lease: "L1", state: "confirmed", reason: "employer confirmation on the page" }]);
+  eq(h.finished, [{ id: J1, lease: "L1", state: "confirmed", reason: "employer confirmation on the page" }]);
 });
 
 Deno.test("WO-021/5 a different resume than the approved one stops before the engine runs: not submitted", async () => {
   const h = harness({ resumeFor: async () => ({ path: "/r.pdf", sha256: "c".repeat(64) }) });
   await runApproved(h.deps);
   eq(h.calls.length, 0);
-  eq(h.finished, [{ id: "J1", lease: "L1", state: "not_submitted", reason: "RESUME_CHANGED" }]);
+  eq(h.finished, [{ id: J1, lease: "L1", state: "not_submitted", reason: "RESUME_CHANGED" }]);
 });
 
 Deno.test("WO-021/6 an engine that started and gave no result is unknown, never retried as not sent", async () => {
@@ -158,7 +160,7 @@ Deno.test("WO-021/7 an application that changed since the approval is passed thr
     }),
   });
   await runApproved(h.deps);
-  eq(h.finished, [{ id: "J1", lease: "L1", state: "not_submitted", reason: "APPROVED_APPLICATION_CHANGED" }]);
+  eq(h.finished, [{ id: J1, lease: "L1", state: "not_submitted", reason: "APPROVED_APPLICATION_CHANGED" }]);
 });
 
 // W4 on the person's own computer: the queue is the person's own (career_apply_claim_own / career_apply_finish_own).
@@ -207,9 +209,9 @@ function loop(client: ReturnType<typeof fakeClient>, o: { rounds: number; engine
 }
 
 Deno.test("WO-021/8 the worker claims only through the person's own queue, one at a time, and records each outcome by its lease", async () => {
-  const c = fakeClient({ jobs: [queuedJob("J1"), queuedJob("J2")] });
+  const c = fakeClient({ jobs: [queuedJob(J1), queuedJob(J2)] });
   const r = await loop(c, { rounds: 3 });
-  eq(r.ran.map((x) => [x.id, x.state, x.recorded]), [["J1", "confirmed", true], ["J2", "confirmed", true]]);
+  eq(r.ran.map((x) => [x.id, x.state, x.recorded]), [[J1, "confirmed", true], [J2, "confirmed", true]]);
   eq(r.runs.length, 2, "one engine run per claimed application");
   assert(
     c.calls.filter((x) => x.name === "career_apply_claim_own").every((x) => x.args.p_limit === 1),
@@ -219,13 +221,13 @@ Deno.test("WO-021/8 the worker claims only through the person's own queue, one a
     c.calls.filter((x) => x.name === "career_apply_finish_own").map((
       x,
     ) => [x.args.p_id, x.args.p_lease, x.args.p_state]),
-    [["J1", "L-J1", "confirmed"], ["J2", "L-J2", "confirmed"]],
+    [[J1, `L-${J1}`, "confirmed"], [J2, `L-${J2}`, "confirmed"]],
   );
   assert(!c.calls.some((x) => /^career_apply_(claim|finish)$/.test(x.name)), "never the all-users functions");
 });
 
 Deno.test("WO-021/9 a queue that cannot be read runs nothing and is asked again", async () => {
-  const c = fakeClient({ claimFails: 2, jobs: [queuedJob("J1")] });
+  const c = fakeClient({ claimFails: 2, jobs: [queuedJob(J1)] });
   const r = await loop(c, { rounds: 3 });
   eq(r.runs.length, 1);
   eq(r.logs.filter((l) => l.includes("could not be read")).length, 2);
@@ -233,11 +235,11 @@ Deno.test("WO-021/9 a queue that cannot be read runs nothing and is asked again"
 });
 
 Deno.test("WO-021/10 recording is retried; an outcome that cannot be recorded is said, and the engine never runs again", async () => {
-  const flaky = fakeClient({ finishFails: 2, jobs: [queuedJob("J1")] });
+  const flaky = fakeClient({ finishFails: 2, jobs: [queuedJob(J1)] });
   const a = await loop(flaky, { rounds: 2 });
   eq(a.ran.map((x) => [x.state, x.recorded]), [["confirmed", true]]);
   eq(flaky.calls.filter((x) => x.name === "career_apply_finish_own").length, 3, "two failures, then recorded once");
-  const down = fakeClient({ finishFails: 99, jobs: [queuedJob("J1")] });
+  const down = fakeClient({ finishFails: 99, jobs: [queuedJob(J1)] });
   const b = await loop(down, { rounds: 3 });
   eq(b.runs.length, 1, "the application is never sent twice");
   eq(b.ran.map((x) => [x.state, x.recorded]), [["confirmed", false]]);
@@ -245,7 +247,7 @@ Deno.test("WO-021/10 recording is retried; an outcome that cannot be recorded is
 });
 
 Deno.test("WO-021/11 an engine that started and gave no result is recorded unknown by the worker, not retried", async () => {
-  const c = fakeClient({ jobs: [queuedJob("J1")] });
+  const c = fakeClient({ jobs: [queuedJob(J1)] });
   let runs = 0;
   const r = await loop(c, { rounds: 3, engine: async () => (runs++, null) });
   eq(runs, 1);
@@ -254,7 +256,7 @@ Deno.test("WO-021/11 an engine that started and gave no result is recorded unkno
 });
 
 Deno.test("WO-021/12 an expired sign-in stops the worker with a plain line, instead of asking the queue forever", async () => {
-  const c = fakeClient({ expired: true, jobs: [queuedJob("J1")] });
+  const c = fakeClient({ expired: true, jobs: [queuedJob(J1)] });
   const r = await loop(c, { rounds: 50 });
   eq(r.runs.length, 0);
   eq(c.calls.length, 1, "asked once, then stopped");
@@ -273,16 +275,16 @@ Deno.test("WO-021/G6 an employer's answer with no proof of the click is never re
     runEngine: async () => ({ result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1" }, evidence: {} }),
   });
   await runApproved(h.deps);
-  eq(h.finished, [{ id: "J1", lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
+  eq(h.finished, [{ id: J1, lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
 });
 
 Deno.test("WO-021/G6 a proof bound to another application is refused, and the outcome is never confirmed", async () => {
   const h = harness({
     runEngine: async (args: string[]) => ({
-      result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1", proof: { ...proofFor(args), application_id: "J-OTHER" } },
+      result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "C-1", proof: { ...proofFor(args), application_id: J_OTHER } },
       evidence: {},
     }),
   });
   await runApproved(h.deps);
-  eq(h.finished, [{ id: "J1", lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
+  eq(h.finished, [{ id: J1, lease: "L1", state: "submitted_unconfirmed", reason: "employer confirmation on the page" }]);
 });

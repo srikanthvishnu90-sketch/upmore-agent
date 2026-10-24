@@ -197,3 +197,14 @@ Deno.test({
     assert(String(r.finished.evidence.proof.after_submit_error).length > 0, "the capture's failure is kept, not swallowed");
   },
 });
+
+Deno.test("proof: the application id the proof is bound to is a canonical uuid; any other is refused before anything runs", async () => {
+  for (const id of ["J1", "local", "11111111-1111-4111-8111-11111111111", "11111111-1111-4111-8111-111111111111x", "11111111-1111-4111-8111-11111111111G"]) {
+    const out = await new Deno.Command(Deno.execPath(), {
+      args: ["run", "-A", `${ROOT}/scripts/apply.ts`, "--url", "http://127.0.0.1:9/apply", "--facts", "/nonexistent", "--resume", "/nonexistent", "--application-id", id],
+      stdout: "piped", stderr: "piped",
+    }).output();
+    const text = new TextDecoder().decode(out.stdout) + new TextDecoder().decode(out.stderr);
+    assert(/INVALID_ARGUMENTS/.test(text), `${id}: ${text.slice(-300)}`);
+  }
+});

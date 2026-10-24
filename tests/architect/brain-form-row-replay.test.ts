@@ -51,13 +51,13 @@ Deno.test('row replay: schema, options, source and answer changes stay bound to 
 });
 Deno.test('row replay: unchanged approved worker run reproduces fields; changed live schema stops at engine approval',async()=>{
  const{payload,approval}=await fixture();for(const changed of [false,true]){let facts:any,observed='',finish:any;const schema=clone(SCHEMA);if(changed)schema[0].label='Changed company label';
-  await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async(_job,f)=>{facts=f;return'synthetic.json'},runEngine:async(args)=>{const replay=planned(facts,schema);observed=await engineHash(replay.fields,replay.manifest,schema);assert(args[args.indexOf('--approved')+1]===approval,'worker lost original engine approval');return{result:{state:observed===approval?'confirmed':'not_submitted',reason:observed===approval?'synthetic-only fixture':'APPROVED_APPLICATION_CHANGED',...(observed===approval?{proof:proofFor(args)}:{})},evidence:{}}}});
+  await runApproved({claim:async()=>[{id:'00000000-0000-4000-8000-000000000011',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async(_job,f)=>{facts=f;return'synthetic.json'},runEngine:async(args)=>{const replay=planned(facts,schema);observed=await engineHash(replay.fields,replay.manifest,schema);assert(args[args.indexOf('--approved')+1]===approval,'worker lost original engine approval');return{result:{state:observed===approval?'confirmed':'not_submitted',reason:observed===approval?'synthetic-only fixture':'APPROVED_APPLICATION_CHANGED',...(observed===approval?{proof:proofFor(args)}:{})},evidence:{}}}});
   assert(finish.state===(changed?'not_submitted':'confirmed'),JSON.stringify(finish));
  }
 });
 Deno.test('row replay: changed queued value, source event or schema stops before the engine starts',async()=>{
  const{payload}=await fixture();for(const change of [(p:any)=>p.fields[0].value='Changed employer',(p:any)=>p.fields[0].confirmation_event_id='changed-event',(p:any)=>p.schema_hash='0'.repeat(64)]){
-  const bad=clone(payload);change(bad);let calls=0,finish:any;await runApproved({claim:async()=>[{id:'SYNTHETIC-job',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload:bad}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async()=>{throw Error('should not write facts')},runEngine:async()=>{calls++;return null}});
+  const bad=clone(payload);change(bad);let calls=0,finish:any;await runApproved({claim:async()=>[{id:'00000000-0000-4000-8000-000000000011',lease_token:'SYNTHETIC-lease',url:'https://synthetic.test/apply',payload:bad}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>({path:'synthetic.pdf',sha256:ARTIFACT.sha256}),writeFacts:async()=>{throw Error('should not write facts')},runEngine:async()=>{calls++;return null}});
   assert(calls===0&&finish.state==='not_submitted'&&/APPROVED_APPLICATION_CHANGED|APPROVED_MANIFEST_CHANGED|CONFLICTING_APPROVED_SOURCE/.test(finish.evidence.reason),JSON.stringify(finish));
  }
 });
@@ -78,7 +78,7 @@ Deno.test('typed profile hook: missing evidence, quarantine and foreign context 
 Deno.test('row source binding: unseen original JSON and manifest mutations stop before any effects',async()=>{
  const{payload}=await fixture();for(const change of [(p:any)=>{const rows=JSON.parse(SOURCE.value);rows[1].start='1990';for(const f of p.fields)f.source.value=JSON.stringify(rows)},(p:any)=>p.manifest_hash='0'.repeat(64)]){
   const changed=clone(payload);change(changed);let effects=0,finish:any;
-  await runApproved({claim:async()=>[{id:'SYN-QUEUE',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:changed}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
+  await runApproved({claim:async()=>[{id:'00000000-0000-4000-8000-000000000012',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:changed}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
   assert(effects===0&&finish.state==='not_submitted','changed original source/manifest reached an effect: '+JSON.stringify(finish));
  }
 });
@@ -97,7 +97,7 @@ Deno.test('row source binding: unused confirmed sources survive persisted replay
 Deno.test('row source binding: missing modern schema cannot downgrade to the legacy path before effects',async()=>{
  const{payload}=await fixture();for(const strip of [false,true]){
   const p=clone(payload) as any;delete p.schema_hash;if(strip){delete p.manifest_hash;delete p.quarantine_version;delete p.replay_sources;}
-  let effects=0,finish:any;await runApproved({claim:async()=>[{id:'SYN-QUEUE',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:p}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
+  let effects=0,finish:any;await runApproved({claim:async()=>[{id:'00000000-0000-4000-8000-000000000012',lease_token:'SYN-LEASE',url:'https://synthetic.test/apply',payload:p}],finish:async(_id,_lease,state,evidence)=>{finish={state,evidence}},resumeFor:async()=>{effects++;return{path:'synthetic.pdf',sha256:ARTIFACT.sha256}},writeFacts:async()=>{effects++;return'synthetic.json'},runEngine:async()=>{effects++;return null}});
   assert(effects===0&&finish.state==='not_submitted'&&finish.evidence.reason==='INVALID_APPROVED_SCHEMA','modern schema omission reached effects: '+JSON.stringify(finish));
  }
 });

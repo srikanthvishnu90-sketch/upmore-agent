@@ -24,7 +24,12 @@
 // cover letter gets one drafted ahead from their confirmed facts (essay_draft.ts, the chat's own drafter); it is shown
 // whole only when they ask for it ("draft 1"), saved only by "use 1", and then sent word for word.
 //
-// Not covered yet (later gaps): facts written by chat (G2), the receipt text (G6).
+// G6 (receipts): the text each finished application gets is written by the product's own receipt code (career_proactive_run.ts
+// runReceipts) from the rows the queue recorded here, and queued in the real outbox, whose unique key makes it once ever. The
+// outbox insert and the finished-rows read are the production store's (career_alert_store.ts, career-proactive/index.ts),
+// written in SQL because no PostgREST runs here; RECEIPT_READ pins index.ts's query to this one.
+//
+// Not covered yet (later gaps): facts written by chat (G2).
 import assertNode from "node:assert/strict";
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -34,11 +39,43 @@ import { engineRunner, ownQueue, prepare, questionsToStore, runApproved } from "
 import { prepareAhead, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
 import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
 import { CareerProfile } from "../../supabase/functions/_shared/router_core.career.js";
+import { runReceipts } from "../../supabase/functions/_shared/career_proactive_run.ts";
+import { FINAL_STATES } from "../../supabase/functions/_shared/career_apply_receipts.ts";
+import PROACTIVE_INDEX from "../../supabase/functions/career-proactive/index.ts" with { type: "text" };
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { type OpenQuestion, QUESTIONS_INTENT, type QuestionStore, questionsTurn, type Shown, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
 
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
+
+// The receipts' two database calls, as career-proactive's stores make them through PostgREST. RECEIPT_READ is index.ts's
+// own query, pinned below so this copy cannot drift from it.
+const RECEIPT_READ = [
+  `.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id,email_confirmed_at,evidence,source")`,
+  `.in("state", ${JSON.stringify([...FINAL_STATES]).replace(/,/g, ", ")}).gte("updated_at", since)`,
+  `.or("source.is.null,source.neq.email").limit(2000)`,
+];
+const quoted = (s: string) => `$q${"x".repeat(3)}$${s}$q${"x".repeat(3)}$`;
+function receiptStores(pg: { sql: (q: string) => Promise<string> }) {
+  return {
+    finished: async (since: string) => JSON.parse(await pg.sql(`select coalesce(json_agg(row_to_json(j)), '[]') from (
+      select id, user_id, company, url, state, reason, confirmation_id, email_confirmed_at, evidence, source from public.career_apply_jobs
+      where state = any(array[${FINAL_STATES.map((x) => `'${x}'`).join(",")}]) and updated_at >= '${since}' and (source is null or source <> 'email')
+      limit 2000) j`)),
+    // career_alert_store.ts supabaseAlertStore.enqueue: the insert, and false on the unique key (queued or sent before).
+    outbox: {
+      enqueue: async (userId: string, m: { key: string; kind: string; text: string; at: number }) => {
+        try {
+          await pg.sql(`insert into public.career_outbox (user_id, key, kind, text, deliver_at) values ('${userId}', ${quoted(m.key)}, '${m.kind}', ${quoted(m.text)}, '${new Date(m.at).toISOString()}')`);
+          return true;
+        } catch (e) {
+          if (/duplicate key|23505/.test(String((e as Error).message))) return false;
+          throw e;
+        }
+      },
+    },
+  };
+}
 
 function browserEnv(): boolean {
   if (Deno.env.get("UPMORE_PLAYWRIGHT_PATH")) return true;
@@ -231,6 +268,25 @@ Deno.test({
         } finally {
           await other.close();
         }
+      });
+
+      await t.step("receipt (G6): each finished application is said once, in the product's words, from the row the queue recorded", async () => {
+        for (const part of RECEIPT_READ) assert(PROACTIVE_INDEX.replace(/\s+/g, " ").includes(part), `career-proactive/index.ts still reads finished rows as: ${part}`);
+        const stores = receiptStores(pg), events: unknown[] = [];
+        const eventStore = { add: async (e: unknown) => { events.push(e); }, recall: async () => [] };
+        const run = () => runReceipts({ outbox: stores.outbox as any, now: Date.now(), finished: stores.finished, events: eventStore as any });
+        assertEquals(await run(), 2, "one receipt for each of the two finished applications");
+        const texts = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', o.key, 'text', o.text, 'state', j.state) order by j.state), '[]')
+          from public.career_outbox o join public.career_apply_jobs j on o.key = 'receipt:' || j.id where o.user_id = '${PERSON}' and o.kind = 'receipt'`));
+        assertEquals(texts.map((x: any) => x.state), ["not_submitted", "submitted_unconfirmed"]);
+        console.log(texts.map((x: any) => x.text).join("\n"));
+        // The claim's own words for why (G3: "not sent: the application changed after it was approved"), said once.
+        assertMatch(texts[0].text, /^Not sent to \S+: the application changed after it was approved\. Nothing reached the employer\.$/);
+        assertMatch(texts[1].text, /^Sent to .+\. Their page said it was received; their confirmation email is the proof, and I'll mark it confirmed when it comes\.$/);
+        assert(!/confirmed by/.test(texts[1].text), "a page's thank-you is never said as the employer's confirmation");
+        assertEquals(await run(), 0, "a second run says nothing again: the outbox key is once, ever");
+        assertEquals(await pg.sql(`select count(*) from public.career_outbox where user_id = '${PERSON}' and kind = 'receipt'`), "2");
+        assertEquals(events.length, 2, "each is written to their timeline once");
       });
     } finally {
       await site.close();

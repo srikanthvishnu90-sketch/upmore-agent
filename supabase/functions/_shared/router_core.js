@@ -38645,6 +38645,30 @@ const CareerRouter = (() => {
     const reply = compose({ headline: `Plan corrected: ${newFirm}${oldFirm ? `, not ${oldFirm}` : ""}.`, facts, nextStep: "Approve the corrected plan and the list builds against the new target — counts first, drafts after." });
     return Object.assign({}, res, { reply });
   }
+  // PLAN FOCUS (text-path measurement 2026-10-24): a narrowing turn
+  // inside an open outreach plan — "let's focus on people at Ferrow
+  // Bank" — had no consumer: the correction above owns REPLACEMENTS
+  // ("not X — Y instead"), and a focus names no old firm to strike,
+  // so the turn fell to the generic fallback mid-flow. The focus
+  // re-points the standing plan at the one named firm — the plan
+  // record itself is rewritten, so the recap, the draft and the
+  // send gate all read the narrowed target — and the reply speaks
+  // the new scope as the plan's own.
+  function handlePlanFocus(text, ctx) {
+    const plan = ctx.plan;
+    if (!plan || plan.kind !== "campaign_plan") return null;
+    const m = s(text).match(/\bfocus on\s+(?:people\s+at\s+|people\s+from\s+|analysts?\s+at\s+|bankers?\s+at\s+)?([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/)
+      || s(text).match(/\bnarrow\s+(?:it\s+|the\s+plan\s+)?to\s+([A-Z][A-Za-z0-9&.]+(?:\s+[A-Z][A-Za-z0-9&.]+){0,2})/);
+    if (!m) return null;
+    const firm = m[1].trim();
+    if (!firm) return null;
+    plan.firms = [firm]; plan.firms_named = true; plan.firm_set = null;
+    if (plan.target) plan.target = Object.assign({}, plan.target, { firms: [firm], firms_named: true, firms_source: "named", firm_set: null, proposed_default: null, vague: false });
+    plan.focused_at = new Date(nowOf(ctx)).toISOString();
+    const facts = [`The plan's scope is now ${firm} only — the proposed set it replaces is out, and every later step (the list build, the draft, the send gate) reads this narrowed target.`, "Nothing has been sent and no list has been built yet; the counts come back before any draft, as with every plan."];
+    const reply = compose({ headline: `Plan focused: ${firm}.`, facts, nextStep: "Want the first draft built on this focus, or another firm added back first?" });
+    return { intent: "outreach_clarification", reply, resultStatus: "awaiting_user", sends: 0, target: plan.target || null };
+  }
   // COMPLEXITY WAVE (BUG-174): "so now what's the plan?" — answered
   // from the persisted plan when one stands, and from the thread's
   // own state (pause record, tracker, last search) when none does.
@@ -46161,6 +46185,20 @@ const CareerRouter = (() => {
     // WO-095: "line up analysts there first" is a people ask too — it
     // used to be answered by the fact capture (which recorded the ask's
     // level as a fact); with the assertion gate the plan owns it.
+    // COLD NETWORKING ASK (spec1 section 7; text-path measurement
+    // 2026-10-24): "who should I network with for banking?" is the
+    // networking family's own opening question — it carries the
+    // verb but no people NOUN from the A3 gate below ("banking" is
+    // not "bankers"), so it fell to the generic fallback while the
+    // long canonical ask beside it planned fine. The plan IS the
+    // answer to "who": its target, its proposed set named as a
+    // proposal, and its sources. Hiring-bar shapes keep the A3
+    // gate's stand-down.
+    if (/\bwho\s+(should|shall|can|could|do|would)\s+i\s+(network|reach out|connect)\b/.test(t)
+      && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b/.test(t)) {
+      const cp = handleCampaignPlan(text, c);
+      if (cp) return cp;
+    }
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network|line up)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
@@ -46638,6 +46676,8 @@ const CareerRouter = (() => {
       if (gc2) return gc2;
       const pc = handlePlanCorrection(text, c);
       if (pc) return pc;
+      const pf = handlePlanFocus(text, c);
+      if (pf) return pf;
       const pr = handlePlanRecap(text, c);
       if (pr) return pr;
     }

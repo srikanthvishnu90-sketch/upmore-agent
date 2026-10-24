@@ -14803,15 +14803,14 @@ const CareerRouter = (() => {
     else if (jobObj && /\b(quit|quitting|resign|resigning|hand in (my )?notice|handing in (my )?notice|leave|leaving|walk away)\b/.test(t)) kind = "departure";
     else if (/\b(start|starting|begin|beginning)\b[^.]*\b(new job|new role|job|role)\b/.test(t)) kind = "start";
     if (!kind) return null;
-    const shapes = {
-      departure: { headline: "That's a big decision — said plainly, and heard.", facts: ["I have not stored that as a career goal: it is an event to plan around, not a target to aim a search at."], nextStep: "If you want, the practical order is: notice and handover first, then the search that follows — say the word and we line it up." },
-      loss: { headline: "I'm sorry — that is a hard day, and it lands how it lands.", facts: ["That is not stored as a goal; it is an event, and the only things that matter next are your runway and your first moves."], nextStep: "When you are ready, the first useful step is a short list: last day, benefits timing, and the roles we aim at first — say the word and we build it." },
-      accept: { headline: "Decision made — and it is a real one to have in front of you.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the acceptance itself: dates, the written confirmation, and what to check before day one — say the word and we draft it." },
-      decline: { headline: "Decision made — cleanly is what matters now.", facts: ["That is a decision about one specific offer, so it is not stored as a career goal."], nextStep: "The useful next step is the decline note itself: short, warm, the door left open — say the word and we draft it." },
-      start: { headline: "A new start — that is real news.", facts: ["That is an event on your timeline, not a goal to store."], nextStep: "If you want, the useful next step is a first-week plan: who to meet, what to learn first, and what a good first month looks like." },
+    const headlines = {
+      departure: "That's a big decision — heard, and said plainly.",
+      loss: "I'm sorry. That is a hard day.",
+      accept: "Decision made — that's real news.",
+      decline: "Decision made — cleanly, by the sound of it.",
+      start: "A new start — that's real news.",
     };
-    const sh = shapes[kind];
-    return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose(sh) };
+    return { intent: "career_life_event", resultStatus: "awaiting_user", reply: compose({ headline: headlines[kind], facts: [], nextStep: "What do you want help with first?" }) };
   }
 
   function handleCareerCatchAll(text, ctx) {

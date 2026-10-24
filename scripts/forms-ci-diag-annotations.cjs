@@ -62,7 +62,27 @@ function main() {
       const end = endIdx >= 0 ? evs[endIdx] : null;
       const ms = end && typeof end.totalMs === "number" ? end.totalMs : lastAtMs(failIdx);
       const drive = end && end.driveError ? ` driveError: ${String(end.driveError).slice(0, 300)}` : "";
-      console.log(`::error title=forms-ci ${form}::step=assertion_failed elapsedMs=${ms != null ? ms : "?"} assertion: ${esc(String(evs[failIdx].error || "").slice(0, 800))}${esc(drive)}`);
+      // The drift record (2026-10-24): the suite stores, on the
+      // assertion_failed event, the measured-vs-pinned outcome as counts,
+      // field ids and outcome names only. Render exactly those structured
+      // fields — no free text beyond the already-redacted error above.
+      let driftTxt = "";
+      try {
+        const d = evs[failIdx].drift;
+        if (d && d.measured && d.pinned) {
+          const s = (x) => `raw=${x.rawFields} mapped=${x.mapped} filled=${x.filledCount} readback=${x.readbackMatched} driveError=${x.driveError} bindError=${x.bindError}`;
+          driftTxt = ` drift measured[${s(d.measured)}] pinned[${s(d.pinned)}]`;
+          if (typeof d.fillsDiffering === "number") {
+            driftTxt += ` fillsDiffering=${d.fillsDiffering}`;
+            const list = Array.isArray(d.fills) ? d.fills.slice(0, 20).map((f) => `${f.field}:${f.measured}!=${f.pinned}`).join("; ") : "";
+            if (list) driftTxt += ` fills[${list}]`;
+          }
+          if (typeof d.classesDiffering === "number") driftTxt += ` classesDiffering=${d.classesDiffering}`;
+          if (d.fileQuestions) driftTxt += ` fileQuestions=${d.fileQuestions.measured}!=${d.fileQuestions.pinned}`;
+          if (d.attestation) driftTxt += ` attestation=${d.attestation.measured}!=${d.attestation.pinned}`;
+        }
+      } catch {}
+      console.log(`::error title=forms-ci ${form}::step=assertion_failed elapsedMs=${ms != null ? ms : "?"} assertion: ${esc(String(evs[failIdx].error || "").slice(0, 800))}${esc(drive)}${esc(driftTxt)}`);
     } else if (threwIdx >= 0 && threwIdx > passedIdx) {
       const ms = lastAtMs(threwIdx);
       console.log(`::error title=forms-ci ${form}::step=drive_threw elapsedMs=${ms != null ? ms : "?"} error: ${esc(String(evs[threwIdx].error || "").slice(0, 800))}`);

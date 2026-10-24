@@ -761,7 +761,33 @@ for (const form of CAPTURED) {
       } catch (e) {
         // Diagnostics only: record the assertion text CI never surfaced, then
         // rethrow — the failure itself is byte-for-byte the one above.
-        diag({ form: form.id, step: "assertion_failed", error: String((e && e.message) || e).slice(0, 4000) });
+        // The drift record (2026-10-24): WHAT drifted, built from the same
+        // measured record and pinned expectation the assertions just
+        // compared — counts, field ids and outcome (verdict) names ONLY,
+        // never a value, never label or answer text. It rides the
+        // assertion_failed event so the annotations read-back can print the
+        // drift itself, not just the fact of it.
+        let drift = null;
+        try {
+          const mSum = { rawFields: rec.rawFields ?? null, mapped: rec.mapped ?? null, filledCount: rec.filledCount ?? null, readbackMatched: rec.readbackMatched ?? null, driveError: rec.driveError ? "drive_error" : null, bindError: !!rec.bindError };
+          const pSum = { rawFields: exp ? exp.rawFields ?? null : null, mapped: exp ? exp.mapped ?? null : null, filledCount: exp ? exp.filledCount ?? null : null, readbackMatched: exp ? exp.readbackMatched ?? null : null, driveError: exp ? exp.driveError ?? null : null, bindError: !!(exp && exp.bindError) };
+          const mFills = new Map((rec.fills || []).map((f) => [f.name, f.outcome]));
+          const pFills = new Map((exp && exp.fills) || []);
+          const fills = [];
+          for (const [name, pOut] of pFills) {
+            const mOut = mFills.has(name) ? mFills.get(name) : "missing";
+            if (mOut !== pOut) fills.push({ field: name, measured: mOut, pinned: pOut });
+          }
+          for (const [name, mOut] of mFills) if (!pFills.has(name)) fills.push({ field: name, measured: mOut, pinned: "missing" });
+          const mCls = new Map((rec.fills || []).map((f) => [f.name, f.cls]));
+          const pCls = (exp && exp.fieldClasses) || {};
+          let classesDiffering = 0;
+          for (const name of Object.keys(pCls)) if (mCls.get(name) !== pCls[name]) classesDiffering++;
+          drift = { measured: mSum, pinned: pSum, fillsDiffering: fills.length, fills: fills.slice(0, 40), classesDiffering,
+            fileQuestions: { measured: (rec.fileQuestions || []).length, pinned: exp ? (exp.fileQuestions || []).length : null },
+            attestation: { measured: (rec.attestation || []).length, pinned: exp ? (exp.attestation || []).length : null } };
+        } catch {}
+        diag({ form: form.id, step: "assertion_failed", error: String((e && e.message) || e).slice(0, 4000), drift });
         throw e;
       }
       diag({ form: form.id, step: "assertions_passed" });

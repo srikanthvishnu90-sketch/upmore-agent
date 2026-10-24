@@ -195,21 +195,8 @@ function strip(html) {
 // emits the failures as ::error annotations. Every write is best-effort and
 // wrapped: diagnostics can never change a test outcome — no assertion, pin,
 // timeout or drive step reads any of this.
-//
-// The ::error lines printed by this process do NOT reach GitHub's workflow-
-// command parser: the suite runs under `node --test`, whose TAP output
-// prefixes test-process stdout, so at dbaaca9a the public check-run
-// annotations carried the failing tests' names only — no assertion text, no
-// elapsed, no step in flight. test.after therefore ALSO writes the
-// per-failure records as ready-made ::error lines to a sidecar file (the
-// .annotations.txt sibling of the JSONL); the gate-coverage job cats that
-// file from a normal step, outside node --test, so the lines land raw in
-// step output and become public annotations on the next run. The text in
-// those lines passes through the same allowlist redactor as every other
-// diagnostic string before it is written.
 // ---------------------------------------------------------------------------
 const DIAG_PATH = process.env.FORMS_CI_COVERAGE_DIAG || path.join(os.tmpdir(), "forms-ci-coverage-diag.jsonl");
-const ANNOTATIONS_PATH = DIAG_PATH.endsWith(".jsonl") ? DIAG_PATH.slice(0, -".jsonl".length) + ".annotations.txt" : DIAG_PATH + ".annotations.txt";
 const diagEvents = [];
 try { fs.writeFileSync(DIAG_PATH, ""); } catch {}
 // Redaction (2026-10-24): today's diagnostic inputs are synthetic by
@@ -243,31 +230,6 @@ function diag(ev) {
     diagEvents.push(rec);
     try { fs.appendFileSync(DIAG_PATH, JSON.stringify(rec) + "\n"); } catch {}
   } catch {}
-}
-// The per-failure records as ::error workflow-command lines, for the
-// sidecar file described above. Input rows are the summary rows test.after
-// builds ({ id, status, detail, fail, threw, lastStep, lastAtMs,
-// endTotalMs }); only failure rows produce a line. Each line carries the
-// fixture id, the failing step, the drive's elapsed ms and the error text —
-// the text re-redacted here as defense in depth (it is already redacted at
-// diag() storage time) and capped, then workflow-command-escaped.
-function diagAnnotationLines(rows) {
-  const esc = (s) => String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
-  const lines = [];
-  for (const r of rows || []) {
-    try {
-      if (r.fail) {
-        const ms = r.endTotalMs != null ? r.endTotalMs : r.lastAtMs;
-        lines.push(`::error title=forms-ci ${r.id}::step=assertion_failed elapsedMs=${ms != null ? ms : "?"} assertion: ${esc(redactDiagText(String(r.fail.error).slice(0, 800)))}`);
-      } else if (r.threw) {
-        const ms = r.threw.atMs != null ? r.threw.atMs : r.lastAtMs;
-        lines.push(`::error title=forms-ci ${r.id}::step=drive_threw elapsedMs=${ms != null ? ms : "?"} error: ${esc(redactDiagText(String(r.threw.error).slice(0, 800)))}`);
-      } else if (typeof r.status === "string" && r.status.startsWith("NO assertion verdict")) {
-        lines.push(`::error title=forms-ci ${r.id}::step=${r.lastStep || "?"} elapsedMs=${r.lastAtMs != null ? r.lastAtMs : "?"} ${esc(redactDiagText(r.status + " — " + r.detail))}`);
-      }
-    } catch {}
-  }
-  return lines;
 }
 
 const SERVE = new Map();
@@ -638,11 +600,7 @@ test.after(async () => {
       if (end) detail = `drive_end at +${end.totalMs}ms (filled ${end.filledCount}, readback ${end.readbackMatched}${end.driveError ? ", driveError: " + end.driveError : ""})`;
       else if (threw) detail = `drive threw: ${String(threw.error).slice(0, 300)}`;
       else if (evs.length) { const l = evs[evs.length - 1]; detail = `last step ${l.step}${l.field ? " field " + l.field : ""}${l.atMs != null ? " at +" + l.atMs + "ms" : ""}, no drive_end`; }
-      const lastEv = evs.length ? evs[evs.length - 1] : null;
-      rows.push({ id: form.id, status, detail, fail, threw,
-        lastStep: lastEv ? lastEv.step : null,
-        lastAtMs: lastEv && lastEv.atMs != null ? lastEv.atMs : null,
-        endTotalMs: end && end.totalMs != null ? end.totalMs : null });
+      rows.push({ id: form.id, status, detail, fail, threw });
       console.log(`FORMS-CI-DIAG ${form.id}: ${status} — ${detail}`);
       if (fail) console.log(`FORMS-CI-DIAG ${form.id} assertion: ${String(fail.error).slice(0, 1200)}`);
       if (threw) console.log(`FORMS-CI-DIAG ${form.id} drive threw: ${String(threw.error).slice(0, 600)}`);
@@ -661,14 +619,6 @@ test.after(async () => {
         else if (r.status.startsWith("NO assertion verdict")) console.log(`::error title=forms-ci ${r.id}::${esc(r.status + " — " + r.detail)}`);
       }
     }
-    // Sidecar for the public-annotations channel (see the diagnostics block
-    // above): the in-process ::error lines are TAP-prefixed under node
-    // --test and never parsed, so the same records are written here as
-    // ready-made lines for a plain CI step to print. Failure rows only.
-    try {
-      const lines = diagAnnotationLines(rows);
-      if (lines.length) fs.writeFileSync(ANNOTATIONS_PATH, lines.join("\n") + "\n");
-    } catch {}
   } catch {}
 });
 
@@ -990,27 +940,4 @@ test("forms-ci coverage diagnostics: the redactor strips paths/env-style strings
   assert.equal(redactDiagText("fill timed out on question_1: helper response timeout for fill"), "fill timed out on question_1: helper response timeout for fill");
 });
 
-test("forms-ci coverage diagnostics: annotation lines carry id/step/elapsed with redacted text, failure rows only", () => {
-  const rows = [
-    { id: "greenhouse-x-1", status: "ASSERTION FAILED", detail: "drive_end at +12345ms (filled 11, readback 11)",
-      fail: { error: "expected 12 fills, got 11 — see /home/runner/work/repo/dump.json SOME_TOKEN=abc123" },
-      threw: null, lastStep: "assertion_failed", lastAtMs: 12400, endTotalMs: 12345 },
-    { id: "lever-y-2", status: "NO assertion verdict recorded (test-timeout signature)", detail: "drive threw",
-      fail: null, threw: { error: "DRIVER_ERROR helper response timeout for fill", atMs: 999 },
-      lastStep: "fill", lastAtMs: 999, endTotalMs: null },
-    { id: "greenhouse-z-3", status: "NO assertion verdict recorded (test-timeout signature)",
-      detail: "last step fill field question_9 at +599000ms, no drive_end",
-      fail: null, threw: null, lastStep: "fill", lastAtMs: 599000, endTotalMs: null },
-    { id: "greenhouse-ok-4", status: "assertions passed", detail: "drive_end at +5000ms (filled 3, readback 3)",
-      fail: null, threw: null, lastStep: "drive_end", lastAtMs: 5000, endTotalMs: 5000 },
-  ];
-  const lines = diagAnnotationLines(rows);
-  assert.equal(lines.length, 3, "only the three failure rows produce lines: " + lines.join(" | "));
-  assert.ok(lines[0].startsWith("::error title=forms-ci greenhouse-x-1::"), lines[0]);
-  assert.ok(lines[0].includes("step=assertion_failed") && lines[0].includes("elapsedMs=12345"), lines[0]);
-  assert.ok(!lines[0].includes("/home/runner") && !lines[0].includes("abc123"), "unredacted text leaked: " + lines[0]);
-  assert.ok(lines[1].includes("step=drive_threw") && lines[1].includes("elapsedMs=999") && lines[1].includes("DRIVER_ERROR"), lines[1]);
-  assert.ok(lines[2].includes("step=fill") && lines[2].includes("elapsedMs=599000"), lines[2]);
-});
-
-module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES, redactDiagText, diagAnnotationLines };
+module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES, redactDiagText };

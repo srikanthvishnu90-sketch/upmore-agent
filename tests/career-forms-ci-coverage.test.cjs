@@ -786,7 +786,8 @@ test("forms-ci coverage: the coverage gate rejects unsupported claims (gate unit
 // one. Anduril's drive cannot finish inside it — not from machine slowness
 // but from the helper's own per-fill budgets on custom-select fills that
 // end value_did_not_persist (measured on the local Anduril diag,
-// ~/workspace/forms-ci-repro/diag-anduril.jsonl, 2026-10-24): the 28
+// forms-ci-repro/diag-anduril.jsonl, preserved outside the repo,
+// 2026-10-24): the 28
 // completed fills sum to 590,421 ms — five fills at ~71 s (country
 // 71,373 ms; question_9753036007 70,719 ms; question_9753040007
 // 70,757 ms; question_9753041007 71,270 ms; question_9753043007

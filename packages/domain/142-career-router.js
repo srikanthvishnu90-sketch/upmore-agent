@@ -9550,10 +9550,21 @@ const CareerRouter = (() => {
     const depsIn = c.batchDeps || {};
     const log = depsIn.log || c.batchLog || { records: [] };
     const standing = c.batchApplyState || null;
+    // PAUSE STAND-DOWN (2026-10-24): the pause gate keys on
+    // action-shaped TEXT, and a bare "yes" carrying the structured
+    // approval is not action-shaped — so an approval could land
+    // while the account stood paused. The pause covers every queue
+    // by its own statement; the approval branch therefore stands
+    // down on pausedOf before it ever reaches approveRun.
+    if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true && pausedOf(c)) {
+      const runP = BatchApply.restoreRun(standing);
+      return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_WHILE_PAUSED", batchRun: runP ? BatchApply.summarizeRun(runP) : null, sends: 0,
+        reply: "I did not submit anything: your account is paused, and the pause covers every queue — an approval can't land while it stands. Next step: lift the pause (say \"unpause\" or \"lift the pause\"), then approve the card — if its window has passed by then, I'll re-prepare it first." };
+    }
     if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
       const run = BatchApply.restoreRun(standing);
       if (!run) return null;
-      const ap = BatchApply.approveRun(run, { approvedByUser: true });
+      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
       if (!ap.ok) {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
@@ -9577,6 +9588,10 @@ const CareerRouter = (() => {
       if (run) {
         const sm = BatchApply.summarizeRun(run);
         if (run.status === "awaiting_approval") {
+          if (run.cardExpiresAt && nowOf(c) >= run.cardExpiresAt) {
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_CARD_EXPIRED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this review card has expired: prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. Next step: ask me to prepare the batch again, and approve the new card while it stands.` };
+          }
           const names = run.selected.map((k) => run.apps[k]).filter((a) => a && a.stage === "doorstep").map((a) => `${a.title || "role"} at ${a.company}`).join("; ");
           return { intent: "career_batch_apply", resultStatus: "awaiting_card_approval", batchRun: sm, sends: 0,
             reply: `Nothing was submitted. Your batch is prepared and waiting at its review card${names ? ` — ${names}` : ""}. A typed yes in chat can't approve it: approval comes from the card itself, so the next step is to open the batch card and approve it there — that approval is bound to exactly these applications, and if anything about them changed since the card was shown, it refuses and the batch goes back for re-preparation.` };

@@ -45800,10 +45800,21 @@ const CareerRouter = (() => {
     const depsIn = c.batchDeps || {};
     const log = depsIn.log || c.batchLog || { records: [] };
     const standing = c.batchApplyState || null;
+    // PAUSE STAND-DOWN (2026-10-24): the pause gate keys on
+    // action-shaped TEXT, and a bare "yes" carrying the structured
+    // approval is not action-shaped — so an approval could land
+    // while the account stood paused. The pause covers every queue
+    // by its own statement; the approval branch therefore stands
+    // down on pausedOf before it ever reaches approveRun.
+    if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true && pausedOf(c)) {
+      const runP = BatchApply.restoreRun(standing);
+      return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_WHILE_PAUSED", batchRun: runP ? BatchApply.summarizeRun(runP) : null, sends: 0,
+        reply: "I did not submit anything: your account is paused, and the pause covers every queue — an approval can't land while it stands. Next step: lift the pause (say \"unpause\" or \"lift the pause\"), then approve the card — if its window has passed by then, I'll re-prepare it first." };
+    }
     if (standing && standing.status === "awaiting_approval" && c.batchApproval && c.batchApproval.approvedByUser === true) {
       const run = BatchApply.restoreRun(standing);
       if (!run) return null;
-      const ap = BatchApply.approveRun(run, { approvedByUser: true });
+      const ap = BatchApply.approveRun(run, { approvedByUser: true, now: nowOf(c), profileSha256: typeof BatchApply.profileDigestOf === "function" ? BatchApply.profileDigestOf(batchDepsFor(c, log, null).profile) : null });
       if (!ap.ok) {
         c.batchApplyState = BatchApply.serializeRun(run);
         return { intent: "career_batch_apply", resultStatus: "blocked", code: ap.code, sends: 0, reply: `I did not submit anything: ${ap.reason}` };
@@ -45827,6 +45838,10 @@ const CareerRouter = (() => {
       if (run) {
         const sm = BatchApply.summarizeRun(run);
         if (run.status === "awaiting_approval") {
+          if (run.cardExpiresAt && nowOf(c) >= run.cardExpiresAt) {
+            return { intent: "career_batch_apply", resultStatus: "blocked", code: "APPROVAL_CARD_EXPIRED", batchRun: sm, sends: 0,
+              reply: `Nothing was submitted — this review card has expired: prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. Next step: ask me to prepare the batch again, and approve the new card while it stands.` };
+          }
           const names = run.selected.map((k) => run.apps[k]).filter((a) => a && a.stage === "doorstep").map((a) => `${a.title || "role"} at ${a.company}`).join("; ");
           return { intent: "career_batch_apply", resultStatus: "awaiting_card_approval", batchRun: sm, sends: 0,
             reply: `Nothing was submitted. Your batch is prepared and waiting at its review card${names ? ` — ${names}` : ""}. A typed yes in chat can't approve it: approval comes from the card itself, so the next step is to open the batch card and approve it there — that approval is bound to exactly these applications, and if anything about them changed since the card was shown, it refuses and the batch goes back for re-preparation.` };
@@ -54806,6 +54821,17 @@ const CareerBatchApply = (() => {
       }
     }
     run.cardSha256 = cardSha(run);
+    // APPROVAL INVALIDATION (2026-10-24): the card binds a yes only
+    // while (a) it is inside its validity window and (b) the profile
+    // its answers were built from still stands. The window is the
+    // module's own session-reuse window: prepared forms are the
+    // product of that window, and a yes landing hours later on forms
+    // prepared hours earlier is exactly what approveRun must refuse.
+    // The profile digest covers the answer-bearing profile the
+    // drives consumed (deps.profile, pre-cover-note), canonicalized
+    // so key order cannot fake a change or hide one.
+    run.cardExpiresAt = doorstepApps.length ? now + SESSION_REUSE_TTL_MS : null;
+    run.profileSha256 = doorstepApps.length ? profileDigestOf(d.profile || {}) : null;
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
     // Coverage fraction first: how many of the selected came through,
@@ -54897,6 +54923,20 @@ const CareerBatchApply = (() => {
     return pairs.length ? sha256(pairs.join("|")) : null;
   }
 
+  // Canonical digest of the answer-bearing profile: recursively
+  // key-sorted JSON, hashed. Both sides of an approval compute it
+  // the same way — prepareRun stores it on the run; the router
+  // recomputes it over the CURRENT profile at the approval turn
+  // and hands it to approveRun inside the approval object.
+  function profileDigestOf(profile) {
+    const canon = (v) => {
+      if (Array.isArray(v)) return v.map(canon);
+      if (v && typeof v === "object") { const o = {}; for (const k of Object.keys(v).sort()) o[k] = canon(v[k]); return o; }
+      return v;
+    };
+    return sha256(JSON.stringify(canon(profile || {})));
+  }
+
   // ---------------- J3: one yes -> per-application hash-bound approvals ----
   function approveRun(run, approval) {
     if (!run || run.status !== "awaiting_approval") {
@@ -54908,6 +54948,23 @@ const CareerBatchApply = (() => {
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
+    }
+    // EXPIRY (2026-10-24): a yes that arrives after the card's
+    // window does not bind. The window rides the run
+    // (cardExpiresAt, set at prepare from the session-reuse TTL);
+    // runs prepared before it existed carry none and are not
+    // retro-expired.
+    if (typeof approval.now === "number" && run.cardExpiresAt && approval.now >= run.cardExpiresAt) {
+      return { ok: false, code: "APPROVAL_CARD_EXPIRED", reason: "this review card has expired — prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. The batch must be re-prepared, and the new card is the one a yes can bind to" };
+    }
+    // PROFILE CHANGE (2026-10-24): the card's answers were built
+    // from the profile as it stood at prepare; if the profile has
+    // changed since — an edited answer, a corrected fact — the yes
+    // was given against answers that no longer stand, and it does
+    // not bind. Skipped when either side carries no digest (runs
+    // prepared before the digest existed).
+    if (run.profileSha256 && approval.profileSha256 && approval.profileSha256 !== run.profileSha256) {
+      return { ok: false, code: "APPROVAL_PROFILE_CHANGED", reason: "your profile changed since this card was prepared, so its answers were built from facts that no longer stand — the batch must be re-prepared from your current profile and re-approved" };
     }
     // P1 text yes ("yes but not 2"): the owner may leave applications
     // OFF the card he was shown — never add one. Every excluded key must
@@ -55198,7 +55255,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

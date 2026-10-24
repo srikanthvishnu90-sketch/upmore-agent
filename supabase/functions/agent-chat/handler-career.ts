@@ -326,7 +326,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
-        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);

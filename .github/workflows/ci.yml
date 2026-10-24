@@ -204,6 +204,15 @@ jobs:
           [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          # forms-ci coverage diagnostics read-back (2026-10-24): the diag JSONL is appended event-by-event
+          # during the drives, so it exists even when a test timeout kills the suite file before its
+          # test.after summary can run — and the suite's own ::error prints are TAP-prefixed under
+          # node --test and never parsed. This reader emits the failure records (fixture id, failing step,
+          # elapsed ms, error text) from the JSONL's already-redacted fields only, as ::error lines in
+          # this step's raw output, where the workflow-command parser does see them.
+          if [ -n "${FORMS_CI_COVERAGE_DIAG:-}" ] && [ -f "$FORMS_CI_COVERAGE_DIAG" ]; then
+            node scripts/forms-ci-diag-annotations.cjs "$FORMS_CI_COVERAGE_DIAG" || true
+          fi
           exit 0
       - name: Upload forms-ci coverage diagnostics
         if: always()

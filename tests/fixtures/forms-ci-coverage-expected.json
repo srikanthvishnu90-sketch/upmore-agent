@@ -7,8 +7,8 @@
  "coverage": {
   "formsCaptured": 11,
   "questionsMapped": 271,
-  "questionsFilled": 174,
-  "questionsReadBackExactly": 167,
+  "questionsFilled": 190,
+  "questionsReadBackExactly": 183,
   "claims": "scoped only: per-form claims in capturedForms[].claim and per-widget-class claims in widgetClassClaims — no aggregate claim is made"
  },
  "capturedForms": [
@@ -1770,8 +1770,8 @@
     "rawFields": 18,
     "mapped": 18,
     "bindError": null,
-    "filledCount": 13,
-    "readbackMatched": 13,
+    "filledCount": 17,
+    "readbackMatched": 17,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -1832,23 +1832,23 @@
      ],
      [
       "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]",
-      "value_did_not_persist"
+      "attestation_stop"
      ],
      [
       "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[gender]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[race]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[veteran]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "consent[marketing]",
@@ -1882,56 +1882,15 @@
       "status": "required",
       "schemaRequired": true,
       "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict.",
-      "attestationClass": true
-     },
-     {
-      "name": "cards[c7220d88-6808-4b17-ad1d-fd72a01ad465][field0]",
-      "label": "I would like to receive information about training opportunities and courses from TSMG Academy in addition to recruitment-related communication✱",
-      "status": "required",
-      "schemaRequired": true,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[gender]",
-      "label": "Gender",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[race]",
-      "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race.White (Not Hispanic or Latino)A person having origins in any of the original peoples of Europe, the Middle East, or North Africa.Black or African American ",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[veteran]",
-      "label": "Veteran status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
+      "outcome": "attestation_stop",
+      "attemptedValue": "not attempted (attestation stop)",
+      "reason": "Native <select>, attestation-class: the field asks the applicant to certify or agree (\"By clicking 'I agree,' you are confirming that you have read and agree to the Pr…\"). Attestation-class fields always stop for the person — the drive does not attempt them, on any widget class, and they are never counted filled (widget-gap lane, 2026-10-23). On the base drive this field was attempted and not persisted."
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 13 of 18 mapped questions filled, 13 read back exactly; 5 mapped-not-filled field(s) reconciled per field in this record: 5 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 17 of 18 mapped questions filled, 17 read back exactly; 1 mapped-not-filled field(s) reconciled per field in this record: 1 attestation-class stop(s)."
    }
   },
   {
@@ -1960,7 +1919,7 @@
     "fills": [
      [
       "opportunityLocationId",
-      "value_did_not_persist"
+      "option_not_found"
      ],
      [
       "resume",
@@ -2048,15 +2007,15 @@
       "status": "required",
       "schemaRequired": true,
       "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
+      "outcome": "option_not_found",
+      "attemptedValue": "Synthetic City",
+      "reason": "Native <select>: the drive attempted the persona's location fact \"Synthetic City\"; none of the captured options (Atlanta, GA / Hybrid / Remote / Charlotte, NC) matches it, and the executor reported option_not_found. The drive does not invent a location preference, so the field stays unfilled on this evidence."
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 15 of 16 mapped questions filled, 14 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 1 mapped-not-filled field(s) reconciled per field in this record: 1 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 15 of 16 mapped questions filled, 14 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 1 mapped-not-filled field(s) reconciled per field in this record: 1 native select(s) with no captured option matching the profile value."
    }
   },
   {
@@ -2073,8 +2032,8 @@
     "rawFields": 16,
     "mapped": 14,
     "bindError": null,
-    "filledCount": 11,
-    "readbackMatched": 11,
+    "filledCount": 14,
+    "readbackMatched": 14,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -2125,15 +2084,15 @@
      ],
      [
       "eeo[gender]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[race]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[veteran]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "consent[marketing]",
@@ -2156,42 +2115,11 @@
      "eeo[veteran]": "native select",
      "consent[marketing]": "checkbox"
     },
-    "reconciliation": [
-     {
-      "name": "eeo[gender]",
-      "label": "Gender",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[race]",
-      "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race.White (Not Hispanic or Latino)A person having origins in any of the original peoples of Europe, the Middle East, or North Africa.Black or African American ",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[veteran]",
-      "label": "Veteran status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     }
-    ]
+    "reconciliation": []
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 14 mapped questions filled, 11 read back exactly; 3 mapped-not-filled field(s) reconciled per field in this record: 3 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 14 of 14 mapped questions filled, 14 read back exactly; 0 mapped-not-filled field(s) reconciled per field in this record."
    }
   },
   {
@@ -2208,8 +2136,8 @@
     "rawFields": 59,
     "mapped": 28,
     "bindError": null,
-    "filledCount": 25,
-    "readbackMatched": 24,
+    "filledCount": 28,
+    "readbackMatched": 27,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -2312,7 +2240,7 @@
      ],
      [
       "eeo[gender]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[race]",
@@ -2320,11 +2248,11 @@
      ],
      [
       "eeo[veteran]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[disability]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "consent[marketing]",
@@ -2361,42 +2289,11 @@
      "eeo[disability]": "native select",
      "consent[marketing]": "checkbox"
     },
-    "reconciliation": [
-     {
-      "name": "eeo[gender]",
-      "label": "Gender",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[veteran]",
-      "label": "Veteran status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[disability]",
-      "label": "Disability status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     }
-    ]
+    "reconciliation": []
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 25 of 28 mapped questions filled, 24 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 3 mapped-not-filled field(s) reconciled per field in this record: 3 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 28 of 28 mapped questions filled, 27 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 0 mapped-not-filled field(s) reconciled per field in this record."
    }
   },
   {
@@ -2413,8 +2310,8 @@
     "rawFields": 46,
     "mapped": 28,
     "bindError": null,
-    "filledCount": 24,
-    "readbackMatched": 23,
+    "filledCount": 28,
+    "readbackMatched": 27,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -2497,7 +2394,7 @@
      ],
      [
       "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field1]",
@@ -2525,15 +2422,15 @@
      ],
      [
       "eeo[gender]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[race]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[veteran]",
-      "value_did_not_persist"
+      "filled"
      ]
     ],
     "fieldClasses": {
@@ -2566,52 +2463,11 @@
      "eeo[race]": "native select",
      "eeo[veteran]": "native select"
     },
-    "reconciliation": [
-     {
-      "name": "cards[80483a59-5ec2-4f35-b16f-6f97fab84e21][field0]",
-      "label": "In what country do you currently live?✱",
-      "status": "required",
-      "schemaRequired": true,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[gender]",
-      "label": "Gender",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[race]",
-      "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race.White (Not Hispanic or Latino)A person having origins in any of the original peoples of Europe, the Middle East, or North Africa.Black or African American ",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[veteran]",
-      "label": "Veteran status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     }
-    ]
+    "reconciliation": []
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 24 of 28 mapped questions filled, 23 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 4 mapped-not-filled field(s) reconciled per field in this record: 4 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 28 of 28 mapped questions filled, 27 read back exactly (1 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 0 mapped-not-filled field(s) reconciled per field in this record."
    }
   },
   {
@@ -2628,8 +2484,8 @@
     "rawFields": 91,
     "mapped": 28,
     "bindError": null,
-    "filledCount": 25,
-    "readbackMatched": 21,
+    "filledCount": 27,
+    "readbackMatched": 23,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -2714,19 +2570,19 @@
      ],
      [
       "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
-      "filled"
+      "attestation_stop"
      ],
      [
       "eeo[gender]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[race]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "eeo[veteran]",
-      "value_did_not_persist"
+      "filled"
      ],
      [
       "surveysResponses[d979bc26-4bd0-42a2-83c5-13bbfcd39bbe][responses][field0]",
@@ -2785,40 +2641,20 @@
     },
     "reconciliation": [
      {
-      "name": "eeo[gender]",
-      "label": "Gender",
+      "name": "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]",
+      "label": "If you are a Lyra employee, do you certify you have reviewed the Internal Mobility Policy and meet the requirements?",
       "status": "optional",
       "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[race]",
-      "label": "RaceHispanic or LatinoA person of Cuban, Mexican, Puerto Rican, South or Central American, or other Spanish culture or origin regardless of race.White (Not Hispanic or Latino)A person having origins in any of the original peoples of Europe, the Middle East, or North Africa.Black or African American ",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
-     },
-     {
-      "name": "eeo[veteran]",
-      "label": "Veteran status",
-      "status": "optional",
-      "schemaRequired": false,
-      "widgetClass": "native select",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Select ...",
-      "reason": "Native <select>: the executor reported value_did_not_persist. The drive policy's value for a select is its first option's label — here the placeholder \"Select ...\" (value \"\") — and no non-placeholder option was attempted under that policy. A placeholder first option does not by itself determine the outcome (one Lever native select with the same placeholder shape — a Shield AI card field — filled and persisted), so no cause beyond the executor's outcome record and the attempted value is asserted; this is a value-policy measurement on the capture, not a widget verdict."
+      "widgetClass": "radio group",
+      "outcome": "attestation_stop",
+      "attemptedValue": "not attempted (attestation stop)",
+      "reason": "Radio group, attestation-class: the field asks the applicant to certify or agree (\"If you are a Lyra employee, do you certify you have reviewed the Internal Mobili…\"). Attestation-class fields always stop for the person — the drive does not attempt them, on any widget class, and they are never counted filled (widget-gap lane, 2026-10-23). On the base drive this field was counted filled; that count is withdrawn."
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 25 of 28 mapped questions filled, 21 read back exactly (4 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 3 mapped-not-filled field(s) reconciled per field in this record: 3 native select(s) not filled under the first-option placeholder policy."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 27 of 28 mapped questions filled, 23 read back exactly (4 filled value(s) did not read back exactly — the doc's read-back exceptions name them); 1 mapped-not-filled field(s) reconciled per field in this record: 1 attestation-class stop(s)."
    }
   }
  ],
@@ -2939,7 +2775,7 @@
    "mapped": 6,
    "filled": 6,
    "verdict": "covered",
-   "note": "Every file question filled and read back by sha256 of the synthetic artifact."
+   "note": "Every mapped field of this class filled."
   },
   {
    "family": "lever",
@@ -2953,9 +2789,9 @@
    "family": "lever",
    "widgetClass": "native select",
    "mapped": 20,
-   "filled": 1,
+   "filled": 18,
    "verdict": "partial",
-   "note": "For all 19 non-filled fields of this class, the only value the drive attempted was the select's first option — the placeholder (value \"\") — and the executor reported value_did_not_persist; no non-placeholder option was attempted. The one filled field of this class (a Shield AI card field) persisted despite the same placeholder shape. Per-field records are in the reconciliation."
+   "note": "Native selects now take the profile's value (widget-gap lane, 2026-10-23): EEO selects the decline option, the country select the persona's country, the relocation card a real option. Still unfilled: 1 attestation-class select (stops for the person, never counted) and 1 location-choice select whose captured options hold no match for the persona's location (option_not_found)."
   },
   {
    "family": "lever",
@@ -2963,7 +2799,7 @@
    "mapped": 7,
    "filled": 7,
    "verdict": "covered",
-   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+   "note": "Every mapped field of this class filled."
   },
   {
    "family": "lever",
@@ -2971,15 +2807,15 @@
    "mapped": 7,
    "filled": 7,
    "verdict": "partial",
-   "note": "All fills of this class persisted, but 2 filled values (pronouns on CGS Federal and Lyra Health) did not read back exactly — the read-back axis, named in the doc; hence partial, not covered."
+   "note": "Fills persisted; read-back exceptions are named per form in the doc (pronouns groups)."
   },
   {
    "family": "lever",
    "widgetClass": "radio group",
    "mapped": 24,
-   "filled": 24,
-   "verdict": "covered",
-   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+   "filled": 23,
+   "verdict": "partial",
+   "note": "One radio field is attestation-class (a Lyra certification question): it stops for the person and is never counted filled (widget-gap lane, 2026-10-23) — on the base drive it was counted filled. Every other mapped radio filled."
   }
  ]
 }

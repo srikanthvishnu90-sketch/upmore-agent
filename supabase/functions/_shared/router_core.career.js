@@ -14616,7 +14616,10 @@ const CareerRouter = (() => {
       if (wmir) delete wmir.hold;
       return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Hold lifted.", facts: ["Sending is back on the table — under the standing rule, which the hold never changed: nothing goes out without your approval on the exact words."], nextStep: "Name what should move first and it is prepared for your approval." }) };
     }
-    if (/\bdon'?t send\b|\bdo not send\b|\bno sending\b|\bhold off on sending\b|\bsend nothing\b|\bnothing (gets |is )?sent\b/.test(t) || /^(don'?t|do not) (message|email|text|contact) (anyone|anybody|them|him|her)\b/.test(t)) {
+    const holdWhole = /^((ok|okay|wait|also|please|hey)[,.]?\s+)?(don'?t|do not) send( anything| it| them| that)?( yet| for now)?[.!]*$/.test(t)
+      || /^(send nothing|no sending|hold off on sending( anything)?|nothing (gets |is )?sent( yet)?)[.!]*$/.test(t)
+      || /^(don'?t|do not) (message|email|text|contact) (anyone|anybody|them|him|her)( yet)?[.!]*$/.test(t);
+    if (holdWhole) {
       const wmir = threadMirrorForWrite(ctx);
       if (wmir) wmir.hold = { at: new Date(nowOf(ctx)).toISOString(), scope: "sending" };
       return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Held — nothing will be sent.", facts: ["The hold is on this conversation's record now: drafts and plans stand where they are, and no message goes out from this thread while it stands.", "Sending already required your approval on the exact words; the hold adds a stop in front of even that."], nextStep: "Everything else keeps working — drafting, planning, tracking. Say “lift the hold” when sending is back on the table." }) };
@@ -14635,7 +14638,8 @@ const CareerRouter = (() => {
     }
     const thirdParty = /\b(my )?(boss|manager|employer|supervisor)\b/.test(t);
     const discloseVerb = /\b(tell|message|email|text|inform|let)\b/.test(t);
-    if (thirdParty && discloseVerb) {
+    const discloseContent = /\b(looking|leaving|interviewing|job (hunting|search)|searching|new job|another (job|role)|quit)\b/.test(t);
+    if (thirdParty && discloseVerb && (discloseContent || raw.split(/\s+/).length <= 12)) {
       const wmir = threadMirrorForWrite(ctx);
       if (wmir) wmir.disclosure = { at: new Date(nowOf(ctx)).toISOString() };
       return { intent: "disclosure_clarify", resultStatus: "awaiting_user", reply: compose({ headline: "Nothing is sent — a message like that never fires off from a one-line ask.", facts: ["Who exactly would receive it — your direct manager, or someone else?", "What exactly would it say — that you are looking, that you are interviewing, or that you are leaving? Those are three very different messages.", "And what is the scope — one person, once, or your wider team as well?"], nextStep: "Answer those three and the words are drafted here for your approval; you send them yourself, or approve them here first. Nothing moves before that." }) };

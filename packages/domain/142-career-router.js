@@ -3625,6 +3625,70 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "That prep is built from your own record — and there is no profile on file yet.", facts: [`Interview prep here is mined from your confirmed facts: your experiences become the stories, your target${company ? ` (${company})` : ""} sets the bar. With nothing on file, any "prep pack" I produced would be generic filler wearing your name.`, "What runs without a profile: single practice questions, market-sizing drills, and the night-before plan — ask for any of those and they start now."], nextStep: "Paste your resume, or tell me your school, year, and experience, and the full prep builds from real material." });
     return { intent: "prep_needs_profile", reply, resultStatus: "awaiting_user", sends: 0 };
   }
+  // QUESTION SETS (text-path measurement 2026-10-24): "give me 3
+  // interview questions for a data analyst role" is a SET ask. The
+  // session serves one question at a time and stands down on sets
+  // by design, and the single-question handler serves one — so the
+  // counted ask fell to the generic fallback, and its follow-ups
+  // ("answer the 2nd one as an example", "now make it shorter")
+  // had no frame at all: the shortening turn was taken by the
+  // outreach-draft surgery, which answered about a draft that does
+  // not exist. The set is served from 127's bank for the asked
+  // sector (sector items first), and the set frame on the thread
+  // mirror owns the follow-ups: an example answer comes from the
+  // bank item itself — its model answer where the bank carries
+  // one, its structure points where it does not, never an invented
+  // model — and a shortening turn shortens THAT example. The frame
+  // claim is dispatched ahead of the draft-surgery capture.
+  function handlePrepQuestionSet(text, ctx) {
+    if (!Prep || !Prep.questionBank) return null;
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const frame = mir && mir.prepSet && (nowOf(ctx) - (mir.prepSet.at || 0)) < 30 * 60000 ? mir.prepSet : null;
+    if (frame) {
+      const exM = t.match(/\banswer\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?\s+one\b/) || t.match(/\b(?:example|model)\s+answer\b[^.]*?\b(\d+)(?:st|nd|rd|th)?\b/) || t.match(/\b(\d+)(?:st|nd|rd|th)?\s+one\b[^.]*\bexample\b/);
+      if (exM) {
+        const item = (frame.items || [])[Number(exM[1]) - 1];
+        if (item) {
+          const bankAns = s(item.model_answer || item.answer || "");
+          const example = bankAns || (item.detail ? s(item.detail) : "Work it in the order the question asks: open with the approach in one line, walk the steps with the numbers or the query stated plainly, then close with how you would check the result — that structure is the example; the specifics come from your own work when you answer for real.");
+          mir.prepSet = Object.assign({}, frame, { exampleFor: Number(exM[1]), exampleText: example, at: nowOf(ctx) });
+          const facts = [`The question: ${s(item.q)}`, `An example answer: ${example}`, bankAns ? "That example is the bank item's own model answer — adapt the facts to your work, keep the structure." : "The bank item carries no model answer, so that example is the structure a strong answer follows — the specifics stay yours to supply."];
+          const reply = compose({ headline: `Example answer for question ${Number(exM[1])}.`, facts, nextStep: "Want it shorter, or your own attempt at it scored instead?" });
+          return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, question: item };
+        }
+      }
+      if (/\bmake it shorter\b|\bshorten (it|that|this|the example|the answer)\b/.test(t) && frame.exampleText) {
+        const sents = s(frame.exampleText).split(/(?<=[.!?])\s/).filter(Boolean);
+        const shorter = sents.length > 2 ? [sents[0], sents[sents.length - 1]].join(" ") : (sents[0] || s(frame.exampleText));
+        mir.prepSet = Object.assign({}, frame, { exampleText: shorter, at: nowOf(ctx) });
+        const reply = compose({ headline: "The same example answer, shorter.", facts: [shorter, "Cut to the opening move and the close — the middle steps are the ones you restore when you answer for real."], nextStep: "Say the word for another question from the set, or give your own answer for scoring." });
+        return { intent: "prep_brief", reply, resultStatus: "running", sends: 0 };
+      }
+    }
+    const askM = t.match(/\b(?:give|show|get|list|pull)\s+me\s+(\d{1,2})\s+interview questions?\s+for\s+(.+?)[?.!]*$/) || t.match(/\b(\d{1,2})\s+interview questions?\s+for\s+(?:an?\s+|the\s+)?(.+?)[?.!]*$/);
+    if (!askM) return null;
+    const count = Math.min(10, Math.max(1, Number(askM[1])));
+    const role = askM[2].replace(/\s+(role|position|job|interview)$/i, "").trim();
+    if (!role) return null;
+    const sector = prepSectorOf(t) || prepSectorOf(role);
+    let bank = null;
+    try { bank = Prep.questionBank({ sector: sector || undefined, role, roleFamily: sector || role, cir: cirFor(text, ctx), stories: [] }); } catch { bank = null; }
+    const qs = ((bank && bank.questions) || []).filter((x) => x && s(x.q));
+    if (!qs.length) return null;
+    const seen = new Set(); const ordered = [];
+    const segs = [qs.filter((x) => x.source && /^interview_bank/.test(s(x.source.type))), qs.filter((x) => /technical|coding|system_design|fundamentals/i.test(s(x.round))), qs];
+    for (const seg of segs) for (const x of seg) { const k = lc(s(x.q)); if (!seen.has(k)) { seen.add(k); ordered.push(x); } }
+    const items = ordered.slice(0, count).map((x) => ({ q: s(x.q), round: s(x.round) || null, model_answer: s(x.model_answer || x.answer || "") || null, detail: s(x.detail || "") || null }));
+    if (!items.length) return null;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) wmir.prepSet = { role, sector: sector || null, items, at: nowOf(ctx) };
+    try { const th = prepThreadForWrite(ctx); th.served = [...(Array.isArray(th.served) ? th.served : []), ...items.map((i) => i.q)]; th.lastServedAt = nowOf(ctx); } catch { /* the set stands without the session record */ }
+    const facts = items.map((it, i) => `${i + 1}. ${it.q}`);
+    facts.push(`Drawn from the ${PREP_SECTOR_LABEL[sector] || sector || "general"} interview bank — the researched question set for the role, not invented questions.`);
+    const reply = compose({ headline: `${items.length} interview questions for ${role}.`, facts, nextStep: "Pick one and answer it for scoring, or say 'answer the 2nd one as an example' and I will show the model shape first." });
+    return { intent: "prep_brief", reply, resultStatus: "running", sends: 0, questions: items };
+  }
   // FIX LANE T1 (TG-LONGPLAN-FALLBACK, live Telegram battery
   // 2026-10-20 turn 4): "Give me a complete plan for preparing for a
   // finance internship interview over the next two weeks, day by
@@ -9701,6 +9765,15 @@ const CareerRouter = (() => {
     if (refusal) return refusal;
     const appendix = handleAppendixSafety(text, c);
     if (appendix) return appendix;
+    // QUESTION SETS (2026-10-24): an open prep-set frame owns its
+    // follow-ups ahead of the draft-surgery capture below — a
+    // shortening turn inside a prep set shortens the served
+    // example, not a draft — and the counted set ask itself is
+    // claimed here for the same reason: nothing downstream owns it.
+    {
+      const pqs = handlePrepQuestionSet(text, c);
+      if (pqs) return pqs;
+    }
     // COMPLEXITY WAVE (BUG-176): the drafting conversation's second
     // turns — draft continuations, revisions, send attempts, decline
     // drafts, and offer-detail statements — owned here, before the

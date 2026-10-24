@@ -2443,6 +2443,31 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // HOLD INSTRUCTIONS (root-cause item 4): "dont send anything
+  // yet" is an instruction about the conversation's pending work,
+  // and it had no owner — it fell to the banner while the work it
+  // meant to stop stood unheld. A hold is a STATE: recorded on the
+  // thread mirror, acknowledged as standing, and read back by the
+  // routes that talk about sending (the gate restatement names
+  // it). Lifting it takes its own explicit words.
+  function handleHoldInstruction(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (/\b(lift|remove|clear|drop) the hold\b|\bhold is off\b|\byou can send (again|now)\b/.test(t)) {
+      if (!(mir && mir.hold)) return null;
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.hold;
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Hold lifted.", facts: ["Sending is back on the table — under the standing rule, which the hold never changed: nothing goes out without your approval on the exact words."], nextStep: "Name what should move first and it is prepared for your approval." }) };
+    }
+    if (/\bdon'?t send\b|\bdo not send\b|\bno sending\b|\bhold off on sending\b|\bsend nothing\b|\bnothing (gets |is )?sent\b/.test(t) || /^(don'?t|do not) (message|email|text|contact) (anyone|anybody|them|him|her)\b/.test(t)) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.hold = { at: new Date(nowOf(ctx)).toISOString(), scope: "sending" };
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Held — nothing will be sent.", facts: ["The hold is on this conversation's record now: drafts and plans stand where they are, and no message goes out from this thread while it stands.", "Sending already required your approval on the exact words; the hold adds a stop in front of even that."], nextStep: "Everything else keeps working — drafting, planning, tracking. Say “lift the hold” when sending is back on the table." }) };
+    }
+    return null;
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -10487,6 +10512,12 @@ const CareerRouter = (() => {
     // never be read as an erase.
     const erasePath = handleErasePath(text, c);
     if (erasePath) return erasePath;
+    // HOLD + DISCLOSURE (2026-10-24): a hold instruction and a
+    // third-party disclosure ask (and its retraction) claim here
+    // too — both are instructions about pending work, and both
+    // must land before any route that could read them as content.
+    const holdInstr = handleHoldInstruction(text, c);
+    if (holdInstr) return holdInstr;
     // PENDING AFFIRMATION: binds a bare affirmation to the pending
     // state that asked for it (a prepared tailoring's "apply those
     // changes", the record read-back's "yes that's right") — ahead

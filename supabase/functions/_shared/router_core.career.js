@@ -14606,6 +14606,24 @@ const CareerRouter = (() => {
     return null;
   }
 
+  function handleHoldInstruction(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const mir = threadMirrorOf(ctx);
+    if (/\b(lift|remove|clear|drop) the hold\b|\bhold is off\b|\byou can send (again|now)\b/.test(t)) {
+      if (!(mir && mir.hold)) return null;
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) delete wmir.hold;
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Hold lifted.", facts: ["Sending is back on the table — under the standing rule, which the hold never changed: nothing goes out without your approval on the exact words."], nextStep: "Name what should move first and it is prepared for your approval." }) };
+    }
+    if (/\bdon'?t send\b|\bdo not send\b|\bno sending\b|\bhold off on sending\b|\bsend nothing\b|\bnothing (gets |is )?sent\b/.test(t) || /^(don'?t|do not) (message|email|text|contact) (anyone|anybody|them|him|her)\b/.test(t)) {
+      const wmir = threadMirrorForWrite(ctx);
+      if (wmir) wmir.hold = { at: new Date(nowOf(ctx)).toISOString(), scope: "sending" };
+      return { intent: "conversation_hold", resultStatus: "awaiting_user", reply: compose({ headline: "Held — nothing will be sent.", facts: ["The hold is on this conversation's record now: drafts and plans stand where they are, and no message goes out from this thread while it stands.", "Sending already required your approval on the exact words; the hold adds a stop in front of even that."], nextStep: "Everything else keeps working — drafting, planning, tracking. Say “lift the hold” when sending is back on the table." }) };
+    }
+    return null;
+  }
+
   function handlePendingAffirmation(text, ctx) {
     const raw = s(text).trim();
     if (!raw || raw.split(/\s+/).length > 8) return null;
@@ -20283,6 +20301,8 @@ const CareerRouter = (() => {
     if (bulletLoop) return bulletLoop;
     const erasePath = handleErasePath(text, c);
     if (erasePath) return erasePath;
+    const holdInstr = handleHoldInstruction(text, c);
+    if (holdInstr) return holdInstr;
     const pendingAffirm = handlePendingAffirmation(text, c);
     if (pendingAffirm) return pendingAffirm;
     const resumeIngest = handleResumePasteIngest(text, c);

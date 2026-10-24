@@ -70,18 +70,22 @@ test("chooser: a bare yes/no menu takes the fact's own no (sponsorship)", () => 
   assert.equal(choose(field("question_sponsor", "Will you now or in the future require sponsorship for employment?"), ["Yes", "No"]), "No");
 });
 
-test("chooser: the authorization menu's unrestricted option derives from the authorization fact", () => {
-  const v = choose(field("question_auth", "Are you legally authorized to work in the United States?"), [
+test("chooser: a yes-prefixed option derives; a full-sentence option is asked (the architect's FRS contract)", () => {
+  const AUTH = "Are you legally authorized to work in the United States?";
+  assert.equal(choose(field("question_auth", AUTH), ["Yes, I am authorized", "No"]), "Yes, I am authorized",
+    "a yes put on the employer's yes option is a derivation (option-yes-no)");
+  const v = choose(field("question_auth", AUTH), [
     "I am authorized to work in the United States for any employer",
     "I will require sponsorship to work in the United States",
     "I am not authorized to work in the United States",
   ]);
-  assert.equal(v, "I am authorized to work in the United States for any employer");
+  assert.equal(v, null,
+    "a choice the planner reaches only by meaning is asked, never clicked — pinned by tests/architect/frs-gh-widget.test.ts (FRS-widget/1, /2), which this battery honors over its own first framing");
 });
 
-test("chooser: the degree menu's matching degree derives from the education fact", () => {
+test("chooser: the degree menu is asked — a degree's wording is not one of the gate's derivations", () => {
   const v = choose(field("question_degree", "Degree"), ["High School", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Doctorate"]);
-  assert.equal(v, "Bachelor's Degree");
+  assert.equal(v, null, "only option-exact, option-yes-no and listed-name derivations are clicked (WO-102); the rest are the person's to answer");
 });
 
 test("chooser (a): an affirmative option asserting a sponsorship need is never chosen from the authorization fact", () => {
@@ -185,15 +189,17 @@ test("synthetic happy path: country and sponsorship menus fill and read back exa
   assert.ok(tr.needs.some((l) => /years of experience/i.test(l)), "the experience question is asked, not forced");
 });
 
-test("synthetic sentences: authorization and degree menus fill with the planner's ruled options", async (t) => {
+test("synthetic sentences: full-sentence menus are asked by design (FRS contract); nothing is clicked", async (t) => {
   if (skip(t)) return;
   const tr = await drive("sentences.html");
-  assert.equal(tr.steps.question_auth.clicked, "I am authorized to work in the United States for any employer");
-  assert.equal(tr.steps.question_auth.readBack, "I am authorized to work in the United States for any employer");
-  assert.equal(tr.steps.question_auth.counted, true);
-  assert.equal(tr.steps.question_degree.clicked, "Bachelor's Degree");
-  assert.equal(tr.steps.question_degree.readBack, "Bachelor's Degree");
-  assert.equal(tr.steps.question_degree.counted, true);
+  for (const name of ["question_auth", "question_degree"]) {
+    const s = tr.steps[name];
+    assert.ok(s, name + " was planned and attempted");
+    assert.deepEqual(s.verdicts, [null], name + ": the chooser asks rather than clicking a meaning-only choice");
+    assert.equal(s.clicked, null);
+    assert.equal(s.counted, false);
+    assert.equal(tr.finalValues[name], "", name + " stays open for the person");
+  }
 });
 
 test("synthetic (a): the wrong-only menu — nothing is clicked, the field is asked", async (t) => {

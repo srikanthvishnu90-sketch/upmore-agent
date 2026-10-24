@@ -9,7 +9,7 @@ import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, t
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
-import { assertsSponsorshipNeed, degreeOptionFor, howHeardChannel, unrestrictedAuthorization, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
+import { assertsSponsorshipNeed, howHeardChannel, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
@@ -149,12 +149,6 @@ function optionRule(option: string, fact: string, searched: boolean, key?: strin
     return word && optN(option).includes(word) ? "listed-name" : null;
   }
   if (optN(option) === optN(fact)) return "option-exact";
-  // The planner's own fact-keyed rules, tested with the same predicates the matcher uses (answer_options): an
-  // affirmative authorization fact derives the menu's unrestricted-authorization option, and a degree fact
-  // derives the menu's option for that degree — a sentence option is a derivation when the fact's own rule
-  // names it, not only when it repeats the fact's words.
-  if (key === "work_authorization" && yesNoOf(fact) === "yes" && unrestrictedAuthorization(option)) return "option-unrestricted-authorization";
-  if (key === "education_level" && degreeOptionFor(fact, option)) return "option-degree";
   const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
   return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
 }

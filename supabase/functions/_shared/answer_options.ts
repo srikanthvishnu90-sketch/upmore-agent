@@ -258,8 +258,7 @@ export function assertsSponsorshipNeed(label: string): boolean {
 
 // An option that asserts unrestricted authorization: for any employer, or without sponsorship, with no restriction
 // and no future or present-employer qualification — the option chooseOption's work_authorization rule names for an
-// affirmative authorization fact, stated once here so the widget contract gate (apply_core's optionRule) tests the
-// same derivation instead of a weaker paraphrase of it.
+// affirmative authorization fact, stated once here so every reader tests the same predicate.
 export function unrestrictedAuthorization(label: string): boolean {
   const t = low(label);
   return /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(t) &&
@@ -267,7 +266,7 @@ export function unrestrictedAuthorization(label: string): boolean {
 }
 
 // One option tested against the person's stated degree level: the level's own wording, never a degree in progress —
-// the per-option test of chooseOption's education rule, shared with the widget contract gate for the same reason.
+// the per-option test of chooseOption's education rule, stated once here so every reader tests the same predicate.
 export function degreeOptionFor(factValue: string, label: string): boolean {
   const v = low(factValue);
   const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];

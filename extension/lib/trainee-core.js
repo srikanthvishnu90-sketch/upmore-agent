@@ -4429,8 +4429,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return word && optN(option).includes(word) ? "listed-name" : null;
     }
     if (optN(option) === optN(fact)) return "option-exact";
-    if (key === "work_authorization" && yesNoOf(fact) === "yes" && unrestrictedAuthorization(option)) return "option-unrestricted-authorization";
-    if (key === "education_level" && degreeOptionFor(fact, option)) return "option-degree";
     const yn = /^(yes|no)$/.exec(optN(fact))?.[1];
     return yn && new RegExp(`^${yn}\\b`).test(optN(option)) ? "option-yes-no" : null;
   }

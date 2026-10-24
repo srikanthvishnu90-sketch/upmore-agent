@@ -152,11 +152,6 @@ jobs:
     timeout-minutes: 60
     env:
       GATE_PARTITION: coverage
-      # The coverage suite's diagnostics (2026-10-24): an append-only JSONL of
-      # per-drive steps/elapsed + failing tests' assertion text, uploaded below
-      # and summarized by the suite itself into this job's step summary and
-      # ::error annotations. Observation only — no outcome reads it.
-      FORMS_CI_COVERAGE_DIAG: ${{ runner.temp }}/forms-ci-coverage-diag.jsonl
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -184,6 +179,15 @@ jobs:
           echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
       - name: Allow sandboxed Chromium user namespaces for this gate job
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Set the coverage diagnostics path
+        # The coverage suite's diagnostics (2026-10-24): an append-only JSONL of
+        # per-drive steps/elapsed + failing tests' assertion text, uploaded
+        # below and summarized by the suite itself into this job's step summary
+        # and ::error annotations. Observation only — no outcome reads it. The
+        # path is set here, not in job-level env: the runner context is not
+        # available there (its use at job level invalidated the whole workflow
+        # at 3d870456/c18462d1 — zero jobs ran).
+        run: echo "FORMS_CI_COVERAGE_DIAG=$RUNNER_TEMP/forms-ci-coverage-diag.jsonl" >> "$GITHUB_ENV"
       - name: Career gate
         # The gate's result is also written as annotations (readable through the checks API, where a job log may not
         # be): the step summary lines, then the failing tests' names.

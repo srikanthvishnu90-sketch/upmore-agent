@@ -10,8 +10,11 @@
 // 2026-10-19, .github/workflows/form-capture.yml, commit 5d1e51da), served locally, the
 // product's own browser executor (scripts/career/portal-browser-helper.cjs, the daemon
 // the board service spawns) maps each form through the shared binder (bindFields,
-// extension/lib/trainee-core.js), fills every mapped question with synthetic values,
-// and reads back exactly what was filled — measured per form and pinned in
+// extension/lib/trainee-core.js), fills the mapped questions with the TEST
+// persona's values (option fields take the profile's values — see valueFor;
+// attestation-class fields stop for the person and conditional follow-ups are
+// gated on the persona's parent answer), and reads back exactly what was
+// filled — measured per form and pinned in
 // tests/fixtures/forms-ci-coverage-expected.json.
 //
 // This is CAPTURED-FORM COVERAGE. It is not live driveability and not production
@@ -209,19 +212,104 @@ async function send(cmd, ms = 120000) {
   throw new Error("helper response timeout for " + cmd.type);
 }
 
-// One synthetic value per mapped question — identical policy to the Ashby pack
-// (identity keys by profile_key, an option field by its first option, the resume by
-// its artifact; screening/essay text a fixed synthetic string). This measures the
-// driver's hands, not answer policy.
-function valueFor(b, s) {
+// One synthetic value per mapped question. Text identity/screening values are
+// the pack's fixed TEST persona values, as in the Ashby pack. Option and
+// number fields are answered with the PROFILE's values, not the first option
+// (widget-gap lane, 2026-10-23): the base policy returned the first option's
+// label, which for native selects is the placeholder, and sent a date string
+// to number inputs, which crashed as DRIVER_ERROR. The planner's value
+// vocabulary is reused, not reinvented: EEO self-identification takes module
+// 149 §6.1's decline text (the F-084 default), work authorization and
+// sponsorship take the fact floor's Yes/No, and a field whose captured options
+// hold no match for the profile value is left to the executor's truthful
+// option_not_found — the drive never invents an answer or an option list.
+const { EEO_DECLINE_SOURCE } = require(path.join(ROOT, "packages", "domain", "149-career-portal-apply.js"));
+const DECLINE_RE = new RegExp(EEO_DECLINE_SOURCE);
+const EEO_DECLINE = "Decline to self-identify";
+// Captured option evidence for Greenhouse custom selects: the boards-API
+// artifact captured 2026-10-20 alongside the forms. It is the ONLY option
+// evidence the captures carry for those fields — the stripped pages have no
+// menu DOM — and it never makes a field filled by itself (see widgetValueFor).
+const GH_OPTIONS = JSON.parse(fs.readFileSync(path.join(FORMS, "greenhouse-options.json"), "utf8"));
+function evidenceOptions(form, s) {
+  if (!form || form.family !== "greenhouse") return null;
+  const rec = GH_OPTIONS.forms && GH_OPTIONS.forms[form.id];
+  const q = rec && rec.selects && rec.selects[String(s.name).replace(/\[\]$/, "")];
+  return q && Array.isArray(q.options) && q.options.length ? q.options : null;
+}
+function selectValueFor(b, s) {
+  const label = s.label || "";
+  // EEO self-identification: the decline option (module 149 §6.1 / F-084).
+  if (b.profile_key === "eeo" || EEO_RE.test(label)) return EEO_DECLINE;
+  // Country of residence: the persona's country fact.
+  if (s.name === "country" || /in what country|country do you/i.test(label)) return "United States";
+  // A location-choice select takes the persona's location fact. When no
+  // captured option matches it, the executor reports option_not_found and the
+  // field stays unfilled — never an invented location preference.
+  if (b.profile_key === "location" || /which location are you applying/i.test(label)) return "Synthetic City";
+  // A marketing/information opt-in: the profile carries no consent fact, so
+  // the answer is the decline choice.
+  if (/receive information|opt.?in|marketing/i.test(label)) return "No";
+  // Any other select: the first REAL option — the placeholder is not an answer.
+  const o = (b.options || []).find((x) => x.value !== "");
+  return o ? o.label : "Synthetic";
+}
+function widgetValueFor(b, s, form) {
+  const label = s.label || "";
+  const ev = evidenceOptions(form, s);
+  const firstEvidence = () => (ev ? ev[0] : null);
+  if (b.profile_key === "work_authorization" || /proof of authorization/i.test(label)) {
+    // The fact floor: authorized to work in the US for any employer — the
+    // unrestricted authorization option when the evidence phrases it so.
+    const full = ev && ev.find((o) => /^i am authorized to work in the united states for any employer$/i.test(o));
+    return full || "Yes";
+  }
+  if (b.profile_key === "sponsorship") return "No";
+  if (b.profile_key === "eeo" || EEO_RE.test(label) || /religion/i.test(label)) return EEO_DECLINE;
+  if (s.name === "country") return "United States";
+  if (b.profile_key === "location") return "Synthetic City";
+  if (/gpa \(undergraduate\)/i.test(label)) return (ev && ev.find((o) => o === "3.9 out of 4.0")) || firstEvidence() || "Synthetic";
+  if (/currently based in/i.test(label)) return (ev && ev.find((o) => o === "United States")) || "United States";
+  // Employment-history questions: the persona's history holds none of these
+  // employers, so the answer is the negative the evidence offers.
+  if (/have you (ever|previously)|previously worked|employment history/i.test(label)) {
+    if (ev && ev.includes("No")) return "No";
+    const never = ev && ev.find((o) => /^(never|not applicable|n\/a)/i.test(o));
+    return never || firstEvidence() || "No";
+  }
+  // Clearance questions: the persona carries no clearance fact, so the answer
+  // never asserts a credential — the negative when the evidence offers one.
+  if (/clearance/i.test(label)) {
+    if (ev && ev.includes("No")) return "No";
+    return firstEvidence() || "No";
+  }
+  // Any other custom question with captured evidence: the persona's synthetic
+  // choice is deterministic — the first option the capture carries.
+  if (firstEvidence()) return firstEvidence();
+  // No option evidence anywhere in the captured material for this field: the
+  // attempted value is the persona's synthetic answer for its class. The field
+  // stays unverified-against-live and is never counted filled on this evidence.
+  if (/^school/i.test(label)) return "Synthetic University";
+  if (/^degree/i.test(label)) return "Synthetic Degree";
+  if (/^discipline/i.test(label)) return "Synthetic Discipline";
+  if (/month/i.test(label)) return "June";
+  return "Synthetic";
+}
+function valueFor(b, s, form) {
   if (b.inputType === "file") return ARTIFACT;
   if (b.inputType === "checkbox") return true;
-  if (["radio_group", "checkbox_group", "select"].includes(b.inputType) || b.widget) {
+  // Number inputs take the profile's numeric value: an education year is the
+  // persona's year (from its 2027-06-01 date fact), never a date string.
+  if (b.inputType === "number" || s.type === "number") {
+    return /year/i.test(s.label || "") || /year/i.test(s.name || "") ? "2027" : "100000";
+  }
+  if (b.inputType === "select") return selectValueFor(b, s);
+  if (b.widget) return widgetValueFor(b, s, form);
+  if (["radio_group", "checkbox_group"].includes(b.inputType)) {
     const o = (b.options || [])[0];
     return o ? o.label : "Synthetic";
   }
   if (b.inputType === "date" || s.type === "date") return "2027-06-01";
-  if (b.inputType === "number") return "100000";
   switch (b.profile_key) {
     case "full_name": return "Synthetic Tester";
     case "first_name": return "Synthetic";
@@ -245,9 +333,41 @@ function expectedFor(b, v) {
   if (b.inputType === "checkbox") return true;
   if (["select", "radio_group"].includes(b.inputType)) {
     const opt = (b.options || []).find((x) => x.value === v || x.label === v);
-    return opt ? opt.label : v;
+    if (opt) return opt.label;
+    // Decline-class equivalence: module 149's EEO_DECLINE_MEANING is the one
+    // home of what counts as a decline, and boards phrase it differently
+    // ("I do not want to answer", "I decline to self-identify for protected
+    // veteran status"). The rendered decline option's label is the correct
+    // read-back for the canonical decline value.
+    if (DECLINE_RE.test(String(v))) {
+      const d = (b.options || []).find((x) => DECLINE_RE.test(x.label) || DECLINE_RE.test(x.value));
+      if (d) return d.label;
+    }
+    return v;
   }
   return v;
+}
+
+// Required-conditional gating: a follow-up field is attempted only when the
+// persona's answer to its parent question makes the follow-up applicable. The
+// decision is taken from the persona's policy answers (computed before the
+// drive), never from what a stripped capture happened to persist. Education
+// blocks are not gated off here: the persona provides education, so the blocks
+// are attempted on every board; the captured board mode (education_required on
+// SpaceX/Anduril, education_optional on EOS, in greenhouse-options.json) is
+// what makes those fields required-conditional in the reconciliation.
+const CONDITIONAL_GATES = [
+  { formId: "greenhouse-wppmedia-5437567008", field: "4017898008", parent: "4017733008",
+    holds: (a) => /^yes\b/i.test(String(a || "")),
+    condition: "the parent disability question (4017733008) is answered with an affirmative Yes" },
+  { formId: "greenhouse-eosfitness-4336050009", field: "question_6872430009", parent: "question_6872428009",
+    holds: (a) => /^no\b/i.test(String(a || "")),
+    condition: "the parent CPR-current question (question_6872428009) is answered No" },
+];
+function conditionalDecision(form, s, persona) {
+  const g = CONDITIONAL_GATES.find((x) => x.formId === form.id && x.field === s.name);
+  if (!g) return null;
+  return g.holds(persona[g.parent]) ? null : "conditional_not_triggered";
 }
 
 // The widget class of a mapped question, from the binding the shared binder
@@ -298,9 +418,28 @@ async function driveForm(form) {
     const version = disc.data.observation.version;
     const fills = [];
     const filledBindings = [];
+    // The persona's policy answers are computed before the drive: conditional
+    // gating is decided from them, not from what a stripped capture persists.
+    const persona = {};
+    for (const s of schema) persona[s.name] = valueFor(bindings[s.name], s, form);
     for (const s of schema) {
       const b = bindings[s.name];
-      const v = valueFor(b, s);
+      // Attestation-class fields stop for the person — never attempted, never
+      // counted filled, whatever the widget class (a Lyra attestation radio
+      // was counted filled by the base drive).
+      if (ATTEST_RE.test(s.label || "")) {
+        fills.push({ name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: "attestation_stop" });
+        continue;
+      }
+      // A conditional follow-up whose condition the persona's parent answer
+      // does not trigger is not attempted; it is recorded as gated, not as a
+      // widget failure.
+      const gate = conditionalDecision(form, s, persona);
+      if (gate) {
+        fills.push({ name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: gate });
+        continue;
+      }
+      const v = persona[s.name];
       let r;
       try {
         r = await send({ type: "fill", binding: b, value: v, ...(b.inputType === "file" ? { filePath: resumeFile } : {}), observationVersion: version }, 300000);
@@ -644,4 +783,4 @@ test("widget-gap guard: an unfilled required select cannot be counted filled in 
   assert.equal(coverageClaim(tampered).perForm.find((p) => p.id === tsmg.id).claimable, false);
 });
 
-module.exports = { coverageClaim, coverageSums, recordedClaimConsistent };
+module.exports = { coverageClaim, coverageSums, recordedClaimConsistent, valueFor, expectedFor, conditionalDecision, CONDITIONAL_GATES };

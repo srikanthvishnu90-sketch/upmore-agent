@@ -278,7 +278,25 @@ const CareerProfile = (() => {
       if (marks.length < 2) { lines.push(rawLine); continue; }
       const firstHead = marks[0].index + marks[0][1].length;
       const pre = rawLine.slice(0, firstHead).trim();
-      if (pre) lines.push(pre);
+      if (pre) {
+        // HELD-OUT (2026-10-24): the lead of a segmented paste is
+        // usually name + the CURRENT ROLE narrated in prose ("…
+        // Marketing Coordinator at Brightpath Media. Ran email
+        // campaigns…") with no "Experience:" marker of its own —
+        // the line parser below would drop it as a header block
+        // and the role the user leads with would vanish. When the
+        // lead carries a role-at-company shape with narrative
+        // after it, it IS the experience section: emit it as one,
+        // with a leading "Name - " segment stripped. A lead that
+        // is only a name/contact line does not match and parses
+        // exactly as before.
+        const nameStrip = pre.match(/^([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,3})\s+[-—]\s+(.+)$/);
+        const leadBody = nameStrip ? nameStrip[2] : pre;
+        if (/\b(?:at|@)\s+[A-Z][\w&.'-]+/.test(leadBody) && /[.!?]\s+\S/.test(leadBody)) {
+          lines.push("Experience:");
+          lines.push(leadBody);
+        } else lines.push(pre);
+      }
       for (let i = 0; i < marks.length; i++) {
         const m = marks[i];
         const contentStart = m.index + m[0].length;

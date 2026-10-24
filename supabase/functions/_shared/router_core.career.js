@@ -1380,7 +1380,14 @@ const CareerProfile = (() => {
       if (marks.length < 2) { lines.push(rawLine); continue; }
       const firstHead = marks[0].index + marks[0][1].length;
       const pre = rawLine.slice(0, firstHead).trim();
-      if (pre) lines.push(pre);
+      if (pre) {
+        const nameStrip = pre.match(/^([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,3})\s+[-—]\s+(.+)$/);
+        const leadBody = nameStrip ? nameStrip[2] : pre;
+        if (/\b(?:at|@)\s+[A-Z][\w&.'-]+/.test(leadBody) && /[.!?]\s+\S/.test(leadBody)) {
+          lines.push("Experience:");
+          lines.push(leadBody);
+        } else lines.push(pre);
+      }
       for (let i = 0; i < marks.length; i++) {
         const m = marks[i];
         const contentStart = m.index + m[0].length;
@@ -14221,7 +14228,8 @@ const CareerRouter = (() => {
   function handleResumePasteIngest(text, ctx) {
     const raw = s(text);
     const framedPaste = /^\s*(here'?s|here is|this is)\s+my\s+(resume|cv)\b/i.test(raw) || /^\s*my\s+(resume|cv)\s*:/i.test(raw);
-    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste) return null;
+    const markerPaste = (raw.match(/\b(?:skills|education|experience|work history|summary|certifications|projects)\s*:/gi) || []).length >= 2;
+    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste && !markerPaste) return null;
     if (ctx.pastedText) return null;
     if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null;
     if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null;
@@ -14311,10 +14319,16 @@ const CareerRouter = (() => {
     const reply = compose({ headline: "Confirmed — your record stands exactly as read back.", facts: all.length ? [`On record: ${all.map(factLine).join("; ")}.`] : ["Your record stands as stated; nothing was added or changed by the yes."], nextStep: "Tell me what to run on it first — a search, a watch, a draft — and it runs on these facts." });
     return { intent: "profile_correction", reply, resultStatus: "completed", sends: 0, stated_facts: all };
   }
-  function bulletClauseOf(fact) {
+  function bulletClauseOf(fact, label) {
     const text = s((fact && (fact.text || fact.title)) || "");
     const dash = text.indexOf(" - ");
-    return (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+    const body = (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+    if (label) {
+      const sents = body.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+      const hit = sents.find((x) => lc(x).includes(lc(label)));
+      if (hit) return hit.replace(/\.$/, "");
+    }
+    return body;
   }
   function handleResumeBulletLoop(text, ctx) {
     const t = lc(text);
@@ -14346,15 +14360,16 @@ const CareerRouter = (() => {
         }
       }
     }
-    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/);
+    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/)
+      || t.match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/);
     if (!askM || !profile) return null;
     const label = askM[1].trim();
     if (!label || label.length > 60) return null;
     const fact = (profile.facts || []).find((f) => f && (f.kind === "experience" || f.kind === "project") && lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`).includes(label)) || null;
     if (!fact) return null;
-    const clause = bulletClauseOf(fact);
+    const clause = bulletClauseOf(fact, label);
     if (!clause) return null;
-    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i);
+    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/i);
     const companyLabel = rawAskM && rawAskM[1] ? rawAskM[1].trim() : label;
     const wmir = threadMirrorForWrite(ctx);
     if (wmir) wmir.bulletFix = { factId: fact.id || null, company: companyLabel, clause, stage: "awaiting_metric", at: nowOf(ctx) };
@@ -19435,7 +19450,10 @@ const CareerRouter = (() => {
   }
   function routeResumeUpdate(text, ctx) {
     const t = lc(s(text)).replace(/[’]/g, "'");
-    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    const cleanupAsk = /\b(?:clean|clean up|polish|tidy|spruce up)\b[^.?]*\b(?:resume|cv)\b/.test(t)
+      || /\bmy (?:resume|cv)\b[^.?]*\b(?:mess|messed up|rough|dated|weak)\b/.test(t)
+      || /\bhelp me\b[^.?]*\b(?:clean|polish|tidy|fix|spruce)\b[^.?]*\b(?:it|resume|cv)\b/.test(t);
+    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t) && !cleanupAsk) return null;
     if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
     const profile = ctx.profile || {};
     const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");

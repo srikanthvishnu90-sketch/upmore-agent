@@ -21895,7 +21895,25 @@ const CareerProfile = (() => {
       if (marks.length < 2) { lines.push(rawLine); continue; }
       const firstHead = marks[0].index + marks[0][1].length;
       const pre = rawLine.slice(0, firstHead).trim();
-      if (pre) lines.push(pre);
+      if (pre) {
+        // HELD-OUT (2026-10-24): the lead of a segmented paste is
+        // usually name + the CURRENT ROLE narrated in prose ("…
+        // Marketing Coordinator at Brightpath Media. Ran email
+        // campaigns…") with no "Experience:" marker of its own —
+        // the line parser below would drop it as a header block
+        // and the role the user leads with would vanish. When the
+        // lead carries a role-at-company shape with narrative
+        // after it, it IS the experience section: emit it as one,
+        // with a leading "Name - " segment stripped. A lead that
+        // is only a name/contact line does not match and parses
+        // exactly as before.
+        const nameStrip = pre.match(/^([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,3})\s+[-—]\s+(.+)$/);
+        const leadBody = nameStrip ? nameStrip[2] : pre;
+        if (/\b(?:at|@)\s+[A-Z][\w&.'-]+/.test(leadBody) && /[.!?]\s+\S/.test(leadBody)) {
+          lines.push("Experience:");
+          lines.push(leadBody);
+        } else lines.push(pre);
+      }
       for (let i = 0; i < marks.length; i++) {
         const m = marks[i];
         const contentStart = m.index + m[0].length;
@@ -38174,7 +38192,13 @@ const CareerRouter = (() => {
     // inline section headers). The frame admits the paste TO the
     // proof, never past it.
     const framedPaste = /^\s*(here'?s|here is|this is)\s+my\s+(resume|cv)\b/i.test(raw) || /^\s*my\s+(resume|cv)\s*:/i.test(raw);
-    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste) return null;
+    // HELD-OUT (2026-10-24): a SHORT one-paragraph paste with no
+    // frame still reads as a resume when it carries the document's
+    // own section markers inline (>= 2 of skills/education/
+    // experience/... with colons) — the markers are the document
+    // speaking, and the content proof below still decides.
+    const markerPaste = (raw.match(/\b(?:skills|education|experience|work history|summary|certifications|projects)\s*:/gi) || []).length >= 2;
+    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste && !markerPaste) return null;
     if (ctx.pastedText) return null; // a posting paste already claimed this turn upstream
     if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
     if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
@@ -38333,10 +38357,24 @@ const CareerRouter = (() => {
   // invented here), and acceptance writes the revised bullet onto
   // the standing fact — a draft fact stays a draft, so the revision
   // confirms with the resume as a whole, never ahead of it.
-  function bulletClauseOf(fact) {
+  function bulletClauseOf(fact, label) {
     const text = s((fact && (fact.text || fact.title)) || "");
     const dash = text.indexOf(" - ");
-    return (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+    const body = (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+    // HELD-OUT (2026-10-24): a pasted experience fact can be a
+    // whole paragraph ("Marketing Coordinator at Brightpath Media.
+    // Ran email campaigns…") — the loop's clause must be the ONE
+    // sentence the user named (the label's sentence), because the
+    // reply composer renders a fact's first sentence and a
+    // paragraph-clause would carry the folded metric past that
+    // cut, silently dropping the user's own number from the
+    // version they are shown. No label match -> today's behavior.
+    if (label) {
+      const sents = body.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+      const hit = sents.find((x) => lc(x).includes(lc(label)));
+      if (hit) return hit.replace(/\.$/, "");
+    }
+    return body;
   }
   function handleResumeBulletLoop(text, ctx) {
     const t = lc(text);
@@ -38368,15 +38406,18 @@ const CareerRouter = (() => {
         }
       }
     }
-    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/);
+    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/)
+      // HELD-OUT (2026-10-24): the verdict-first shape — "the email
+      // bullet is weak, make it stronger".
+      || t.match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/);
     if (!askM || !profile) return null;
     const label = askM[1].trim();
     if (!label || label.length > 60) return null;
     const fact = (profile.facts || []).find((f) => f && (f.kind === "experience" || f.kind === "project") && lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`).includes(label)) || null;
     if (!fact) return null;
-    const clause = bulletClauseOf(fact);
+    const clause = bulletClauseOf(fact, label);
     if (!clause) return null;
-    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i);
+    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bthe\s+(.+?)\s+bullet\s+is\s+(?:weak|thin|vague|flat)\b[^.]*\bmake it\s+(?:stronger|better)\b/i);
     const companyLabel = rawAskM && rawAskM[1] ? rawAskM[1].trim() : label;
     const wmir = threadMirrorForWrite(ctx);
     if (wmir) wmir.bulletFix = { factId: fact.id || null, company: companyLabel, clause, stage: "awaiting_metric", at: nowOf(ctx) };
@@ -45516,7 +45557,13 @@ const CareerRouter = (() => {
   // search. An update goes through the same door as any resume: pasted, read as drafts, confirmed by the person.
   function routeResumeUpdate(text, ctx) {
     const t = lc(s(text)).replace(/[’]/g, "'");
-    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    // HELD-OUT (2026-10-24): the cleanup ask in the user's own
+    // shapes — a cleanup verb on the resume, the resume called a
+    // mess, or "help me clean it up" after the resume was named.
+    const cleanupAsk = /\b(?:clean|clean up|polish|tidy|spruce up)\b[^.?]*\b(?:resume|cv)\b/.test(t)
+      || /\bmy (?:resume|cv)\b[^.?]*\b(?:mess|messed up|rough|dated|weak)\b/.test(t)
+      || /\bhelp me\b[^.?]*\b(?:clean|polish|tidy|fix|spruce)\b[^.?]*\b(?:it|resume|cv)\b/.test(t);
+    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t) && !cleanupAsk) return null;
     if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
     const profile = ctx.profile || {};
     const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");

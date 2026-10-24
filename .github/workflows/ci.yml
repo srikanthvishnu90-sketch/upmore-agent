@@ -6,11 +6,79 @@ permissions:
   contents: read
 jobs:
   gate:
+    name: gate (core)
     runs-on: ubuntu-24.04
     # The gate took 9.3-9.6 min on #62 (2026-10-20), its career-and-shared step alone 520-537 s; at 10 the next test
     # cancelled it (5470fe98). Consolidating the fix line onto trunk (PR #156) added ~270 tests and the 15-minute cap
     # cancelled the first run. Headroom, not a target: a slower gate is still a finding.
+    # 2026-10-23: the 30-minute cap cancelled every run on the widget-carrying branches — 12 push runs, all
+    # cancelled at ~30.3 min (integration efb68e46, 2f1e236a, eb24100e, 9e98a70e; widget-gap 4dce7cea, e8ce6423,
+    # e37521e4, 5af0a3af, f9e79bdd, dd24a4f1, b9974d32, 61566669) — while the arch/eligibility line, which does not
+    # carry the react-select battery, passed. The growth is the node step: one invocation over the whole
+    # career+shared list (267 suites at this head) whose Chromium-driving members each pay browser launches and
+    # serial form drives. Remedy: GATE_PARTITION splits that step's list between this job (core: 248 suites,
+    # every other step included) and gate-browser (the 19 Chromium-driving suites), running in parallel — see
+    # scripts/gate.sh. Every suite still runs and still gates: neither job is advisory or continue-on-error, and
+    # a failure in either fails the run. The fix VM could not time the drives locally (no deno there, a
+    # Playwright/browser revision mismatch, unprivileged user namespaces restricted), so the split rests on the
+    # CI record above and the suite counts; the per-job durations of the first green runs belong in this comment
+    # next, and a partition nearing the cap is the next finding, not a reason to raise it quietly.
     timeout-minutes: 30
+    env:
+      GATE_PARTITION: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Install tooling and use the runner's packaged Chrome
+        run: |
+          # The versions come from tools/package.json + tools/package-lock.json, the same pins the career browser worker installs
+          # with `npm ci` (F-032: the worker's Playwright and the tests' differed, so a guard passed while the driver threw).
+          npm ci --prefix tools --no-audit --no-fund
+          # tests/career-extension-sync.test.cjs loads jsdom from packages/extension/tools' own lockfile.
+          npm ci --prefix packages/extension/tools --no-audit --no-fund
+          # WO-031: an unpacked extension loads only in Chromium (branded Chrome ignores --load-extension); the extension
+          # suite (tests/career-extension-browser.test.cjs) finds Playwright's own Chromium through UPMORE_PLAYWRIGHT_PATH.
+          (cd tools && npx --no-install playwright install chromium)
+          browser_path=$(command -v google-chrome)
+          test -x "$browser_path"
+          echo "UPMORE_PLAYWRIGHT_PATH=$GITHUB_WORKSPACE/tools/node_modules/playwright" >> "$GITHUB_ENV"
+          echo "UPMORE_CHROMIUM_PATH=$browser_path" >> "$GITHUB_ENV"
+          echo "ESBUILD_BIN=$GITHUB_WORKSPACE/tools/node_modules/.bin/esbuild" >> "$GITHUB_ENV"
+          # The pay-data importer tests read a real .xlsx (WO-036); a venv keeps the runner's system Python untouched.
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install --quiet openpyxl==3.1.5
+          echo "$RUNNER_TEMP/py/bin" >> "$GITHUB_PATH"
+      - name: Allow sandboxed Chromium user namespaces for this gate job
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Career gate
+        # The gate's result is also written as annotations (readable through the checks API, where a job log may not
+        # be): the step summary lines, then the failing tests' names.
+        run: |
+          set -o pipefail
+          bash scripts/gate.sh 2>&1 | tee "$RUNNER_TEMP/gate.log"
+      - name: Gate result as annotations
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/gate.log" || exit 0
+          summary=$(grep -E '^SUMMARY ' "$RUNNER_TEMP/gate.log" | sed 's/^SUMMARY //' | head -20)
+          [ -n "$summary" ] && echo "::notice title=gate steps::$(printf '%s' "$summary" | sed ':a;N;$!ba;s/\n/%0A/g')"
+          failed=$( { grep -E '^\s*not ok [0-9]+ - ' "$RUNNER_TEMP/gate.log" | sed -E 's/^\s*not ok [0-9]+ - //'; sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E ' => [^ ]+:[0-9]+:[0-9]+' ; } | sort -u | head -40)
+          [ -n "$failed" ] && echo "::error title=gate failing tests::$(printf '%s' "$failed" | cut -c1-180 | sed ':a;N;$!ba;s/\n/%0A/g')"
+          # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
+          sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
+          exit 0
+  gate-browser:
+    name: gate (browser)
+    runs-on: ubuntu-24.04
+    # The Chromium-driving half of the gate, split out 2026-10-23 (see the gate job's comment history and
+    # scripts/gate.sh's partition note). Runs in parallel with gate (core); neither job is advisory, and a
+    # failure here fails the run exactly as it did inside the single job.
+    timeout-minutes: 30
+    env:
+      GATE_PARTITION: browser
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

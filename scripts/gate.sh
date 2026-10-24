@@ -141,16 +141,79 @@ sys.exit(bool(bad))
 PY
 }
 
+# CI partition (2026-10-23): the single gate job's 30-minute cap cancelled every run on the widget-carrying
+# branches (see .github/workflows/ci.yml's comment history) — the node step below runs the whole career+shared
+# list in one invocation, and the Chromium-driving suites are its growth. GATE_PARTITION splits ONLY that
+# step's suite list between two parallel CI jobs: core (everything else, all other steps included) and browser
+# (the suites that drive a real Chromium, listed here). Scheduling only: the union of the two partitions is
+# the full list, and a browser-listed suite missing from the gate's selection fails the gate outright rather
+# than silently dropping out of CI. Unset, the gate is exactly what it was — one step, every suite.
+browser_node_tests=(
+  tests/career-approval-card-browser.test.cjs
+  tests/career-extension-agent-submits.test.cjs
+  tests/career-extension-browser.test.cjs
+  tests/career-extension-person-submits.test.cjs
+  tests/career-extension-react-select.test.cjs
+  tests/career-extension-workday.test.cjs
+  tests/career-extension-yesno.test.cjs
+  tests/career-fact-import-panel.test.cjs
+  tests/career-forms-ci-coverage.test.cjs
+  tests/career-greenhouse-savedform.test.cjs
+  tests/career-owned-worker-browser.test.cjs
+  tests/career-portal-browser.test.cjs
+  tests/career-portal-lever-radio.test.cjs
+  tests/career-portal-submit-integrity.test.cjs
+  tests/career-posting-location.test.cjs
+  tests/career-qa-bug04-resolver.test.cjs
+  tests/career-resume-upload.test.cjs
+  tests/career-widget-attach.test.cjs
+  tests/career-workday-native-fields.test.cjs
+)
+partition=${GATE_PARTITION:-all}
+if [[ $partition != all && $partition != core && $partition != browser ]]; then
+  echo "GATE_PARTITION must be all, core or browser (got: $partition)" >&2
+  exit 1
+fi
+node_all_tests=("${career_tests[@]}" "${shared_tests[@]}")
+declare -A browser_node_set=()
+for test_file in "${browser_node_tests[@]}"; do browser_node_set["$test_file"]=1; done
+node_core_tests=()
+node_browser_tests=()
+for test_file in "${node_all_tests[@]}"; do
+  if [[ ${browser_node_set[$test_file]:-0} == 1 ]]; then
+    node_browser_tests+=("$test_file")
+  else
+    node_core_tests+=("$test_file")
+  fi
+done
+if (( ${#node_browser_tests[@]} != ${#browser_node_tests[@]} )); then
+  echo "GATE PARTITION BROKEN: ${#node_browser_tests[@]} of ${#browser_node_tests[@]} browser-listed suites are in the gate's selection; a listed suite was renamed or removed without updating the partition" >&2
+  exit 1
+fi
+if [[ $partition != all ]]; then
+  printf 'GATE PARTITION %s: core %s suites, browser %s suites, total %s\n' "$partition" "${#node_core_tests[@]}" "${#node_browser_tests[@]}" "${#node_all_tests[@]}"
+fi
+
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
-# Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
-step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
-step apply-cli-typecheck deno check scripts/apply.ts
-step career-and-shared-tests node --test --test-concurrency=2 "${career_tests[@]}" "${shared_tests[@]}"
-step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
-step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
-step career-bundle python3 scripts/build-router-core.py --career-only --check
-step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts
+if [[ $partition != browser ]]; then
+  # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
+  step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
+  step apply-cli-typecheck deno check scripts/apply.ts
+fi
+if [[ $partition == all ]]; then
+  step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"
+elif [[ $partition == core ]]; then
+  step career-and-shared-tests-core node --test --test-concurrency=2 "${node_core_tests[@]}"
+else
+  step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_browser_tests[@]}"
+fi
+if [[ $partition != browser ]]; then
+  step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
+  step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
+  step career-bundle python3 scripts/build-router-core.py --career-only --check
+  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts
+fi
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.
 printf 'SUMMARY %s\n' "${results[@]}"

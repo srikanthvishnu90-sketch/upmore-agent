@@ -205,6 +205,16 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
+      - name: Coverage diagnostics as annotations
+        if: always()
+        # The suite's own ::error prints never become annotations: the suite runs under node --test, whose
+        # TAP output prefixes test-process stdout, so GitHub's workflow-command parser never sees them raw —
+        # at dbaaca9a the public annotations for the coverage run carried the failing tests' names only, no
+        # assertion text, no elapsed, no step in flight. The suite therefore also writes its per-failure
+        # records (fixture id, failing step, elapsed ms, redacted error text) as ready-made ::error lines
+        # to this sidecar file; printing it here, from a plain step outside node --test, puts the records
+        # in the public check-run annotations on this run. Diagnostics only — nothing reads the outcome.
+        run: cat "$RUNNER_TEMP/forms-ci-coverage-annotations.txt" 2>/dev/null || true
       - name: Upload forms-ci coverage diagnostics
         if: always()
         uses: actions/upload-artifact@v4

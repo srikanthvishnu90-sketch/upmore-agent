@@ -38403,6 +38403,14 @@ const CareerRouter = (() => {
     const hasCtx = !!((th && (th.firm || th.amount || th.hourly || th.deadline || th.counter)) || off.company || off.base_salary || off.hourly_rate);
     if (!hasCtx) {
       if (!figAsk) return null;
+      // A figure ask carrying no MONEY figure is not a counter
+      // revision: "make it 1 a day, not 3" names another frame's
+      // number (a watch cap), and capturing it here answered an
+      // alerts correction with offer talk (text-path measurement
+      // 2026-10-24). The deflection below exists for money-shaped
+      // revisions ("make it $54 an hour instead") whose record is
+      // genuinely missing — those keep it, verbatim.
+      if (!figs.hourly && !figs.annual && !/\$\s?\d/.test(t)) return null;
       return { intent: "negotiation_revision", resultStatus: "needs_context", sends: 0, reply: compose({ headline: "There is no counter on record here to revise yet.", facts: ["This conversation holds no offer and no counter yet, so there is nothing for the new figure to attach to — a revision never invents the record it revises."], nextStep: "Tell me the offer first — the firm, the figures exactly as stated, and the deadline — and the counter gets recorded against it." }) };
     }
     const startM = s(text).match(/\bstart(?:ing)?\s+(?:on\s+)?((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2})\b/i);

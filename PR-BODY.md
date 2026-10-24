@@ -202,3 +202,18 @@ derivation classes briefly added to optionRule were WITHDRAWN on that
 branch (4dce7cea) for contradicting the architect's pinned FRS contract
 (tests/architect/frs-gh-widget.test.ts) — sentence options are asked,
 not clicked.
+
+## Forms-CI coverage reconciliation (2026-10-24, on top of the CI shard)
+
+The sharded gate-coverage job at 82cb014a completed this suite for the first
+time and it was RED (CI: anduril, wppmedia, pin-shape guard; coordinator local
+full run: + spacex, tsmg, lyrahealth, conditional guard). Reconciled per item
+in docs/engine/FORMS-CI-COVERAGE-RECONCILIATION-2026-10-24.md: the drive path
+is byte-identical between the re-pins and this head (bindFields md5-identical;
+empty diff over suite/helper/fixtures/pin), and all five failing fixtures
+re-drive pin-exact in completed standalone runs — every fixture verdict is
+ENVIRONMENT (timeout truncation on contended hosts; the slowest drives cross
+the suite's own timeouts). ZERO pin changes. One guard premise repair: the
+"unfilled required select" guard's flip target was TSMG eeo[gender], measured
+filled since the lane's own f9e79bdd re-pin — the target moved to the same
+form's attestation select (still unfilled); every assertion is unchanged.

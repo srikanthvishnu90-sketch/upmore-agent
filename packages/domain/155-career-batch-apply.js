@@ -545,7 +545,15 @@ const CareerBatchApply = (() => {
     // consulted, because a digest binds a profile, never an
     // identity: two accounts can hold identical profiles, and
     // only the owner comparison separates them.
-    if (run.userId && approval.userId && approval.userId !== run.userId) {
+    // FAIL CLOSED on a MISSING owner (coordinator, 2026-10-24):
+    // the comparison above only refused when BOTH sides named an
+    // owner — a run or an approval carrying no userId bound
+    // anyway, the same hole shape as the absent expiry/digest.
+    // No owner on either side = not bindable, same re-review line.
+    if (!run.userId || !approval.userId) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card or this approval names no owning account, and a yes can only land on a card bound to the account approving it" };
+    }
+    if (approval.userId !== run.userId) {
       return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
     }
     const nowSha = cardSha(run);

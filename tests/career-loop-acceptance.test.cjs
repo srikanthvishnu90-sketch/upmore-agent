@@ -172,7 +172,7 @@ test("loop: 15 requested -> 13 submitted-confirmed, every other outcome named", 
   assert.deepEqual(run.deferred.map((x) => x.code), ["COUNT_DEFERRED", "COUNT_DEFERRED"]);
 
   // one yes approves the set
-  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 });
+  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 });
   assert.equal(ap.ok, true);
   assert.equal(ap.approved, 13);
 
@@ -198,7 +198,7 @@ test("loop: with 13 already submitted today, only 2 more submit — the rest def
   const { deps } = makeDeps(log);
   const run = newRun();
   Batch.prepareRun(run, deps);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   const ex = Batch.executeRun(run, deps);
   assert.equal(ex.ok, true);
   assert.equal(run.summary.submitted, 2, "15/day cap: 13 already down, exactly 2 more fit today");
@@ -214,7 +214,7 @@ test("loop: a payload changed after the card stops THAT application at submit; t
   const { deps } = makeDeps(log);
   const run = newRun();
   Batch.prepareRun(run, deps);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   // simulate the cross-invocation rebuild: sessions do not survive
   Batch._runtime.delete(run.id);
   // ...and one posting's confirmed answer changes before the run resumes
@@ -238,7 +238,7 @@ test("loop: the approval itself refuses when the doorstep set changed after the 
   Batch.prepareRun(run, deps);
   const anyKey = run.selected.find((k) => run.apps[k].stage === "doorstep");
   run.apps[anyKey].payloadSha256 = "0".repeat(64); // a payload was rebuilt after the card
-  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 });
+  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 });
   assert.equal(ap.ok, false);
   assert.equal(ap.code, "APPROVAL_SET_CHANGED");
   assert.equal(run.status, "awaiting_approval", "no approval was minted against a changed set");
@@ -264,7 +264,7 @@ test("loop: the run object is pure JSON — it survives the host snapshot round-
   assert.equal(restored.id, run.id);
   assert.equal(restored.status, "awaiting_approval");
   assert.equal(restored.cardSha256, run.cardSha256);
-  assert.equal(Batch.approveRun(restored, { approvedByUser: true, now: NOW, profileSha256: restored.profileSha256 }).ok, true, "an approval lands on the restored run");
+  assert.equal(Batch.approveRun(restored, { approvedByUser: true, now: NOW, userId: restored.userId, profileSha256: restored.profileSha256 }).ok, true, "an approval lands on the restored run");
 });
 
 // ---------------- The chat path itself (142 seam + host snapshot) --------
@@ -471,7 +471,7 @@ test("loop (J9): the worker dying mid-execution keeps the completed submission a
   const run = newRun();
   Batch.prepareRun(run, deps);
   assert.equal(run.summary.doorstep, 13, "the batch prepared fully while the worker was up");
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   const ex = Batch.executeRun(run, deps);
   assert.equal(ex.ok, true);
   assert.equal(run.summary.submitted, 1, "the one submission that completed before the worker died stands");
@@ -492,7 +492,7 @@ test("loop (J9): sessions expiring between approval and execution stop every app
   const run = newRun();
   Batch.prepareRun(run, deps);
   assert.equal(run.summary.doorstep, 13);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   clock += 61000; // every prepared session is now past its idle TTL
   const ex = Batch.executeRun(run, deps);
   assert.equal(ex.ok, true);
@@ -556,7 +556,7 @@ test("leg1: REAL boards (arming wire present) submit through the batch path — 
   const run = newRun();
   Batch.prepareRun(run, deps);
   assert.equal(run.summary.doorstep, 13);
-  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 });
+  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 });
   assert.equal(ap.ok, true);
   assert.equal(typeof run.approvalRef, "string", "the one yes minted an approvalRef on the run");
   assert.ok(run.approvalRef.includes(run.id), "the ref names the run it approves");
@@ -612,7 +612,7 @@ test("leg1: a payload changed after the card stops at MI-116 BEFORE the arming w
   const { deps } = makeDeps(log, { boardFor: realBoardFor(registry) });
   const run = newRun();
   Batch.prepareRun(run, deps);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   Batch._runtime.delete(run.id); // sessions do not survive the invocation gap
   const tampered = Object.assign({}, deps, {
     profileFor: (p, base) => (p.id === "JOB-T-05"
@@ -641,7 +641,7 @@ test("leg1: the approvalRef crosses the worker wire — service-backed REAL boar
   const run = newRun();
   Batch.prepareRun(run, deps);
   assert.equal(run.summary.doorstep, 13);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   assert.ok(run.approvalRef, "the batch approval minted its ref");
   const ex = Batch.executeRun(run, deps);
   assert.equal(ex.ok, true);

@@ -25995,7 +25995,10 @@ const CareerBatchApply = (() => {
     if (!approval || approval.approvedByUser !== true) {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
     }
-    if (run.userId && approval.userId && approval.userId !== run.userId) {
+    if (!run.userId || !approval.userId) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card or this approval names no owning account, and a yes can only land on a card bound to the account approving it" };
+    }
+    if (approval.userId !== run.userId) {
       return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
     }
     const nowSha = cardSha(run);

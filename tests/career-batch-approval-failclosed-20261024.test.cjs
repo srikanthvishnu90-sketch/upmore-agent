@@ -118,12 +118,12 @@ function preparedRun() {
   const snap = clone(w.snapshotOf(U));
   return Batch.restoreRun(snap.stores.batchApplyState);
 }
-const goodApproval = (run) => ({ approvedByUser: true, now: NOW + 60000, profileSha256: run.profileSha256 });
+const goodApproval = (run) => ({ approvedByUser: true, now: NOW + 60000, userId: run.userId, profileSha256: run.profileSha256 });
 
 test("(ii-a) digest present on the run but NONE supplied at approval: does not bind", () => {
   const run = preparedRun();
   assert.ok(run.profileSha256, "setup: the run carries a digest");
-  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW + 60000 });
+  const ap = Batch.approveRun(run, { approvedByUser: true, now: NOW + 60000, userId: run.userId }); // owner supplied; the DIGEST is the missing field
   assert.equal(ap.ok, false, JSON.stringify(ap));
   assert.ok(String(ap.reason).includes(SHAPE), ap.reason);
   assert.equal(run.status, "awaiting_approval");
@@ -141,7 +141,7 @@ test("(ii-b) expiry missing on an otherwise new-shaped run: does not bind", () =
 
 test("(ii-c) a non-numeric 'now' at approval: does not bind", () => {
   const run = preparedRun();
-  const ap = Batch.approveRun(run, { approvedByUser: true, now: "soon", profileSha256: run.profileSha256 });
+  const ap = Batch.approveRun(run, { approvedByUser: true, now: "soon", userId: run.userId, profileSha256: run.profileSha256 }); // owner + digest supplied; NOW is the malformed field
   assert.equal(ap.ok, false, JSON.stringify(ap));
   assert.ok(String(ap.reason).includes(SHAPE), ap.reason);
   assert.equal(run.status, "awaiting_approval");

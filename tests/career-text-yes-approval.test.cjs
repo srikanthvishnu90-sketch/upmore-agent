@@ -247,8 +247,8 @@ test("exclusions must name this card's applications, leave at least one, and are
   assert.equal(B.normalizeCareerBatchRequest({ ...base, eventId: "x5", exclude: [] }).exclude, undefined, "an empty exclusion is the whole card");
   // 155 holds the same rule for a forged intent that reaches the worker.
   const run = Batch.restoreRun(clone(record.run));
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256, exclude: ["nope"] }).code, "APPROVAL_EXCLUDE_INVALID");
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256, exclude: keys }).code, "APPROVAL_EXCLUDE_ALL");
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256, exclude: ["nope"] }).code, "APPROVAL_EXCLUDE_INVALID");
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256, exclude: keys }).code, "APPROVAL_EXCLUDE_ALL");
   assert.equal(run.status, "awaiting_approval", "a refused exclusion approves nothing");
   assert.equal(boards.submits.length, 0);
 });

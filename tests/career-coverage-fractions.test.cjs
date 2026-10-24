@@ -96,7 +96,7 @@ test("mixed: k/n first, then each other application named exactly once with its 
 
 test("after the yes: the fraction is what was submitted", () => {
   const run = prepare([posting(1), posting(2)]);
-  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, profileSha256: run.profileSha256 }).ok, true);
+  assert.equal(Batch.approveRun(run, { approvedByUser: true, now: NOW, userId: run.userId, profileSha256: run.profileSha256 }).ok, true);
   Batch.executeRun(run, { now: NOW, profile: PROFILE, log: { records: [] }, boardFor: () => Portal.createSandboxBoard({}) });
   const lines = Batch.speakSummary(run);
   assert.equal(lines[0], "2/2 applications submitted.");

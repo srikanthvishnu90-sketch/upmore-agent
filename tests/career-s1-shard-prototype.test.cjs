@@ -120,7 +120,7 @@ async function runScenario(workerCount) {
     const record = await store.readRun({ userId: USER, runId: run.id });
     const parent = Batch.restoreRun(clone(record.run));
     assert.equal(parent.summary.doorstep, 6, "all 6 at the doorstep");
-    const ap = Batch.approveRun(parent, { approvedByUser: true, now: NOW, profileSha256: parent.profileSha256 });
+    const ap = Batch.approveRun(parent, { approvedByUser: true, now: NOW, userId: parent.userId, profileSha256: parent.profileSha256 });
     assert.ok(ap.ok, "parent approved");
     await store.saveRun({ version: record.version, runId: parent.id, userId: USER, status: parent.status, run: Batch.serializeRun(parent), summary: parent.summary, updatedAt: new Date(NOW).toISOString() });
     // the planner: per-posting shards of the one approved batch

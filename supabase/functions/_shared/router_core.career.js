@@ -14138,6 +14138,8 @@ const CareerRouter = (() => {
     if (!surgeryCue) return null;
     const draft = planDraftOf(ctx);
     if (!draft) {
+      const fr = frameMarksOf(ctx);
+      if (fr.draft && typeof fr.draft === "object") return null;
       const reply = compose({ headline: "There is no draft in this conversation to revise yet.", facts: ["No letter or outreach draft has been produced here — the cover-letter ask is still waiting on the facts it is written from, and no outreach draft has been drafted from the plan.", "The moment a draft exists, revisions like shorter or more casual apply to it directly, and the original is kept on the record."], nextStep: "Give me the facts for the letter, or say 'draft the first one' on the plan, and revision has something real to work on." });
       return { intent: "career_tailor", reply, resultStatus: "awaiting_user", sends: 0 };
     }
@@ -14305,6 +14307,14 @@ const CareerRouter = (() => {
     const parts = s(txt).split(/(?<=[.!?])\s+/).map((p) => p.trim()).filter(Boolean);
     for (const p of parts) if (re.test(p)) return p;
     return parts[0] || "";
+  }
+  function shortenedDraftText(text) {
+    const lines = s(text).split(/\n+/).map((x) => x.trim()).filter(Boolean);
+    if (lines.length >= 4) return [lines[0], lines[1], lines[lines.length - 2], lines[lines.length - 1]].join("\n\n");
+    if (lines.length === 3) return [lines[0], lines[1], lines[2]].join("\n\n");
+    const sents = s(text).split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    if (sents.length > 3) return [sents[0], sents[1], sents[sents.length - 1]].join(" ");
+    return s(text);
   }
   function moneyOf(n) { return n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`; }
 
@@ -14509,6 +14519,77 @@ const CareerRouter = (() => {
         facts: ["The brackets are filled from your own facts — state them and they go in; nothing is guessed, and no referral is promised or implied."],
         nextStep: "When the words are right, you send it yourself or approve it here first.",
       }) };
+    }
+
+    if (has("followup")) {
+      const fu = frames.followup;
+      const co = fu.company || "that company";
+      if (/^(draft|write) (it|that|one)\b|\bdraft the follow-?up\b/.test(t)) {
+        const body = `Subject: Following up — my application\n\nHi ${co} team,\n\nI applied two weeks ago and wanted to check where my application stands. I remain very interested in the role, and I am glad to provide anything further that would help your review.\n\nThank you for your time,\n[your name]`;
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", sends: 0, draft: { kind: "follow_up_email", text: body, status: "held", target: fu.company || null }, reply: compose({
+          headline: "The follow-up, drafted — held here, nothing sent:",
+          longBody: body,
+          facts: ["It says only what is true: when you applied, that you are checking, and that you remain interested. No new claims are made for you."],
+          nextStep: "Approve it here and it can go; edit any line first and the edit is what stands.",
+        }) };
+      }
+      if (/\bwhat should i do\b|\bwhat do i do\b|\bchase\b|\bgive up\b|\bis it dead\b|\bstill waiting\b/.test(t) || (/\bthat\b/.test(t) && /\bdo\b/.test(t))) {
+        return { intent: "tracking_status", resultStatus: "awaiting_user", reply: compose({
+          headline: `${co} — the silence itself is the data point.`,
+          facts: ["The row stands at applied, with no reply since you reported it. Silence after an application usually means the queue has not reached a decision — it is not a decision made against you.", "The two clean moves are one short follow-up, which restarts their clock without burning anything, or leaving the row open and spending the attention on live applications."],
+          nextStep: "Say “draft it” and the follow-up is composed here, held for your approval — nothing sends.",
+        }) };
+      }
+    }
+
+    if (has("draft")) {
+      const dr = frames.draft;
+      if (/\b(did you|have you) send\b|\bwas it sent\b|\bis it sent\b|\bdid (it|that) go out\b/.test(t)) {
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+          headline: "Not sent — it stands as a held draft.",
+          facts: ["Drafts in this thread are held for your approval by construction; nothing goes out on a draft's own momentum, and this one has not moved.", "It goes only when you approve the exact words here."],
+          nextStep: "Say “show it” and the draft is read back, or name the edit and the revision stands instead.",
+        }) };
+      }
+      const nt = negotiationThreadOf(ctx);
+      const negStands = nt && (nt.company || nt.ask || (Array.isArray(nt.offers) && nt.offers.length));
+      if (!negStands && raw.split(/\s+/).length <= 7 && (/^(make|keep) it (shorter|briefer|tighter|longer|warmer|firmer|softer|more concise)\b/.test(t) || /^(shorten|tighten|trim|condense) (it|that|this|the draft)\b/.test(t))) {
+        if (dr.text) {
+          const shorter = shortenedDraftText(dr.text);
+          markFrame(ctx, "draft", Object.assign({}, dr, { text: shorter }));
+          return { intent: dr.intent || "outreach_draft", resultStatus: "awaiting_user", sends: 0, draft: { kind: dr.kind || "draft", text: shorter, status: "held", target: dr.company || null }, reply: compose({
+            headline: "The tighter version — same draft, held:",
+            longBody: shorter,
+            facts: ["Only length changed: the ask, the facts and the closing are the standing draft's own."],
+            nextStep: "Approve this version here and it can go; the longer one is replaced on the thread.",
+          }) };
+        }
+        return { intent: "outreach_draft", resultStatus: "awaiting_user", reply: compose({
+          headline: "That revision needs the draft's text in front of me.",
+          facts: ["A draft stands on this thread, but its text is not retained in the thread record, so revising it from memory would risk changing your words.", "Paste the draft and the revision is made on your exact text."],
+          nextStep: "Paste it here and the tighter version comes straight back, held.",
+        }) };
+      }
+    }
+
+    if ((/\b(that|it|this|them)\b/.test(t) && /\b(do|now|next|about|happen|still|mean)\b/.test(t)) || /^(what|how) about (that|it|this)\b/.test(t)) {
+      const entries = Object.entries(frames).filter(([, v]) => v && typeof v === "object").sort((a, b) => (Date.parse(b[1].at || "") || 0) - (Date.parse(a[1].at || "") || 0));
+      if (entries.length) {
+        const [kind, fr] = entries[0];
+        const label = { plan: "the standing plan", tracker: "your application tracker", brief: "the interview brief", negotiation: "the offer discussion", gate: "the sending gate", heldStop: "the referral question", workauth: "your work authorization", rejection: "the rejection", followup: "the unanswered application", draft: "the held draft", declined: "the declined request" }[kind] || "the last thing we worked on";
+        const line = kind === "plan" ? "Its first move is still the plan's own cheap test; what that test shows re-aims everything after it."
+          : kind === "tracker" ? (rows.length ? `The tracker holds ${rows.length} application${rows.length === 1 ? "" : "s"}; each one is read from its own row, never from memory.` : "The tracker holds no applications, so there is nothing pending to act on.")
+          : kind === "brief" ? "The brief stands as served; the mock is how it gets tested rather than just read."
+          : kind === "negotiation" ? "The discussion stands on the figures you gave; nothing about it has moved since."
+          : kind === "gate" ? "Nothing has been sent, and the reviewed path — shortlist, drafts, your approval — is still the only path."
+          : kind === "workauth" ? `${fr.status || "Your status"} stands on your record as you stated it; the timeline question turns on the EAD end date.`
+          : "It stands exactly as it was left; nothing about it has changed since it was served.";
+        return { intent: "career_next_step", resultStatus: "awaiting_user", reply: compose({
+          headline: `On ${label}:`,
+          facts: [line],
+          nextStep: "Name the part you want moved and it moves; or name a new thing and we start it.",
+        }) };
+      }
     }
 
     if (has("declined")) {
@@ -14788,6 +14869,7 @@ const CareerRouter = (() => {
     const facts = [];
     if (draft) facts.push("What exists is the held sample draft you just reviewed — it has no named recipient yet, because the list it sends to has not been built, and a sample with a bracketed name cannot send to anyone.");
     else if (plan) facts.push("What exists is the plan — its list has not been built, no draft has been approved, and there is no wave standing ready to go.");
+    else if (frameMarksOf(ctx).draft) facts.push("What exists is a held draft from this conversation — it has not been sent, and it goes only when you approve its exact words here.");
     else facts.push("Nothing is built in this conversation to send: no list, no draft, no approved plan — so there is no wave that could go out.");
     facts.push("Every send in this product is approval-gated: the list's counts return first, you approve the whole plan once, and only then does a wave send — inside the daily cap. That gate is not skipped by asking in chat.");
     const reply = compose({ headline: "Nothing was sent — here is exactly where it stands.", facts, nextStep: plan ? "Approve the plan and the list builds; the counts come back here before the first send." : "Name the target and I will build the plan the send has to stand on." });
@@ -22103,11 +22185,13 @@ const CareerRouter = (() => {
       const askT = lc(text);
       if (res.intent === "path_plan") markFrame(c, "plan", { family: "path", ask: s(text).slice(0, 140), text: s((res.payload && res.payload.text) || "").slice(0, 600) });
       else if (res.intent === "career_os_plan") markFrame(c, "plan", { family: "os", ask: s(text).slice(0, 140) });
-      else if (res.intent === "tracking_status" || res.intent === "tracking_log") { markFrame(c, "tracker", { ask: s(text).slice(0, 140) }); if (/\breject/.test(askT)) markFrame(c, "rejection", { ask: s(text).slice(0, 140) }); }
+      else if (res.intent === "tracking_status" || res.intent === "tracking_log") { markFrame(c, "tracker", { ask: s(text).slice(0, 140) }); if (/\breject/.test(askT)) markFrame(c, "rejection", { ask: s(text).slice(0, 140) }); if (/\b(heard nothing|no response|no reply|haven'?t heard|have not heard|not heard|never heard|silence|silent|ghost)/.test(askT)) markFrame(c, "followup", { ask: s(text).slice(0, 140), company: (res.application && res.application.company) || null, stage: (res.application && res.application.stage) || null }); }
       else if (res.intent === "prep_brief") markFrame(c, "brief", { ask: s(text).slice(0, 140) });
       else if (/^negotiation_/.test(res.intent)) markFrame(c, "negotiation", { compare: /\bcompare|two offers|versus|\bvs\b/.test(askT), ask: s(text).slice(0, 140) });
       else if (res.intent === "people_matching_stop") { const coM = /\bat\s+([a-z][a-z&.' -]{1,30}?)(?:\s+who|\s+that|\s+for|[?.!,]|$)/.exec(askT); markFrame(c, "heldStop", { ask: s(text).slice(0, 140), company: coM ? coM[1].trim() : null }); }
       else if (res.intent === "outreach_clarification" && /\beveryone\b|\bmass\b|\bblast\b|all of them/.test(askT)) markFrame(c, "gate", { ask: s(text).slice(0, 140) });
+      const dObj = res.draft && typeof res.draft === "object" ? res.draft : null;
+      if (dObj || /_draft$/.test(res.intent || "")) markFrame(c, "draft", { ask: s(text).slice(0, 140), intent: res.intent, kind: (dObj && dObj.kind) || null, company: (dObj && (dObj.target || dObj.company)) || res.company || null, text: s((dObj && (dObj.text || dObj.body)) || "").slice(0, 1500), status: (dObj && dObj.status) || "held" });
     } catch {   }
     let kind = null;
     if (/^prep_/.test(res.intent) && res.intent !== "prep_needs_profile") kind = "prep";

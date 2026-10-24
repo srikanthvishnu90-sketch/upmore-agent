@@ -137,11 +137,51 @@ An unconfirmed legacy value surfaces only as a G2-style draft ("You told me …;
 | **B** | 121, 124, 125, 130, 132, 141, 142, 149 read and write through 156; 156 added to both bundle lists; bundles regenerated | the other 20 | 1 (moves 63a1233f); its release is 2 |
 | **C** | onboarding asks the two questions separately (130) | — (product change) | 1 + the owner's product call |
 
-Measured cost of B on the existing suites, today versus the reference: see §8.
+Measured cost of B on the existing suites: §8 (9 files, 28 steps, from two named rules). Branch A must keep WO-020/F1 (§8).
 
 ## 8. Blast radius (existing suites, today's tree versus the reference)
 
-See the addendum at the end of this file.
+Both trees ran the same suites in one sitting:
+- the gate's shared Node files and all 265 `tests/career-*.test.cjs`, per file;
+- five edge suites: apply-store, ask-once, fact-quarantine, control-state, coverage-personas;
+- the whole architect suite.
+
+The reference tree is today's tree plus the reference patches (branches A and B together) and both regenerated router
+bundles. Only the difference between the trees is counted. Files that fail on both are environmental in this
+container (no Playwright, root): 37 on each tree, and the same 37.
+
+**Architect suite: 1300/1300 today; 1297/1300 on the reference.**
+
+| Test | Cause | Branch | Verdict |
+|---|---|---|---|
+| WO-031/1 extension bundle is fresh | `answer_options.ts` changed and `extension/lib/trainee-core.js` was not regenerated | A | mechanical: `deno run -A extension/build.ts` |
+| WO-020/F1 "stated facts land on the employer's wording" | the reference dropped the single-fact pick in `answer_options.ts:302–306` outright. The persona (`evals/apply/fill-coverage.ts:23`) states authorized **and** sponsorship No **and** US citizenship, so "I am authorized to work in the United States for any employer" is right for it | A | **the reference was too broad.** The right rule picks such an option only when the sponsorship fact (or US citizenship) is stated as well, which needs the sponsorship answer passed to the choice. A correct branch A must keep F1 |
+| WO-020/F6 fill coverage meets the bar | the same cause: coverage 0.770 → 0.746 | A | the same fix restores it |
+
+**Node and edge suites: 10 files pass today and fail on the reference; none goes the other way.**
+
+| File (failing steps) | Cause | Branch |
+|---|---|---|
+| `extension-package-agent` (5) | stale extension bundle (as WO-031/1) | A (mechanical) |
+| `career-gauntlet-r3` (2), `career-gauntlet-r2b` (8), `career-gauntlet-r2-integration` (5), `career-gauntlet-g2` (3), `career-doorstep-safety-regression` (6), `career-quality-robustness` (1, FI-02 sim) | their doorstep personas carry legacy `workAuthorization: "US citizen (TEST)"` with `needsSponsorship: false`. Under the proposal that is unconfirmed, and is citizenship, so 141 asks and the fill stops at `AWAITING_ANSWERS` instead of REVIEW | B |
+| `career-apply` APPE-005 (1) | expects the legacy `needsSponsorship` answer quoted as saved; the proposal makes it a draft | B |
+| `career-gauntlet-g4` NW14 (1) | expects outreach to echo "US citizen" from the legacy authorization text | B |
+| `career-jobs` DISC-005 (1) | expects exclusion from a legacy sponsorship value; the proposal asks (`needs_user_input`) | B |
+
+**Branch B's cost, measured.** 9 files (28 steps) change. All of them come from two rules, which are decisions, not
+bugs:
+
+1. **Legacy values count as unconfirmed** (§2 rule 3). Keeping it means rewriting those fixtures with typed,
+   confirmed facts: the persona's own statement, as the pending tests do. Relaxing it would let pre-fix stored values
+   answer as before, at the price of D-007's "stated and confirmed".
+2. **Citizenship does not answer work authorization** (G2's reader). A stated US citizenship or permanent residency
+   does legally imply US work authorization. If that is accepted as a derivation, with the citizenship words as
+   provenance, the doorstep fixtures (5 files, 25 steps) pass unchanged once their persona's statement is typed.
+
+No other existing suite moved. G2 (`g2-eligibility-draft`, in the architect suite), the extension seams
+(`career-extension-*`, `extension-package`), `fact_schema` consumers (`career-apply-*`, fact-quarantine) and the
+flows (G1, G3, integrated) are unchanged.
+
 
 ## 9. The narrow decision (only now that the proposal is grounded)
 

@@ -61,6 +61,8 @@ const BY_DESIGN = new Set([
   "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED", "FACT_OWNER_MISMATCH",
   "CARD_CLOUD_PERMISSION_REVOKED", "CARD_CLOUD_AUTH_REQUIRED", "CARD_CLOUD_AUTH_REFUSED", "CARD_CLOUD_AUTH_PROTOCOL", "CARD_CLOUD_AUTH_TIMEOUT",
   "APPROVED_SOURCE_WITHDRAWN", "CARD_CLOUD_SOURCE_READ_FAILED", "CARD_CLOUD_AUTHORIZATION_REFUSED",
+  // The discovery boundary (DISCOVERY-DEFAULT-DENY-2026-10-24.md): nothing of the person's was put into the page.
+  "LOOKUP_NEEDS_APPROVAL", "MULTI_STEP_NEEDS_APPROVAL", "DISCOVERY_NAVIGATION_STOPPED", "DISCOVERY_FILL_LOCAL_ONLY",
 ]);
 const BOT_CHECK = (state: string, reason: string) =>
   (state === "needs_user" && reason === "captcha") || (state === "not_submitted" && reason === "CAPTCHA_AT_SUBMIT");
@@ -68,13 +70,14 @@ const BOT_CHECK = (state: string, reason: string) =>
 // What the queue records for one engine result: the final state, its reason, and the telemetry outcome. A bot check is
 // always handed back as needs_user (the person finishes it at the link) and never as sent.
 export function settle(result: { state?: string; reason?: string } | null): { state: string; reason: string; outcome: Outcome; errorKind: string | null } {
-  const state = String(result?.state ?? ""), reason = String(result?.reason ?? "").split(":")[0].slice(0, 80);
+  // The reason's class decides; a by-design stop keeps what it named (the field), so the record says what stopped.
+  const state = String(result?.state ?? ""), full = String(result?.reason ?? "").slice(0, 200), reason = full.split(":")[0].slice(0, 80);
   if (!result || !OUTCOMES.has(state)) {
     return { state: "unknown_outcome", reason: "the engine gave no result after it started; not retried", outcome: "error", errorKind: "ENGINE_NO_RESULT" };
   }
   if (BOT_CHECK(state, reason)) return { state: "needs_user", reason: "bot_check", outcome: "bot_check", errorKind: reason };
   if (state === "confirmed" || state === "submitted_unconfirmed") return { state, reason, outcome: "submitted", errorKind: null };
-  if (state === "not_submitted" && BY_DESIGN.has(reason)) return { state, reason, outcome: "not_sent", errorKind: reason };
+  if (state === "not_submitted" && BY_DESIGN.has(reason)) return { state, reason: full, outcome: "not_sent", errorKind: reason };
   return { state, reason, outcome: "error", errorKind: reason || state };
 }
 

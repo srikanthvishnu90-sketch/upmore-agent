@@ -58,6 +58,102 @@ What goes wrong in each reader:
   - Its comment says "a wrong fill is impossible either way". That holds for a verbatim sentence: the extension's exact
     option match fails, and it asks. It does **not** hold for the inverted token.
 
+## Two more readers the first pass did not examine: 121 and 124
+
+Added 2026-10-23 as an extension to this assessment. Citations verified against the unmodified files on
+`arch/eligibility-separation-impl` @ `10528fee` (the coordinator's cited lines matched exactly; no drift). Both
+modules are frozen, and both consume the same mixed field. Neither is changed by anything in this section: the
+fixes and tests below are **designs only**, written so an unfreeze package can be scoped before any code moves.
+
+### 121-career-jobs.js — matching hard filters exclude the person, with a false reason
+
+**Consumer behavior (observed).** `scoreFit` (121:864) runs `hardFilters` (121:774) on every scored posting; any
+fail returns the posting as `excluded: true` with the fail strings as its reasons (121:872).
+
+- **121:793:** `needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization))`.
+  A bare substring test on the authorization text — the same defect class as the Workday spent-s1 regression.
+  Negations count: "without sponsorship", "does not require sponsorship" and "No sponsorship needed" all contain
+  "sponsor", so all of them read as *needs sponsorship*.
+- **121:796–798:** with that flag set, a no-sponsorship posting fails with "work authorization: posting offers no
+  sponsorship; you said you need sponsorship", and a citizens-only posting fails with the citizenship variant of
+  the same sentence.
+- **Second instance, same module:** `evaluateRestrictions` (121:300–308). A posting's parsed `no_sponsorship`
+  restriction is dispositioned "excluded" when `needs === true || /sponsor/i.test(wa)` (121:306); "satisfied"
+  requires `needs === false` or text with no "sponsor" in it. The exclusion reasons feed `hardFilters` at 121:818.
+
+**Blast radius.** Silent false exclusion, with a reason that misquotes the person. The population hit hardest is
+the one most eligible for these postings — people whose authorization text mentions sponsorship in order to
+negate it. "US citizen; no sponsorship required" against a citizens-only posting is excluded at 121:798 ("you
+said you need sponsorship"); "Authorized to work in the U.S. without sponsorship" against a no-sponsorship
+posting is excluded at 121:797 and again at 121:306. The typed boolean already exists and is derived with
+negation awareness where constraints are built (121:967–968: `/without sponsorship/i` → `needs_sponsorship:
+false`); the text test at 793 overrides a correct `false` back to true and adds nothing but the defect.
+
+**Fix design (not made; unfreeze package).** Sponsorship need is decided only by the typed
+`c.needs_sponsorship`. Where the boolean is absent, the answer is *unknown* — routed to the existing
+`needs_user_input` machinery (evaluateRestrictions already has that path) — never inferred from authorization
+text. If a text fallback is ever retained, it must be module 156's positive-need classification (without / not /
+no / n't carve-outs; the predicate family pinned by WO-048/16 on the option-choice path), never `/sponsor/i`.
+Both instances (793 and 306) change together.
+
+**Fail-first test design (not written).** `scoreFit` with constraints `{work_authorization: "Authorized to work
+in the U.S. without sponsorship", needs_sponsorship: false}` against a posting whose JD states no sponsorship
+is available → today `excluded: true`, reason "you said you need sponsorship" (red); on the design, not excluded
+on that ground. Citizens-only variant: `{work_authorization: "US citizen; no sponsorship required"}` against a
+citizens-only JD → today excluded at 121:798 (red); on the design, passes. Restriction variant: the first
+profile against a posting carrying a parsed `no_sponsorship` restriction → today disposition "excluded"; on the
+design, "satisfied". Positive control: `needs_sponsorship: true` against a no-sponsorship posting → excluded on
+both, so the fix cannot overcorrect into admitting a real need.
+
+### 124-career-outreach.js — the stored sentence is quoted to an employer
+
+**Consumer behavior (observed).** `profileFactAnswers` (124:1433) builds fact answers for `draftReplyAnswer`
+(124:1456) when a reply draft is composed to an employer's message. The `work_authorization` topic triggers when
+the employer's text matches `/authorized|authorisation|work in the|sponsor/` (124:1444) — any mention of
+"sponsor" in the incoming message asks for a work-authorization answer.
+
+- **124:1445–1446:** the answer value is the raw stored `workAuthorization` (constraints first, then the merged
+  profile), with `(TEST)` stripped, quoted verbatim: a `/citizen/` match composes "I am a {value} and authorized
+  to work in the US."; anything else becomes "On work authorization: {value}." The `/citizen/` test is also a
+  bare substring, so a sentence that negates citizenship ("Not a US citizen; will need sponsorship") still selects
+  the citizen template and asserts authorization.
+- **124:1447–1448:** the typed fallback ("authorized, no sponsorship") fires only when the stored value is
+  *absent* and `needsSponsorship === false`. An absent value lands in `unknown`, and unknown topics are the only
+  ones the draft flags for the person's confirmation ("left that for you to confirm before this goes out"). A
+  present-but-mislabeled value is quoted with no flag.
+
+**Blast radius.** Outbound and employer-facing. A stored sponsorship sentence is drafted as the answer to "are
+you authorized to work in the US?" — "On work authorization: I will need sponsorship in the future." answers a
+question the employer did not ask, the router's own fallback text ("No longer needs sponsorship") is quoted as
+if it were the person's authorization statement, and the person's actual authorization status is never stated.
+The draft still goes through the person's approval before sending, but approval is of the prose; nothing marks
+the sentence as a mislabeled fact. The module's own safeguard catches absence only — mislabeling passes silently.
+
+**Fix design (not made; unfreeze package).** The `work_authorization` topic is answered only from a first-person
+authorization statement, gated the same way this assessment recommends for 132/141/149 and classified by module
+156: a stored value that is about sponsorship — positive-need or its negation — is not an authorization answer,
+and the topic goes to `unknown` (the existing safe path). Sponsorship, if it is answered at all, is its own
+topic built from the typed `needsSponsorship` fact. The citizen template is composed from a typed citizenship
+fact, never from a substring test on the raw sentence.
+
+**Fail-first test design (not written).** `profileFactAnswers` on the reply "Are you authorized to work in the
+US, and would you need sponsorship?" with `constraints.workAuthorization = "I will need sponsorship in the
+future"` → today the answer text is "On work authorization: I will need sponsorship in the future." (red); on
+the design, `work_authorization` is in `unknown` and nothing is quoted. Second input: the stored router fallback
+"No longer needs sponsorship" → today quoted verbatim (red); on the design, `unknown`. Positive control: stored
+"I am authorized to work in the US" → answered on both.
+
+### Interaction with Branch A, as built (both modules)
+
+**None, today.** Branch A (@ `10528fee`) is module 156 plus three seams — `extension_sync.js` serving,
+`answer_options.ts` option choice, a `fact_schema.ts` note. Module 156 is in no bundle list; its only generated
+copy (`supabase/functions/_shared/eligibility_facts.js`) serves the extension-sync seam. Neither 121 nor 124
+references 156 or `eligibility_facts`, and nothing in Branch A writes `profile.constraints.work_authorization`
+or `needs_sponsorship` — those are still written by 130/142 and read by 121/124 exactly as before. Branch A
+closes the extension-serving path only; the router-profile consumers are Branch B scope. The fix designs above
+deliberately reuse 156's classification, so an unfreeze package converges both paths on one predicate family
+instead of growing a third copy of the rule.
+
 ## Reach (read-only, production project `upmore`)
 
 - **Writer and readers are live.** `agent-chat` v249 runs the router. `extension-sync` is ACTIVE (v4). It serves the

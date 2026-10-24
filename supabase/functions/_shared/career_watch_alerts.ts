@@ -4,7 +4,8 @@
 // career:watch-profile:<user>). The scheduled run (career-proactive) reads career_alert_prefs. syncWatchAlerts is the
 // bridge: after a turn is saved, the watch the turn left becomes the person's alert settings, each watch kept whole
 // (career_alerts.ts matches a posting against one watch at a time, never one watch's role in another's city).
-//   - a turn that changes no watch reads and writes nothing;
+//   - every turn with a watch makes the stored settings agree with it (a failed write is repaired by the next turn); a
+//     turn with no watch at all reads and writes nothing;
 //   - a watch set, changed or resumed: saved, starting from now (postings already on the boards are never alerted), with
 //     the person's zone, report hour, quiet hours and caps as they were;
 //   - paused, or the last watch stopped: alerts off, the settings kept;
@@ -51,6 +52,9 @@ export function interestsFromWatch(wp: any): AlertInterest[] {
 // The profile as the person last set it, without the time it was written.
 const same = (a: any, b: any) => JSON.stringify(a ? { ...a, updated_at: null } : null) === JSON.stringify(b ? { ...b, updated_at: null } : null);
 
+// Every turn that has a watch makes the stored settings agree with that watch, whatever the last write did: a write that
+// failed (the turn said "paused" and the row stayed on) is repaired by the next turn, not left on. A row the person's
+// watches made (it has interests) follows the watch; settings made elsewhere follow it only on a turn that changed it.
 export async function syncWatchAlerts(o: {
   userId: string; before: Record<string, unknown> | null | undefined; after: Record<string, unknown> | null | undefined;
   erased?: boolean; store: AlertStore; now: number;
@@ -61,14 +65,17 @@ export async function syncWatchAlerts(o: {
     return { action: "removed" };
   }
   const key = WATCH_PROFILE_KEY(o.userId), was = o.before?.[key] ?? null, now = o.after?.[key] ?? null;
-  if (same(was, now)) return { action: "unchanged" };
-  const prev = await o.store.get(o.userId);
-  const interests = interestsFromWatch(now), paused = !!(now as any)?.opt_out?.global;
-  if (!interests.length || paused) {
-    if (!prev) return { action: "none" };
-    await o.store.save({ ...prev, prefs: { ...prev.prefs, on: false } });
-    return { action: "off" };
+  if (!was && !now) return { action: "unchanged" }; // no watch, ever: nothing to agree with (the alerts run removes a stale copy)
+  const changed = !same(was, now), prev = await o.store.get(o.userId);
+  const interests = interestsFromWatch(now), active = interests.length > 0 && !(now as any)?.opt_out?.global;
+  if (!active) {
+    if (prev && prev.prefs.on && (prev.prefs.interests?.length || changed)) {
+      await o.store.save({ ...prev, prefs: { ...prev.prefs, on: false } });
+      return { action: "off" };
+    }
+    return { action: prev ? "unchanged" : "none" };
   }
+  if (prev && prev.prefs.on && JSON.stringify(prev.prefs.interests ?? null) === JSON.stringify(interests)) return { action: "unchanged" };
   // The table keeps the watches' words in `keywords` (1 to 10) and their places in `locations` (up to 10); the
   // watches themselves decide the match.
   const keywords = [...new Set(interests.flatMap((i) => i.keywords))];

@@ -31,11 +31,30 @@ alert write is logged and never fails the saved turn.
 
 | The turn | Alert settings (`career_alert_prefs`) |
 |---|---|
-| Changes no watch (a question, a list, any other turn) | Not read, not written |
+| Has no watch at all, before or after | Not read, not written |
+| Has a watch | The stored row is made to agree with it, whatever the last write did: a missed write is repaired by the next turn |
 | Sets, changes or resumes a watch | Saved with the person's watches; watching starts now; zone, report hour, quiet hours, caps and today's counters kept |
 | Pauses alerts (`opt_out.global`), or stops the last watch | `on: false`; the settings are kept |
 | "forget my career profile" (the host's erase) | The row is removed (`AlertStore.remove`), so the person's words are not kept |
 | Watches with more than 10 title terms in all | Not saved, logged (`refused`); the table holds 10 |
+
+Settings made elsewhere (no `interests`, the brain's) follow a watch only on a turn that changed it.
+
+### Fail closed: the scheduled run checks the watch record
+
+The alert settings are a copy of the watch, and a copy's write can fail (coordinator, 2026-10-24: Z1 a pause whose write
+failed kept alerting; Z2 an erase whose remove failed kept alerting; Z3 no later turn repaired it). So the copy never
+decides alone. `runAlerts` (`career_proactive_run.ts`, `verifiedWatches`) reads each watch row's record as committed
+(`career_watch_kv`, `career:watch-profile:<user>`, through career-proactive's `watches`) before planning:
+
+| The record | The run |
+|---|---|
+| Gone (the erase deletes it) | Sends nothing for that row, and removes the row |
+| Paused, or no watch left | Sends nothing for that row (the run never writes the person's settings; the next turn turns the row off) |
+| Watches on record | Matches those watches, not the copy's |
+| Unread (no reader, or the read fails) | Sends nothing for any watch row this run |
+
+Rows made elsewhere (no `interests`) are not checked against a watch record and send as before.
 
 The account pause ("STOP") is unchanged: `career_quiet_users` already keeps the scheduled run from acting for a
 paused, opted-out or erased person.
@@ -85,11 +104,21 @@ bridge, and the real `runAlerts` over a fake board, then reads the outbox.
 7. A change starts watching from now: a posting first seen before it is never alerted. Today's count and held list stay.
 8. The handler calls the bridge after the commit, from the loaded watch state to the one the turn left, with a
    `.catch`, not inside the brain branch.
+- Z1 pause while the alert write fails: the scheduled run sends nothing.
+- Z2 erase while the remove fails: nothing is sent; the run removes the stale copy once it can.
+- Z3 a later unrelated turn repairs a missed write: a missed pause turns off, a missed second watch is added.
+- Z4 no watch reader, or one that fails: no watch row sends; settings made elsewhere still do.
+- Z5 career-proactive passes the committed watch records to the run.
+- Z6 a missed stop of one of two watches: the run matches only the watch still on record.
+
+**Fail-first for Z1–Z6** at 29a0b0c5 (the first push of this branch): Z1 and Z2 sent the alert after the pause and the
+erase, Z3's repair returned "unchanged", Z4 sent without a reader, Z5 found no reader wired; 8 passed, 5 failed (Z6 was
+added after).
 
 **Fail-first.** On trunk 63a1233f the test does not load: `career_watch_alerts.ts` does not exist, and nothing turns a
 router watch into alert settings.
 
-**Mutations (each red, restored green 8/8):**
+**Mutations (each red, restored green):**
 
 | | Mutation | Red |
 |---|---|---|
@@ -103,6 +132,15 @@ router watch into alert settings.
 | W8 | counted from the old check | 7 |
 | W9 | zone and report hour not kept | 5 |
 | W10 | hook removed from the handler | 8 |
+| V1 | the run does not verify watch rows | Z1, Z2, Z4, Z6 |
+| V2 | an unread record sends anyway | Z4 |
+| V3 | pause not checked by the run | Z1 |
+| V4 | an erased record's row not removed | Z2 |
+| V5 | the stale copy's watches matched | Z6 |
+| V6 | the bridge compares before and after only | Z3 |
+| V7 | career-proactive does not pass the records | Z5 |
+
+W1–W10 were run at 29a0b0c5; V1–V7 at this commit, restored 14/14.
 
 ## Decisions for the owner
 

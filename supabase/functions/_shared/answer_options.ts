@@ -308,7 +308,7 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // that, and neither exclusion is the bare substring "sponsor":
       // (1) an option that positively asserts a sponsorship NEED
       // ("will require sponsorship", "require sponsorship", "need
-      // sponsorship", "sponsorship is required") — a need assertion
+      // sponsorship", "sponsorship is required / necessary") — a need assertion
       // belongs to the sponsorship fact alone; phrasings that negate
       // the need are the authorized-without-sponsorship class and
       // stay fillable ("without sponsorship", "will not / do not
@@ -330,11 +330,11 @@ export function chooseOption(fact: string, value: string, options: Opt[], questi
       // Which class is correct comes from the profile's
       // work-authorization fact, never inferred from sponsorship.
       const assertsSponsorshipNeed = (l: string) => {
-        if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
-        return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+        if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed|necessary)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+        return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
       };
       const assertsSeparateSponsorshipPosition = (l: string) => {
-        const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed)\b/.test(l);
+        const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
         if (!clause) return false;
         return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
       };

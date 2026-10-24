@@ -5,8 +5,10 @@
    tests exercise the four MECHANISMS on families invented here —
    different topics and shapes from file v1's fifteen and from the
    coordinator's private families:
-     (1) catch-all after all handlers (question/request, in-scope,
-         unmatched -> understood + can-do + ONE clarifying question)
+     (1) catch-all after all handlers (AMENDED 14:09: no claimed
+         understanding, no restated intent — didn't catch + the
+         REALLY served capabilities + ONE bounded question; no
+         canned specifics on deadlines/legal/benefits)
      (2) bare-reply resolver (no pending question, no standing
          offer -> name the last thing discussed, never the banner,
          never a record confirm)
@@ -64,13 +66,15 @@ const questionsIn = (reply) => (String(reply).match(/\?/g) || []).length;
 
 // ---------- (1) catch-all after all handlers ----------
 
-test("mech1: an unmatched in-scope question gets understood + can-do + exactly one clarifying question", () => {
+test("mech1: an unmatched in-scope question gets didn't-catch + real capabilities + exactly one bounded question (no claimed understanding)", () => {
   const [t1] = run("gz-probation", ["can you explain how a probationary period usually changes notice obligations"]);
   assert.equal(t1.fallback, false, `fell back: ${t1.reply.slice(0, 120)}`);
   assert.equal(t1.intent, "career_catchall");
-  assert.match(t1.reply, /probationary period/);
+  assert.match(t1.reply, /did not catch|didn't catch/i);
+  assert.doesNotMatch(t1.reply, /i understand/i);
+  assert.doesNotMatch(t1.reply, /notice obligations/);
   assert.match(t1.reply, /watch|track|prep/i);
-  assert.equal(questionsIn(t1.reply), 1, `exactly one clarifying question: ${t1.reply.slice(0, 200)}`);
+  assert.equal(questionsIn(t1.reply), 1, `exactly one bounded question: ${t1.reply.slice(0, 200)}`);
 });
 
 test("mech1: a second unmatched topic (contract clawback) lands in the same catch-all, not a template", () => {
@@ -78,6 +82,7 @@ test("mech1: a second unmatched topic (contract clawback) lands in the same catc
   assert.equal(t1.fallback, false, `fell back: ${t1.reply.slice(0, 120)}`);
   assert.equal(t1.intent, "career_catchall");
   assert.doesNotMatch(t1.reply, /weekly budget|study plan/i);
+  assert.doesNotMatch(t1.reply, /i understand/i);
 });
 
 test("mech1 control: a non-career question is NOT claimed by the catch-all", () => {
@@ -106,6 +111,16 @@ test("mech2: a bare 'yes' with nothing discussed yet asks 'yes to what' instead 
   assert.equal(t1.fallback, false, `fell back: ${t1.reply.slice(0, 120)}`);
   assert.equal(t1.intent, "conversation_bare_reply");
   assert.match(t1.reply, /yes to what/i);
+});
+
+test("mech2: TWO standing frames and a bare 'yes' — the reply names BOTH and asks which, confirming nothing", () => {
+  const [, t2] = run("gz-bare-twoframes", ["i applied at Northbridge two weeks ago and heard nothing", "yes"]);
+  assert.equal(t2.fallback, false, `fell back: ${t2.reply.slice(0, 120)}`);
+  assert.equal(t2.intent, "conversation_bare_reply", `intent: ${t2.intent}`);
+  assert.match(t2.reply, /tracker/i);
+  assert.match(t2.reply, /follow.?up/i);
+  assert.match(t2.reply, /which/i);
+  assert.doesNotMatch(t2.reply, /stands exactly as read back|recorded —/i);
 });
 
 test("mech2 control: a bare yes against a pending record read-back still record-confirms (existing binding owns it)", () => {
@@ -149,6 +164,10 @@ test("mech4: 'i want to accept this job offer' is a decision about a specific of
   const [t1, t2] = run("gz-accept", ["i want to accept this job offer tomorrow", "what's my career goal?"]);
   assert.notEqual(t1.intent, "career_goal_record");
   assert.equal(t1.fallback, false, `T1 fell back: ${t1.reply.slice(0, 120)}`);
+  // AMENDED shape (14:09 (2)): one human line, then ask what they
+  // want help with — no canned plan, no stored anything.
+  assert.match(t1.reply, /what do you want help with/i);
+  assert.doesNotMatch(t1.reply, /the useful next step/i);
   assert.doesNotMatch(t2.reply, /career goal is to accept/i);
 });
 
@@ -179,4 +198,10 @@ test("named: 'how much time do i have for unemployment' is not answered by the s
   assert.doesNotMatch(t1.reply, /weekly budget|minutes total|study plan/i);
   assert.equal(t1.fallback, false, `fell back: ${t1.reply.slice(0, 120)}`);
   assert.equal(t1.intent, "career_catchall");
+  // AMENDED (14:09 (1)): for entitlement topics the reply may
+  // only say it depends on where they live and point to the
+  // state agency — no deadlines, no amounts, no specifics.
+  assert.match(t1.reply, /depend on where you live/i);
+  assert.match(t1.reply, /state/i);
+  assert.doesNotMatch(t1.reply, /\d+\s*(days?|weeks?|months?)\b/i);
 });

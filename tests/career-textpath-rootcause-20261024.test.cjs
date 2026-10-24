@@ -150,6 +150,11 @@ test("item3 C14: erase opens a named confirmation; only the yes to THAT question
   assert.match(probe.reply, /DePaul|finance/i, "record must still stand before the confirming yes");
   const t2 = w.say(uid, "yes im sure");
   assert.equal(t2.intent, "career_profile_erased", `confirming yes intent: ${t2.intent}`);
+  // AMENDED scope (14:09 (5)): the post-erase claim covers THIS
+  // CONVERSATION'S record and watches only, and must not claim
+  // permanent deletion from storage.
+  assert.match(t2.reply, /this conversation/i);
+  assert.doesNotMatch(t2.reply, /permanently deleted|deleted from storage/i);
   // The erase pauses career work (the host's own erase semantics):
   // while that pause stands the host answers every turn itself, so
   // the status question is asked after the resume control — the
@@ -162,6 +167,8 @@ test("item3 C14: erase opens a named confirmation; only the yes to THAT question
   const t4 = w.say(uid, "is it gone");
   assert.equal(t4.fallback, false, `T4 fell back: ${t4.reply.slice(0, 120)}`);
   assert.match(t4.reply, /gone|removed|erased|deleted/i);
+  assert.match(t4.reply, /this conversation/i);
+  assert.doesNotMatch(t4.reply, /permanently deleted|deleted from storage/i);
 });
 
 test("item3 control: a generic yes with no erase pending erases nothing", () => {

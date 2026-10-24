@@ -14348,8 +14348,8 @@ const CareerRouter = (() => {
     const mir = threadMirrorOf(ctx);
     if (mir) {
       if (mir.eraseConfirm || mir.disclosure || mir.bulletFix || mir.resumeIngest) return null;
-      if (fam === "yes" && mir.tailor && !mir.tailor.applied) return null;
-      if (fam === "yes" && mir.affirmRecord && (nowOf(ctx) - (typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : Date.parse(mir.affirmRecord.at || "")) || 0) <= 3 * 60 * 1000) return null;
+      if (mir.tailor && !mir.tailor.applied) return null;
+      if (mir.affirmRecord && (nowOf(ctx) - (typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : Date.parse(mir.affirmRecord.at || "")) || 0) <= 3 * 60 * 1000) return null;
     }
     if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
     const nt = negotiationThreadOf(ctx);
@@ -14830,14 +14830,15 @@ const CareerRouter = (() => {
       related = Object.keys(frames).length > 0 || !!(c2.lastWork || c2.discovery || (Array.isArray(c2.rows) && c2.rows.length));
     }
     if (!related) return null;
-    let clause = stripLead(raw).replace(/\?/g, "").trim();
-    clause = clause.replace(/^(can|could|would|will) you (please )?(explain|tell me|describe|walk me through)\s+/i, "");
-    if (clause.length > 110) clause = clause.slice(0, 110).trim();
+    const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
     const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
+    const facts = [];
+    if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
+    facts.push(CAPABILITY_LINE);
     return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
-      headline: `I understand the ${isQuestion ? "question" : "ask"}: ${clause}.`,
-      facts: ["I do not have a dedicated, sourced answer for that exact point in this chat, so I will not guess at it.", CAPABILITY_LINE],
-      nextStep: hasAnchor ? "Do you want the general rule, or what it means for your specific case?" : "Which role or company is it about, and what date does it turn on?",
+      headline: "I did not catch what to do with that one.",
+      facts,
+      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
     }) };
   }
 

@@ -256,29 +256,53 @@ let base = null, sessionDir = null, helper = null, ready = null, resumeFile = nu
 const cmdTypesSent = [];
 let seq = 0;
 // ---------------------------------------------------------------------------
-// PER-DRIVE BOARDS (2026-10-24) — the fix for the contamination the
-// board-isolation test above pins. Every drive carries a context with its
-// OWN boardId; send() addresses the drive's commands to that board and to
-// no other. The helper keys all board state (page, observation version) by
-// boardId, so two drives — including a timed-out test's abandoned zombie
-// drive running next to the following test's drive — share nothing: a
-// zombie's discover replaces only its own observation, its fills and
-// readback are gated only against its own version, and its error-path
-// close deletes only its own board. Drives that pass no context (the
-// suite's own shutdown) keep the historical shared label, which no drive
-// uses any more.
+// PER-DRIVE BOARDS + ABORT (2026-10-24) — the fix for the contamination
+// the board-isolation test above pins. Every drive carries a context with
+// its OWN boardId; send() addresses the drive's commands to that board and
+// to no other. The helper keys all board state (page, observation version)
+// by boardId, so two drives — including a timed-out test's abandoned
+// zombie drive running next to the following test's drive — share
+// nothing: a zombie's discover replaces only its own observation, its
+// fills and readback are gated only against its own version, and its
+// error-path close deletes only its own board. Drives that pass no
+// context (the suite's own shutdown) keep the historical shared label,
+// which no drive uses any more.
+//
+// The context also carries an ABORT FLAG. node:test abandons a timed-out
+// test without cancelling it — the drive's async tail keeps running.
+// The owning test wires its TestContext signal (which fires on timeout;
+// verified on Node v24.22.1) into the flag, and from then on the drive
+// issues no further commands: send() refuses at issue time and stops
+// waiting for an in-flight command, and driveForm checks the flag before
+// each fill and before readback. close is exempt from the refusal — it is
+// the drive's cleanup of its OWN board, which the isolation above makes
+// safe — and shutdown is the suite's command, not a drive's.
 // ---------------------------------------------------------------------------
 let driveSeq = 0;
-function newDrive(tag) {
-  return { boardId: `forms-ci-coverage-${tag}-${++driveSeq}`, aborted: false };
+function newDrive(tag, signal) {
+  const drive = { boardId: `forms-ci-coverage-${tag}-${++driveSeq}`, aborted: false };
+  if (signal && typeof signal.addEventListener === "function") {
+    signal.addEventListener("abort", () => { drive.aborted = true; }, { once: true });
+  }
+  return drive;
+}
+function driveAborted(drive) {
+  return !!(drive && drive.aborted);
 }
 async function send(cmd, ms = 120000, drive = null) {
+  const refuseIfAborted = () => {
+    if (driveAborted(drive) && cmd.type !== "close" && cmd.type !== "shutdown") {
+      throw new Error(`drive aborted (its test timed out) — ${cmd.type} abandoned`);
+    }
+  };
+  refuseIfAborted();
   const id = String(++seq).padStart(4, "0");
   cmdTypesSent.push(cmd.type);
   fs.writeFileSync(path.join(sessionDir, `cmd-${id}.json`), JSON.stringify({ boardId: drive ? drive.boardId : "forms-ci-coverage", ...cmd }));
   const respFile = path.join(sessionDir, `resp-${id}.json`);
   const end = Date.now() + ms;
   while (Date.now() < end) {
+    refuseIfAborted();
     try { const r = JSON.parse(fs.readFileSync(respFile, "utf8")); fs.rmSync(respFile, { force: true }); return r; }
     catch { await new Promise((r) => setTimeout(r, 60)); }
   }
@@ -529,6 +553,13 @@ async function driveForm(form, drive) {
         fills.push({ name: s.name, type: b.inputType, cls: widgetClassOf(s, b), outcome: gate });
         continue;
       }
+      // An abandoned (timed-out) drive issues no further fills: stop here,
+      // with the abort recorded as this drive's outcome.
+      if (driveAborted(drive)) {
+        rec.driveError = `drive aborted (its test timed out) before fill of ${s.name}`;
+        dstep("drive_aborted", { field: s.name });
+        break;
+      }
       const v = persona[s.name];
       let r;
       const f0 = Date.now();
@@ -552,6 +583,10 @@ async function driveForm(form, drive) {
     }
     rec.fills = fills;
     rec.filledCount = filledBindings.length;
+    if (!rec.driveError && driveAborted(drive)) {
+      rec.driveError = "drive aborted (its test timed out) before readback";
+      dstep("drive_aborted", {});
+    }
     if (!rec.driveError) {
       dstep("readback_start", { count: filledBindings.length });
       const read = await sendD({ type: "readback", bindings: filledBindings.map((x) => x.b), observationVersion: version });
@@ -751,9 +786,9 @@ for (const form of CAPTURED) {
   // Timeout headroom as in the Ashby pack: a fill is sub-second uncontended, but a
   // starved executor must fail loudly rather than be mistaken for a driver verdict.
   // The pinned outcomes below are the assertion; the waits are not.
-  test(`forms-ci coverage: ${form.id}`, { timeout: 600000 }, async () => {
+  test(`forms-ci coverage: ${form.id}`, { timeout: 600000 }, async (t) => {
     let rec;
-    const drive = newDrive(form.id);
+    const drive = newDrive(form.id, t && t.signal);
     try {
       rec = await driveForm(form, drive);
     } catch (e) {
@@ -875,6 +910,22 @@ test("forms-ci coverage: board isolation — two concurrent drives cannot contam
   }
 });
 
+test("forms-ci coverage: an aborted drive issues no further commands, but may still close its own board", { timeout: 60000 }, async () => {
+  // The abort half of the fix, pinned directly: once a drive's flag is set
+  // (by its test's timeout signal, wired in newDrive), send() refuses every
+  // further command at issue time — nothing is written to the helper — while
+  // close, the cleanup of the drive's OWN board, still goes through.
+  const drive = newDrive("abort-proof");
+  drive.aborted = true;
+  const sentBefore = cmdTypesSent.length;
+  await assert.rejects(() => send({ type: "discover" }, 5000, drive), /drive aborted/);
+  await assert.rejects(() => send({ type: "fill" }, 5000, drive), /drive aborted/);
+  await assert.rejects(() => send({ type: "readback" }, 5000, drive), /drive aborted/);
+  assert.equal(cmdTypesSent.length, sentBefore, "a refused command was still recorded as sent");
+  const closed = await send({ type: "close" }, 10000, drive);
+  assert.equal(closed.ok, true, JSON.stringify(closed));
+});
+
 test("forms-ci coverage: the replay stayed read-only and never reached a submit path", { timeout: 600000 }, async () => {
   if (cmdTypesSent.length === 0) {
     // Standalone (e.g. --test-name-pattern selecting only this test): no drive
@@ -918,9 +969,9 @@ async function discoverBindings(form, drive) {
   return { bindings, schema, version: disc.data.observation.version, drive };
 }
 
-test("widget-gap guard: the EEO select policy is the decline option, and a wrong-option pick is caught by read-back", { timeout: 300000 }, async () => {
+test("widget-gap guard: the EEO select policy is the decline option, and a wrong-option pick is caught by read-back", { timeout: 300000 }, async (t) => {
   const form = FORM_BY_ID["lever-veeva-9ac55b31-df46-4acb-b305-2c0b7ed56027"];
-  const { bindings, schema, version, drive } = await discoverBindings(form);
+  const { bindings, schema, version, drive } = await discoverBindings(form, newDrive("guard-eeo", t && t.signal));
   const sendD = (cmd, ms) => send(cmd, ms, drive);
   const s = schema.find((x) => x.name === "eeo[gender]");
   const b = bindings[s.name];
@@ -940,9 +991,9 @@ test("widget-gap guard: the EEO select policy is the decline option, and a wrong
   await sendD({ type: "close" });
 });
 
-test("widget-gap guard: selecting a native select's placeholder is not a fill", { timeout: 300000 }, async () => {
+test("widget-gap guard: selecting a native select's placeholder is not a fill", { timeout: 300000 }, async (t) => {
   const form = FORM_BY_ID["lever-shieldai-ba945088-38ec-4e58-8f66-01c0497a3bd3"];
-  const { bindings, version, drive } = await discoverBindings(form);
+  const { bindings, version, drive } = await discoverBindings(form, newDrive("guard-placeholder", t && t.signal));
   const sendD = (cmd, ms) => send(cmd, ms, drive);
   const b = bindings["cards[f27077c2-d069-4885-b031-ee14b393fd41][field0]"];
   const placeholder = (b.options || [])[0];
@@ -953,9 +1004,9 @@ test("widget-gap guard: selecting a native select's placeholder is not a fill", 
   await sendD({ type: "close" });
 });
 
-test("widget-gap guard: number inputs take the profile's numeric value and refuse a non-numeric one by name", { timeout: 300000 }, async () => {
+test("widget-gap guard: number inputs take the profile's numeric value and refuse a non-numeric one by name", { timeout: 300000 }, async (t) => {
   const form = FORM_BY_ID["greenhouse-eosfitness-4336050009"];
-  const { bindings, schema, version, drive } = await discoverBindings(form);
+  const { bindings, schema, version, drive } = await discoverBindings(form, newDrive("guard-number", t && t.signal));
   const sendD = (cmd, ms) => send(cmd, ms, drive);
   const s = schema.find((x) => x.name === "start-year--0");
   const b = bindings[s.name];
@@ -974,7 +1025,7 @@ test("widget-gap guard: number inputs take the profile's numeric value and refus
   await sendD({ type: "close" });
 });
 
-test("widget-gap guard: conditional follow-ups are gated on the persona's parent answer", { timeout: 600000 }, async () => {
+test("widget-gap guard: conditional follow-ups are gated on the persona's parent answer", { timeout: 600000 }, async (t) => {
   assert.equal(typeof conditionalDecision, "function", "the drive has no conditional gate");
   const wpp = FORM_BY_ID["greenhouse-wppmedia-5437567008"];
   // The WPP disability follow-up fills only when the persona's disability answer
@@ -988,18 +1039,18 @@ test("widget-gap guard: conditional follow-ups are gated on the persona's parent
   assert.equal(conditionalDecision(eos, { name: "question_6872430009" }, { "question_6872428009": "No" }), null);
   // Behavioral: a full drive of WPP records the follow-up as gated — it is not
   // attempted and reported as a widget failure.
-  const rec = await driveForm(wpp, newDrive("guard-" + wpp.id));
+  const rec = await driveForm(wpp, newDrive("guard-" + wpp.id, t && t.signal));
   const entry = (rec.fills || []).find((f) => f.name === "4017898008");
   assert.ok(entry, "the follow-up is missing from the drive record");
   assert.equal(entry.outcome, "conditional_not_triggered");
 });
 
-test("widget-gap guard: attestation-class fields stop for the person on every widget class", { timeout: 600000 }, async () => {
-  const tsmg = await driveForm(FORM_BY_ID["lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7"], newDrive("guard-tsmg"));
+test("widget-gap guard: attestation-class fields stop for the person on every widget class", { timeout: 600000 }, async (t) => {
+  const tsmg = await driveForm(FORM_BY_ID["lever-tsmg-9e43a7f6-3476-482f-9cdd-ed5b73fb9df7"], newDrive("guard-tsmg", t && t.signal));
   const sel = (tsmg.fills || []).find((f) => f.name === "cards[ded439b4-712a-4cd3-8f14-a8f652c8e2bc][field0]");
   assert.ok(sel, "the attestation select is missing from the drive record");
   assert.equal(sel.outcome, "attestation_stop");
-  const lyra = await driveForm(FORM_BY_ID["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d"], newDrive("guard-lyra"));
+  const lyra = await driveForm(FORM_BY_ID["lever-lyrahealth-35bffe8b-ac9f-4749-ba4c-5f3a4d2bd77d"], newDrive("guard-lyra", t && t.signal));
   const radio = (lyra.fills || []).find((f) => f.name === "cards[d75eb035-dbc0-4bd0-87c6-852017951bd1][field3]");
   assert.ok(radio, "the attestation radio is missing from the drive record");
   assert.equal(radio.outcome, "attestation_stop");

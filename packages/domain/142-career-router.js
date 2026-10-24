@@ -1904,7 +1904,18 @@ const CareerRouter = (() => {
   }
   function handleResumePasteIngest(text, ctx) {
     const raw = s(text);
-    if (raw.length < 300 || raw.split(/\r?\n/).length < 6) return null;
+    // CHAT PASTE SHAPE (text-path measurement 2026-10-24): a resume
+    // pasted into a chat is usually ONE paragraph — the shape gate
+    // below (long AND multi-line) read every such paste as "not a
+    // resume" and the turn fell to the generic fallback. An
+    // explicitly framed paste ("here's my resume: ...") is admitted
+    // past this gate on the same content proof the long shape gets
+    // below — 122's parser must still read >= 3 drafts across >= 2
+    // kinds, experience or education among them (122 now segments
+    // inline section headers). The frame admits the paste TO the
+    // proof, never past it.
+    const framedPaste = /^\s*(here'?s|here is|this is)\s+my\s+(resume|cv)\b/i.test(raw) || /^\s*my\s+(resume|cv)\s*:/i.test(raw);
+    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste) return null;
     if (ctx.pastedText) return null; // a posting paste already claimed this turn upstream
     if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null; // posting-shaped
     if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null; // email-shaped
@@ -1991,6 +2002,68 @@ const CareerRouter = (() => {
     }
     const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
+  }
+  // BULLET LOOP (spec3 section 5; text-path measurement 2026-10-24):
+  // the resume-fix conversation the spec describes — the user names
+  // a bullet ("make the Brightpath bullet stronger"), supplies the
+  // result in their own words, and accepts the revised version
+  // ("yes, use that version"). At this head every one of those turns
+  // fell to the generic fallback: no state ever proposed a version,
+  // so there was nothing for the follow-ups to bind to. The loop
+  // carries its state on the thread mirror; the revision folds the
+  // user's OWN metric sentence into the bullet (no number is ever
+  // invented here), and acceptance writes the revised bullet onto
+  // the standing fact — a draft fact stays a draft, so the revision
+  // confirms with the resume as a whole, never ahead of it.
+  function bulletClauseOf(fact) {
+    const text = s((fact && (fact.text || fact.title)) || "");
+    const dash = text.indexOf(" - ");
+    return (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+  }
+  function handleResumeBulletLoop(text, ctx) {
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const pending = mir && mir.bulletFix && typeof mir.bulletFix === "object" ? mir.bulletFix : null;
+    const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    const fresh = pending && pending.at && (nowOf(ctx) - pending.at) <= 15 * 60 * 1000 && (nowOf(ctx) - pending.at) >= -60 * 1000;
+    if (pending && fresh && profile) {
+      const fact = (profile.facts || []).find((f) => f && f.id === pending.factId) || null;
+      if (fact && pending.stage === "awaiting_accept" && pending.revised) {
+        const raw = s(text).trim();
+        if (raw.split(/\s+/).length <= 8 && /^(yes|yeah|yep|sure|ok|okay|use|take|keep|apply)\b/i.test(raw) && !/\b(no|not|wait|stop|don'?t)\b/i.test(raw)) {
+          fact.bullets = [pending.revised];
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) delete wmir.bulletFix;
+          const reply = compose({ headline: "That version stands on the bullet now.", facts: [`${pending.company} bullet: "${pending.revised}"`, fact.needs_confirmation ? "It is recorded on the resume draft you pasted; it confirms with the rest of the resume when you confirm it — nothing is built on a draft before that word." : "It replaces the old wording on your record; the entry itself — title, company, dates — is untouched."], nextStep: "Name another bullet to strengthen, or say the word and we tailor this resume to a role." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
+      if (fact && pending.stage === "awaiting_metric") {
+        const raw = s(text).trim();
+        if (/\d/.test(raw) && !/\?/.test(raw) && raw.length >= 12 && !/^(yes|no)\b/i.test(raw)) {
+          const metric = raw.replace(/\.$/, "");
+          const revised = `${pending.clause.charAt(0).toUpperCase() + pending.clause.slice(1)} — ${metric}.`;
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) wmir.bulletFix = Object.assign({}, pending, { stage: "awaiting_accept", revised, at: nowOf(ctx) });
+          const reply = compose({ headline: "Here is the stronger version, with your result folded in.", facts: [`"${revised}"`, "Every number in it is yours, stated in your words — nothing in the version is an estimate of mine."], nextStep: "Say \"yes, use that version\" and it replaces the bullet on your resume; or give me a different result and I re-cut it." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
+        }
+      }
+    }
+    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/);
+    if (!askM || !profile) return null;
+    const label = askM[1].trim();
+    if (!label || label.length > 60) return null;
+    const fact = (profile.facts || []).find((f) => f && (f.kind === "experience" || f.kind === "project") && lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`).includes(label)) || null;
+    if (!fact) return null;
+    const clause = bulletClauseOf(fact);
+    if (!clause) return null;
+    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i);
+    const companyLabel = rawAskM && rawAskM[1] ? rawAskM[1].trim() : label;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) wmir.bulletFix = { factId: fact.id || null, company: companyLabel, clause, stage: "awaiting_metric", at: nowOf(ctx) };
+    const reply = compose({ headline: "Here is that bullet as it stands.", facts: [`"${clause}."`, "A stronger bullet leads with the result — what changed because of this work: time saved, money, people reached, errors caught. This one names the work but not its result yet."], nextStep: "Give me the result in your words — a number where you have one — and I fold it in and show you the version before anything changes." });
+    return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function handleSendAttempt(text, ctx) {
     const t = lc(text);
@@ -8889,7 +8962,7 @@ const CareerRouter = (() => {
   // search. An update goes through the same door as any resume: pasted, read as drafts, confirmed by the person.
   function routeResumeUpdate(text, ctx) {
     const t = lc(s(text)).replace(/[’]/g, "'");
-    if (!/\b(?:update|updating|refresh|redo|revise|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
     if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
     const profile = ctx.profile || {};
     const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");
@@ -9379,6 +9452,13 @@ const CareerRouter = (() => {
     // with a list verdict; the goal itself was never stored).
     const goalTurn = handleGoalFrame(text, c);
     if (goalTurn) return goalTurn;
+    // BULLET LOOP (spec3 section 5): a pending bullet revision owns
+    // its follow-ups (the user's metric, the acceptance) ahead of
+    // the ingest confirmation — "yes, use that version" names the
+    // proposed version, and eating it as a whole-resume confirmation
+    // would land a different act than the one the user named.
+    const bulletLoop = handleResumeBulletLoop(text, c);
+    if (bulletLoop) return bulletLoop;
     // V240 LIVE-FIX (probe j): a pasted resume is claimed HERE —
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its

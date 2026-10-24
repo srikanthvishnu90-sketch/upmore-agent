@@ -1372,7 +1372,24 @@ const CareerProfile = (() => {
 
   const SECTION_KIND = { education: "education", experience: "experience", "work experience": "experience", employment: "experience", projects: "project", "personal projects": "project", leadership: "leadership", awards: "award", certifications: "certification", skills: "skill", "technical skills": "skill" };
   function parseResumeText(text) {
-    const lines = String(text || "").split(/\r?\n/);
+    const markerKeys = Object.keys(SECTION_KIND).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const markerRe = new RegExp(`(^|[.!?]\\s+|\\s)(${markerKeys.join("|")})\\s*:`, "gi");
+    const lines = [];
+    for (const rawLine of String(text || "").split(/\r?\n/)) {
+      const marks = [...rawLine.matchAll(markerRe)];
+      if (marks.length < 2) { lines.push(rawLine); continue; }
+      const firstHead = marks[0].index + marks[0][1].length;
+      const pre = rawLine.slice(0, firstHead).trim();
+      if (pre) lines.push(pre);
+      for (let i = 0; i < marks.length; i++) {
+        const m = marks[i];
+        const contentStart = m.index + m[0].length;
+        const contentEnd = i + 1 < marks.length ? marks[i + 1].index + marks[i + 1][1].length : rawLine.length;
+        lines.push(`${m[2].trim()}:`);
+        const content = rawLine.slice(contentStart, contentEnd).trim();
+        if (content) lines.push(content);
+      }
+    }
     const drafts = [];
     let section = null, current = null;
     const flush = () => { if (current) { drafts.push(current); current = null; } };
@@ -14200,7 +14217,8 @@ const CareerRouter = (() => {
   }
   function handleResumePasteIngest(text, ctx) {
     const raw = s(text);
-    if (raw.length < 300 || raw.split(/\r?\n/).length < 6) return null;
+    const framedPaste = /^\s*(here'?s|here is|this is)\s+my\s+(resume|cv)\b/i.test(raw) || /^\s*my\s+(resume|cv)\s*:/i.test(raw);
+    if ((raw.length < 300 || raw.split(/\r?\n/).length < 6) && !framedPaste) return null;
     if (ctx.pastedText) return null;
     if (/\b(responsibilities|qualifications|about the role|what you'?ll do|what you will do)\s*:/i.test(raw)) return null;
     if (/^\s*(from|subject|date|to)\s*:/im.test(raw)) return null;
@@ -14261,6 +14279,56 @@ const CareerRouter = (() => {
     }
     const reply = compose({ headline: "Confirmed — your resume facts are on your record.", facts: [`${confirmed} fact${confirmed === 1 ? "" : "s"} from the resume you pasted are confirmed, in your own words — tailoring, packets, and answers now run on them.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "completed", sends: 0, resume_ingest: { confirmed } };
+  }
+  function bulletClauseOf(fact) {
+    const text = s((fact && (fact.text || fact.title)) || "");
+    const dash = text.indexOf(" - ");
+    return (dash >= 0 ? text.slice(dash + 3) : text).trim().replace(/\.$/, "");
+  }
+  function handleResumeBulletLoop(text, ctx) {
+    const t = lc(text);
+    const mir = threadMirrorOf(ctx);
+    const pending = mir && mir.bulletFix && typeof mir.bulletFix === "object" ? mir.bulletFix : null;
+    const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    const fresh = pending && pending.at && (nowOf(ctx) - pending.at) <= 15 * 60 * 1000 && (nowOf(ctx) - pending.at) >= -60 * 1000;
+    if (pending && fresh && profile) {
+      const fact = (profile.facts || []).find((f) => f && f.id === pending.factId) || null;
+      if (fact && pending.stage === "awaiting_accept" && pending.revised) {
+        const raw = s(text).trim();
+        if (raw.split(/\s+/).length <= 8 && /^(yes|yeah|yep|sure|ok|okay|use|take|keep|apply)\b/i.test(raw) && !/\b(no|not|wait|stop|don'?t)\b/i.test(raw)) {
+          fact.bullets = [pending.revised];
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) delete wmir.bulletFix;
+          const reply = compose({ headline: "That version stands on the bullet now.", facts: [`${pending.company} bullet: "${pending.revised}"`, fact.needs_confirmation ? "It is recorded on the resume draft you pasted; it confirms with the rest of the resume when you confirm it — nothing is built on a draft before that word." : "It replaces the old wording on your record; the entry itself — title, company, dates — is untouched."], nextStep: "Name another bullet to strengthen, or say the word and we tailor this resume to a role." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "completed", sends: 0 };
+        }
+      }
+      if (fact && pending.stage === "awaiting_metric") {
+        const raw = s(text).trim();
+        if (/\d/.test(raw) && !/\?/.test(raw) && raw.length >= 12 && !/^(yes|no)\b/i.test(raw)) {
+          const metric = raw.replace(/\.$/, "");
+          const revised = `${pending.clause.charAt(0).toUpperCase() + pending.clause.slice(1)} — ${metric}.`;
+          const wmir = threadMirrorForWrite(ctx);
+          if (wmir) wmir.bulletFix = Object.assign({}, pending, { stage: "awaiting_accept", revised, at: nowOf(ctx) });
+          const reply = compose({ headline: "Here is the stronger version, with your result folded in.", facts: [`"${revised}"`, "Every number in it is yours, stated in your words — nothing in the version is an estimate of mine."], nextStep: "Say \"yes, use that version\" and it replaces the bullet on your resume; or give me a different result and I re-cut it." });
+          return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
+        }
+      }
+    }
+    const askM = t.match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/) || t.match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/) || t.match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/);
+    if (!askM || !profile) return null;
+    const label = askM[1].trim();
+    if (!label || label.length > 60) return null;
+    const fact = (profile.facts || []).find((f) => f && (f.kind === "experience" || f.kind === "project") && lc(`${f.title || ""} ${f.text || ""} ${(f.bullets || []).join(" ")}`).includes(label)) || null;
+    if (!fact) return null;
+    const clause = bulletClauseOf(fact);
+    if (!clause) return null;
+    const rawAskM = s(text).match(/\bmake\s+(?:the|my)\s+(.+?)\s+bullet\s+(?:stronger|better)\b/i) || s(text).match(/\bstrengthen\s+(?:the|my)\s+(.+?)\s+bullet\b/i) || s(text).match(/\bimprove\s+(?:the|my)\s+(.+?)\s+bullet\b/i);
+    const companyLabel = rawAskM && rawAskM[1] ? rawAskM[1].trim() : label;
+    const wmir = threadMirrorForWrite(ctx);
+    if (wmir) wmir.bulletFix = { factId: fact.id || null, company: companyLabel, clause, stage: "awaiting_metric", at: nowOf(ctx) };
+    const reply = compose({ headline: "Here is that bullet as it stands.", facts: [`"${clause}."`, "A stronger bullet leads with the result — what changed because of this work: time saved, money, people reached, errors caught. This one names the work but not its result yet."], nextStep: "Give me the result in your words — a number where you have one — and I fold it in and show you the version before anything changes." });
+    return { intent: "career_resume_bullet", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function handleSendAttempt(text, ctx) {
     const t = lc(text);
@@ -19158,7 +19226,7 @@ const CareerRouter = (() => {
   }
   function routeResumeUpdate(text, ctx) {
     const t = lc(s(text)).replace(/[’]/g, "'");
-    if (!/\b(?:update|updating|refresh|redo|revise|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
+    if (!/\b(?:update|updating|refresh|redo|revise|fix|add (?:my )?new job to)\b[^.?]*\b(?:my )?(?:resume|cv)\b/.test(t)) return null;
     if (/\b(?:for|to)\s+(?:a|an|the|this|that)\b[^.?]*\b(?:role|job|posting|position|internship)\b/.test(t) && !/\bnew job\b/.test(t)) return null;
     const profile = ctx.profile || {};
     const onFile = !!(profile.resume && (profile.resume.filename || profile.resume.sha256)) || (profile.facts || []).some((f) => f && f.source === "resume-ingest");
@@ -19481,6 +19549,8 @@ const CareerRouter = (() => {
     if (earlyRecall) return earlyRecall;
     const goalTurn = handleGoalFrame(text, c);
     if (goalTurn) return goalTurn;
+    const bulletLoop = handleResumeBulletLoop(text, c);
+    if (bulletLoop) return bulletLoop;
     const resumeIngest = handleResumePasteIngest(text, c);
     if (resumeIngest) return resumeIngest;
     const resumeConfirm = handleResumeIngestConfirm(text, c);

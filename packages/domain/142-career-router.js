@@ -2087,6 +2087,69 @@ const CareerRouter = (() => {
     return s(text);
   }
   function moneyOf(n) { return n >= 1000 ? `$${Math.round(n / 1000)}k` : `$${n}`; }
+  // LAST DISCUSSION (generalization mech 2): every substantive
+  // conversational serve records what the conversation is now
+  // ABOUT — intent-derived label, the user's ask, and whether the
+  // serve itself ended on a question (a pending question). The
+  // bare-reply resolver reads it to name the last thing discussed.
+  const DISCUSSION_INTENT_RE = /^(tracking_|negotiation_|prep_|mock|path_plan|career_os|career_discovery|career_internship|outreach_|eligibility|profile_correction|career_goal|career_watch|rejection_|career_catchall|career_life_event|conversation_|disclosure|career_erase|career_profile|honest_unavailable|people_matching)/;
+  function discussionLabelOf(intent) {
+    const table = [
+      [/^tracking_/, "your application tracker"], [/^negotiation_/, "the offer discussion"],
+      [/^(prep_|mock)/, "interview prep"], [/^(path_plan|career_os)/, "the career plan"],
+      [/^(career_discovery|career_internship)/, "the role search"], [/^outreach_/, "the outreach work"],
+      [/^eligibility/, "the eligibility question"], [/^profile_correction/, "your record"],
+      [/^career_goal/, "your career goal"], [/^career_watch/, "your job-alert watch"],
+      [/^rejection_/, "the rejection follow-up"], [/^career_life_event/, "the career event you just named"],
+      [/^career_catchall/, "your last question"], [/^honest_unavailable/, "the request I could not run"],
+      [/^people_matching/, "the people-matching question"], [/^career_erase/, "the erase"],
+      [/^disclosure/, "the disclosure question"], [/^conversation_/, "the last exchange"],
+    ];
+    for (const [re, label] of table) if (re.test(intent || "")) return label;
+    return "the last thing we discussed";
+  }
+  function lastSentenceIsQuestion(reply) {
+    const parts = s(reply).split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    return parts.length ? /\?$/.test(parts[parts.length - 1]) : false;
+  }
+  // BARE-REPLY RESOLVER (generalization mech 2): a bare yes / no /
+  // undo / never mind / go with NO pending question and NO standing
+  // offer used to fall to the banner (or, worse, be captured as a
+  // record confirm). It now gets the "yes to what?" class of reply
+  // NAMING THE LAST THING DISCUSSED. Every formal pending state
+  // stands this resolver down — those bindings own their replies
+  // exactly as before.
+  function handleBareReply(text, ctx) {
+    const raw = s(text).trim();
+    const t = lc(raw);
+    const fam = /^(yes|yeah|yep|sure|ok|okay|go|go ahead|do it)[.!]*$/.test(t) ? "yes"
+      : /^(no|nope|nah|not really)[.!]*$/.test(t) ? "no"
+      : /^(undo|undo it|undo that)[.!]*$/.test(t) ? "undo"
+      : /^(never ?mind|forget it|skip it)[.!]*$/.test(t) ? "nevermind" : null;
+    if (!fam) return null;
+    const mir = threadMirrorOf(ctx);
+    if (mir) {
+      if (mir.eraseConfirm || mir.disclosure || mir.bulletFix || mir.resumeIngest) return null;
+      // The read-back and the tailoring own only AFFIRMATIONS —
+      // a no / undo / never mind against them is not theirs to
+      // bind, and standing down for those families too would
+      // drop the turn to the banner behind them.
+      if (fam === "yes" && mir.tailor && !mir.tailor.applied) return null;
+      if (fam === "yes" && mir.affirmRecord && (nowOf(ctx) - (typeof mir.affirmRecord.at === "number" ? mir.affirmRecord.at : Date.parse(mir.affirmRecord.at || "")) || 0) <= 3 * 60 * 1000) return null;
+    }
+    if (ctx.plan && ctx.plan.kind === "campaign_plan") return null;
+    const nt = negotiationThreadOf(ctx);
+    if (nt && (nt.company || nt.amount || (Array.isArray(nt.offers) && nt.offers.length))) return null;
+    const frames = frameMarksOf(ctx);
+    if (frames.negotiation && frames.negotiation.offers) return null;
+    const last = mir && mir.lastDiscussion && typeof mir.lastDiscussion === "object" ? mir.lastDiscussion : null;
+    if (last && last.pendingQuestion) return null;
+    const named = last ? `The last thing we discussed was ${last.label || "the last exchange"}${last.ask ? ` — “${s(last.ask).slice(0, 80)}”` : ""}.` : "Nothing has been discussed yet in this conversation.";
+    if (fam === "yes") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Yes to what?", facts: [named, "No question is waiting on a yes, so I have not treated that as approval of anything, and nothing has changed."], nextStep: "Name the action you want and it runs." }) };
+    if (fam === "no") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "No to what?", facts: [named, "No question is waiting on a no, so nothing has been refused or changed."], nextStep: "Name what you do want and we go there." }) };
+    if (fam === "undo") return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Undo what?", facts: [named, "There is no pending action from that discussion for me to reverse. If a completed step is what you mean, name it and I will say exactly what can and cannot be undone."], nextStep: "Name the step and its state is read back first." }) };
+    return { intent: "conversation_bare_reply", resultStatus: "awaiting_user", reply: compose({ headline: "Closed for now.", facts: [last ? `${named} I have not changed anything based on that.` : "Nothing has been discussed yet in this conversation, so there is nothing to close."], nextStep: "Say the word when you want to pick anything back up." }) };
+  }
 
   // TRACKER FOLLOW-UPS (split out of the frame resolver): the
   // whole-turn shapes are claimed EARLY in dispatch, ahead of the
@@ -11911,6 +11974,11 @@ const CareerRouter = (() => {
     { const rg = routeResumeGuidance(text, c); if (rg) return rg; }
     { const fam = routeFamily(text, c); if (fam) return fam; }
     { const hua = handleHonestUnavailableAction(text, c); if (hua) return hua; }
+    // BARE REPLIES (generalization mech 2): after every binding
+    // that could own them — a bare yes/no/undo/never mind with no
+    // pending question and no standing offer resolves here,
+    // naming the last thing discussed.
+    { const brp = handleBareReply(text, c); if (brp) return brp; }
     // Career-adjacent but unmatched: the 140 unmatched fallback finally has a
     // caller (the baseline noted it existed with none in the path).
     if (/\b(job|career|resume|interview|application|internship|intern)\b/.test(t)) {
@@ -13570,6 +13638,14 @@ const CareerRouter = (() => {
     const c = ctx || {};
     if (!res || !res.intent) return;
     if (res.intent === "career_fallback" || res.intent === "honest_unavailable") return;
+    // LAST DISCUSSION (mech 2): record what this serve makes the
+    // conversation about, before the frame marks below.
+    try {
+      if (res.intent && res.reply && DISCUSSION_INTENT_RE.test(res.intent)) {
+        const wmir = threadMirrorForWrite(c);
+        if (wmir) wmir.lastDiscussion = { intent: res.intent, label: discussionLabelOf(res.intent), ask: s(text).slice(0, 120), pendingQuestion: lastSentenceIsQuestion(res.reply), at: new Date(nowOf(c)).toISOString() };
+      }
+    } catch { /* a discussion mark must never break a serve */ }
     // STANDING FRAMES (2026-10-24): every serve that opens a
     // conversational frame records it, so a short follow-up can
     // bind to what the conversation is standing on. Marks are

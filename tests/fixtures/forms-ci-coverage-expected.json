@@ -7,8 +7,8 @@
  "coverage": {
   "formsCaptured": 11,
   "questionsMapped": 271,
-  "questionsFilled": 190,
-  "questionsReadBackExactly": 183,
+  "questionsFilled": 193,
+  "questionsReadBackExactly": 186,
   "claims": "scoped only: per-form claims in capturedForms[].claim and per-widget-class claims in widgetClassClaims — no aggregate claim is made"
  },
  "capturedForms": [
@@ -102,8 +102,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -113,8 +113,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 37 options for this field; the drive attempted the profile-correct option \"United States\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      }
     ]
@@ -138,8 +138,8 @@
     "rawFields": 36,
     "mapped": 36,
     "bindError": null,
-    "filledCount": 19,
-    "readbackMatched": 19,
+    "filledCount": 21,
+    "readbackMatched": 21,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -198,11 +198,11 @@
      ],
      [
       "start-year--0",
-      "DRIVER_ERROR"
+      "filled"
      ],
      [
       "end-year--0",
-      "DRIVER_ERROR"
+      "filled"
      ],
      [
       "question_6872424009",
@@ -230,7 +230,7 @@
      ],
      [
       "question_6872430009",
-      "value_did_not_persist"
+      "conditional_not_triggered"
      ],
      [
       "question_6872431009",
@@ -343,55 +343,31 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "school--0",
       "label": "School",
       "status": "required-conditional",
-      "condition": "Required only within an education entry the candidate chooses to add: the board's education mode for this job is education_optional (tests/fixtures/forms-ci/greenhouse-options.json) — the entry is optional, and its fields bind only when an entry is present.",
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "degree--0",
       "label": "Degree",
       "status": "required-conditional",
-      "condition": "Required only within an education entry the candidate chooses to add: the board's education mode for this job is education_optional (tests/fixtures/forms-ci/greenhouse-options.json) — the entry is optional, and its fields bind only when an entry is present.",
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
-     },
-     {
-      "name": "start-year--0",
-      "label": "Start date year",
-      "status": "required-conditional",
-      "condition": "Required only within an education entry the candidate chooses to add: the board's education mode for this job is education_optional (tests/fixtures/forms-ci/greenhouse-options.json) — the entry is optional, and its fields bind only when an entry is present.",
-      "schemaRequired": false,
-      "widgetClass": "number input",
-      "outcome": "DRIVER_ERROR",
-      "attemptedValue": "06/01/2027",
-      "reason": "Number input (education year): the executor returned DRIVER_ERROR on this fill; the drive policy attempted \"06/01/2027\" (its date-shaped value for a date-labeled field) in a year-only input. Pinned as the measured outcome, deterministic across the original measurement's repeat drives; no cause beyond the executor's own error record is asserted, and no widget is involved."
-     },
-     {
-      "name": "end-year--0",
-      "label": "End date year",
-      "status": "required-conditional",
-      "condition": "Required only within an education entry the candidate chooses to add: the board's education mode for this job is education_optional (tests/fixtures/forms-ci/greenhouse-options.json) — the entry is optional, and its fields bind only when an entry is present.",
-      "schemaRequired": false,
-      "widgetClass": "number input",
-      "outcome": "DRIVER_ERROR",
-      "attemptedValue": "06/01/2027",
-      "reason": "Number input (education year): the executor returned DRIVER_ERROR on this fill; the drive policy attempted \"06/01/2027\" (its date-shaped value for a date-labeled field) in a year-only input. Pinned as the measured outcome, deterministic across the original measurement's repeat drives; no cause beyond the executor's own error record is asserted, and no widget is involved."
      },
      {
       "name": "question_6872424009",
@@ -400,8 +376,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -412,7 +388,7 @@
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
       "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -422,8 +398,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -432,9 +408,9 @@
       "status": "optional",
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "outcome": "conditional_not_triggered",
+      "attemptedValue": "not attempted (conditional gate)",
+      "reason": "Custom select (react-select): this \"If no…\" follow-up applies only when its parent question — the CPR-current question question_6872428009 — is answered No. The persona's answer to the parent is \"Yes\", so the condition does not hold: the drive did not attempt the field (outcome conditional_not_triggered) and it is not counted. The capture also carries no menu DOM for the widget, so its live behavior stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -445,7 +421,7 @@
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
       "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -455,8 +431,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -466,8 +442,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -477,8 +453,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -488,8 +464,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -499,8 +475,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -510,8 +486,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -521,15 +497,15 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 19 of 36 mapped questions filled, 19 read back exactly; 17 mapped-not-filled field(s) reconciled per field in this record: 15 custom select(s) unverified-against-live, 2 DRIVER_ERROR."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 21 of 36 mapped questions filled, 21 read back exactly; 15 mapped-not-filled field(s) reconciled per field in this record: 15 custom select(s) unverified-against-live, 1 conditional follow-up(s) gated on the persona's parent answer."
    }
   },
   {
@@ -723,8 +699,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -734,44 +710,41 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic City",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic City\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "school--0",
       "label": "School*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "degree--0",
       "label": "Degree*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "discipline--0",
       "label": "Discipline",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema carries no required marker on the field itself.",
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic Discipline",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Discipline\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -781,8 +754,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Campus - SpaceX event (indicate below)",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Campus - SpaceX event (indicate below)\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -792,8 +765,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "3.9 out of 4.0",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"3.9 out of 4.0\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -803,8 +776,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Other/Not Applicable",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Other/Not Applicable\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -814,8 +787,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Not applicable/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 13 options for this field; the drive attempted the profile-correct option \"Not applicable/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -825,8 +798,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 156 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -836,8 +809,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 19 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -847,8 +820,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Did not take/Do not recall",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 156 options for this field; the drive attempted the profile-correct option \"Did not take/Do not recall\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -858,8 +831,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"No\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -869,8 +842,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 6 options for this field; the drive attempted the profile-correct option \"I have never worked for SpaceX, SpaceXAI, xAI, X, or Twitter\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -880,8 +853,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -891,8 +864,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "I am authorized to work in the United States for any employer",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"I am authorized to work in the United States for any employer\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -902,8 +875,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "(a) U.S. citizen or national of the United States",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 6 options for this field; the drive attempted the profile-correct option \"(a) U.S. citizen or national of the United States\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -913,8 +886,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -924,8 +897,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Decline to self-identify\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -935,8 +908,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      }
     ]
@@ -960,8 +933,8 @@
     "rawFields": 33,
     "mapped": 33,
     "bindError": null,
-    "filledCount": 11,
-    "readbackMatched": 11,
+    "filledCount": 12,
+    "readbackMatched": 12,
     "submitControl": true,
     "driveError": null,
     "driveErrorDetail": null,
@@ -1025,7 +998,7 @@
      ],
      [
       "end-year--0",
-      "DRIVER_ERROR"
+      "filled"
      ],
      [
       "question_9753034007",
@@ -1147,68 +1120,53 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "school--0",
       "label": "School*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic University",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic University\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "degree--0",
       "label": "Degree*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic Degree",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Degree\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "discipline--0",
       "label": "Discipline*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic Discipline",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic Discipline\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "end-month--0",
       "label": "End date month*",
       "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "June",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"June\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
-     },
-     {
-      "name": "end-year--0",
-      "label": "End date year*",
-      "status": "required-conditional",
-      "condition": "Required as part of an education entry: the board's education mode for this job is education_required (tests/fixtures/forms-ci/greenhouse-options.json) — an education entry must be submitted, and this field belongs to that entry; the captured schema also marks the field itself required.",
-      "schemaRequired": true,
-      "widgetClass": "number input",
-      "outcome": "DRIVER_ERROR",
-      "attemptedValue": "06/01/2027",
-      "reason": "Number input (education year): the executor returned DRIVER_ERROR on this fill; the drive policy attempted \"06/01/2027\" (its date-shaped value for a date-labeled field) in a year-only input. Pinned as the measured outcome, deterministic across the original measurement's repeat drives; no cause beyond the executor's own error record is asserted, and no widget is involved."
      },
      {
       "name": "question_9753036007",
@@ -1217,8 +1175,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1228,8 +1186,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "N/A - have never held U.S. security clearance",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"N/A - have never held U.S. security clearance\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1239,8 +1197,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "A United States citizen or national",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"A United States citizen or national\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1250,8 +1208,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1261,8 +1219,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1272,8 +1230,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1283,8 +1241,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1294,8 +1252,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1305,8 +1263,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1316,8 +1274,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Costa Mesa, CA",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Costa Mesa, CA\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1327,8 +1285,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1338,8 +1296,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1349,8 +1307,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Google job search",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 22 options for this field; the drive attempted the profile-correct option \"Google job search\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1360,8 +1318,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1371,8 +1329,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Decline to self-identify\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1382,15 +1340,15 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 33 mapped questions filled, 11 read back exactly; 22 mapped-not-filled field(s) reconciled per field in this record: 21 custom select(s) unverified-against-live, 1 DRIVER_ERROR."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 12 of 33 mapped questions filled, 12 read back exactly; 21 mapped-not-filled field(s) reconciled per field in this record: 21 custom select(s) unverified-against-live."
    }
   },
   {
@@ -1511,7 +1469,7 @@
      ],
      [
       "4017898008",
-      "value_did_not_persist"
+      "conditional_not_triggered"
      ],
      [
       "4017899008",
@@ -1568,8 +1526,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "United States",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"United States\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1579,8 +1537,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Synthetic City",
+      "reason": "Custom select (react-select): no option list for this field exists anywhere in the captured material — no menu DOM in the capture and no entry in greenhouse-options.json. The drive attempted the profile value \"Synthetic City\" and the executor reported value_did_not_persist. A field with no captured option evidence is never counted filled; it stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1590,8 +1548,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1601,8 +1559,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "AKQA",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 60 options for this field; the drive attempted the profile-correct option \"AKQA\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1612,8 +1570,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1623,8 +1581,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1634,8 +1592,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "No",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 2 options for this field; the drive attempted the profile-correct option \"No\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1645,8 +1603,8 @@
       "schemaRequired": true,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Immediately Available",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"Immediately Available\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1656,8 +1614,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 5 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1667,8 +1625,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 7 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1678,8 +1636,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 9 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1689,8 +1647,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 18 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1700,20 +1658,19 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Decline to self-identify",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Decline to self-identify\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
       "name": "4017898008",
       "label": "If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)",
       "status": "required-conditional",
-      "condition": "Applies only under the condition stated in its own label in the capture (\"If you answered 'Yes', please select the option(s) that best describe your disability, impairment, or long-term health condition. (Select all that apply)\") — a follow-up to the preceding disability question (4017733008).",
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
-      "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled. The field's triggering condition was also never met under the drive: the antecedent disability question's own value did not persist, so the conditional follow-up was never activated under the TEST fact floor.",
+      "outcome": "conditional_not_triggered",
+      "attemptedValue": "not attempted (conditional gate)",
+      "reason": "Custom select (react-select), required-conditional: this follow-up applies only when its parent question — the disability question 4017733008 — is answered with an affirmative Yes. The persona's answer to the parent is the EEO decline (\"Decline to self-identify\"), so the condition does not hold: the drive did not attempt the field (outcome conditional_not_triggered) and it is not counted. The capture also carries no menu DOM for the widget, so its live behavior stays unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1723,8 +1680,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 4 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1734,8 +1691,8 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "16-24",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 8 options for this field; the drive attempted the profile-correct option \"16-24\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      },
      {
@@ -1745,15 +1702,15 @@
       "schemaRequired": false,
       "widgetClass": "custom select (react-select)",
       "outcome": "value_did_not_persist",
-      "attemptedValue": "Synthetic",
-      "reason": "Custom select (react-select): the executor's widget drive attempted \"Synthetic\" and the value did not persist on the stripped capture (executor outcome value_did_not_persist). The capture carries no option list for this widget (its options load when its menu opens), so from the capture alone it cannot be determined whether this select would persist on the live form — unverified-against-live. The live comparison is held, not scheduled.",
+      "attemptedValue": "Yes",
+      "reason": "Custom select (react-select): the captured option evidence (tests/fixtures/forms-ci/greenhouse-options.json, boards-API capture of 2026-10-20) carries 3 options for this field; the drive attempted the profile-correct option \"Yes\" and the executor reported value_did_not_persist. The stripped capture carries no menu DOM for this widget (no select__menu or option nodes) and no script, so the widget cannot be opened or set here; whether the attempted option persists on the live form is unverified-against-live.",
       "unverifiedAgainstLive": true
      }
     ]
    },
    "claim": {
     "status": "claimable",
-    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 28 mapped questions filled, 11 read back exactly; 17 mapped-not-filled field(s) reconciled per field in this record: 17 custom select(s) unverified-against-live."
+    "basis": "Coverage record stands on its own provenance (capture manifest) and pinned drive: 11 of 28 mapped questions filled, 11 read back exactly; 17 mapped-not-filled field(s) reconciled per field in this record: 17 custom select(s) unverified-against-live, 1 conditional follow-up(s) gated on the persona's parent answer."
    }
   },
   {
@@ -2743,7 +2700,7 @@
    "mapped": 75,
    "filled": 0,
    "verdict": "unverified-against-live",
-   "note": "Every non-filled field of this class is labeled unverified-against-live per field in the reconciliation: the stripped capture cannot show whether these selects persist on the live form. Live comparison held, not scheduled."
+   "note": "Every non-filled field of this class is labeled unverified-against-live per field in the reconciliation: the stripped capture carries no menu DOM for these widgets, so the drive cannot open or set them here and whether the profile-correct option (from the captured boards-API evidence, where the capture carries it) persists on the live form is unverified. Live comparison held, not scheduled."
   },
   {
    "family": "greenhouse",
@@ -2751,15 +2708,15 @@
    "mapped": 11,
    "filled": 11,
    "verdict": "covered",
-   "note": "Every file question filled and read back by sha256 of the synthetic artifact."
+   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
   },
   {
    "family": "greenhouse",
    "widgetClass": "number input",
    "mapped": 3,
-   "filled": 0,
-   "verdict": "partial",
-   "note": "All 3 mapped number inputs returned the executor's DRIVER_ERROR (education year inputs on EOS Fitness ×2, Anduril ×1); none filled."
+   "filled": 3,
+   "verdict": "covered",
+   "note": "All 3 education-year number inputs now fill with the profile's numeric year and read back exactly (widget-gap lane, 2026-10-23); on the base drive they were attempted with a date string and returned DRIVER_ERROR."
   },
   {
    "family": "greenhouse",
@@ -2767,7 +2724,7 @@
    "mapped": 1,
    "filled": 1,
    "verdict": "covered",
-   "note": "Every mapped field of this class filled; no read-back exception is recorded in this class (form-level read-back pins govern)."
+   "note": "Every mapped field of this class filled."
   },
   {
    "family": "lever",

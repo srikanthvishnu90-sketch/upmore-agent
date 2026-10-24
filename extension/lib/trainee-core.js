@@ -4429,7 +4429,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     ].find(([, a]) => a?.factId === p.factId) ?? [];
     if (ownAnswerOnly(o.field.label) && !Object.values(o.saved).some((a) => a?.factId === p.factId)) return null;
     const shown2 = options.find((x) => x.value === p.value).label;
-    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, "")) ? p.value : null;
+    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, ""), combinedEligibility(o.answers)) ? p.value : null;
   }
   var SEARCHED = /* @__PURE__ */ new Set([
     "location",
@@ -4438,8 +4438,11 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     "school"
   ]);
   var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
-  function optionRule(option, fact, searched, key) {
-    if (assertsSeparateSponsorshipPosition(option)) return null;
+  var combinedEligibility = (answers) => yesNoOf(String(answers?.work_authorization?.value ?? "")) === "yes" && yesNoOf(String(answers?.sponsorship?.value ?? "")) === "no";
+  function optionRule(option, fact, searched, key, combinedOk = false) {
+    if (assertsSeparateSponsorshipPosition(option)) {
+      return combinedOk && key === "work_authorization" && !assertsSponsorshipNeed(option) && yesNoOf(option) === "yes" ? "option-combined-eligibility" : null;
+    }
     if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
     if (searched) {
       const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
@@ -5425,7 +5428,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (ownAnswerOnly(f.label) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
-    const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf)) || (!f.section && a.kind === "text" && [
+    const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf, combinedEligibility(m.answers))) || (!f.section && a.kind === "text" && [
       "date",
       "month"
     ].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
@@ -5545,7 +5548,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       dropped
     };
   }
-  function derivation(f, kind, a, tf) {
+  function derivation(f, kind, a, tf, combinedOk = false) {
     const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
     const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
     if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
@@ -5554,7 +5557,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
       return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
     }
-    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key);
+    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key, combinedOk);
     if (kind === "listed") return n(a.value) === n(tf.value) ? SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option" : null;
     return n(a.value) === n(tf.value) ? "verbatim" : null;
   }

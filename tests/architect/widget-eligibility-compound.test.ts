@@ -6,7 +6,7 @@
 // planner (career_apply's authorizedWithoutSponsorship), never clicked from one fact alone.
 // Synthetic TEST data only; never a real user's answers.
 import { chooseOption, assertsSeparateSponsorshipPosition, assertsSponsorshipNeed } from "../../supabase/functions/_shared/answer_options.ts";
-import { chooseWidgetOption, type SnapField, trustedManifest } from "../../extension/src/apply_core.ts";
+import { batchPlan, chooseWidgetOption, contractFill, planForm, trustedManifest } from "../../extension/src/apply_core.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v {
   if (!v) throw new Error(m);
@@ -16,7 +16,7 @@ const OWNER = "TEST-owner", NOW = Date.UTC(2026, 9, 24), JOB = "greenhouse:test-
 const RESUME = { filename: "TEST-resume.pdf", sha256: "c".repeat(64) };
 const own = (factId: string, value: string) => ({ value, factId, confirmed: true, user_id: OWNER, provenance: "owner stated (TEST)", confirmation_event_id: `evt-${factId}` });
 const M = trustedManifest({ owner: OWNER, resume: RESUME, rows: [], file: { user_id: OWNER, saved: {}, answers: {
-  work_authorization: own("TEST-2", "Yes"), sponsorship: own("TEST-9", "No"),
+  first_name: own("TEST-1", "Test"), work_authorization: own("TEST-2", "Yes"), sponsorship: own("TEST-9", "No"),
 } } });
 type O = { label: string; value: string };
 const opts = (labels: string[]): O[] => labels.map((l) => ({ label: l, value: l }));
@@ -88,4 +88,27 @@ Deno.test("compound/5 a compound-phrased option on the sponsorship question is a
   eq(picked, null, "the person answers the compound themselves");
   // Sanity on the plain menus: a bare No is still their fact.
   eq(choose(w("sp", "Will you now or in the future require sponsorship?"), ["No", "Yes"]), "No", "the sponsorship fact's own no still clicks");
+});
+
+Deno.test("compound/6 the both-facts derivation carries through the batch contract, and only with both facts", () => {
+  // The widget as the batch path sees it: options known at plan time. With both facts standing in the
+  // sanctioned conjunction, the combined answer fills and its ledger derivation names the both-facts
+  // rule; with the sponsorship fact missing, the same widget is asked — never filled from authorization
+  // alone. (Chooser-path states are pinned in tests/career-extension-react-select.test.cjs.)
+  const COMBINED_Q = "Are you authorized to work in the United States without sponsorship?";
+  const menu = opts(["Yes, I am authorized and do not require sponsorship", "No, I am not authorized to work in the United States"]);
+  const fieldW = { name: "auth", label: COMBINED_Q, type: "multi_value_single_select", required: true, options: menu, widget: "react-select" };
+  const FN = { name: "fn", label: "First Name", type: "input_text", required: true, options: [] as O[] };
+  const planW = (man: any) => planForm({ userId: OWNER, jobId: JOB, company: "test-co", family: "greenhouse", schema: [FN, fieldW], answers: man.answers, saved: man.saved, now: NOW });
+  const entryW = (man: any) => batchPlan({ jobId: JOB, company: "test-co", url: "https://job-boards.greenhouse.io/test-co/jobs/2222", family: "greenhouse", schema: [FN, fieldW], plan: planW(man), challenge: false,
+    resume: RESUME, listed: ["auth"], manifest: man });
+  const e = entryW(M);
+  assert(e.ok, JSON.stringify(e));
+  const led = e.posting.ledger.find((l) => l.field_id === "auth");
+  eq(led?.derivation_rule, "option-combined-eligibility", "the ledger names the both-facts derivation");
+  const M2 = trustedManifest({ owner: OWNER, resume: RESUME, rows: [], file: { user_id: OWNER, saved: {}, answers: {
+    first_name: own("TEST-1", "Test"), work_authorization: own("TEST-2", "Yes"),
+  } } });
+  const r2 = contractFill({ schema: [FN, fieldW], plan: planW(M2), manifest: M2, listed: ["auth"], resume: RESUME });
+  assert(!r2.fill.some((p) => p.name === "auth"), "authorization alone: the combined widget is not in the contract fill");
 });

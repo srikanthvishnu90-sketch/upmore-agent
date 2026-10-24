@@ -110,6 +110,35 @@ test("chooser (a): a COMBINED answer is never chosen from the authorization fact
   assert.equal(v, null, "the combined answer is asked, never chosen from the authorization fact alone");
 });
 
+test("chooser (a): the COMBINED answer across all four fact states (the coordinator's four-state pin)", () => {
+  // The employer's combined question — the only form the planner answers combined options on
+  // (career_apply's authorizedWithoutSponsorship is keyed on the label's without-sponsorship ask).
+  // Red on the pre-fix integration head for the both-facts state (the gate's blanket veto refused the
+  // sanctioned derivation too); the other three states were already correct.
+  const COMBINED_Q = "Are you authorized to work in the United States without sponsorship?";
+  const MENU = ["Yes, I am authorized and do not require sponsorship", "No, I am not authorized to work in the United States"];
+  const F = (name) => field(name, COMBINED_Q);
+  const pick = (answers) => choose(F("question_auth"), MENU, answers);
+  const A = (k, v) => ({ [k]: { value: v, factId: "fact:" + k } });
+  // both facts present → answered from both facts (the conjunction is the derivation, not either fact alone)
+  assert.equal(pick({ ...A("work_authorization", "Yes"), ...A("sponsorship", "No") }), MENU[0],
+    "both facts in the sanctioned conjunction: the combined answer is the two facts' together");
+  // both facts present but the conjunction broken (sponsorship need is affirmative) → not that answer
+  assert.equal(pick({ ...A("work_authorization", "Yes"), ...A("sponsorship", "Yes") }), null,
+    "a sponsorship need breaks the conjunction: the no-need compound is not theirs to click");
+  // authorization fact only → asked, not clicked (never from authorization alone)
+  assert.equal(pick(A("work_authorization", "Yes")), null, "authorization alone never clicks a combined answer");
+  // sponsorship fact only → asked; the authorization question is not answered from it
+  assert.equal(pick(A("sponsorship", "No")), null, "sponsorship alone does not answer an authorization question");
+  // neither fact → truthful ask
+  assert.equal(pick({}), null, "no facts: asked, never invented");
+  // And the plain question licenses no combined click in ANY state, both facts included: the planner
+  // refuses the compound upstream on a plain ask, on both classification paths alike.
+  const PLAIN = "Are you legally authorized to work in the United States?";
+  assert.equal(choose(field("question_auth", PLAIN), MENU, { ...A("work_authorization", "Yes"), ...A("sponsorship", "No") }), null,
+    "a plain question never licenses a combined click, even with both facts on file");
+});
+
 test("chooser (a): a wrong degree is not chosen for the person's degree fact", () => {
   const v = choose(field("question_degree", "Degree"), ["Master's Degree", "Doctorate"]);
   assert.equal(v, null);

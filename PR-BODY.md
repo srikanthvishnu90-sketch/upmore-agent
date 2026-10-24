@@ -211,9 +211,23 @@ full run: + spacex, tsmg, lyrahealth, conditional guard). Reconciled per item
 in docs/engine/FORMS-CI-COVERAGE-RECONCILIATION-2026-10-24.md: the drive path
 is byte-identical between the re-pins and this head (bindFields md5-identical;
 empty diff over suite/helper/fixtures/pin), and all five failing fixtures
-re-drive pin-exact in completed standalone runs — every fixture verdict is
-ENVIRONMENT (timeout truncation on contended hosts; the slowest drives cross
-the suite's own timeouts). ZERO pin changes. One guard premise repair: the
-"unfilled required select" guard's flip target was TSMG eeo[gender], measured
-filled since the lane's own f9e79bdd re-pin — the target moved to the same
-form's attestation select (still unfilled); every assertion is unchanged.
+re-drive pin-exact in completed standalone runs. ZERO pin changes. One guard
+premise repair: the "unfilled required select" guard's flip target was TSMG
+eeo[gender], measured filled since the lane's own f9e79bdd re-pin — the target
+moved to the same form's attestation select (still unfilled); every assertion
+is unchanged.
+
+CORRECTION at 6d24e437: the gate-coverage job at that head completed FAILURE
+again (check-run 120814713230, ~36 min — a real failure, not a timeout
+cancellation) on the same two fixtures: greenhouse-andurilindustries-4802172007
+and greenhouse-wppmedia-5437567008. The premise repair held — the pin-shape
+guard is no longer in the failing list. The reconciliation's ENVIRONMENT
+verdicts for those two fixtures are DOWNGRADED to unproven hypotheses: the
+standalone passes were obtained with a raised 1800s scratch timeout, CI fails
+both fixtures under the suite's real 600s per-test limit in two consecutive
+completed runs, and the actual CI assertion/timeout text has never been
+captured. Coverage is RED at 6d24e437, and the conditional-follow-ups guard is
+UNVERIFIED until a completed green coverage run exists. Diagnostics are being
+added to the suite so the next CI run surfaces each failing test's error text,
+per-drive elapsed ms, and the step in flight at failure, in a repo-visible
+annotation / step summary.

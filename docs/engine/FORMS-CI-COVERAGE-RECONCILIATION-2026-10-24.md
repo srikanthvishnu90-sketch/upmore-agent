@@ -17,6 +17,31 @@ Reported failures reconciled here:
   (the pin-shape guard and "conditional follow-ups are gated", the latter with
   "the follow-up is missing from the drive record").
 
+## Correction (2026-10-24, later): CI at 6d24e437 — two verdicts downgraded
+
+The sharded gate-coverage job at head `6d24e437` — the head that carries this
+doc and the item-6 premise repair — completed FAILURE: check-run 120814713230,
+~36 min, a real failure, not a timeout cancellation. Failing tests per the
+gate annotation: `greenhouse-andurilindustries-4802172007` and
+`greenhouse-wppmedia-5437567008` — the same two fixtures that failed in CI at
+82cb014a. The item-6 pin-shape guard is NOT in the failing list: the premise
+repair held in CI.
+
+Consequence: the ENVIRONMENT verdicts for items 1 and 2 below are DOWNGRADED
+to hypothesis, not established, and nothing in this doc should be read as
+calling them environment-only. The standalone passes behind them were obtained
+with the per-test timeout raised to 1800s in a scratch copy; CI fails both
+fixtures under the suite's real 600s per-test limit, in two consecutive
+completed runs, and the actual CI assertion/timeout text has never been
+captured. Timing is the leading hypothesis; it is not proven. Coverage is RED
+at 6d24e437 and stays described as RED until a completed green run exists at an
+exact head. Item 7's guard (conditional follow-ups) is likewise UNVERIFIED
+until that green run — its standalone pass is local evidence only. Items 3–5
+did not fail in the 6d24e437 CI run; their verdicts are unchanged. The next
+step is evidence, not argument: diagnostics in the suite (per-drive elapsed,
+in-flight step, assertion text surfaced to a repo-visible annotation / step
+summary) so the next CI run classifies items 1 and 2 from CI's own record.
+
 ## The structural fact the verdicts rest on
 
 The suite's entire drive path is byte-identical between the re-pin commits and
@@ -67,24 +92,35 @@ to this file; the scratch copy was deleted after measurement.
 
 ## Per-item verdicts
 
-1. **greenhouse-andurilindustries-4802172007 — ENVIRONMENT.**
-   Old: pin 12 filled / 12 read-back. CI actual: 11 filled / read-back null /
-   drive_error — the fill_timeout truncation signature (one fill crossed the
-   300s helper-response timeout; the loop broke; read-back was skipped).
-   New (completed standalone drive at this head): 12/12, zero diffs.
+1. **greenhouse-andurilindustries-4802172007 — UNPROVEN (was: ENVIRONMENT;
+   downgraded 2026-10-24, see the correction above).**
+   Old: pin 12 filled / 12 read-back. CI actual at 82cb014a: 11 filled /
+   read-back null / drive_error — the fill_timeout truncation signature (one
+   fill crossed the 300s helper-response timeout; the loop broke; read-back
+   was skipped). CI at 6d24e437 failed this fixture again (check-run
+   120814713230); the CI assertion/timeout text for either run has never been
+   captured, so the truncation signature is an inference from the 82cb014a
+   record, not a CI-established fact.
+   New (completed standalone drive at this head, per-test timeout raised to
+   1800s in a scratch copy): 12/12, zero diffs.
    The drive takes ~11 min on a contended host: a standalone assertion-mode run
-   on this VM hit the test's own 600s timeout (600,732ms). Anduril fails in
-   both environments because it is the slowest drive in the set (33 fields, the
-   heaviest react-select retry load) — it is the first across every timeout
-   line. Not a regression (drive path byte-identical) and not an intended
-   change (nothing in the outcome moved). Pin unchanged.
+   on this VM hit the test's own 600s timeout (600,732ms). Anduril is the
+   slowest drive in the set (33 fields, the heaviest react-select retry load),
+   which makes timing the leading hypothesis — but hypothesis is all it is
+   until CI's own diagnostic record classifies the failure. Not a regression
+   (drive path byte-identical) and not an intended change (nothing in the
+   outcome moved). Pin unchanged.
 
-2. **greenhouse-wppmedia-5437567008 — ENVIRONMENT.**
-   Old: pin 11/11. New standalone at this head: 11/11, zero diffs, follow-up
-   4017898008 present with outcome `conditional_not_triggered`; the drive took
-   471s on this VM against the test's 600s timeout, so in a full run — after
-   ten prior drives in one helper session — the same truncation as item 1 is
-   the failure shape. Pin unchanged.
+2. **greenhouse-wppmedia-5437567008 — UNPROVEN (was: ENVIRONMENT; downgraded
+   2026-10-24, see the correction above).**
+   Old: pin 11/11. New standalone at this head (per-test timeout raised to
+   1800s in a scratch copy): 11/11, zero diffs, follow-up 4017898008 present
+   with outcome `conditional_not_triggered`; the drive took 471s on this VM
+   against the test's 600s timeout, so in a full run — after ten prior drives
+   in one helper session — the same truncation as item 1 is the suspected
+   failure shape. Suspected, not established: CI failed this fixture at both
+   82cb014a and 6d24e437 (check-run 120814713230) under the real 600s limit,
+   and no CI assertion/timeout text exists yet. Pin unchanged.
 
 3. **greenhouse-spacex-8643277002 — ENVIRONMENT.**
    Failed only in the coordinator's local full run. Standalone at this head:
@@ -126,7 +162,9 @@ to this file; the scratch copy was deleted after measurement.
    target is now the form's most protected unfilled select.
 
 7. **Guard "conditional follow-ups are gated on the persona's parent answer" —
-   ENVIRONMENT.**
+   UNVERIFIED (was: ENVIRONMENT; downgraded 2026-10-24, see the correction
+   above — the standalone pass below is local evidence only, and this guard
+   stays unverified until a completed green coverage run in CI).**
    Its behavioral leg drives WPP Media and requires the follow-up in the
    record. The completed standalone WPP drive at this head (item 2) contains
    the follow-up, gated `conditional_not_triggered`. A fills record missing

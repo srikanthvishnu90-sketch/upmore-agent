@@ -312,10 +312,18 @@ const CareerHost = (() => {
         if (o.account.paused === true) ctx.globalPause = { set: true, at: new Date(ctx.now).toISOString(), source: "account_control" };
         if (o.account.paused === false && ctx.globalPause && ctx.globalPause.source === "account_control") ctx.globalPause = { set: false };
       }
-      if (o.watchState) {
-        if (Object.keys(o.watchState).length) ctx.alertWatchState = cloneJson(o.watchState);
-        else delete ctx.alertWatchState;
+      if (o.watchState && Object.keys(o.watchState).length) {
+        ctx.alertWatchState = cloneJson(o.watchState);
       }
+      // An explicitly passed EMPTY watchState is "no seed", never a
+      // wipe: it used to delete the box the snapshot restore above had
+      // just carried in, so a watch created in one turn was gone by
+      // the next in every composition that passes a standing empty
+      // seed (the chat harnesses do exactly that) — create landed,
+      // and cap / read-back / stop then truthfully reported "no job
+      // watches on file" for a watch that existed. The snapshot is
+      // the durable carriage (STATE_KEYS above); a non-empty seed
+      // still overrides it, as before.
       // MUSE-F-002: the worker-written batch run record, read by the handler for this turn only (never a STATE_KEY), so a
       // plain-words status ask speaks the run's true state.
       if (o.batchRunRecord && typeof o.batchRunRecord === "object") ctx.batchRunRecord = o.batchRunRecord;

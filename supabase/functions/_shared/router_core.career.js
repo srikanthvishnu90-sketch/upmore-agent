@@ -18873,21 +18873,50 @@ const CareerRouter = (() => {
     const t = lc(text);
     const isPause = /\b(pause|hold)\b[^.]*\b(alerts?|watch)/.test(t) || /\bpause my (job )?alerts\b/.test(t);
     const isResume = /\b(resume|restart|unpause|turn back on)\b[^.]*\b(alerts?|watch)/.test(t);
+    const isStopAlerts = /\bstop my (job )?alerts\b|\bstop all my alerts\b|\bturn off my (job )?alerts\b/.test(t);
+    const isKeep = /\bkeep them\b|\bkeep my (job )?alerts\b/.test(t);
     const isStop = /\b(stop watching|remove (the )?watch|delete (the )?watch|unwatch)\b/.test(t);
-    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b|\bwhat'?s on my watch\b|\bshow me my watch\b|\bshow my watch\b|\bwhat'?s my watch\b|\bon my watch\b/.test(t);
-    if (!isPause && !isResume && !isStop && !isList) return null;
+    const isList = /\bwhat am i watching\b|\blist my watches\b|\bshow my watches\b|\bmy watches\b|\bmy job alerts\b|\bwatch list\b|\bwhat'?s on my watch\b|\bshow me my watch\b|\bshow my watch\b|\bwhat'?s my watch\b|\bon my watch\b|\bwhat alerts do i have\b|\bwhat alerts have i\b|\bwhat are my alerts\b/.test(t);
+    const capM = t.match(/\b(?:max|maximum|up to|only|just|make it)\s+(\d{1,3})\s*(?:a|per)\s+day\b/) || t.match(/^\s*(?:and\s+)?(\d{1,3})\s*(?:a|per)\s+day\b/);
+    const capN = capM ? Number(capM[1]) : null;
+    if (!isPause && !isResume && !isStop && !isList && !isStopAlerts && capN == null) return null;
     const wp = loadWatchProfileSync(ctx);
     if (!wp) {
       const reply = compose({ headline: "You have no job watches on file.", facts: ["No watch profile exists for you in this store yet, so there is nothing to list, pause, or remove — nothing was changed."], nextStep: "Say \"watch for\" plus a role — for example, \"watch for investment banking analyst roles in Chicago\" — and the first watch is set." });
       return { intent: "career_watch_manage", reply, resultStatus: "awaiting_user", sends: 0, watch_profile: null };
     }
-    if (isPause || isResume) {
-      A.setOptOut(wp, { global: isPause, companies: ((wp.opt_out || {}).companies || []) });
+    if (isPause || isResume || isStopAlerts) {
+      A.setOptOut(wp, { global: (isPause || isStopAlerts) && !isResume, companies: ((wp.opt_out || {}).companies || []) });
       if (!saveWatchProfileSync(ctx, wp)) return null;
       const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
-      const reply = isPause
-        ? compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." })
-        : compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+      const reply = isResume
+        ? compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" })
+        : isStopAlerts
+          ? compose({ headline: "Job alerts stopped.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay stopped in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the stop and queues no reminders while it stands."], nextStep: "Say \"keep them\" or \"resume my job alerts\" whenever you want them back." })
+          : compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (capN != null) {
+      if (!wp.interests.length) return null;
+      wp.alert_cap_per_day = capN;
+      let resumed = false;
+      if (isKeep && wp.opt_out && wp.opt_out.global) { A.setOptOut(wp, { global: false, companies: ((wp.opt_out || {}).companies || []) }); resumed = true; }
+      if (!saveWatchProfileSync(ctx, wp)) return null;
+      const facts = wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`);
+      facts.push(`Cap: at most ${capN} alert${capN === 1 ? "" : "s"} a day across your watches.`);
+      if (resumed) facts.push("Your alerts were stopped; the \"keep them\" brings them back on, at the new cap.");
+      else if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently stopped, so the cap is recorded but nothing reminds until you resume alerts.");
+      const reply = compose({ headline: `Alert cap set: ${capN} a day.`, facts, nextStep: "Want the watch list read back, or another role watched?" });
+      return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+    }
+    if (isKeep) {
+      if (wp.opt_out && wp.opt_out.global) {
+        A.setOptOut(wp, { global: false, companies: ((wp.opt_out || {}).companies || []) });
+        if (!saveWatchProfileSync(ctx, wp)) return null;
+        const reply = compose({ headline: "Job alerts are back on.", facts: ["Your saved watches stand exactly as they were; the stop is lifted and the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" });
+        return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
+      }
+      const reply = compose({ headline: "Your alerts are on — they stay on.", facts: wp.interests.length ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`) : ["Your watch profile holds no interests right now, so nothing is polling — name a role and the first watch is set."], nextStep: "Want the watch list read back, or another role watched?" });
       return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
     }
     if (isList) {
@@ -18897,6 +18926,7 @@ const CareerRouter = (() => {
         ? wp.interests.map((i) => `Watching: ${watchInterestLine(i)}.`)
         : ["Your watch profile exists but holds no interests right now — it polls nothing and reminds nothing."];
       if (wp.opt_out && wp.opt_out.global) facts.push("Job alerts are PAUSED for you: watches are recorded, and no reminders go out until you resume them.");
+      if (wp.alert_cap_per_day) facts.push(`Cap: at most ${wp.alert_cap_per_day} alert${wp.alert_cap_per_day === 1 ? "" : "s"} a day across your watches.`);
       const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
       if (delivery && delivery.status === "NOT_WIRED") facts.push("Automatic alert delivery is not wired in this handler; these watches are saved in this conversation only.");
       if (queued) facts.push(`${queued} reminder${queued === 1 ? " is" : "s are"} already queued for delivery.`);
@@ -19458,11 +19488,11 @@ const CareerRouter = (() => {
       const tl = handleTrackLog(text, c);
       if (tl) return tl;
     }
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }
@@ -19476,7 +19506,7 @@ const CareerRouter = (() => {
       const rec = recommendations.recommend(Object.assign({}, c, { recommendationIntent, text: s(text) }));
       return { intent: "career_recommendations", reply: rec.text, resultStatus: "prepared", sends: 0, guidance: rec, payload: rec, artifact: rec };
     }
-    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b)/.test(t)) {
+    if (/\b(what am i watching|list my watches|show my watches|my watches|my job alerts|watch list|what'?s on my watch|show me my watch|show my watch|what'?s my watch|what alerts do i have|what alerts have i|what are my alerts|stop watching|remove (the )?watch|delete (the )?watch|unwatch|pause my (job )?alerts|resume my (job )?alerts|stop my (job )?alerts|stop all my alerts|keep my (job )?alerts|pause\b[^.]*\balerts?\b|resume\b[^.]*\balerts?\b|(max|maximum|up to|only|just)\s+\d+\s+(a|per)\s+day\b|make it\s+\d+\s+(a|per)\s+day\b)/.test(t)) {
       const wm = handleWatchManage(text, c);
       if (wm) return wm;
     }
@@ -19484,7 +19514,7 @@ const CareerRouter = (() => {
       const wa = handleWatchAffirm(text, c);
       if (wa) return wa;
     }
-    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
+    if (/\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for)\b|\bnotify me when\b|\blet me know\b[^.]*\b(open up|opens?|come up|go(?:es)? live|get posted|are posted)\b|\btell me when\b[^.]*\b(open|opens|post)|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b/.test(t)) {
       const wc = handleWatchCreate(text, c);
       if (wc) return wc;
     }

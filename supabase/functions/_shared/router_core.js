@@ -46092,6 +46092,24 @@ const CareerRouter = (() => {
     if (/\bLA\b/.test(raw) && !out.includes("Los Angeles")) out.push("Los Angeles");
     return out;
   }
+  // The location on the user's own record (profile basics, then
+  // stated preferences), in the watch filter's own shape: a known
+  // city parses to its canonical name; an unlisted place is carried
+  // as recorded — never trimmed into a different place, never
+  // invented when the record holds none.
+  function watchProfileLocations(ctx) {
+    const p = (ctx && ctx.profile) || {};
+    const cands = [];
+    if (p.basics && p.basics.location) cands.push(p.basics.location);
+    for (const l of (p.preferences && p.preferences.locations) || []) if (l) cands.push(l);
+    for (const cand of cands) {
+      const parsed = watchLocationsFromText(cand);
+      if (parsed.length) return parsed;
+      const raw = s(cand).trim();
+      if (raw) return [raw];
+    }
+    return [];
+  }
   // ALERT DELIVERY FLAG (2026-10-24, scope reset (e)): whether alert
   // delivery is live is a HANDLER fact, read from the one seam the host
   // attaches it on — ctx.workerCapabilities.job_alert_delivery, the
@@ -46183,6 +46201,21 @@ const CareerRouter = (() => {
       return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     const t = lc(text);
+    // NEAR ME NEEDS A LOCATION (2026-10-25, owner requirement): a
+    // "near me" create resolves its place from the ask first, then
+    // from the user's own record. With neither, the watch cannot be
+    // keyed honestly — creation asks which location and saves
+    // nothing, instead of saving a watch with an empty location
+    // that silently means "anywhere". A known location (stated or
+    // on the profile) creates normally, keyed to that place.
+    let locations = watchLocationsFromText(text);
+    if (/\bnear me\b|\bnearby\b|\baround me\b|\bclose to me\b|\bin my area\b/.test(t) && !locations.length) {
+      locations = watchProfileLocations(ctx);
+      if (!locations.length) {
+        const reply = compose({ headline: "That watch needs a location — where should it look?", facts: ["You asked for roles near you, but no location is named in the ask and none is on your record, so there is no \"near\" to key the watch to.", "Nothing was saved — a watch with an empty location would fire on postings everywhere, which is not what you asked for."], nextStep: "Name the city or area — say it like \"watch for data analyst roles near Chicago\" — and the watch is set in this turn." });
+        return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
+      }
+    }
     const bands = [];
     if (/\bintern(ship)?s?\b/.test(t)) bands.push("intern");
     if (/\bnew[ -]?grad/.test(t)) bands.push("new_grad");
@@ -46195,7 +46228,7 @@ const CareerRouter = (() => {
     const interest = {
       interest_id: `int-${lc(role.title).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
       role,
-      filters: { locations: watchLocationsFromText(text), remote_ok: !/\bno remote\b|\bonsite only\b/.test(t), bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
+      filters: { locations, remote_ok: !/\bno remote\b|\bonsite only\b/.test(t), bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
       created_at: new Date(nowOf(ctx)).toISOString(),
     };
     const store = watchStoreOf(ctx, true);

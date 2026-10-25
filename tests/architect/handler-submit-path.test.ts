@@ -5,17 +5,18 @@
 // asserted is what the person reads and what the database holds afterwards, never which function was called.
 //
 //   (a) resume: the entries the router shows -> the person's exact yes -> a provenance event per entry -> the facts the
-//       executor reads (storedProfile -> trustedProfile). A confirmation the host cannot evidence is held as a draft and
-//       the reply says so; it is never called confirmed.
+//       executor reads (storedProfile -> trustedProfile) (a1). A confirmation the host cannot evidence (the event write
+//       broken (a3), or a reply that showed no entry (a2), an explicit synthetic stand-in) is held as a draft and the
+//       reply says so; it is never called confirmed.
 //   (b) name, email, phone: their words reach a form only through a write that happened ("use N" on the question);
 //       a statement alone writes nothing, and nothing is claimed for it.
 //   (c) work authorization: the same, from their own statement; a write that fails is never called saved.
 //   (d) status: "where are my applications" / "did my application to X go through" from career_apply_jobs; never
 //       "submitted" as a success without the recorded confirmation; an unreadable record is said.
 //
-// What the router renders is Muse's (SPLIT-1146). The two cases that need it are in tests/architect/pending/
-// handler-submit-router.test.ts and stay red until the router's replies change: the resume confirm must show the
-// entries' words, and the sponsorship reply must claim no save and no packet that does not exist.
+// What the router renders is Muse's (SPLIT-1146). (a1) and (a3) need the router's reply to show the entries (e0aad64b
+// does). The sponsorship reply case is in tests/architect/pending/handler-submit-router.test.ts and stays red until the
+// router's reply claims no packet that does not exist.
 //
 // Run: the gate runs it with CI=true (a missing Postgres or browser throws). Where esm.sh is unreachable, add
 // --import-map=tests/flow/supabase-npm.json (the same supabase-js 2.117.1 from npm).
@@ -30,7 +31,7 @@ const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const PEOPLE: Record<string, string> = {};
-for (let i = 1; i <= 9; i++) PEOPLE[`tok-${i}`] = `7b0f8f8e-6a43-4a49-9d2c-00000000f${String(i).padStart(3, "0")}`;
+for (let i = 1; i <= 11; i++) PEOPLE[`tok-${i}`] = `7b0f8f8e-6a43-4a49-9d2c-00000000f${String(i).padStart(3, "0")}`;
 const SAVED_CLAIM = /\b(saved|recorded|on file|on your record|stored)\b/i;
 
 let pg: Pg | null = null, handler: Awaited<ReturnType<typeof careerHandler>> | null = null;
@@ -79,13 +80,59 @@ async function useOffer(chat: Chat, label: string) {
 const answerOf = async (person: string, key: string) =>
   await pg!.sql(`select coalesce(answer, '') from public.career_apply_questions where user_id = '${person}' and key = '${key}'`);
 
-Deno.test({ name: "handler (a2): a yes the host cannot evidence (the router showed a count, not the entries) is held as drafts and never called confirmed", sanitizeResources: false, sanitizeOps: false, async fn() {
+// A reply that shows a count and no entry, written into the thread in place of the router's reply: an explicit synthetic
+// stand-in, so this negative holds whatever the router renders.
+const COUNT_ONLY = "Your resume is on record — as drafts, awaiting your word. I read it as 15 facts — every one is held as a DRAFT on your profile. " +
+  "Say \"yes, that's my resume\" and I confirm them as your facts.";
+const norm = (x: string) => String(x).replace(/\s+/g, " ").toLowerCase();
+const draftsOf = async (person: string) =>
+  JSON.parse(await pg!.sql(`select coalesce(state->'career'->'stores'->'profile'->'facts', '[]') from public.agent_flow_state where user_id = '${person}' order by updated_at desc limit 1`));
+
+Deno.test({ name: "handler (a1): the router's reply shows each entry's words; the yes gives each a provenance event naming the upload; the executor gets exactly those", sanitizeResources: false, sanitizeOps: false, async fn() {
+  if (skip()) return;
+  const { handler } = await world();
+  const person = PEOPLE["tok-10"], chat = handler.chat("tok-10");
+  const pasted = await chat.say(`here is my resume:\n${RESUME}`);
+  ok(pasted);
+  const facts = await draftsOf(person);
+  assert(facts.length > 0, "the resume was read");
+  const unshown = facts.filter((f: any) => !norm(pasted.reply).includes(norm(f.text)));
+  eq(unshown.length, 0, `every entry's words are shown before the yes (${unshown.length} of ${facts.length} not shown): ${pasted.reply.slice(0, 300)}`);
+  const yes = await chat.say("yes, that's my resume");
+  ok(yes);
+  eq(await count(`select count(*) from public.career_events where user_id = '${person}' and kind = 'fact_confirmed' and detail->'upload'->>'ref' like 'agent_messages:%'`), facts.length,
+    `one provenance event per entry, naming the upload: ${yes.reply}`);
+  eq(await executorFacts(person), facts.length, "the executor's facts are exactly those entries");
+} });
+
+Deno.test({ name: "handler (a3): entries shown, the event write broken: nothing is confirmed and the reply says so", sanitizeResources: false, sanitizeOps: false, async fn() {
+  if (skip()) return;
+  const { handler, pg } = await world();
+  const person = PEOPLE["tok-11"], chat = handler.chat("tok-11");
+  const pasted = await chat.say(`here is my resume:\n${RESUME}`);
+  ok(pasted);
+  const facts = await draftsOf(person);
+  assert(facts.length > 0 && facts.every((f: any) => norm(pasted.reply).includes(norm(f.text))), "precondition: the router showed every entry");
+  await pg.sql(`revoke insert on public.career_events from service_role`);
+  try {
+    const yes = await chat.say("yes, that's my resume");
+    ok(yes);
+    assert(!/^Confirmed\b|now run on them/.test(yes.reply) && /could not be recorded/.test(yes.reply), yes.reply);
+    eq(await executorFacts(person), 0);
+    assert((await draftsOf(person)).every((f: any) => f.status === "draft"), "the drafts stay drafts");
+  } finally {
+    await pg.sql(`grant insert on public.career_events to service_role`);
+  }
+} });
+
+Deno.test({ name: "handler (a2): a yes to a reply that showed a count and no entry is held as drafts and never called confirmed", sanitizeResources: false, sanitizeOps: false, async fn() {
   if (skip()) return;
   const { handler } = await world();
   const person = PEOPLE["tok-1"], chat = handler.chat("tok-1");
   const pasted = await chat.say(`here is my resume:\n${RESUME}`);
   ok(pasted);
   eq(pasted.intent, "career_resume_ingest");
+  await pg!.sql(`update public.agent_messages set content = $c$${COUNT_ONLY}$c$ where id = (select max(id) from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant')`);
   const yes = await chat.say("yes, that's my resume");
   ok(yes);
   assert(!/^Confirmed\b|are confirmed, in your own words|now run on them/.test(yes.reply), `the reply claims nothing: ${yes.reply}`);

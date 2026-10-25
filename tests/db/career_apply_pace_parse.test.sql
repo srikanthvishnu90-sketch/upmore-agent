@@ -1,5 +1,6 @@
--- One rule for the person's pace (20261025150000_career_apply_pace_parse.sql, SERIAL-1420 (a)): the same values as
--- tests/architect/pace-parse.test.ts, read by SQL.
+-- One rule for the person's pace (20261025150000_career_apply_pace_parse.sql, SERIAL-1420 (a)), as that file has it: a
+-- decimal number floored and bounded. 20261025160000 (SERIAL-1430) replaces it with the three-state rule (a whole number
+-- in int4, else unreadable; career_apply_pace_state.test.sql); run.sh runs this file right after 150000, before 160000.
 begin;
 reset role;
 insert into auth.users(id,email) values('00000000-0000-0000-0000-0000000000e1','pace@example.com');

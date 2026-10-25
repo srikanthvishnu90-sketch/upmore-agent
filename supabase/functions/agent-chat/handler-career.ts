@@ -44,7 +44,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
-import { applyTurn, paceReader } from "../_shared/career_apply_chat.ts";
+import { applyTurn, paceReader, paceTurn } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
@@ -430,14 +430,24 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // reads; code's, like the card. The reply says what was queued and that nothing is prepared, filled or sent by
       // it. No product ceiling (owner, 2026-10-22; CAPS-1390): only a daily pace the person set themselves is read, and
       // only on an apply ask; the once-per-employer guard and the card's approval stand.
-      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // SERIAL-1430 (b): "set my daily pace to N" / "no daily pace": the person's own number, kept only when the column holds
+      // it (career_apply_pace_set refuses the rest and says the rule); code's, like the card.
+      const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await paceTurn({ message, userId: user.id, admin })
+        : null;
+      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
-          apps: () => supabaseApplications(admin)(user.id), facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
+          apps: () => supabaseApplications(admin)(user.id),
+          // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
+          facts: [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
+            ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))],
+          // The batch ask ("apply to these") reads the postings this thread last listed, as the router kept them.
+          shortlist: (loaded.snapshot as any)?.stores?.discovery?.lastShortlist ?? null,
           limits: paceReader(admin, user.id),
         })
         : null;
-      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
       if (card) {
@@ -468,6 +478,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The card stays the last word, so the app shows it again; its Approve is the only way anything is sent.
         out = { reply: cardYes.reply, intent: CLOUD_CARD_INTENT, resultStatus: cardYes.status, contained: false, handler: "cloud_card" };
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
+      } else if (paced) {
+        out = { reply: paced.reply, intent: paced.intent, resultStatus: paced.status, contained: false, handler: "apply_pace" };
       } else if (queued) {
         out = { reply: queued.reply, intent: queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
       } else if (status) {

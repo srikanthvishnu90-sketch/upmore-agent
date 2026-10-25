@@ -47,6 +47,6 @@ Deno.test("SERIAL-1400/1 a pace the person set is named as theirs, with no maxim
     const on = await cloudTurn({ message: "yes", userId: "A", threadId: "T", now: T0 + 1000, store: s });
     assertNode.match(on!.reply, new RegExp(`up to ${n} a day, the pace you set yourself`), `on ${daily}`);
   }
-  assertNode.equal(ownPace("lots"), null); assertNode.equal(ownPace(0), null); assertNode.equal(ownPace(""), null); assertNode.equal(ownPace(7.9), 7);
+  assertNode.equal(ownPace("lots"), null); assertNode.equal(ownPace(0), null); assertNode.equal(ownPace(""), null); assertNode.equal(ownPace(7.9), null); // SERIAL-1430: a fraction is unreadable, never floored
   assertNode.equal(paceText(null), "with no daily limit unless you set your own pace");
 });

@@ -57,6 +57,8 @@ export function termsText(daily: number | null): string {
   ].join("\n");
 }
 
+export class PaceUnreadable extends Error { constructor(public raw: string) { super(`saved daily pace unreadable: ${raw}`); } }
+const PACE_FIX = (raw: string) => `Your saved daily pace could not be read (it says ${JSON.stringify(raw)}), so I can't show you the cloud's terms yet. Say "set my daily pace to N" (a whole number) or "no daily pace", then ask again.`;
 export interface CloudOptinStore {
   dailyLimit(userId: string): Promise<number | null>;
   get(userId: string): Promise<{ enabled: boolean; daily?: number | null }>;
@@ -90,7 +92,8 @@ export async function cloudTurn(
     };
   }
   if (cmd?.kind === "ask") {
-    return { reply: termsText(await o.store.dailyLimit(o.userId)), status: "shown", intent: CLOUD_INTENT };
+    try { return { reply: termsText(await o.store.dailyLimit(o.userId)), status: "shown", intent: CLOUD_INTENT }; }
+    catch (e) { if (e instanceof PaceUnreadable) return { reply: PACE_FIX(e.raw), status: "pace_unreadable", intent: "career_cloud_refused" }; throw e; }
   }
   const t = String(o.message ?? "").toLowerCase().replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim();
   if (!YES.test(t)) return null;
@@ -100,7 +103,9 @@ export async function cloudTurn(
   if (last.intent !== CLOUD_INTENT) return null;
   if (last.at === null || !(o.now - last.at <= TERMS_TTL_MS)) return { reply: NOT_ON, status: "expired", intent: "career_cloud_refused" };
   if ((await o.store.outboxSince(o.userId, last.at)) !== 0) return { reply: NOT_ON, status: "interleaved", intent: "career_cloud_refused" };
-  const terms = termsText(await o.store.dailyLimit(o.userId));
+  let terms: string;
+  try { terms = termsText(await o.store.dailyLimit(o.userId)); }
+  catch (e) { if (e instanceof PaceUnreadable) return { reply: PACE_FIX(e.raw) + " " + NOT_ON, status: "pace_unreadable", intent: "career_cloud_refused" }; throw e; }
   const i = (last.content ?? "").indexOf(TERMS_HEAD);
   const shown = i < 0 ? "" : (last.content ?? "").slice(i, i + terms.length);
   if ((await sha256(shown)) !== (await sha256(terms))) {
@@ -122,10 +127,12 @@ export function supabaseCloudOptinStore(admin: any): CloudOptinStore {
   };
   return {
     async dailyLimit(userId) {
-      // The person's own pace, or null: no product number (CAPS-1390; 20261025140000 makes the SQL return null when unset).
-      const r = must(await admin.rpc("career_apply_daily_limit", { p_user: userId }), "read the daily limit");
-      const n = Number(r);
-      return r === null || r === undefined || !Number.isFinite(n) || n < 1 ? null : n;
+      // The person's own pace, or null for none (CAPS-1390). SERIAL-1430: a saved pace that cannot be read is neither;
+      // the ask and the yes stop on it (PaceUnreadable) rather than show terms that say "no daily limit".
+      const r = must(await admin.rpc("career_apply_pace_state", { p_user: userId }), "read the daily pace");
+      const row = Array.isArray(r) ? r[0] : r;
+      if (row?.state === "unreadable") throw new PaceUnreadable(String(row.raw ?? ""));
+      return row?.state === "set" ? Number(row.pace) : null;
     },
     async get(userId) {
       const r = must(await admin.rpc("career_apply_cloud_optin_get", { p_user: userId }), "read the cloud setting") ?? { enabled: false };

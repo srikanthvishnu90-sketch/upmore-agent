@@ -139,6 +139,7 @@ MIGRATIONS=(
   20261025130000_career_apply_wanted_candidates.sql
   20261025140000_career_apply_no_volume_ceiling.sql
   20261025150000_career_apply_pace_parse.sql
+  20261025160000_career_apply_pace_state.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -195,6 +196,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_prepare_candidates' and prosrc like '%career_apply_wanted%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit' and prosrc like '%PACE_RE%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

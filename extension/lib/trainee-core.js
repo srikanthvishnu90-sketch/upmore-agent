@@ -2668,15 +2668,32 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  var PACE_MAX = 999999999;
-  var PACE_RE = /^\s*\+?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
-  function parsePace(v) {
-    const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v) : NaN;
-    if (!Number.isFinite(n)) return null;
-    const whole = Math.min(Math.floor(n), PACE_MAX);
-    return whole >= 1 ? whole : null;
+  var INT4_MAX = 2147483647;
+  var PACE_RE = /^\s*\+?[0-9]+\s*$/;
+  function paceState(v) {
+    if (v === null || v === void 0) return {
+      state: "none",
+      pace: null,
+      raw: null
+    };
+    const raw = typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : JSON.stringify(v) ?? String(v);
+    const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v.trim()) : NaN;
+    if (Number.isInteger(n) && n >= 1 && n <= INT4_MAX) return {
+      state: "set",
+      pace: n,
+      raw
+    };
+    return {
+      state: "unreadable",
+      pace: null,
+      raw
+    };
   }
-  var dailyLimit = (l) => parsePace(l?.daily) ?? Infinity;
+  var dailyLimit = (l) => {
+    if (l?.unreadable !== void 0) return NaN;
+    const st = paceState(l?.daily);
+    return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
+  };
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {
@@ -2693,6 +2710,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return {
       ok: false,
       reason: "company_cooldown"
+    };
+    if (limits?.unreadable !== void 0 || Number.isNaN(dailyLimit(limits))) return {
+      ok: false,
+      reason: "pace_unreadable"
     };
     const own = dailyLimit(limits);
     if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return {

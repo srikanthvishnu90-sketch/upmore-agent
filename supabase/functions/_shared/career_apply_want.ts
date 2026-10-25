@@ -60,6 +60,11 @@ export function dayStart(now: number, tz = "UTC"): string {
 // limits stand.
 export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string } = {}) {
   const { ok, refused } = wantsFrom(picks, now);
+  // SERIAL-1430: a saved pace that cannot be read is unknown, not "no limit": nothing is queued, each pick refused by name.
+  if (o.limits?.unreadable !== undefined || Number.isNaN(dailyLimit(o.limits))) {
+    for (const w of ok) refused.push(refusal({ ...w, job_id: w.posting_key }, `their saved daily pace could not be read (it says ${JSON.stringify(String(o.limits?.unreadable ?? ""))}); nothing was queued until they set it again ("set my daily pace to N", or "no daily pace")`));
+    return { queued: 0, already: 0, items: [] as Want[], refused, limit: null as number | null };
+  }
   const cap = dailyLimit(o.limits);
   const used = Number.isFinite(cap) ? await store.queuedSince(userId, dayStart(now, o.tz)) : 0;
   const room = Math.max(0, cap - used);

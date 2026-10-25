@@ -18,6 +18,10 @@ update career_watch_kv set value=value||'{"daily_limit":"lots"}' where user_id='
 select t.ok((select career_apply_daily_limit('00000000-0000-4000-8000-000000000951') is null),'anything not a number is no pace at all');
 update career_watch_kv set value=value||'{"daily_limit":0}' where user_id='00000000-0000-4000-8000-000000000951';
 select t.ok((select career_apply_daily_limit('00000000-0000-4000-8000-000000000951') is null),'zero is not a pace');
+-- SERIAL-1430 (20261025160000): a value that is present but not a pace is unreadable and refuses the queue
+-- (career_apply_pace_state.test.sql); the queue checks below run with the key removed, as "no preference".
+select t.must_fail($$select career_apply_enqueue(p,career_apply_payload_hash(p),career_apply_payload_hash(p),null) from (select jsonb_build_object('version',1,'user_id','00000000-0000-4000-8000-000000000951','job_id','TEST-LIM-0','company','Zero Employer','url','https://jobs.lever.co/test/LIM-0','fields','[]'::jsonb,'privacy_epoch',1,'account_version',1,'expires_at',now()+interval '1 hour') p) z$$,'pace_unreadable','a stored 0 is unreadable: the queue refuses rather than reads no limit');
+update career_watch_kv set value=value-'daily_limit' where user_id='00000000-0000-4000-8000-000000000951';
 create temp table lim_input as select jsonb_build_object('version',1,'user_id','00000000-0000-4000-8000-000000000951','job_id','TEST-LIM-1','company','Limit Employer','url','https://jobs.lever.co/test/LIM-1','fields','[]'::jsonb,'privacy_epoch',1,'account_version',1,'expires_at',now()+interval '1 hour') p;
 select t.ok((select (career_apply_enqueue(p,encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex'),encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex'),51)).state='queued' from lim_input),'a caller''s 51 is accepted and is not a ceiling (was refused above 50)');
 -- 25 already today: with no pace set the 26th is taken; a person's own 25 refuses it; their own 40 takes it.

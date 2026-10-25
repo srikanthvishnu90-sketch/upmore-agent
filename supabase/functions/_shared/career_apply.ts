@@ -39,11 +39,9 @@ export function classifyOutcome(o: Observation): Outcome {
 }
 
 // ------------------------------------------------------------------------------------------------ admission
-export interface Limits { daily?: number | null }
-// No volume ceiling (owner, 2026-10-22: no cap on applications or on anything; CAPS-1390). Trainee imposes no daily
-// number: a person's own daily pace, if they set one (career:account daily_limit), is honored as their instruction, with
-// no maximum. What stays: one application per employer in 30 days, the exact-payload approval on each card, idempotency
-// and unique confirmation ids, the spend and site limits. The queue's SQL drops its 25/50 bound in 20261025140000.
+// The person's pace as the apply path carries it: `daily` is their number, or null for none; `unreadable` carries the
+// stored value when it is present but not a pace (SERIAL-1430: unknown, never "no limit").
+export interface Limits { daily?: number | null; unreadable?: string }
 export const COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
 // States that mean an application reached (or may have reached) the employer, or is approved to; a failed or
@@ -55,19 +53,32 @@ export const COUNTED_STATES: ReadonlySet<string> = new Set([
 const COUNTED = COUNTED_STATES;
 export const normCompany = (c: unknown) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
   .replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-// The person's own daily pace when they set one; Infinity (no limit) otherwise.
-// SERIAL-1420 (a): the one rule for a pace the person set, the same in SQL (career_apply_daily_limit, 20261025150000): a
-// decimal number of 1 or more is the pace, floored, kept up to PACE_MAX (an explicit number never silently becomes "no
-// limit"); anything else (unset, 0, negative, text, hex, Infinity, NaN, a thousands separator) is no pace at all.
-export const PACE_MAX = 999_999_999;
-export const PACE_RE = /^\s*\+?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
-export function parsePace(v: unknown): number | null {
-  const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v) : NaN;
-  if (!Number.isFinite(n)) return null;
-  const whole = Math.min(Math.floor(n), PACE_MAX);
-  return whole >= 1 ? whole : null;
+// No volume ceiling (owner, 2026-10-22: no cap on applications or on anything; CAPS-1390). Trainee imposes no daily
+// number: a person's own daily pace, if they set one (career:account daily_limit), is honored as their instruction, with
+// no maximum but what the integer columns hold. What stays: one application per employer in 30 days, the exact-payload
+// approval on each card, idempotency and unique confirmation ids, the cloud gate and its pauses, the spend and site limits.
+// SERIAL-1420 (a) / SERIAL-1430: one rule for the pace, the same in SQL (career_apply_pace_state, 20261025160000), in
+// three states: a missing or null value is no preference ("none"); a whole number from 1 to INT4_MAX is the pace ("set"),
+// never floored, saturated or otherwise changed; anything else present (text, hex, a thousands separator, 0, negative,
+// a fraction, an exponent, past int4) is "unreadable": not a pace and not permission for no limit.
+export const INT4_MAX = 2147483647;
+export const PACE_RE = /^\s*\+?[0-9]+\s*$/;
+export type PaceState = { state: "none"; pace: null; raw: null } | { state: "set"; pace: number; raw: string } | { state: "unreadable"; pace: null; raw: string };
+export function paceState(v: unknown): PaceState {
+  if (v === null || v === undefined) return { state: "none", pace: null, raw: null };
+  const raw = typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : JSON.stringify(v) ?? String(v);
+  const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v.trim()) : NaN;
+  if (Number.isInteger(n) && n >= 1 && n <= INT4_MAX) return { state: "set", pace: n, raw };
+  return { state: "unreadable", pace: null, raw };
 }
-export const dailyLimit = (l?: Limits): number => parsePace(l?.daily) ?? Infinity;
+export function parsePace(v: unknown): number | null { return paceState(v).pace; }
+// The limit as a number: their pace when set, Infinity when none, NaN when unreadable (no comparison admits on NaN; the
+// callers that queue check `unreadable` first and refuse by name).
+export const dailyLimit = (l?: Limits): number => {
+  if (l?.unreadable !== undefined) return NaN;
+  const st = paceState(l?.daily);
+  return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
+};
 
 export interface LogRow { user_id: string; job_id: string; company: string; at: number; state: string }
 export function admitApplication(log: LogRow[], a: { user_id: string; job_id: string; company: string; approval_hash?: string; payload_hash?: string }, now: number, limits?: Limits): { ok: boolean; reason: string | null } {
@@ -78,6 +89,7 @@ export function admitApplication(log: LogRow[], a: { user_id: string; job_id: st
   if (mine.some((x) => x.job_id === a.job_id)) return { ok: false, reason: "duplicate_job" };
   const co = normCompany(a.company);
   if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return { ok: false, reason: "company_cooldown" };
+  if (limits?.unreadable !== undefined || Number.isNaN(dailyLimit(limits))) return { ok: false, reason: 'pace_unreadable' } as any;
   const own = dailyLimit(limits);
   if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return { ok: false, reason: "daily_cap" };
   return { ok: true, reason: null };

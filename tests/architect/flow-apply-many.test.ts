@@ -1,0 +1,246 @@
+// SERIAL-1410 (1) (2026-10-25): the batch ask in chat, on the queue path, with no test-only seam.
+//   chat     "find analyst jobs in Chicago" -> handleChat -> the router's discovery lists four postings from the knowledge
+//            base (career_kb_postings) and keeps the served list on the thread (discovery.lastShortlist)
+//   chat     "apply to these" -> handleChat (handler-career.ts) -> each listed posting through the same screens as a single
+//            ask: their current employer (a confirmed fact) refuses one, an application there 10 days ago refuses one, the
+//            two others go into career_apply_wanted; the reply lists queued and not queued with the reason for each;
+//            nothing is approved, filled or sent
+//   prepare  prepare-ahead.ts prepareAhead draws both; shared facts asked once; the essay asked once PER posting
+//   answers  "what do you need from me" / "use N" / "N <text>" through handleChat
+//   card     career_apply_card_open_own / card_answer_own, one tap per application, each its own exact payload
+//   drive    runApproved -> scripts/apply.ts, once per employer; each receives only its own essay
+// Everything but the employer pages (127.0.0.1) and the person's taps is the product's own code.
+// Fail-first on b3c23bf5: "apply to these" is the router's catch-all ("I did not catch what to do with that one"),
+// nothing is queued.
+import assertNode from "node:assert/strict";
+import { pgBinDir, startPg } from "../flow/pg.ts";
+import { engineRunner, ownQueue, runApproved } from "../../workers/career-browser/approve-first.ts";
+import { prepareAhead, storedProfile, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
+import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
+import { careerHandler, type Chat, supabaseParity } from "../flow/handler.ts";
+
+const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
+const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
+const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
+const CI = Deno.env.get("CI") === "true";
+function browserEnv(): boolean {
+  if (Deno.env.get("UPMORE_PLAYWRIGHT_PATH")) return true;
+  try { Deno.statSync(`${ROOT}/tools/node_modules/playwright`); Deno.env.set("UPMORE_PLAYWRIGHT_PATH", `${ROOT}/tools/node_modules/playwright`); return true; } catch { return false; }
+}
+const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
+const SPONSOR = "Will you now or in the future require sponsorship for employment visa status?";
+const AUTH = "Are you legally authorized to work in the United States?";
+const COMPANY = "TEST Chat Employer";
+const SIBLING = "TEST Sibling Employer";
+const ROLE = "TEST Analyst";
+const WHY = "Why do you want to work here?";
+
+// The employers: two postings on 127.0.0.1 with the same form (name, email, phone, a resume, sponsorship, work
+// authorization and a required essay), one per route; every POST is kept per route.
+function employer() {
+  const posts: Record<string, Record<string, string>[]> = { apply: [], sibling: [] };
+  const uploads: Record<string, string> = {};
+  const select = (name: string, label: string) =>
+    `<label for="${name}">${label}</label><select name="${name}" id="${name}" required><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select>`;
+  const form = (route: string, company: string) => `<!doctype html><title>TEST role</title><h1>${ROLE}</h1><p>${company}</p><form method="post" action="/${route}/submit" enctype="multipart/form-data">` +
+    `<label for="first">First name</label><input name="first_name" id="first" required>` +
+    `<label for="last">Last name</label><input name="last_name" id="last" required>` +
+    `<label for="email">Email</label><input name="email" id="email" type="email" required>` +
+    `<label for="phone">Phone</label><input name="phone" id="phone" type="tel" required>` +
+    `<label for="resume">Resume</label><input type="file" name="resume" id="resume" required>` +
+    select("sponsorship", SPONSOR) + select("work_auth", AUTH) +
+    `<label for="why">${WHY}</label><textarea name="why" id="why" required></textarea>` +
+    `<button type="submit">Submit application</button></form>`;
+  const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, async (req) => {
+    const path = new URL(req.url).pathname;
+    if (req.method === "POST") {
+      const route = path.split("/")[1];
+      const data = await req.formData(), got: Record<string, string> = {};
+      for (const [k, v] of data.entries()) {
+        if (typeof v === "string") got[k] = v;
+        else { got[k] = `file:${v.name}`; uploads[route] = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await v.arrayBuffer()))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+      }
+      (posts[route] ??= []).push(got);
+      return new Response(`<h1>Thank you for applying</h1><p>Application received. Confirmation number: CHAT-${route.toUpperCase()}-1.</p>`, { headers: { "content-type": "text/html" } });
+    }
+    if (path === "/apply") return new Response(form("apply", COMPANY), { headers: { "content-type": "text/html" } });
+    if (path === "/sibling") return new Response(form("sibling", SIBLING), { headers: { "content-type": "text/html" } });
+    return new Response("not found", { status: 404 });
+  });
+  const base = `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`;
+  return { url: `${base}/apply`, sibling: `${base}/sibling`, posts, upload: (route: string) => uploads[route] ?? "", close: () => server.shutdown() };
+}
+const day = (d = new Date()) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+Deno.test({
+  name: "From a listed shortlist to the queue: 'apply to these' queues each posting that passes its own screens, names what it refused and why; each is prepared, approved and sent on its own",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  async fn(t) {
+    if (!pgBinDir() || !browserEnv()) {
+      if (CI) throw Error("the batch-ask flow needs Postgres 16 binaries and the gate's Playwright browser in CI");
+      console.log("NOT_RUN locally: no Postgres binaries or Playwright browser");
+      return;
+    }
+    if (Deno.uid?.() === 0 && !CI) { console.log("NOT_RUN locally as root: run it as an unprivileged user (Chromium's sandbox)"); return; }
+    const pg = await startPg();
+    const site = employer(), site2 = employer();
+    const work = await Deno.makeTempDir({ prefix: "trainee-chat-many-" });
+    let agentChat: Awaited<ReturnType<typeof careerHandler>> | null = null;
+    try {
+      await supabaseParity(pg);
+      const JOB = "greenhouse:chattest:7", JOB2 = "greenhouse:chatsib:8", JOB3 = "greenhouse:current:9", JOB4 = "greenhouse:prior:10";
+      const CURRENT = "Contoso Analytics", PRIOR = "Fabrikam Data";
+      const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000e2";
+      const rows = [
+        [JOB, "greenhouse", "chattest", COMPANY, ROLE, "https://boards.greenhouse.io/chattest/jobs/7"],
+        [JOB2, "greenhouse", "chatsib", SIBLING, ROLE, "https://boards.greenhouse.io/chatsib/jobs/8"],
+        [JOB3, "greenhouse", "current", CURRENT, "Data Analyst", "https://boards.greenhouse.io/current/jobs/9"],
+        [JOB4, "greenhouse", "prior", PRIOR, "Data Analyst", "https://boards.greenhouse.io/prior/jobs/10"],
+      ];
+      const desc = `${ROLE}. Requirements: SQL, Python, dashboards for internal teams.`;
+      await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at) values
+        ${rows.map((r) => `('${r[0]}', '${r[1]}', '${r[2]}', '${r[3]}', '${r[4]}', 'Chicago, IL', '${r[5]}', '${desc}', now(), now())`).join(",")};
+        insert into public.career_kb_postings (posting_key, source, board, company, title, location, url, posted_at, text_excerpt, content_hash) values
+        ${rows.map((r, i) => `('${r[0]}', '${r[1]}', '${r[2]}', '${r[3]}', '${r[4]}', 'Chicago, IL', '${r[5]}', now() - interval '${i} hours', '${desc}', 'h${i}')`).join(",")};
+        insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test');
+        insert into public.profiles (id) values ('${PERSON}');
+        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
+        insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at)
+        values ('${PERSON}', 'greenhouse:prior:3', '${PRIOR}', 'https://boards.greenhouse.io/prior/jobs/3', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
+      const svc = pg.asService(), person = pg.asPerson(PERSON);
+      agentChat = await careerHandler(pg, { "tok-person": PERSON });
+      const chat: Chat = agentChat.chat("tok-person");
+      const memory = memoryResumeStore();
+      const resumes: ResumeStore = {
+        put: async (path, pdf) => { await memory.put(path, pdf); await pg.sql(`insert into storage.objects (bucket_id, name) values ('career-resumes', '${path}') on conflict (bucket_id, name) do nothing`); },
+        signedUrl: (path, seconds) => memory.signedUrl(path, seconds),
+        removeAll: (u) => memory.removeAll(u),
+      };
+      const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
+      const deps = { db: svc, runEngine, profileFor: storedProfile(svc), urlFor: (c: { job_id: string }) => c.job_id === JOB2 ? site2.sibling : site.url, resumeFor: tailoredResume({ render: edgeRenderer(), resumes }) };
+      const say = async (message: string) => { const r = await chat.say(message); assertEquals(r.status, 200, r.reply); return r; };
+      const wanted = async () => JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', posting_key, 'state', state, 'company', company) order by posting_key), '[]') from public.career_apply_wanted where user_id = '${PERSON}'`));
+
+      await t.step("chat: resume confirmed; name, email, phone, work rights and their current employer said", async () => {
+        await say(`here is my resume:\n${RESUME}`);
+        const yes = await say("yes, that's my resume");
+        assertEquals([yes.intent, yes.resultStatus], ["career_resume_ingest", "completed"], yes.reply);
+        for (const m of ["my name is Jordan Rivera", "my email is jordan.rivera@example.test", "my phone number is 312-555-0142", "I'm a US citizen and I don't need visa sponsorship", "I'm authorized to work in the US"]) await say(m);
+        const job = await say(`I work at ${CURRENT}`);
+        assertEquals(job.intent, "profile_correction", job.reply);
+        // What they state in chat is kept on the thread's statedFacts store (the resume's facts are the profile's).
+        const stated = JSON.parse(await pg.sql(`select coalesce((select state->'career'->'stores'->'statedFacts'->'facts' from public.agent_flow_state where user_id = '${PERSON}' order by updated_at desc limit 1)::text, '[]')`));
+        assert((stated as any[]).some((f) => f.kind === "experience" && f.value === CURRENT), `their current employer is on the record: ${JSON.stringify(stated)}`);
+      });
+
+      await t.step("chat: 'find analyst jobs in Chicago' lists the four postings; the served list stays on the thread", async () => {
+        const r = await say("find analyst jobs in Chicago");
+        assertEquals(r.intent, "career_discovery", r.reply);
+        for (const c of [COMPANY, SIBLING, CURRENT, PRIOR]) assert(r.reply.includes(c), `${c} is listed: ${r.reply}`);
+        const snap = JSON.parse(await pg.sql(`select coalesce((select state->'career'->'stores'->'discovery'->'lastShortlist' from public.agent_flow_state where user_id = '${PERSON}' order by updated_at desc limit 1)::text, 'null')`));
+        assertEquals(Array.isArray(snap) ? snap.length : snap, 4, "four entries kept on the thread");
+        assertEquals(await wanted(), [], "listing queues nothing");
+      });
+
+      await t.step("chat: 'apply to these' queues the two that pass; their current employer and the one applied to 10 days ago are named with the reason; nothing sent", async () => {
+        const r = await say("apply to these");
+        assertEquals(r.intent, "career_apply_queue", `the chat queues from the list: intent=${r.intent} ${r.reply}`);
+        assertEquals(r.resultStatus, "queued", r.reply);
+        assertEquals((await wanted()).map((w: any) => w.key), [JOB2, JOB].sort(), "exactly the two that pass their screens");
+        assert(/Queued 2/.test(r.reply) && r.reply.includes(`${ROLE} at ${COMPANY}`) && r.reply.includes(`${ROLE} at ${SIBLING}`), r.reply);
+        assert(new RegExp(`${CURRENT}[^\\n]*current employer`, "i").test(r.reply), `the current-employer refusal, with its reason: ${r.reply}`);
+        assert(new RegExp(`${PRIOR}[^\\n]*already applied`, "i").test(r.reply) && /30 days/.test(r.reply), `the 30-day refusal, with its reason: ${r.reply}`);
+        assert(/nothing (is|was) (sent|submitted)/i.test(r.reply) && /its own card/.test(r.reply), r.reply);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and company in ('${COMPANY}', '${SIBLING}')`), "0", "nothing approved: no queue row until their tap");
+        assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0);
+        const again = await say("apply to these");
+        assertEquals(again.resultStatus, "already", again.reply);
+        assertEquals((await wanted()).length, 2);
+      });
+
+      const useAll = async (labels: string[]) => {
+        const shown = await say("what do you need from me");
+        assertEquals(shown.resultStatus, "shown", shown.reply);
+        const lines = shown.reply.split("\n");
+        for (const label of labels) {
+          const i = lines.findIndex((l) => /^\d+\./.test(l) && l.includes(label));
+          assert(i >= 0, `${label} is asked: ${shown.reply}`);
+          const used = await say(`use ${Number(/^(\d+)\./.exec(lines[i])![1])}`);
+          assert(/Saved, as drafted/.test(used.reply), `${label}: ${used.reply}`);
+        }
+      };
+      const outcomes = (done: { user_id: string; job_id: string; outcome: string }[]) =>
+        done.filter((d) => d.user_id === PERSON).map((d) => [d.job_id, d.outcome]).sort((a, b) => a[0].localeCompare(b[0]));
+      const openKeys = async () => (await pg.sql(`select coalesce(string_agg(key, ',' order by key), '') from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`)).split(",").filter(Boolean);
+      const lineFor = (shown: string, label: string, company?: string) => {
+        const lines = shown.split("\n");
+        const i = lines.findIndex((l) => /^\d+\./.test(l) && l.includes(label) && (!company || l.includes(company)));
+        assert(i >= 0, `${label}${company ? ` for ${company}` : ""} is asked: ${shown}`);
+        return Number(/^(\d+)\./.exec(lines[i])![1]);
+      };
+
+      await t.step("prepare: the server run draws exactly the two queued postings; shared facts asked once, the essay once per posting", async () => {
+        assertEquals(outcomes(await prepareAhead(deps)), [[JOB2, "asked"], [JOB, "asked"]].sort((a, b) => a[0].localeCompare(b[0])));
+        assertEquals(await openKeys(), ["fact:email", "fact:first_name", "fact:last_name"]);
+        await useAll(["First name", "Last name", "Email"]);
+        assertEquals(outcomes(await prepareAhead(deps)), [[JOB2, "asked"], [JOB, "asked"]].sort((a, b) => a[0].localeCompare(b[0])));
+        const keys = await openKeys();
+        assertEquals(keys.filter((k) => !k.startsWith("job:")), ["fact:phone", "fact:sponsorship", "fact:work_authorization"]);
+        assertEquals(keys.filter((k) => k.startsWith("job:")).length, 2, `the essay is one question per posting: ${keys.join(",")}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_prepare_attempts where user_id = '${PERSON}' and posting_job_id in ('${JOB3}', '${JOB4}')`), "0", "the refused postings were never drawn");
+      });
+
+      const FIRST_WHY = "I built the TEST Chat analytics pipeline and want to keep building it.";
+      const SIBLING_WHY = "TEST Sibling ships weekly and I want to learn that pace.";
+      let preparedId = "", preparedId2 = "";
+      await t.step("their words: the first employer's essay readies the first only; the sibling waits for its own, then is ready with that text alone", async () => {
+        await useAll(["Phone", SPONSOR, AUTH]);
+        let shown = await say("what do you need from me");
+        await say(`${lineFor(shown.reply, WHY, COMPANY)} ${FIRST_WHY}`);
+        let done = await prepareAhead(deps);
+        assertEquals(outcomes(done), [[JOB, "ready"]], JSON.stringify(done));
+        preparedId = done.find((d) => d.job_id === JOB)!.prepared_id!;
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}' and job_id = '${JOB2}'`), "0", "the sibling is not prepared on the first's essay");
+        shown = await say("what do you need from me");
+        await say(`${lineFor(shown.reply, WHY, SIBLING)} ${SIBLING_WHY}`);
+        done = await prepareAhead(deps);
+        assertEquals(outcomes(done), [[JOB2, "ready"]], JSON.stringify(done));
+        preparedId2 = done[0].prepared_id!;
+        const why = async (id: string) => JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${id}'`)).payload.fields.find((f: any) => f.name === "why")?.value;
+        assertEquals([await why(preparedId), await why(preparedId2)], [FIRST_WHY, SIBLING_WHY]);
+      });
+
+      await t.step("their taps: one card each, each its own exact payload; drive: each employer receives only its own essay, once", async () => {
+        for (const id of [preparedId, preparedId2]) {
+          const card = await person.rpc("career_apply_card_open_own", { p_ids: [id] });
+          assertEquals(card.error, null, JSON.stringify(card.error));
+          const answer = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
+          assertEquals(answer.error, null, JSON.stringify(answer.error));
+          assertEquals(answer.data?.[0]?.result, "queued");
+        }
+        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2");
+        const queue = ownQueue(person);
+        const done = await runApproved({
+          claim: () => queue.claim(2),
+          finish: (id, lease, state, evidence) => queue.finish(id, lease, state, evidence),
+          resumeFor: async (job) => { const path = `${work}/sent-resume-${job.payload.resume_sha256.slice(0, 8)}.pdf`; await Deno.writeFile(path, memory.files.get(`career-resumes/${PERSON}/${job.payload.resume_sha256}.pdf`)!); return { path, sha256: job.payload.resume_sha256 }; },
+          writeFacts: async (job, facts) => { const p = `${work}/approved-facts-${job.id}.json`; await Deno.writeTextFile(p, JSON.stringify(facts)); return p; },
+          runEngine,
+        });
+        assertEquals(done.length, 2);
+        assertEquals([site.posts.apply.length, site2.posts.sibling.length], [1, 1], "exactly one POST each");
+        assertEquals([site.posts.apply[0].why, site2.posts.sibling[0].why], [FIRST_WHY, SIBLING_WHY]);
+        const rows = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('company', company, 'state', state, 'conf', confirmation_id) order by confirmation_id), '[]') from public.career_apply_jobs where user_id = '${PERSON}' and company in ('${COMPANY}', '${SIBLING}')`));
+        assertEquals(rows, [{ company: COMPANY, state: "submitted_unconfirmed", conf: "CHAT-APPLY-1" }, { company: SIBLING, state: "submitted_unconfirmed", conf: "CHAT-SIBLING-1" }]);
+        const all = await say("where are my applications");
+        assert(all.reply.includes(COMPANY) && all.reply.includes(SIBLING), all.reply);
+      });
+    } finally {
+      agentChat?.restore();
+      await site.close();
+      await site2.close();
+      await pg.stop();
+    }
+  },
+});

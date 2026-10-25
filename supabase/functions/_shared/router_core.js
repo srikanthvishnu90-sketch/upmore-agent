@@ -46520,7 +46520,24 @@ const CareerRouter = (() => {
     if (/\b(text|tell|email|message|write to)\s+(my|the)\s+(boss|manager|supervisor)\b/.test(t)) return null;
     const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
     const deliveryVerb = /\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/.test(t);
-    const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || /\b(opens? up|goes up|comes up|gets? posted|is posted)\b/.test(t) || !!watchRoleFromText(raw);
+    // The job object must be IN the ask — a job-container noun or a
+    // posting trigger. watchRoleFromText alone is NOT one: its
+    // stated-words fallback manufactures a "role" out of almost any
+    // noun phrase, which let "send me my resume pdf" and "tell me
+    // about <company>" in as watch creates. Role resolution still
+    // happens in the handler for every claimed create; it just no
+    // longer CLAIMS turns by itself.
+    const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || /\b(opens? up|goes up|comes up|gets? posted|is posted)\b/.test(t);
+    // INFORMATION-QUESTION STAND-DOWN (2026-10-25): an interrogative
+    // turn with no watch/alert framing and no posting trigger is a
+    // question ABOUT a role or company — the intel/library families
+    // own those ("tell me about welders — what skills do their
+    // postings name?"), and an alert is an instruction, not an
+    // answer. Question-shaped creates keep their claim through
+    // classicCreate, a trigger, or an alert noun ("can you text me
+    // when a role opens up?", "can you notify me about finance
+    // roles?").
+    if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
     if (classicCreate || (deliveryVerb && jobObject)) return { op: "create" };
     return null;
   }

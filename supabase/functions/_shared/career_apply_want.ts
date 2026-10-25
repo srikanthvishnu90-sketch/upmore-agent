@@ -55,19 +55,20 @@ export function dayStart(now: number, tz = "UTC"): string {
 }
 
 // Queue what fits under today's limit; what is over is refused with the limit named.
-// uncapped (owner, 2026-10-22: no cap on how many applications a person queues): no daily room is computed and nothing is
-// refused for volume; the once-per-employer screen, the exact-payload approval on each card and the site limits stand.
-export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string; uncapped?: boolean } = {}) {
+// No product ceiling on how many a person queues (owner, 2026-10-22; CAPS-1390): room is computed only against a daily
+// pace the person set themselves; the once-per-employer screen, the exact-payload approval on each card and the site
+// limits stand.
+export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string } = {}) {
   const { ok, refused } = wantsFrom(picks, now);
-  const cap = o.uncapped ? Infinity : dailyLimit(o.limits);
-  const used = o.uncapped ? 0 : await store.queuedSince(userId, dayStart(now, o.tz));
+  const cap = dailyLimit(o.limits);
+  const used = Number.isFinite(cap) ? await store.queuedSince(userId, dayStart(now, o.tz)) : 0;
   const room = Math.max(0, cap - used);
   const have = new Set((await store.list(userId)).map((w) => w.posting_key));
   const fresh = ok.filter((w) => !have.has(w.posting_key));
   const take = fresh.slice(0, room);
-  for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over today's limit of ${cap} applications`));
+  for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over the daily pace they set themselves (${cap} a day)`));
   const r = await store.put(userId, take);
-  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: o.uncapped ? null : cap };
+  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: Number.isFinite(cap) ? cap : null };
 }
 
 // ------------------------------------------------------------------------------------------------ WO-091b: what a pick means

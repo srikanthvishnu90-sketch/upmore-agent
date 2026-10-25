@@ -21,7 +21,7 @@ export interface Situation {
   as_of: string;
   goal: { roles: string[]; places: string[]; constraints: string[] };
   tasks: Task[];
-  today: { used: number; limit: number };
+  today: { used: number; limit: number | null };
   last_shown: { at: string; query: string; items: { job_id: string; company: string; title: string }[] } | null;
   next: { who: Actor; what: string; say?: string; task_id?: string }[];
   capabilities: Capability[];
@@ -118,7 +118,7 @@ export function situationFrom(r: SituationRows, now: number): Situation {
     as_of: new Date(now).toISOString(),
     goal: { roles: prefs?.keywords ?? [], places: [...(prefs?.locations ?? []), ...(prefs?.remote_ok ? ["remote"] : [])], constraints: r.standing.map((s) => s.text) },
     tasks,
-    today: { used: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > now - DAY).length, limit: dailyLimit({ daily: r.daily_limit as number }) },
+    today: { used: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > now - DAY).length, limit: Number.isFinite(dailyLimit({ daily: r.daily_limit as number })) ? dailyLimit({ daily: r.daily_limit as number }) : null },
     last_shown: ls && Array.isArray(ls.detail?.shown) ? { at: ls.at, query: ls.subject, items: ls.detail.shown } : null,
     next: nextSteps(tasks, prefs),
     capabilities, unreadable: r.unreadable,
@@ -214,7 +214,7 @@ export function situationBlock(s: Situation, budget = SITUATION_BUDGET): string 
   const ls = s.last_shown, line = (t: Task) => taskLine(t, false);
   const L: [string, boolean][] = [
     [`SITUATION (built by code from their account at ${s.as_of.slice(0, 16).replace("T", " ")} UTC: every task in flight, its state, what blocks it and who acts. It is the truth about their tasks.)`, true],
-    [goalLine(s), true], [`Today: ${s.today.used} of ${s.today.limit} applications used (last 24 hours).`, true],
+    [goalLine(s), true], [s.today.limit === null ? `Today: ${s.today.used} applications in the last 24 hours (no daily limit; they may set their own pace).` : `Today: ${s.today.used} of ${s.today.limit} applications used (last 24 hours).`, true],
     ["Next steps, in order (how is the exact step):", true], ...(s.next.length ? s.next.map(nextLine) : ["- nothing in flight"]).map((x): [string, boolean] => [x, true]),
     ...(ls ? [[`Last list shown (${day(ls.at)}, "${ls.query}"): ${ls.items.map((x, i) => `${i + 1}. ${x.company}, ${x.title} (${x.job_id})`).join("; ")}`, false] as [string, boolean]] : []),
     ["Tasks:", true],
@@ -248,7 +248,7 @@ export function statusText(s: Situation, company?: string | null): string {
     return ts.map((t) => taskLine(t).slice(2) + (t.evidence.reason && !t.blocker ? `; reason: ${t.evidence.reason}` : "")).join("\n");
   }
   const mine = needsText(s);
-  return [goalLine(s), `Today: ${s.today.used} of ${s.today.limit} applications used.`,
+  return [goalLine(s), s.today.limit === null ? `Today: ${s.today.used} applications in the last 24 hours (no daily limit).` : `Today: ${s.today.used} of ${s.today.limit} applications used.`,
     ...s.tasks.filter((t) => t.kind !== "question").map((t) => taskLine(t)), ...(mine ? [mine] : []),
     "What Trainee can and cannot do right now:", ...s.capabilities.map((c) => `- ${c.line}${c.unlock && c.status !== "on" ? ` (to turn on: ${c.unlock})` : ""}`),
     ...(lost ? [`Not read${lost}.`] : [])].join("\n");

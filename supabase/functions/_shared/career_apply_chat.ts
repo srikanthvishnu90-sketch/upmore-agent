@@ -5,10 +5,11 @@
 // open questions are asked of the person in chat, and the exact application goes only on their tap on its card.
 // A posting not on file is said so, never invented; a second ask for the same posting queues nothing twice; the screens
 // the brain's queue_applications applies (their current employer, an application there in the last 30 days) apply here.
-// No volume ceiling (owner, 2026-10-22: no cap on applications): the queue's daily limit is not read or applied on this
-// path; the once-per-employer guard, the exact-payload approval on each card and the site limits stand. Batch shapes
+// No product ceiling (owner, 2026-10-22: no cap on applications): only a daily pace the person set themselves is read,
+// and only once the turn is an apply ask; the once-per-employer guard, the exact-payload approval on each card and the
+// site limits stand. Batch shapes
 // ("apply to these", "apply to 25 roles") are not this turn's: they stay where they are.
-import { COMPANY_COOLDOWN_DAYS } from "./career_apply.ts";
+import { COMPANY_COOLDOWN_DAYS, type Limits } from "./career_apply.ts";
 import { type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { searchWords } from "./career_ingest.ts";
@@ -45,6 +46,8 @@ export interface ApplyChatDeps {
   wants: WantStore;
   apps: () => Promise<AppRow[]>;
   facts: any[];
+  // The person's own daily pace, if they set one (never a product number), read only once the turn is an apply ask.
+  limits?: () => Promise<Limits | undefined>;
   tz?: string;
 }
 export type ApplyChatResult = { reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable"; intent: typeof APPLY_QUEUE_INTENT; posting?: { job_id: string; company: string; title: string } };
@@ -82,7 +85,8 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
     const why = screened.refused[0]?.reason ?? `nothing was queued`;
     return { reply: `Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent, posting: { job_id: p.job_id, company: p.company, title: p.title } };
   }
-  const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { uncapped: true, tz: o.tz });
+  const limits = o.limits ? await o.limits().catch(() => undefined) : undefined;
+  const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits, tz: o.tz });
   const posting = { job_id: p.job_id, company: p.company, title: p.title };
   if (r.queued) return { reply: `Queued: ${p.title} at ${p.company} is on your apply list. ${NOTHING_SENT(p.company)}`, status: "queued", intent, posting };
   if (r.already) return { reply: `${p.title} at ${p.company} is already in your queue, so nothing changed. ${NOTHING_SENT(p.company)}`, status: "already", intent, posting };

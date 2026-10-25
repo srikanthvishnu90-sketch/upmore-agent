@@ -23,7 +23,9 @@ export function supabaseApplyStore(admin:any){
  const rpc=async(name:string,args:unknown)=>must(await admin.rpc(name,args));
  return {
   async enqueue(payload:ApplyPayload,approvalHash:string,o:{now?:number;daily?:number}={}){
-   const now=o.now??Date.now(),daily=dailyLimit({daily:o.daily}),hash=await hashApplyPayload(payload);
+   // No TS ceiling (CAPS-1390): `daily` is the person's own pace or Infinity. p_daily is the legacy argument the live
+   // enqueue validates (1..50) and 20261025140000 ignores; it is the person's own pace when that fits, else 50.
+   const now=o.now??Date.now(),daily=dailyLimit({daily:o.daily}),p_daily=Number.isFinite(daily)?Math.max(1,Math.min(50,daily)):50,hash=await hashApplyPayload(payload);
    const app={user_id:payload.user_id,job_id:payload.job_id,company:payload.company,payload_hash:hash,approval_hash:approvalHash};
    let admitted=admitApplication([],app,now,{daily});if(!admitted.ok)throw Error(admitted.reason!);
    const prior=must(await admin.from('career_apply_jobs').select('job_id,company,state,created_at,claimed_at').eq('user_id',payload.user_id));
@@ -31,7 +33,7 @@ export function supabaseApplyStore(admin:any){
    if(prior.some(r=>r.job_id===payload.job_id))throw Error('duplicate_job');
    admitted=admitApplication(prior.map(r=>({user_id:payload.user_id,job_id:r.job_id,company:r.company,at:Date.parse(r.claimed_at??r.created_at),state:['driving','unknown_outcome'].includes(r.state)?'submitting':r.state})),app,now,{daily});
    if(!admitted.ok)throw Error(admitted.reason!);
-   return await rpc('career_apply_enqueue',{p_payload:payload,p_hash:hash,p_approval:approvalHash,p_daily:daily});
+   return await rpc('career_apply_enqueue',{p_payload:payload,p_hash:hash,p_approval:approvalHash,p_daily});
   },
   async claim(now:number,limit=3){
    if(!Number.isFinite(now)||!Number.isInteger(limit)||limit<0||limit>6)throw Error('INVALID_APPLY_CLAIM');

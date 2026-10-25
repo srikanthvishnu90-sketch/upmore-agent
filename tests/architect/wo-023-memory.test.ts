@@ -72,7 +72,9 @@ Deno.test("WO-023/B3 the pipeline: waiting, an open card, queued, sent against t
   assert(b.includes("Stopped until they help:\n- Code Co (https://jobs.example.test/c): the employer emailed them a code to enter"), b);
   assert(b.includes("- Done Co: the employer confirmed it"), b);
   eq(summarizePipeline({ prepared: [], openCard: { shown_at: iso(25), items: [1] }, jobs: [], dailyLimit: 999 }, T).card, null, "a card older than a day is not open");
-  eq(summarizePipeline({ prepared: [], openCard: null, jobs: [], dailyLimit: 999 }, T).limit, 50, "never past 50");
+  eq(summarizePipeline({ prepared: [], openCard: null, jobs: [], dailyLimit: 999 }, T).limit, 999, "a pace the person set has no maximum (CAPS-1390)");
+  eq(summarizePipeline({ prepared: [], openCard: null, jobs: [], dailyLimit: null }, T).limit, null, "no pace set: no product number");
+  assert(/sent in the last 24 hours \(no daily limit; they may set their own pace\)/.test(personBlock({ standing: [], alerts: null, pipeline: summarizePipeline({ prepared: [], openCard: null, jobs: [], dailyLimit: null }, T) })), "the block names no number when none is set");
 });
 
 Deno.test("WO-023/B2 a standing instruction is kept only in the person's own words, once, at most 20; removed only when they ask", async () => {

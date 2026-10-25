@@ -2654,8 +2654,6 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       confirmation_id: null
     };
   }
-  var DEFAULT_DAILY = 25;
-  var MAX_DAILY = 50;
   var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
   var COUNTED_STATES = /* @__PURE__ */ new Set([
@@ -2670,7 +2668,10 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  var dailyLimit = (l) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));
+  var dailyLimit = (l) => {
+    const n = Math.floor(Number(l?.daily));
+    return Number.isFinite(n) && n >= 1 ? n : Infinity;
+  };
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {
@@ -2688,7 +2689,8 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ok: false,
       reason: "company_cooldown"
     };
-    if (mine.filter((x) => x.at > now - DAY).length >= dailyLimit(limits)) return {
+    const own = dailyLimit(limits);
+    if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return {
       ok: false,
       reason: "daily_cap"
     };

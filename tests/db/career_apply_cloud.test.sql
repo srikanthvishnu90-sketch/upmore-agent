@@ -125,7 +125,7 @@ select t.ok(pg_temp.why((select id from jobs where name='bjob'))='not_opted_in',
 select t.must_fail($$select career_apply_cloud_optin_as('00000000-0000-4000-8000-000000000a03',true,'  ')$$,'invalid cloud opt-in','turning it on needs the terms the person saw');
 select career_apply_cloud_optin_as('00000000-0000-4000-8000-000000000a03',true,'TEST terms B');
 select t.ok(pg_temp.why((select id from jobs where name='bjob')) is null,'after their yes the job may be claimed');
-select t.ok((career_apply_cloud_optin_get('00000000-0000-4000-8000-000000000a03')->>'daily')::int=25,'the opt-in carries their own daily limit (25 by default)');
+select t.ok((career_apply_cloud_optin_get('00000000-0000-4000-8000-000000000a03')->>'daily') is null,'the opt-in carries their own pace: none set, no product number (CAPS-1390; was 25 by default)');
 select career_apply_cloud_optin_as('00000000-0000-4000-8000-000000000a03',false,null);
 select t.ok(pg_temp.why((select id from jobs where name='bjob'))='not_opted_in','one message turns it off');
 select career_apply_cloud_optin_as('00000000-0000-4000-8000-000000000a03',true,'TEST terms B');

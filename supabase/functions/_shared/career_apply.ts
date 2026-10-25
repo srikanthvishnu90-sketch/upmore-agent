@@ -40,10 +40,11 @@ export function classifyOutcome(o: Observation): Outcome {
 
 // ------------------------------------------------------------------------------------------------ admission
 export interface Limits { daily?: number }
-// D-011's numbers, restored by the owner in writing (2026-10-19: "yes i raise the cap from higher then 15, as long as the
-// capability to rapidly apply to a role is there"): 25 a day by default, a person may set their own up to 50, never more.
-// The queue's SQL holds the same bound (career_apply_daily_limit, career_apply_enqueue).
-export const DEFAULT_DAILY = 25, MAX_DAILY = 50, COMPANY_COOLDOWN_DAYS = 30;
+// No volume ceiling (owner, 2026-10-22: no cap on applications or on anything; CAPS-1390). Trainee imposes no daily
+// number: a person's own daily pace, if they set one (career:account daily_limit), is honored as their instruction, with
+// no maximum. What stays: one application per employer in 30 days, the exact-payload approval on each card, idempotency
+// and unique confirmation ids, the spend and site limits. The queue's SQL drops its 25/50 bound in 20261025140000.
+export const COMPANY_COOLDOWN_DAYS = 30;
 const DAY = 86400000;
 // States that mean an application reached (or may have reached) the employer, or is approved to; a failed or
 // not-submitted attempt can be retried. One list (G3): the database's career_apply_counted_states(), plus the engine's
@@ -54,7 +55,8 @@ export const COUNTED_STATES: ReadonlySet<string> = new Set([
 const COUNTED = COUNTED_STATES;
 export const normCompany = (c: unknown) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
   .replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-export const dailyLimit = (l?: Limits) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));
+// The person's own daily pace when they set one; Infinity (no limit) otherwise.
+export const dailyLimit = (l?: Limits): number => { const n = Math.floor(Number(l?.daily)); return Number.isFinite(n) && n >= 1 ? n : Infinity; };
 
 export interface LogRow { user_id: string; job_id: string; company: string; at: number; state: string }
 export function admitApplication(log: LogRow[], a: { user_id: string; job_id: string; company: string; approval_hash?: string; payload_hash?: string }, now: number, limits?: Limits): { ok: boolean; reason: string | null } {
@@ -65,7 +67,8 @@ export function admitApplication(log: LogRow[], a: { user_id: string; job_id: st
   if (mine.some((x) => x.job_id === a.job_id)) return { ok: false, reason: "duplicate_job" };
   const co = normCompany(a.company);
   if (co && mine.some((x) => normCompany(x.company) === co && now - x.at < COMPANY_COOLDOWN_DAYS * DAY)) return { ok: false, reason: "company_cooldown" };
-  if (mine.filter((x) => x.at > now - DAY).length >= dailyLimit(limits)) return { ok: false, reason: "daily_cap" };
+  const own = dailyLimit(limits);
+  if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return { ok: false, reason: "daily_cap" };
   return { ok: true, reason: null };
 }
 

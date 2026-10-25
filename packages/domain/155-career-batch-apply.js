@@ -377,7 +377,16 @@ const CareerBatchApply = (() => {
           app.tailored = { ran: true, version: (t && t.version) || null, gaps: t && t.gaps ? t.gaps.length : null };
         } catch { app.tailored = { ran: false }; }
       }
-      const profile = profileFor(d, posting);
+      let profile = profileFor(d, posting);
+      // SUBMIT-STEER-1130: answers recorded for THIS application only
+      // (chat capture, carried in deps.appAnswers) ride this posting's
+      // own profile composition and are stamped on its app record —
+      // never the shared profile, never a sibling's.
+      const carried = (d.appAnswers || {})[key];
+      if (carried && Object.keys(carried).length) {
+        app.answers = JSON.parse(JSON.stringify(carried));
+        profile = Object.assign({}, profile, { answers: Object.assign({}, profile.answers || {}, JSON.parse(JSON.stringify(carried))) });
+      }
       rt.profiles[key] = profile;
       const board = boardOrStop(run, app, d, posting);
       if (!board) continue;
@@ -396,6 +405,9 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      // SUBMIT-STEER-1130: an UNCOVERED_QUESTION stop carries the
+      // question descriptors the chat path asks and binds answers to.
+      if (app.stop && app.stop.code === "UNCOVERED_QUESTION") app.stop.questions = stopQuestions(res, board);
       // F-031: a doorstep application's page is still live on its board
       // session — leave the execution turn its handle + the exact payload.
       recordBoardSession(run, app, board, res, now);
@@ -500,6 +512,62 @@ const CareerBatchApply = (() => {
     app.stop = Object.assign({ code, reason }, extra || {});
     event(run, "stopped", { postingKey: app.postingKey, code });
   }
+
+  // SUBMIT-STEER-1130 (answer capture): the question descriptors an
+  // UNCOVERED_QUESTION stop is waiting on — built from the drive's
+  // own asks and the board's own form definition (the standard field
+  // set when the board does not expose one). A descriptor exists only
+  // for a REQUIRED field the person answers in words (screening /
+  // question kinds): files, cover-note drafts and attestations are
+  // never chat questions (an attestation is never taken from chat
+  // text at all). Scope: a field of the standard form is answered
+  // once, on the profile; a field only this posting's form carries
+  // belongs to this application alone.
+  function stopQuestions(res, board) {
+    const Portal = getPortal();
+    const standard = (Portal && Portal.SANDBOX_FIELDS) || [];
+    const stdIds = new Set(standard.map((f) => f.field_id));
+    const defs = new Map();
+    for (const f of standard) if (f && f.field_id) defs.set(f.field_id, f);
+    try {
+      const form = board && typeof board.form === "function" ? board.form() : null;
+      for (const f of (form && form.fields) || []) if (f && f.field_id) defs.set(f.field_id, f);
+    } catch { /* the standard set + the form analysis still name the standard questions */ }
+    const analysis = new Map(((res && res.formAnalysis) || []).map((f) => [f.field_id, f]));
+    const out = [];
+    const seen = new Set();
+    for (const ask of (res && res.asks) || []) {
+      if (!ask || !ask.field_id || seen.has(ask.field_id)) continue;
+      const def = defs.get(ask.field_id) || null;
+      const an = analysis.get(ask.field_id) || null;
+      const kind = (def && def.kind) || (an && an.category) || null;
+      const required = def ? !!def.required : !!(an && an.required);
+      if (!required || (kind !== "screening" && kind !== "question")) continue;
+      seen.add(ask.field_id);
+      out.push({
+        field_id: ask.field_id,
+        question_key: (def && def.question_key) || ask.field_id,
+        label: (def && def.label) || (an && an.label) || ask.field_id,
+        kind,
+        scope: stdIds.has(ask.field_id) ? "profile" : "posting",
+      });
+    }
+    return out;
+  }
+
+  // The run's open chat questions, in the order they are asked: the
+  // first stopped application (in selection order) and its first
+  // unanswered question is the pending one; the rest queue behind it.
+  function openQuestions(run) {
+    const out = [];
+    for (const key of (run && run.selected) || []) {
+      const app = run.apps && run.apps[key];
+      if (!app || !app.stop || app.stop.code !== "UNCOVERED_QUESTION" || !Array.isArray(app.stop.questions)) continue;
+      for (const q of app.stop.questions) out.push({ postingKey: key, company: app.company || null, role: app.role || null, question: q });
+    }
+    return out;
+  }
+  function firstOpenQuestion(run) { const all = openQuestions(run); return all.length ? all[0] : null; }
 
   function nextDayIso(now) {
     const d = new Date(now || Date.now());
@@ -895,7 +963,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, openQuestions, firstOpenQuestion, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

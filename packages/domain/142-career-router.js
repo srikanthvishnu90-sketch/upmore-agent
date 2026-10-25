@@ -9208,11 +9208,18 @@ const CareerRouter = (() => {
     if (parsed.kind !== "unspecified" && profile && typeof profile === "object") audit = writeSensitiveCorrection(profile, parsed, text, ctx);
     const inv = recordInvalidation(ctx, "sensitive_fact_corrected", text, "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid");
     if (parsed.kind === "unspecified") {
-      const reply = compose({ headline: "I will hold that packet while you confirm the new answer.", facts: ["Tell me the new work authorization answer in your own words and I will save it exactly as you say it.", "Until then the prepared packet counts as stale, because the fact it was built on is changing."], nextStep: "State the new answer and I will record it and re-prepare." });
+      const reply = compose({ headline: "I will hold that packet while you confirm the new answer.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed.", "Until then the prepared packet counts as stale, because the fact it was built on is changing."], nextStep: "State the new answer and it is put through the record write; re-preparing waits for the confirmed write." });
       return { intent: "intent_sensitive_correction", resultStatus: "awaiting_user", reply, correction: parsed, invalidation: inv };
     }
-    const factSentence = parsed.kind === "future_need" ? "You will need sponsorship in the future — that is what your profile now says." : "You no longer need sponsorship — that is what your profile now says.";
-    const reply = compose({ headline: "Updated — I saved your corrected sponsorship answer to your profile.", facts: [factSentence, "The prepared packet still carries the old answer, so it is invalid now and will not be submitted."], nextStep: "I can re-prepare it with the corrected answer and bring it back for your re-confirmation." });
+    // SPLIT-1146 (c): the old headline claimed the save ("I saved
+    // your corrected sponsorship answer to your profile") on the
+    // strength of this handler's local write alone. The claim now
+    // waits for the host record write to be confirmed: the reply
+    // states the person's direction, keeps the stale-packet
+    // protection, and says plainly that no saved answer is claimed
+    // until the host writer confirms it.
+    const factSentence = parsed.kind === "future_need" ? "Your statement, in your own words: you will need sponsorship in the future." : "Your statement, in your own words: you no longer need sponsorship.";
+    const reply = compose({ headline: "Correction noted — I am not calling it saved: the host record write is not confirmed.", facts: [factSentence, "The prepared packet built on the old answer is invalid now and will not be submitted.", "Until the host writer confirms the record write, the correction stands as your stated direction — not as a saved profile answer."], nextStep: "Once the write is confirmed, I can re-prepare on the corrected answer and bring it back for your re-confirmation." });
     return { intent: "intent_sensitive_correction", resultStatus: "completed", reply, correction: { kind: parsed.kind, needsSponsorship: parsed.needsSponsorship, clause: parsed.clause }, audit, invalidation: inv };
   }
 

@@ -5966,7 +5966,17 @@ const CareerRouter = (() => {
       if (cur === true) c.globalPause = mp;
       else if (cur && typeof cur === "object" && cur.set === true && !(_tsMs(cur.at) > _tsMs(mp.liftedAt))) c.globalPause = mp;
     } else if (mp && mp.set === true && !c.globalPause) {
-      c.globalPause = mp;
+      // OWNER GUARD (2026-10-25): the mirror lives in the track
+      // store, which trackStoreOf can derive from the profile object
+      // — a store a harness (or any host that reuses a profile
+      // object) shares across conversations. A pause is account
+      // state: a set pause recorded by ANOTHER user (mp.by names
+      // its owner) must never be restored into this user's ctx —
+      // it read as a standing global pause beside this user's own
+      // alert stop and forced the two-scopes clarification on a
+      // resume only the alert stop owned. Same-user restores (the
+      // designed ctx-rebuild path) are untouched.
+      if (!(mp.by && c.userId && mp.by !== c.userId)) c.globalPause = mp;
     }
   }
   function syncThreadOut(ctx) {
@@ -9484,6 +9494,15 @@ const CareerRouter = (() => {
         if (liftedWp) return { intent: "career_watch_manage", resultStatus: "completed", reply: watchBackOnReply(null), sends: 0, watch_profile: liftedWp };
       }
       if (!paused && !watchStopped) {
+        // ALERT RECORD ANSWER (2026-10-25): when a watch profile
+        // stands, a bare resume phrase is a question about the
+        // ALERTS' state, and the alert path answers those from the
+        // watch record itself (career_watch_manage: "your alerts
+        // aren't paused — they're on"). Answering here with the
+        // queue-scoped pause_status pre-empted that record answer.
+        // With no watch profile there is no alert record to answer
+        // from, and the pause answer below stands as before.
+        if (wpNow) return null;
         const wasLifted = c.globalPause && c.globalPause.set === false && c.globalPause.liftedAt;
         const reply = compose({ headline: "No — nothing is paused right now.", facts: [wasLifted ? `The pause was lifted at ${fmtWhen(c.globalPause.liftedAt) || "earlier in this conversation"}, and no new pause has been set since.` : "No global pause is set on your account in this conversation, and no job alerts are stopped.", "Sends, follow-ups, and submissions are not being held by a pause — each still waits for its own approval, as always."], nextStep: "Say 'stop everything' for the full halt, or 'stop my job alerts' to stop just the alerts." });
         return { intent: "pause_status", resultStatus: "completed", reply, sends: 0, paused: false };

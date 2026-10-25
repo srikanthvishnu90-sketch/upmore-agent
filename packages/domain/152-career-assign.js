@@ -123,7 +123,8 @@ const CareerAssign = (() => {
     for (const i of (wp && wp.interests) || []) {
       if (!i.interest_id) errors.push("an interest is missing its interest_id");
       const role = i.role || {};
-      if (!role.soc || !/^\d{2}-\d{4}$/.test(role.soc)) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`);
+      // A role the person named in their own words ("golang backend") has no SOC code; it is stated, not inferred.
+      if (role.stated === true ? role.soc != null && !/^\d{2}-\d{4}$/.test(role.soc) : !role.soc || !/^\d{2}-\d{4}$/.test(role.soc)) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`);
       if (!role.title) errors.push(`interest ${i.interest_id || "?"}: role.title is required`);
       if (!Array.isArray(role.terms) || !role.terms.length) errors.push(`interest ${i.interest_id || "?"}: role.terms must carry at least one title term`);
       const f = i.filters || {};

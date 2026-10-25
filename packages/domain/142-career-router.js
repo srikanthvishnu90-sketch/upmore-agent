@@ -9435,8 +9435,7 @@ const CareerRouter = (() => {
       return wpNow;
     };
     const watchBackOnReply = (extraFact) => {
-      const delivery = c.workerCapabilities && c.workerCapabilities.job_alert_delivery;
-      const facts = [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are active again in this conversation; automatic alert delivery is not wired in this handler." : "Your saved watches are active again; the host's next tick matches and reminds on them as before."];
+      const facts = [alertDeliveryLive(c) ? "Your saved watches are active again; I will text you matches as new postings come in, inside your quiet hours and daily cap." : "Your saved watches are active again. Alert delivery isn't on yet, so nothing is texted to you until it is."];
       for (const i of (wpNow.interests || [])) facts.push(`Watching: ${watchInterestLine(i)}.`);
       if (extraFact) facts.push(extraFact);
       return compose({ headline: "Job alerts are back on.", facts, nextStep: "Want the current watch list read back?" });
@@ -9739,13 +9738,203 @@ const CareerRouter = (() => {
     if (/\bLA\b/.test(raw) && !out.includes("Los Angeles")) out.push("Los Angeles");
     return out;
   }
+  const WATCH_BAND_WORDS = { intern: "internships", new_grad: "new-grad roles", junior: "junior roles" };
   function watchInterestLine(i) {
     const f = i.filters || {};
-    const where = (f.locations || []).length ? f.locations.join(", ") : "any location";
-    const remote = f.remote_ok === false ? "" : " + remote";
-    const bands = (f.bands || []).length ? ` — ${(f.bands || []).join(" / ")} only` : "";
+    const where = f.remote_only ? "remote only" : (f.locations || []).length ? f.locations.join(", ") : "any location";
+    const remote = f.remote_only || f.remote_ok === false ? "" : " + remote";
+    const bands = (f.bands || []).length ? ` — ${(f.bands || []).map((b) => WATCH_BAND_WORDS[b] || b).join(" and ")} only` : "";
     const firms = (f.firms_include || []).length ? ` at ${(f.firms_include || []).join(", ")}` : "";
     return `${(i.role || {}).title || i.interest_id}${firms} — ${where}${remote}${bands}`;
+  }
+  // ONE ALERT PATH (owner scope 2026-10-24: iMessage job alerts end to end). Every alert ask — create, change, list,
+  // count, history, pause, resume, stop — is served here from the standing watch record (152's profile in the watch
+  // state) and the alert conversation the thread is in, before the families that used to swallow these turns (the
+  // reply resolver, the pause gate, goal capture, the disclosure reading, the catch-all). Replies read the delivery
+  // flag the host passes (workerCapabilities.job_alert_delivery.live): "I will text you matches" only when it is on.
+  // Nothing here sends: the scheduled run queues and the channel delivers, each rechecking the record (D-024 path).
+  function alertDeliveryLive(ctx) {
+    const d = ctx && ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
+    return !!(d && d.live === true);
+  }
+  function alertDeliveryLine(ctx, wp) {
+    if (wp && wp.opt_out && wp.opt_out.global) return "Your job alerts are paused, so this is saved and nothing is texted to you until you turn them back on.";
+    return alertDeliveryLive(ctx)
+      ? "I will text you matches as new postings come in, inside your quiet hours and daily cap."
+      : "It's saved. Alert delivery isn't on yet, so nothing is texted to you until it is.";
+  }
+  // The alert conversation: the last turn this thread served was alert business, within the last 30 minutes. Only
+  // inside it does a bare follow-up ("ok stop", "throw boston in too") count as alert business.
+  const ALERT_FRAME_MS = 30 * 60000;
+  function alertFrameLive(ctx) {
+    const mir = threadMirrorOf(ctx);
+    const f = mir && mir.alertFrame;
+    return !!(f && typeof f.at === "number" && nowOf(ctx) - f.at >= 0 && nowOf(ctx) - f.at < ALERT_FRAME_MS);
+  }
+  function markAlertFrame(ctx, on) {
+    if (on) { const w = threadMirrorForWrite(ctx); if (w) w.alertFrame = { at: nowOf(ctx) }; return; }
+    const mir = threadMirrorOf(ctx);
+    if (mir && mir.alertFrame) delete mir.alertFrame;
+  }
+  const ALERT_JOB_NOUN = "(?:roles?|jobs?|openings?|positions?|postings?|internships?|gigs?|listings?)";
+  // A create ask: an alert verb aimed at the person themselves, then the role in their words before a job noun.
+  // "text my boss about …" names another recipient and is never a watch.
+  function alertCreateRole(t) {
+    if (/\b(text|ping|notify|alert|message|email|tell|buzz)\s+(my|his|her|their|our|the|a)\s+\w+/.test(t)) return null;
+    const verb = /\b(text|ping|notify|alert|message|buzz)\s+me\b|\bheads[- ]?up\b|\blet me know\b|\bkeep me (posted|updated)\b|\bi (?:want|wanna|would like|'d like) to (?:hear|know)\b/.test(t);
+    if (!verb) return null;
+    // "want to hear about …" is news only with a trigger in it; without one it is a question about the field.
+    if (/\bi (?:want|wanna|would like|'d like) to (?:hear|know)\b/.test(t) && !/\b(the (?:minute|moment|second)|as soon as|whenever|when|goes? up|opens?|posted|new)\b/.test(t)) return null;
+    const m = t.match(new RegExp(`\\b(?:about|for|on|when|whenever|if|the (?:minute|moment|second)|as soon as)\\s+(?:(?:somebody|someone|anyone|anybody|a company|companies|an employer|employers)\\s+posts?\\s+)?((?:(?:a|an|any|some|new|the|more|fresh)\\s+)*)([a-z][a-z0-9+#./ -]{1,40}?)\\s+${ALERT_JOB_NOUN}\\b`));
+    if (!m) return null;
+    const phrase = m[2].replace(/\s+/g, " ").trim();
+    if (!phrase || /^(any|some|new|the|more|those|these|my|your)$/.test(phrase)) return null;
+    return phrase;
+  }
+  // The role a create ask names: a curated split when the person's words name one; otherwise the person's own words,
+  // stated (no occupation code is invented for them).
+  function alertRoleSpec(phrase) {
+    const A = getAssign(); if (!A || !A.SPLITS) return null;
+    const p = lc(phrase);
+    for (const [split, spec] of Object.entries(A.SPLITS)) {
+      if (!spec.soc) continue;
+      if (p.includes(lc(split)) || (spec.terms || []).some((term) => term && p.includes(lc(term)))) return A.roleSpecFor({ split });
+    }
+    const words = p.replace(/\b(intern(ship)?s?|new[ -]?grad|entry[- ]level|remote|in [a-z ]+)$/g, "").trim() || p;
+    const spec = A.roleSpecFor({ title: words });
+    spec.title = words.split(" ").map((w) => (/^(ux|ui|qa|ml|ai|it|hr|pm|seo|sre)$/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
+    spec.stated = true;
+    return spec;
+  }
+  function alertCityIn(t) {
+    for (const city of WATCH_CITIES) if (new RegExp(`\\b${lc(city)}\\b`).test(t)) return city;
+    if (/\bnyc\b/.test(t)) return "New York";
+    return null;
+  }
+  const titleWords = (x) => s(x).trim().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  function alertReply(ctx, wp, headline, facts, nextStep, extra) {
+    return Object.assign({ intent: "career_watch_manage", resultStatus: "completed", reply: compose({ headline, facts, nextStep }), sends: 0, watch_profile: wp, payload: wp }, extra || {});
+  }
+  function alertTargetOf(t, wp) {
+    const items = wp.interests || [];
+    const hit = items.filter((i) => {
+      const r = i.role || {};
+      return [r.title, ...(r.terms || [])].some((w) => w && t.includes(lc(w))) || (lc(r.title || "").split(" ").filter((w) => w.length > 3).some((w) => t.includes(w)));
+    });
+    return hit.length === 1 ? hit[0] : null;
+  }
+  function handleAlertPath(text, ctx) {
+    const A = getAssign(); if (!A) return null;
+    const t = lc(text).replace(/[’]/g, "'").trim();
+    const frame = alertFrameLive(ctx);
+    const alertWord = /\b(alerts?|watch(es|ing)?|notifications?|pings?)\b/.test(t);
+    // ---- create, in the person's alert words ("text me the minute a ux research role opens up")
+    const phrase = alertCreateRole(t);
+    if (phrase) {
+      const role = alertRoleSpec(phrase);
+      if (!role) return null;
+      return saveWatchInterest(text, ctx, role);
+    }
+    const wp = loadWatchProfileSync(ctx);
+    const interests = (wp && wp.interests) || [];
+    if (!wp || !interests.length) return null; // with nothing standing, the watch handlers below say so
+    const inFrame = frame || alertWord;
+    const save = () => saveWatchProfileSync(ctx, wp);
+    const lines = () => (wp.interests || []).map((i) => `Watching: ${watchInterestLine(i)}.`);
+    const stopped = !!(wp.opt_out && wp.opt_out.global);
+    const setStopped = (on) => A.setOptOut(wp, { global: on, companies: ((wp.opt_out || {}).companies || []) });
+    // ---- resume
+    if (inFrame && /\b(turn (them|it|my alerts|the alerts|alerts|everything) back on|turn (them|it) on again|resume (my |the |all )?(job )?alerts|start (them|my alerts|the alerts) again|unpause|alerts back on)\b/.test(t)) {
+      if (!stopped) return alertReply(ctx, wp, "Your alerts aren't paused — they're already on.", lines(), "Want a change to what I watch?");
+      setStopped(false); if (!save()) return null;
+      return alertReply(ctx, wp, "Job alerts are back on.", [...lines(), alertDeliveryLine(ctx, wp)], "Want the list read back, or a change?");
+    }
+    // ---- pause (timed or not) and stop
+    const pause = /\b(pause|hold|snooze|mute)\b/.test(t) && (inFrame || /\balert/.test(t));
+    const stop = /\bno more alerts\b|\bstop (all |my |the |these |those )?(job )?alerts\b|\bturn off (my |the |all )?(job )?alerts\b|\bstop texting me (about )?(jobs|roles|alerts|matches)\b/.test(t)
+      || (frame && /^(ok(ay)?[, ]+)?(please )?stop( it| them| that| please)?[.!]*$/.test(t));
+    if (pause || stop) {
+      setStopped(true); if (!save()) return null;
+      const timed = /\bfor (a|one|two|three|\d+) (day|days|week|weeks|month|months)\b|\buntil\b|\bover the\b/.test(t);
+      const facts = [...lines(), "No alert is texted to you while they're " + (stop ? "stopped" : "paused") + " — alerts already waiting to go out are not sent either."];
+      if (timed) facts.push("It stays paused until you tell me to turn alerts back on — I can't lift it on a timer.");
+      return alertReply(ctx, wp, stop ? "Job alerts stopped." : "Job alerts paused.", facts, "Say \"turn them back on\" whenever you want them back.");
+    }
+    // ---- delete one alert ("delete my alert", "drop the software engineering watch")
+    if (/\b(delete|remove|drop|cancel|kill|get rid of|scrap)\b/.test(t) && (/\b(alert|watch)\b/.test(t) || frame)) {
+      const target = interests.length === 1 ? interests[0] : alertTargetOf(t, wp);
+      if (!target) return alertReply(ctx, wp, "Which alert should come off?", lines(), "Name the role and I'll remove exactly that one.", { resultStatus: "awaiting_user" });
+      A.removeInterest(wp, target.interest_id); if (!save()) return null;
+      return alertReply(ctx, wp, `Removed the ${(target.role || {}).title} alert.`, wp.interests.length ? lines() : ["You have no alerts left; nothing is watched."], "Want another role watched?");
+    }
+    // ---- history ("what did you send me today")
+    if ((inFrame || /\balerts?\b/.test(t)) && /\bwhat (did|have) you (sent|send|texted|text)( me)?\b|\bdid you send me\b|\bany alerts today\b|\bwhat alerts (did|have) (you )?(sent|send)\b/.test(t)) {
+      const sent = [], queued = [];
+      for (const o of Array.isArray(ctx.alertOutbox) ? ctx.alertOutbox : []) (o && o.status === "delivered" ? sent : queued).push(o);
+      let q = [];
+      try { const v = watchStoreOf(ctx, false).get(A.QUEUE_KEY(wp.user_id)); q = Array.isArray(v) ? v : []; } catch { q = []; }
+      for (const r of q) queued.push({ text: [r.title, r.company ? `at ${r.company}` : ""].filter(Boolean).join(" "), status: r.status || "queued" });
+      const facts = [];
+      for (const o of sent) facts.push(`Sent: ${s(o.title || o.text).split("\n")[0].slice(0, 160)}.`);
+      for (const o of queued) facts.push(`Queued, not sent yet: ${s(o.title || o.text).split("\n")[0].slice(0, 160)}.`);
+      if (!sent.length) facts.unshift("I haven't sent you any alerts today.");
+      if (!alertDeliveryLive(ctx)) facts.push("Alert delivery isn't on yet, so nothing goes out until it is.");
+      return alertReply(ctx, wp, sent.length ? `I sent you ${sent.length} alert${sent.length === 1 ? "" : "s"} today.` : "Nothing sent today.", facts, "Want the watch list read back?", { resultStatus: "prepared" });
+    }
+    // ---- list and count
+    if (/\bhow many (alerts|watches)\b[^.]*\b(set up|do i have|have i got|am i|running|on)\b|\bhow many (alerts|watches) (do|have)\b/.test(t) && !/\b(a|per) day\b|\bmax\b/.test(t)) {
+      const n = interests.length;
+      return alertReply(ctx, wp, `You have ${n} watch${n === 1 ? "" : "es"} set up.`, [...lines(), ...(stopped ? ["They're paused right now."] : [])], "Want one changed or removed?", { resultStatus: "prepared" });
+    }
+    if (/\bwhat (are|r) you (keeping an eye on|watching|tracking|looking out for)\b|\bwhat (alerts|watches) (have i|do i) (got|have|set)\b|\bwhat am i (getting alerts|signed up) for\b/.test(t)) {
+      const n = interests.length;
+      return alertReply(ctx, wp, `You are watching ${n} role${n === 1 ? "" : "s"}.`, [...lines(), ...(stopped ? ["Alerts are paused right now."] : []), ...(alertDeliveryLive(ctx) ? [] : ["Alert delivery isn't on yet, so nothing is texted to you until it is."])], "Want one changed or removed?", { resultStatus: "prepared" });
+    }
+    // ---- per-day cap in the person's words ("no more than 3 alerts a day")
+    const capM = t.match(/\b(?:no more than|at most|not more than|max(?:imum)? of)\s+(\d{1,2})\s*(?:alerts?|texts?|messages?|pings?)?\s*(?:a|per|each)\s+day\b/);
+    if (capM && inFrame) {
+      const n = Number(capM[1]);
+      wp.alert_cap_per_day = n; if (!save()) return null;
+      return alertReply(ctx, wp, `Alert cap set: ${n} a day.`, [...lines(), `Cap: at most ${n} alert${n === 1 ? "" : "s"} a day across your watches.`], "Anything else to change?");
+    }
+    if (!frame && !alertWord) return null;
+    // ---- changes to the standing watches (the alert conversation, or the alert word, in the turn)
+    const all = wp.interests;
+    // the daily summary's time has no setting: said plainly, nothing changes
+    if (/\b(daily )?(summary|digest|roundup|round-up|report)\b/.test(t) && /\b(move|change|set|make|shift|send)\b/.test(t)) {
+      return alertReply(ctx, wp, "I can't move the daily summary yet — there's no setting for its time.", ["Nothing was changed: your watches and the summary stay as they are.", ...lines()], "Want a different change instead — a city, a cap, or entry-level only?", { resultStatus: "awaiting_user" });
+    }
+    if (/\bremote( roles| jobs)? only\b|\bonly remote\b|\bjust remote\b|\bfully remote\b/.test(t)) {
+      for (const i of all) { i.filters = Object.assign({}, i.filters, { locations: [], remote_ok: true, remote_only: true }); }
+      if (!save()) return null;
+      return alertReply(ctx, wp, "Done — remote roles only.", lines(), "Want a city added back, or anything else changed?");
+    }
+    if (/\bentry[- ]level\b/.test(t) && /\bonly\b|\bjust\b|\bfrom (here|now)\b/.test(t)) {
+      for (const i of all) { i.filters = Object.assign({}, i.filters, { bands: ["intern", "new_grad"] }); }
+      if (!save()) return null;
+      return alertReply(ctx, wp, "Done — entry-level only: internships and new-grad roles.", lines(), "Anything else to change?");
+    }
+    const firmsM = t.match(/\bonly (?:roles |jobs |openings |postings )?(?:at|from|with) ([a-z0-9&.' -]+?)(?:\s+(?:from now on|going forward|from here|please))?[.!]*$/);
+    if (firmsM) {
+      const firms = firmsM[1].split(/\s*(?:,|\band\b|&)\s*/).map((x) => x.trim()).filter((x) => x && !/^(now|here)$/.test(x)).map(titleWords);
+      if (firms.length) {
+        for (const i of all) { i.filters = Object.assign({}, i.filters, { firms_include: firms }); }
+        if (!save()) return null;
+        return alertReply(ctx, wp, `Done — only roles at ${firms.join(" and ")}.`, lines(), "Anything else to change?");
+      }
+    }
+    const city = alertCityIn(t);
+    if (city && /\b(add|also|include|throw|plus|too|as well|and)\b/.test(t)) {
+      let changed = false;
+      for (const i of all) {
+        const f = Object.assign({ locations: [] }, i.filters);
+        if (!f.locations.some((x) => lc(x) === lc(city))) { f.locations = [...f.locations, city]; f.remote_only = false; changed = true; }
+        i.filters = f;
+      }
+      if (!save()) return null;
+      return alertReply(ctx, wp, changed ? `${city} added to your watches.` : `${city} was already on your watches.`, lines(), "Want another city, a cap, or the list read back?");
+    }
+    return null;
   }
   // P8's second turn: a bare "yes, set that up for me" after a watch was
   // JUST created in this conversation. The affirmation writes nothing —
@@ -9802,6 +9991,13 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "That role is not one the watch can save yet.", facts: [`A saved watch needs a role from the taxonomy the assignment layer carries — today: ${covered}.`, "A role outside that set gets no watch rather than a watch keyed to an invented category, which would poll wrong and alert wrong."], nextStep: "Name one of those roles — or the closest one — and the watch is set in this turn." });
       return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };
     }
+    return saveWatchInterest(text, ctx, role);
+  }
+  // One watch saved from a turn: the role (curated, derived, or the person's own words), the places, bands and firm the
+  // text names. Shared by the "watch for" path and the alert path (handleAlertPath), so both save the same record.
+  function saveWatchInterest(text, ctx, role) {
+    const A = getAssign(); if (!A) return null;
+    const profile = ctx && ctx.profile;
     const t = lc(text);
     const bands = [];
     if (/\bintern(ship)?s?\b/.test(t)) bands.push("intern");
@@ -9828,10 +10024,7 @@ const CareerRouter = (() => {
       const reply = compose({ headline: "That watch did not save — the profile it built failed validation, so nothing was recorded.", facts: ["Nothing polls on a watch that is not saved; a half-saved watch would be worse than none."], nextStep: "Say the watch again with the role and city named plainly, and I will set it." });
       return { intent: "career_watch_create", reply, resultStatus: "blocked", sends: 0 };
     }
-    const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
-    const facts = delivery && delivery.status === "NOT_WIRED"
-      ? [`Watching: ${watchInterestLine(interest)}.`, "The watch is saved in this conversation only; automatic alert delivery is not wired in this handler.", "No reminder has been delivered and no application has been submitted."]
-      : [`Watching: ${watchInterestLine(interest)}.`, "The record is per-user, not per-thread: the host's scheduler reads this same profile, polls the boards on the standing cadence (starred companies every 15 minutes, the rest hourly), and a matching new posting becomes a reminder with the posting's own deadline quoted and the match basis stated.", wp.opt_out && wp.opt_out.global ? "Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts." : "The watch is live the moment the host's next tick runs — creating it here sends nothing and applies to nothing."];
+    const facts = [`Watching: ${watchInterestLine(interest)}.`, alertDeliveryLine(ctx, wp), "No application has been submitted."];
     const reply = compose({ headline: `Watch set: ${role.title}.`, facts, nextStep: "Want another role watched, or the list of what you are watching now?" });
     return { intent: "career_watch_create", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp, artifact: wp };
   }
@@ -9878,12 +10071,11 @@ const CareerRouter = (() => {
     if (isPause || isResume || isStopAlerts) {
       A.setOptOut(wp, { global: (isPause || isStopAlerts) && !isResume, companies: ((wp.opt_out || {}).companies || []) });
       if (!saveWatchProfileSync(ctx, wp)) return null;
-      const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
       const reply = isResume
-        ? compose({ headline: "Job alerts resumed.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches are no longer paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches are active again; the host's next tick matches and reminds on them as before."], nextStep: "Want the current watch list read back?" })
+        ? compose({ headline: "Job alerts resumed.", facts: [alertDeliveryLive(ctx) ? "Your watches are active again; I will text you matches as new postings come in." : "Your watches are active again. Alert delivery isn't on yet, so nothing is texted to you until it is."], nextStep: "Want the current watch list read back?" })
         : isStopAlerts
-          ? compose({ headline: "Job alerts stopped.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay stopped in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the stop and queues no reminders while it stands."], nextStep: "Say \"keep them\" or \"resume my job alerts\" whenever you want them back." })
-          : compose({ headline: "Job alerts paused.", facts: [delivery && delivery.status === "NOT_WIRED" ? "Your saved watches stay paused in this conversation; automatic alert delivery is not wired in this handler." : "Your watches stay on file exactly as they are; the host's assignment cycle records the pause and queues no reminders while it stands."], nextStep: "Say \"resume my job alerts\" whenever you want them back." });
+          ? compose({ headline: "Job alerts stopped.", facts: ["Your watches stay on file exactly as they are, and no alert is texted to you while they are stopped — alerts already waiting to go out are not sent either."], nextStep: "Say \"keep them\" or \"resume my job alerts\" whenever you want them back." })
+          : compose({ headline: "Job alerts paused.", facts: ["Your watches stay on file exactly as they are, and no alert is texted to you while they are paused — alerts already waiting to go out are not sent either."], nextStep: "Say \"resume my job alerts\" whenever you want them back." });
       return { intent: "career_watch_manage", reply, resultStatus: "completed", sends: 0, watch_profile: wp, payload: wp };
     }
     // CAP: a per-day alert cap is a standing watch setting, recorded
@@ -9945,8 +10137,7 @@ const CareerRouter = (() => {
         : ["Your watch profile exists but holds no interests right now — it polls nothing and reminds nothing."];
       if (wp.opt_out && wp.opt_out.global) facts.push("Job alerts are PAUSED for you: watches are recorded, and no reminders go out until you resume them.");
       if (wp.alert_cap_per_day) facts.push(`Cap: at most ${wp.alert_cap_per_day} alert${wp.alert_cap_per_day === 1 ? "" : "s"} a day across your watches.`);
-      const delivery = ctx.workerCapabilities && ctx.workerCapabilities.job_alert_delivery;
-      if (delivery && delivery.status === "NOT_WIRED") facts.push("Automatic alert delivery is not wired in this handler; these watches are saved in this conversation only.");
+      if (!alertDeliveryLive(ctx)) facts.push("Alert delivery isn't on yet, so these watches are saved and nothing is texted to you until it is.");
       if (queued) facts.push(`${queued} reminder${queued === 1 ? " is" : "s are"} already queued for delivery.`);
       const reply = compose({ headline: wp.interests.length ? `You are watching ${wp.interests.length} role${wp.interests.length === 1 ? "" : "s"}.` : "Your watch list is empty.", facts, nextStep: "Add a role, remove one by name, or pause alerts — say which." });
       return { intent: "career_watch_manage", reply, resultStatus: "prepared", sends: 0, watch_profile: wp, payload: wp };
@@ -10808,6 +10999,7 @@ const CareerRouter = (() => {
     // triple-gated (invocation phrase + a writing verb + facts on
     // record) and stands down otherwise.
     { const mg = handleFactGroundedDraft(text, c); if (mg) return mg; }
+    { const ap = handleAlertPath(text, c); if (ap) return ap; }
     // A turn FRAMED as a relayed reply ("Reply handling: ...") is reply
     // handling, not a user instruction: the ownership layer's recipient /
     // opt-out matchers would misread the quoted banker's words as the

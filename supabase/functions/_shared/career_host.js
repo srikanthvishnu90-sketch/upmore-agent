@@ -302,11 +302,18 @@ const CareerHost = (() => {
     // asynchronous worker execution, not a wired in-turn drive, and
     // no WIRED claim is made for it.
     const delegateBatch = !!(deps && deps.delegateBatch === true);
-    const workerCapabilities = boardFor
-      ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
-          portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
-        }))
-      : WORKER_CAPABILITIES;
+    // Job alert delivery: the composition root says whether the scheduled
+    // alerts run and its delivery are on for this deployment (deps.alertDelivery
+    // === true, from the owner's switch). Off by default; the router's replies
+    // read it so a saved watch never promises a text that will not come.
+    const alertDelivery = !!(deps && deps.alertDelivery === true);
+    const workerCapabilities = Object.freeze(Object.assign({}, WORKER_CAPABILITIES,
+      boardFor ? {
+        portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
+      } : {},
+      alertDelivery ? {
+        job_alert_delivery: Object.freeze({ status: "WIRED", live: true, transport: "career-proactive", reason: "Saved watches are matched by the scheduled alerts run and texted through the delivery channel, inside quiet hours and the daily cap." }),
+      } : {}));
 
     // Build the hosted ctx for one turn. `snapshot` is the object previously
     // returned by extractSnapshot (or null for a brand-new thread).
@@ -318,7 +325,8 @@ const CareerHost = (() => {
         threadId: o.threadId || null,
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
-        workerCapabilities,
+        // Per turn, so a turn's capability reading can never leak into another.
+        workerCapabilities: Object.assign({}, workerCapabilities),
         accountPersistence: o.accountPersistence === true,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");

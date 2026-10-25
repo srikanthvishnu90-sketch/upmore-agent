@@ -30,3 +30,10 @@ Deno.test('009b-1 finish is lease-bound and transport uncertainty is never retri
 Deno.test('009b-1 payload hashing is stable across key order and rejects non-JSON numbers',async()=>{
  eq(await hashApplyPayload({b:1,a:{'10':'x','2':'y'}}),await hashApplyPayload({a:{'2':'y','10':'x'},b:1}));await refuses(()=>hashApplyPayload({salary:NaN}),'INVALID_APPLY_PAYLOAD');
 });
+Deno.test('SERIAL-1450 an unset pace enqueues (never read as unreadable); a stored pace is passed as stored; an unreadable one refuses by name',async()=>{
+ const hash=await hashApplyPayload(payload);
+ for(const daily of [undefined,null] as any[]){const f=fake();await supabaseApplyStore(f.admin).enqueue(payload,hash,{now,daily});eq(f.calls[1].args.p_daily,50);}
+ const seven=fake();await supabaseApplyStore(seven.admin).enqueue(payload,hash,{now,daily:7});eq(seven.calls[1].args.p_daily,7);
+ const big=fake();await supabaseApplyStore(big.admin).enqueue(payload,hash,{now,daily:1000000});eq(big.calls[1].args.p_daily,50);
+ const bad=fake();await refuses(()=>supabaseApplyStore(bad.admin).enqueue(payload,hash,{now,daily:'lots' as any}),'pace_unreadable');eq(bad.calls.length,0);
+});

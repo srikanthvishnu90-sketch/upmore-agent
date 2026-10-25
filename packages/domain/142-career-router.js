@@ -9700,6 +9700,21 @@ const CareerRouter = (() => {
   // stripped; a remainder with no content word is no target at all and
   // creation asks for the role by name instead.
   const WATCH_SCAFFOLD = new Set(["text", "message", "ping", "notify", "tell", "send", "dm", "me", "let", "know", "heads", "up", "when", "whenever", "as", "soon", "the", "a", "an", "any", "somebody", "someone", "anyone", "start", "starts", "hiring", "posts", "post", "posted", "appears", "appear", "opens", "open", "goes", "go", "comes", "come", "gets", "get", "about", "for", "watch", "alert", "alerts", "please", "i", "want", "wanna", "would", "like", "to", "hear", "minute", "moment", "second", "fresh", "new", "keep", "an", "eye", "on", "out", "set", "create", "start", "watching", "if", "there", "is", "are", "one", "hiring", "really", "just"]);
+  // ROLE CONTENT (2026-10-25, owner requirement): a stated-words
+  // target must carry at least one word that is role CONTENT. A
+  // remainder made only of job-container nouns (jobs / roles /
+  // openings), deictics and fillers (that kind of, my field, the
+  // usual, something) names no role the product can pin down —
+  // watchStatedRole manufactured targets out of exactly those
+  // ("Jobs in my field", "Something", "Openings") and saved them
+  // as watches. Content-less segments are skipped; when no segment
+  // carries content, creation falls to the handler's own
+  // clarification (name the role) and nothing is saved. The check
+  // only rejects a phrase whose EVERY word is filler — a real
+  // title that merely contains a filler word ("field technician",
+  // "social work", "area manager") keeps its content word and
+  // still creates in the user's own words.
+  const WATCH_NON_ROLE = new Set(["job", "jobs", "role", "roles", "opening", "openings", "position", "positions", "posting", "postings", "internship", "internships", "opportunity", "opportunities", "gig", "gigs", "that", "this", "these", "those", "my", "mine", "your", "kind", "sort", "type", "of", "in", "on", "at", "stuff", "thing", "things", "something", "anything", "everything", "nothing", "usual", "same", "field", "area", "work"]);
   function watchStatedRole(text, A) {
     const raw = s(text).replace(/[.!?,;]+/g, " ").replace(/\s+/g, " ").trim();
     if (!raw) return null;
@@ -9717,6 +9732,7 @@ const CareerRouter = (() => {
       const toks = seg.split(/\s+/).filter(Boolean);
       const kept = toks.filter((w) => !WATCH_SCAFFOLD.has(lc(w)));
       if (!kept.length || kept.length > 6) continue;
+      if (!kept.some((w) => !WATCH_NON_ROLE.has(lc(w).replace(/[^a-z]/g, "")))) continue;
       const phrase = kept.join(" ").trim();
       if (phrase.length < 3) continue;
       const spec = A.roleSpecFor({ title: phrase.replace(/^./, (ch) => ch.toUpperCase()) });
@@ -10203,7 +10219,7 @@ const CareerRouter = (() => {
     if (/\b(text|tell|email|message|write to)\s+(my|the)\s+(boss|manager|supervisor)\b/.test(t)) return null;
     const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
     const deliveryVerb = /\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/.test(t);
-    const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || !!watchRoleFromText(raw);
+    const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || /\b(opens? up|goes up|comes up|gets? posted|is posted)\b/.test(t) || !!watchRoleFromText(raw);
     if (classicCreate || (deliveryVerb && jobObject)) return { op: "create" };
     return null;
   }

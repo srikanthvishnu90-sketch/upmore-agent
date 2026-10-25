@@ -44,7 +44,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
-import { applyTurn, paceReader, paceTurn } from "../_shared/career_apply_chat.ts";
+import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
@@ -438,16 +438,26 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await paceTurn({ message, userId: user.id, admin })
         : null;
-      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
+      const screenFacts = [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
+        ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))];
+      const employerAsk = supabaseEmployerAskStore(admin);
+      // SERIAL-1490/1491: "is X where you work now?" is answered by the next yes or no while that question is this thread's
+      // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
+      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
+            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
+          .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
+        : null;
+      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id),
-          // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
-          facts: [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-            ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))],
+          facts: screenFacts,
           // The batch ask ("apply to these") reads the postings this thread last listed, as the router kept them.
           shortlist: (loaded.snapshot as any)?.stores?.discovery?.lastShortlist ?? null,
           limits: paceReader(admin, user.id),
+          employerAnswers: () => employerAsk.answers(tid),
         })
         : null;
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
@@ -485,8 +495,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
       } else if (paced) {
         out = { reply: paced.reply, intent: paced.intent, resultStatus: paced.status, contained: false, handler: "apply_pace" };
+      } else if (employerAns) {
+        // The question stays the thread's last word while any posting is still unanswered; the answers ride the reply.
+        out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
+        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
+        if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
       } else if (queued) {
-        out = { reply: queued.reply, intent: queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
+        // SERIAL-1490: a posting held back by "is X where you work now?" makes the question this thread's last word, with
+        // the postings it is about on the reply, so the next yes or no answers exactly them.
+        const asking = !!queued.ask?.length;
+        out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
+        if (asking) agentMeta = { employer_question: queued.ask };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {

@@ -12,7 +12,7 @@
 // through the same screens on its own; the reply lists what was queued and what was not, with the reason for each. With
 // no list on the thread the batch ask is not this turn's.
 import { COMPANY_COOLDOWN_DAYS, INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
-import { type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
+import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
 import { searchWords } from "./career_ingest.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
@@ -78,13 +78,20 @@ export interface ApplyChatDeps {
   // reader that throws is retried once; still failing, the turn queues nothing and says the pace could not be read.
   limits?: () => Promise<Limits | undefined>;
   tz?: string;
+  // SERIAL-1491: the person's answers on this thread to "is X where you work now?" (the employer-ask store); absent, none.
+  employerAnswers?: () => Promise<EmployerAnswer[]>;
 }
+// A posting held back by the possible-match question (SERIAL-1490): queued only when the person answers no.
+export interface EmployerQuestion { job_id: string | null; url: string; company: string; title: string }
 export interface ShortlistEntry { id?: string | null; title?: string | null; company?: string | null; location?: string | null; url?: string | null }
 export type ApplyChatResult = {
-  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list"; intent: typeof APPLY_QUEUE_INTENT;
+  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list" | "asking_employer"; intent: typeof APPLY_QUEUE_INTENT;
   posting?: { job_id: string; company: string; title: string };
   // The batch ask: what went into the queue and what did not, each with its reason.
   queued?: { job_id: string; company: string; title: string }[]; refused?: { job_id: string | null; company: string; title: string; reason: string }[];
+  // SERIAL-1490/1491: the postings waiting on "is X where you work now?"; the handler keeps them on the reply so the next
+  // yes or no answers exactly these (employerAnswerTurn).
+  ask?: EmployerQuestion[];
 };
 
 // SERIAL-1420 (b) / SERIAL-1430: the person's pace from the database, in its three states (career_apply_pace_state): none
@@ -184,9 +191,15 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
   let apps: TrackedApp[];
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent there; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
-  const screened = screenPicks([pick], { apps, facts: o.facts ?? [], now: o.now });
+  const resolved = await answersOf(o);
+  const screened = screenPicks([pick], { apps, facts: o.facts ?? [], now: o.now, resolved });
   if (!screened.ok.length) {
-    const why = screened.refused[0]?.reason ?? `nothing was queued`;
+    const first = screened.refused[0];
+    if (first?.ask === "employer") {
+      return { reply: askText([first.posting], o.facts ?? []), status: "asking_employer", intent, posting: { job_id: p.job_id, company: p.company, title: p.title },
+        ask: [{ job_id: p.job_id ?? null, url: String(p.url ?? ""), company: p.company, title: p.title }] };
+    }
+    const why = first?.reason ?? `nothing was queued`;
     return { reply: `Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent, posting: { job_id: p.job_id, company: p.company, title: p.title } };
   }
   const pace = await readPace(o.limits);
@@ -228,8 +241,10 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   try { apps = trackedFromRows(await o.apps()); }
   catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent to any of these; nothing was queued. Ask again in a minute.", status: "unreadable", intent }; }
   // Each posting through the same screens as a single ask, on its own: their current employer, an application there in 30 days.
-  const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now });
-  const refused = screened.refused.map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }));
+  const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved: await answersOf(o) });
+  // SERIAL-1491: the possible-match question attaches to its own posting; the rest of the batch goes on.
+  const asking = screened.refused.filter((r) => r.ask === "employer");
+  const refused = screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }));
   let queued: { job_id: string; company: string; title: string }[] = [], already = 0;
   if (screened.ok.length) {
     const pace = await readPace(o.limits);
@@ -244,7 +259,123 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (queued.length) parts.push(`Queued ${queued.length}${slice.length > queued.length ? ` of the ${slice.length}` : ""}${ask.kind === "all" && !note ? " I listed" : ""}: ${listed(queued.map(nameOf))}.`);
   if (already) parts.push(queued.length ? `${already} already in your queue, unchanged.` : `${already === slice.length ? (slice.length === 1 ? "That one is" : "Those are") : `${already} of them are`} already in your queue, so nothing changed.`);
   if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}.`);
-  const status = queued.length ? "queued" : already ? "already" : "refused";
+  if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));
+  const status = queued.length ? "queued" : already ? "already" : asking.length ? "asking_employer" : "refused";
   const tail = queued.length || already ? ` ${NOTHING_SENT_MANY}` : refused.length ? ` (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)` : "";
-  return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused };
+  return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused,
+    ...(asking.length ? { ask: asking.map((r) => ({ job_id: r.posting.job_id, url: r.posting.url, company: r.posting.company, title: r.posting.title })) } : {}) };
+}
+
+// ---------------------------------------------------------------------------------- the possible-match question (SERIAL-1490/1491)
+const answersOf = async (o: { employerAnswers?: ApplyChatDeps["employerAnswers"] }): Promise<EmployerAnswer[]> => { try { return (await o.employerAnswers?.()) ?? []; } catch { return []; } };
+const factAbout = (company: string, facts: any[]) => {
+  const f = (facts ?? []).find((x) => x && !x.needs_confirmation && x.status !== "draft" && /\b(work|employ|current|now|present)/i.test(String(x.text ?? x.value ?? "")));
+  return f ? String(f.text ?? f.value ?? "").slice(0, 160) : null;
+};
+// One question per posting held back; with several, the answer names the company ("Acme Robotics: no").
+function askText(postings: { job_id: string | null; company: string; title: string }[], facts: any[]): string {
+  const one = postings.length === 1;
+  const qs = postings.map((p) => `${p.title || "the posting"} at ${p.company}: ${employerQuestion(p.company)}`);
+  const basis = factAbout(postings[0].company, facts);
+  return `${one ? "One question before I queue it" : `${postings.length} questions before I queue these`}${basis ? ` (you told me: "${basis}")` : ""}: ${qs.join(" ")} ` +
+    `Reply ${one ? '"yes" or "no"' : `with the company and yes or no ("${postings[0].company}: no")`}; nothing is queued there until you do.`;
+}
+export const EMPLOYER_ASK_INTENT = "career_apply_employer_ask";
+export const EMPLOYER_ANSWER_INTENT = "career_apply_employer_answer";
+// Where the thread's last word and the person's earlier answers are kept: agent_messages meta (the handler writes
+// employer_question on the asking reply and employer_answers on the answering one).
+export interface EmployerAskStore {
+  lastAssistant(threadId: string): Promise<{ intent: string | null; meta: Record<string, any> } | null>;
+  answers(threadId: string): Promise<EmployerAnswer[]>;
+}
+// deno-lint-ignore no-explicit-any
+export function supabaseEmployerAskStore(admin: any): EmployerAskStore {
+  const rows = async (threadId: string, limit: number) => {
+    const r = await admin.from("agent_messages").select("meta").eq("thread_id", threadId).eq("role", "assistant").order("id", { ascending: false }).limit(limit);
+    if (r.error) throw new Error(`read the thread's replies: ${r.error.message}`);
+    return (r.data ?? []) as { meta: Record<string, any> | null }[];
+  };
+  return {
+    async lastAssistant(threadId) {
+      const [row] = await rows(threadId, 1);
+      return row ? { intent: row.meta?.intent ?? null, meta: row.meta ?? {} } : null;
+    },
+    async answers(threadId) {
+      const out: EmployerAnswer[] = [];
+      for (const row of (await rows(threadId, 200)).reverse()) for (const a of (row.meta?.employer_answers ?? []) as any[]) if (a?.company) out.push({ company: String(a.company), is_employer: !!a.is_employer });
+      return out;
+    },
+  };
+}
+export function memoryEmployerAskStore(messages: { role: string; thread_id: string; meta?: Record<string, any> | null }[]): EmployerAskStore {
+  const mine = (threadId: string) => messages.filter((m) => m.role === "assistant" && m.thread_id === threadId);
+  return {
+    async lastAssistant(threadId) { const row = mine(threadId).at(-1); return row ? { intent: row.meta?.intent ?? null, meta: row.meta ?? {} } : null; },
+    async answers(threadId) { return mine(threadId).flatMap((m) => ((m.meta?.employer_answers ?? []) as any[]).map((a) => ({ company: String(a.company), is_employer: !!a.is_employer }))); },
+  };
+}
+// The answer, if this text is one: yes (it is where they work) or no (it is not), with the company when they name it.
+// A bare yes or no, or one followed by its own words ("no, I don't work there"); "no idea what you mean" is not an answer.
+const YES_ANS = /^(?:(?:yes|yep|yeah|yup)(?=$|[,.!;:]| (?:it is|that'?s|i (?:do|still)? ?work|i work|correct|right|i do))|it is|that'?s (?:right|correct|where i work)|i (?:do|still) work there|i work there|that'?s my (?:employer|company)|correct|right)\b/;
+const NO_ANS = /^(?:(?:no|nope|nah)(?=$|[,.!;:]| (?:i (?:don'?t|do not|no longer) work|i left|it'?s not|it isn'?t|that'?s not|not (?:my|where)|wrong|i don'?t))|it'?s not|it isn'?t|that'?s not (?:my|where)|i (?:don'?t|do not|no longer) work (?:there|at|for)|i left|not (?:my|where i) (?:employer|work)|not any ?more)\b/;
+export function employerAnswerAsk(message: string): { kind: "yes" | "no"; company: string | null } | null {
+  const raw = String(message ?? "").trim();
+  const m = /^([A-Za-z][\w&.'’ -]{0,80}?)\s*[:,-]\s*(.+)$/.exec(raw);
+  const company = m && !/^(yes|no|nope|yeah|yep)\b/i.test(m[1]) ? m[1].trim() : null;
+  const t = (company ? m![2] : raw).toLowerCase().replace(/[’`]/g, "'").replace(/[!.]+$/, "").trim();
+  if (YES_ANS.test(t) && !/\bnot\b/.test(t.split(/[,;]/)[0])) return { kind: "yes", company };
+  if (NO_ANS.test(t)) return { kind: "no", company };
+  return null;
+}
+export type EmployerAnswerResult = { reply: string; status: "queued" | "already" | "refused" | "is_employer" | "which" | "stands" | "pace_unknown" | "pace_unreadable" | "unreadable"; intent: string; pending?: EmployerQuestion[]; answers?: EmployerAnswer[] };
+// The turn that answers the question, only while the question is this thread's last word; a repeated yes or no right after
+// the answer is told that the answer stands (nothing asked again, nothing queued twice).
+export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "shortlist"> & { threadId: string; store: EmployerAskStore }): Promise<EmployerAnswerResult | null> {
+  const ans = employerAnswerAsk(o.message);
+  if (!ans) return null;
+  const last = await o.store.lastAssistant(o.threadId);
+  if (!last) return null;
+  if (last.intent === EMPLOYER_ANSWER_INTENT && !ans.company) {
+    const prior = (last.meta.employer_answers ?? []) as EmployerAnswer[];
+    if (!prior.length) return null;
+    const lines = prior.map((a) => a.is_employer ? `${a.company} is where you work, so nothing was queued there` : `${a.company} was queued once`);
+    return { reply: `That stands: ${lines.join("; ")}. Nothing was asked again and nothing more was queued.`, status: "stands", intent: EMPLOYER_ANSWER_INTENT, answers: prior };
+  }
+  if (last.intent !== EMPLOYER_ASK_INTENT) return null;
+  const pending = ((last.meta.employer_question ?? []) as EmployerQuestion[]).filter((q) => q && q.company);
+  if (!pending.length) return null;
+  const chosen = ans.company ? pending.filter((q) => sameCompany(q.company, ans.company)) : pending.length === 1 ? pending : [];
+  if (!chosen.length) {
+    const names = pending.map((q) => q.company);
+    return { reply: `Which one? ${names.map((n) => `${n}: ${employerQuestion(n)}`).join(" ")} Reply with the company and yes or no ("${names[0]}: no").`, status: "which", intent: EMPLOYER_ASK_INTENT, pending };
+  }
+  const rest = pending.filter((q) => !chosen.includes(q));
+  const answers: EmployerAnswer[] = chosen.map((q) => ({ company: q.company, is_employer: ans.kind === "yes" }));
+  const intent = rest.length ? EMPLOYER_ASK_INTENT : EMPLOYER_ANSWER_INTENT;
+  const more = rest.length ? ` Still open: ${rest.map((q) => `${q.company}: ${employerQuestion(q.company)}`).join(" ")}` : "";
+  if (ans.kind === "yes") {
+    return { reply: `Noted: ${chosen.map((q) => q.company).join(", ")} is where you work now, so ${chosen.map(nameOf).join("; ")} stays out of your queue; nothing was queued.${more}`, status: "is_employer", intent, pending: rest, answers };
+  }
+  let apps: TrackedApp[];
+  try { apps = trackedFromRows(await o.apps()); }
+  catch { return { reply: "I couldn't read your applications just now, so I couldn't rule out one already sent there; nothing was queued. Say no again in a minute.", status: "unreadable", intent: EMPLOYER_ASK_INTENT, pending }; }
+  const resolved = [...await answersOf(o), ...answers];
+  const picks: Pick[] = chosen.map((q) => ({ job_id: q.job_id ?? undefined, url: q.url, company: q.company, title: q.title }));
+  const screened = screenPicks(picks, { apps, facts: o.facts ?? [], now: o.now, resolved });
+  const refused = screened.refused.map((r) => `${nameOf(r.posting)}: ${r.reason}`);
+  let queued: string[] = [], already = 0;
+  if (screened.ok.length) {
+    const pace = await readPace(o.limits);
+    if (pace.unknown !== undefined) return { reply: PACE_UNKNOWN, status: "pace_unknown", intent: EMPLOYER_ASK_INTENT, pending };
+    if (pace.limits?.unreadable !== undefined) return { reply: PACE_UNREADABLE(pace.limits.unreadable), status: "pace_unreadable", intent: EMPLOYER_ASK_INTENT, pending };
+    const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits: pace.limits, tz: o.tz });
+    queued = r.items.map(nameOf); already = r.already;
+    for (const x of r.refused) refused.push(`${nameOf(x.posting)}: ${x.reason}`);
+  }
+  const parts: string[] = [];
+  if (queued.length) parts.push(`Noted, not your employer. Queued: ${queued.join("; ")}.`);
+  if (already) parts.push(`Already in your queue, unchanged.`);
+  if (refused.length) parts.push(`Not queued: ${refused.join("; ")}.`);
+  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY}` : "";
+  return { reply: `${parts.join(" ")}${more}${tail}`.trim(), status: queued.length ? "queued" : already ? "already" : "refused", intent, pending: rest, answers };
 }

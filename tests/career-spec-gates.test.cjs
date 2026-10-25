@@ -273,7 +273,7 @@ test("S3-8D example 1: the allowed line passes the audit; the not-allowed additi
 test("S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in the copy surfaces this program owns", () => {
   const banned = [/beats?\s+(the\s+)?ATS/i, /gets?\s+you\s+hired/i, /guaranteed\s+(interviews?|jobs?|offers?)/i, /guarantee\s+you\s+(a\s+)?(job|interview|offer)/i];
   // The two surfaces this repository owns are always checked. The owner's review copy
-  // (your_files/review/honest-yield-copy.md) lives outside the repository: it is checked when UPMORE_REVIEW_DIR
+  // (review/honest-yield-copy.md, in the owner's files) lives outside the repository: it is checked when UPMORE_REVIEW_DIR
   // names its directory, and otherwise named as not checked, instead of failing every machine that lacks that
   // folder (the gate was red on CI and on fresh checkouts with ENOENT here).
   const surfaces = [

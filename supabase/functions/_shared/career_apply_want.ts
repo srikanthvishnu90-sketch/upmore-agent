@@ -55,17 +55,19 @@ export function dayStart(now: number, tz = "UTC"): string {
 }
 
 // Queue what fits under today's limit; what is over is refused with the limit named.
-export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string } = {}) {
+// uncapped (owner, 2026-10-22: no cap on how many applications a person queues): no daily room is computed and nothing is
+// refused for volume; the once-per-employer screen, the exact-payload approval on each card and the site limits stand.
+export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string; uncapped?: boolean } = {}) {
   const { ok, refused } = wantsFrom(picks, now);
-  const cap = dailyLimit(o.limits);
-  const used = await store.queuedSince(userId, dayStart(now, o.tz));
+  const cap = o.uncapped ? Infinity : dailyLimit(o.limits);
+  const used = o.uncapped ? 0 : await store.queuedSince(userId, dayStart(now, o.tz));
   const room = Math.max(0, cap - used);
   const have = new Set((await store.list(userId)).map((w) => w.posting_key));
   const fresh = ok.filter((w) => !have.has(w.posting_key));
   const take = fresh.slice(0, room);
   for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over today's limit of ${cap} applications`));
   const r = await store.put(userId, take);
-  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: cap };
+  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: o.uncapped ? null : cap };
 }
 
 // ------------------------------------------------------------------------------------------------ WO-091b: what a pick means

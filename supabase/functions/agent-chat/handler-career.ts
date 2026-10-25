@@ -428,12 +428,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // STEP 4 F1 (2026-10-25): "apply to the <role> role at <Company>" puts the open posting on file into the person's
       // own apply queue (career_apply_wanted), the queue the extension takes from and the server's prepare-ahead run
       // reads; code's, like the card. The reply says what was queued and that nothing is prepared, filled or sent by
-      // it. The daily limit is the queue's own (career_apply_daily_limit); unread, the default.
+      // it. No volume ceiling on this path (owner, 2026-10-22); the once-per-employer guard and the card's approval stand.
       const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id), facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-          limits: async () => { try { const r: any = await admin.rpc("career_apply_daily_limit", { p_user: user.id }); return { daily: r.error ? undefined : Number(r.data) || undefined }; } catch { return undefined; } },
         })
         : null;
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)

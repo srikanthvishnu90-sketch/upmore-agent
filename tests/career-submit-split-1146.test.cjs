@@ -1,45 +1,53 @@
 "use strict";
-/* SPLIT-1146 (2026-10-25): the four APPLICATION SUBMISSION chat
-   families that remain in the router lane after the scope split.
+/* SPLIT-1146 (2026-10-25) — REWRITTEN under JOIN-1215 (2026-10-25):
+   the four submission families, asserted at the HANDLER level.
 
-   HOST SEAMS — STUBBED HERE ONLY. The real host signatures do not
-   exist in this tree yet (Claude owns them on arch/submit-path). The
-   assumed ctx seams, handed to the coordinator verbatim, are:
+   The first version of this suite asserted two ctx seams that were
+   never part of the product (ctx.writeSubmitRecord /
+   ctx.readApplicationStatus — invented stubs; the host never built
+   them and they are asserted NOWHERE now). The real wiring is the
+   production agent-chat handler on the merged tree, and this suite
+   drives exactly its composition, in its order:
 
-     ctx.writeSubmitRecord(request) -> receipt
-       request = {
-         userId, threadId, now,
-         kind: "resume_approval" | "contact_capture" | "work_authorization",
-         sourceText,                         // the person's exact words
-         record: { ... },                    // family payload below
-         binding?: { contentSha256, factIds } // resume_approval only
-       }
-       receipt = {
-         ok, written, confirmed,
-         writeId: string | null,
-         confirmedFactIds?: string[],
-         code?: string, reason?: string
-       }
+   - handler-career.ts:428 — a status ask is answered by
+     applicationsTurn({ read: supabaseApplications(admin) }) from
+     career_apply_jobs BEFORE the router runs.
+   - handler-career.ts:518-521 — after host.runTurn, when the turn
+     is the router's resume confirm (intent career_resume_ingest,
+     completed), the handler runs resumeConfirmationContext over the
+     thread and evidenceResumeConfirmation over the turn BEFORE the
+     turn is saved (persistence.commit is below it).
+   - The name/email/phone and work-authorization writes ride
+     career_apply_questions.questionsTurn: the person's own words
+     are offered back as drafts (contact_draft.ts /
+     eligibility_draft.ts over the store's statements) and ONLY a
+     "use N" saves one, through the same store.answer a typed answer
+     takes. No "use N" — no write, and no reply claims one.
 
-     ctx.readApplicationStatus(request) -> readback
-       request = { userId, threadId, now, company: string | null }
-       readback = {
-         ok,
-         rows: [{
-           company, role,
-           state: "prepared" | "queued" | "waiting" |
-                  "submitted_confirmed" | "sent_unconfirmed" | "stopped",
-           confirmation: { id, recordedAt } | null
-         }],
-         code?: string, reason?: string
-       }
+   The harness below composes the same real functions in the same
+   order around CareerHost.runTurn (the router), with the
+   production QuestionStore interface implemented in memory (the
+   architect's own pattern, tests/architect/submit-real-person
+   .test.ts fakeStore). Assertions are on behavior: what is
+   stamped, offered, written, and said — never on a seam's calls.
 
-   No stub code lives in product files. Tests that assert a seam call
-   are EXPECTED RED at 2d3b7977: the router does not call either seam
-   yet. Tests marked ROUTER-SIDE pin the parts that can be completed
-   in 142/155 today: presented-content binding for (a), no-false-
-   "saved" wording for (c), and confirmation discipline against an
-   existing batch row for (d).
+   Disposition of the nine original seam tests (JOIN-1215):
+   (a1) rewritten — handler evidence sequence over the live reply.
+   (a2) rewritten — event store down: nothing stamped, executor
+        keeps none (the trust contract's inputs asserted here;
+        trustedProfile itself is proven in the deno suite, test 1).
+   (b1) rewritten — questionsTurn offer + "use N" verbatim writes.
+   (b2) rewritten — no "use N" / refused drafts: no write, no claim.
+   (c1) rewritten — eligibility offer quotes the clause verbatim;
+        "use N" writes the derived value.
+   (c2) rewritten — hedged statement: no offer, no write, no claim.
+   (d1) rewritten — applicationsTurn over career_apply_jobs rows.
+   (d2) rewritten — applicationsTurn, named company, unconfirmed.
+   (d3) rewritten — applicationsTurn with the record unreadable.
+   Kept as they were (router-side, already seam-free, green):
+   (a3) presented-content binding, (c3) correction wording,
+   (d4) the 155 batch-row readback. New: (a4) an entry changed
+   after presentation invalidates the yes (JOIN-1213 binding).
 
    Fixtures are synthetic. Nothing submits; CAREER_AGENT_SUBMIT
    stays OFF; the approve-first.ts certification carrier stays HELD.
@@ -55,6 +63,11 @@ const D = (n) => require(path.join(root, "packages/domain", n));
 const { CareerHost } = require(path.join(root, "supabase/functions/_shared/career_host.js"));
 const Portal = D("149-career-portal-apply.js");
 const Batch = D("155-career-batch-apply.js");
+const { evidenceResumeConfirmation, resumeConfirmationContext, RESUME_CONFIRM_PROVENANCE } =
+  require(path.join(root, "supabase/functions/_shared/career_router_evidence.ts"));
+const { memoryEventStore } = require(path.join(root, "supabase/functions/_shared/agent/timeline.ts"));
+const { questionsTurn, QUESTIONS_INTENT } = require(path.join(root, "supabase/functions/_shared/career_apply_questions.ts"));
+const { applicationsTurn } = require(path.join(root, "supabase/functions/_shared/career_apply_status.ts"));
 
 const NOW = Date.parse("2026-10-25T16:46:00.000Z");
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -81,23 +94,6 @@ const FULL_ANSWERS = {
 };
 const ATTEST = { certify_true: { value: true, explicit: true } };
 
-function writerStub(receipt) {
-  const calls = [];
-  const fn = (req) => {
-    calls.push(clone(req));
-    return typeof receipt === "function" ? receipt(clone(req), calls.length) : clone(receipt);
-  };
-  return { calls, fn };
-}
-function readerStub(readback) {
-  const calls = [];
-  const fn = (req) => {
-    calls.push(clone(req));
-    return typeof readback === "function" ? readback(clone(req), calls.length) : clone(readback);
-  };
-  return { calls, fn };
-}
-
 function makeWorld(opts) {
   const o = opts || {};
   const host = CareerHost.createCareerHost({
@@ -118,8 +114,6 @@ function makeWorld(opts) {
     const input = { userId, threadId, now: NOW + (ex.nowOffset != null ? ex.nowOffset : n * 60000), accountPersistence: true, snapshot: snap, account: {}, watchState: {}, postings: ex.postings || [] };
     if (!ex.omitProfile) input.profile = master;
     const ctx = host.createTurnCtx(input);
-    if (o.writeSubmitRecord) ctx.writeSubmitRecord = o.writeSubmitRecord;
-    if (o.readApplicationStatus) ctx.readApplicationStatus = o.readApplicationStatus;
     ctx.batchDeps = { log, boardFor: (p) => Object.assign({}, Portal.createSandboxBoard({}), { atsFamily: p.atsFamily }), attestations: ATTEST };
     const out = host.runTurn(text, ctx);
     store.threads.set(threadId, host.extractSnapshot(ctx));
@@ -135,45 +129,76 @@ function pasteResume(w, U) {
   assert.equal(out.intent, "career_resume_ingest", `setup: the paste is ingested (got ${out.intent}: ${String(out.reply || "").slice(0, 160)})`);
   const drafts = (w.profileOf(U).facts || []).filter((f) => f && f.source === "resume-ingest" && f.needs_confirmation);
   assert.ok(drafts.length >= 3, "setup: resume drafts stand awaiting the person's word");
-  return drafts;
+  return { drafts, pasteReply: out.reply };
 }
 
-// ---------- (a) 'yes that's my resume' ----------
+// ---------- (a) 'yes that's my resume' — the handler evidence step ----------
 
-test("(a) the approval calls the host writer with the ACTUAL presented content binding", () => {
-  const writer = writerStub((req) => ({ ok: true, written: true, confirmed: true, writeId: "write-resume-1", confirmedFactIds: req.binding.factIds.slice() }));
-  const w = makeWorld({ writeSubmitRecord: writer.fn });
-  const U = "split-a-writer";
-  const drafts = pasteResume(w, U);
-  const { out } = w.say(U, "Yes, that's my resume.", { nowOffset: 60000 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord exactly once for the approval");
-  const req = writer.calls[0];
-  assert.equal(req.kind, "resume_approval");
-  assert.equal(req.sourceText, "Yes, that's my resume.", "the approval phrase itself rides the request verbatim");
-  assert.equal(req.binding.contentSha256, RESUME_SHA256, "the binding is the hash of the resume content actually presented");
-  assert.deepEqual(new Set(req.binding.factIds), new Set(drafts.map((f) => f.id)), "the binding names exactly the presented draft facts");
-  assert.deepEqual(new Set(req.record.factIds), new Set(drafts.map((f) => f.id)));
-  assert.match(out.reply, /Confirmed/, `a confirmed receipt may be spoken as confirmed: ${out.reply}`);
+test("(a) HANDLER: entries the router presented, confirmed by the person's exact yes, are stamped with their provenance event — and reach the executor's trust contract", async () => {
+  const w = makeWorld({});
+  const U = "split-a-handler";
+  const { drafts, pasteReply } = pasteResume(w, U);
+  for (const d of drafts) {
+    assert.ok(pasteReply.includes(d.text), `the router's presenting reply shows the entry itself, not a count: ${d.text.slice(0, 60)}`);
+  }
+  const before = clone(w.profileOf(U));
+  const yes = w.say(U, "Yes, that's my resume.", { nowOffset: 60000 });
+  assert.equal(yes.out.intent, "career_resume_ingest");
+  assert.equal(yes.out.resultStatus, "completed");
+  const events = memoryEventStore();
+  const rows = [
+    { id: "2", role: "assistant", content: pasteReply },
+    { id: "1", role: "user", content: RESUME_TEXT },
+  ];
+  const seen = await resumeConfirmationContext(rows, yes.ctx.profile);
+  const r = await evidenceResumeConfirmation({
+    userId: U, now: yes.ctx.now, message: "Yes, that's my resume.",
+    before, after: yes.ctx.profile, out: yes.out,
+    shown: seen.shown, upload: seen.upload, events,
+  });
+  assert.equal(r.stamped, drafts.length, "each presented, confirmed entry is stamped (a count-only reply stamps 0 — the 1a negative proof)");
+  const after = w.profileOf(U);
+  const stampedFacts = (after.facts || []).filter((f) => f && f.confirmation_event_id);
+  assert.equal(stampedFacts.length, drafts.length, "the stamped facts carry their confirmation event id — the field the executor's trust contract reads");
+  for (const f of stampedFacts) {
+    assert.ok(String(f.provenance || "").startsWith(RESUME_CONFIRM_PROVENANCE), `provenance is the owner-confirmation stamp: ${f.provenance}`);
+  }
+  const recorded = events.dump().filter((e) => e.kind === "fact_confirmed");
+  assert.equal(recorded.length, drafts.length, "one persisted fact_confirmed event per stamped entry");
+  for (const f of stampedFacts) {
+    assert.ok(recorded.some((e) => e.detail && e.detail.confirmation_event_id === f.confirmation_event_id), `fact ${f.id} names its recorded event`);
+  }
 });
 
-test("(a) when the host write is not confirmed, the approval claims nothing and the drafts stay drafts", () => {
-  const writer = writerStub({ ok: false, written: false, confirmed: false, writeId: null, code: "HOST_WRITE_NOT_CONFIRMED", reason: "the host did not confirm the write" });
-  const w = makeWorld({ writeSubmitRecord: writer.fn });
-  const U = "split-a-failure";
-  pasteResume(w, U);
-  const { out } = w.say(U, "Yes, that's my resume.", { nowOffset: 60000 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord before claiming anything");
-  assert.doesNotMatch(out.reply, /Confirmed —|facts are on your record|I saved/i, `no success wording rides an unconfirmed write: ${out.reply}`);
-  assert.match(out.reply, /not confirmed|did not (go through|confirm)|could not confirm/i, `the reply says the write is unconfirmed: ${out.reply}`);
-  const stillDrafts = (w.profileOf(U).facts || []).filter((f) => f && f.source === "resume-ingest" && f.needs_confirmation);
-  assert.ok(stillDrafts.length >= 3, "the presented drafts remain drafts when the write is not confirmed");
+test("(a) HANDLER: when the provenance event cannot be recorded, nothing is stamped and the executor keeps none", async () => {
+  const w = makeWorld({});
+  const U = "split-a-noevent";
+  const { drafts, pasteReply } = pasteResume(w, U);
+  const before = clone(w.profileOf(U));
+  const yes = w.say(U, "Yes, that's my resume.", { nowOffset: 60000 });
+  const down = memoryEventStore();
+  down.add = async () => { throw new Error("TEST: the event store is down"); };
+  const rows = [
+    { id: "2", role: "assistant", content: pasteReply },
+    { id: "1", role: "user", content: RESUME_TEXT },
+  ];
+  const seen = await resumeConfirmationContext(rows, yes.ctx.profile);
+  const r = await evidenceResumeConfirmation({
+    userId: U, now: yes.ctx.now, message: "Yes, that's my resume.",
+    before, after: yes.ctx.profile, out: yes.out,
+    shown: seen.shown, upload: seen.upload, events: down,
+  });
+  assert.equal(r.stamped, 0, "an unrecordable event stamps nothing");
+  const after = w.profileOf(U);
+  const evidenced = (after.facts || []).filter((f) => f && (f.confirmation_event_id || f.provenance));
+  assert.equal(evidenced.length, 0, "no fact carries a stamp or a provenance it does not have — the executor's trust contract keeps none of them");
+  assert.ok(drafts.length >= 3, "setup held: the drafts were presented and confirmed in chat; they are simply unevidenced");
 });
 
 test("(a) ROUTER-SIDE binding: the yes confirms only the presented drafts — a draft that was never presented stays a draft", () => {
-  const writer = writerStub((req) => ({ ok: true, written: true, confirmed: true, writeId: "write-resume-2", confirmedFactIds: req.binding.factIds.slice() }));
-  const w = makeWorld({ writeSubmitRecord: writer.fn });
+  const w = makeWorld({});
   const U = "split-a-binding";
-  const drafts = pasteResume(w, U);
+  const { drafts } = pasteResume(w, U);
   const snap = clone(w.snapshotOf(U));
   snap.stores.profile.facts.push({ id: "F-UNPRESENTED", kind: "skill", name: "Unpresented Skill", title: "Unpresented Skill", text: "Skill: Unpresented Skill", source: "resume-ingest", needs_confirmation: true, status: "draft" });
   w.say(U, "Yes, that's my resume.", { snapshot: snap, omitProfile: true, nowOffset: 60000 });
@@ -187,64 +212,122 @@ test("(a) ROUTER-SIDE binding: the yes confirms only the presented drafts — a 
     "a generic yes must not approve content that was not in the presented resume");
 });
 
-// ---------- (b) name / email / phone from the person's own words ----------
-
-const CONTACT_TEXT = "My name is Rowan Ellery. My email is rowan.ellery@example.test. My phone is +1 555 010 0199.";
-
-test("(b) name/email/phone are captured verbatim from the person's words through the host write path", () => {
-  const writer = writerStub({ ok: true, written: true, confirmed: true, writeId: "write-contact-1" });
-  const w = makeWorld({ writeSubmitRecord: writer.fn, master: { basics: { name: null, location: "Chicago, IL", email: null, phone: null } } });
-  const U = "split-b-writer";
-  const { out } = w.say(U, CONTACT_TEXT, { nowOffset: 0 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord exactly once for the capture");
-  const req = writer.calls[0];
-  assert.equal(req.kind, "contact_capture");
-  assert.equal(req.sourceText, CONTACT_TEXT, "the person's exact turn rides the request");
-  assert.deepEqual(req.record.basics, { name: "Rowan Ellery", email: "rowan.ellery@example.test", phone: "+1 555 010 0199" },
-    "each field is the person's verbatim value — no normalization, no paraphrase");
-  assert.match(out.reply, /Rowan Ellery/, `the reply reads the captured name back: ${out.reply}`);
+test("(a) ROUTER-SIDE binding: an entry CHANGED after presentation invalidates the yes — nothing is confirmed from altered content", () => {
+  const w = makeWorld({});
+  const U = "split-a-tamper";
+  pasteResume(w, U);
+  const snap = clone(w.snapshotOf(U));
+  const victim = snap.stores.profile.facts.find((f) => f && f.source === "resume-ingest" && f.needs_confirmation);
+  assert.ok(victim, "setup: a presented draft stands");
+  victim.text = `${victim.text} — EDITED AFTER PRESENTATION`;
+  const { out } = w.say(U, "Yes, that's my resume.", { snapshot: snap, omitProfile: true, nowOffset: 60000 });
+  const stillDrafts = (w.profileOf(U).facts || []).filter((f) => f && f.source === "resume-ingest" && f.needs_confirmation);
+  assert.ok(stillDrafts.length >= 3, `the yes confirmed nothing from content that changed after it was shown: ${out.reply}`);
+  assert.match(out.reply, /did not confirm/i, `the refusal is said plainly: ${out.reply}`);
 });
 
-test("(b) when the host write is not confirmed, contact capture claims nothing as recorded", () => {
-  const writer = writerStub({ ok: false, written: false, confirmed: false, writeId: null, code: "HOST_WRITE_NOT_CONFIRMED", reason: "the host did not confirm the write" });
-  const w = makeWorld({ writeSubmitRecord: writer.fn, master: { basics: { name: null, location: "Chicago, IL", email: null, phone: null } } });
-  const U = "split-b-failure";
-  const { out } = w.say(U, CONTACT_TEXT, { nowOffset: 0 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord before claiming anything");
-  assert.doesNotMatch(out.reply, /saved|recorded|on your record|on file/i, `no record claim rides an unconfirmed write: ${out.reply}`);
-  assert.match(out.reply, /not confirmed|did not (go through|confirm)|could not confirm/i, out.reply);
+// ---------- the questions store (production QuestionStore interface, in memory) ----------
+
+const QQ = (id, key, label) => ({
+  id, key, kind: "fact", label, type: "input_text", options: [], company: "TestCo 1", job_ids: ["j1"], misfit: false, answer: null,
+});
+function fakeQuestionStore(rows, statements) {
+  const kv = {};
+  const answers = [];
+  let last = null;
+  return {
+    answers,
+    setIntent(i) { last = i; },
+    async open(_u, limit) { return rows.filter((r) => !r.answer || r.misfit).slice(0, limit); },
+    async countOpen() { return rows.filter((r) => !r.answer || r.misfit).length; },
+    async get(_u, ids) { return rows.filter((r) => ids.includes(r.id)); },
+    async answer(_u, id, a) { const r = rows.find((x) => x.id === id); r.answer = a; r.misfit = false; answers.push([id, a]); },
+    async shown() { return kv.shown ? clone(kv.shown) : null; },
+    async setShown(_u, s) { kv.shown = clone(s); },
+    async lastAssistantIntent() { return last; },
+    statements: async () => statements,
+  };
+}
+const QNOW = Date.parse("2026-10-25T16:46:00.000Z");
+async function qSay(store, message, offsetMs) {
+  const r = await questionsTurn({ message, userId: "split-q", threadId: "t-split-q", now: QNOW + (offsetMs || 0), store });
+  if (r) store.setIntent(["shown", "partial"].includes(r.status) || r.status.startsWith("draft") ? QUESTIONS_INTENT : "career_apply_questions_answer");
+  return r;
+}
+const CONTACT_TEXT = "My name is Rowan Ellery. My email is rowan.ellery@example.test. My phone is +1 555 010 0199.";
+const CONTACT_QUESTIONS = () => [
+  QQ("q-first", "fact:first_name", "First name"), QQ("q-last", "fact:last_name", "Last name"),
+  QQ("q-email", "fact:email", "Email"), QQ("q-phone", "fact:phone", "Phone"),
+];
+
+// ---------- (b) name / email / phone from the person's own words ----------
+
+test("(b) HANDLER: name/email/phone are offered back word for word from the person's own statement, and only 'use N' writes them — verbatim", async () => {
+  const store = fakeQuestionStore(CONTACT_QUESTIONS(), [{ text: CONTACT_TEXT, at: "2026-10-24T14:00:00.000Z" }]);
+  const shown = await qSay(store, "what do you need from me", 0);
+  assert.ok(shown && shown.status === "shown", JSON.stringify(shown));
+  assert.ok(shown.reply.includes(`"${CONTACT_TEXT}"`), `the offer quotes the person's exact words: ${shown.reply}`);
+  assert.deepEqual(store.answers, [], "showing the offer writes nothing");
+  for (const n of [1, 2, 3, 4]) {
+    const r = await qSay(store, `use ${n}`, n * 1000);
+    assert.ok(r && /Saved, as drafted/.test(r.reply), `use ${n} saves its draft: ${r && r.reply}`);
+  }
+  assert.deepEqual(store.answers, [
+    ["q-first", "Rowan"], ["q-last", "Ellery"],
+    ["q-email", "rowan.ellery@example.test"], ["q-phone", "+1 555 010 0199"],
+  ], "each field is written with the person's verbatim value — no normalization, no paraphrase");
+});
+
+test("(b) HANDLER: with no 'use N' there is no write and no saved claim; a hedged or third-party statement is never offered", async () => {
+  const store = fakeQuestionStore(CONTACT_QUESTIONS(), [{ text: CONTACT_TEXT, at: "2026-10-24T14:00:00.000Z" }]);
+  const shown = await qSay(store, "what do you need from me", 0);
+  assert.ok(shown && shown.status === "shown");
+  const other = await qSay(store, "not yet — I'll answer later", 1000);
+  assert.deepEqual(store.answers, [], "no 'use N' was said, so the host wrote nothing");
+  assert.ok(!/Saved/.test((other && other.reply) || ""), "no reply claims a save that did not happen");
+  const hedged = fakeQuestionStore(CONTACT_QUESTIONS(), [
+    { text: "my email is changing soon, maybe jr@example.test", at: "2026-10-24T14:00:00.000Z" },
+    { text: "my sister's phone number is 312-555-9999", at: "2026-10-24T14:00:00.000Z" },
+  ]);
+  const hShown = await qSay(hedged, "what do you need from me", 0);
+  assert.ok(hShown, "the questions themselves are still shown");
+  assert.ok(!hShown.reply.includes("jr@example.test") && !hShown.reply.includes("312-555-9999"),
+    `a hedge and someone else's number are offered as nothing: ${hShown.reply}`);
+  assert.deepEqual(hedged.answers, [], "and nothing is written from them");
 });
 
 // ---------- (c) work-authorization replies ----------
 
 const WA_TEXT = "Update my work authorization — I no longer need sponsorship.";
 const WA_MASTER = { constraints: { workAuthorization: "F-1 OPT (TEST) — will need sponsorship", needsSponsorship: true } };
+const WA_QUESTIONS = () => [
+  QQ("q-wa", "fact:work_authorization", "Are you authorized to work in the US?"),
+  QQ("q-sp", "fact:sponsorship", "Will you require sponsorship?"),
+];
 
-test("(c) a work-authorization statement goes through the host writer with the person's verbatim clause", () => {
-  const writer = writerStub({ ok: true, written: true, confirmed: true, writeId: "write-wa-1" });
-  const w = makeWorld({ writeSubmitRecord: writer.fn, master: WA_MASTER });
-  const U = "split-c-writer";
-  w.say(U, WA_TEXT, { nowOffset: 0 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord exactly once for the work-authorization reply");
-  const req = writer.calls[0];
-  assert.equal(req.kind, "work_authorization");
-  assert.equal(req.sourceText, WA_TEXT);
-  assert.equal(req.record.workAuthorization, "I no longer need sponsorship", "the stored statement is the person's own clause, verbatim");
-  assert.equal(req.record.needsSponsorship, false);
+test("(c) HANDLER: a work-authorization statement is offered back in the person's own words, and only 'use N' writes it", async () => {
+  const store = fakeQuestionStore(WA_QUESTIONS(), [{ text: WA_TEXT, at: "2026-10-24T14:00:00.000Z" }]);
+  const shown = await qSay(store, "what do you need from me", 0);
+  assert.ok(shown && shown.status === "shown", JSON.stringify(shown));
+  assert.ok(shown.reply.includes(`"${WA_TEXT}"`), `the offer quotes the person's verbatim clause: ${shown.reply}`);
+  assert.deepEqual(store.answers, [], "the offer alone writes nothing");
+  const used = await qSay(store, "use 2", 1000);
+  assert.ok(used && /Saved, as drafted/.test(used.reply), used && used.reply);
+  assert.deepEqual(store.answers, [["q-sp", "No"]],
+    "the sponsorship answer the statement carries — needsSponsorship false — is what 'use N' writes; the work-authorization question the statement does not answer stays open");
 });
 
-test("(c) when the host write is not confirmed, the work-authorization reply claims no save", () => {
-  const writer = writerStub({ ok: false, written: false, confirmed: false, writeId: null, code: "HOST_WRITE_NOT_CONFIRMED", reason: "the host did not confirm the write" });
-  const w = makeWorld({ writeSubmitRecord: writer.fn, master: WA_MASTER });
-  const U = "split-c-failure";
-  const { out } = w.say(U, WA_TEXT, { nowOffset: 0 });
-  assert.equal(writer.calls.length, 1, "the router calls ctx.writeSubmitRecord before claiming anything");
-  assert.doesNotMatch(out.reply, /I saved|is saved|packet is ready/i, out.reply);
-  assert.match(out.reply, /not confirmed|did not (go through|confirm)|could not confirm/i, out.reply);
+test("(c) HANDLER: a hedged work-authorization statement offers nothing, writes nothing, and claims nothing", async () => {
+  const store = fakeQuestionStore(WA_QUESTIONS(), [{ text: "I might not need sponsorship anymore, not sure yet", at: "2026-10-24T14:00:00.000Z" }]);
+  const shown = await qSay(store, "what do you need from me", 0);
+  assert.ok(shown, "the questions themselves are still shown");
+  assert.ok(!shown.reply.includes("not sure yet"), `a hedge is never dressed as a draft answer: ${shown.reply}`);
+  assert.deepEqual(store.answers, [], "nothing is written from a hedge");
+  assert.ok(!/Saved/.test(shown.reply), "and no save is claimed");
 });
 
 test("(c) ROUTER-SIDE wording: with no host writer installed, the reply never claims 'saved' or a ready packet", () => {
-  const w = makeWorld({ master: WA_MASTER }); // no writer seam installed at all
+  const w = makeWorld({ master: WA_MASTER }); // no writer seam exists in the real design at all
   const U = "split-c-wording";
   const { out } = w.say(U, WA_TEXT, { nowOffset: 0 });
   assert.doesNotMatch(out.reply, /I saved|saved your|packet is ready/i,
@@ -255,51 +338,45 @@ test("(c) ROUTER-SIDE wording: with no host writer installed, the reply never cl
     "the stale-packet protection is still spoken: a packet built on the old answer does not go out");
 });
 
-// ---------- (d) application status readback ----------
+// ---------- (d) application status readback — career_apply_jobs, before the router ----------
 
-const STATUS_ROWS = [
-  { company: "TestCo 1", role: "Software Engineering Intern", state: "prepared", confirmation: null },
-  { company: "TestCo 2", role: "Data Analyst Intern", state: "queued", confirmation: null },
-  { company: "TestCo 3", role: "Finance Intern", state: "submitted_confirmed", confirmation: { id: "SBX-0001", recordedAt: "2026-10-25T15:00:00.000Z" } },
+const APP_ROWS = [
+  { id: "row-1", company: "TestCo 1", title: "Software Engineering Intern", state: "queued", created_at: "2026-10-24T16:00:00.000Z", updated_at: "2026-10-24T16:00:00.000Z" },
+  { id: "row-2", company: "TestCo 2", title: "Data Analyst Intern", state: "submitted_unconfirmed", confirmation_id: "SBX-0002", created_at: "2026-10-24T16:00:00.000Z", updated_at: "2026-10-24T16:00:00.000Z" },
+  { id: "row-3", company: "TestCo 3", title: "Finance Intern", state: "confirmed", confirmation_id: "SBX-0001", created_at: "2026-10-24T16:00:00.000Z", updated_at: "2026-10-24T16:00:00.000Z" },
 ];
+const readRows = (rows) => async () => clone(rows);
 
-test("(d) 'where are my applications' is answered from the host status readback, states named as they are", () => {
-  const reader = readerStub({ ok: true, rows: STATUS_ROWS });
-  const w = makeWorld({ readApplicationStatus: reader.fn });
-  const U = "split-d-list";
-  const { out } = w.say(U, "where are my applications?", { nowOffset: 0 });
-  assert.equal(reader.calls.length, 1, "the router calls ctx.readApplicationStatus exactly once");
-  assert.equal(reader.calls[0].company, null, "a list ask reads back every row");
-  assert.match(out.reply, /TestCo 1/, out.reply);
-  assert.match(out.reply, /prepared/i, `the prepared row reads as prepared: ${out.reply}`);
-  assert.match(out.reply, /TestCo 2/, out.reply);
-  assert.match(out.reply, /queued/i, `the queued row reads as queued: ${out.reply}`);
-  assert.match(out.reply, /TestCo 3/, out.reply);
-  assert.match(out.reply, /submitted/i, `only the confirmed row reads as submitted: ${out.reply}`);
-  assert.ok(out.reply.includes("SBX-0001"), "the recorded confirmation id is named");
+test("(d) HANDLER: 'where are my applications' is answered from career_apply_jobs, each row in its recorded state", async () => {
+  const r = await applicationsTurn({ message: "where are my applications?", userId: "split-d", now: NOW, read: readRows(APP_ROWS) });
+  assert.ok(r, "the handler answers the ask before the router");
+  assert.ok(r.reply.includes("TestCo 1") && /approved, not sent yet/.test(r.reply), `the queued row reads as approved, not sent yet: ${r.reply}`);
+  assert.ok(r.reply.includes("TestCo 2") && /has not confirmed it yet/.test(r.reply), `the unconfirmed row says the employer has not confirmed: ${r.reply}`);
+  assert.ok(r.reply.includes("TestCo 3") && /submitted, and TestCo 3 confirmed it \(confirmation SBX-0001\)/.test(r.reply), `only the confirmed row reads as submitted, with its recorded id: ${r.reply}`);
+  const line1 = r.reply.split("\n").find((l) => l.includes("TestCo 1"));
+  const line2 = r.reply.split("\n").find((l) => l.includes("TestCo 2"));
+  assert.ok(line1 && !/and TestCo 1 confirmed it/.test(line1), "no other row borrows the confirmed wording");
+  assert.ok(line2 && !/and TestCo 2 confirmed it/.test(line2) && /has not confirmed it yet/.test(line2),
+    "the unconfirmed row's own line says the opposite of confirmed");
 });
 
-test("(d) 'did X go through' never says submitted for a row with no recorded confirmation", () => {
-  const reader = readerStub((req) => ({ ok: true, rows: STATUS_ROWS.filter((r) => r.company === req.company) }));
-  const w = makeWorld({ readApplicationStatus: reader.fn });
-  const U = "split-d-named";
-  const { out } = w.say(U, "did TestCo 1 go through?", { nowOffset: 0 });
-  assert.equal(reader.calls.length, 1, "the router calls ctx.readApplicationStatus exactly once");
-  assert.equal(reader.calls[0].company, "TestCo 1", "the named company scopes the readback");
-  assert.doesNotMatch(out.reply, /\bsubmitted\b/i, `no 'submitted' without a recorded confirmation: ${out.reply}`);
-  assert.match(out.reply, /prepared|not (yet )?(sent|submitted)|no .*confirmation/i,
-    `the row's real state is spoken: ${out.reply}`);
+test("(d) HANDLER: 'did X go through' never says submitted for a row with no recorded confirmation", async () => {
+  const r = await applicationsTurn({ message: "did my application to TestCo 1 go through?", userId: "split-d", now: NOW, read: readRows(APP_ROWS) });
+  assert.ok(r, "the named ask is answered from the record");
+  assert.doesNotMatch(r.reply, /\bsubmitted\b/i, `no 'submitted' without a recorded confirmation: ${r.reply}`);
+  assert.match(r.reply, /not sent yet/, `the row's real state is spoken: ${r.reply}`);
 });
 
-test("(d) when the host readback fails, the status reply says it cannot confirm — it does not invent an empty record", () => {
-  const reader = readerStub({ ok: false, rows: [], code: "HOST_READBACK_UNAVAILABLE", reason: "the host status readback is unavailable" });
-  const w = makeWorld({ readApplicationStatus: reader.fn });
-  const U = "split-d-failure";
-  const { out } = w.say(U, "where are my applications?", { nowOffset: 0 });
-  assert.equal(reader.calls.length, 1, "the router calls ctx.readApplicationStatus before answering");
-  assert.match(out.reply, /can'?t confirm|cannot confirm|unable to confirm|not confirmed/i, out.reply);
-  assert.doesNotMatch(out.reply, /holds no applications|no applications on record/i,
-    "a failed readback is never spoken as an empty record");
+test("(d) HANDLER: when the record cannot be read, the reply says it cannot say — it does not invent an empty record", async () => {
+  const r = await applicationsTurn({
+    message: "where are my applications?", userId: "split-d", now: NOW,
+    read: async () => { throw new Error("TEST: the record is down"); },
+  });
+  assert.ok(r, "the ask is still answered — honestly");
+  assert.match(r.reply, /couldn't read your applications/i, r.reply);
+  assert.match(r.reply, /can't say whether any were sent/i, r.reply);
+  assert.doesNotMatch(r.reply, /holds no applications|no applications on record|no application to/i,
+    "an unreadable record is never spoken as an empty one");
 });
 
 test("(d) ROUTER-SIDE wording on an existing batch row: a submission with no recorded confirmation is never spoken as submitted", () => {

@@ -92,7 +92,20 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
       const factsPath = `${dir}/facts.json`;
       await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
       const resume = await d.resumeFor(c, dir, profile);
-      if (!resume) { await record("no_resume", "no resume could be tailored to this posting from their confirmed facts"); continue; }
+      if (!resume) {
+        // SUBMIT-STEER-1130: confirmed facts but no name or email on file, so no resume can carry them. Ask for those, once
+        // (bound to this posting, so their answers make it a candidate again), instead of stopping here for good.
+        const missing = profile && Array.isArray(profile.facts) && profile.facts.length ? contactAsk(profile, rows, c.company) : [];
+        if (missing.length) {
+          const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
+            p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: c.job_id, p_questions: missing,
+          }), "store the questions");
+          out.push({ user_id: c.user_id, job_id: c.job_id, outcome: "asked", detail: `${n} question(s) asked: their name and email, for the resume` });
+          continue;
+        }
+        await record("no_resume", "no resume could be tailored to this posting from their confirmed facts");
+        continue;
+      }
       const r = await prepare({
         url: d.urlFor ? d.urlFor(c) : c.url, factsPath, resumePath: resume.path, account: { epoch: Number(c.epoch), version: Number(c.version) },
         now: now(), runEngine: d.runEngine, resumeTag: resume.tag,
@@ -126,6 +139,19 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
     }
   }
   return out;
+}
+
+// The name and email a tailored resume prints, asked as the shared facts the forms ask (fact:first_name, fact:last_name,
+// fact:email), only those not answered yet and only when the profile has no confirmed basics of its own.
+const CONTACT_QUESTIONS = [
+  { key: "fact:first_name", label: "First name" }, { key: "fact:last_name", label: "Last name" }, { key: "fact:email", label: "Email" },
+];
+// deno-lint-ignore no-explicit-any
+function contactAsk(profile: any, rows: TextAnswer[], company: string | null) {
+  if (profile?.basics?.name && profile?.basics?.email) return [];
+  const answered = new Set(rows.filter((r) => typeof r.answer === "string" && r.answer.trim()).map((r) => r.key));
+  return CONTACT_QUESTIONS.filter((q) => !answered.has(q.key))
+    .map((q) => ({ ...q, kind: "fact", type: "input_text", options: [], ...(company ? { company } : {}) }));
 }
 
 // The cover letters a posting asks for, typed into a text box (question_map.ts essay_cover_letter), each drafted once and

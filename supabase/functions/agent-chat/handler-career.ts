@@ -43,6 +43,8 @@ import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_appl
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
+import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
+import { evidenceResumeConfirmation, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
@@ -419,6 +421,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudCardYesTurn({ message, threadId: tid, ownSession: !isBridgeCall, store: personCloudCardStore(supabase) })
         : null;
+      // SUBMIT-STEER-1130: "did my application to Acme go through?", "where are my applications": answered from
+      // career_apply_jobs, the one record of what was sent, code's like the card. Submitted is said only as recorded;
+      // "confirmed" only when the employer confirmed it; an unreadable record is said, never guessed.
+      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
+        : null;
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -447,6 +455,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The card stays the last word, so the app shows it again; its Approve is the only way anything is sent.
         out = { reply: cardYes.reply, intent: CLOUD_CARD_INTENT, resultStatus: cardYes.status, contained: false, handler: "cloud_card" };
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
+      } else if (status) {
+        out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -496,6 +506,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
       } else {
         out = host.runTurn(message, ctx);
+      }
+      // SUBMIT-STEER-1130: the router's confirm of a pasted resume carries no confirmation event, so no application could
+      // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,
+      // gets its persisted fact_confirmed event and an owner provenance; anything else stays unevidenced. Saved with the
+      // turn below. The thread is read only on the router's resume confirm.
+      if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
+        const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
+        if (recent.error) console.error("career evidence: the thread was not read", recent.error.message);
+        else {
+          const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
+          if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: left unevidenced: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
+        }
       }
       let taskIntent = null;
       let batchIntent = null;

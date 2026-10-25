@@ -27,6 +27,7 @@ import { readAiPolicy } from "./ai_policy.ts";
 import { checkDraft, type DraftDeps, draftEssay, draftReply, parseDraftCommand } from "./essay_draft.ts";
 import { needsText, type Situation } from "./career_situation.ts";
 import { draftNote, eligibilityDraft, eligibilityFactOf, type Said } from "./eligibility_draft.ts";
+import { contactDraft, isContactFact } from "./contact_draft.ts";
 
 export interface OpenQuestion {
   id: string;
@@ -309,10 +310,16 @@ export async function questionsTurn(
 
 // G2: for each open sponsorship or work-authorization question, the person's own newest clear statement about it, when
 // it fits the question's own choices. A reader that fails offers nothing; the questions are shown as before.
+// SUBMIT-STEER-1130: the same for their name, email and phone (contact_draft.ts), from a question that asks exactly that.
+const contactFactOf = (q: OpenQuestion) => {
+  const f = q.key.startsWith("fact:") ? q.key.slice(5) : null;
+  return isContactFact(f) ? f : null;
+};
 async function eligibilityOffers(store: QuestionStore, userId: string, open: OpenQuestion[]) {
-  const out = new Map<string, { draft: NonNullable<ReturnType<typeof eligibilityDraft>>; value: string }>();
+  const out = new Map<string, { draft: { text: string; at: string }; value: string }>();
   const asked = open.map((q) => ({ q, fact: eligibilityFactOf(q) })).filter((x) => x.fact !== null);
-  if (!asked.length || !store.statements) return out;
+  const contact = open.map((q) => ({ q, fact: contactFactOf(q) })).filter((x) => x.fact !== null);
+  if ((!asked.length && !contact.length) || !store.statements) return out;
   let said: Said[];
   try {
     said = await store.statements(userId);
@@ -323,6 +330,13 @@ async function eligibilityOffers(store: QuestionStore, userId: string, open: Ope
   for (const { q, fact } of asked) {
     if (NEVER_BY_TEXT.test(q.label)) continue;
     const draft = eligibilityDraft(fact!, said);
+    if (!draft) continue;
+    const c = checkAnswer(q, draft.value);
+    if (c.ok) out.set(q.id, { draft, value: c.value });
+  }
+  for (const { q, fact } of contact) {
+    if (NEVER_BY_TEXT.test(q.label)) continue;
+    const draft = contactDraft(fact!, said);
     if (!draft) continue;
     const c = checkAnswer(q, draft.value);
     if (c.ok) out.set(q.id, { draft, value: c.value });
@@ -487,14 +501,16 @@ export function supabaseQuestionStore(admin: any): QuestionStore {
         "read the posting's questions",
       ) ?? []).map(shape);
     },
-    // G2: the person's own messages (their threads, role user) that mention sponsorship or authorization, newest 200.
+    // G2: the person's own messages (their threads, role user) that mention sponsorship or authorization, or their name,
+    // email or phone (SUBMIT-STEER-1130), newest 200.
     async statements(userId) {
       const threads = (must(await admin.from("agent_threads").select("id").eq("user_id", userId).limit(500), "read the person's threads") ?? [])
         .map((t: any) => t.id);
       if (!threads.length) return [];
       const rows = must(
         await admin.from("agent_messages").select("content,created_at").in("thread_id", threads).eq("role", "user")
-          .or("content.ilike.%sponsor%,content.ilike.%authori%,content.ilike.%eligible to work%,content.ilike.%permitted to work%,content.ilike.%work authoris%")
+          .or("content.ilike.%sponsor%,content.ilike.%authori%,content.ilike.%eligible to work%,content.ilike.%permitted to work%,content.ilike.%work authoris%," +
+            "content.ilike.%name is%,content.ilike.%email%,content.ilike.%e-mail%,content.ilike.%phone%,content.ilike.%number is%,content.ilike.%reach me at%,content.ilike.%text me at%")
           .order("created_at", { ascending: false }).limit(200),
         "read the person's own statements",
       ) ?? [];

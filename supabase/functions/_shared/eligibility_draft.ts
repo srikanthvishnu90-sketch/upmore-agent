@@ -91,7 +91,7 @@ export function eligibilityFactOf(q: { key: string; label: string; type: string 
 }
 
 // The line shown under the question: their own words, when, what that answers, and how to use it.
-export function draftNote(d: EligibilityDraft, value: string, n: number): string {
+export function draftNote(d: Pick<EligibilityDraft, "text" | "at">, value: string, n: number): string {
   const day = new Date(d.at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const quote = d.text.length > 160 ? `${d.text.slice(0, 157)}...` : d.text;
   return `   You told me on ${day}: "${quote}". That answers ${value}. Say "use ${n}" to answer ${value}, or answer it yourself.`;

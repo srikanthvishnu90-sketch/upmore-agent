@@ -9,7 +9,7 @@
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
 //   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
 //                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
-import { freshWhenSeen } from "./career_ingest.ts";
+import { freshWhenSeen } from "./career_fresh.ts";
 import { type Floor, relevanceFloor, sameCompany } from "./career_floor.ts";
 
 export interface AlertPrefs {

@@ -8,7 +8,7 @@
 // backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
 // that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
 import { DEFAULT_PREFS, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
-import { freshWhenSeen } from "./career_ingest.ts";
+import { freshWhenSeen } from "./career_fresh.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { interestsFromWatch } from "./career_watch_alerts.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";

@@ -24,7 +24,11 @@ const NOW = Date.parse("2026-10-24T15:00:00.000Z");
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const POSTINGS = JSON.parse(fs.readFileSync(path.join(ROOT, "evals/career/conversations.json"), "utf8")).postings;
 const CONVS = JSON.parse(fs.readFileSync(path.join(__dirname, "heldout-blind-v1-conversations.json"), "utf8")).conversations;
-const RECORDS_PATH = path.join(os.homedir(), "workspace/heldout-blind1-records.jsonl");
+// The records file: HELDOUT_BLIND1_RECORDS when set, else ~/workspace/heldout-blind1-records.jsonl (the coordinator's
+// reading location). Its directory is created on first write, so the suite records on any machine, not only the one
+// that already has ~/workspace (CI and a fresh checkout have none; the whole suite failed there with ENOENT).
+const RECORDS_PATH = process.env.HELDOUT_BLIND1_RECORDS || path.join(os.homedir(), "workspace", "heldout-blind1-records.jsonl");
+fs.mkdirSync(path.dirname(RECORDS_PATH), { recursive: true });
 
 function makeWorld() {
   const host = CareerHost.createCareerHost({

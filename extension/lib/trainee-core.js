@@ -2668,10 +2668,15 @@ ${words}`)}`, wording = `label:${h16(words)}`;
   ]);
   var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  var dailyLimit = (l) => {
-    const n = Math.floor(Number(l?.daily));
-    return Number.isFinite(n) && n >= 1 ? n : Infinity;
-  };
+  var PACE_MAX = 999999999;
+  var PACE_RE = /^\s*\+?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
+  function parsePace(v) {
+    const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v) : NaN;
+    if (!Number.isFinite(n)) return null;
+    const whole = Math.min(Math.floor(n), PACE_MAX);
+    return whole >= 1 ? whole : null;
+  }
+  var dailyLimit = (l) => parsePace(l?.daily) ?? Infinity;
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {

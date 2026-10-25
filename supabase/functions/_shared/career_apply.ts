@@ -39,7 +39,7 @@ export function classifyOutcome(o: Observation): Outcome {
 }
 
 // ------------------------------------------------------------------------------------------------ admission
-export interface Limits { daily?: number }
+export interface Limits { daily?: number | null }
 // No volume ceiling (owner, 2026-10-22: no cap on applications or on anything; CAPS-1390). Trainee imposes no daily
 // number: a person's own daily pace, if they set one (career:account daily_limit), is honored as their instruction, with
 // no maximum. What stays: one application per employer in 30 days, the exact-payload approval on each card, idempotency
@@ -56,7 +56,18 @@ const COUNTED = COUNTED_STATES;
 export const normCompany = (c: unknown) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ")
   .replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
 // The person's own daily pace when they set one; Infinity (no limit) otherwise.
-export const dailyLimit = (l?: Limits): number => { const n = Math.floor(Number(l?.daily)); return Number.isFinite(n) && n >= 1 ? n : Infinity; };
+// SERIAL-1420 (a): the one rule for a pace the person set, the same in SQL (career_apply_daily_limit, 20261025150000): a
+// decimal number of 1 or more is the pace, floored, kept up to PACE_MAX (an explicit number never silently becomes "no
+// limit"); anything else (unset, 0, negative, text, hex, Infinity, NaN, a thousands separator) is no pace at all.
+export const PACE_MAX = 999_999_999;
+export const PACE_RE = /^\s*\+?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?\s*$/;
+export function parsePace(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v) : NaN;
+  if (!Number.isFinite(n)) return null;
+  const whole = Math.min(Math.floor(n), PACE_MAX);
+  return whole >= 1 ? whole : null;
+}
+export const dailyLimit = (l?: Limits): number => parsePace(l?.daily) ?? Infinity;
 
 export interface LogRow { user_id: string; job_id: string; company: string; at: number; state: string }
 export function admitApplication(log: LogRow[], a: { user_id: string; job_id: string; company: string; approval_hash?: string; payload_hash?: string }, now: number, limits?: Limits): { ok: boolean; reason: string | null } {

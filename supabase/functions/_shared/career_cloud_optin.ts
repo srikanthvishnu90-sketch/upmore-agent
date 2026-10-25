@@ -1,3 +1,4 @@
+import { parsePace } from "./career_apply.ts";
 // WO-039: the person turns the cloud on and off in chat. Code's, like the card: the model never decides it.
 //
 // "apply for me in the cloud" shows the terms in exact words: which postings (only what they approve on a card, on
@@ -38,10 +39,7 @@ const NOT_ON = 'Nothing was turned on. To turn on the cloud, text "apply for me 
 
 // The person's own pace as a number, or null: anything unset, zero, negative, non-finite or not a number is no pace at all
 // (the same rule as career_apply.ts dailyLimit and the SQL career_apply_daily_limit after 20261025140000).
-export function ownPace(v: unknown): number | null {
-  const n = Math.floor(Number(v));
-  return v !== null && v !== undefined && v !== "" && Number.isFinite(n) && n >= 1 ? n : null;
-}
+export const ownPace = parsePace;
 // How many a day, in the person's terms: their own number when they set one, and no product number otherwise.
 export function paceText(daily: unknown): string {
   const n = ownPace(daily);

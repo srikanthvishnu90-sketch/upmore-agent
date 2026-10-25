@@ -46,11 +46,35 @@ export interface ApplyChatDeps {
   wants: WantStore;
   apps: () => Promise<AppRow[]>;
   facts: any[];
-  // The person's own daily pace, if they set one (never a product number), read only once the turn is an apply ask.
+  // The person's own daily pace, if they set one (never a product number), read only once the turn is an apply ask. A
+  // reader that throws is retried once; still failing, the turn queues nothing and says the pace could not be read.
   limits?: () => Promise<Limits | undefined>;
   tz?: string;
 }
-export type ApplyChatResult = { reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable"; intent: typeof APPLY_QUEUE_INTENT; posting?: { job_id: string; company: string; title: string } };
+export type ApplyChatResult = { reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown"; intent: typeof APPLY_QUEUE_INTENT; posting?: { job_id: string; company: string; title: string } };
+
+// SERIAL-1420 (b): the person's own pace from the database (career_apply_daily_limit: their number, or null for none).
+// An error is thrown, never read as "no pace": unknown is not no preference.
+export function paceReader(admin: { rpc(name: string, args: Record<string, unknown>): PromiseLike<any> }, userId: string): () => Promise<Limits> {
+  return async () => {
+    let r: any;
+    try { r = await admin.rpc("career_apply_daily_limit", { p_user: userId }); }
+    catch (e) { throw new Error(`pace lookup failed: ${String((e as Error)?.message ?? e)}`); }
+    if (r?.error) throw new Error(`pace lookup failed: ${String(r.error.message ?? r.error)}`);
+    return { daily: r?.data === null || r?.data === undefined ? null : Number(r.data) };
+  };
+}
+// The pace, tried twice; `unknown` when both tries fail (the turn then queues nothing and says so).
+export async function readPace(limits?: () => Promise<Limits | undefined>): Promise<{ limits?: Limits; unknown?: string }> {
+  if (!limits) return {};
+  let why = "";
+  for (let i = 0; i < 2; i++) {
+    try { return { limits: await limits() }; }
+    catch (e) { why = String((e as Error)?.message ?? e); }
+  }
+  return { unknown: why };
+}
+const PACE_UNKNOWN = "I couldn't read your daily pace just now, so I don't know how many you want a day; nothing was queued. Ask again in a minute.";
 
 const NOTHING_SENT = (company: string) =>
   `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on its card.`;
@@ -85,8 +109,9 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
     const why = screened.refused[0]?.reason ?? `nothing was queued`;
     return { reply: `Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent, posting: { job_id: p.job_id, company: p.company, title: p.title } };
   }
-  const limits = o.limits ? await o.limits().catch(() => undefined) : undefined;
-  const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits, tz: o.tz });
+  const pace = await readPace(o.limits);
+  if (pace.unknown !== undefined) return { reply: PACE_UNKNOWN, status: "pace_unknown", intent, posting: { job_id: p.job_id, company: p.company, title: p.title } };
+  const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits: pace.limits, tz: o.tz });
   const posting = { job_id: p.job_id, company: p.company, title: p.title };
   if (r.queued) return { reply: `Queued: ${p.title} at ${p.company} is on your apply list. ${NOTHING_SENT(p.company)}`, status: "queued", intent, posting };
   if (r.already) return { reply: `${p.title} at ${p.company} is already in your queue, so nothing changed. ${NOTHING_SENT(p.company)}`, status: "already", intent, posting };

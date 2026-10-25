@@ -44,7 +44,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
-import { applyTurn } from "../_shared/career_apply_chat.ts";
+import { applyTurn, paceReader } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
@@ -434,7 +434,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await applyTurn({
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id), facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-          limits: async () => { try { const r: any = await admin.rpc("career_apply_daily_limit", { p_user: user.id }); return { daily: r.error || r.data === null ? undefined : Number(r.data) || undefined }; } catch { return undefined; } },
+          limits: paceReader(admin, user.id),
         })
         : null;
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)

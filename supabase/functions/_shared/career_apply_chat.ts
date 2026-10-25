@@ -50,7 +50,9 @@ export function applyManyAsk(message: string): ManyAsk | null {
   if (m) return { kind: "nth", i: ORD[m[1]] };
   m = after.match(/^(?:the\s+)?(?:top|first|best)\s+(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b/);
   if (m) return { kind: "first", n: numOf(m[1]) };
-  m = after.match(/^(?:all\s+)?(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten)\s+(?:[a-z-]+\s+){0,3}?(?:roles?|jobs?|postings?|positions?|internships?|openings?|of (?:them|these|those))\b/);
+  // A bare count of the listed postings ("3 roles", "2 of them"). A count with a role family in it ("15 software
+  // engineering intern roles") is the broad ask, the batch delegation's (career_batch_apply), never this turn's.
+  m = after.match(/^(?:all\s+)?(\d{1,3}|two|three|four|five|six|seven|eight|nine|ten)\s+(?:roles?|jobs?|postings?|positions?|internships?|openings?|of (?:them|these|those))\b/);
   if (m) return { kind: "first", n: numOf(m[1]) };
   if (/^(?:all\s+(?:of\s+)?)?(?:these|those|them|both|each of (?:these|those|them)|every one of (?:these|those|them)|them all|the ones (?:you )?(?:just )?listed|the list|all)\b/.test(after)) return { kind: "all" };
   return null;

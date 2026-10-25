@@ -1,6 +1,7 @@
 // WO-022 W2 + W3: the card of prepared applications and the one text that answers it. Code decides what was approved;
 // the model never does. D-031 (SERIAL-1440): one direct text yes within 10 minutes approves exactly the batch the card
-// shows, once, by the hashes it carries; it never sends. Every word of a card comes from the engine's own card lines (what the dry run read back from the
+// shows, once, by the hashes it carries; it never sends. SERIAL-1451: the yes answers the card this thread showed (its id
+// in the reply's meta) and no other; the 10-minute window is also the database's (20261025170000). Every word of a card comes from the engine's own card lines (what the dry run read back from the
 // form); every word of an answer from the queue's own results.
 //
 // Declining is "no", never "stop": over SMS, STOP is the carrier's opt-out keyword, and trainee-inbound treats it as the
@@ -32,6 +33,9 @@ export interface CardStore {
   latestOpen(userId: string): Promise<Card | null>;
   answer(userId: string, cardId: string, approve: number[]): Promise<CardResult[]>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
+  // SERIAL-1451: the card this thread's last reply showed (its id in that message's meta), or null. A yes answers that
+  // card and no other: a newer card shown in another thread closes it, and the yes then approves nothing.
+  lastShownCard(threadId: string): Promise<string | null>;
 }
 
 export type CardReply =
@@ -108,6 +112,7 @@ const RESULT: Record<string, string> = {
   duplicate: "not sent: you already applied to this posting",
   stale: "not sent: your details changed after it was prepared; prepare it again",
   changed: "not sent: it changed after the card was shown",
+  pace_unreadable: "not sent: your saved daily pace could not be read; say \"set my daily pace to N\" or \"no daily pace\"",
   refused: "not sent: the queue refused it",
 };
 export function answerText(results: CardResult[]): string {
@@ -122,9 +127,10 @@ export function answerText(results: CardResult[]): string {
 }
 
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
+export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
 export async function cardTurn(
   o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null },
-): Promise<{ reply: string; status: string } | null> {
+): Promise<{ reply: string; status: string; card_id?: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
   if (r.kind === "show") {
@@ -142,13 +148,17 @@ export async function cardTurn(
         status: "too_long",
       };
     }
-    await o.store.open(o.userId, c.take.map((p) => p.id));
-    return { reply: c.text, status: "shown" };
+    const opened = await o.store.open(o.userId, c.take.map((p) => p.id));
+    return { reply: c.text, status: "shown", card_id: opened.id };
   }
   // An answer counts only when the card was this thread's last word: a "yes" to anything asked after it is not a yes to it.
   if ((await o.store.lastAssistantIntent(o.threadId)) !== CARD_INTENT) return null;
   const card = await o.store.latestOpen(o.userId);
   if (!card) return null;
+  // SERIAL-1451: and only for the card this thread showed. Opening a card closes older ones, so a card shown in another
+  // thread since makes this thread's card out of date: nothing is approved or declined on it.
+  const shownId = await o.store.lastShownCard(o.threadId);
+  if (!shownId || shownId !== card.id) return { reply: CARD_OUTDATED, status: "card_outdated" };
   const numbers = card.items.map((i) => i.n);
   if (r.kind === "change") {
     return {
@@ -246,6 +256,16 @@ export function supabaseCardStore(admin: any): CardStore {
         "read the last reply",
       );
       return rows?.[0]?.meta?.intent ?? null;
+    },
+    async lastShownCard(threadId) {
+      // The chat's "show" and the scheduled push (career_apply_card_push_for) both write the card's id as meta.card_id.
+      const rows = must(
+        await admin.from("agent_messages").select("meta").eq("thread_id", threadId).eq("role", "assistant")
+          .order("id", { ascending: false }).limit(1),
+        "read the last reply",
+      );
+      const m = rows?.[0]?.meta;
+      return m?.intent === CARD_INTENT && typeof m?.card_id === "string" ? m.card_id : null;
     },
   };
 }

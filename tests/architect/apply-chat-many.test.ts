@@ -28,7 +28,9 @@ Deno.test("SERIAL-1410/1 the ask: these, both, all of them, the top N, the first
   eq(applyManyAsk("apply to the top 2"), { kind: "first", n: 2 });
   eq(applyManyAsk("apply to the first two"), { kind: "first", n: 2 });
   eq(applyManyAsk("apply to 3 roles"), { kind: "first", n: 3 });
-  eq(applyManyAsk("apply to 25 data analyst jobs"), { kind: "first", n: 25 });
+  eq(applyManyAsk("apply to 25 data analyst jobs"), null, "a count with a role family is the broad ask (the batch delegation's), not the list's");
+  eq(applyManyAsk("apply to 15 software engineering intern roles"), null, "the owner's delegation message stays the delegation's (career_batch_apply)");
+  eq(applyManyAsk("apply to 2 of them"), { kind: "first", n: 2 });
   eq(applyManyAsk("apply to the first one"), { kind: "nth", i: 1 });
   eq(applyManyAsk("apply to the second one"), { kind: "nth", i: 2 });
   for (const m of ["how do I apply to these?", "apply to the Data Analyst role at Acme", "apply to Acme", "I applied to both", "should I apply to these"]) eq(applyManyAsk(m), null, m);

@@ -64,7 +64,7 @@ Deno.test("WO-022/2 a card shows every line of every application verbatim, at mo
   assert(huge && "tooLong" in huge, "past the outbox's limit it is not shown by text");
 });
 
-function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number }> = {}) {
+function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number; shownCard: string | null }> = {}) {
   const prepared = [prep(1), prep(2), prep(3)];
   let card: any = null, lastIntent: string | null = over.lastIntent ?? null;
   const answers: number[][] = [];
@@ -80,6 +80,7 @@ function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number 
       return card;
     },
     latestOpen: async () => card,
+    lastShownCard: async () => over.shownCard === undefined ? (card?.id ?? null) : over.shownCard,
     answer: async (_u, _c, approve) => {
       answers.push(approve);
       return card.items.map((i: any) => ({
@@ -209,6 +210,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
         return { n: it.n, company: p.payload.company, result: approve.includes(it.n) ? "queued" : "declined" };
       }),
     lastAssistantIntent: async () => last,
+    lastShownCard: async () => "C1",
   };
   const shown = await turn(store, "show my applications");
   for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
@@ -252,4 +254,25 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
     receipts.every((r) => /the employer confirmed it on their page \(confirmation TEST-C\)/.test(r.text)),
     JSON.stringify(receipts),
   );
+});
+
+Deno.test("SERIAL-1451 the yes answers the card this thread showed, no other: a newer card shown elsewhere makes it out of date; nothing approved or declined; the thread that showed the newest card approves", async () => {
+  // Thread A showed C1; a card shown in thread B since (C2) closed it and is now the person's newest open card.
+  const a = memoryCards({ shownCard: "C1" });
+  await turn(a.store, "show my applications");
+  (a as any).card = null;
+  const newest = memoryCards({ shownCard: "C2" });
+  await newest.store.open("TEST-USER", ["P-1", "P-2", "P-3"]);
+  const cross: CardStore = { ...a.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }) };
+  for (const m of ["yes", "yes but not 2", "no"]) {
+    const r = await cardTurn({ message: m, userId: "TEST-USER", threadId: "A", now: T, store: cross });
+    eq(r?.status, "card_outdated", m);
+    assert(/out of date/.test(r!.reply) && /nothing was approved/.test(r!.reply) && /show my applications/.test(r!.reply), r!.reply);
+  }
+  eq(a.answers, [], "thread A approved and declined nothing");
+  eq(newest.answers, [], "and touched the newer card not at all");
+  // The thread that showed C2 approves it.
+  const own: CardStore = { ...newest.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), lastShownCard: async () => "C2" };
+  eq((await cardTurn({ message: "yes", userId: "TEST-USER", threadId: "B", now: T, store: own }))?.status, "answered");
+  eq(newest.answers, [[1, 2, 3]]);
 });

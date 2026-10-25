@@ -24,6 +24,7 @@ function wo022Store(o: { shownAgoMs?: number; changed?: number[]; open?: boolean
     // career_apply_card_answer_as: approving a number enqueues that application by its shown hash; a changed one is refused; the card closes.
     async answer(_u, _c, approve) { approvals.push(approve); open = false; return [1, 2].map((n) => ({ n, company: `Synthetic ${n}`, result: (o.changed ?? []).includes(n) ? "changed" : approve.includes(n) ? "queued" : "declined" })); },
     async lastAssistantIntent() { return CARD_INTENT; },
+    async lastShownCard() { return open ? "card-1" : null; },
   };
   return { store, approvals };
 }
@@ -93,7 +94,7 @@ Deno.test("no chat turn module names a claim or finish door, and the cloud card 
 });
 
 // SERIAL-1442: every case outside "a direct yes to the batch card, within 10 minutes, once" approves nothing.
-function railsStore(o: { intent?: string | null; card?: boolean; shownAgoMs?: number } = {}) {
+function railsStore(o: { intent?: string | null; card?: boolean; shownAgoMs?: number; shownCard?: string | null } = {}) {
   const approvals: number[][] = [];
   let open = o.card ?? true;
   const store: CardStore = {
@@ -102,6 +103,7 @@ function railsStore(o: { intent?: string | null; card?: boolean; shownAgoMs?: nu
     async latestOpen() { return open ? { id: "card-1", items: [{ n: 1, prepared_id: "p1", payload_hash: "a".repeat(64) }, { n: 2, prepared_id: "p2", payload_hash: "b".repeat(64) }], shown_at: new Date(NOW - (o.shownAgoMs ?? 60_000)).toISOString() } : null; },
     async answer(_u, _c, approve) { approvals.push(approve); open = false; return [1, 2].map((n) => ({ n, company: `Synthetic ${n}`, result: approve.includes(n) ? "queued" : "declined" })); },
     async lastAssistantIntent() { return o.intent === undefined ? CARD_INTENT : o.intent; },
+    async lastShownCard() { return o.shownCard === undefined ? (open ? "card-1" : null) : o.shownCard; },
   };
   return { store, approvals, closed: () => !open };
 }
@@ -140,7 +142,7 @@ Deno.test("SERIAL-1442 exact payloads: whatever changed since the card was shown
   const store: CardStore = {
     async pending() { return []; }, async open() { throw new Error("not used"); },
     async latestOpen() { return { id: "card-7", items: results.map((r) => ({ n: r.n, prepared_id: `p${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(NOW - 1000).toISOString() }; },
-    async answer() { return results; }, async lastAssistantIntent() { return CARD_INTENT; },
+    async answer() { return results; }, async lastAssistantIntent() { return CARD_INTENT; }, async lastShownCard() { return "card-7"; },
   };
   const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store });
   ok(r?.status === "answered" && /^1 approved exactly as shown/.test(r!.reply), r?.reply);
@@ -148,4 +150,15 @@ Deno.test("SERIAL-1442 exact payloads: whatever changed since the card was shown
     ok(new RegExp(`^${n}\\. [A-Za-z ]+: not sent: ${why.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m").test(r!.reply), `${n}: ${why}: ${r!.reply}`);
   }
   ok(/^7\. Fine Co: approved/m.test(r!.reply), r!.reply);
+});
+
+Deno.test("SERIAL-1451 card identity: a yes in a thread whose shown card is no longer the open one approves nothing; a thread whose last reply names no card approves nothing", async () => {
+  for (const m of [...YES_FORMS, ...EXCEPT_FORMS]) {
+    const other = railsStore({ shownCard: "card-0" });
+    const r = await cardTurn({ message: m, userId: "u", threadId: "A", now: NOW, store: other.store });
+    ok(r?.status === "card_outdated" && /out of date/.test(r!.reply) && other.approvals.length === 0, `"${m}" on an outdated card: ${JSON.stringify(r)}`);
+    const unnamed = railsStore({ shownCard: null });
+    const u = await cardTurn({ message: m, userId: "u", threadId: "A", now: NOW, store: unnamed.store });
+    ok(u?.status === "card_outdated" && unnamed.approvals.length === 0, `"${m}" with no card id on the last reply: ${JSON.stringify(u)}`);
+  }
 });

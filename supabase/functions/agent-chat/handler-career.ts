@@ -454,6 +454,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
         out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
+        // SERIAL-1451: the shown card's id rides the reply, so a yes in this thread answers this card and no other.
+        if (card.status === "shown" && card.card_id) agentMeta = { card_id: card.card_id };
       } else if (mock) {
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };

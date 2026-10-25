@@ -93,6 +93,7 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then o
       return card.items.map((i: any) => ({ n: i.n, company: `TEST Employer ${i.n}`, result: a.includes(i.n) ? "queued" : "declined" }));
     },
     lastAssistantIntent: async () => last,
+    lastShownCard: async () => (last === CARD_INTENT ? card?.id ?? null : null),
   };
   const runs: any[] = [];
   const res = await handleProactive(

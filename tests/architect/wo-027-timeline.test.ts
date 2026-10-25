@@ -88,6 +88,7 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
     async latestOpen() { return { id: "CARD-1", items: results.map((r) => ({ n: r.n, prepared_id: `P-${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(T - 60000).toISOString() }; }, // D-031: a text yes counts within 10 minutes of the card
     async answer() { return results; },
     async lastAssistantIntent() { return CARD_INTENT; },
+    async lastShownCard() { return "CARD-1"; },
   };
 }
 

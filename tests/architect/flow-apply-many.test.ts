@@ -232,21 +232,38 @@ Deno.test({
         assertEquals([await why(preparedId), await why(preparedId2)], [FIRST_WHY, SIBLING_WHY]);
       });
 
-      await t.step("their one yes: the card shows both; a direct text yes within 10 minutes approves exactly those two payloads; drive: each employer receives only its own essay, once", async () => {
-        const card = await say("show my applications");
-        assertEquals([card.intent, card.resultStatus], ["career_apply_card", "shown"], card.reply);
-        assert(/2 applications are ready/.test(card.reply) && card.reply.includes(FIRST_WHY) && card.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${card.reply}`);
-        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "0", "showing approves nothing");
-        // SERIAL-1442: another person's yes, with the first person's card standing, approves nothing of anyone's.
+      await t.step("their one yes (SERIAL-1451): the card shown in thread A is closed by the card shown in thread B; a yes in A approves nothing, a replay nothing; the yes in B approves exactly the two payloads", async () => {
+        const cardA = await say("show my applications");
+        assertEquals([cardA.intent, cardA.resultStatus], ["career_apply_card", "shown"], cardA.reply);
+        assert(/2 applications are ready/.test(cardA.reply) && cardA.reply.includes(FIRST_WHY) && cardA.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${cardA.reply}`);
+        const metaA = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
+        assert(typeof metaA?.card_id === "string" && metaA.intent === "career_apply_card", `the shown card's id rides the reply: ${JSON.stringify(metaA)}`);
+        // The same person in a second thread shows a card: it closes thread A's card (card_open_for) and is now the newest.
+        const threadB: Chat = agentChat!.chat("tok-person");
+        const cardB = await threadB.say("show my applications");
+        assertEquals([cardB.intent, cardB.resultStatus], ["career_apply_card", "shown"], cardB.reply);
+        const metaB = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
+        assert(typeof metaB?.card_id === "string" && metaB.card_id !== metaA.card_id, `a different card: ${JSON.stringify([metaA.card_id, metaB.card_id])}`);
+        assertEquals(await pg.sql(`select state from public.career_apply_cards where id = '${metaA.card_id}'`), "answered", "thread A's card was closed by the newer card");
+        // SERIAL-1442: another person's yes approves nothing of anyone's.
         const other: Chat = agentChat!.chat("tok-other");
         const theirs = await other.say("yes");
         assert(theirs.resultStatus !== "answered" && theirs.intent !== "career_apply_card", `another person's yes is not this card's: ${theirs.intent} ${theirs.reply}`);
-        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0", "nothing approved by another person's yes");
-        const yes = await say("yes");
-        assertEquals(yes.resultStatus, "answered", `SERIAL-1440 (1): one text yes approves the batch the card shows: ${yes.reply}`);
-        assert(/2 approved exactly as shown/.test(yes.reply) && /Nothing has gone to an employer yet/.test(yes.reply), yes.reply);
+        // A yes in thread A: its card is out of date; nothing is approved, on either card.
+        const yesA = await say("yes");
+        assertEquals([yesA.intent, yesA.resultStatus], ["career_apply_card_answer", "card_outdated"], yesA.reply);
+        assert(/out of date/.test(yesA.reply) && /nothing was approved/.test(yesA.reply), yesA.reply);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0", "nothing approved by the yes in A");
+        assertEquals(await pg.sql(`select state from public.career_apply_cards where id = '${metaB.card_id}'`), "open", "B's card untouched");
+        const replayA = await say("yes");
+        assert(replayA.resultStatus !== "answered", `a replay in A approves nothing: ${replayA.intent} ${replayA.resultStatus}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0");
+        // The thread that showed the newest card approves it, once.
+        const yesB = await threadB.say("yes");
+        assertEquals(yesB.resultStatus, "answered", `SERIAL-1440 (1): one text yes in the thread that showed the card approves the batch it shows: ${yesB.reply}`);
+        assert(/2 approved exactly as shown/.test(yesB.reply) && /Nothing has gone to an employer yet/.test(yesB.reply), yesB.reply);
         assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, by the hashes the card carried");
-        assertEquals(await say("yes").then((r) => r.resultStatus === "answered"), false, "a second yes approves nothing: the card is single-use");
+        assertEquals(await threadB.say("yes").then((r) => r.resultStatus === "answered"), false, "a second yes approves nothing: the card is single-use");
         const queue = ownQueue(person);
         const done = await runApproved({
           claim: () => queue.claim(2),

@@ -63,6 +63,14 @@ function cond(col: string, opv: string): string {
   const op = dot < 0 ? opv : opv.slice(0, dot), val = dot < 0 ? "" : opv.slice(dot + 1);
   const c = path(col);
   let sql: string;
+  // Full-text search, as PostgREST maps it: fts(config).query -> to_tsquery, plfts -> plainto_tsquery,
+  // phfts -> phraseto_tsquery, wfts -> websearch_to_tsquery (career_postings.search, the postings reader).
+  const fts = /^(fts|plfts|phfts|wfts)(?:\(([^)]+)\))?$/.exec(op);
+  if (fts) {
+    const fn = ({ fts: "to_tsquery", plfts: "plainto_tsquery", phfts: "phraseto_tsquery", wfts: "websearch_to_tsquery" } as Record<string, string>)[fts[1]];
+    sql = `${c} @@ ${fn}(${fts[2] ? `${q(fts[2])}::regconfig, ` : ""}${q(unquote(val))})`;
+    return neg ? `not (${sql})` : sql;
+  }
   switch (op) {
     case "eq": sql = `${c} = ${q(unquote(val))}`; break;
     case "neq": sql = `${c} <> ${q(unquote(val))}`; break;

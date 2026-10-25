@@ -46,10 +46,17 @@ const PROFILE = {
   preferences: { locations: ["Chicago"], starredCompanies: [] },
 };
 
+const PROFILE_NO_LOC = {
+  basics: { name: "Alex Testcase" },
+  facts: [],
+  constraints: { workAuthorization: "US citizen", needsSponsorship: false },
+  preferences: { locations: [], starredCompanies: [] },
+};
+
 let seq = 0;
 function convo(opts = {}) {
   const user = `alertpath-${++seq}`;
-  const ctx = seam.createTurnCtx({ userId: user, threadId: `ap-${seq}`, now: NOW, snapshot: null, profile: PROFILE });
+  const ctx = seam.createTurnCtx({ userId: user, threadId: `ap-${seq}`, now: NOW, snapshot: null, profile: opts.profile || PROFILE });
   if (opts.delivery) ctx.workerCapabilities.job_alert_delivery = opts.delivery;
   const wpOf = () => (seam.extractSnapshot(ctx).stores.alertWatchState || {})[A.PROFILE_KEY(user)] || null;
   const say = (turn) => seam.runTurn(turn, ctx);
@@ -313,6 +320,64 @@ test("resume: state answers reflect the record — stopped reads stopped, on rea
   assert.equal(r2.intent, "career_watch_manage", r2.reply);
   assert.match(r2.reply, /aren't paused|already on|not paused/i, r2.reply);
   assert.equal(wpOf().opt_out.global, false);
+});
+
+// ---------- (f) unknown role: clarify, never invent a target ----------
+test("unknown role: 'watch for jobs in my field' asks for the role and saves nothing", () => {
+  const { say, wpOf } = convo();
+  const r = say("watch for jobs in my field");
+  assert.equal(r.intent, "career_watch_create", r.reply);
+  assert.equal(r.resultStatus, "awaiting_user", r.reply);
+  assert.match(r.reply, /role/i, r.reply);
+  assert.doesNotMatch(r.reply, /Watch set:/, r.reply);
+  assert.doesNotMatch(r.reply, BANNER, r.reply);
+  const wp = wpOf();
+  assert.ok(!wp || !wp.interests.length, "no watch may be saved behind a role the product cannot pin down");
+});
+
+test("unknown role: 'text me when something opens up' asks for the role and saves nothing", () => {
+  const { say, wpOf } = convo();
+  const r = say("text me when something opens up");
+  assert.equal(r.intent, "career_watch_create", r.reply);
+  assert.equal(r.resultStatus, "awaiting_user", r.reply);
+  assert.match(r.reply, /role/i, r.reply);
+  assert.doesNotMatch(r.reply, /Watch set:/, r.reply);
+  assert.doesNotMatch(r.reply, BANNER, r.reply);
+  const wp = wpOf();
+  assert.ok(!wp || !wp.interests.length, "no watch may be saved behind a role the product cannot pin down");
+});
+
+// ---------- (g) 'near me' needs a location ----------
+test("near me: no location known asks which location and saves nothing", () => {
+  const { say, wpOf } = convo({ profile: PROFILE_NO_LOC });
+  const r = say("watch for data analyst roles near me");
+  assert.equal(r.intent, "career_watch_create", r.reply);
+  assert.equal(r.resultStatus, "awaiting_user", r.reply);
+  assert.match(r.reply, /where|location|which (city|place|area)/i, r.reply);
+  assert.doesNotMatch(r.reply, /Watch set:/, r.reply);
+  assert.doesNotMatch(r.reply, BANNER, r.reply);
+  const wp = wpOf();
+  assert.ok(!wp || !wp.interests.length, "no watch may be saved with an invented or empty location");
+});
+
+test("near me: the profile's location is used when it is known", () => {
+  const { say, wpOf } = convo();
+  const r = say("watch for data analyst roles near me");
+  assert.equal(r.intent, "career_watch_create", r.reply);
+  assert.equal(r.resultStatus, "prepared", r.reply);
+  const wp = wpOf();
+  assert.ok(wp && wp.interests.length === 1, "one watch saved");
+  assert.deepEqual(wp.interests[0].filters.locations, ["Chicago"], JSON.stringify(wp.interests[0].filters));
+});
+
+test("near me: a location stated in the ask is used even with none on the profile", () => {
+  const { say, wpOf } = convo({ profile: PROFILE_NO_LOC });
+  const r = say("watch for data analyst roles near boston");
+  assert.equal(r.intent, "career_watch_create", r.reply);
+  assert.equal(r.resultStatus, "prepared", r.reply);
+  const wp = wpOf();
+  assert.ok(wp && wp.interests.length === 1, "one watch saved");
+  assert.deepEqual(wp.interests[0].filters.locations, ["Boston"], JSON.stringify(wp.interests[0].filters));
 });
 
 // ---------- stand-downs: the alert path never eats other families ----------

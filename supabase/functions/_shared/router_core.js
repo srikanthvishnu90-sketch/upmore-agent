@@ -45775,7 +45775,16 @@ const CareerRouter = (() => {
     // against the watch record (and answers the timed half plainly).
     // A pause with no alert scope resolves null there and the halt
     // below keeps it, exactly as before.
-    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause") return null; }
+    // REGRESSION FIX (2026-10-25, REGRESSION-1255): the stand-down
+    // fires only when the TEXT scopes the pause to the alerts (an
+    // alert/watch noun in the turn itself — "pause everything
+    // alert-wise"). alertIntentOf also resolves "pause" from the
+    // alert FRAME alone, and diverting on that ate the unscoped
+    // "pause everything for now" during an alert conversation: the
+    // global pause never set, and a later "turn them back on" then
+    // read as alerts-only, so the two-scopes clarification (global
+    // pause + alert stop standing -> ASK) became unreachable.
+    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause" && /\balerts?\b|\bwatch(es|ing)?\b/.test(t)) return null; }
     // (1) fuzzy halt — 141 owns the write; this layer returns its
     // typed result verbatim, exactly as the doorstep seam would.
     if (Doorstep && typeof Doorstep.fuzzyHaltMatch === "function" && typeof Doorstep.haltQueue === "function" && Doorstep.fuzzyHaltMatch(text)) {
@@ -46569,7 +46578,14 @@ const CareerRouter = (() => {
     if (/\bwhat are you watching\b/.test(t) || /\bkeeping an eye on for me\b/.test(t) || /\bwhat'?s on my (alert |watch )?list\b/.test(t) || /\bshow me my (alerts|watches)\b/.test(t) || /\blist my (alerts|watches)\b/.test(t) || /\bwhat alerts do i have\b/.test(t) || /\bwhat am i watching\b/.test(t)) return { op: "list" };
     // SUMMARY TIME — no such field exists on a watch (unsupported,
     // answered plainly in the handler; checked before every write).
-    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && /\b(at|to|move|change|set|make|instead|morning|evening|am\b|pm\b|\d)/.test(t)) return { op: "summary_time" };
+    // REGRESSION FIX (2026-10-25, REGRESSION-1255): the claim needs
+    // a CHANGE instruction — a change verb, or an at/to time
+    // assignment. Bare time-of-day words ("morning", "evening")
+    // qualified before, so a status-shaped statement ("Quiet hours:
+    // low-priority alerts folded into the morning digest", SC-140)
+    // was claimed here and lost the tracking family's summary
+    // doorstep; a statement about a digest is not an ask to move it.
+    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && (/\b(move|set|change|make|switch|reschedule|adjust|instead)\b/.test(t) || /\b(at|to)\s+(\d|noon|midnight)\b/.test(t))) return { op: "summary_time" };
     // PAUSE — plain or timed (the timed half is the unsupported part).
     const timedM = /\bfor (a|one|two|three|four|\d+)\s+(weeks?|days?|months?)\b/.test(t) || /\buntil\s+(next|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
     // A pause claimed on the standing alert frame alone must be alert-sized: "pause everything", "pause all of it",
@@ -46624,15 +46640,21 @@ const CareerRouter = (() => {
     // when a role opens up?", "can you notify me about finance
     // roles?").
     if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
-    // A delivery verb composes with a job object only when the job is what would be delivered: the job noun comes
-    // AFTER the verb ("text me about finance roles", "keep an eye out on PM roles"), or a future trigger is in the
-    // turn ("text me the minute a role opens up"). A job noun earlier in the turn followed by "send me the PDF"
-    // (CB-0495, the tailor's) or "tell me what my tracker looks like" (the tracker's) is another family's turn
-    // (STEP 3 F0, 2026-10-25: this claim ate those turns from 90194114 on).
+    // ONE claim rule (merge of f83e42ab and 6acd7850, 2026-10-25). Named stand-downs first: a tailor instruction, a
+    // PDF named as the thing to send, and a "tell me <question>" with no other delivery verb are other families'
+    // turns (REGRESSION-1255). Then the composition itself: a delivery verb claims a create only with a job object
+    // that is what would be delivered, the job noun AFTER the verb ("text me about finance roles", "keep an eye out
+    // on PM roles") or a future trigger in the turn ("text me the minute a role opens up") (STEP 3 F0). Either rule
+    // alone stood CB-0495 and MI-013 down; together a new phrasing has to pass both.
+    if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
+    if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
+      && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
+      && !/\btell me when\b/.test(t);
     const JOB_NOUN_RE = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/;
     const jobAfterDelivery = deliveryM ? JOB_NOUN_RE.test(t.slice(deliveryM.index + deliveryM[0].length)) : false;
     const futureTrigger = /\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t);
-    if (classicCreate || (deliveryVerb && jobObject && (jobAfterDelivery || futureTrigger))) return { op: "create" };
+    if (classicCreate || (deliveryVerb && !tellQuestionOnly && jobObject && (jobAfterDelivery || futureTrigger))) return { op: "create" };
     return null;
   }
   function alertTargetsOf(wp, text) {

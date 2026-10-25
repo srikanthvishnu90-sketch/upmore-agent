@@ -19528,7 +19528,7 @@ const CareerRouter = (() => {
   function handlePauseControl(text, ctx) {
     const c = ctx || {};
     const t = lc(text);
-    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause") return null; }
+    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause" && /\balerts?\b|\bwatch(es|ing)?\b/.test(t)) return null; }
     if (Doorstep && typeof Doorstep.fuzzyHaltMatch === "function" && typeof Doorstep.haltQueue === "function" && Doorstep.fuzzyHaltMatch(text)) {
       try { const h = Doorstep.haltQueue(c, text); if (h) return h; } catch {   }
     }
@@ -20075,7 +20075,7 @@ const CareerRouter = (() => {
     if (/\bwhat did you (send|text|message) me\b/.test(t) || /\bdid you (send|text|message) me\b/.test(t) || /\bwhat (alerts|jobs|roles) did i (get|receive)\b/.test(t) || /\b(sent|texted) me (today|this week|yesterday)\b/.test(t) || /\bmy alert history\b/.test(t)) return { op: "history" };
     if (/\bhow many alerts\b/.test(t) && !/\bper day\b|\bmax\b|\ba day\b/.test(t)) return { op: "count" };
     if (/\bwhat are you watching\b/.test(t) || /\bkeeping an eye on for me\b/.test(t) || /\bwhat'?s on my (alert |watch )?list\b/.test(t) || /\bshow me my (alerts|watches)\b/.test(t) || /\blist my (alerts|watches)\b/.test(t) || /\bwhat alerts do i have\b/.test(t) || /\bwhat am i watching\b/.test(t)) return { op: "list" };
-    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && /\b(at|to|move|change|set|make|instead|morning|evening|am\b|pm\b|\d)/.test(t)) return { op: "summary_time" };
+    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && (/\b(move|set|change|make|switch|reschedule|adjust|instead)\b/.test(t) || /\b(at|to)\s+(\d|noon|midnight)\b/.test(t))) return { op: "summary_time" };
     const timedM = /\bfor (a|one|two|three|four|\d+)\s+(weeks?|days?|months?)\b/.test(t) || /\buntil\s+(next|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
     const globalPauseScope = /\b(everything|all of it|all queues|every queue|outreach|submissions|applications)\b/.test(t);
     if (/\bpause\b/.test(t) && (alertNoun || (frame && !globalPauseScope))) return { op: "pause", timed: timedM };
@@ -20103,10 +20103,15 @@ const CareerRouter = (() => {
     const deliveryVerb = !!deliveryM;
     const jobObject = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/.test(t) || /\b(opens? up|goes up|comes up|gets? posted|is posted)\b/.test(t);
     if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
+    if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
+    if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
+      && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
+      && !/\btell me when\b/.test(t);
     const JOB_NOUN_RE = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/;
     const jobAfterDelivery = deliveryM ? JOB_NOUN_RE.test(t.slice(deliveryM.index + deliveryM[0].length)) : false;
     const futureTrigger = /\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t);
-    if (classicCreate || (deliveryVerb && jobObject && (jobAfterDelivery || futureTrigger))) return { op: "create" };
+    if (classicCreate || (deliveryVerb && !tellQuestionOnly && jobObject && (jobAfterDelivery || futureTrigger))) return { op: "create" };
     return null;
   }
   function alertTargetsOf(wp, text) {

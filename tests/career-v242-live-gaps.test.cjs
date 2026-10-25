@@ -207,14 +207,25 @@ async function stagedApp(db, user, thread) {
       assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table), `unexpected table: ${table}`);
       const filters = {};
       const query = {
+        _limit: null,
         select() { return query; },
         eq(key, value) { filters[key] = value; return query; },
         order() { return query; },
-        limit(n) { filters._limit = n; return query; },
+        limit(n) { query._limit = n; return query; },
         then(resolve) {
-          assert.equal(table, "agent_messages"); assert.equal(filters.thread_id, thread);
-          const rows = db.messages.map((m, i) => ({ id: i + 1, role: m.role, content: m.content })).reverse();
-          return resolve({ data: clone(filters._limit ? rows.slice(0, filters._limit) : rows), error: null });
+          // A LIST read awaited directly on the builder — the
+          // handler's history window and its SUBMIT-STEER evidence
+          // read (handler-career.ts: agent_messages, newest first,
+          // limited). Serve the recorded messages for the filtered
+          // thread in that order; before the evidence step existed
+          // nothing awaited this builder as a list, so the fake
+          // never grew the shape and the read threw -> HTTP 503
+          // (REGRESSION-1255). Rows carry the handler's own inserted
+          // fields; ids are positional (the store assigns real ones).
+          if (table !== "agent_messages") return resolve({ data: [], error: null });
+          const rows = db.messages.filter((m) => m.thread_id === filters.thread_id).slice().reverse()
+            .map((m, i) => ({ id: m.id ?? (db.messages.length - i), role: m.role, content: m.content }));
+          return resolve({ data: clone(query._limit ? rows.slice(0, query._limit) : rows), error: null });
         },
         async maybeSingle() {
           assert.equal(filters.user_id, user);

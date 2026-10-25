@@ -56857,6 +56857,7 @@ const CareerBatchApply = (() => {
     const note = (k) => seen.set(k, (seen.get(k) || 0) + 1);
     for (const x of sm.ready || []) note(x.postingKey);
     for (const x of sm.confirmations || []) note(x.postingKey);
+    for (const x of sm.sentUnconfirmed || []) note(x.postingKey);
     for (const x of sm.stops || []) note(x.postingKey);
     for (const x of sm.deferred || []) if (x.code !== "COUNT_DEFERRED") note(x.postingKey);
     for (const x of sm.pending || []) note(x.postingKey);
@@ -56892,7 +56893,12 @@ const CareerBatchApply = (() => {
       eligible: run.eligible, selected: run.selected.length,
       doorstep: apps.filter((a) => a.stage === "doorstep").length,
       submitted: submitted.length,
-      confirmations: submitted.map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      // SPLIT-1146 (d): the confirmations list holds only RECORDED
+      // employer confirmations. A submission the board accepted with
+      // no confirmation id is a separate group — sent, unconfirmed —
+      // never an entry here with a null id.
+      confirmations: submitted.filter((a) => a.confirmationId).map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      sentUnconfirmed: submitted.filter((a) => !a.confirmationId).map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
       stops,
       deferred: run.deferred.slice(),
       ready: apps.filter((a) => a.stage === "doorstep").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
@@ -56907,6 +56913,20 @@ const CareerBatchApply = (() => {
     const acc = accountRun(run);
     const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
     const lines = [`${acc.through}/${acc.total} applications ${verb}.`];
+    // SPLIT-1146 (d): after the yes, a selected application whose
+    // stage is "submitted" but which carries NO recorded employer
+    // confirmation is not counted as submitted in the headline —
+    // the headline counts only confirmed submissions, and each
+    // unconfirmed one is named with its own code and reason.
+    if (acc.phase === "submitted") {
+      const selApps = (run.selected || []).map((k) => (run.apps || {})[k]).filter(Boolean);
+      const unconfirmed = selApps.filter((a) => a.stage === "submitted" && !a.confirmationId);
+      if (unconfirmed.length) {
+        const confirmed = selApps.filter((a) => a.stage === "submitted" && a.confirmationId).length;
+        lines[0] = `${confirmed}/${acc.total} applications submitted with employer confirmations.`;
+        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: SENT_WITHOUT_CONFIRMATION — the employer's system took the application but recorded no confirmation; it is not counted as submitted.`);
+      }
+    }
     for (const o of acc.outcomes) {
       if (o.through) continue;
       lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
@@ -56927,7 +56947,7 @@ const CareerBatchApply = (() => {
       lines.push(`The ${selApps.length} selected:`);
       for (const a of selApps) {
         const stage = a.stage === "doorstep" ? "ready at the final review screen"
-          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "submitted" ? (a.confirmationId ? `submitted — confirmation ${a.confirmationId}` : "sent — no confirmation from the employer is recorded, so this is not counted as submitted")
           : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
           : a.stage === "stopped" ? "stopped (named below)"
           : a.stage === "deferred_cap" ? "queued past today's cap"
@@ -56947,7 +56967,7 @@ const CareerBatchApply = (() => {
         lines.push(`Your yes also gives each of these applications its own certification, for that application only: ${texts.map((t) => `"${t}"`).join("; ")}.`);
       }
     }
-    if (sm.submitted) lines.push(`Submitted ${sm.submitted} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
+    if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");

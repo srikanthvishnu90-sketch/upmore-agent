@@ -45460,6 +45460,16 @@ const CareerRouter = (() => {
     // a question — the old matcher read the direction straight out of
     // the question frame and wrote a profile correction from it.
     const statementText = s(text).split(/(?<=[.?!])\s+/).filter((sent) => !/\?\s*$/.test(sent) && !/^\s*(will|would|do|does|did|is|are|can|could|should|what|how|when)\b/i.test(sent)).join(" ");
+    // JOIN-1236: a statement predicated of a THIRD PARTY ("my
+    // brother is authorized, he doesn't need sponsorship") is not
+    // the user's own correction — the direction reads below took
+    // its bare "need sponsorship" as the user's future need and
+    // wrote a correction from someone else's facts. A third-party
+    // subject with no first-person sponsorship clause of the
+    // user's own stands this route down entirely.
+    const thirdPartySubject = /\bmy (?:brother|sister|mother|father|friend|partner|husband|wife|son|daughter|cousin|roommate|colleague|co-?worker|boss|manager)\b/i.test(t) || /^\s*(?:he|she|they)\s/i.test(statementText);
+    const ownClause = /\bi\b[^.;]*\b(?:need|require|needed|needing|requiring)\b[^.;]*\bsponsorship\b/i.test(statementText) || /\bi\s+(?:am|will|won'?t|do not|don'?t|no longer)\b[^.;]*\b(?:sponsorship|authorized|authorised)\b/i.test(statementText);
+    if (thirdPartySubject && !ownClause) return null;
     // WO-095 (B-MEM-1) polarity: the negated clause shapes come first
     // and cover "require" as well as "need" — "I do not require
     // sponsorship" was stored as needsSponsorship=true because only
@@ -45503,6 +45513,22 @@ const CareerRouter = (() => {
   function handleSensitiveCorrection(text, ctx) {
     const parsed = sensitiveCorrectionOf(text);
     if (!parsed) return null;
+    // JOIN-1236: "change my sponsorship answer to yes" states the
+    // new value outright, and a standing batch whose record holds
+    // that answer is corrected by the batch seam (it records the
+    // replacement, re-prepares, and supersedes the card). This
+    // route's hold-and-restate owns corrections that state no
+    // value; it stands down for the stated-value shape the batch
+    // seam can actually take.
+    if (parsed.kind === "unspecified" && ctx && ctx.batchApplyState && ctx.batchApplyState.id) {
+      const corr = statedAnswerCorrectionOf(text);
+      if (corr) {
+        const qk = batchAnswerKeyOf(ctx, ctx.batchApplyState, corr.named);
+        const held = qk && ((ctx.profile && ctx.profile.answers && ctx.profile.answers[qk])
+          || Object.values(ctx.batchApplyState.apps || {}).some((a) => a && a.answers && a.answers[qk]));
+        if (held) return null;
+      }
+    }
     const profile = ctx && ctx.profile;
     let audit = null;
     if (parsed.kind !== "unspecified" && profile && typeof profile === "object") audit = writeSensitiveCorrection(profile, parsed, text, ctx);
@@ -47292,10 +47318,14 @@ const CareerRouter = (() => {
   }
   function batchPortalProfile(master) {
     // Minimal 149-shaped profile from the 122 master when the host has
-    // not injected one: identity fields only, NO answers — a required
-    // screening question then stops that application named
-    // (UNCOVERED_QUESTION) instead of being invented around. The full
-    // fact-to-answer adaptation rides 149's answer map (the R-2 lane).
+    // not injected one: identity fields, the resume the bank carries,
+    // and the bank's STORED confirmed answers verbatim (the executor's
+    // own layer-2 rule in 149's portalInputsFromBank — a stored answer
+    // with confirmed === true is read as-is). Nothing is DERIVED here:
+    // no constraint or fact is turned into an answer, so a required
+    // screening question with no stored answer still stops that
+    // application named (UNCOVERED_QUESTION) instead of being
+    // invented around.
     const b = (master && master.basics) || {};
     const p = {
       name: b.name || b.full_name || (master && master.name) || null,
@@ -47304,9 +47334,24 @@ const CareerRouter = (() => {
       location: b.location || null,
       answers: {},
     };
+    const stored = (master && master.answers && typeof master.answers === "object") ? master.answers : {};
+    for (const [k, a] of Object.entries(stored)) {
+      if (a && a.confirmed === true && a.value !== undefined && a.value !== null && String(a.value) !== "") {
+        try { p.answers[k] = JSON.parse(JSON.stringify(a)); } catch { /* an unserializable entry is not carried */ }
+      }
+    }
     const r = (master && master.resume) || b.resume || null;
     if (r && r.sha256) p.resume = { filename: r.filename || "resume.pdf", sha256: r.sha256 };
+    else if (b.resumeFile && b.resumeSha256) p.resume = { filename: b.resumeFile, sha256: b.resumeSha256 };
     return p;
+  }
+  // SUBMIT-STEER-1130: the pending-question line a batch reply ends
+  // with when a prepare stopped on a question the chat path must ask:
+  // the question's own words, the application it belongs to, and the
+  // recording promise (verbatim, scoped as the descriptor scopes it).
+  function batchQuestionAskLine(open) {
+    const q = (open && open.question) || {};
+    return `One question before the ${open.company || "that company"} application can be prepared — ${q.label || q.field_id || "a required question"} Answer in your own words and I will record exactly what you say${q.scope === "posting" ? ", for that application only" : ""}.`;
   }
   // A conversational yes: a bare affirmation, or an affirmation
   // carrying the submit itself ("yes go ahead and submit them").
@@ -47318,6 +47363,161 @@ const CareerRouter = (() => {
     if (!/^(yes|yeah|yep|yup|ok|okay|sure|go ahead|do it|please do|submit|send)([\s,]|$)/.test(t)) return false;
     return t.split(/\s+/).length <= 7 || /\b(submit|send|apply|them|all|ahead)\b/.test(t);
   }
+  // ---------- SUBMIT-STEER-1130: chat answer capture ----------
+  // A prepare that stopped on an uncovered question asked it in the
+  // reply (batchQuestionAskLine); the person's next turn is read as
+  // the answer to THAT pending question (155's firstOpenQuestion on
+  // the standing run), under the capture gates the questions layer
+  // has always kept: the answer must be the person's own definite
+  // assertion, carrying no second instruction. A gated reply records
+  // NOTHING and draws the clarifying question again. An accepted
+  // answer is recorded verbatim — profile-scope on the profile's
+  // answers (source chat_answer, chat provenance), posting-scope on
+  // that application only — and the batch is RE-PREPARED as a fresh
+  // run that supersedes the standing one, so the executor reads the
+  // recorded answer on the drive and no card ever survives an answer
+  // it was not built from.
+  function statedAnswerCorrectionOf(text) {
+    const m = s(text).trim().match(/^(?:actually,?\s+)?(?:please\s+)?(?:change|update|correct)\s+my\s+(.+?)\s+answer\s+to\s+(.+?)[.!]?$/i);
+    if (!m) return null;
+    const named = m[1].trim(), value = m[2].trim();
+    return named && value ? { named, value } : null;
+  }
+  function batchAnswerKeyOf(c, run, named) {
+    const want = lc(named).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    if (!want) return null;
+    const candidates = new Map(); // question_key -> label
+    const Portal = getPortalApply();
+    for (const f of (Portal && Portal.SANDBOX_FIELDS) || []) if (f && f.question_key) candidates.set(f.question_key, f.label || f.question_key);
+    for (const app of Object.values((run && run.apps) || {})) {
+      for (const q of (app && app.stop && app.stop.questions) || []) if (q && q.question_key) candidates.set(q.question_key, q.label || q.question_key);
+      for (const k of Object.keys((app && app.answers) || {})) if (!candidates.has(k)) candidates.set(k, k);
+    }
+    for (const k of Object.keys((c.profile && c.profile.answers) || {})) if (!candidates.has(k)) candidates.set(k, k);
+    for (const [key, label] of candidates) {
+      if (key === want || lc(label).replace(/[^a-z0-9]+/g, "_").includes(want) || key.includes(want)) return key;
+    }
+    return null;
+  }
+  function carriedAppAnswersOf(run) {
+    const out = {};
+    for (const [k, app] of Object.entries((run && run.apps) || {})) {
+      if (app && app.answers && Object.keys(app.answers).length) {
+        try { out[k] = JSON.parse(JSON.stringify(app.answers)); } catch { /* unserializable answers are not carried */ }
+      }
+    }
+    return out;
+  }
+  function reprepareBatchAfterAnswer(c, log, oldRun, appAnswers, replaced) {
+    const BatchApply = getBatchApply();
+    const pool = (oldRun.selected || []).map((k) => (oldRun.postings || {})[k]).filter(Boolean);
+    if (!pool.length) return null;
+    const run = BatchApply.createRun({ userId: oldRun.userId || c.userId || (c.profile && (c.profile.user_id || c.profile.userId)) || "user", familyText: oldRun.familyText, count: oldRun.requested, now: nowOf(c) });
+    const deps = batchDepsFor(c, log, pool);
+    if (appAnswers && Object.keys(appAnswers).length) deps.appAnswers = appAnswers;
+    BatchApply.prepareRun(run, deps);
+    if (replaced) run.events.push({ seq: run.events.length + 1, type: "answer_replaced", question_key: replaced.question_key, prior: replaced.prior });
+    c.batchApplyState = BatchApply.serializeRun(run);
+    return run;
+  }
+  function batchAnswerReply(c, run, headline) {
+    const BatchApply = getBatchApply();
+    const lines = [headline];
+    const next = typeof BatchApply.firstOpenQuestion === "function" ? BatchApply.firstOpenQuestion(run) : null;
+    if (next) lines.push(batchQuestionAskLine(next));
+    else lines.push(...BatchApply.speakSummary(run));
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: lines.join("\n") };
+  }
+  // A stated-value correction of an answer a standing batch holds
+  // ("change my sponsorship answer to yes"): the replacement is
+  // recorded, the batch re-prepares, and the earlier card is
+  // superseded by the fresh run — the replacement is on its events
+  // with the prior value. Stands down when the named question
+  // resolves to no recorded answer (the sensitive-correction route's
+  // hold-and-restate owns corrections that state no value).
+  function handleBatchAnswerCorrection(text, c, run, log) {
+    const corr = statedAnswerCorrectionOf(text);
+    if (!corr) return null;
+    const qk = batchAnswerKeyOf(c, run, corr.named);
+    if (!qk) return null;
+    const appAnswers = carriedAppAnswersOf(run);
+    let replaced = null;
+    let scope = null, appKey = null;
+    const profEntry = c.profile && c.profile.answers ? c.profile.answers[qk] : null;
+    if (profEntry && profEntry.value !== undefined) { scope = "profile"; replaced = { question_key: qk, prior: profEntry.value }; }
+    else {
+      for (const [k, answers] of Object.entries(appAnswers)) {
+        if (answers[qk] && answers[qk].value !== undefined) { scope = "posting"; appKey = k; replaced = { question_key: qk, prior: answers[qk].value }; break; }
+      }
+    }
+    if (!scope) return null;
+    const entry = { value: corr.value, confirmed: true, source: "chat_answer", provenance: `stated in chat as a correction of the recorded ${qk} answer (batch ${run.id})` };
+    if (scope === "profile") {
+      c.profile.answers = Object.assign({}, c.profile.answers || {}, { [qk]: entry });
+    } else {
+      appAnswers[appKey] = Object.assign({}, appAnswers[appKey] || {}, { [qk]: entry });
+    }
+    const newRun = reprepareBatchAfterAnswer(c, log, run, appAnswers, replaced);
+    if (!newRun) return null;
+    return batchAnswerReply(c, newRun, `Recorded the correction — ${qk} is now "${corr.value}" (replacing "${replaced.prior}"). The earlier card no longer stands: the batch below was re-prepared on the corrected answer, and only its fresh card can be approved.`);
+  }
+  function handleBatchAnswerCapture(text, c, run, log) {
+    const BatchApply = getBatchApply();
+    const open = typeof BatchApply.firstOpenQuestion === "function" ? BatchApply.firstOpenQuestion(run) : null;
+    if (!open) return null;
+    const raw = s(text).trim();
+    if (!raw) return null;
+    // A fresh instruction or a question to the agent is not an
+    // answer — other routes own those turns.
+    if (BatchApply.parseApplyAsk(raw)) return null;
+    if (/\?\s*$/.test(raw) || /^(what|where|how|why|when|which|who|show|list|tell me)\b/i.test(raw)) return null;
+    const q = open.question || {};
+    const reject = (why) => ({ intent: "career_batch_apply", resultStatus: "awaiting_user", batchRun: BatchApply.summarizeRun(run), sends: 0,
+      reply: `Nothing was saved — ${why}. The open question is still: ${q.label || q.field_id} (for the ${open.company || "that company"} application). Answer it in your own words and I will record exactly what you say.` });
+    const t = lc(raw);
+    // The answer must be the person's OWN assertion: a statement
+    // predicated of a third party records nothing for the person.
+    if (/\bmy (brother|sister|mother|father|friend|partner|husband|wife|son|daughter|cousin|roommate|colleague|co-?worker|boss|manager)\b/.test(t) || /^(he|she|they)\b/.test(t)) {
+      return reject("that statement is about someone else, and an answer has to be your own");
+    }
+    // A hedge is not an answer: nothing is recorded, the question
+    // is asked again.
+    if (/\b(maybe|perhaps|not sure|unsure|don'?t know|do not know|not yet|might|probably|i guess|no idea)\b/.test(t)) {
+      return reject("that was not a definite answer");
+    }
+    // A bundled second instruction: an answer-shaped lead carrying
+    // another action records NEITHER — the answer is not taken and
+    // the action is not executed. A turn that LEADS with an
+    // instruction is not answer-shaped at all and stands down.
+    if (/\b(cancel|submit|apply|delete|pause|stop|send|tell|remind|book|schedule|erase|forget)\b/.test(t)) {
+      if (/^(yes|yeah|yep|no|nope|sure|ok|okay)\b/.test(t)) return reject("that turn carried a second instruction as well as an answer, so I recorded neither");
+      return null;
+    }
+    const yesNoQuestion = /^(are|will|do|does|did|can|could|would|have|has|is|was|were)\b/i.test(q.label || "");
+    if (!yesNoQuestion && /^(yes|yeah|yep|no|nope|sure|ok|okay)[.!]?$/i.test(raw)) {
+      return reject("that question needs the actual value, not a yes or no");
+    }
+    if (/^(thanks|thank you|cool|great|nice|perfect)[.!]?$/i.test(raw)) {
+      return reject("that did not answer the question");
+    }
+    const entry = { value: raw, confirmed: true, source: "chat_answer", provenance: `stated in chat as the answer to "${q.label || q.field_id}" for the ${open.company || "a company"} application (batch ${run.id})` };
+    const appAnswers = carriedAppAnswersOf(run);
+    let replaced = null;
+    if (q.scope === "posting") {
+      const prev = (appAnswers[open.postingKey] || {})[q.question_key];
+      if (prev && prev.value !== undefined && String(prev.value) !== raw) replaced = { question_key: q.question_key, prior: prev.value };
+      appAnswers[open.postingKey] = Object.assign({}, appAnswers[open.postingKey] || {}, { [q.question_key]: entry });
+    } else {
+      if (!c.profile || typeof c.profile !== "object") return null;
+      const prev = (c.profile.answers || {})[q.question_key];
+      if (prev && prev.value !== undefined && String(prev.value) !== raw) replaced = { question_key: q.question_key, prior: prev.value };
+      c.profile.answers = Object.assign({}, c.profile.answers || {}, { [q.question_key]: entry });
+    }
+    const newRun = reprepareBatchAfterAnswer(c, log, run, appAnswers, replaced);
+    if (!newRun) return null;
+    return batchAnswerReply(c, newRun, `Recorded — ${q.label || q.field_id} "${raw}"${q.scope === "posting" ? ` (for the ${open.company || "that company"} application only)` : ""}.`);
+  }
+
   function handleBatchApply(text, c) {
     const BatchApply = getBatchApply();
     if (!BatchApply) return null;
@@ -47347,6 +47547,19 @@ const CareerRouter = (() => {
       c.batchApplyState = BatchApply.serializeRun(run);
       const sm = ex.summary || BatchApply.summarizeRun(run);
       return { intent: "career_batch_apply", resultStatus: run.status, batchRun: sm, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+    }
+    // SUBMIT-STEER-1130: with a batch standing, a stated-value
+    // correction of one of its recorded answers and an answer to
+    // its pending question are this seam's turns — ahead of the
+    // conversational yes, which must never eat an answer.
+    if (standing) {
+      const runS = BatchApply.restoreRun(standing);
+      if (runS) {
+        const corr = handleBatchAnswerCorrection(text, c, runS, log);
+        if (corr) return corr;
+        const cap = handleBatchAnswerCapture(text, c, runS, log);
+        if (cap) return cap;
+      }
     }
     // CONVERSATIONAL YES (2026-10-24): a typed yes against a standing
     // batch is answered by the batch frame from the run's own
@@ -47416,7 +47629,14 @@ const CareerRouter = (() => {
     const pool = depsIn.postings || c.postings || (c.discovery && c.discovery.postings) || [];
     BatchApply.prepareRun(run, batchDepsFor(c, log, pool));
     c.batchApplyState = BatchApply.serializeRun(run);
-    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: BatchApply.speakSummary(run).join("\n") };
+    const lines = BatchApply.speakSummary(run);
+    // SUBMIT-STEER-1130: a prepare that stopped on an uncovered
+    // question ASKS it in this reply — the stop names the question,
+    // and the person's answer is captured by the seam above on the
+    // next turn.
+    const open = typeof BatchApply.firstOpenQuestion === "function" ? BatchApply.firstOpenQuestion(run) : null;
+    if (open) lines.push(batchQuestionAskLine(open));
+    return { intent: "career_batch_apply", resultStatus: run.status, batchRun: BatchApply.summarizeRun(run), card: run.card, sends: 0, reply: lines.join("\n") };
   }
 
   // F-001 (gap 2, 2026-10-24): the apply claim that REFERENCES the
@@ -56495,7 +56715,16 @@ const CareerBatchApply = (() => {
           app.tailored = { ran: true, version: (t && t.version) || null, gaps: t && t.gaps ? t.gaps.length : null };
         } catch { app.tailored = { ran: false }; }
       }
-      const profile = profileFor(d, posting);
+      let profile = profileFor(d, posting);
+      // SUBMIT-STEER-1130: answers recorded for THIS application only
+      // (chat capture, carried in deps.appAnswers) ride this posting's
+      // own profile composition and are stamped on its app record —
+      // never the shared profile, never a sibling's.
+      const carried = (d.appAnswers || {})[key];
+      if (carried && Object.keys(carried).length) {
+        app.answers = JSON.parse(JSON.stringify(carried));
+        profile = Object.assign({}, profile, { answers: Object.assign({}, profile.answers || {}, JSON.parse(JSON.stringify(carried))) });
+      }
       rt.profiles[key] = profile;
       const board = boardOrStop(run, app, d, posting);
       if (!board) continue;
@@ -56514,6 +56743,9 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      // SUBMIT-STEER-1130: an UNCOVERED_QUESTION stop carries the
+      // question descriptors the chat path asks and binds answers to.
+      if (app.stop && app.stop.code === "UNCOVERED_QUESTION") app.stop.questions = stopQuestions(res, board);
       // F-031: a doorstep application's page is still live on its board
       // session — leave the execution turn its handle + the exact payload.
       recordBoardSession(run, app, board, res, now);
@@ -56618,6 +56850,62 @@ const CareerBatchApply = (() => {
     app.stop = Object.assign({ code, reason }, extra || {});
     event(run, "stopped", { postingKey: app.postingKey, code });
   }
+
+  // SUBMIT-STEER-1130 (answer capture): the question descriptors an
+  // UNCOVERED_QUESTION stop is waiting on — built from the drive's
+  // own asks and the board's own form definition (the standard field
+  // set when the board does not expose one). A descriptor exists only
+  // for a REQUIRED field the person answers in words (screening /
+  // question kinds): files, cover-note drafts and attestations are
+  // never chat questions (an attestation is never taken from chat
+  // text at all). Scope: a field of the standard form is answered
+  // once, on the profile; a field only this posting's form carries
+  // belongs to this application alone.
+  function stopQuestions(res, board) {
+    const Portal = getPortal();
+    const standard = (Portal && Portal.SANDBOX_FIELDS) || [];
+    const stdIds = new Set(standard.map((f) => f.field_id));
+    const defs = new Map();
+    for (const f of standard) if (f && f.field_id) defs.set(f.field_id, f);
+    try {
+      const form = board && typeof board.form === "function" ? board.form() : null;
+      for (const f of (form && form.fields) || []) if (f && f.field_id) defs.set(f.field_id, f);
+    } catch { /* the standard set + the form analysis still name the standard questions */ }
+    const analysis = new Map(((res && res.formAnalysis) || []).map((f) => [f.field_id, f]));
+    const out = [];
+    const seen = new Set();
+    for (const ask of (res && res.asks) || []) {
+      if (!ask || !ask.field_id || seen.has(ask.field_id)) continue;
+      const def = defs.get(ask.field_id) || null;
+      const an = analysis.get(ask.field_id) || null;
+      const kind = (def && def.kind) || (an && an.category) || null;
+      const required = def ? !!def.required : !!(an && an.required);
+      if (!required || (kind !== "screening" && kind !== "question")) continue;
+      seen.add(ask.field_id);
+      out.push({
+        field_id: ask.field_id,
+        question_key: (def && def.question_key) || ask.field_id,
+        label: (def && def.label) || (an && an.label) || ask.field_id,
+        kind,
+        scope: stdIds.has(ask.field_id) ? "profile" : "posting",
+      });
+    }
+    return out;
+  }
+
+  // The run's open chat questions, in the order they are asked: the
+  // first stopped application (in selection order) and its first
+  // unanswered question is the pending one; the rest queue behind it.
+  function openQuestions(run) {
+    const out = [];
+    for (const key of (run && run.selected) || []) {
+      const app = run.apps && run.apps[key];
+      if (!app || !app.stop || app.stop.code !== "UNCOVERED_QUESTION" || !Array.isArray(app.stop.questions)) continue;
+      for (const q of app.stop.questions) out.push({ postingKey: key, company: app.company || null, role: app.role || null, question: q });
+    }
+    return out;
+  }
+  function firstOpenQuestion(run) { const all = openQuestions(run); return all.length ? all[0] : null; }
 
   function nextDayIso(now) {
     const d = new Date(now || Date.now());
@@ -57013,7 +57301,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, openQuestions, firstOpenQuestion, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

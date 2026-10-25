@@ -167,3 +167,97 @@ PGBIN=/usr/lib/postgresql/16/bin   (PostgreSQL 16.15)
 deno 2.9.6
 node 22
 ```
+
+## Handler-level contract (JOIN-1215)
+
+The contract is the agent-chat request and what follows from it, not a ctx seam. The router (142) stays synchronous and
+pure, and never calls a host writer or reader. The handler `supabase/functions/agent-chat/handler-career.ts`
+(`handleChat`) runs the host steps around the router's turn, in this order:
+
+| # | When | Call (file:line) | Reads / writes | What the person reads |
+|---|---|---|---|---|
+| 1 | before the router, when the text answers the questions | `questionsTurn` (handler-career.ts:359 → `_shared/career_apply_questions.ts`) | **Offers:** their own message about name, email, phone (`contact_draft.ts` `contactDraft`), sponsorship or work authorization (`eligibility_draft.ts`). **Writes:** only on "use N", through `career_apply_question_answer_as` | the offer quoted with its date; "Saved, as drafted" only after the write returned. A failed write gives the 503 "I could not confirm that your career reply or changes were saved" |
+| 2 | before the router, when the text is a status question | `applicationsTurn` (handler-career.ts:428 → `_shared/career_apply_status.ts`, `supabaseApplications`) | reads `career_apply_jobs` only | each application in its recorded state. "X confirmed it" only for state `confirmed`. "I couldn't read your applications" when the read fails |
+| 3 | the router's turn | `host.runTurn(message, ctx)` (:501, :508) | the thread's career state | the router's reply |
+| 4 | after the router, on `career_resume_ingest` + `completed` only | `resumeConfirmationContext` (:524) then `evidenceResumeConfirmation` (:525), `heldReply` (:529) → `_shared/career_router_evidence.ts` | **Reads:** the thread's last 40 messages, i.e. what was shown since the upload, and the upload. **Writes:** a `career_events` `fact_confirmed` row per evidenced entry, and the entry's provenance, `confirmation_event_id` and `source_ref`. An entry it cannot evidence goes back to draft | when anything is held: what is confirmed and what stays a draft, and why, **in place of** the router's "Confirmed" |
+| 5 | the commit | `persistence.commit` (:590) | the thread's state, including the stamps and holds from step 4 | — |
+
+Signatures (career_router_evidence.ts):
+- `:36` `evidenceResumeConfirmation(o: { userId, now, message, before, after, out, shown: Shown | null, upload: Upload | null, events }): Promise<EvidenceResult>`
+- `:25` `EvidenceResult { stamped, unshown, untraced, refused, held: string[] }`
+- `:79` `heldReply(r): string | null`
+- `:95` `resumeConfirmationContext(rows /* newest first */, after): Promise<{ shown, upload }>`
+
+What the router must render for step 4 to evidence anything: the reply before "yes, that's my resume" shows each
+entry's `fact.text` whole. A count is not enough.
+
+**Tests, through `handleChat` on a real Postgres** (`tests/flow/handler.ts`, `tests/flow/postgrest.ts`: the real
+supabase-js client, Supabase-parity grants and RLS, the HTTP hop answered over the same database):
+- `tests/architect/handler-submit-path.test.ts`: 9 tests.
+  - **(a2)** A yes to a count is held as drafts and never called confirmed: no event, and the executor gets 0.
+  - **(b1)** Name, email and phone said in chat write nothing and claim nothing. They reach the form only through "use
+    N", exactly as typed.
+  - **(b2)** A failed write is never called saved.
+  - **(c1)** Work authorization and sponsorship come from their own words through "use N".
+  - **(c2)** Citizenship answers neither.
+  - **(d1–d3)** Read-back from `career_apply_jobs`; never a success without the recorded confirmation; an unreadable
+    record is said.
+- `tests/architect/pending/handler-submit-router.test.ts`: 3 tests, red until the router changes.
+  - **(a1)** The entries are shown, then one event per entry, then the executor gets exactly those.
+  - **(a3)** The entries are shown and the event write fails: nothing is confirmed, and the reply says so.
+  - **(c)** No "saved" and no "prepared packet" that does not exist.
+- Locally, where esm.sh is unreachable: `--import-map=tests/flow/supabase-npm.json`, the same supabase-js 2.117.1 from
+  npm.
+
+| Head | handler-submit-path | pending router |
+|---|---|---|
+| 6bf3478e (before) | 4 passed, 5 failed (a2, b1, d1, d2, d3) | — |
+| 455da675 | 8 passed, 1 failed (a2: "Confirmed — your resume facts are on your record.") | — |
+| this commit | 9 passed | 3 red: a1 "15 of 15 not shown"; a3 its precondition; c "Updated — I saved your corrected sponsorship answer" |
+| join eea59b6e | 8 passed, 1 failed (a2; the join predates this commit) | 3 red, same messages |
+
+## Volume ceilings on the chosen path (CAPS-1218 inventory; nothing removed yet)
+
+Latest definitions, in migration order. Removal waits for a green join head, and goes in code and migration drafts only.
+
+| Ceiling | Value | Where |
+|---|---|---|
+| The person's daily limit | default 25, floor 1, max 50 (`career:account.daily_limit`) | `supabase/migrations/20261020050000_career_apply_daily_limit.sql:6-11` (`career_apply_daily_limit`) |
+| The daily count check at the tap and the claim | `least(coalesce(p_daily, 50), career_apply_daily_limit(u))` over 24h of the one ledger | `20261025100000_career_apply_one_ledger.sql:76-87` (`career_apply_ledger_refusal`) |
+| Enqueue's limit argument | `p_daily default 25`, refused unless `between 1 and 50` | `20261025100000_career_apply_one_ledger.sql:156,162` (`career_apply_enqueue`) |
+| The card tap passes the person's limit | `career_apply_enqueue(…, career_apply_daily_limit(p_user))` | `20261020050000_career_apply_daily_limit.sql:51` (`career_apply_card_answer_for`) |
+| Extension and form-answer paths | the same | `20261021000000_career_apply_extension.sql:27`; `20261021120000_career_apply_form_answers.sql:18` |
+| Cloud claim | `least(coalesce(o.daily, 25), career_apply_daily_limit(u))` | `20261025100000_career_apply_one_ledger.sql:236`; also `20261024120000_career_apply_cloud_gate_waiver.sql:63`, `20261025110000_career_apply_bridge_reconcile.sql:98` |
+| Cloud opt-in's own limit | `daily between 1 and 50` | `20261021080000_career_apply_cloud.sql:191` |
+| Card cloud bridge (DRAFT, not applied) | `least(15, coalesce(o.daily, 15), …)`; opt-in default 15 | `20261024130000_career_apply_card_cloud_bridge.sql:70,200,617,703,716,730-731`; `20261025110000_career_apply_bridge_reconcile.sql:160` |
+| Claim batch size | `least(6, p_limit)` per claim call | `20261025100000_career_apply_one_ledger.sql:263,275`; `20261025110000_career_apply_bridge_reconcile.sql:71,130` |
+| The person's computer claims one at a time | `claim(limit = 1)`; the loop claims 1 | `workers/career-browser/approve-first.ts:408,443` |
+| Cloud worker concurrency | `max(1, min(6, contexts ?? 3))` browser contexts | `workers/career-cloud/worker.ts:236` |
+| TS mirror of the daily limit | `DEFAULT_DAILY = 25, MAX_DAILY = 50`; `dailyLimit()`; `admitApplication` → `daily_cap` | `supabase/functions/_shared/career_apply.ts:46,57,68` |
+| Store-side claim bound | `limit > 6` refused | `supabase/functions/_shared/career_apply_store.ts:37` |
+| Applications per card | `MAX_PER_CARD = 8` | `supabase/functions/_shared/career_apply_cards.ts:43,87` |
+| Server prepare-ahead | 5 per person, 50 per run (caller); SQL clamps per person to 25 and the run to 200 | `workers/career-browser/prepare-ahead.ts:67`; `20261025120000_career_apply_prepare_ahead.sql:75-77` |
+| Old batch stack (off this path, no real site: G3a) | `SPEC_CAPS { perDay: 15, perVendorPerDay: 5, perCompanyPer30Days: 1 }` | `packages/domain/149-career-portal-apply.js:123,665-667` |
+
+Kept unchanged, as asked:
+- **One per company per 30 days:** `career_apply_ledger_refusal`, `20261025100000_career_apply_one_ledger.sql:81-82` (and the cloud refusal at :241), `company_cooldown`.
+  **Flagged as unresolved:** it is not user-approved policy and not an exact-duplicate rule, and different roles at one
+  company may be legitimate.
+- **Unique confirmation IDs:** `career_apply_confirmation_key`, `career_apply_jobs_confirmation`.
+- **Payload-hash re-verify at claim:** `career_apply_void_unsendable`, `career_apply_jobs_fixed`.
+
+## Approval model on the chosen path today (APPROVAL-1226; not changed)
+
+- **A batch, by the person's own call.** `career_apply_card_answer_own(p_card, p_approve int[])` approves every listed
+  item of one card in one call (`20261020030000_career_apply_cards.sql:130`, body
+  `20261020050000_career_apply_daily_limit.sql` `career_apply_card_answer_for`). A card holds up to `MAX_PER_CARD = 8`
+  applications.
+- **Each approval is bound to the exact payload.** The card stores each item's `payload_hash`. At the answer, an item
+  whose prepared payload no longer hashes to it is `changed`, not queued (the same function). Enqueue requires
+  `approval = payload hash = career_apply_payload_hash(payload)` (`20261025100000…:162-163`). The claim closes any job
+  whose payload no longer hashes to its approval as not sent (`career_apply_void_unsendable`).
+- **A chat "yes" does not approve (Option A, 2026-10-22).** A text "yes" to the card replies "A text yes doesn't send
+  anything … tap Approve" (`supabase/functions/_shared/career_apply_cards.ts:174-181`). A text "no" declines.
+- **The tension, unresolved:** the owner's words "a yes does handle a batch of submissions" (Oct 22 5:09 PM) fit the
+  database's batch approval. The chat path's Option A refuses a text yes. That is the owner's call, and I have changed
+  neither.

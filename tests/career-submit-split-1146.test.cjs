@@ -157,7 +157,11 @@ test("(a) HANDLER: entries the router presented, confirmed by the person's exact
     shown: seen.shown, upload: seen.upload, events,
   });
   assert.equal(r.stamped, drafts.length, "each presented, confirmed entry is stamped (a count-only reply stamps 0 — the 1a negative proof)");
-  const after = w.profileOf(U);
+  // The handler runs this step BEFORE persistence.commit
+  // (handler-career.ts:518-521), so the record it saves is the
+  // turn's own profile object, stamps included — not a snapshot
+  // taken before the step ran.
+  const after = yes.ctx.profile;
   const stampedFacts = (after.facts || []).filter((f) => f && f.confirmation_event_id);
   assert.equal(stampedFacts.length, drafts.length, "the stamped facts carry their confirmation event id — the field the executor's trust contract reads");
   for (const f of stampedFacts) {
@@ -189,7 +193,7 @@ test("(a) HANDLER: when the provenance event cannot be recorded, nothing is stam
     shown: seen.shown, upload: seen.upload, events: down,
   });
   assert.equal(r.stamped, 0, "an unrecordable event stamps nothing");
-  const after = w.profileOf(U);
+  const after = yes.ctx.profile; // the record the handler's commit would save (see (a1))
   const evidenced = (after.facts || []).filter((f) => f && (f.confirmation_event_id || f.provenance));
   assert.equal(evidenced.length, 0, "no fact carries a stamp or a provenance it does not have — the executor's trust contract keeps none of them");
   assert.ok(drafts.length >= 3, "setup held: the drafts were presented and confirmed in chat; they are simply unevidenced");

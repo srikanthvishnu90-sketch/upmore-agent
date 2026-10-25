@@ -38239,9 +38239,24 @@ const CareerRouter = (() => {
     // of the exact content presented, so the later yes approves THIS
     // content and nothing else that happens to be standing as a
     // resume draft by then.
-    if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total, factIds: (res.factIds || res.added_fact_ids || []).slice(), contentSha256: sha256(raw) };
+    const presentedIds = (res.factIds || res.added_fact_ids || []).slice();
+    const presented = presentedIds
+      .map((id) => (profile.facts || []).find((f) => f && f.id === id))
+      .filter((f) => f && typeof f.text === "string" && f.text);
+    if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total, factIds: presentedIds, contentSha256: sha256(raw),
+      // JOIN-1213: the binding is per entry — each presented entry's
+      // own text digest rides the marker, and the confirmation
+      // verifies every one before it flips any (an entry changed
+      // after presentation invalidates the yes; see the confirm).
+      entries: presented.map((f) => ({ id: f.id, sha256: sha256(f.text) })) };
     const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
+    // JOIN-1213 (the evidence gap, architect test 1a): a count alone
+    // evidences nothing — the handler's evidence step can only stamp
+    // entries whose own words were actually SHOWN to the person, so
+    // the presenting reply lists each entry itself, whole. These are
+    // the same entries the marker binds and the yes will approve.
+    if (presented.length) facts.push(`Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}`);
     const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
     return { intent: "career_resume_ingest", reply, resultStatus: "awaiting_user", sends: 0, resume_ingest: { drafts: total, byKind } };
   }
@@ -38268,6 +38283,23 @@ const CareerRouter = (() => {
     // so — the old behavior flipped every standing draft on a
     // generic yes.
     const presentedIds = Array.isArray(mir.resumeIngest.factIds) && mir.resumeIngest.factIds.length ? new Set(mir.resumeIngest.factIds) : null;
+    // JOIN-1213: verify BEFORE flipping any — when the marker
+    // carries per-entry digests, every presented entry must still
+    // stand as a draft with its presented text. An entry changed
+    // (or confirmed away, or removed) after presentation breaks the
+    // binding the yes was given against: nothing is confirmed.
+    const presentedEntries = Array.isArray(mir.resumeIngest.entries) && mir.resumeIngest.entries.length ? mir.resumeIngest.entries : null;
+    if (presentedEntries) {
+      let bindingBroken = false;
+      for (const e of presentedEntries) {
+        const f = (profile.facts || []).find((x) => x && x.id === e.id);
+        if (!f || !f.needs_confirmation || f.source !== "resume-ingest" || sha256(s(f.text || "")) !== e.sha256) { bindingBroken = true; break; }
+      }
+      if (bindingBroken) {
+        return { intent: "career_resume_ingest", resultStatus: "blocked", sends: 0, resume_ingest: { confirmed: 0 },
+          reply: compose({ headline: "I did not confirm anything — the resume drafts on the record are not the ones I showed you.", facts: ["That yes binds only to the exact resume content presented for approval; an entry changed after it was shown, so nothing was confirmed from it."], nextStep: "Paste the resume again and I will show you its drafts for a fresh yes." }) };
+      }
+    }
     let confirmed = 0;
     for (const f of profile.facts || []) {
       if (f && f.needs_confirmation && f.source === "resume-ingest" && (!presentedIds || presentedIds.has(f.id))) { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }

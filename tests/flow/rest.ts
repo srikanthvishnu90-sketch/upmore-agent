@@ -32,7 +32,11 @@ export function restAdmin(pg: Pg) {
       ident(table);
     }
     select(cols = "*", o?: { count?: string; head?: boolean }) {
-      this.cols = cols.split(",").map((c) => ident(c.trim())).join(", ");
+      // A column, or a JSON path read as text under its own name ("title:payload->>title").
+      this.cols = cols.split(",").map((c) => {
+        const m = /^([a-z_][a-z0-9_]*):([a-z_][a-z0-9_]*)->>([a-z_][a-z0-9_]*)$/.exec(c.trim());
+        return m ? `${ident(m[2])}->>'${m[3]}' as ${ident(m[1])}` : ident(c.trim());
+      }).join(", ");
       this.count = !!o?.count;
       this.head = !!o?.head;
       return this;
@@ -70,9 +74,13 @@ export function restAdmin(pg: Pg) {
       this.single = true;
       return this;
     }
+    // An insert is an upsert with no conflict target (a duplicate key is the database's error, as PostgREST returns it).
+    insert(row: Record<string, unknown>) {
+      return this.upsert(row);
+    }
     upsert(row: Record<string, unknown>, o?: { onConflict?: string }) {
       this.upsertRow = row;
-      this.conflict = (o?.onConflict ?? "").split(",").map((c) => ident(c.trim())).join(", ");
+      this.conflict = o?.onConflict ? o.onConflict.split(",").map((c) => ident(c.trim())).join(", ") : "";
       return this;
     }
     private async exec(): Promise<{ data: any; error: { message: string } | null; count?: number }> {

@@ -47,9 +47,10 @@ export interface InboundMessage {
   command?: "start" | "stop" | "help" | null; // a platform command (Telegram /start, /stop, /help)
   startPayload?: string | null; // Telegram /start <payload> (a link nonce)
   // SERIAL-1462: the provider's id of the message the person replied to, when the platform says so (Telegram
-  // message.reply_to_message.message_id; WhatsApp Cloud messages[].context.id). LoopMessage's recorded payloads carry none
-  // (its docs could not be reached from the build container), so an iMessage text never has one here. A card's text yes
-  // approves only when this id is the message that carried the card (career_apply_cards.ts).
+  // message.reply_to_message.message_id; WhatsApp Cloud messages[].context.id). For iMessage this integration has no
+  // verified reply-id path (LoopMessage's recorded payloads carry none, and its documentation could not be reached from
+  // the build container), so no id is read there. A card's text yes approves only when this id is the message that
+  // carried the card (career_apply_cards.ts).
   replyToMessageId?: string | null;
 }
 // A WhatsApp status callback: a message we sent failed after Meta accepted it. hold: it failed for the window (131047)

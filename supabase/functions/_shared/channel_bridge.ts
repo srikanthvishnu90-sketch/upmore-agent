@@ -1,3 +1,4 @@
+import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards.ts";
 // Shared turn core for the Trainee messaging-channel test bridges
 // (telegram-inbound, whatsapp-inbound). Mirrors supabase/functions/
 // imessage-inbound/index.ts: the same agent-chat core call (service-role
@@ -347,7 +348,11 @@ export async function runChannelTurnRich(
       // plain turn already succeeded and stands.
     }
   }
-  const replyText = cleanReply(String(chat.reply ?? ""));
+  // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's terms (Telegram has a verified
+  // reply-id path through this bridge; the Twilio WhatsApp sandbox does not, so it is told to tap).
+  const replyText = chat?.meta?.result_status === CARD_NEEDS_REPLY_STATUS
+    ? needsReplyTextFor(args.channel === "telegram" ? "telegram" : "imessage")
+    : cleanReply(String(chat.reply ?? ""));
   return { kind: "done", threadId: threadId as string, replyText, chat };
 }
 

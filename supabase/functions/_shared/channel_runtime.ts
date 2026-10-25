@@ -24,7 +24,8 @@ export function chatThroughAgent(url: string, key: string) {
     const meta = body.meta && typeof body.meta === "object" ? body.meta as Record<string, unknown> : {};
     // The card this reply shows (career_apply_cards.ts puts its id on the reply's meta), so the outbox row is recorded against it.
     const cardId = typeof meta.card_id === "string" && meta.card_id ? meta.card_id : null;
-    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}) };
+    const resultStatus = typeof meta.result_status === "string" ? meta.result_status : null;
+    return { status: res.status, reply: String(body.reply ?? ""), threadId: typeof body.thread_id === "string" ? body.thread_id : null, ...(parts ? { parts } : {}), ...(cardId ? { cardId } : {}), ...(resultStatus ? { resultStatus } : {}) };
   };
 }
 

@@ -175,7 +175,9 @@ test("c08/c26 (BUG-177): mass-apply demands get the guardrail's own refusal, not
     const [t1] = ALL[cid];
     assert.equal(t1.res.intent, "intent_refusal", cid);
     assert.equal(t1.res.resultStatus, "blocked", cid);
-    assert.match(t1.res.reply, /15 a day/);
+    // SERIAL-1480: applications carry no daily cap beyond the person's own pace (20261025140000); the refusal says so.
+    assert.match(t1.res.reply, /no daily cap on applications beyond the pace you set yourself/);
+    assert.doesNotMatch(t1.res.reply, /capped at 15 a day/);
   }
 });
 

@@ -33,7 +33,7 @@ const CHANNELS: Channel[] = ["imessage", "whatsapp", "telegram"];
 const ADDR: Record<Channel, string> = { imessage: "+15550001111", whatsapp: "15550002222", telegram: "7001" };
 
 type Sent = { channel: Channel; address: string; text: string; kind: "text" | "template"; at: number; body: any };
-function harness(o: { env?: Record<string, string>; tgFail?: (body: any) => Response | null; waFail?: (body: any) => Response | null } = {}) {
+function harness(o: { env?: Record<string, string>; tgFail?: (body: any) => Response | null; waFail?: (body: any) => Response | null; brainResult?: (m: string) => Record<string, unknown> | null } = {}) {
   const W = memoryChannelWorld();
   const clock = { t: NOW };
   const sleep = async (ms: number) => { clock.t += ms; };
@@ -70,7 +70,7 @@ function harness(o: { env?: Record<string, string>; tgFail?: (body: any) => Resp
     : m === "yes" ? "Approved: 1 application to Acme Corp. It runs on your computer next."
     : m === "what do you need from me" ? "Two questions, asked once:\n1. Are you authorized to work in the US?\n2. What is your earliest start date?"
     : `You said: ${m}`;
-  const chat = async (a: any) => { chats.push(a); return { status: 200, reply: brain(a.message), threadId: `t-${a.userId}`, ...(a.message === "draft my outreach" ? { parts: DRAFTS } : {}) }; };
+  const chat = async (a: any) => { chats.push(a); return { status: 200, reply: brain(a.message), threadId: `t-${a.userId}`, ...(a.message === "draft my outreach" ? { parts: DRAFTS } : {}), ...(o.brainResult?.(a.message) ?? {}) }; };
   const runDeliver = async (scope?: { only?: { userId: string; key: string }; user?: string }) => {
     const s = W.delivery(scope);
     const r = await deliverDue({ store: s, adapters, now: clock.t });
@@ -629,4 +629,23 @@ Deno.test("WO-038/H1 replies go out where the message came in; what Trainee star
   eq((await h.runDeliver()).skipped_opt_out, 1, "STOP on Telegram holds every channel");
   await h.text("imessage", ADDR.imessage, "START");
   assert(!h.W.contacts.get("tg:7001")!.optedOut, "START on iMessage turns Telegram back on");
+});
+
+// SERIAL-1480: a card's yes with no usable reply id is told how in the channel's own terms. Where this integration has a
+// verified reply-id path (Telegram, WhatsApp Cloud): reply directly to the card, or tap. On iMessage, where it has none:
+// tap the card, and never "reply".
+Deno.test("SERIAL-1480 the needs-reply answer, word for word, per channel: Telegram and WhatsApp say reply or tap; iMessage says tap only", async () => {
+  const { NEEDS_REPLY_CHANNEL, NEEDS_TAP_IMESSAGE } = await import("../../supabase/functions/_shared/career_apply_cards.ts");
+  const h = harness({ brainResult: (m) => m === "yes" ? { reply: "Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send \"yes\", or tap Approve in the app.", resultStatus: "needs_reply" } : null });
+  const cases: [Channel, string, string][] = [["imessage", "+15550001001", NEEDS_TAP_IMESSAGE], ["telegram", "7101", NEEDS_REPLY_CHANNEL], ["whatsapp", "15550001003", NEEDS_REPLY_CHANNEL]];
+  for (const [ch, from, want] of cases) {
+    await h.text(ch, from, "hi");
+    const before = h.sent.length;
+    await h.text(ch, from, "yes");
+    const mine = h.sent.slice(before).filter((s) => s.channel === ch);
+    assert(mine.length >= 1, `${ch}: a reply went out`);
+    eq(mine.at(-1)!.text, want, `${ch}: the exact wording`);
+    if (ch === "imessage") assert(!/reply/i.test(mine.at(-1)!.text), "iMessage is never told to reply");
+    else assert(/reply directly to the card/.test(mine.at(-1)!.text) && /tap Approve/.test(mine.at(-1)!.text), `${ch}: reply or tap`);
+  }
 });

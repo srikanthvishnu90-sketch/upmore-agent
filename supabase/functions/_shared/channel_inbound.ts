@@ -1,3 +1,4 @@
+import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards.ts";
 // Texts coming in, on any channel (WO-038; first written for LoopMessage in WO-013b-2, whose order it keeps): the
 // message id claimed per provider (a retried webhook never runs a second turn), the person found by the contact (or its
 // alias), the time of their message recorded (it opens WhatsApp's window and makes this their most recent channel; held
@@ -61,7 +62,7 @@ export interface CoreDeps {
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
 }
 type Out = { status: number; body: Record<string, unknown> };
@@ -201,6 +202,10 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
       const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
+      // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
+      // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on
+      // iMessage, where it has none, only "tap the card".
+      if (out.resultStatus === CARD_NEEDS_REPLY_STATUS) reply = needsReplyTextFor(msg.channel);
       parts = replyParts(out.parts);
       cardId = typeof out.cardId === "string" && out.cardId ? out.cardId : null;
       if (toBrain && command === "start") {

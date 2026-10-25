@@ -133,7 +133,17 @@ export function answerText(results: CardResult[]): string {
 
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
+// SERIAL-1461 / 1480: what a yes with no usable reply id is told, by where it was typed. The app: it can reply to the card
+// message or tap Approve. A channel with a verified reply-id path (Telegram, WhatsApp Cloud): reply directly to the card,
+// or tap. iMessage, where this integration has no verified reply-id path: tap the card; it is never told to reply.
 export const NEEDS_REPLY = `Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve in the app.`;
+export const NEEDS_REPLY_CHANNEL = `Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve on the card.`;
+export const NEEDS_TAP_IMESSAGE = `Nothing was approved. To approve, tap the card to approve exactly what it shows.`;
+export const CARD_NEEDS_REPLY_STATUS = "needs_reply";
+// The channel's wording for a needs_reply answer: by whether this integration has a verified reply-id path there.
+export function needsReplyTextFor(channel: string | null | undefined): string {
+  return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_TAP_IMESSAGE : NEEDS_REPLY;
+}
 export async function cardTurn(
   o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null },
 ): Promise<{ reply: string; status: string; card_id?: string } | null> {

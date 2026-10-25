@@ -108,10 +108,27 @@ const COMMON = new Set(("new first general american national united global inter
   "green smart true next one all best great pacific atlantic summit peak bright clear prime core cloud network media partners consulting associates " +
   "ventures foods insurance medical care community remote work part time full").split(" "));
 const words = (s: unknown) => normCompany(s).split(" ").filter(Boolean);
+// An employer's name is its first line: whatever a stored company field carries after a line break or control character
+// (a pasted paragraph, an injected heading) is not part of the name the person types.
+const nameLine = (s: unknown) => String(s ?? "").split(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/, 1)[0];
+const SUFFIX_WORDS = new Set(["inc", "llc", "ltd", "corp", "corporation", "company", "group", "holdings", "limited", "plc"]);
 export function namesEmployer(text: unknown, company: unknown): boolean {
-  const co = words(company), t = words(text);
+  const co = words(nameLine(company)), t = words(text);
   if (!co.length || !t.length) return false;
   if (` ${t.join(" ")} `.includes(` ${co.join(" ")} `)) return true;
+  // SERIAL-1480: a company with two or more distinctive words is named only by a run of words that carries every one of
+  // them ("Acme Robotics" is not "Acme Health", "TEST Chat Employer" is not "TEST Current Employer"); one shared leading word
+  // is not it, and sameCompany's alias leniency (a dropped suffix, a leading-words match) does not apply to that run.
+  const distinctive = co.filter((w) => w.length >= 4 && !COMMON.has(w) && !SUFFIX_WORDS.has(w));
+  if (distinctive.length >= 2) {
+    for (let n = distinctive.length; n <= Math.min(6, t.length); n++) {
+      for (let i = 0; i + n <= t.length; i++) {
+        const g = t.slice(i, i + n);
+        if (distinctive.every((w) => g.includes(w))) return true;
+      }
+    }
+    return false;
+  }
   for (let n = 1; n <= Math.min(4, co.length + 1); n++) {
     for (let i = 0; i + n <= t.length; i++) {
       const g = t.slice(i, i + n);

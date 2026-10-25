@@ -237,6 +237,11 @@ Deno.test({
         assertEquals([card.intent, card.resultStatus], ["career_apply_card", "shown"], card.reply);
         assert(/2 applications are ready/.test(card.reply) && card.reply.includes(FIRST_WHY) && card.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${card.reply}`);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "0", "showing approves nothing");
+        // SERIAL-1442: another person's yes, with the first person's card standing, approves nothing of anyone's.
+        const other: Chat = agentChat!.chat("tok-other");
+        const theirs = await other.say("yes");
+        assert(theirs.resultStatus !== "answered" && theirs.intent !== "career_apply_card", `another person's yes is not this card's: ${theirs.intent} ${theirs.reply}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0", "nothing approved by another person's yes");
         const yes = await say("yes");
         assertEquals(yes.resultStatus, "answered", `SERIAL-1440 (1): one text yes approves the batch the card shows: ${yes.reply}`);
         assert(/2 approved exactly as shown/.test(yes.reply) && /Nothing has gone to an employer yet/.test(yes.reply), yes.reply);

@@ -28,7 +28,7 @@ export interface Pg {
   asService: () => RpcClient;
 }
 export interface RpcClient {
-  rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }>;
+  rpc: (name: string, args?: unknown) => Promise<{ data: any; error: { message: string } | null }>;
 }
 
 async function run(cmd: string, args: string[], stdin?: string, env?: Record<string, string>) {
@@ -86,7 +86,7 @@ export async function startPg(opts: { includeBridge?: boolean } = {}): Promise<P
   const client = (role: "authenticated" | "service_role", userId: string | null): RpcClient => ({
     async rpc(name, args = {}) {
       try {
-        const keys = Object.keys(args);
+        const keys = Object.keys(args as Record<string, unknown>);
         const cand = (await signatures(name)).find((s) => keys.every((k) => s.names.includes(k)) && s.names.length >= keys.length);
         if (!cand) return { data: null, error: { message: `no function ${name}(${keys.join(", ")})` } };
         const params = keys.map((k) => {

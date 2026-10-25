@@ -107,6 +107,80 @@ caller.
 - Inbox confirmation (`CAREER_MAIL_TRACKING`) is off, so the cloud gate (3 email-confirmed submissions per portal) can
   only open by waiver.
 
+Status, 2026-10-24 (branch `arch/backend-g6-receipts`, not merged):
+- **Receipts:** shown on a real database (slice 1, e300defb).
+- **Before picture and proof in the record:** slice 2, hardened after the coordinator's review of ce89f34a.
+  - **One capture function for every picture.** Each picture goes into its own new file (`proof-<seq>-<kind>.png`),
+    numbered in the run's own order. It is recorded the moment it is taken, frozen once recorded, with:
+    - its sha256 and its time;
+    - the run's id;
+    - the application's id (the queue passes `--application-id`).
+
+    No file that was already there is ever read as a picture.
+  - **Order is the run's own sequence**, never file mtimes: before-click, then the click, then the after picture.
+  - **The before picture** is taken after every check before the click, with what each field held at that moment,
+    read back from the page as one sha256 per field. A long answer can run past what a picture shows. The answers'
+    text is not kept again.
+  - **No before picture, no click:** `BEFORE_CLICK_PROOF_MISSING`, not sent, may be tried again.
+  - **The after picture** is taken once the outcome was read. Its failure is kept (`after_submit: null`,
+    `after_submit_error`), never covered by an older file.
+  - **Without the after picture, never "confirmed"**, in the engine and again in `runApproved`.
+  - **`runApproved` keeps a proof only if it is bound to this application and this approval.** Otherwise the record
+    gets `proof_refused: PROOF_NOT_THIS_APPLICATION`, and the outcome is never "confirmed".
+  - **Test:** `tests/architect/proof-g6.test.ts`, with the employer's server as witness, run through `runApproved` and
+    the real engine. G1's drive step checks each hash against its file, the order and the binding.
+    - **Fail-first** at ce89f34a: control, 1, 3 and 4 red. Case 2 (a stale picture) was already refused there by the
+      engine's empty-directory guard.
+    - **Mutations**, each red on its case:
+      - M1, the before-click failure swallowed: the click goes on.
+      - M2, the empty-directory guard removed and an existing picture taken as the new one.
+      - M3, the binding check removed.
+      - M4b, both "confirmed" downgrades removed. M4a, the engine's alone, is masked by `runApproved`'s.
+    - Green on Chrome 156 and Chromium 141: proof-g6, flow-connected and flow-integrated, 8 tests, 21 steps each.
+- **What the proof is, and is not.** Each picture is what the page showed. It binds that picture to this application
+  and approval. It is not proof that the employer accepted anything, cryptographically or otherwise. Only the
+  employer's own answer, read on the page or in the person's mail (WO-032), makes "confirmed".
+- **Sensitivity.** What is written where, and who can read it:
+
+  | Written | Holds | Where | Mode |
+  |---|---|---|---|
+  | `evidence.json` | the approved answers (the one place their text is kept), the result | the run's evidence directory | 0600 (written aside, renamed in) |
+  | `proof-<seq>-<kind>.png`, `before-review.png`, `after-submit.png`, `after-code.png` | the page as it showed | the run's evidence directory | 0600: every file of the directory is set 0600 when the record is written, whichever step took it |
+  | the evidence directory | the above | `evidence-*` under the engine's state directory, `trainee-evidence-*` (the person's runner), a uuid (cloud, removed after each run) | 0700 (`privateDir`) |
+  | the queue's row, the job store | hashes (`fields_sha256`, one per field), names, the result; never an answer's text | database row; `~/.local/state/upmore/apply` | store files 0600 |
+  | the engine's output | field names and the fact behind each; an answer only when the person reviews at their own terminal (`Deno.stdin.isTerminal()`) | the person's terminal, a worker's log | no answer when piped |
+
+  - The cloud worker masks every answer in its pictures (`UPMORE_MASK_SCREENSHOTS`). The person's own runs keep the
+    plain picture they can check.
+  - The engine never holds a password, a one-time code or an identity number in a field it fills: it stops before
+    filling (`ACCOUNT_LOGIN_REQUIRED`, `IDENTITY_NUMBER_REQUESTED`). An emailed code is never stored or printed, and
+    `after-code.png` masks every input.
+  - **Test:** `tests/architect/proof-g6.test.ts` "proof, private" runs the real engine through `runApproved` with the
+    engine creating its own evidence directory (as in production), synthetic persona only (a `PROOF-TEST-` fact on
+    `example.test`). It asserts: the directory 0700; every file 0600; the engine's output holds no answer; the queue's
+    record and its proof hold no answer, and `fields_sha256` is hex; only `evidence.json` holds an answer's text.
+    - Fail-first at 32bdc668: red, `after-submit.png` was 0644 (the helper's `submit_and_capture` wrote it unset).
+    - Mutations, each red: the 0600 sweep removed (`after-submit.png is 0600`); the terminal gate removed (`the
+      engine printed Proofa`).
+  - `tests/architect/evidence-retention.test.ts`: nothing of the evidence is tracked in the repo, and no workflow's
+    `upload-artifact` names it.
+- **Retention and cleanup: proposed 90 days, the owner sets it.** `scripts/career/evidence-retention.ts`:
+  - It removes an evidence directory whose newest file is older than the period.
+  - It removes only what is plainly one: the engine's name, owned by this user, 0700, not a link, holding only
+    the evidence's own files. Anything else is left and named (a link, not private, another file).
+  - Without `--delete` it only lists. `deno run -A scripts/career/evidence-retention.ts [--days N] [--root DIR] [--delete]`.
+  - `PROPOSED_RETENTION_DAYS = 90` is a proposal. Nothing runs it on a schedule: deleting on the person's device
+    is the owner's call. The cloud worker already removes each run's directory when the run ends.
+  - The row's hashes stay; they are not the person's text.
+  - **Test:** `tests/architect/evidence-retention.test.ts`: old removed, recent kept, a listing removes nothing, a
+    directory's age is its newest file's; a link (and its target), a non-private directory, one holding another
+    file, another name: never removed. Six mutations of the module, each red (links followed, non-private
+    accepted, foreign files accepted, a listing deletes, the directory's own time only, any name).
+- **Still open:**
+  - The pictures stay on the device or VM; only their hashes are in the row.
+  - The receipt does not show them.
+  - Inbox confirmation is off.
+
 ### G7. Jobs never reach a user
 
 - **In code:** `search_jobs`, `set_job_alerts` and `queue_applications` exist only in the agent brain, which is pinned

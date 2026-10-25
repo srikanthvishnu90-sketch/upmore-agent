@@ -23,10 +23,24 @@ async function run({route='/form',answer,dir=fs.mkdtempSync(path.join(root,'case
  const timer=setTimeout(()=>p.kill('SIGTERM'),60000);const code=await new Promise((resolve,reject)=>{p.once('error',reject);p.once('exit',resolve);});clearTimeout(timer);
  const line=out.split('\n').filter(l=>l.startsWith('RESULT ')).at(-1);return {code,out,err,result:line?JSON.parse(line.slice(7)):null,dir};
 }
-test('009b-4 default dry-run prints every fact and exact resume hash, reads raw names, and never submits',async()=>{
+// The answers are shown only to a person reviewing at their own terminal (G6): piped (a worker, CI) the review names
+// every field and the fact behind it, never the answer itself.
+test('009b-4 default dry-run names every field and fact (never an answer when piped), keeps the exact resume hash, reads raw names, and never submits',async()=>{
  const n=receipts.length,r=await run();assert.equal(r.code,0,r.err);assert.equal(r.result.state,'not_submitted');assert.equal(r.result.reason,'dry_run');assert.equal(receipts.length,n);
- assert.match(r.out,/Mary Jane/);assert.match(r.out,/TEST-FACT-0/);const e=JSON.parse(fs.readFileSync(path.join(r.dir,'evidence','evidence.json')));assert.equal(e.readback.first_name,'Mary Jane');assert.equal(e.readback.last_name,'Doe');assert.equal(e.readback.resume.sha256,e.payload.resume.sha256);
+ for(const i of [0,1,2])assert.match(r.out,new RegExp('"factId":"TEST-FACT-'+i+'"'));for(const name of ['first_name','last_name','email'])assert.match(r.out,new RegExp('"name":"'+name+'"'));
+ for(const value of ['Mary Jane','synthetic@example.test'])assert.ok(!r.out.includes(value),'piped output printed '+value);const e=JSON.parse(fs.readFileSync(path.join(r.dir,'evidence','evidence.json')));assert.equal(e.readback.first_name,'Mary Jane');assert.equal(e.readback.last_name,'Doe');assert.equal(e.readback.resume.sha256,e.payload.resume.sha256);
  assert.ok(fs.existsSync(path.join(r.dir,'evidence','before-review.png')));
+});
+test('009b-4 at the person\'s own terminal the dry-run review shows each answer with its fact',async t=>{
+ // script(1) runs the engine with a terminal as its stdin, as the person's own run has.
+ const script=['/usr/bin/script','/bin/script'].find(p=>fs.existsSync(p));
+ if(!script){if(process.env.CI)assert.fail('script(1) is needed for the terminal case in CI');t.skip('no script(1) here');return;}
+ const dir=fs.mkdtempSync(path.join(root,'tty-')),{factsPath,resume}=packet(dir),q=s=>"'"+String(s).replaceAll("'","'\\''")+"'";
+ const cmd=[process.env.DENO_BIN||'deno','run','-A',path.join(__dirname,'../scripts/apply.ts'),'--url',base+'/form','--facts',factsPath,'--resume',resume,'--state-dir',path.join(dir,'state'),'--evidence-dir',path.join(dir,'evidence')].map(q).join(' ');
+ const n=receipts.length,p=spawn(script,['-qefc',cmd,'/dev/null'],{env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe']});let out='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>out+=b);
+ const timer=setTimeout(()=>p.kill('SIGTERM'),60000);const code=await new Promise(r=>p.once('exit',r));clearTimeout(timer);
+ assert.equal(code,0,out);assert.match(out,/"reason":"dry_run"/);assert.equal(receipts.length,n,'never submitted');
+ assert.match(out,/"name":"first_name"[^\n]*"value":"Mary Jane"[^\n]*"factId":"TEST-FACT-0"/);assert.match(out,/"value":"synthetic@example.test"[^\n]*"factId":"TEST-FACT-2"/);
 });
 test('009b-4 --submit accepts only exact yes; no and uppercase YES never click',async()=>{
  const n=receipts.length;for(const answer of ['no','YES']){const r=await run({answer});assert.equal(r.code,0,r.err);assert.equal(r.result.reason,'user_declined');}assert.equal(receipts.length,n);

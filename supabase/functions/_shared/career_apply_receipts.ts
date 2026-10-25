@@ -73,10 +73,14 @@ export function receiptText(
       return `${company} is not finished: ${NEEDS_YOU[reason] ?? "it needs you"}. Nothing else was sent.${tail}`;
     case "failed":
       return `${company} did not accept it${reason ? `: their form said "${reason}"` : ""}.${tail}`;
-    case "not_submitted":
+    case "not_submitted": {
+      // G6: the queue's claim records its own reason in words ("not sent: the application changed after it was approved");
+      // that is said as the reason, not wrapped in a second "not sent".
+      const said = /^not sent: /i.test(reason) ? reason.replace(/^not sent: /i, "").replace(/[.\s]+$/, "") : "";
       return `Not sent to ${company}: ${
-        NOT_SENT[reason] ?? `it stopped before sending${reason ? ` (${reason})` : ""}`
+        NOT_SENT[reason] ?? (said || `it stopped before sending${reason ? ` (${reason})` : ""}`)
       }. Nothing reached the employer.${tail}`;
+    }
     case "unknown_outcome":
       return `${company}: Trainee cannot tell whether it went through, and will not send it again. If they email you a confirmation, it did.${tail}`;
     default:

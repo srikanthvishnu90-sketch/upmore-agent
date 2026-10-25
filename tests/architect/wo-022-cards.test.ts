@@ -13,6 +13,7 @@ import {
 } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { prepare, runApproved } from "../../workers/career-browser/approve-first.ts";
 import { planReceipts } from "../../supabase/functions/_shared/career_apply_receipts.ts";
+import { proofFor } from "./proof-fixture.ts";
 
 function eq(a: unknown, b: unknown, m = "") {
   const x = JSON.stringify(a), y = JSON.stringify(b);
@@ -194,7 +195,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
         const p = prepared.find((x) => x.id === it.prepared_id)!;
         if (approve.includes(it.n)) {
           queue.push({
-            id: `J${it.n}`,
+            id: `00000000-0000-4000-8000-${String(it.n).padStart(12, "0")}`, // a uuid, as the queue makes them
             lease_token: `L${it.n}`,
             url: p.payload.url,
             payload: p.payload,
@@ -233,7 +234,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
     runEngine: async (args) => {
       ran.push(args);
       return {
-        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C" },
+        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C", proof: proofFor(args) },
         evidence: {},
       };
     },

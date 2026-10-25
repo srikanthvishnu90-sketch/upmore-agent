@@ -24,6 +24,8 @@ export interface EngineResult {
     confirmation_id?: string | null;
     evidence_path?: string;
     fields?: string[];
+    // D-024: the engine's proof of a click (scripts/apply.ts), kept with the queue's record.
+    proof?: Record<string, unknown>;
   };
   evidence: any;
 }
@@ -354,6 +356,8 @@ export async function runApproved(d: {
         "--submit",
         "--approved",
         p.engine_approval,
+        "--application-id",
+        job.id,
         ...(codeEnv ? ["--email-code", "account"] : []),
       ], codeEnv ?? undefined);
       if (!run || !OUTCOMES.has(run.result.state)) {
@@ -361,10 +365,17 @@ export async function runApproved(d: {
         evidence = { reason: "the engine gave no result after it started; not retried" };
       } else {
         state = run.result.state;
+        // D-024 (G6): the proof is kept with the record only if it was taken for this application and this approval;
+        // a picture of another application's page never stands as this one's. Without it, never "confirmed".
+        const proof: any = run.result.proof;
+        const bound = !!proof && proof.application_id === job.id && proof.approval_hash === p.engine_approval &&
+          !!proof.before_click && !!proof.run_id;
+        if (state === "confirmed" && !(bound && proof.after_submit)) state = "submitted_unconfirmed";
         evidence = {
           reason: run.result.reason ?? null,
           confirmation_id: run.result.confirmation_id ?? null,
           evidence_path: run.result.evidence_path ?? null,
+          ...(bound ? { proof } : proof ? { proof_refused: "PROOF_NOT_THIS_APPLICATION" } : {}),
         };
       }
     } catch (e: any) {
@@ -669,7 +680,9 @@ if (import.meta.main) {
       .map((n) => n.toString(16).padStart(2, "0")).join("");
     const dir = await Deno.makeTempDir({ prefix: "trainee-facts-" });
     const done = await runApproved({
-      claim: async () => [{ id: "local", lease_token: "local", url: payload.url, payload }],
+      // One payload run by hand, outside the queue: nothing is recorded (finish does nothing), and its proof is bound to
+      // a fresh id of the queue's own shape.
+      claim: async () => [{ id: crypto.randomUUID(), lease_token: "local", url: payload.url, payload }],
       finish: async () => {},
       resumeFor: async () => ({ path: resume, sha256 }),
       writeFacts: async (_j, facts) => {

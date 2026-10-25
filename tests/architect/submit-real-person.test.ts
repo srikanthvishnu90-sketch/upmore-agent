@@ -67,18 +67,19 @@ function memoryEvents(fail = false) {
   return { rows, add: async (e: unknown) => { if (fail) throw new Error("TEST: the event store is down"); rows.push(e); }, recall: async () => [] };
 }
 const PASTED = `here is my resume:\n${RESUME}`;
-// What a reply listing the entries shows (the contract for the router's confirm reply, Muse's: each entry's own words).
-// deno-lint-ignore no-explicit-any
-const listing = (p: any) => `I read these from your resume:\n${p.facts.map((f: any, i: number) => `${i + 1}. ${f.text}`).join("\n")}\nSay "yes, that's my resume" to confirm them.`;
+// A reply that shows a count and no entry (the router's reply until e0aad64b), written out here so the negative stays a
+// negative whatever the router renders: a yes to it confirms no entry's words.
+const COUNT_ONLY = "Your resume is on record — as drafts, awaiting your word. I read it as 15 facts (1 education, 2 experience, 2 project, " +
+  "1 leadership, 9 skill) — every one is held as a DRAFT on your profile. Say \"yes, that's my resume\" and I confirm them as your facts.";
 // The person pastes their resume and says it is theirs; the handler's evidence step runs after the router's turn, with
-// what the thread shows: their upload, and what Trainee showed them since (the router's reply, or a listing of the entries).
-async function resumeConfirmed(o: { events?: ReturnType<typeof memoryEvents>; show?: "router" | "listing"; upload?: string | null } = {}) {
+// what the thread shows: their upload, and what Trainee showed them since. By default that is the router's own reply to
+// the paste, as the router rendered it; `shown` replaces it with an explicit synthetic reply (the negatives).
+async function resumeConfirmed(o: { events?: ReturnType<typeof memoryEvents>; shown?: string; upload?: string | null } = {}) {
   const events = o.events ?? memoryEvents();
   const chat = conversation();
   const pasted = chat.turn(PASTED);
   pasted.save();
-  const draftProfile = chat.profile();
-  const shownText = o.show === "router" ? String(pasted.out.reply) : `${pasted.out.reply}\n${listing(draftProfile)}`;
+  const shownText = o.shown ?? String(pasted.out.reply);
   const yes = chat.turn("yes, that's my resume");
   // The thread as agent-chat reads it, newest first: Trainee's reply, then the person's upload.
   const rows = [{ id: "2", role: "assistant", content: shownText }, ...(o.upload === null ? [] : [{ id: "1", role: "user", content: o.upload ?? PASTED }])];
@@ -87,11 +88,14 @@ async function resumeConfirmed(o: { events?: ReturnType<typeof memoryEvents>; sh
     userId: PERSON, now: yes.now, message: "yes, that's my resume", before: yes.before, after: yes.ctx.profile, out: yes.out, events, ...seen,
   });
   yes.save();
-  return { chat, yes, r, events, seen, profile: chat.profile() };
+  return { chat, pasted, yes, r, events, seen, profile: chat.profile() };
 }
 
-Deno.test("1. entries shown to the person and confirmed by them reach the executor, each with its event and upload", async () => {
-  const { yes, r, events, profile, seen } = await resumeConfirmed();
+Deno.test("1. the router's own reply shows the entries; the person's yes evidences each, with its event and its upload link", async () => {
+  const { pasted, yes, r, events, profile, seen } = await resumeConfirmed();
+  // The router's reply itself (no listing added here): every entry's words, before the yes.
+  const unshown = profile.facts.filter((f: any) => !String(pasted.out.reply).replace(/\s+/g, " ").toLowerCase().includes(String(f.text).replace(/\s+/g, " ").toLowerCase()));
+  eq(unshown.length, 0, `the router's reply shows every entry: ${String(pasted.out.reply).slice(0, 300)}`);
   eq(seen.upload?.ref, "agent_messages:1", "the link to their own upload");
   eq(seen.upload?.sha256, await sha256Hex(PASTED));
   eq([yes.out.intent, yes.out.resultStatus], ["career_resume_ingest", "completed"], "the router's own confirm of the pasted resume");
@@ -113,11 +117,22 @@ Deno.test("1. entries shown to the person and confirmed by them reach the execut
   eq(kept?.facts.length, n, "the trust contract keeps every one (at 6bf3478e: 0)");
 });
 
-Deno.test("1a. a yes to the router's reply today (a count, not the entries) evidences nothing: no entry's words were shown", async () => {
-  const { r, profile } = await resumeConfirmed({ show: "router" });
+Deno.test("1a. a yes to a reply that shows a count and no entry evidences nothing: no entry's words were shown", async () => {
+  const { r, profile } = await resumeConfirmed({ shown: COUNT_ONLY });
   eq(r.stamped, 0);
   eq(r.unshown, profile.facts.length, "every entry: not shown");
-  eq(trustedProfile({ ...profile, user_id: PERSON }, PERSON, [])?.facts.length, 0, "the executor keeps none (the router's reply is Muse's to change)");
+  eq(r.held.length, profile.facts.length, "every entry is held as a draft");
+  assert(profile.facts.every((f: any) => f.status === "draft" && f.needs_confirmation === true), "drafts stay drafts");
+  eq(trustedProfile({ ...profile, user_id: PERSON }, PERSON, [])?.facts.length, 0, "the executor keeps none");
+});
+
+Deno.test("1a1. a reply that shows only some entries evidences only those; the rest stay drafts", async () => {
+  const probe = await resumeConfirmed({ shown: COUNT_ONLY });
+  const some = probe.profile.facts.slice(0, 3).map((f: any) => f.text).join("\n");
+  const { r, profile } = await resumeConfirmed({ shown: `${COUNT_ONLY}\n${some}` });
+  eq(r.stamped, 3, JSON.stringify(r));
+  eq(r.unshown, profile.facts.length - 3);
+  eq(trustedProfile({ ...profile, user_id: PERSON }, PERSON, [])?.facts.length, 3);
 });
 
 Deno.test("1a2. an entry not in the person's own upload is never evidenced, even when shown", async () => {
@@ -137,7 +152,7 @@ Deno.test("1b. an event that cannot be recorded stamps nothing: the facts stay u
 
 Deno.test("1c. only the router's confirm of a pasted resume, and only entries that were drafts before this turn, are stamped", async () => {
   const { yes } = await resumeConfirmed();
-  const shown = { text: listing(yes.ctx.profile), message_ids: ["2"] }, upload = { kind: "message" as const, ref: "agent_messages:1", sha256: "x", text: PASTED };
+  const shown = { text: String((await resumeConfirmed()).pasted.out.reply), message_ids: ["2"] }, upload = { kind: "message" as const, ref: "agent_messages:1", sha256: "x", text: PASTED };
   const fresh = conversation();
   const p1 = fresh.turn(PASTED);
   eq((await evidenceResumeConfirmation({ userId: PERSON, now: p1.now, message: PASTED, before: p1.before, after: p1.ctx.profile, out: p1.out, shown, upload, events: memoryEvents() })).stamped, 0,

@@ -1,42 +1,36 @@
-// SUBMIT-STEER-1130 / SPLIT-1146 (d): a person as the chat leaves them, from their texts to a submitted application,
-// on a real Postgres (CI's migration order) and a real sandboxed browser, with the product's own code at every step. No
-// hand-made profile and no seeded answer: everything the employer receives comes from what the person typed in chat.
+// SUBMIT-STEER-1130 / SPLIT-1146 (d) / JOIN-1236b: a person as the chat leaves them, from their texts to a submitted
+// application, on a real Postgres (CI's migration order) and a real sandboxed browser, with the product's own code at
+// every step. No hand-made profile and no seeded answer: everything the employer receives comes from what the person
+// typed in chat.
 //
-//   chat      the router's turns (the bundle agent-chat runs): they paste their resume and say it is theirs; agent-chat's
-//             evidence step (career_router_evidence.ts) stamps the entries shown to them and found in their upload
+//   chat      every text goes through the production agent-chat handler (handler-career.ts handleChat, unchanged, real
+//             supabase-js; tests/flow/handler.ts): the router's own replies, agent-chat's own evidence step (after the
+//             router's resume confirm), its questions turn ("what do you need from me", "use N") and its status read-back
 //   prepare   prepare-ahead.ts on an alerted posting, reading their stored profile (storedProfile): no name or email on
 //             file, so it asks for them; then the engine's dry run asks the form's phone, sponsorship and work
 //             authorization questions
-//   answer    "what do you need from me" (career_apply_questions.ts): each question carries their own chat message, word
-//             for word with its date; only "use N" saves it
-//   tap       career_apply_card_open_own / career_apply_card_answer_own: one cap, one ledger (G3)
+//   tap       career_apply_card_open_own / career_apply_card_answer_own: one ledger (G3)
 //   drive     career_apply_claim_own -> runApproved -> the employer receives exactly the approved answers, once
-//   read back "did my application to ... go through?" (career_apply_status.ts) from career_apply_jobs: submitted, not
+//   read back "did my application to ... go through?" through the handler, from career_apply_jobs: submitted, not
 //             confirmed (a page's thank-you is never "confirmed")
 //
-// What the router shows today. Its reply to a pasted resume is a count ("I read it as 15 facts"), not the entries, so a
-// yes to it confirms no entry's words and the evidence step stamps none: the first test shows that person's application
-// stops at no_resume, honestly. The second test's thread shows the entries (a listing of each entry's own words after
-// the router's reply): that is the contract for the router's confirm reply, which is Muse's to change (SPLIT-1146).
+// The negative (the first person): a reply that showed a count and no entry, written into their thread in place of the
+// router's reply as an explicit synthetic stand-in, so it stays a negative whatever the router renders: their yes
+// evidences nothing, the entries stay drafts, and their application stops at no_resume.
+// The positive (the second person): the router's own reply to the paste (e0aad64b shows each entry), asserted as it is.
 //
-// The people are synthetic (TEST); the employer is a page on 127.0.0.1 served here; nothing reaches a real site.
+// The seam, disclosed: the HTTP hop to the Supabase project (tests/flow/postgrest.ts answers it over the same database),
+// and prepare-ahead / the card / the drive called as their own processes call them. The people are synthetic (TEST); the
+// employer is a page on 127.0.0.1 served here; nothing reaches a real site.
 import assertNode from "node:assert/strict";
-import { createRequire } from "node:module";
 import { pgBinDir, startPg } from "../flow/pg.ts";
-import { restAdmin } from "../flow/rest.ts";
 import { engineRunner, ownQueue, runApproved } from "../../workers/career-browser/approve-first.ts";
 import { prepareAhead, storedProfile, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
 import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
-import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../../supabase/functions/_shared/career_apply_questions.ts";
-import { evidenceResumeConfirmation, resumeConfirmationContext } from "../../supabase/functions/_shared/career_router_evidence.ts";
-import { applicationsTurn, supabaseApplications } from "../../supabase/functions/_shared/career_apply_status.ts";
-import { supabaseEventStore } from "../../supabase/functions/_shared/agent/timeline.ts";
-import * as core from "../../supabase/functions/_shared/router_core.career.js";
+import { careerHandler, type Chat, supabaseParity } from "../flow/handler.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
-const require = createRequire(import.meta.url);
-const { CareerHost } = require("../../supabase/functions/_shared/career_host.js");
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
 function browserEnv(): boolean {
@@ -49,11 +43,6 @@ function browserEnv(): boolean {
     return false;
   }
 }
-const c: any = core;
-const host = CareerHost.createCareerHost({
-  CareerAccess: c.CareerAccess, CareerOnboarding: c.CareerOnboarding, CareerRouter: c.CareerRouter,
-  CareerDoorstep: c.CareerDoorstep, CareerReply: c.CareerReply, CareerContainment: c.CareerContainment,
-});
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const SPONSOR = "Will you now or in the future require sponsorship for employment visa status?";
 const AUTH = "Are you legally authorized to work in the United States?";
@@ -91,52 +80,18 @@ function employer() {
   return { url: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}/apply`, posts, upload: () => upload, close: () => server.shutdown() };
 }
 
-const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
-// One person's chat: each text goes through the router as agent-chat runs it, and the thread keeps what agent-chat's
-// commit keeps (their message, the reply, the thread's saved career state).
-function chatFor(pg: { sql: (s: string) => Promise<string> }, person: string, thread: string, events: ReturnType<typeof supabaseEventStore>) {
-  let snap: any = null, now = Date.parse("2026-10-24T15:00:00Z");
-  const store = async (role: string, content: string, at: number, meta: Record<string, unknown> = {}) =>
-    await pg.sql(`insert into public.agent_messages (thread_id, role, content, meta, created_at) values ('${thread}', '${role}', ${q(content)}, ${q(JSON.stringify(meta))}::jsonb, '${new Date(at).toISOString()}')`);
-  return {
-    // A text the router answers; `shows` is anything else the reply showed (the listing the router's reply must carry).
-    async text(message: string, o: { shows?: (profile: any) => string; at?: string } = {}) {
-      now = o.at ? Date.parse(o.at) : now + 60_000;
-      const before = snap ? structuredClone(snap.stores.profile ?? null) : null;
-      const ctx = host.createTurnCtx({ userId: person, threadId: thread, now, snapshot: snap, postings: [] });
-      const out = host.runTurn(message, ctx);
-      // agent-chat's evidence step (handler-career.ts), on the thread as it stands before this turn is saved.
-      const recent = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('id', id, 'role', role, 'content', content) order by id desc), '[]') from public.agent_messages where thread_id = '${thread}'`));
-      const seen = await resumeConfirmationContext(recent, ctx.profile);
-      const evidence = await evidenceResumeConfirmation({ userId: person, now, message, before, after: ctx.profile ?? null, out, ...seen, events });
-      snap = host.extractSnapshot(ctx);
-      await store("user", message, now);
-      const reply = o.shows ? `${out.reply}\n${o.shows(ctx.profile)}` : String(out.reply);
-      await store("assistant", reply, now + 1, { intent: out.intent });
-      const state = q(JSON.stringify({ career: snap }));
-      await pg.sql(`insert into public.agent_flow_state (thread_id, user_id, state, updated_at) values ('${thread}', '${person}', ${state}::jsonb, now())
-        on conflict (thread_id) do update set state = excluded.state, updated_at = excluded.updated_at`);
-      return { out, evidence, reply };
-    },
-    // A text the chat's own code answers before the router (the questions, the status read-back), recorded with its intent.
-    async said(reply: string, intent: string) {
-      now += 60_000;
-      await store("assistant", reply, now, { intent });
-    },
-    async user(message: string, at?: string) {
-      now = at ? Date.parse(at) : now + 60_000;
-      await store("user", message, now);
-    },
-  };
-}
-// The contract for the router's resume confirm: each entry, in its own words.
-const listing = (p: any) => `Here is what I read:\n${p.facts.map((f: any, i: number) => `${i + 1}. ${f.text}`).join("\n")}`;
+// A reply that shows a count and no entry: the negative's explicit stand-in for the router's reply to the paste.
+const COUNT_ONLY = "Your resume is on record — as drafts, awaiting your word. I read it as 15 facts — every one is held as a DRAFT on your profile. " +
+  "Say \"yes, that's my resume\" and I confirm them as your facts.";
+const day = (d = new Date()) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const norm = (x: string) => String(x).replace(/\s+/g, " ").toLowerCase();
+const lastAssistant = async (pg: { sql: (s: string) => Promise<string> }, thread: string) =>
+  await pg.sql(`select id from public.agent_messages where thread_id = '${thread}' and role = 'assistant' order by id desc limit 1`);
 
-async function setup(pg: any, person: string, thread: string, job: string) {
+async function setup(pg: any, person: string, job: string) {
   await pg.sql(`insert into auth.users (id, email) values ('${person}', '${person}@example.test') on conflict do nothing;
     insert into public.profiles (id) values ('${person}') on conflict do nothing;
     insert into public.career_watch_kv (user_id, key, value) values ('${person}', 'career:account', '{"epoch":0,"version":0,"paused":false}') on conflict do nothing;
-    insert into public.agent_threads (id, user_id, title) values ('${thread}', '${person}', 'TEST');
     insert into public.career_outbox (user_id, key, kind, text, deliver_at) values ('${person}', 'alert:${job}', 'alert', 'TEST alert', now());`);
 }
 
@@ -157,16 +112,17 @@ Deno.test({
     const pg = await startPg();
     const site = employer();
     const work = await Deno.makeTempDir({ prefix: "trainee-real-person-" });
+    let agentChat: Awaited<ReturnType<typeof careerHandler>> | null = null;
     try {
-      await pg.sql(`grant select, insert on public.agent_threads, public.agent_messages to service_role`);
+      await supabaseParity(pg);
       const JOB = "greenhouse:realtest:1", TODAY = "7b0f8f8e-6a43-4a49-9d2c-0000000000d1", PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000d2";
-      const T_TODAY = "7b0f8f8e-6a43-4a49-9d2c-0000000000e1", THREAD = "7b0f8f8e-6a43-4a49-9d2c-0000000000e2";
       await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at)
         values ('${JOB}', 'greenhouse', 'realtest', '${COMPANY}', 'TEST Analyst', 'Chicago, IL', 'https://boards.greenhouse.io/realtest/jobs/1',
         'TEST Analyst. Requirements: SQL, Python, dashboards for internal teams.', now(), now())`);
-      await setup(pg, TODAY, T_TODAY, JOB);
-      const svc = pg.asService(), admin = restAdmin(pg), person = pg.asPerson(PERSON);
-      const events = supabaseEventStore(admin);
+      await setup(pg, TODAY, JOB);
+      const svc = pg.asService(), person = pg.asPerson(PERSON);
+      agentChat = await careerHandler(pg, { "tok-today": TODAY, "tok-person": PERSON });
+      const handler = agentChat;
       const memory = memoryResumeStore();
       const resumes: ResumeStore = {
         put: async (path, pdf) => {
@@ -180,14 +136,16 @@ Deno.test({
       const deps = { db: svc, runEngine, profileFor: storedProfile(svc), urlFor: () => site.url, resumeFor: tailoredResume({ render: edgeRenderer(), resumes }) };
       const outcomeFor = (done: { user_id: string; outcome: string }[], u: string) => done.filter((d) => d.user_id === u).map((d) => d.outcome);
 
-      await t.step("today's router reply (a count, not the entries): a yes evidences nothing, and that person's application stops at no_resume", async () => {
-        const chat = chatFor(pg, TODAY, T_TODAY, events);
-        const pasted = await chat.text(`here is my resume:\n${RESUME}`);
-        assertEquals(pasted.out.intent, "career_resume_ingest");
-        const yes = await chat.text("yes, that's my resume");
-        assertEquals([yes.out.intent, yes.out.resultStatus], ["career_resume_ingest", "completed"]);
-        assertEquals(yes.evidence.stamped, 0, "no entry's words were shown");
-        assert(yes.evidence.unshown > 0);
+      await t.step("negative: a reply that showed a count and no entry; their yes evidences nothing, is never called confirmed, and their application stops at no_resume", async () => {
+        const chat = handler.chat("tok-today");
+        const pasted = await chat.say(`here is my resume:\n${RESUME}`);
+        assertEquals([pasted.status, pasted.intent], [200, "career_resume_ingest"], pasted.reply);
+        // The explicit stand-in: the thread shows a count where the router's reply was.
+        await pg.sql(`update public.agent_messages set content = $c$${COUNT_ONLY}$c$ where id = ${await lastAssistant(pg, chat.thread()!)}`);
+        const yes = await chat.say("yes, that's my resume");
+        assertEquals(yes.status, 200, yes.reply);
+        assert(!/^Confirmed\b|now run on them/.test(yes.reply) && /not shown to you word for word/.test(yes.reply), `agent-chat says nothing is confirmed: ${yes.reply}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_events where user_id = '${TODAY}' and kind = 'fact_confirmed'`), "0");
         const done = await prepareAhead(deps);
         assertEquals(outcomeFor(done, TODAY), ["no_resume"], JSON.stringify(done));
         assertEquals(await pg.sql(`select count(*) from public.career_apply_questions where user_id = '${TODAY}'`), "0", "nothing is asked of them that would not help");
@@ -195,32 +153,32 @@ Deno.test({
 
       // The second person's account and alert, once the first's prepare has run (it would otherwise try them too, before
       // they said anything, and record that try).
-      await setup(pg, PERSON, THREAD, JOB);
-      const chat = chatFor(pg, PERSON, THREAD, events);
+      await setup(pg, PERSON, JOB);
+      const chat: Chat = handler.chat("tok-person");
       await t.step("chat: they paste their resume, are shown its entries, and say it is theirs; each entry gets its event and upload", async () => {
-        await chat.text(`here is my resume:\n${RESUME}`, { shows: listing, at: "2026-10-24T15:00:00Z" });
-        const yes = await chat.text("yes, that's my resume");
-        assert(yes.evidence.stamped >= 10, JSON.stringify(yes.evidence));
-        assertEquals([yes.evidence.unshown, yes.evidence.untraced, yes.evidence.refused], [0, 0, 0]);
-        assertEquals(await pg.sql(`select count(*) from public.career_events where user_id = '${PERSON}' and kind = 'fact_confirmed'`), String(yes.evidence.stamped),
-          "one persisted event per entry");
-        const ref = await pg.sql(`select string_agg(distinct detail->'upload'->>'ref', ',') from public.career_events where user_id = '${PERSON}' and kind = 'fact_confirmed'`);
-        assert(/^agent_messages:\d+$/.test(ref), `every event names their upload: ${ref}`);
+        const pasted = await chat.say(`here is my resume:\n${RESUME}`);
+        assertEquals([pasted.status, pasted.intent], [200, "career_resume_ingest"], pasted.reply);
+        const drafts = JSON.parse(await pg.sql(`select state->'career'->'stores'->'profile'->'facts' from public.agent_flow_state where user_id = '${PERSON}' order by updated_at desc limit 1`));
+        assert(drafts.length >= 10, "the resume was read as entries");
+        const unshown = drafts.filter((f: any) => !norm(pasted.reply).includes(norm(f.text)));
+        assertEquals(unshown.length, 0, `the router's own reply shows every entry (${unshown.length} of ${drafts.length} not): ${pasted.reply.slice(0, 300)}`);
+        const yes = await chat.say("yes, that's my resume");
+        assertEquals([yes.status, yes.intent, yes.resultStatus], [200, "career_resume_ingest", "completed"], yes.reply);
+        assertEquals(await pg.sql(`select count(*) from public.career_events where user_id = '${PERSON}' and kind = 'fact_confirmed'`), String(drafts.length),
+          "agent-chat's evidence step: one persisted event per entry");
         // What they say about themselves, in their own words, on later days (the router's replies to these are Muse's).
-        await chat.user("my name is Jordan Rivera", "2026-10-24T16:00:00Z");
-        await chat.user("my email is jordan.rivera@example.test", "2026-10-24T16:01:00Z");
-        await chat.user("my phone number is 312-555-0142", "2026-10-25T09:00:00Z");
-        await chat.user("I'm a US citizen and I don't need visa sponsorship", "2026-10-25T09:01:00Z");
-        await chat.user("I'm authorized to work in the US", "2026-10-25T09:02:00Z");
+        for (const t of ["my name is Jordan Rivera", "my email is jordan.rivera@example.test", "my phone number is 312-555-0142",
+          "I'm a US citizen and I don't need visa sponsorship", "I'm authorized to work in the US"]) {
+          const r = await chat.say(t);
+          assertEquals(r.status, 200, r.reply);
+        }
       });
 
-      const store = supabaseQuestionStore(admin);
+      // Their texts to the questions, through agent-chat like every other text.
       const say = async (message: string) => {
-        const r = await questionsTurn({ message, userId: PERSON, threadId: THREAD, now: Date.now(), store });
-        assert(r, `the questions answer "${message}"`);
-        await chat.user(message);
-        await chat.said(r!.reply, ["shown", "partial"].includes(r!.status) || r!.status.startsWith("draft") ? QUESTIONS_INTENT : "career_apply_questions_answer");
-        return r!;
+        const r = await chat.say(message);
+        assertEquals(r.status, 200, r.reply);
+        return { reply: r.reply, status: r.resultStatus ?? "" };
       };
       // Each shown question's number, by its label, then "use N" for each.
       const useAll = async (labels: string[]) => {
@@ -246,7 +204,7 @@ Deno.test({
 
       await t.step("their words: name and email offered back word for word with the date; only 'use N' saves them", async () => {
         const text = await useAll(["First name", "Last name", "Email"]);
-        assert(text.includes(`"my name is Jordan Rivera"`) && text.includes(`"my email is jordan.rivera@example.test"`) && /Oct 24/.test(text), text);
+        assert(text.includes(`"my name is Jordan Rivera"`) && text.includes(`"my email is jordan.rivera@example.test"`) && text.includes(day()), text);
         assertEquals(await pg.sql(`select string_agg(key || '=' || answer, ',' order by key) from public.career_apply_questions where user_id = '${PERSON}'`),
           "fact:email=jordan.rivera@example.test,fact:first_name=Jordan,fact:last_name=Rivera");
       });
@@ -261,7 +219,7 @@ Deno.test({
 
       await t.step("their words again: phone, sponsorship and work authorization, each from their own message, each used by them", async () => {
         const text = await useAll(["Phone", SPONSOR, AUTH]);
-        assert(text.includes(`"my phone number is 312-555-0142"`) && text.includes(`"I'm authorized to work in the US"`) && /Oct 25/.test(text), text);
+        assert(text.includes(`"my phone number is 312-555-0142"`) && text.includes(`"I'm authorized to work in the US"`) && text.includes(day()), text);
         assertEquals(await pg.sql(`select string_agg(key || '=' || answer, ',' order by key) from public.career_apply_questions where user_id = '${PERSON}' and key in ('fact:phone','fact:sponsorship','fact:work_authorization')`),
           "fact:phone=312-555-0142,fact:sponsorship=No,fact:work_authorization=Yes");
       });
@@ -281,7 +239,8 @@ Deno.test({
         for (const v of ["Jordan", "Rivera", "jordan.rivera@example.test", "312-555-0142"]) assert(lines.includes(v), `the card shows ${v}: ${lines}`);
       });
 
-      const ask = (message: string) => applicationsTurn({ message, userId: PERSON, now: Date.now(), read: supabaseApplications(admin) });
+      // Their status questions, through agent-chat (its read-back from career_apply_jobs answers before the router).
+      const ask = async (message: string) => { const r = await chat.say(message); assertEquals(r.status, 200, r.reply); return { reply: r.reply, intent: r.intent }; };
       await t.step("their tap: queued exactly as shown, one ledger row; read back as approved, not sent", async () => {
         const card = await person.rpc("career_apply_card_open_own", { p_ids: [preparedId] });
         assertEquals(card.error, null, JSON.stringify(card.error));
@@ -330,6 +289,7 @@ Deno.test({
         assert(none && /no application to Stark Industries on record/.test(none.reply), JSON.stringify(none));
       });
     } finally {
+      agentChat?.restore();
       await site.close();
       await pg.stop();
       await Deno.remove(work, { recursive: true }).catch(() => {});

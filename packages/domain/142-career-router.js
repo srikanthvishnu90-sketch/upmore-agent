@@ -1966,7 +1966,12 @@ const CareerRouter = (() => {
     const total = Object.values(byKind).reduce((a, b) => a + b, 0);
     const counts = Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ");
     const mir = threadMirrorForWrite(ctx);
-    if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total };
+    // SPLIT-1146 (a): the presentation is BOUND — the marker carries
+    // the ids of exactly the drafts this paste produced and the hash
+    // of the exact content presented, so the later yes approves THIS
+    // content and nothing else that happens to be standing as a
+    // resume draft by then.
+    if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total, factIds: (res.factIds || res.added_fact_ids || []).slice(), contentSha256: sha256(raw) };
     const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
     const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
@@ -1987,9 +1992,21 @@ const CareerRouter = (() => {
     if (!/^(yes|yeah|yep|confirm|confirmed|correct|that'?s right|that is right|looks right|looks good|all correct|that'?s my resume|it is|do it)\b/i.test(raw)) return null;
     const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
     if (!profile) return null;
+    // SPLIT-1146 (a): the yes binds to the PRESENTED content — when
+    // the marker carries the presented drafts' ids, only those facts
+    // confirm; a resume draft that was never in the presented content
+    // (added later, or from another paste) stays a draft. A marker
+    // with no matching draft left standing confirms nothing and says
+    // so — the old behavior flipped every standing draft on a
+    // generic yes.
+    const presentedIds = Array.isArray(mir.resumeIngest.factIds) && mir.resumeIngest.factIds.length ? new Set(mir.resumeIngest.factIds) : null;
     let confirmed = 0;
     for (const f of profile.facts || []) {
-      if (f && f.needs_confirmation && f.source === "resume-ingest") { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
+      if (f && f.needs_confirmation && f.source === "resume-ingest" && (!presentedIds || presentedIds.has(f.id))) { f.needs_confirmation = false; f.status = "confirmed"; confirmed += 1; }
+    }
+    if (presentedIds && !confirmed) {
+      return { intent: "career_resume_ingest", resultStatus: "blocked", sends: 0, resume_ingest: { confirmed: 0 },
+        reply: compose({ headline: "I did not confirm anything — the resume drafts on the record are not the ones I showed you.", facts: ["That yes binds only to the exact resume content presented for approval; the drafts standing now do not match it, so nothing was confirmed from it."], nextStep: "Paste the resume again and I will show you its drafts for a fresh yes." }) };
     }
     const target = mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const wmir = threadMirrorForWrite(ctx);

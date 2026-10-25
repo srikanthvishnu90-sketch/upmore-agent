@@ -9405,6 +9405,17 @@ const CareerRouter = (() => {
   function handlePauseControl(text, ctx) {
     const c = ctx || {};
     const t = lc(text);
+    // ALERT-SCOPED PAUSE STAND-DOWN (2026-10-25): a pause the alert
+    // path itself resolves (alertIntentOf op "pause" — an alert noun
+    // in the turn, or the alert frame standing) is ALERT business,
+    // not a queue halt: "pause everything alert-wise for a week" was
+    // claimed here by the fuzzy halt and set the global queue pause
+    // while the watches were never paused. Standing down returns the
+    // turn to the main dispatch, whose ONE alert path runs the pause
+    // against the watch record (and answers the timed half plainly).
+    // A pause with no alert scope resolves null there and the halt
+    // below keeps it, exactly as before.
+    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause") return null; }
     // (1) fuzzy halt — 141 owns the write; this layer returns its
     // typed result verbatim, exactly as the doorstep seam would.
     if (Doorstep && typeof Doorstep.fuzzyHaltMatch === "function" && typeof Doorstep.haltQueue === "function" && Doorstep.fuzzyHaltMatch(text)) {

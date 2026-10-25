@@ -9507,7 +9507,16 @@ const CareerRouter = (() => {
     // against the watch record (and answers the timed half plainly).
     // A pause with no alert scope resolves null there and the halt
     // below keeps it, exactly as before.
-    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause") return null; }
+    // REGRESSION FIX (2026-10-25, REGRESSION-1255): the stand-down
+    // fires only when the TEXT scopes the pause to the alerts (an
+    // alert/watch noun in the turn itself — "pause everything
+    // alert-wise"). alertIntentOf also resolves "pause" from the
+    // alert FRAME alone, and diverting on that ate the unscoped
+    // "pause everything for now" during an alert conversation: the
+    // global pause never set, and a later "turn them back on" then
+    // read as alerts-only, so the two-scopes clarification (global
+    // pause + alert stop standing -> ASK) became unreachable.
+    { const ac = alertIntentOf(text, c); if (ac && ac.op === "pause" && /\balerts?\b|\bwatch(es|ing)?\b/.test(t)) return null; }
     // (1) fuzzy halt — 141 owns the write; this layer returns its
     // typed result verbatim, exactly as the doorstep seam would.
     if (Doorstep && typeof Doorstep.fuzzyHaltMatch === "function" && typeof Doorstep.haltQueue === "function" && Doorstep.fuzzyHaltMatch(text)) {
@@ -10301,7 +10310,14 @@ const CareerRouter = (() => {
     if (/\bwhat are you watching\b/.test(t) || /\bkeeping an eye on for me\b/.test(t) || /\bwhat'?s on my (alert |watch )?list\b/.test(t) || /\bshow me my (alerts|watches)\b/.test(t) || /\blist my (alerts|watches)\b/.test(t) || /\bwhat alerts do i have\b/.test(t) || /\bwhat am i watching\b/.test(t)) return { op: "list" };
     // SUMMARY TIME — no such field exists on a watch (unsupported,
     // answered plainly in the handler; checked before every write).
-    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && /\b(at|to|move|change|set|make|instead|morning|evening|am\b|pm\b|\d)/.test(t)) return { op: "summary_time" };
+    // REGRESSION FIX (2026-10-25, REGRESSION-1255): the claim needs
+    // a CHANGE instruction — a change verb, or an at/to time
+    // assignment. Bare time-of-day words ("morning", "evening")
+    // qualified before, so a status-shaped statement ("Quiet hours:
+    // low-priority alerts folded into the morning digest", SC-140)
+    // was claimed here and lost the tracking family's summary
+    // doorstep; a statement about a digest is not an ask to move it.
+    if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && (/\b(move|set|change|make|switch|reschedule|adjust|instead)\b/.test(t) || /\b(at|to)\s+(\d|noon|midnight)\b/.test(t))) return { op: "summary_time" };
     // PAUSE — plain or timed (the timed half is the unsupported part).
     const timedM = /\bfor (a|one|two|three|four|\d+)\s+(weeks?|days?|months?)\b/.test(t) || /\buntil\s+(next|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
     if (/\bpause\b/.test(t) && (alertNoun || frame)) return { op: "pause", timed: timedM };
@@ -10352,7 +10368,31 @@ const CareerRouter = (() => {
     // when a role opens up?", "can you notify me about finance
     // roles?").
     if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
-    if (classicCreate || (deliveryVerb && jobObject)) return { op: "create" };
+    // TAILOR / DOCUMENT STAND-DOWN (2026-10-25, REGRESSION-1255):
+    // the composed claim (a delivery verb + any job-container noun)
+    // also matches instructions whose delivery object is a DOCUMENT
+    // and whose job noun is another family's target — "Tailor my
+    // resume for the Product Manager role at Natera and send me the
+    // PDF as a file in this chat" was claimed as a watch create
+    // (the "send me" + "role" pair), and the tailor never ran.
+    // A tailor instruction, or a PDF named as the thing to send,
+    // is never an alert create; the tailor / document-delivery
+    // families own those turns.
+    if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
+    if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    // TELL-ME-QUESTION LEG VETO (2026-10-25, REGRESSION-1255): a
+    // "tell me" that heads a question clause ("tell me what my
+    // tracker looks like") is a status ask, not a delivery
+    // instruction — when it is the turn's ONLY delivery verb, the
+    // composed claim does not fire. "find me data internships and
+    // also tell me what my tracker looks like" (MI-013) was claimed
+    // whole as a watch create, and the find + tracker parts were
+    // never composed. ("tell me when..." stays a create: it is the
+    // classicCreate futurity shape, excluded here.)
+    const tellQuestionOnly = /\btell me (what|how|whether|if)\b/.test(t)
+      && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
+      && !/\btell me when\b/.test(t);
+    if (classicCreate || (deliveryVerb && !tellQuestionOnly && jobObject)) return { op: "create" };
     return null;
   }
   function alertTargetsOf(wp, text) {

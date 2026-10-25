@@ -107,9 +107,38 @@ test("manage: pause sets opt_out.global on the same record the host reads; resum
   assert.equal(savedProfile(ctx).opt_out.global, false);
 });
 
-test("create-watch: a role outside 152's taxonomy splits is refused honestly and saves nothing", () => {
+test("create-watch: a role outside 152's taxonomy splits is saved as a DERIVED watch, disclosed honestly as non-standard", () => {
+  // PIN UPDATED (2026-10-25, REGRESSION-1255) to the contract the
+  // ALERTS-RESUME-1107 rebuild sanctioned (commit 90194114: "derived
+  // user-words watch targets (152 SOC exception for derived
+  // specs)"): refusing an out-of-taxonomy role was itself the
+  // scope-reset defect — the watch now saves keyed on the user's own
+  // words. The original requirement — the user is told plainly this
+  // is not a standard role, and nothing pretends otherwise — is
+  // asserted in full: the saved interest is marked derived with no
+  // SOC and no split, and the reply carries the disclosure.
   const ctx = freshCtx();
   const r = Router.handleChat("Watch for boilermaker roles in Chicago", ctx);
+  assert.equal(r.intent, "career_watch_create");
+  assert.equal(r.resultStatus, "prepared");
+  const wp = savedProfile(ctx);
+  assert.ok(wp, "the derived watch is saved on the user's record");
+  assert.equal(wp.interests.length, 1);
+  const role = wp.interests[0].role;
+  assert.equal(role.derived, true, "the saved role is marked derived — never passed off as a taxonomy role");
+  assert.equal(role.soc, null, "no SOC is invented for a non-taxonomy role");
+  assert.equal(role.split, null, "no taxonomy split is invented for a non-taxonomy role");
+  assert.match(role.title, /Boilermaker/, "the title keys on the user's own words");
+  assert.match(r.reply, /not a standard category/i, "the reply discloses the title is not a standard category");
+  assert.match(r.reply, /your own words/i, "the reply says the watch keys on the user's own words");
+});
+
+test("create-watch: an ask with NO role named is refused honestly and saves nothing", () => {
+  // The saves-nothing half of the original pin, on the case the
+  // current contract still refuses: no role words at all -> the
+  // router asks for the role and writes no watch.
+  const ctx = freshCtx();
+  const r = Router.handleChat("watch for jobs in my field", ctx);
   assert.equal(r.intent, "career_watch_create");
   assert.equal(r.resultStatus, "awaiting_user");
   assert.equal(savedProfile(ctx), null);

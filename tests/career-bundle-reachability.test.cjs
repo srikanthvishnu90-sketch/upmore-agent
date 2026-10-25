@@ -159,7 +159,17 @@ if (!vm.SourceTextModule) {
     assert.equal(out.meta.intent, "career_watch_create");
     assert.equal(out.meta.contained, false);
     assert.equal(out.capabilities.job_alert_delivery.status, "NOT_WIRED");
-    assert.match(out.reply, /not wired/i);
+    // PIN UPDATED (2026-10-25, REGRESSION-1255) to the flag-truthful
+    // reply contract sanctioned by ALERTS-RESUME-1107 (commit
+    // 90194114, "flag-truthful delivery line"): the reply no longer
+    // uses the stale "not wired" wording — it reads the delivery
+    // flag itself. With the flag OFF (NOT_WIRED above) it must say
+    // delivery isn't on and that no matches will be texted, and it
+    // must NOT carry the flag-ON sentence. The requirement — the
+    // reply never claims delivery — is asserted on both halves.
+    assert.match(out.reply, /Alert delivery isn't on yet/);
+    assert.match(out.reply, /won't text you matches/);
+    assert.doesNotMatch(out.reply, /I will text you matches/);
     assert.doesNotMatch(out.reply, /watch is live|next tick|polls the boards on the standing cadence/i);
     const box = app.db.state.career.stores.alertWatchState;
     const wp = box[app.bundle.CareerAssign.PROFILE_KEY(USER)];
@@ -172,7 +182,12 @@ if (!vm.SourceTextModule) {
     await app.chat("Pause my job alerts");
     assert.equal(app.db.state.career.stores.alertWatchState[app.bundle.CareerAssign.PROFILE_KEY(USER)].opt_out.global, true);
     const resumed = await app.chat("Resume my job alerts");
-    assert.match(resumed.reply, /not wired/i);
+    // Same flag-truthful contract as the create reply above: the
+    // resume restores the watches, and with delivery still OFF the
+    // reply says so instead of claiming matches will go out.
+    assert.match(resumed.reply, /Alert delivery isn't on yet/);
+    assert.match(resumed.reply, /won't text you matches/);
+    assert.doesNotMatch(resumed.reply, /I will text you matches/);
     assert.doesNotMatch(resumed.reply, /next tick|matches and reminds on them as before/);
     assert.equal(app.db.state.career.stores.alertWatchState[app.bundle.CareerAssign.PROFILE_KEY(USER)].opt_out.global, false);
     await app.chat("Stop watching investment banking");

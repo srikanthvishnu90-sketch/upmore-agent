@@ -433,7 +433,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await applyTurn({
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id), facts: CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
-          limits: () => admin.rpc("career_apply_daily_limit", { p_user: user.id }).then((r: any) => ({ daily: r.error ? undefined : Number(r.data) || undefined }), () => undefined),
+          limits: async () => { try { const r: any = await admin.rpc("career_apply_daily_limit", { p_user: user.id }); return { daily: r.error ? undefined : Number(r.data) || undefined }; } catch { return undefined; } },
         })
         : null;
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)

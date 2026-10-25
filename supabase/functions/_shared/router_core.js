@@ -46657,7 +46657,7 @@ const CareerRouter = (() => {
     // whole as a watch create, and the find + tracker parts were
     // never composed. ("tell me when..." stays a create: it is the
     // classicCreate futurity shape, excluded here.)
-    const tellQuestionOnly = /\btell me (what|how|whether|if)\b/.test(t)
+    const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
       && !/\btell me when\b/.test(t);
     if (classicCreate || (deliveryVerb && !tellQuestionOnly && jobObject)) return { op: "create" };

@@ -123,7 +123,14 @@ const CareerAssign = (() => {
     for (const i of (wp && wp.interests) || []) {
       if (!i.interest_id) errors.push("an interest is missing its interest_id");
       const role = i.role || {};
-      if (!role.soc || !/^\d{2}-\d{4}$/.test(role.soc)) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`);
+      // SOC: a present code must be well-formed, and a curated/split
+      // spec must carry one. ONE exception (alert path, 2026-10-24): a
+      // DERIVED spec — the user's own stated words as title + terms,
+      // built by roleSpecFor's derived shape — may carry no SOC. No code
+      // is ever invented to fill the slot; the derived spec still
+      // carries its entry blockers, and matching runs on its terms.
+      if (role.soc) { if (!/^\d{2}-\d{4}$/.test(role.soc)) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`); }
+      else if (role.derived !== true) errors.push(`interest ${i.interest_id || "?"}: role.soc must be a SOC code (NN-NNNN)`);
       if (!role.title) errors.push(`interest ${i.interest_id || "?"}: role.title is required`);
       if (!Array.isArray(role.terms) || !role.terms.length) errors.push(`interest ${i.interest_id || "?"}: role.terms must carry at least one title term`);
       const f = i.filters || {};

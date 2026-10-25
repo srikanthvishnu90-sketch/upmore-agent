@@ -167,7 +167,19 @@ function createBatchExecutor(deps) {
     // P1 text yes: the applications the owner left off the card ride the
     // approve intent (exclude_keys); 155 refuses any key not on the card.
     const exclude = Array.isArray(binding.exclude_keys) ? binding.exclude_keys : [];
-    const ap = Batch.approveRun(run, exclude.length ? { approvedByUser: true, exclude } : { approvedByUser: true });
+    // CURRENT FACTS AT THE COMMITMENT BOUNDARY (2026-10-24): the
+    // approval must bind the profile as it stands NOW, not as it
+    // stood at prepare. The executor CAN read the current profile
+    // — profileFor(userId) is a required dep (buildDeps reads it
+    // for execution) — so it is read BEFORE approveRun and the
+    // digest is computed over the CURRENT facts. The earlier shape
+    // replayed the run's STORED digest, which asserts nothing
+    // about today: a profile edited after the card still bound.
+    // A profile record that no longer exists blocks named here
+    // (the same stop the prepare side uses), never a replay.
+    const pack = (await d.profileFor(intent.userId)) || {};
+    if (!pack.profile) return { blocked: "BATCH_PROFILE_NOT_FOUND", runId: run.id, runStatus: run.status };
+    const ap = Batch.approveRun(run, { approvedByUser: true, now: nowOf(), userId: intent.userId || null, profileSha256: typeof Batch.profileDigestOf === "function" ? Batch.profileDigestOf(pack.profile) : null, ...(exclude.length ? { exclude } : {}) });
     if (!ap.ok) return { blocked: ap.code || "APPROVAL_REFUSED", runId: run.id, runStatus: run.status };
     const deps = await buildDeps(intent.userId, []);
     const baseRecords = ((deps.log && deps.log.records) || []).slice();

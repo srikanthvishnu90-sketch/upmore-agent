@@ -34,10 +34,15 @@ Deno.test("SERIAL-1410/1 the ask: these, both, all of them, the top N, the first
   for (const m of ["how do I apply to these?", "apply to the Data Analyst role at Acme", "apply to Acme", "I applied to both", "should I apply to these"]) eq(applyManyAsk(m), null, m);
 });
 
-Deno.test("SERIAL-1410/1 no list on the thread: not this turn's (the router answers as before)", async () => {
+Deno.test("SERIAL-1440/2 no list on the thread: a clarification that says what to say, nothing queued, never a router answer that disappears", async () => {
   const w = world();
-  eq(await w.turn("apply to these"), null);
-  eq(await w.turn("apply to the top 2"), null);
+  for (const m of ["apply to these", "apply to the top 2", "apply to 3 roles", "apply to the second one"]) {
+    const r = await w.turn(m);
+    eq([r?.status, r?.intent], ["no_list", "career_apply_queue"], m);
+    assert(/haven't listed any postings in this thread|no list of postings in this thread/i.test(r!.reply), r!.reply);
+    assert(/find <role> jobs in <place>/i.test(r!.reply) && /apply to the <role> role at <Company>/i.test(r!.reply), `says what to say: ${r!.reply}`);
+    assert(/nothing was queued/i.test(r!.reply), r!.reply);
+  }
   eq(await w.keys(), []);
 });
 
@@ -51,7 +56,7 @@ Deno.test("SERIAL-1410/1 'apply to these': every posting screened on its own; tw
   assert(/Not queued/.test(reply), reply);
   assert(/Contoso Analytics[^\n]*current employer/i.test(reply), `the current-employer refusal names its reason: ${reply}`);
   assert(/Fabrikam Data[^\n]*already applied/i.test(reply) && /30 days/.test(reply), `the 30-day refusal names its reason: ${reply}`);
-  assert(/Nothing is sent and nothing is filled yet/.test(reply) && /its own card/.test(reply), reply);
+  assert(/Nothing is sent and nothing is filled yet/.test(reply) && /the card that shows it exactly/.test(reply) && /one yes to that card approves exactly what it shows/.test(reply), reply);
   assert(!/\bsubmitted\b|applied for you/.test(reply.replace(/already applied[^.]*/g, "")), `never a submission claimed: ${reply}`);
   eq(r!.queued?.map((p) => p.job_id), ["greenhouse:chattest:7", "greenhouse:chatsib:8"]);
   eq(r!.refused?.length, 2);

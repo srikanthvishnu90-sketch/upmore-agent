@@ -79,7 +79,7 @@ export interface ApplyChatDeps {
 }
 export interface ShortlistEntry { id?: string | null; title?: string | null; company?: string | null; location?: string | null; url?: string | null }
 export type ApplyChatResult = {
-  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable"; intent: typeof APPLY_QUEUE_INTENT;
+  reply: string; status: "queued" | "already" | "none" | "which" | "refused" | "unreadable" | "pace_unknown" | "pace_unreadable" | "no_list"; intent: typeof APPLY_QUEUE_INTENT;
   posting?: { job_id: string; company: string; title: string };
   // The batch ask: what went into the queue and what did not, each with its reason.
   queued?: { job_id: string; company: string; title: string }[]; refused?: { job_id: string | null; company: string; title: string; reason: string }[];
@@ -146,14 +146,14 @@ export async function paceTurn(o: { message: string; userId: string; admin: { rp
     if (/invalid pace/.test(msg)) return { reply: `${ask.pace} is not a pace I can keep: ${PACE_RULE}. Your pace is unchanged.`, status: "refused", intent };
     return { reply: "I couldn't save that just now, so your pace is unchanged. Say it again in a minute.", status: "unreadable", intent };
   }
-  if (ask.pace === null) return { reply: "Done: no daily pace. I queue what you ask for, one application per employer in 30 days, and each goes only when you approve it on its card.", status: "none", intent };
+  if (ask.pace === null) return { reply: "Done: no daily pace. I queue what you ask for, one application per employer in 30 days, and each goes only when you approve it on the card that shows it exactly.", status: "none", intent };
   const n = Number(r?.data?.pace ?? ask.pace);
   return { reply: `Done: your daily pace is ${n} a day. I won't queue more than that in a day; say "no daily pace" to lift it, or a new number to change it.`, status: "set", intent };
 }
 
 
 const NOTHING_SENT = (company: string) =>
-  `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on its card.`;
+  `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
 
 export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
   // The batch ask first: applyAsk's employer grammar is case-blind, so "apply to the top 2" would read as an employer.
@@ -198,7 +198,7 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
   return { reply: `Not queued: ${why}.`, status: "refused", intent, posting };
 }
 
-const NOTHING_SENT_MANY = "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here. Each application goes to its employer only when you approve it on its own card, exactly as shown there.";
+const NOTHING_SENT_MANY = "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here. Each application goes to its employer only when you approve it on the card that shows it exactly; one card can carry several, and one yes to that card approves exactly what it shows.";
 const nameOf = (p: { title?: string | null; company?: string | null }) => `${p.title || "the posting"} at ${p.company || "an employer not on record"}`;
 const listed = (names: string[], max = 12) => names.length <= max ? names.join("; ") : `${names.slice(0, max).join("; ")}; and ${names.length - max} more`;
 
@@ -207,8 +207,11 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   const ask = applyManyAsk(o.message);
   if (!ask) return null;
   const list = (o.shortlist ?? []).filter((e) => e && (e.url || e.id));
-  if (!list.length) return null;
   const intent = APPLY_QUEUE_INTENT;
+  // SERIAL-1440 (2): with no list on this thread the ask still gets an answer that says what to say, never a catch-all.
+  if (!list.length) {
+    return { reply: `I haven't listed any postings in this thread yet, so there is nothing for "these" to mean; nothing was queued. Say "find <role> jobs in <place>" first and then "apply to these", or name one: "apply to the <role> role at <Company>".`, status: "no_list", intent, queued: [], refused: [] };
+  }
   let slice: ShortlistEntry[], note = "";
   if (ask.kind === "nth") {
     if (ask.i > list.length) return { reply: `I listed ${list.length}, so there is no ${["first", "second", "third", "fourth", "fifth"][ask.i - 1]} one; nothing was queued. Say which of the ${list.length} you mean.`, status: "none", intent };

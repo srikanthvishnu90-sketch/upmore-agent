@@ -1,47 +1,66 @@
-// Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
-// on the exact payload does. A chat "yes" may only open a card or bind the cloud opt-in. It never approves or fires a
-// send: no approve, no queue, no claim, no finish. Every real send needs the person's tap on the exact hash-bound
-// payload. This drives the real chat turns with recording stores and every way a yes can be typed. On the base
-// (348c2d4a) the WO-022 card's text yes approves and queues (career_apply_card_answer_as -> career_apply_enqueue, which
-// the person's own-computer worker then claims and finishes), and the cloud card's yes turn does not exist: both fail.
+// The card's yes (SERIAL-1440 (1); the owner, 2026-10-22 5:09 PM: "for submitting a yes, does handle a batch of
+// submissions"): one texted yes to the prepared-applications card approves exactly the batch that card shows, and only
+// then: as a direct reply while the card is the thread's last word, within 10 minutes of its showing, once (the card is
+// single-use), each item by the payload hash the card carries (an item that changed since is refused by name). The yes
+// approves; it never sends: the person's own worker claims and finishes, and no chat turn module names a claim or finish
+// door. The cloud card (the bridge draft, C9) is unchanged: its yes only opens that card. Before this file's change
+// (Option A, chosen 2026-10-22 under the owner's delegation) every yes was refused with "tap Approve".
 // Synthetic only; no network, no database.
 import { CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 const ok = (v: unknown, why: string) => { if (!v) throw new Error(why); };
-const YES_FORMS = ["yes", "Yes!", "yep", "yeah", "y", "approve", "approve all", "yes please", "yes send them", "send them", "send all",
-  "yes but not 2", "yes except 1", "approve, skip 2"];
+const YES_FORMS = ["yes", "Yes!", "yep", "yeah", "y", "approve", "approve all", "yes please", "yes send them", "send them", "send all"];
+const EXCEPT_FORMS = ["yes but not 2", "yes except 1", "approve, skip 2"];
 // Every database door that approves, queues, claims or finishes an application.
 const SEND_DOORS = /career_apply_(card_answer_(as|own)|message_card_approve_own|batch_approve_own|enqueue|cloud_begin_agent_own|extension_begin(_agent)?_own|claim(_own|_at)?|cloud_claim(_at)?|finish|cloud_finish)\b/;
 const NOW = Date.parse("2026-10-22T13:00:00Z");
 
-function wo022Store() {
+function wo022Store(o: { shownAgoMs?: number; changed?: number[]; open?: boolean } = {}) {
   const approvals: number[][] = [];
+  let open = o.open ?? true;
   const store: CardStore = {
     async pending() { return []; },
     async open() { throw new Error("not used"); },
-    async latestOpen() { return { id: "card-1", items: [{ n: 1, prepared_id: "p1", payload_hash: "a".repeat(64) }, { n: 2, prepared_id: "p2", payload_hash: "b".repeat(64) }], shown_at: new Date(NOW - 60_000).toISOString() }; },
-    // career_apply_card_answer_as: approving any number enqueues that application (20261020050000).
-    async answer(_u, _c, approve) { approvals.push(approve); return approve.map((n) => ({ n, company: `Synthetic ${n}`, result: "queued" })); },
+    async latestOpen() { return open ? { id: "card-1", items: [{ n: 1, prepared_id: "p1", payload_hash: "a".repeat(64) }, { n: 2, prepared_id: "p2", payload_hash: "b".repeat(64) }], shown_at: new Date(NOW - (o.shownAgoMs ?? 60_000)).toISOString() } : null; },
+    // career_apply_card_answer_as: approving a number enqueues that application by its shown hash; a changed one is refused; the card closes.
+    async answer(_u, _c, approve) { approvals.push(approve); open = false; return [1, 2].map((n) => ({ n, company: `Synthetic ${n}`, result: (o.changed ?? []).includes(n) ? "changed" : approve.includes(n) ? "queued" : "declined" })); },
     async lastAssistantIntent() { return CARD_INTENT; },
   };
   return { store, approvals };
 }
 
-Deno.test("text yes never sends: the prepared-applications card (WO-022) approves and queues nothing on any yes", async () => {
+Deno.test("the card's yes: a direct yes within 10 minutes approves exactly the shown batch; 'yes but not 2' leaves 2 out; nothing is sent by the yes itself", async () => {
   for (const m of YES_FORMS) {
     const s = wo022Store();
     const r = await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: s.store });
-    ok(r !== null, `"${m}" is still answered (told how to send), not ignored`);
-    ok(s.approvals.every((a) => a.length === 0), `"${m}" approved ${JSON.stringify(s.approvals)}: a text yes queued an application`);
-    ok(r!.status === "needs_tap" && /doesn't send anything/.test(r!.reply) && /tap Approve/.test(r!.reply) && !/\b(was|were|been|is|are) (sent|queued|approved)\b/i.test(r!.reply),
-      `"${m}" must say nothing was sent and how to send: ${JSON.stringify(r)}`);
+    ok(r?.status === "answered" && JSON.stringify(s.approvals) === "[[1,2]]", `"${m}" approves the whole card: ${JSON.stringify({ r, approvals: s.approvals })}`);
+    ok(/2 approved exactly as shown/.test(r!.reply) && /Nothing has gone to an employer yet/.test(r!.reply), `"${m}": the words say approved, not sent: ${r!.reply}`);
   }
+  for (const m of EXCEPT_FORMS) {
+    const s = wo022Store();
+    const r = await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: s.store });
+    const left = Number(m.match(/\d/)![0]);
+    ok(r?.status === "answered" && s.approvals.length === 1 && !s.approvals[0].includes(left) && s.approvals[0].length === 1, `"${m}" leaves ${left} out: ${JSON.stringify(s.approvals)}`);
+  }
+});
+
+Deno.test("the card's yes: refused outside the 10-minute window, after the card was answered, and for an item that changed since it was shown", async () => {
+  const late = wo022Store({ shownAgoMs: 11 * 60_000 });
+  const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: late.store });
+  ok(r?.status === "stale_card" && /more than 10 minutes ago/.test(r!.reply) && /show my applications/.test(r!.reply) && late.approvals.length === 0, `late yes: ${JSON.stringify(r)}`);
+  const once = wo022Store();
+  await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: once.store });
+  const again = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW + 1000, store: once.store });
+  ok(again === null && once.approvals.length === 1, `a second yes finds no open card: ${JSON.stringify({ again, approvals: once.approvals })}`);
+  const changed = wo022Store({ changed: [2] });
+  const c = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: changed.store });
+  ok(c?.status === "answered" && /2\. Synthetic 2: not sent: it changed after the card was shown/.test(c!.reply) && /1 approved exactly as shown/.test(c!.reply), `changed item refused by name: ${c?.reply}`);
   // A text no still declines (declining sends nothing): the decline reaches the door with no approvals.
   const s = wo022Store();
   await cardTurn({ message: "no", userId: "u", threadId: "t", now: NOW, store: s.store });
   ok(JSON.stringify(s.approvals) === "[[]]", `a no declines with no approvals: ${JSON.stringify(s.approvals)}`);
 });
 
-Deno.test("text yes never sends: the cloud card's yes only opens the card, calling no approve, queue, claim or finish door", async () => {
+Deno.test("the cloud card's yes only opens the card (C9, bridge draft), calling no approve, queue, claim or finish door", async () => {
   let mod: any;
   try { mod = await import("../../supabase/functions/_shared/career_cloud_card_chat.ts"); } catch (e) { throw new Error(`the cloud card's yes turn is absent: ${e}`); }
   const CARD = "11111111-2222-4333-8444-555555555555";
@@ -61,7 +80,7 @@ Deno.test("text yes never sends: the cloud card's yes only opens the card, calli
   ok(!("approve" in mod.personCloudCardStore({ from() {}, rpc() {} })), "the person's chat store has no approve method at all");
 });
 
-Deno.test("text yes never sends: no chat turn module names a claim or finish door, and the cloud card turn names no send door", async () => {
+Deno.test("no chat turn module names a claim or finish door, and the cloud card turn names no send door", async () => {
   const read = (p: string) => Deno.readTextFile(new URL(`../../supabase/functions/${p}`, import.meta.url));
   for (const p of ["agent-chat/handler-career.ts", "_shared/career_apply_cards.ts", "_shared/career_cloud_optin.ts", "_shared/career_apply_confirm.ts", "_shared/career_apply_questions.ts"]) {
     const src = await read(p);

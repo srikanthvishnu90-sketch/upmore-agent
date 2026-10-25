@@ -7,7 +7,8 @@
 //            nothing is approved, filled or sent
 //   prepare  prepare-ahead.ts prepareAhead draws both; shared facts asked once; the essay asked once PER posting
 //   answers  "what do you need from me" / "use N" / "N <text>" through handleChat
-//   card     career_apply_card_open_own / card_answer_own, one tap per application, each its own exact payload
+//   card     "show my applications" -> one card with both; their one text "yes" within 10 minutes approves exactly those
+//            two payloads (D-031), each by the hash the card carries
 //   drive    runApproved -> scripts/apply.ts, once per employer; each receives only its own essay
 // Everything but the employer pages (127.0.0.1) and the person's taps is the product's own code.
 // Fail-first on b3c23bf5: "apply to these" is the router's catch-all ("I did not catch what to do with that one"),
@@ -91,7 +92,7 @@ Deno.test({
       await supabaseParity(pg);
       const JOB = "greenhouse:chattest:7", JOB2 = "greenhouse:chatsib:8", JOB3 = "greenhouse:current:9", JOB4 = "greenhouse:prior:10";
       const CURRENT = "Contoso Analytics", PRIOR = "Fabrikam Data";
-      const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000e2";
+      const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000e2", OTHER = "7b0f8f8e-6a43-4a49-9d2c-0000000000e3";
       const rows = [
         [JOB, "greenhouse", "chattest", COMPANY, ROLE, "https://boards.greenhouse.io/chattest/jobs/7"],
         [JOB2, "greenhouse", "chatsib", SIBLING, ROLE, "https://boards.greenhouse.io/chatsib/jobs/8"],
@@ -103,13 +104,13 @@ Deno.test({
         ${rows.map((r) => `('${r[0]}', '${r[1]}', '${r[2]}', '${r[3]}', '${r[4]}', 'Chicago, IL', '${r[5]}', '${desc}', now(), now())`).join(",")};
         insert into public.career_kb_postings (posting_key, source, board, company, title, location, url, posted_at, text_excerpt, content_hash) values
         ${rows.map((r, i) => `('${r[0]}', '${r[1]}', '${r[2]}', '${r[3]}', '${r[4]}', 'Chicago, IL', '${r[5]}', now() - interval '${i} hours', '${desc}', 'h${i}')`).join(",")};
-        insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test');
-        insert into public.profiles (id) values ('${PERSON}');
-        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
+        insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test'), ('${OTHER}', '${OTHER}@example.test');
+        insert into public.profiles (id) values ('${PERSON}'), ('${OTHER}');
+        insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}'), ('${OTHER}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
         insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at)
         values ('${PERSON}', 'greenhouse:prior:3', '${PRIOR}', 'https://boards.greenhouse.io/prior/jobs/3', '{}', repeat('a', 64), repeat('a', 64), 'submitted_unconfirmed', now() - interval '10 days');`);
       const svc = pg.asService(), person = pg.asPerson(PERSON);
-      agentChat = await careerHandler(pg, { "tok-person": PERSON });
+      agentChat = await careerHandler(pg, { "tok-person": PERSON, "tok-other": OTHER });
       const chat: Chat = agentChat.chat("tok-person");
       const memory = memoryResumeStore();
       const resumes: ResumeStore = {
@@ -134,6 +135,13 @@ Deno.test({
         assert((stated as any[]).some((f) => f.kind === "experience" && f.value === CURRENT), `their current employer is on the record: ${JSON.stringify(stated)}`);
       });
 
+      await t.step("chat: 'apply to these' before any list: told what to say, nothing queued, no catch-all", async () => {
+        const r = await say("apply to these");
+        assertEquals([r.intent, r.resultStatus], ["career_apply_queue", "no_list"], r.reply);
+        assert(/find <role> jobs in <place>/i.test(r.reply) && /apply to the <role> role at <Company>/i.test(r.reply) && /nothing was queued/i.test(r.reply), r.reply);
+        assertEquals(await wanted(), []);
+      });
+
       await t.step("chat: 'find analyst jobs in Chicago' lists the four postings; the served list stays on the thread", async () => {
         const r = await say("find analyst jobs in Chicago");
         assertEquals(r.intent, "career_discovery", r.reply);
@@ -151,12 +159,25 @@ Deno.test({
         assert(/Queued 2/.test(r.reply) && r.reply.includes(`${ROLE} at ${COMPANY}`) && r.reply.includes(`${ROLE} at ${SIBLING}`), r.reply);
         assert(new RegExp(`${CURRENT}[^\\n]*current employer`, "i").test(r.reply), `the current-employer refusal, with its reason: ${r.reply}`);
         assert(new RegExp(`${PRIOR}[^\\n]*already applied`, "i").test(r.reply) && /30 days/.test(r.reply), `the 30-day refusal, with its reason: ${r.reply}`);
-        assert(/nothing (is|was) (sent|submitted)/i.test(r.reply) && /its own card/.test(r.reply), r.reply);
+        assert(/nothing (is|was) (sent|submitted)/i.test(r.reply) && /the card that shows it exactly/.test(r.reply) && /one yes to that card approves exactly what it shows/.test(r.reply), r.reply);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and company in ('${COMPANY}', '${SIBLING}')`), "0", "nothing approved: no queue row until their tap");
         assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0);
         const again = await say("apply to these");
         assertEquals(again.resultStatus, "already", again.reply);
         assertEquals((await wanted()).length, 2);
+      });
+
+      await t.step("SERIAL-1441: another person, and the same person in a new thread, have no list to apply from; nothing of the first thread's is seen or queued", async () => {
+        const other: Chat = agentChat!.chat("tok-other");
+        const o = await other.say("apply to these");
+        assertEquals([o.status, o.intent, o.resultStatus], [200, "career_apply_queue", "no_list"], o.reply);
+        assert(!o.reply.includes(COMPANY) && !o.reply.includes(SIBLING), `the first person's postings are not named to another person: ${o.reply}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_wanted where user_id = '${OTHER}'`), "0", "nothing queued for the other person");
+        const fresh: Chat = agentChat!.chat("tok-person");
+        const f = await fresh.say("apply to these");
+        assertEquals([f.intent, f.resultStatus], ["career_apply_queue", "no_list"], `a new thread has no list of its own: ${f.reply}`);
+        assert(fresh.thread() !== chat.thread(), "a different thread");
+        assertEquals((await wanted()).length, 2, "the first thread's two stay as they were; the new thread added nothing");
       });
 
       const useAll = async (labels: string[]) => {
@@ -194,7 +215,7 @@ Deno.test({
       const FIRST_WHY = "I built the TEST Chat analytics pipeline and want to keep building it.";
       const SIBLING_WHY = "TEST Sibling ships weekly and I want to learn that pace.";
       let preparedId = "", preparedId2 = "";
-      await t.step("their words: the first employer's essay readies the first only; the sibling waits for its own, then is ready with that text alone", async () => {
+      await t.step("their words (SERIAL-1441: a posting-bound answer never crosses postings in a batch): the first employer's essay readies the first only; the sibling waits for its own, then is ready with that text alone", async () => {
         await useAll(["Phone", SPONSOR, AUTH]);
         let shown = await say("what do you need from me");
         await say(`${lineFor(shown.reply, WHY, COMPANY)} ${FIRST_WHY}`);
@@ -211,15 +232,16 @@ Deno.test({
         assertEquals([await why(preparedId), await why(preparedId2)], [FIRST_WHY, SIBLING_WHY]);
       });
 
-      await t.step("their taps: one card each, each its own exact payload; drive: each employer receives only its own essay, once", async () => {
-        for (const id of [preparedId, preparedId2]) {
-          const card = await person.rpc("career_apply_card_open_own", { p_ids: [id] });
-          assertEquals(card.error, null, JSON.stringify(card.error));
-          const answer = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
-          assertEquals(answer.error, null, JSON.stringify(answer.error));
-          assertEquals(answer.data?.[0]?.result, "queued");
-        }
-        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2");
+      await t.step("their one yes: the card shows both; a direct text yes within 10 minutes approves exactly those two payloads; drive: each employer receives only its own essay, once", async () => {
+        const card = await say("show my applications");
+        assertEquals([card.intent, card.resultStatus], ["career_apply_card", "shown"], card.reply);
+        assert(/2 applications are ready/.test(card.reply) && card.reply.includes(FIRST_WHY) && card.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${card.reply}`);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "0", "showing approves nothing");
+        const yes = await say("yes");
+        assertEquals(yes.resultStatus, "answered", `SERIAL-1440 (1): one text yes approves the batch the card shows: ${yes.reply}`);
+        assert(/2 approved exactly as shown/.test(yes.reply) && /Nothing has gone to an employer yet/.test(yes.reply), yes.reply);
+        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, by the hashes the card carried");
+        assertEquals(await say("yes").then((r) => r.resultStatus === "answered"), false, "a second yes approves nothing: the card is single-use");
         const queue = ownQueue(person);
         const done = await runApproved({
           claim: () => queue.claim(2),

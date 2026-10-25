@@ -30,7 +30,7 @@ Deno.test("queued once, said truthfully; a repeat changes nothing; no posting on
   const w = world([posting(1)]);
   const r = await w.turn("apply to the Data Analyst role at Test Co 1");
   eq([r?.status, r?.intent], ["queued", "career_apply_queue"]);
-  assert(/Nothing is sent and nothing is filled yet/.test(r!.reply) && /approve it on its card/.test(r!.reply), r!.reply);
+  assert(/Nothing is sent and nothing is filled yet/.test(r!.reply) && /approve it on the card that shows it exactly/.test(r!.reply), r!.reply);
   eq((await w.wants.list("u1")).map((x) => x.posting_key), ["greenhouse:testco1:1"]);
   eq((await w.turn("apply to the Data Analyst role at Test Co 1"))?.status, "already");
   eq(await w.turn("apply to the Data Analyst role at Nowhere Inc"), null, "not on file: the router's turn");

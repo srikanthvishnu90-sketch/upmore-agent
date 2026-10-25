@@ -85,7 +85,7 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
   return {
     async pending() { return []; },
     async open() { throw new Error("not used"); },
-    async latestOpen() { return { id: "CARD-1", items: results.map((r) => ({ n: r.n, prepared_id: `P-${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(T - 3600000).toISOString() }; },
+    async latestOpen() { return { id: "CARD-1", items: results.map((r) => ({ n: r.n, prepared_id: `P-${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(T - 60000).toISOString() }; }, // D-031: a text yes counts within 10 minutes of the card
     async answer() { return results; },
     async lastAssistantIntent() { return CARD_INTENT; },
   };
@@ -94,10 +94,8 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
 Deno.test("WO-027/E2 a card answer writes each line (approved, or why not sent); a receipt writes application_finished once", async () => {
   const events = memoryEventStore();
   const store = cardStore([{ n: 1, company: "Ramp", result: "declined" }, { n: 2, company: "Plaid", result: "declined" }]);
-  eq((await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events }))?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
-  eq(events.dump().length, 0, "a text yes answers nothing, so writes nothing");
-  const r = await cardTurn({ message: "no", userId: U, threadId: "TH", now: T, store, events });
-  eq(r?.status, "answered");
+  const r = await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events });
+  eq(r?.status, "answered", "SERIAL-1440 (1): the text yes answers the card; each line is written as the queue reported it");
   eq(events.dump().map((e) => [e.kind, e.subject, e.detail.result, e.source]), [["status_change", "Ramp", "declined", "card"], ["status_change", "Plaid", "declined", "card"]]);
   eq((await cardTurn({ message: "show my applications", userId: U, threadId: "TH", now: T, store: { ...store, pending: async () => [] }, events }))?.status, "empty");
   eq(events.dump().length, 2, "showing nothing writes nothing");

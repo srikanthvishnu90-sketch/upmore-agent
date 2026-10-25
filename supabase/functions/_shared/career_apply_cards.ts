@@ -1,5 +1,6 @@
 // WO-022 W2 + W3: the card of prepared applications and the one text that answers it. Code decides what was approved;
-// the model never does. Every word of a card comes from the engine's own card lines (what the dry run read back from the
+// the model never does. D-031 (SERIAL-1440): one direct text yes within 10 minutes approves exactly the batch the card
+// shows, once, by the hashes it carries; it never sends. Every word of a card comes from the engine's own card lines (what the dry run read back from the
 // form); every word of an answer from the queue's own results.
 //
 // Declining is "no", never "stop": over SMS, STOP is the carrier's opt-out keyword, and trainee-inbound treats it as the
@@ -41,6 +42,7 @@ export type CardReply =
 
 export const CARD_INTENT = "career_apply_card";
 export const MAX_PER_CARD = 8;
+export const YES_WINDOW_MS = 10 * 60_000; // D-031: a text yes counts only this long after the card was shown
 export const CARD_CHAR_BUDGET = 1600; // one card with two or more applications stays under this
 export const CARD_HARD_LIMIT = 4000; // one application alone may go up to the outbox's limit, never cut
 
@@ -165,19 +167,16 @@ export async function cardTurn(
       status: "not_on_card",
     };
   }
-  if (Date.parse(card.shown_at) < o.now - 24 * 3600000) {
-    return {
-      reply: `That card is more than a day old, so nothing was sent. Say "show my applications" to see them again.`,
-      status: "expired",
-    };
-  }
-  // Option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap
-  // on the exact payload does (the card's Approve in the app). A text "no" still declines: declining sends nothing.
+  // D-031 (the owner, 2026-10-22 5:09 PM: one yes handles a batch of submissions): a direct yes to this card, within
+  // 10 minutes of its showing, approves exactly the applications it names, each by the payload hash the card carries
+  // (career_apply_card_answer_own: an item that changed since is refused by name; the card is single-use). The yes
+  // approves and never sends: the person's own worker claims and finishes. A later yes approves nothing. A "no" declines
+  // at any time: declining sends nothing.
   const approve = numbers.filter((n) => !leaveOut.includes(n));
-  if (approve.length) {
+  if (approve.length && Date.parse(card.shown_at) < o.now - YES_WINDOW_MS) {
     return {
-      reply: "A text yes doesn't send anything. Open your applications in the app and tap Approve on each one you want sent; Trainee sends exactly what you approve there.",
-      status: "needs_tap",
+      reply: `That card was shown more than 10 minutes ago, so a text yes can't approve it; nothing was sent. Say "show my applications" for a fresh card, or tap Approve in the app.`,
+      status: "stale_card",
     };
   }
   try {

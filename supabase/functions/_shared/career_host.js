@@ -302,10 +302,21 @@ const CareerHost = (() => {
     // asynchronous worker execution, not a wired in-turn drive, and
     // no WIRED claim is made for it.
     const delegateBatch = !!(deps && deps.delegateBatch === true);
-    const workerCapabilities = boardFor
-      ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES, {
-          portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
-        }))
+    // ALERT DELIVERY FLAG (2026-10-25): the composition root may
+    // install the alert-delivery capability the same way it installs
+    // boardFor — deps.jobAlertDelivery, a capability object the
+    // router reads on ctx.workerCapabilities.job_alert_delivery
+    // (live === true or status === "LIVE" reads ON; anything else,
+    // including the module-level NOT_WIRED default, reads OFF).
+    // RUNTIME wiring only: workerCapabilities is not a STATE_KEYS
+    // entry, so no snapshot can carry or resurrect it.
+    const jobAlertDelivery = deps && deps.jobAlertDelivery && typeof deps.jobAlertDelivery === "object" ? Object.freeze(Object.assign({}, deps.jobAlertDelivery)) : null;
+    const workerCapabilities = (boardFor || jobAlertDelivery)
+      ? Object.freeze(Object.assign({}, WORKER_CAPABILITIES,
+          boardFor ? {
+            portal_browser: Object.freeze({ status: "WIRED", transport: "career_task_bridge", reason: "Board sessions resolve through career_task_bridge to the owned browser worker. A worker unreachable at drive time stops each drive named BOARD_NOT_WIRED; no board is ever faked." }),
+          } : null,
+          jobAlertDelivery ? { job_alert_delivery: jobAlertDelivery } : null))
       : WORKER_CAPABILITIES;
 
     // Build the hosted ctx for one turn. `snapshot` is the object previously
@@ -318,7 +329,14 @@ const CareerHost = (() => {
         threadId: o.threadId || null,
         postings: Array.isArray(o.postings) ? o.postings : [],
         containmentRecords: [],
-        workerCapabilities,
+        // A per-ctx copy of the capabilities container: the values
+        // stay the host's frozen stamps, but runtime wiring for THIS
+        // turn (a connected delivery worker, a test harness acting
+        // as the composition root) can attach or replace a capability
+        // on this ctx — the frozen module-level container made the
+        // job_alert_delivery seam unwritable, so the flag the router
+        // reads could never be turned on by anyone.
+        workerCapabilities: Object.assign({}, workerCapabilities),
         accountPersistence: o.accountPersistence === true,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");

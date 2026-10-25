@@ -139,3 +139,31 @@ the router own the wording, `statusReply` is pure and can be called with rows th
   a save and a prepared packet when neither exists, as in `tests/architect/pending/g2-workauth-honest.test.ts`) are
   Muse's.
 - Nothing is applied or deployed. The handler changes reach people only on the owner's deploy.
+
+## Running the real flows yourself (JOIN-1202)
+
+`bash tests/flow/run-real-flow.sh` runs `flow-real-person.test.ts` and `flow-connected.test.ts` on a throwaway
+Postgres 16 with CI's migration order and a sandboxed Chromium. It sets `CI=true`, so a missing Postgres or browser
+fails the run; it never prints NOT_RUN and passes. As root it re-runs itself as the `postgres` account, because
+Chromium's sandbox refuses root.
+
+Needs:
+- **Postgres 16:** `/usr/lib/postgresql/16/bin`, or `PGBIN=`.
+- **Deno and Node:** Deno 2.9.6 and Node 22 on `PATH`.
+- **Playwright 1.64.1:** `npm ci --prefix tools`.
+- **A Chromium:** `UPMORE_CHROMIUM_PATH=` (CI uses the runner's `google-chrome`). Otherwise Playwright's own, from
+  `(cd tools && npx --no-install playwright install chromium)`.
+- **Network once:** to fetch the tests' imports.
+
+Measured at 455da675, warm: 3 tests and 24 steps in 1m23s. flow-real-person took about 28s, flow-connected G1 25s and
+G4 37 to 44s. The gate also runs both under `CI=true` in GitHub Actions (`architect-tests`).
+
+Exact local environment used:
+
+```
+UPMORE_PLAYWRIGHT_PATH=<checkout>/tools/node_modules/playwright
+UPMORE_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome   (Chromium 141)
+PGBIN=/usr/lib/postgresql/16/bin   (PostgreSQL 16.15)
+deno 2.9.6
+node 22
+```

@@ -46572,7 +46572,10 @@ const CareerRouter = (() => {
     if (/\b(daily\s+)?(summary|digest|roundup)\b/.test(t) && /\b(at|to|move|change|set|make|instead|morning|evening|am\b|pm\b|\d)/.test(t)) return { op: "summary_time" };
     // PAUSE — plain or timed (the timed half is the unsupported part).
     const timedM = /\bfor (a|one|two|three|four|\d+)\s+(weeks?|days?|months?)\b/.test(t) || /\buntil\s+(next|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t);
-    if (/\bpause\b/.test(t) && (alertNoun || frame)) return { op: "pause", timed: timedM };
+    // A pause claimed on the standing alert frame alone must be alert-sized: "pause everything", "pause all of it",
+    // "pause outreach/submissions" is the global halt (STEP 3 F0, 2026-10-25), whatever frame stands.
+    const globalPauseScope = /\b(everything|all of it|all queues|every queue|outreach|submissions|applications)\b/.test(t);
+    if (/\bpause\b/.test(t) && (alertNoun || (frame && !globalPauseScope))) return { op: "pause", timed: timedM };
     if (frame && /^\s*(ok|okay|alright)?[,.]?\s*pause( it)?[.!]?\s*$/.test(t)) return { op: "pause", timed: false };
     // RESUME — resolved against the record itself, never a guess.
     if (wp && /\bturn (them|it|everything|that) back on\b/.test(t)) return { op: "resume" };
@@ -46601,7 +46604,8 @@ const CareerRouter = (() => {
     // boss about the internships" is not the user's own alert.
     if (/\b(text|tell|email|message|write to)\s+(my|the)\s+(boss|manager|supervisor)\b/.test(t)) return null;
     const classicCreate = /\bwatch for\b|\bset up a watch\b|\bcreate a watch\b|\bstart watching\b|\bset (up )?(an )?alerts?\b|\balert me (when|for|about)\b|\bnotify me (when|about|for)\b|\blet me know\b|\btell me when\b|^\s*watch\s+(?!out\b)[a-z][a-z /-]{0,60}?\b(roles?|jobs?|openings?|positions?|postings?)\b|\bping me when\b|\bget pinged when\b|\bpinged when\b/.test(t);
-    const deliveryVerb = /\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/.test(t);
+    const deliveryM = t.match(/\b(text|message|ping|notify|tell|send|dm)\s+me\b|\blet me know\b|\bheads up\b|\bkeep an eye (out )?on\b|\bi (want to|wanna|would like to) (know|hear|be notified)\b|\bping me\b/);
+    const deliveryVerb = !!deliveryM;
     // The job object must be IN the ask — a job-container noun or a
     // posting trigger. watchRoleFromText alone is NOT one: its
     // stated-words fallback manufactures a "role" out of almost any
@@ -46620,7 +46624,15 @@ const CareerRouter = (() => {
     // when a role opens up?", "can you notify me about finance
     // roles?").
     if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
-    if (classicCreate || (deliveryVerb && jobObject)) return { op: "create" };
+    // A delivery verb composes with a job object only when the job is what would be delivered: the job noun comes
+    // AFTER the verb ("text me about finance roles", "keep an eye out on PM roles"), or a future trigger is in the
+    // turn ("text me the minute a role opens up"). A job noun earlier in the turn followed by "send me the PDF"
+    // (CB-0495, the tailor's) or "tell me what my tracker looks like" (the tracker's) is another family's turn
+    // (STEP 3 F0, 2026-10-25: this claim ate those turns from 90194114 on).
+    const JOB_NOUN_RE = /\b(jobs?|roles?|openings?|positions?|postings?|internships?)\b/;
+    const jobAfterDelivery = deliveryM ? JOB_NOUN_RE.test(t.slice(deliveryM.index + deliveryM[0].length)) : false;
+    const futureTrigger = /\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t);
+    if (classicCreate || (deliveryVerb && jobObject && (jobAfterDelivery || futureTrigger))) return { op: "create" };
     return null;
   }
   function alertTargetsOf(wp, text) {

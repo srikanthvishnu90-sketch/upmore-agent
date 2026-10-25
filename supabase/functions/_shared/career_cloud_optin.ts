@@ -36,11 +36,23 @@ async function sha256(t: string) {
 }
 const NOT_ON = 'Nothing was turned on. To turn on the cloud, text "apply for me in the cloud" to see the terms again, then reply "yes".';
 
+// The person's own pace as a number, or null: anything unset, zero, negative, non-finite or not a number is no pace at all
+// (the same rule as career_apply.ts dailyLimit and the SQL career_apply_daily_limit after 20261025140000).
+export function ownPace(v: unknown): number | null {
+  const n = Math.floor(Number(v));
+  return v !== null && v !== undefined && v !== "" && Number.isFinite(n) && n >= 1 ? n : null;
+}
+// How many a day, in the person's terms: their own number when they set one, and no product number otherwise.
+export function paceText(daily: unknown): string {
+  const n = ownPace(daily);
+  return n === null ? "with no daily limit unless you set your own pace" : `up to ${n} a day, the pace you set yourself`;
+}
+
 export function termsText(daily: number | null): string {
   return [
     TERMS_HEAD,
     "1. Which postings: only applications you approve on a card, on Greenhouse, Lever and Ashby, and only on a site where applications sent by hand have already been confirmed by the employers' own emails.",
-    `2. How many a day: ${daily ? `up to ${daily} a day, the pace you set yourself` : "no daily limit unless you set your own pace"}, and never two to the same company within 30 days.`,
+    `2. How many a day: ${ownPace(daily) === null ? "no daily limit unless you set your own pace" : paceText(daily)}, and never two to the same company within 30 days.`,
     "3. Each one still needs your yes on its card, one at a time or as a batch. Nothing you have not approved is ever sent.",
     "4. If a site shows a verification check, Trainee does not solve it. It stops and sends you the link to finish that one yourself.",
     'Reply "yes" to turn it on. Text "cloud off" any time to turn it off.',
@@ -50,7 +62,7 @@ export function termsText(daily: number | null): string {
 export interface CloudOptinStore {
   dailyLimit(userId: string): Promise<number | null>;
   get(userId: string): Promise<{ enabled: boolean; daily?: number | null }>;
-  set(userId: string, on: boolean, terms: string | null): Promise<{ enabled: boolean; daily?: number }>;
+  set(userId: string, on: boolean, terms: string | null): Promise<{ enabled: boolean; daily?: number | null }>;
   lastAssistant(threadId: string): Promise<{ intent: string | null; content: string | null; at: number | null }>;
   // How many texts were queued to the person after a time, other than the thread's own replies.
   outboxSince(userId: string, at: number): Promise<number>;
@@ -73,7 +85,7 @@ export async function cloudTurn(
     const s = await o.store.get(o.userId);
     return {
       reply: s.enabled
-        ? `The cloud is on, up to ${s.daily ?? 25} a day, and only for applications you approve on a card. Text "cloud off" to turn it off.`
+        ? `The cloud is on, ${paceText(s.daily)}, and only for applications you approve on a card. Text "cloud off" to turn it off.`
         : `The cloud is off. Text "apply for me in the cloud" to see exactly what turning it on means.`,
       status: s.enabled ? "on" : "off",
       intent: "career_cloud_status",
@@ -98,7 +110,7 @@ export async function cloudTurn(
   }
   const r = await o.store.set(o.userId, true, terms);
   return {
-    reply: `The cloud is on, up to ${r.daily ?? 25} a day. Each application still waits for your yes on its card. Text "cloud off" any time to turn it off.`,
+    reply: `The cloud is on, ${paceText(r.daily)}. Each application still waits for your yes on its card. Text "cloud off" any time to turn it off.`,
     status: "on",
     intent: "career_cloud_on",
   };
@@ -118,10 +130,12 @@ export function supabaseCloudOptinStore(admin: any): CloudOptinStore {
       return r === null || r === undefined || !Number.isFinite(n) || n < 1 ? null : n;
     },
     async get(userId) {
-      return must(await admin.rpc("career_apply_cloud_optin_get", { p_user: userId }), "read the cloud setting") ?? { enabled: false };
+      const r = must(await admin.rpc("career_apply_cloud_optin_get", { p_user: userId }), "read the cloud setting") ?? { enabled: false };
+      return { ...r, enabled: r.enabled === true, daily: ownPace(r.daily) };
     },
     async set(userId, on, terms) {
-      return must(await admin.rpc("career_apply_cloud_optin_as", { p_user: userId, p_on: on, p_terms: terms }), "set the cloud");
+      const r = must(await admin.rpc("career_apply_cloud_optin_as", { p_user: userId, p_on: on, p_terms: terms }), "set the cloud") ?? { enabled: on };
+      return { ...r, enabled: r.enabled === true, daily: ownPace(r.daily) };
     },
     async lastAssistant(threadId) {
       const rows = must(

@@ -8,6 +8,9 @@
 //   card     career_apply_card_open_own / card_answer_own  (their own tap, as the person)
 //   drive    runApproved -> scripts/apply.ts on the employer's page, once; recorded submitted_unconfirmed
 //   chat     "did my application to <Company> go through?" -> read back from career_apply_jobs, never a success unseen
+//   sibling  a second employer with the same form: a shared fact answered once (name, email, phone, work rights) serves
+//            both; an answer bound to one posting (the essay "Why do you want to work here?", keyed job:<posting+label>)
+//            is never inherited by the other, which is asked its own and prepared only after it (NEXT-1385 (1))
 // Everything but the employer page (127.0.0.1) and the person's tap (an RPC as the person) is the product's own code.
 // Fail-first on b7291b6a: the chat ask is the router's named_role_apply explanation (worker not connected), nothing is
 // queued, and prepareAhead draws no candidate (career_apply_prepare_candidates reads alerts only).
@@ -30,35 +33,44 @@ const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/te
 const SPONSOR = "Will you now or in the future require sponsorship for employment visa status?";
 const AUTH = "Are you legally authorized to work in the United States?";
 const COMPANY = "TEST Chat Employer";
+const SIBLING = "TEST Sibling Employer";
 const ROLE = "TEST Analyst";
+const WHY = "Why do you want to work here?";
 
-// The employer: one posting on 127.0.0.1 asking name, email, phone, a resume, sponsorship and work authorization.
+// The employers: two postings on 127.0.0.1 with the same form (name, email, phone, a resume, sponsorship, work
+// authorization and a required essay), one per route; every POST is kept per route.
 function employer() {
-  const posts: Record<string, string>[] = [];
-  let upload = "";
+  const posts: Record<string, Record<string, string>[]> = { apply: [], sibling: [] };
+  const uploads: Record<string, string> = {};
   const select = (name: string, label: string) =>
     `<label for="${name}">${label}</label><select name="${name}" id="${name}" required><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select>`;
-  const form = `<!doctype html><title>TEST role</title><h1>${ROLE}</h1><p>${COMPANY}</p><form method="post" action="/apply/submit" enctype="multipart/form-data">` +
+  const form = (route: string, company: string) => `<!doctype html><title>TEST role</title><h1>${ROLE}</h1><p>${company}</p><form method="post" action="/${route}/submit" enctype="multipart/form-data">` +
     `<label for="first">First name</label><input name="first_name" id="first" required>` +
     `<label for="last">Last name</label><input name="last_name" id="last" required>` +
     `<label for="email">Email</label><input name="email" id="email" type="email" required>` +
     `<label for="phone">Phone</label><input name="phone" id="phone" type="tel" required>` +
     `<label for="resume">Resume</label><input type="file" name="resume" id="resume" required>` +
-    select("sponsorship", SPONSOR) + select("work_auth", AUTH) + `<button type="submit">Submit application</button></form>`;
+    select("sponsorship", SPONSOR) + select("work_auth", AUTH) +
+    `<label for="why">${WHY}</label><textarea name="why" id="why" required></textarea>` +
+    `<button type="submit">Submit application</button></form>`;
   const server = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, async (req) => {
+    const path = new URL(req.url).pathname;
     if (req.method === "POST") {
+      const route = path.split("/")[1];
       const data = await req.formData(), got: Record<string, string> = {};
       for (const [k, v] of data.entries()) {
         if (typeof v === "string") got[k] = v;
-        else { got[k] = `file:${v.name}`; upload = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await v.arrayBuffer()))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+        else { got[k] = `file:${v.name}`; uploads[route] = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await v.arrayBuffer()))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
       }
-      posts.push(got);
-      return new Response(`<h1>Thank you for applying</h1><p>Application received. Confirmation number: CHAT-4401.</p>`, { headers: { "content-type": "text/html" } });
+      (posts[route] ??= []).push(got);
+      return new Response(`<h1>Thank you for applying</h1><p>Application received. Confirmation number: CHAT-${route.toUpperCase()}-1.</p>`, { headers: { "content-type": "text/html" } });
     }
-    if (new URL(req.url).pathname === "/apply") return new Response(form, { headers: { "content-type": "text/html" } });
+    if (path === "/apply") return new Response(form("apply", COMPANY), { headers: { "content-type": "text/html" } });
+    if (path === "/sibling") return new Response(form("sibling", SIBLING), { headers: { "content-type": "text/html" } });
     return new Response("not found", { status: 404 });
   });
-  return { url: `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}/apply`, posts, upload: () => upload, close: () => server.shutdown() };
+  const base = `http://127.0.0.1:${(server.addr as Deno.NetAddr).port}`;
+  return { url: `${base}/apply`, sibling: `${base}/sibling`, posts, upload: (route: string) => uploads[route] ?? "", close: () => server.shutdown() };
 }
 const day = (d = new Date()) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -74,14 +86,18 @@ Deno.test({
     }
     if (Deno.uid?.() === 0 && !CI) { console.log("NOT_RUN locally as root: run it as an unprivileged user (Chromium's sandbox)"); return; }
     const pg = await startPg();
-    const site = employer();
+    // Two employers, two servers: the engine names a local application by its host, and the once-per-employer rule counts
+    // employers, so each employer gets its own host (as each real employer has its own board tenant).
+    const site = employer(), site2 = employer();
     const work = await Deno.makeTempDir({ prefix: "trainee-chat-queue-" });
     let agentChat: Awaited<ReturnType<typeof careerHandler>> | null = null;
     try {
       await supabaseParity(pg);
-      const JOB = "greenhouse:chattest:7", PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000e1";
+      const JOB = "greenhouse:chattest:7", JOB2 = "greenhouse:chatsib:8", PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000e1";
       await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at)
         values ('${JOB}', 'greenhouse', 'chattest', '${COMPANY}', '${ROLE}', 'Chicago, IL', 'https://boards.greenhouse.io/chattest/jobs/7',
+        '${ROLE}. Requirements: SQL, Python, dashboards for internal teams.', now(), now()),
+        ('${JOB2}', 'greenhouse', 'chatsib', '${SIBLING}', '${ROLE}', 'Chicago, IL', 'https://boards.greenhouse.io/chatsib/jobs/8',
         '${ROLE}. Requirements: SQL, Python, dashboards for internal teams.', now(), now());
         insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test');
         insert into public.profiles (id) values ('${PERSON}');
@@ -96,7 +112,7 @@ Deno.test({
         removeAll: (u) => memory.removeAll(u),
       };
       const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
-      const deps = { db: svc, runEngine, profileFor: storedProfile(svc), urlFor: () => site.url, resumeFor: tailoredResume({ render: edgeRenderer(), resumes }) };
+      const deps = { db: svc, runEngine, profileFor: storedProfile(svc), urlFor: (c: { job_id: string }) => c.job_id === JOB2 ? site2.sibling : site.url, resumeFor: tailoredResume({ render: edgeRenderer(), resumes }) };
       const say = async (message: string) => { const r = await chat.say(message); assertEquals(r.status, 200, r.reply); return r; };
       const wanted = async () => JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', posting_key, 'state', state, 'company', company)), '[]') from public.career_apply_wanted where user_id = '${PERSON}'`));
 
@@ -119,7 +135,7 @@ Deno.test({
         assert(r.reply.includes(COMPANY) && r.reply.includes(ROLE), `names the posting: ${r.reply}`);
         assertEquals(await wanted(), [{ key: JOB, state: "waiting", company: COMPANY }], "the queue holds exactly that posting");
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}'`), "0", "nothing enqueued without their tap");
-        assertEquals(site.posts.length, 0);
+        assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0);
       });
 
       await t.step("chat: an employer with no open posting on file is not this turn's; the router's honest stop answers and nothing is queued", async () => {
@@ -142,6 +158,12 @@ Deno.test({
         assertEquals((await wanted()).length, 1);
       });
 
+      await t.step("chat: a second employer with the same role is queued beside the first", async () => {
+        const r = await say(`apply to the ${ROLE} role at ${SIBLING}`);
+        assertEquals([r.intent, r.resultStatus], ["career_apply_queue", "queued"], r.reply);
+        assertEquals((await wanted()).map((w: any) => w.key).sort(), [JOB2, JOB].sort());
+      });
+
       const useAll = async (labels: string[]) => {
         const shown = await say("what do you need from me");
         assertEquals(shown.resultStatus, "shown", shown.reply);
@@ -154,13 +176,22 @@ Deno.test({
         }
         return shown.reply;
       };
-      const outcomes = (done: { user_id: string; job_id: string; outcome: string }[]) => done.filter((d) => d.user_id === PERSON).map((d) => [d.job_id, d.outcome]);
+      const outcomes = (done: { user_id: string; job_id: string; outcome: string }[]) =>
+        done.filter((d) => d.user_id === PERSON).map((d) => [d.job_id, d.outcome]).sort((a, b) => a[0].localeCompare(b[0]));
+      const openKeys = async () => (await pg.sql(`select coalesce(string_agg(key, ',' order by key), '') from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`)).split(",").filter(Boolean);
+      // The shown questions, as "N. <label> ..." lines; the essay's line for one employer is the one naming it.
+      const lineFor = (shown: string, label: string, company?: string) => {
+        const lines = shown.split("\n");
+        const i = lines.findIndex((l) => /^\d+\./.test(l) && l.includes(label) && (!company || l.includes(company)));
+        assert(i >= 0, `${label}${company ? ` for ${company}` : ""} is asked: ${shown}`);
+        return Number(/^(\d+)\./.exec(lines[i])![1]);
+      };
 
-      await t.step("prepare: the server run draws the queued posting (no alert ever sent it); with no name or email on file it asks for those once", async () => {
+      await t.step("prepare: the server run draws both queued postings (no alert ever sent them); with no name or email on file it asks for those once, shared", async () => {
         const done = await prepareAhead(deps);
-        assertEquals(outcomes(done), [[JOB, "asked"]], JSON.stringify(done));
-        assertEquals(await pg.sql(`select string_agg(key, ',' order by key) from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`), "fact:email,fact:first_name,fact:last_name");
-        assertEquals(site.posts.length, 0);
+        assertEquals(outcomes(done), [[JOB2, "asked"], [JOB, "asked"]].sort((a, b) => a[0].localeCompare(b[0])), JSON.stringify(done));
+        assertEquals(await openKeys(), ["fact:email", "fact:first_name", "fact:last_name"], "one shared question each, not one per posting");
+        assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0);
       });
 
       await t.step("their words: name and email offered back word for word; only 'use N' saves them", async () => {
@@ -168,65 +199,106 @@ Deno.test({
         assert(text.includes(`"my name is Jordan Rivera"`) && text.includes(day()), text);
       });
 
-      await t.step("prepare again: the resume is tailored from their evidenced entries; the dry run asks phone, sponsorship and work authorization", async () => {
-        assertEquals(outcomes(await prepareAhead(deps)), [[JOB, "asked"]]);
-        assertEquals(await pg.sql(`select string_agg(key, ',' order by key) from public.career_apply_questions where user_id = '${PERSON}' and state = 'open'`), "fact:phone,fact:sponsorship,fact:work_authorization");
-        assertEquals(site.posts.length, 0, "a dry run sends nothing");
+      let essayKeys: string[] = [];
+      await t.step("prepare again: both dry runs ask phone, sponsorship and work authorization once (shared), and the essay once PER POSTING, each under its own key", async () => {
+        assertEquals(outcomes(await prepareAhead(deps)), [[JOB2, "asked"], [JOB, "asked"]].sort((a, b) => a[0].localeCompare(b[0])));
+        const keys = await openKeys();
+        essayKeys = keys.filter((k) => k.startsWith("job:"));
+        assertEquals(keys.filter((k) => !k.startsWith("job:")), ["fact:phone", "fact:sponsorship", "fact:work_authorization"]);
+        assertEquals(essayKeys.length, 2, `the same essay label is two questions, one per posting, never one that travels: ${keys.join(",")}`);
+        const rows = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', key, 'label', label, 'company', company, 'jobs', job_ids) order by company), '[]') from public.career_apply_questions where user_id = '${PERSON}' and key like 'job:%'`));
+        // Each row is bound to the engine's own posting id for that run (the page it opened), one per employer.
+        assertEquals(rows.map((r: any) => [r.label, r.company, r.jobs]), [[WHY, COMPANY, [site.url]], [WHY, SIBLING, [site2.sibling]]]);
+        assertEquals(site.posts.apply.length + site2.posts.sibling.length, 0, "a dry run sends nothing");
       });
 
-      await t.step("their words again: phone, sponsorship and work authorization, each from their own message", async () => {
+      const FIRST_WHY = "I built the TEST Chat analytics pipeline and want to keep building it.";
+      const SIBLING_WHY = "TEST Sibling ships weekly and I want to learn that pace.";
+      await t.step("their words: phone, sponsorship and work authorization used by them; the first employer's essay typed for it alone", async () => {
         await useAll(["Phone", SPONSOR, AUTH]);
+        const shown = await say("what do you need from me");
+        assertEquals(shown.resultStatus, "shown", shown.reply);
+        const n = lineFor(shown.reply, WHY, COMPANY);
+        const saved = await say(`${n} ${FIRST_WHY}`);
+        assert(/kept word for word/.test(saved.reply), saved.reply);
+        const left = await openKeys();
+        assertEquals(left.length, 1, `the sibling's essay stays open: ${left.join(",")}`);
+        assert(left[0].startsWith("job:"), left[0]);
       });
 
       let preparedId = "", tailored = "";
-      await t.step("prepare: ready, with only their own answers and the tailored resume; the card shows each answer", async () => {
+      await t.step("prepare: the first is ready with its own essay; the sibling still waits on its own question, never given the first's answer", async () => {
         const done = await prepareAhead(deps);
+        // A posting whose question is still open is not run again (its 'asked' try stands until the answer); it is not prepared.
         assertEquals(outcomes(done), [[JOB, "ready"]], JSON.stringify(done));
-        preparedId = done.find((d) => d.user_id === PERSON)!.prepared_id!;
+        assertEquals((await openKeys()).length, 1, "the sibling's essay is still open");
+        preparedId = done.find((d) => d.job_id === JOB)!.prepared_id!;
         const row = JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${preparedId}'`));
         tailored = row.payload.resume_sha256;
         assertEquals(row.payload.resume_tailored, true);
         const values = Object.fromEntries(row.payload.fields.filter((f: any) => f.name !== "resume").map((f: any) => [f.name, f.value]));
-        assertEquals(values, { first_name: "Jordan", last_name: "Rivera", email: "jordan.rivera@example.test", phone: "312-555-0142", sponsorship: "no", work_auth: "yes" });
+        assertEquals(values, { first_name: "Jordan", last_name: "Rivera", email: "jordan.rivera@example.test", phone: "312-555-0142", sponsorship: "no", work_auth: "yes", why: FIRST_WHY });
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}' and job_id = '${JOB2}'`), "0", "the sibling is not prepared on the first's essay");
       });
 
-      await t.step("their tap: queued exactly as shown; read back as approved, not sent", async () => {
-        const card = await person.rpc("career_apply_card_open_own", { p_ids: [preparedId] });
-        assertEquals(card.error, null, JSON.stringify(card.error));
-        const answer = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
-        assertEquals(answer.error, null, JSON.stringify(answer.error));
-        assertEquals(answer.data?.[0]?.result, "queued");
+      let preparedId2 = "";
+      await t.step("the sibling's own essay, typed for it; then it is ready with that text and nothing of the first's", async () => {
+        const shown = await say("what do you need from me");
+        const n = lineFor(shown.reply, WHY, SIBLING);
+        const saved = await say(`${n} ${SIBLING_WHY}`);
+        assert(/kept word for word/.test(saved.reply), saved.reply);
+        const done = await prepareAhead(deps);
+        assertEquals(outcomes(done), [[JOB2, "ready"]], JSON.stringify(done));
+        preparedId2 = done[0].prepared_id!;
+        const row = JSON.parse(await pg.sql(`select row_to_json(p) from public.career_apply_prepared p where id = '${preparedId2}'`));
+        assertEquals(row.payload.fields.find((f: any) => f.name === "why")?.value, SIBLING_WHY);
+      });
+
+      await t.step("their taps: each queued exactly as shown, each its own approval; read back as approved, not sent", async () => {
+        for (const id of [preparedId, preparedId2]) {
+          const card = await person.rpc("career_apply_card_open_own", { p_ids: [id] });
+          assertEquals(card.error, null, JSON.stringify(card.error));
+          const answer = await person.rpc("career_apply_card_answer_own", { p_card: card.data.id, p_approve: [1] });
+          assertEquals(answer.error, null, JSON.stringify(answer.error));
+          assertEquals(answer.data?.[0]?.result, "queued");
+        }
+        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads");
         const r = await say(`did my application to ${COMPANY} go through?`);
         assert(/approved, not sent yet/.test(r.reply), r.reply);
       });
 
-      await t.step("drive: the employer receives exactly the approved answers and the tailored resume, once; recorded as submitted, not confirmed", async () => {
+      await t.step("drive: each employer receives exactly its own approved answers and the tailored resume, once; both recorded as submitted, not confirmed", async () => {
         const queue = ownQueue(person);
         const done = await runApproved({
-          claim: () => queue.claim(1),
+          claim: () => queue.claim(2),
           finish: (id, lease, state, evidence) => queue.finish(id, lease, state, evidence),
-          resumeFor: async (job) => { const path = `${work}/sent-resume.pdf`; await Deno.writeFile(path, memory.files.get(`career-resumes/${PERSON}/${job.payload.resume_sha256}.pdf`)!); return { path, sha256: job.payload.resume_sha256 }; },
-          writeFacts: async (_job, facts) => { const p = `${work}/approved-facts.json`; await Deno.writeTextFile(p, JSON.stringify(facts)); return p; },
+          resumeFor: async (job) => { const path = `${work}/sent-resume-${job.payload.resume_sha256.slice(0, 8)}.pdf`; await Deno.writeFile(path, memory.files.get(`career-resumes/${PERSON}/${job.payload.resume_sha256}.pdf`)!); return { path, sha256: job.payload.resume_sha256 }; },
+          writeFacts: async (job, facts) => { const p = `${work}/approved-facts-${job.id}.json`; await Deno.writeTextFile(p, JSON.stringify(facts)); return p; },
           runEngine,
         });
-        assertEquals(done.length, 1);
-        assertEquals(site.posts.length, 1, "exactly one POST");
-        const got = site.posts[0];
-        assertEquals([got.first_name, got.last_name, got.email, got.phone, got.sponsorship, got.work_auth], ["Jordan", "Rivera", "jordan.rivera@example.test", "312-555-0142", "no", "yes"]);
-        assertEquals(site.upload(), tailored, "the tailored resume, byte for byte");
-        const row = JSON.parse(await pg.sql(`select row_to_json(j) from public.career_apply_jobs j where user_id = '${PERSON}'`));
-        assertEquals([row.state, row.confirmation_id], ["submitted_unconfirmed", "CHAT-4401"]);
+        assertEquals(done.length, 2);
+        assertEquals([site.posts.apply.length, site2.posts.sibling.length], [1, 1], "exactly one POST each");
+        const a = site.posts.apply[0], b = site2.posts.sibling[0];
+        assertEquals([a.first_name, a.last_name, a.email, a.phone, a.sponsorship, a.work_auth, a.why], ["Jordan", "Rivera", "jordan.rivera@example.test", "312-555-0142", "no", "yes", FIRST_WHY]);
+        assertEquals([b.first_name, b.last_name, b.email, b.phone, b.sponsorship, b.work_auth, b.why], ["Jordan", "Rivera", "jordan.rivera@example.test", "312-555-0142", "no", "yes", SIBLING_WHY]);
+        assertEquals(site.upload("apply"), tailored, "the first's tailored resume, byte for byte");
+        // The queue's job_id is the engine's posting key (the page it submitted to); each row carries its own employer's confirmation.
+        const rows = JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('company', company, 'state', state, 'conf', confirmation_id) order by confirmation_id), '[]') from public.career_apply_jobs where user_id = '${PERSON}'`));
+        assertEquals(rows, [{ company: COMPANY, state: "submitted_unconfirmed", conf: "CHAT-APPLY-1" }, { company: SIBLING, state: "submitted_unconfirmed", conf: "CHAT-SIBLING-1" }]);
       });
 
-      await t.step("read back in chat: submitted, not confirmed by the employer; never a success it did not see", async () => {
+      await t.step("read back in chat: each submitted, not confirmed by its employer; never a success it did not see", async () => {
         const one = await say(`did my application to ${COMPANY} go through?`);
-        assert(/submitted/.test(one.reply) && /has not confirmed it yet/.test(one.reply) && /CHAT-4401/.test(one.reply), one.reply);
+        assert(/submitted/.test(one.reply) && /has not confirmed it yet/.test(one.reply) && /CHAT-APPLY-1/.test(one.reply), one.reply);
+        const two = await say(`did my application to ${SIBLING} go through?`);
+        assert(/submitted/.test(two.reply) && /has not confirmed it yet/.test(two.reply) && /CHAT-SIBLING-1/.test(two.reply), two.reply);
         const all = await say("where are my applications");
-        assert(all.reply.includes(COMPANY), all.reply);
+        assert(all.reply.includes(COMPANY) && all.reply.includes(SIBLING), all.reply);
       });
     } finally {
       agentChat?.restore();
       await site.close();
+      await site2.close();
       await pg.stop();
       await Deno.remove(work, { recursive: true }).catch(() => {});
     }

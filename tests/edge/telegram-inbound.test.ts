@@ -131,3 +131,26 @@ Deno.test("non-text updates are ignored without an agent call", async () => {
   assertEq(res.status, 200);
   assertEq(agentCalls(calls).length, 0);
 });
+
+// SERIAL-1462: a Telegram reply carries the replied-to message as message.reply_to_message (Bot API); its message_id
+// reaches the turn as reply_to_message_id, so a card's text yes can be bound to the message that carried the card.
+Deno.test("SERIAL-1462 a reply in Telegram carries reply_to_message.message_id to the agent; a plain message carries none", async () => {
+  const { d, calls } = deps();
+  const reply = {
+    update_id: 9003,
+    message: {
+      message_id: 41, date: 1760000100, text: "yes", chat: { id: CHAT_ID, type: "private" }, from: { id: 777, is_bot: false, first_name: "Test" },
+      reply_to_message: { message_id: 40, date: 1760000050, text: "2 applications are ready. Every answer below goes exactly as shown.", chat: { id: CHAT_ID, type: "private" }, from: { id: 999, is_bot: true, first_name: "Trainee" } },
+    },
+  };
+  const res = await handleTelegramWebhook(tgReq(reply), d);
+  assertEq(res.status, 200);
+  const bodies = agentCalls(calls).map((c) => JSON.parse(c.init?.body ?? "{}"));
+  assertEq(bodies.length, 1);
+  assertEq(bodies[0].reply_to_message_id, "40", "the replied-to message's id, as Telegram gives it");
+  const plain = await handleTelegramWebhook(tgReq(textUpdate("yes", 42)), d);
+  assertEq(plain.status, 200);
+  const after = agentCalls(calls).map((c) => JSON.parse(c.init?.body ?? "{}"));
+  assertEq(after.length, 2);
+  assert(!("reply_to_message_id" in after[1]), "a plain message carries no reply id");
+});

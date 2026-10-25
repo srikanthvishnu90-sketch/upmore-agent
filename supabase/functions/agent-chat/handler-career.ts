@@ -340,8 +340,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
       // controls stay the host's.
+      // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
+      // text yes approves a card only in direct reply to the message that carried it.
+      const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.

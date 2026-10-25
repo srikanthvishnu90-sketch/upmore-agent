@@ -120,7 +120,7 @@ Deno.test({
       };
       const runEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`] });
       const deps = { db: svc, runEngine, profileFor: storedProfile(svc), urlFor: (c: { job_id: string }) => c.job_id === JOB2 ? site2.sibling : site.url, resumeFor: tailoredResume({ render: edgeRenderer(), resumes }) };
-      const say = async (message: string) => { const r = await chat.say(message); assertEquals(r.status, 200, r.reply); return r; };
+      const say = async (message: string, extra: Record<string, unknown> = {}) => { const r = await chat.say(message, extra); assertEquals(r.status, 200, r.reply); return r; };
       const wanted = async () => JSON.parse(await pg.sql(`select coalesce(json_agg(json_build_object('key', posting_key, 'state', state, 'company', company) order by posting_key), '[]') from public.career_apply_wanted where user_id = '${PERSON}'`));
 
       await t.step("chat: resume confirmed; name, email, phone, work rights and their current employer said", async () => {
@@ -232,7 +232,7 @@ Deno.test({
         assertEquals([await why(preparedId), await why(preparedId2)], [FIRST_WHY, SIBLING_WHY]);
       });
 
-      await t.step("their one yes (SERIAL-1451): the card shown in thread A is closed by the card shown in thread B; a yes in A approves nothing, a replay nothing; the yes in B approves exactly the two payloads", async () => {
+      await t.step("their one yes (SERIAL-1451/1461/1462): the card shown in thread A is closed by the card shown in thread B; a bare yes says how; a yes in reply to A's card message approves nothing, a replay nothing; a yes in reply to B's card message approves exactly the two payloads", async () => {
         const cardA = await say("show my applications");
         assertEquals([cardA.intent, cardA.resultStatus], ["career_apply_card", "shown"], cardA.reply);
         assert(/2 applications are ready/.test(cardA.reply) && cardA.reply.includes(FIRST_WHY) && cardA.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${cardA.reply}`);
@@ -249,17 +249,33 @@ Deno.test({
         const other: Chat = agentChat!.chat("tok-other");
         const theirs = await other.say("yes");
         assert(theirs.resultStatus !== "answered" && theirs.intent !== "career_apply_card", `another person's yes is not this card's: ${theirs.intent} ${theirs.reply}`);
-        // A yes in thread A: its card is out of date; nothing is approved, on either card.
-        const yesA = await say("yes");
+        // SERIAL-1461: a bare yes in thread A (no reply id) approves nothing and says how.
+        const bareA = await say("yes");
+        assertEquals(bareA.resultStatus, "needs_reply", bareA.reply);
+        assert(/reply directly to the card/.test(bareA.reply) && /tap Approve/.test(bareA.reply) && /Nothing was approved/.test(bareA.reply), bareA.reply);
+        // A yes in thread A in reply to A's card message: that card is out of date; nothing is approved, on either card.
+        const cardMsgA = await pg.sql(`select id from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaA.card_id}' order by id desc limit 1`);
+        const yesA = await say("yes", { reply_to_message_id: Number(cardMsgA) });
         assertEquals([yesA.intent, yesA.resultStatus], ["career_apply_card_answer", "card_outdated"], yesA.reply);
         assert(/out of date/.test(yesA.reply) && /nothing was approved/.test(yesA.reply), yesA.reply);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0", "nothing approved by the yes in A");
         assertEquals(await pg.sql(`select state from public.career_apply_cards where id = '${metaB.card_id}'`), "open", "B's card untouched");
-        const replayA = await say("yes");
+        const replayA = await say("yes", { reply_to_message_id: Number(cardMsgA) });
         assert(replayA.resultStatus !== "answered", `a replay in A approves nothing: ${replayA.intent} ${replayA.resultStatus}`);
         assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0");
-        // The thread that showed the newest card approves it, once.
-        const yesB = await threadB.say("yes");
+        // SERIAL-1460 (2): after another reply in thread B a bare yes is not the card's; a yes that replies to the card's
+        // own message (the channel's reply-to id) binds to that card.
+        const between = await threadB.say("where are my applications");
+        assert(between.intent !== "career_apply_card", between.intent ?? "");
+        const bareB = await threadB.say("yes");
+        assert(bareB.resultStatus !== "answered", `a bare yes after another reply approves nothing: ${bareB.intent} ${bareB.resultStatus}`);
+        assert(!/approved exactly as shown/.test(bareB.reply), bareB.reply);
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where state = 'queued'`), "0");
+        const cardMsgB = await pg.sql(`select id from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaB.card_id}' order by id desc limit 1`);
+        const toOther = await threadB.say("yes", { reply_to_message_id: Number(cardMsgB) + 1 });
+        assertEquals(toOther.resultStatus, "needs_reply", `a yes in reply to a message that is not the card approves nothing and says how: ${toOther.intent} ${toOther.reply}`);
+        // The thread that showed the newest card approves it, once, by replying to the card's message.
+        const yesB = await threadB.say("yes", { reply_to_message_id: Number(cardMsgB) });
         assertEquals(yesB.resultStatus, "answered", `SERIAL-1440 (1): one text yes in the thread that showed the card approves the batch it shows: ${yesB.reply}`);
         assert(/2 approved exactly as shown/.test(yesB.reply) && /Nothing has gone to an employer yet/.test(yesB.reply), yesB.reply);
         assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, by the hashes the card carried");

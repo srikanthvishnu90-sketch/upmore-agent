@@ -115,3 +115,34 @@ Deno.test("WO-013b-2/I7 the Supabase store: a seen message id or reply key is 'a
   try { await supabaseInboundStore(mk({ code: "42501", message: "permission denied" })).claimMessage("m1", NOW); } catch (e) { msg2 = (e as Error).message; }
   assert(/claim the inbound message: permission denied/.test(msg2), msg2);
 });
+
+// SERIAL-1462: which providers expose the id of the message the person replied to, in each adapter's real payload shape.
+import { parseWhatsAppBody } from "../../supabase/functions/_shared/whatsapp.ts";
+import { parseTelegramUpdate } from "../../supabase/functions/_shared/telegram.ts";
+Deno.test("SERIAL-1462 reply-to ids: WhatsApp Cloud messages[].context.id and Telegram reply_to_message.message_id are read; LoopMessage carries none", async () => {
+  // Meta's WhatsApp Cloud API webhook: a text sent as a reply carries `context` with the quoted message's id.
+  const wa = {
+    object: "whatsapp_business_account",
+    entry: [{ id: "WABA-1", changes: [{ field: "messages", value: {
+      messaging_product: "whatsapp", metadata: { display_phone_number: "15550000000", phone_number_id: "PNID-1" },
+      contacts: [{ profile: { name: "Test" }, wa_id: "15551234567" }],
+      messages: [{ from: "15551234567", id: "wamid.HBgLMTU1NTEyMzQ1NjcVAgASGBQzQTBEMEY2NEM2RkQ4RDA2RDk5NwA=", timestamp: "1760000100", type: "text", text: { body: "yes" },
+        context: { from: "15550000000", id: "wamid.HBgLMTU1NTEyMzQ1NjcVAgARGBI5QjdBMkI3RjlGMEMxOEE2RDAA" } }],
+    } }] }],
+  };
+  const r = parseWhatsAppBody(wa, "PNID-1");
+  eq(r.messages.length, 1);
+  eq(r.messages[0].replyToMessageId, "wamid.HBgLMTU1NTEyMzQ1NjcVAgARGBI5QjdBMkI3RjlGMEMxOEE2RDAA", "the quoted message's id, as Meta gives it");
+  const waPlain = structuredClone(wa); delete (waPlain.entry[0].changes[0].value.messages[0] as any).context;
+  eq(parseWhatsAppBody(waPlain, "PNID-1").messages[0].replyToMessageId, null, "no context: no reply id");
+  // Telegram Bot API: reply_to_message on the message.
+  const tg = parseTelegramUpdate({ update_id: 9010, message: { message_id: 51, date: 1760000100, text: "yes", chat: { id: 4242, type: "private" }, from: { id: 4242, is_bot: false, first_name: "T" },
+    reply_to_message: { message_id: 50, date: 1760000050, text: "card", chat: { id: 4242, type: "private" }, from: { id: 1, is_bot: true, first_name: "Trainee" } } } });
+  eq(tg.message?.replyToMessageId, "50");
+  eq(parseTelegramUpdate({ update_id: 9011, message: { message_id: 52, date: 1760000101, text: "yes", chat: { id: 4242, type: "private" }, from: { id: 4242, is_bot: false, first_name: "T" } } }).message?.replyToMessageId, null);
+  // LoopMessage's recorded inbound shape (alert_type message_inbound) carries no reply-to field: the turn gets none.
+  const w = world({ TRAINEE_SIGNUP: "open" });
+  await w.text(msg("lm-1", "yes"));
+  eq(w.chats.length, 1);
+  eq("replyToMessageId" in w.chats[0], false, "an iMessage text carries no reply id, so none is handed on");
+});

@@ -51,9 +51,9 @@ export function supabaseInboundStore(admin: any): InboundStore {
     async setOptOut(contact, out, at) {
       must(await admin.rpc("channel_set_opt_out", { p_contact: contact, p_out: out, p_at: iso(at) }), "save opt-out");
     },
-    async enqueueReply(userId, key, text, at, channel, part) {
+    async enqueueReply(userId, key, text, at, channel, part, cardId) {
       const r = await admin.from("career_outbox").insert({ user_id: userId, key, kind: "reply", text, deliver_at: iso(at), ...(channel ? { channel } : {}),
-        ...(part ? { part_of: part.of, part: part.n } : {}) });
+        ...(part ? { part_of: part.of, part: part.n } : {}), ...(cardId ? { card_id: cardId } : {}) });
       if (duplicate(r.error)) return false;
       must(r, "queue the reply");
       return true;

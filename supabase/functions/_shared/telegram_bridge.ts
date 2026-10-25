@@ -49,13 +49,16 @@ export const TELEGRAM_LIMIT = 4096; // Telegram sendMessage text limit
 // Recorded-shape parse: only a plain `message` update with text is an
 // inbound text. Edited messages, channel posts, photos -> null (approval
 // callbacks parse separately, below).
-export function parseTelegramUpdate(raw: any): { chatId: string; text: string; messageId: string } | null {
+export function parseTelegramUpdate(raw: any): { chatId: string; text: string; messageId: string; replyToMessageId: string | null } | null {
   const msg = raw?.message;
   if (!msg || typeof msg.text !== "string" || !msg.chat?.id) return null;
   return {
     chatId: String(msg.chat.id),
     text: msg.text,
     messageId: msg.message_id != null ? String(msg.message_id) : "",
+    // SERIAL-1462: a reply carries the replied-to message as reply_to_message (Bot API); its message_id is the id
+    // sendMessage returned when that message went out.
+    replyToMessageId: msg.reply_to_message && typeof msg.reply_to_message === "object" && Number.isSafeInteger(msg.reply_to_message.message_id) ? String(msg.reply_to_message.message_id) : null,
   };
 }
 
@@ -324,6 +327,7 @@ export async function handleTelegramWebhook(req: Request, deps: ChannelDeps): Pr
           userId,
           text: parsed.text,
           messageId: parsed.messageId || null,
+          replyToMessageId: parsed.replyToMessageId ?? null,
         });
       outcome = token && !dryRun
         ? await withTelegramTyping(deps, token, parsed.chatId, runTurn)

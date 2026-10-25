@@ -89,13 +89,14 @@ function cardStore(results: { n: number; company: string; result: string }[]): C
     async answer() { return results; },
     async lastAssistantIntent() { return CARD_INTENT; },
     async lastShownCard() { return "CARD-1"; },
+    async cardOfMessage(_t: string, id: string | number) { return String(id) === "M-CARD-1" ? "CARD-1" : null; },
   };
 }
 
 Deno.test("WO-027/E2 a card answer writes each line (approved, or why not sent); a receipt writes application_finished once", async () => {
   const events = memoryEventStore();
   const store = cardStore([{ n: 1, company: "Ramp", result: "declined" }, { n: 2, company: "Plaid", result: "declined" }]);
-  const r = await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events });
+  const r = await cardTurn({ message: "yes but not 2", userId: U, threadId: "TH", now: T, store, events, replyTo: "M-CARD-1" });
   eq(r?.status, "answered", "SERIAL-1440 (1): the text yes answers the card; each line is written as the queue reported it");
   eq(events.dump().map((e) => [e.kind, e.subject, e.detail.result, e.source]), [["status_change", "Ramp", "declined", "card"], ["status_change", "Plaid", "declined", "card"]]);
   eq((await cardTurn({ message: "show my applications", userId: U, threadId: "TH", now: T, store: { ...store, pending: async () => [] }, events }))?.status, "empty");

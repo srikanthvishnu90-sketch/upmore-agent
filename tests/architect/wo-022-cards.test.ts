@@ -81,6 +81,7 @@ function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number;
     },
     latestOpen: async () => card,
     lastShownCard: async () => over.shownCard === undefined ? (card?.id ?? null) : over.shownCard,
+    cardOfMessage: async (_t, id) => (card && String(id) === `M-${card.id}` ? card.id : null),
     answer: async (_u, _c, approve) => {
       answers.push(approve);
       return card.items.map((i: any) => ({
@@ -93,8 +94,9 @@ function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number;
   };
   return { store, answers, setIntent: (v: string | null) => (lastIntent = v) };
 }
-const turn = (store: CardStore, message: string, now = T) =>
-  cardTurn({ message, userId: "TEST-USER", threadId: "TH", now, store });
+// SERIAL-1461: an approval counts only in direct reply to the card's own message; the memory stores name that message "M-<card id>".
+const turn = (store: CardStore, message: string, now = T, replyTo?: string | null) =>
+  cardTurn({ message, userId: "TEST-USER", threadId: "TH", now, store, replyTo });
 
 Deno.test("WO-022/3 a yes answers the card only while the card is the thread's last word", async () => {
   const m = memoryCards();
@@ -104,24 +106,30 @@ Deno.test("WO-022/3 a yes answers the card only while the card is the thread's l
   m.setIntent("agent");
   eq(await turn(m.store, "yes"), null, "the brain spoke after the card: this yes is not the card's");
   eq(m.answers.length, 0);
+  eq((await turn(m.store, "yes", T, "M-C1"))?.status, "answered", "SERIAL-1461: but a yes in direct reply to the card's message is the card's, whatever came after");
+  eq(m.answers, [[1, 2, 3]]);
 });
 
 Deno.test("WO-022/4 a text yes within 10 minutes approves exactly what it says (the owner, 2026-10-22: one yes handles a batch); a number not on the card, a card older than 10 minutes and an old card approve nothing", async () => {
   const m = memoryCards();
   await turn(m.store, "show my applications");
-  const bad = await turn(m.store, "yes but not 9");
+  const bad = await turn(m.store, "yes but not 9", T, "M-C1");
   eq(bad?.status, "not_on_card");
   eq(m.answers.length, 0);
-  const yes = await turn(m.store, "yes but not 2");
-  eq(yes?.status, "answered", "SERIAL-1440 (1): a direct yes to the shown card, within 10 minutes, approves the batch it names");
+  const bare = await turn(m.store, "yes but not 2");
+  eq(bare?.status, "needs_reply", "SERIAL-1461: a yes with no reply id approves nothing and says how");
+  assert(/reply directly to the card/.test(bare!.reply) && /tap Approve/.test(bare!.reply), bare!.reply);
+  eq(m.answers.length, 0);
+  const yes = await turn(m.store, "yes but not 2", T, "M-C1");
+  eq(yes?.status, "answered", "SERIAL-1440 (1) / 1461: a yes in direct reply to the card's message, within 10 minutes, approves the batch it names");
   eq(m.answers, [[1, 3]], "exactly the numbers the yes left in");
   const late = memoryCards({ shownAt: T - 11 * 60000 });
   await turn(late.store, "show my applications", T - 11 * 60000);
-  eq((await turn(late.store, "yes"))?.status, "stale_card", "a yes more than 10 minutes after the card approves nothing");
+  eq((await turn(late.store, "yes", T, "M-C1"))?.status, "stale_card", "a yes more than 10 minutes after the card approves nothing");
   eq(late.answers.length, 0);
   const old = memoryCards({ shownAt: T - 25 * 3600000 });
   await turn(old.store, "show my applications", T - 25 * 3600000);
-  eq((await turn(old.store, "yes"))?.status, "stale_card");
+  eq((await turn(old.store, "yes", T, "M-C1"))?.status, "stale_card");
   eq(old.answers.length, 0);
   const no = memoryCards();
   await turn(no.store, "show my applications");
@@ -211,10 +219,11 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
       }),
     lastAssistantIntent: async () => last,
     lastShownCard: async () => "C1",
+    cardOfMessage: async (_t, id) => (String(id) === "M-C1" ? "C1" : null),
   };
   const shown = await turn(store, "show my applications");
   for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
-  eq((await turn(store, "yes but not 2"))?.status, "answered", "SERIAL-1440 (1): their one text yes approves 1 and 3 exactly as shown (career_apply_card_answer_own)");
+  eq((await turn(store, "yes but not 2", T, "M-C1"))?.status, "answered", "SERIAL-1440 (1): their one text yes, in reply to the card's message, approves 1 and 3 exactly as shown (career_apply_card_answer_own)");
   eq(queue.map((j) => j.payload.company), ["TEST Employer 1", "TEST Employer 3"]);
   eq(queue.map((j) => j.approval), [prepared[0].hash, prepared[2].hash], "approved by the hash that was shown");
   // 3. The person's computer runs them with the engine's own approval; 4. each ends in one receipt.
@@ -263,16 +272,16 @@ Deno.test("SERIAL-1451 the yes answers the card this thread showed, no other: a 
   (a as any).card = null;
   const newest = memoryCards({ shownCard: "C2" });
   await newest.store.open("TEST-USER", ["P-1", "P-2", "P-3"]);
-  const cross: CardStore = { ...a.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }) };
+  const cross: CardStore = { ...a.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), cardOfMessage: async (_t, id) => (String(id) === "M-C1" ? "C1" : null) };
   for (const m of ["yes", "yes but not 2", "no"]) {
-    const r = await cardTurn({ message: m, userId: "TEST-USER", threadId: "A", now: T, store: cross });
+    const r = await cardTurn({ message: m, userId: "TEST-USER", threadId: "A", now: T, store: cross, replyTo: m === "no" ? undefined : "M-C1" });
     eq(r?.status, "card_outdated", m);
     assert(/out of date/.test(r!.reply) && /nothing was approved/.test(r!.reply) && /show my applications/.test(r!.reply), r!.reply);
   }
   eq(a.answers, [], "thread A approved and declined nothing");
   eq(newest.answers, [], "and touched the newer card not at all");
   // The thread that showed C2 approves it.
-  const own: CardStore = { ...newest.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), lastShownCard: async () => "C2" };
-  eq((await cardTurn({ message: "yes", userId: "TEST-USER", threadId: "B", now: T, store: own }))?.status, "answered");
+  const own: CardStore = { ...newest.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), lastShownCard: async () => "C2", cardOfMessage: async (_t, id) => (String(id) === "M-C2" ? "C2" : null) };
+  eq((await cardTurn({ message: "yes", userId: "TEST-USER", threadId: "B", now: T, store: own, replyTo: "M-C2" }))?.status, "answered");
   eq(newest.answers, [[1, 2, 3]]);
 });

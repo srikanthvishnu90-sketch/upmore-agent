@@ -1,7 +1,9 @@
 // WO-022 W2 + W3: the card of prepared applications and the one text that answers it. Code decides what was approved;
 // the model never does. D-031 (SERIAL-1440): one direct text yes within 10 minutes approves exactly the batch the card
 // shows, once, by the hashes it carries; it never sends. SERIAL-1451: the yes answers the card this thread showed (its id
-// in the reply's meta) and no other; the 10-minute window is also the database's (20261025170000). Every word of a card comes from the engine's own card lines (what the dry run read back from the
+// in the reply's meta) and no other; the 10-minute window is also the database's (20261025170000). SERIAL-1461: a yes
+// approves only when the channel's reply-to id is the message that carried the card; with no reply id, or a reply to any
+// other message, nothing is approved and the person is told to reply directly to the card or tap. Every word of a card comes from the engine's own card lines (what the dry run read back from the
 // form); every word of an answer from the queue's own results.
 //
 // Declining is "no", never "stop": over SMS, STOP is the carrier's opt-out keyword, and trainee-inbound treats it as the
@@ -36,6 +38,9 @@ export interface CardStore {
   // SERIAL-1451: the card this thread's last reply showed (its id in that message's meta), or null. A yes answers that
   // card and no other: a newer card shown in another thread closes it, and the yes then approves nothing.
   lastShownCard(threadId: string): Promise<string | null>;
+  // SERIAL-1460 (2): the card the given message of this thread showed (meta.card_id), or null when that message is not a
+  // card. Read only when the channel passes the id of the message a yes replies to.
+  cardOfMessage?(threadId: string, messageId: string | number, userId: string): Promise<string | null>;
 }
 
 export type CardReply =
@@ -128,8 +133,9 @@ export function answerText(results: CardResult[]): string {
 
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
+export const NEEDS_REPLY = `Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve in the app.`;
 export async function cardTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null },
+  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null },
 ): Promise<{ reply: string; status: string; card_id?: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
@@ -151,13 +157,28 @@ export async function cardTurn(
     const opened = await o.store.open(o.userId, c.take.map((p) => p.id));
     return { reply: c.text, status: "shown", card_id: opened.id };
   }
-  // An answer counts only when the card was this thread's last word: a "yes" to anything asked after it is not a yes to it.
-  if ((await o.store.lastAssistantIntent(o.threadId)) !== CARD_INTENT) return null;
+  // Which card the answer is about (SERIAL-1461). An approval counts only when the text carries the channel's reply-to
+  // id and that id is the message that carried the card: an explicit reply to any other or older message refuses, and
+  // a yes with no reply id approves nothing and says how (reply directly to the card, or tap). A decline or a change
+  // needs no reply id: it counts while the card is this thread's last word, and sends nothing either way.
+  const hasReply = o.replyTo !== undefined && o.replyTo !== null && String(o.replyTo) !== "";
+  const repliedCard = hasReply && o.store.cardOfMessage ? await o.store.cardOfMessage(o.threadId, o.replyTo!, o.userId) : null;
+  const lastWordIsCard = (await o.store.lastAssistantIntent(o.threadId)) === CARD_INTENT;
   const card = await o.store.latestOpen(o.userId);
   if (!card) return null;
+  const wantsApproval = r.kind === "yes";
+  let shownId: string | null;
+  if (hasReply) {
+    // A reply to a message that is not a card: for a yes, refused and explained (the card stands); for the rest, not the card's.
+    if (!repliedCard) return wantsApproval ? { reply: NEEDS_REPLY, status: "needs_reply" } : null;
+    shownId = repliedCard;
+  } else {
+    if (!lastWordIsCard) return null;
+    if (wantsApproval) return { reply: NEEDS_REPLY, status: "needs_reply" };
+    shownId = await o.store.lastShownCard(o.threadId);
+  }
   // SERIAL-1451: and only for the card this thread showed. Opening a card closes older ones, so a card shown in another
   // thread since makes this thread's card out of date: nothing is approved or declined on it.
-  const shownId = await o.store.lastShownCard(o.threadId);
   if (!shownId || shownId !== card.id) return { reply: CARD_OUTDATED, status: "card_outdated" };
   const numbers = card.items.map((i) => i.n);
   if (r.kind === "change") {
@@ -266,6 +287,29 @@ export function supabaseCardStore(admin: any): CardStore {
       );
       const m = rows?.[0]?.meta;
       return m?.intent === CARD_INTENT && typeof m?.card_id === "string" ? m.card_id : null;
+    },
+    async cardOfMessage(threadId, messageId, userId) {
+      // The app replies to its own message ids (agent_messages.id, this thread); a texting channel replies to the
+      // provider's id of the message that went out, which the outbox recorded when it delivered the card's text
+      // (career_outbox.provider_id / provider_ids, the row's card_id or its 'card:<id>' key). SERIAL-1462.
+      const id = String(messageId).slice(0, 200);
+      if (/^[0-9]{1,18}$/.test(id)) {
+        const rows = must(
+          await admin.from("agent_messages").select("meta").eq("thread_id", threadId).eq("role", "assistant").eq("id", Number(id)).limit(1),
+          "read the replied-to message",
+        );
+        const m = rows?.[0]?.meta;
+        if (m?.intent === CARD_INTENT && typeof m?.card_id === "string") return m.card_id;
+      }
+      const sent = must(
+        await admin.from("career_outbox").select("key,card_id,provider_id,provider_ids").eq("user_id", userId).eq("status", "delivered")
+          .or(`provider_id.eq.${JSON.stringify(id)},provider_ids.cs.{${JSON.stringify(id)}}`).limit(2),
+        "read the replied-to text",
+      );
+      const row = Array.isArray(sent) ? sent[0] : null;
+      if (!row) return null;
+      if (typeof row.card_id === "string" && row.card_id) return row.card_id;
+      return typeof row.key === "string" && row.key.startsWith("card:") ? row.key.slice(5) : null;
     },
   };
 }

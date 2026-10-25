@@ -29,7 +29,7 @@ export async function supabaseParity(pg: Pg) {
 }
 
 export interface Turn { status: number; reply: string; intent: string | null; resultStatus: string | null; body: any }
-export interface Chat { say(message: string): Promise<Turn>; thread(): string | null; double: Double }
+export interface Chat { say(message: string, extra?: Record<string, unknown>): Promise<Turn>; thread(): string | null; double: Double }
 
 // The handler, loaded once per process with fetch pointed at the double.
 let loaded: Promise<(req: Request) => Promise<Response>> | null = null;
@@ -53,11 +53,11 @@ export async function careerHandler(pg: Pg, people: Record<string, string>) {
       return {
         double,
         thread: () => thread,
-        async say(message: string) {
+        async say(message: string, extra: Record<string, unknown> = {}) {
           const res = await handleChat(new Request(`${SUPABASE_URL}/functions/v1/agent-chat`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "content-type": "application/json", origin: "http://localhost" },
-            body: JSON.stringify({ message, ...(thread ? { thread_id: thread } : {}) }),
+            body: JSON.stringify({ message, ...(thread ? { thread_id: thread } : {}), ...extra }),
           }));
           const body = await res.json().catch(() => ({}));
           if (body?.thread_id) thread = body.thread_id;

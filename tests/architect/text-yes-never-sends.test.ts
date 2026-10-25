@@ -1,11 +1,11 @@
-// The card's yes (SERIAL-1440 (1); the owner, 2026-10-22 5:09 PM: "for submitting a yes, does handle a batch of
-// submissions"): one texted yes to the prepared-applications card approves exactly the batch that card shows, and only
-// then: as a direct reply while the card is the thread's last word, within 10 minutes of its showing, once (the card is
-// single-use), each item by the payload hash the card carries (an item that changed since is refused by name). The yes
-// approves; it never sends: the person's own worker claims and finishes, and no chat turn module names a claim or finish
-// door. The cloud card (the bridge draft, C9) is unchanged: its yes only opens that card. Before this file's change
-// (Option A, chosen 2026-10-22 under the owner's delegation) every yes was refused with "tap Approve".
-// Synthetic only; no network, no database.
+// The card's yes (D-031; SERIAL-1440, 1442, 1451, 1461; the owner, 2026-10-22 5:09 PM: "for submitting a yes, does handle
+// a batch of submissions"): one texted yes approves exactly the batch the card shows, and only when the text carries the
+// channel's reply-to id and that id is the message that carried the card (the user's texts carry one only when they
+// reply directly). Within 10 minutes of the showing, once (the card is single-use), each item by the payload hash the
+// card carries (an item that changed since is refused by name). A yes with no reply id, or in reply to any other or
+// older message, approves nothing and says how (reply directly to the card, or tap). The yes approves; it never sends:
+// the person's own worker claims and finishes, and no chat turn module names a claim or finish door. The cloud card
+// (the bridge draft, C9) is unchanged: its yes only opens that card. Synthetic only; no network, no database.
 import { CARD_INTENT, type CardStore, cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
 const ok = (v: unknown, why: string) => { if (!v) throw new Error(why); };
 const YES_FORMS = ["yes", "Yes!", "yep", "yeah", "y", "approve", "approve all", "yes please", "yes send them", "send them", "send all"];
@@ -13,52 +13,122 @@ const EXCEPT_FORMS = ["yes but not 2", "yes except 1", "approve, skip 2"];
 // Every database door that approves, queues, claims or finishes an application.
 const SEND_DOORS = /career_apply_(card_answer_(as|own)|message_card_approve_own|batch_approve_own|enqueue|cloud_begin_agent_own|extension_begin(_agent)?_own|claim(_own|_at)?|cloud_claim(_at)?|finish|cloud_finish)\b/;
 const NOW = Date.parse("2026-10-22T13:00:00Z");
+const CARD_MSG = "msg-card-1"; // the message that carried card-1
 
-function wo022Store(o: { shownAgoMs?: number; changed?: number[]; open?: boolean } = {}) {
+function wo022Store(o: { shownAgoMs?: number; changed?: number[]; open?: boolean; intent?: string | null; shownCard?: string | null; messages?: Record<string, string | null> } = {}) {
   const approvals: number[][] = [];
   let open = o.open ?? true;
+  const messages = o.messages ?? { [CARD_MSG]: "card-1", "msg-other": null };
   const store: CardStore = {
     async pending() { return []; },
     async open() { throw new Error("not used"); },
     async latestOpen() { return open ? { id: "card-1", items: [{ n: 1, prepared_id: "p1", payload_hash: "a".repeat(64) }, { n: 2, prepared_id: "p2", payload_hash: "b".repeat(64) }], shown_at: new Date(NOW - (o.shownAgoMs ?? 60_000)).toISOString() } : null; },
     // career_apply_card_answer_as: approving a number enqueues that application by its shown hash; a changed one is refused; the card closes.
     async answer(_u, _c, approve) { approvals.push(approve); open = false; return [1, 2].map((n) => ({ n, company: `Synthetic ${n}`, result: (o.changed ?? []).includes(n) ? "changed" : approve.includes(n) ? "queued" : "declined" })); },
-    async lastAssistantIntent() { return CARD_INTENT; },
-    async lastShownCard() { return open ? "card-1" : null; },
+    async lastAssistantIntent() { return o.intent === undefined ? CARD_INTENT : o.intent; },
+    async lastShownCard() { return o.shownCard === undefined ? (open ? "card-1" : null) : o.shownCard; },
+    async cardOfMessage(_t, id) { return messages[String(id)] ?? null; },
   };
-  return { store, approvals };
+  return { store, approvals, closed: () => !open };
 }
+const turn = (s: { store: CardStore }, message: string, extra: { now?: number; replyTo?: string | number | null; threadId?: string; userId?: string } = {}) =>
+  cardTurn({ message, userId: extra.userId ?? "u", threadId: extra.threadId ?? "t", now: extra.now ?? NOW, store: s.store, replyTo: extra.replyTo });
 
-Deno.test("the card's yes: a direct yes within 10 minutes approves exactly the shown batch; 'yes but not 2' leaves 2 out; nothing is sent by the yes itself", async () => {
+Deno.test("the card's yes: in direct reply to the card's message, within 10 minutes, it approves exactly the shown batch; 'yes but not 2' leaves 2 out; nothing is sent by the yes itself", async () => {
   for (const m of YES_FORMS) {
     const s = wo022Store();
-    const r = await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: s.store });
+    const r = await turn(s, m, { replyTo: CARD_MSG });
     ok(r?.status === "answered" && JSON.stringify(s.approvals) === "[[1,2]]", `"${m}" approves the whole card: ${JSON.stringify({ r, approvals: s.approvals })}`);
     ok(/2 approved exactly as shown/.test(r!.reply) && /Nothing has gone to an employer yet/.test(r!.reply), `"${m}": the words say approved, not sent: ${r!.reply}`);
   }
   for (const m of EXCEPT_FORMS) {
     const s = wo022Store();
-    const r = await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: s.store });
+    const r = await turn(s, m, { replyTo: CARD_MSG });
     const left = Number(m.match(/\d/)![0]);
     ok(r?.status === "answered" && s.approvals.length === 1 && !s.approvals[0].includes(left) && s.approvals[0].length === 1, `"${m}" leaves ${left} out: ${JSON.stringify(s.approvals)}`);
   }
 });
 
+Deno.test("SERIAL-1461 reply identity: no reply id, a different message, an older card's message approve nothing and say how; only the card's own message approves; a decline needs no reply id", async () => {
+  for (const m of [...YES_FORMS, ...EXCEPT_FORMS]) {
+    const absent = wo022Store();
+    const a = await turn(absent, m);
+    ok(a?.status === "needs_reply" && /reply directly to the card/.test(a!.reply) && /tap Approve/.test(a!.reply) && /Nothing was approved/.test(a!.reply) && absent.approvals.length === 0, `"${m}" with no reply id: ${JSON.stringify(a)}`);
+    const other = wo022Store();
+    const d = await turn(other, m, { replyTo: "msg-other" });
+    ok(d?.status === "needs_reply" && other.approvals.length === 0, `"${m}" in reply to another message, with the card as the last word: ${JSON.stringify(d)}`);
+    const unknown = wo022Store();
+    const u = await turn(unknown, m, { replyTo: "msg-unknown" });
+    ok(u?.status === "needs_reply" && unknown.approvals.length === 0, `"${m}" in reply to an unknown message: ${JSON.stringify(u)}`);
+    const older = wo022Store({ messages: { "msg-card-0": "card-0", [CARD_MSG]: "card-1" } });
+    const o = await turn(older, m, { replyTo: "msg-card-0" });
+    ok(o?.status === "card_outdated" && /out of date/.test(o!.reply) && older.approvals.length === 0, `"${m}" in reply to an older card's message: ${JSON.stringify(o)}`);
+  }
+  // A decline needs no reply id: it counts while the card is the thread's last word, and sends nothing.
+  const no = wo022Store();
+  await turn(no, "no");
+  ok(JSON.stringify(no.approvals) === "[[]]", `a no declines with no approvals: ${JSON.stringify(no.approvals)}`);
+  // The matching reply after another reply in the thread still counts: the reply id, not the last word, binds it.
+  const later = wo022Store({ intent: "career_apply_status" });
+  const r = await turn(later, "yes", { replyTo: CARD_MSG });
+  ok(r?.status === "answered" && JSON.stringify(later.approvals) === "[[1,2]]", `a direct reply to the card's message after another reply: ${JSON.stringify(r)}`);
+});
+
 Deno.test("the card's yes: refused outside the 10-minute window, after the card was answered, and for an item that changed since it was shown", async () => {
   const late = wo022Store({ shownAgoMs: 11 * 60_000 });
-  const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: late.store });
+  const r = await turn(late, "yes", { replyTo: CARD_MSG });
   ok(r?.status === "stale_card" && /more than 10 minutes ago/.test(r!.reply) && /show my applications/.test(r!.reply) && late.approvals.length === 0, `late yes: ${JSON.stringify(r)}`);
   const once = wo022Store();
-  await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: once.store });
-  const again = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW + 1000, store: once.store });
+  await turn(once, "yes", { replyTo: CARD_MSG });
+  const again = await turn(once, "yes", { replyTo: CARD_MSG, now: NOW + 1000 });
   ok(again === null && once.approvals.length === 1, `a second yes finds no open card: ${JSON.stringify({ again, approvals: once.approvals })}`);
   const changed = wo022Store({ changed: [2] });
-  const c = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store: changed.store });
+  const c = await turn(changed, "yes", { replyTo: CARD_MSG });
   ok(c?.status === "answered" && /2\. Synthetic 2: not sent: it changed after the card was shown/.test(c!.reply) && /1 approved exactly as shown/.test(c!.reply), `changed item refused by name: ${c?.reply}`);
-  // A text no still declines (declining sends nothing): the decline reaches the door with no approvals.
-  const s = wo022Store();
-  await cardTurn({ message: "no", userId: "u", threadId: "t", now: NOW, store: s.store });
-  ok(JSON.stringify(s.approvals) === "[[]]", `a no declines with no approvals: ${JSON.stringify(s.approvals)}`);
+});
+
+Deno.test("SERIAL-1442 outside the batch card a text yes never approves: no card, another thread's last word, a question asked after the card, another person", async () => {
+  for (const m of [...YES_FORMS, ...EXCEPT_FORMS, "yes, approve", "approve it"]) {
+    const none = wo022Store({ open: false });
+    ok((await turn(none, m, { replyTo: CARD_MSG })) === null && none.approvals.length === 0, `"${m}" with no card open: ${JSON.stringify(none.approvals)}`);
+    const other = wo022Store({ intent: "agent" });
+    ok((await turn(other, m, { threadId: "t2" }))?.status !== "answered" && other.approvals.length === 0, `"${m}" in a thread whose last word is not the card`);
+    const asked = wo022Store({ intent: "career_apply_questions" });
+    ok((await turn(asked, m))?.status !== "answered" && asked.approvals.length === 0, `"${m}" after a question was asked: could answer that question, so not the card's`);
+    const person = wo022Store({ open: false });
+    ok((await turn(person, m, { userId: "someone-else", replyTo: CARD_MSG })) === null && person.approvals.length === 0, `"${m}" from a person with no card of their own`);
+  }
+});
+
+Deno.test("SERIAL-1442 once: after 'yes', after 'yes but not 2' and after 'no' the card is closed and a further yes approves nothing; a replay of the same yes does nothing", async () => {
+  for (const first of ["yes", "yes but not 2", "no"]) {
+    const s = wo022Store();
+    const r1 = await turn(s, first, { replyTo: CARD_MSG });
+    ok(r1?.status === "answered" && s.closed(), `"${first}" answers the card once: ${JSON.stringify(r1)}`);
+    for (const again of ["yes", first, "approve all"]) {
+      const r2 = await turn(s, again, { replyTo: CARD_MSG, now: NOW + 5_000 });
+      ok(r2 === null && s.approvals.length === 1, `after "${first}", "${again}" approves nothing more: ${JSON.stringify(s.approvals)}`);
+    }
+  }
+});
+
+Deno.test("SERIAL-1442 exact payloads: whatever changed since the card was shown is refused by name and never queued (payload, the person's details, the employer screens, the pace)", async () => {
+  const results = [
+    { n: 1, company: "Changed Co", result: "changed" }, { n: 2, company: "Stale Co", result: "stale" }, { n: 3, company: "Cooldown Co", result: "company_cooldown" },
+    { n: 4, company: "Dup Co", result: "duplicate" }, { n: 5, company: "Cap Co", result: "daily_cap" }, { n: 6, company: "Refused Co", result: "refused" }, { n: 7, company: "Fine Co", result: "queued" },
+    { n: 8, company: "Pace Co", result: "pace_unreadable" },
+  ];
+  const store: CardStore = {
+    async pending() { return []; }, async open() { throw new Error("not used"); },
+    async latestOpen() { return { id: "card-7", items: results.map((r) => ({ n: r.n, prepared_id: `p${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(NOW - 1000).toISOString() }; },
+    async answer() { return results; }, async lastAssistantIntent() { return CARD_INTENT; }, async lastShownCard() { return "card-7"; }, async cardOfMessage() { return "card-7"; },
+  };
+  const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store, replyTo: "msg-card-7" });
+  ok(r?.status === "answered" && /^1 approved exactly as shown/.test(r!.reply), r?.reply);
+  for (const [n, why] of [[1, "it changed after the card was shown"], [2, "your details changed after it was prepared"], [3, "you applied to them in the last 30 days"], [4, "you already applied to this posting"], [5, "today's daily limit is already used"], [6, "the queue refused it"], [8, "your saved daily pace could not be read"]] as const) {
+    ok(new RegExp(`^${n}\\. [A-Za-z ]+: not sent: ${why.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m").test(r!.reply), `${n}: ${why}: ${r!.reply}`);
+  }
+  ok(/^7\. Fine Co: approved/m.test(r!.reply), r!.reply);
 });
 
 Deno.test("the cloud card's yes only opens the card (C9, bridge draft), calling no approve, queue, claim or finish door", async () => {
@@ -93,72 +163,11 @@ Deno.test("no chat turn module names a claim or finish door, and the cloud card 
   ok(!SEND_DOORS.test(code), "the cloud card's chat turn names a send door in code");
 });
 
-// SERIAL-1442: every case outside "a direct yes to the batch card, within 10 minutes, once" approves nothing.
-function railsStore(o: { intent?: string | null; card?: boolean; shownAgoMs?: number; shownCard?: string | null } = {}) {
-  const approvals: number[][] = [];
-  let open = o.card ?? true;
-  const store: CardStore = {
-    async pending() { return []; },
-    async open() { throw new Error("not used"); },
-    async latestOpen() { return open ? { id: "card-1", items: [{ n: 1, prepared_id: "p1", payload_hash: "a".repeat(64) }, { n: 2, prepared_id: "p2", payload_hash: "b".repeat(64) }], shown_at: new Date(NOW - (o.shownAgoMs ?? 60_000)).toISOString() } : null; },
-    async answer(_u, _c, approve) { approvals.push(approve); open = false; return [1, 2].map((n) => ({ n, company: `Synthetic ${n}`, result: approve.includes(n) ? "queued" : "declined" })); },
-    async lastAssistantIntent() { return o.intent === undefined ? CARD_INTENT : o.intent; },
-    async lastShownCard() { return o.shownCard === undefined ? (open ? "card-1" : null) : o.shownCard; },
-  };
-  return { store, approvals, closed: () => !open };
-}
-const ALL_YES = [...YES_FORMS, ...EXCEPT_FORMS, "yes, approve", "approve it"];
-
-Deno.test("SERIAL-1442 outside the batch card a text yes never approves: no card, another thread's last word, a question asked after the card, another person", async () => {
-  for (const m of ALL_YES) {
-    const none = railsStore({ card: false });
-    ok((await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: none.store })) === null && none.approvals.length === 0, `"${m}" with no card open: ${JSON.stringify(none.approvals)}`);
-    const other = railsStore({ intent: "agent" });
-    ok((await cardTurn({ message: m, userId: "u", threadId: "t2", now: NOW, store: other.store })) === null && other.approvals.length === 0, `"${m}" in a thread whose last word is not the card`);
-    const asked = railsStore({ intent: "career_apply_questions" });
-    ok((await cardTurn({ message: m, userId: "u", threadId: "t", now: NOW, store: asked.store })) === null && asked.approvals.length === 0, `"${m}" after a question was asked: could answer that question, so not the card's`);
-    const person = railsStore({ card: false, intent: CARD_INTENT });
-    ok((await cardTurn({ message: m, userId: "someone-else", threadId: "t", now: NOW, store: person.store })) === null && person.approvals.length === 0, `"${m}" from a person with no card of their own`);
-  }
-});
-
-Deno.test("SERIAL-1442 once: after 'yes', after 'yes but not 2' and after 'no' the card is closed and a further yes approves nothing; a replay of the same yes does nothing", async () => {
-  for (const first of ["yes", "yes but not 2", "no"]) {
-    const s = railsStore();
-    const r1 = await cardTurn({ message: first, userId: "u", threadId: "t", now: NOW, store: s.store });
-    ok(r1?.status === "answered" && s.closed(), `"${first}" answers the card once: ${JSON.stringify(r1)}`);
-    for (const again of ["yes", first, "approve all"]) {
-      const r2 = await cardTurn({ message: again, userId: "u", threadId: "t", now: NOW + 5_000, store: s.store });
-      ok(r2 === null && s.approvals.length === 1, `after "${first}", "${again}" approves nothing more: ${JSON.stringify(s.approvals)}`);
-    }
-  }
-});
-
-Deno.test("SERIAL-1442 exact payloads: whatever changed since the card was shown is refused by name and never queued (payload, the person's details, the employer screens, the pace)", async () => {
-  const results = [
-    { n: 1, company: "Changed Co", result: "changed" }, { n: 2, company: "Stale Co", result: "stale" }, { n: 3, company: "Cooldown Co", result: "company_cooldown" },
-    { n: 4, company: "Dup Co", result: "duplicate" }, { n: 5, company: "Cap Co", result: "daily_cap" }, { n: 6, company: "Refused Co", result: "refused" }, { n: 7, company: "Fine Co", result: "queued" },
-  ];
-  const store: CardStore = {
-    async pending() { return []; }, async open() { throw new Error("not used"); },
-    async latestOpen() { return { id: "card-7", items: results.map((r) => ({ n: r.n, prepared_id: `p${r.n}`, payload_hash: "a".repeat(64) })), shown_at: new Date(NOW - 1000).toISOString() }; },
-    async answer() { return results; }, async lastAssistantIntent() { return CARD_INTENT; }, async lastShownCard() { return "card-7"; },
-  };
-  const r = await cardTurn({ message: "yes", userId: "u", threadId: "t", now: NOW, store });
-  ok(r?.status === "answered" && /^1 approved exactly as shown/.test(r!.reply), r?.reply);
-  for (const [n, why] of [[1, "it changed after the card was shown"], [2, "your details changed after it was prepared"], [3, "you applied to them in the last 30 days"], [4, "you already applied to this posting"], [5, "today's daily limit is already used"], [6, "the queue refused it"]] as const) {
-    ok(new RegExp(`^${n}\\. [A-Za-z ]+: not sent: ${why.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "m").test(r!.reply), `${n}: ${why}: ${r!.reply}`);
-  }
-  ok(/^7\. Fine Co: approved/m.test(r!.reply), r!.reply);
-});
-
-Deno.test("SERIAL-1451 card identity: a yes in a thread whose shown card is no longer the open one approves nothing; a thread whose last reply names no card approves nothing", async () => {
+Deno.test("SERIAL-1451 card identity: a yes in reply to this thread's card message approves nothing when a newer card was shown since (the card is out of date)", async () => {
+  // Thread A's card message carried card-0; the person's newest open card is card-1 (shown in another thread since).
   for (const m of [...YES_FORMS, ...EXCEPT_FORMS]) {
-    const other = railsStore({ shownCard: "card-0" });
-    const r = await cardTurn({ message: m, userId: "u", threadId: "A", now: NOW, store: other.store });
-    ok(r?.status === "card_outdated" && /out of date/.test(r!.reply) && other.approvals.length === 0, `"${m}" on an outdated card: ${JSON.stringify(r)}`);
-    const unnamed = railsStore({ shownCard: null });
-    const u = await cardTurn({ message: m, userId: "u", threadId: "A", now: NOW, store: unnamed.store });
-    ok(u?.status === "card_outdated" && unnamed.approvals.length === 0, `"${m}" with no card id on the last reply: ${JSON.stringify(u)}`);
+    const s = wo022Store({ messages: { "msg-card-A": "card-0" } });
+    const r = await turn(s, m, { threadId: "A", replyTo: "msg-card-A" });
+    ok(r?.status === "card_outdated" && /out of date/.test(r!.reply) && s.approvals.length === 0, `"${m}" on an outdated card: ${JSON.stringify(r)}`);
   }
 });

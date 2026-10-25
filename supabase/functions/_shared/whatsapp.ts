@@ -63,6 +63,8 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
         const address = waId ?? bsuid!;
         const base = {
           provider: "whatsapp" as const, channel: "whatsapp" as const, messageId: m.id.slice(0, 200), contact: `wa:${address}`, address,
+          // SERIAL-1462: a reply in WhatsApp carries the replied-to message as messages[].context.id (Cloud API).
+          replyToMessageId: typeof m?.context?.id === "string" && m.context.id ? m.context.id.slice(0, 200) : null,
           aliases: waId && bsuid ? [`wa:${bsuid}`] : [], alias: waId && bsuid ? bsuid : null,
           phone: waId && waId.length >= 8 && waId.length <= 15 ? `+${waId}` : null,
         };

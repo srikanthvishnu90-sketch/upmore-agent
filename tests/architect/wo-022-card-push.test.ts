@@ -94,6 +94,7 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then o
     },
     lastAssistantIntent: async () => last,
     lastShownCard: async () => (last === CARD_INTENT ? card?.id ?? null : null),
+    cardOfMessage: async (_t, id) => (card && String(id) === `M-${card.id}` ? card.id : null),
   };
   const runs: any[] = [];
   const res = await handleProactive(
@@ -117,10 +118,12 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then o
   );
   eq(res.status, 200);
   eq(runs.map((r) => [r.cards, r.error]), [[1, null]]);
-  const out = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store });
+  const bare = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store });
+  eq(bare?.status, "needs_reply", "SERIAL-1461: a yes with no reply id approves nothing");
+  const out = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store, replyTo: "M-C1" });
   eq(out?.status, "answered", "SERIAL-1440 (1): one text yes to the pushed card approves the batch it names, within 10 minutes");
   eq(approved, [[1, 3]], "exactly 1 and 3");
-  const late = await cardTurn({ message: "yes", userId: "A", threadId: "TH", now: T + 11 * 60000, store });
+  const late = await cardTurn({ message: "yes", userId: "A", threadId: "TH", now: T + 11 * 60000, store, replyTo: "M-C1" });
   eq(late?.status, "stale_card", "11 minutes after the card: nothing approved");
   eq(approved, [[1, 3]]);
 });

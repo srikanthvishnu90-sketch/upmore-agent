@@ -46,7 +46,10 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
   if (!m || typeof m !== "object") return { message: null, ignored: "not a new message" }; // edits, callbacks, channel posts
   if (m.chat?.type !== "private" || !Number.isSafeInteger(m.chat.id) || m.chat.id <= 0) return { message: null, ignored: "not a private chat" };
   if (m.from?.is_bot) return { message: null, ignored: "from a bot" };
-  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id) };
+  // SERIAL-1462: a reply in Telegram carries the replied-to message as message.reply_to_message (Bot API); its message_id
+  // is the id sendMessage returned when that message went out.
+  const repliedTo = m.reply_to_message && typeof m.reply_to_message === "object" && Number.isSafeInteger(m.reply_to_message.message_id) ? String(m.reply_to_message.message_id) : null;
+  const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo };
   if (typeof m.text !== "string" || !m.text.trim()) return { message: { ...base, kind: "seen", text: "", file: !!(m.document || m.photo) }, ignored: "no text (attachments are not read yet)" };
   const cmd = /^\/(start|stop|help)(?:@[A-Za-z0-9_]{1,64})?(?:\s+(\S+))?\s*$/i.exec(m.text.trim());
   if (cmd) {

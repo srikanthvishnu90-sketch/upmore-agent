@@ -101,7 +101,7 @@ export class TurnLimitError extends Error {
 // apikey/Authorization pairs — same note as imessage-inbound).
 async function callAgentChat(
   deps: ChannelDeps,
-  args: { userId: string; threadId: string; message: string; turnKey?: string; careerBatch?: unknown },
+  args: { userId: string; threadId: string; message: string; turnKey?: string; careerBatch?: unknown; replyToMessageId?: string | null },
 ): Promise<any> {
   const supabaseUrl = deps.env("SUPABASE_URL") ?? "";
   const serviceKey = deps.env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -120,6 +120,8 @@ async function callAgentChat(
         as_user_id: args.userId,
         ...(args.turnKey ? { turn_key: args.turnKey } : {}),
         ...(args.careerBatch ? { career_batch: args.careerBatch } : {}),
+        // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
+        ...(args.replyToMessageId ? { reply_to_message_id: args.replyToMessageId } : {}),
       }),
       signal: ctrl.signal,
     });
@@ -255,6 +257,7 @@ export async function runChannelTurnRich(
     userId: string;
     text: string;
     messageId: string | null;
+    replyToMessageId?: string | null; // SERIAL-1462: the provider's id of the message the person replied to
   },
 ): Promise<{ kind: "duplicate" } | RichTurnOutcome> {
   const admin = deps.createAdmin();
@@ -296,7 +299,7 @@ export async function runChannelTurnRich(
 
   // Ask the agent brain. Service-role bearer + as_user_id: agent-chat runs
   // the whole turn as that user (see its TEST BRIDGE block).
-  let chat = await callAgentChat(deps, { userId: args.userId, threadId: threadId as string, message: args.text });
+  let chat = await callAgentChat(deps, { userId: args.userId, threadId: threadId as string, message: args.text, replyToMessageId: args.replyToMessageId ?? null });
   if (chat.thread_id && String(chat.thread_id) !== threadId) {
     threadId = String(chat.thread_id);
     await admin.from("channel_threads").upsert(

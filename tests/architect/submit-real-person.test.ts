@@ -157,11 +157,11 @@ Deno.test("1c. only the router's confirm of a pasted resume, and only entries th
 
 Deno.test("1d. agent-chat runs the evidence step on the router's turn, before the turn is saved", async () => {
   const src = await Deno.readTextFile(`${ROOT}/supabase/functions/agent-chat/handler-career.ts`);
-  const at = src.indexOf("evidenceResumeConfirmation(");
-  assert(at > 0, "the handler calls it");
-  assert(at > src.lastIndexOf("host.runTurn(message, ctx)"), "after the router's turn");
+  const turn = src.lastIndexOf("host.runTurn(message, ctx)"), at = src.lastIndexOf("evidenceResumeConfirmation(");
+  assert(turn > 0 && at > turn, "the handler calls it after the router's turn");
   assert(at < src.indexOf("persistence.commit("), "before the commit, so the stamps are saved with the turn");
-  assert(src.indexOf("resumeConfirmationContext(") > 0 && src.indexOf("resumeConfirmationContext(") < at, "from the thread: what was shown and the upload");
+  const ctxAt = src.indexOf("resumeConfirmationContext(", turn);
+  assert(ctxAt > turn && ctxAt < at, "from the thread: what was shown and the upload");
 });
 
 // ---------------------------------------------------------------------------------------------- the server prepare

@@ -20,7 +20,9 @@ const CONFIRMING = new Set(["career_resume_ingest"]);
 
 export interface Shown { text: string; message_ids: string[] }
 export interface Upload { kind: "message" | "file"; ref: string; sha256: string; text: string }
-export interface EvidenceResult { stamped: number; unshown: number; untraced: number; refused: number }
+// held: the facts the router confirmed that could not be evidenced, put back to drafts (the host's record is the truth: a
+// fact no application may use is not called confirmed).
+export interface EvidenceResult { stamped: number; unshown: number; untraced: number; refused: number; held: string[] }
 
 export async function sha256Hex(s: string) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -36,7 +38,7 @@ export async function evidenceResumeConfirmation(o: {
   out: { intent?: string | null; resultStatus?: string | null } | null | undefined;
   shown: Shown | null | undefined; upload: Upload | null | undefined; events: EventStore | null | undefined;
 }): Promise<EvidenceResult> {
-  const r: EvidenceResult = { stamped: 0, unshown: 0, untraced: 0, refused: 0 };
+  const r: EvidenceResult = { stamped: 0, unshown: 0, untraced: 0, refused: 0, held: [] };
   if (!o.out || !CONFIRMING.has(String(o.out.intent)) || o.out.resultStatus !== "completed") return r;
   const facts = Array.isArray(o.after?.facts) ? o.after.facts : [];
   // deno-lint-ignore no-explicit-any
@@ -48,19 +50,21 @@ export async function evidenceResumeConfirmation(o: {
   const shown = words(o.shown?.text), given = words(o.upload?.text);
   const at = new Date(o.now).toISOString(), message_sha256 = await sha256Hex(String(o.message ?? ""));
   const shown_sha256 = o.shown ? await sha256Hex(o.shown.text) : null;
+  // deno-lint-ignore no-explicit-any
+  const hold = (f: any) => { Object.assign(f, { status: "draft", needs_confirmation: true }); r.held.push(f.id); };
   for (const f of turned) {
     const w = words(f.text);
-    if (!shown || !shown.includes(w)) { r.unshown++; continue; }
+    if (!shown || !shown.includes(w)) { r.unshown++; hold(f); continue; }
     // The entry's own lines are in what they gave; the words that join them (title, then bullets) need not be.
     const parts = [f.title, ...(Array.isArray(f.bullets) ? f.bullets : []), ...(f.title || f.bullets ? [] : [f.text])].map(words).filter(Boolean);
-    if (!o.upload || !given || !parts.length || !parts.every((p) => given.includes(p))) { r.untraced++; continue; }
+    if (!o.upload || !given || !parts.length || !parts.every((p) => given.includes(p))) { r.untraced++; hold(f); continue; }
     const event = crypto.randomUUID();
     const kept = await recordEvent(o.events, {
       user_id: o.userId, at: o.now, kind: "fact_confirmed", subject: f.text, source: "chat",
       detail: { id: f.id, kind: f.kind ?? null, confirmation_event_id: event, message_sha256, shown_sha256, shown_message_ids: o.shown!.message_ids.slice(0, 10),
         upload: { kind: o.upload.kind, ref: o.upload.ref, sha256: o.upload.sha256 }, via: "router: their yes to the resume entries shown to them" },
     });
-    if (!kept) { r.refused++; continue; }
+    if (!kept) { r.refused++; hold(f); continue; }
     Object.assign(f, {
       provenance: `${RESUME_CONFIRM_PROVENANCE} (${at})`, confirmation_event_id: event, confirmed_at: at,
       source_ref: { upload: o.upload.ref, upload_sha256: o.upload.sha256, shown_sha256 },
@@ -68,6 +72,21 @@ export async function evidenceResumeConfirmation(o: {
     r.stamped++;
   }
   return r;
+}
+
+// The reply when some or all of the facts the router confirmed could not be evidenced and were held as drafts: what is
+// confirmed and what is not, and why, in place of the router's "confirmed" (null when nothing was held).
+export function heldReply(r: EvidenceResult): string | null {
+  if (!r.held.length) return null;
+  const why = [
+    r.unshown ? `${r.unshown} ${r.unshown === 1 ? "was" : "were"} not shown to you word for word` : "",
+    r.untraced ? `${r.untraced} ${r.untraced === 1 ? "is" : "are"} not in the resume you gave me` : "",
+    r.refused ? `${r.refused} could not be recorded just now` : "",
+  ].filter(Boolean).join(", ");
+  const head = r.stamped
+    ? `${r.stamped} of your resume entries are confirmed, each as you saw it. ${r.held.length} stay drafts: ${why}.`
+    : `Nothing from your resume is confirmed yet: I confirm an entry only when you have seen its words and said yes to them, and ${why}.`;
+  return `${head} A draft is never tailored, put on a form or sent.`;
 }
 
 // What the person was shown and what they gave, from their thread's messages (newest first, as read): the assistant's

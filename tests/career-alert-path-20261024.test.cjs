@@ -179,7 +179,7 @@ test("change: restrict to named firms sets firms_include in the user's words", (
   const firms = wpOf().interests[0].filters.firms_include;
   assert.equal(firms.length, 2, JSON.stringify(firms));
   assert.ok(firms.some((x) => /ferrow/i.test(x)) && firms.some((x) => /talbot/i.test(x)), JSON.stringify(firms));
-  assert.match(r.reply, /Ferrow/, r.reply);
+  assert.match(r.reply, /ferrow/i, r.reply);
 });
 
 test("change: daily summary time is unsupported — said plainly, nothing changes", () => {

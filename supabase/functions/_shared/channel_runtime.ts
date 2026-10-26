@@ -8,16 +8,28 @@ import { adaptersFromEnv } from "./channel_registry.ts";
 // persistence and the hourly turn limit are the chat's own. The channel is never sent: the brain is channel-blind.
 // agent-chat may answer with `parts` (a reply in several messages, each at most 4,000 characters: channel_inbound.ts
 // replyParts); they are passed on as they are.
-export function chatThroughAgent(url: string, key: string) {
+// LAUNCH READINESS R1 (2026-10-26): agent-chat runs one person's turns one at a time (career_turn_gate.ts). If a turn still
+// meets revision_conflict (the gate timed out or is not applied), nothing of it was saved, so the same turn key is sent
+// once more and agent-chat runs it again on a fresh read; any other refusal is not retried.
+export const CONFLICT_RETRIES = 1;
+export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: number } = {}) {
   return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => {
-    const res = await fetch(`${url}/functions/v1/agent-chat`, {
-      method: "POST", signal: AbortSignal.timeout(120000),
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
-      body: JSON.stringify({ as_user_id: a.userId, message: a.message, turn_key: a.turnKey, ...(a.threadId ? { thread_id: a.threadId } : {}),
-        ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}) }),
-    });
-    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    let res: Response, body: Record<string, unknown>;
+    for (let attempt = 0; ; attempt++) {
+      res = await fetch(`${url}/functions/v1/agent-chat`, {
+        method: "POST", signal: AbortSignal.timeout(120000),
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
+        body: JSON.stringify({ as_user_id: a.userId, message: a.message, turn_key: a.turnKey, ...(a.threadId ? { thread_id: a.threadId } : {}),
+          ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}) }),
+      });
+      body = await res.json().catch(() => ({})) as Record<string, unknown>;
+      if (res.status === 409 && body.error === "revision_conflict" && attempt < CONFLICT_RETRIES) {
+        await new Promise((r) => setTimeout(r, o.retryDelayMs ?? 250));
+        continue;
+      }
+      break;
+    }
     if (res.status === 429) return { status: 429, reply: String(body.message || "Slow down a little, then try again."), threadId: null };
     if (!res.ok) throw new Error(`agent-chat HTTP ${res.status}`);
     const parts = Array.isArray(body.parts) ? body.parts.filter((p): p is string => typeof p === "string") : undefined;

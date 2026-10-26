@@ -35,13 +35,17 @@ import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor,
 import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
 import { createCareerPersistence, careerRequestHash } from "../_shared/career_persistence.js";
-import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
+import { callModel as callModelUncapped, modelConfig, newMeter } from "../_shared/model_gateway.ts";
+// LAUNCH READINESS (2026-10-26): the daily model ceiling, the per-person turn order, the pool read only when used.
+import { spendCap, spendLimitsFromEnv, supabaseDailySpend } from "../_shared/career_spend_cap.ts";
+import { enterTurnGate, type TurnGate } from "../_shared/career_turn_gate.ts";
+import { poolNeeded } from "./career_pool_need.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
-import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
+import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
@@ -297,6 +301,16 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // product's designed honest-empty reply — never a crashed turn,
     // never an invented role. The worker's postingsFor reads through
     // the same loader, so the two pools cannot disagree.
+    // LAUNCH READINESS X7: every model call this turn makes goes through the person's daily ceiling
+    // (_shared/career_spend_cap.ts); over it, the call is refused before any request and the reply says so. The name
+    // callModel is shadowed here on purpose, so no call site below can reach the gateway around the ceiling.
+    const spend = spendCap({ read: supabaseDailySpend(admin, user.id), limits: spendLimitsFromEnv(Deno.env), call: callModelUncapped });
+    const callModel = spend.call;
+    // The mock-interview judge's model call goes through the same ceiling (shadowed like callModel).
+    const supabaseMockStore = (a: any) => supabaseMockStoreUncapped(a, { callModel });
+    // LAUNCH READINESS R1: this person's turns run one at a time, in arrival order (_shared/career_turn_gate.ts). The
+    // ticket is taken before the thread is read and given back after the commit, on every path (finally, below).
+    let gate: TurnGate | null = null;
     const poolLoader = CareerPool.createKbPoolLoader({
       readRows: async (spec: any) => {
         let q: any = admin.from(spec.table).select(spec.select)
@@ -312,30 +326,41 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
     });
     try {
+      gate = await enterTurnGate(admin, user.id, turnKey);
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
-      const pool = await poolLoader.loadPool();
-      if (pool.error) console.error("career pool load failed:", pool.error);
-      // V240 LIVE-FIX (probe f2): the window is a discovery slice,
-      // not the shelf — when the turn names a specific company/title
-      // (the router's OWN parser decides; no second parser lives
-      // here), supplement the window with the loader's targeted
-      // lookup so a named posting the KB holds beyond the window is
-      // findable in-turn. Merged by posting id; the supplement never
-      // throws (loader contract), and any failure here leaves the
-      // window pool standing on its own — the turn keeps its honest
-      // named stop, never a crash, never an invented role.
-      let postings: any[] = pool.postings;
-      try {
-        const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
-        if (target && target.company) {
-          const extra = await poolLoader.loadTargeted(target);
-          if (extra.postings.length) {
-            const seen = new Set(postings.map((p: any) => p.job_id));
-            postings = postings.concat(extra.postings.filter((p: any) => !seen.has(p.job_id)));
+      // LAUNCH READINESS X3: the pool is read only on a turn that reaches the router and whose message the router answers
+      // with postings (agent-chat/career_pool_need.ts); ensurePool() below reads it once, then puts it on the turn.
+      let postings: any[] = [];
+      let poolRead = false;
+      const ensurePool = async () => {
+        if (poolRead) return;
+        poolRead = true;
+        if (!poolNeeded({ host, message, ctx: ctx as unknown as Record<string, unknown> }).needed) return;
+        const pool = await poolLoader.loadPool();
+        if (pool.error) console.error("career pool load failed:", pool.error);
+        // V240 LIVE-FIX (probe f2): the window is a discovery slice,
+        // not the shelf — when the turn names a specific company/title
+        // (the router's OWN parser decides; no second parser lives
+        // here), supplement the window with the loader's targeted
+        // lookup so a named posting the KB holds beyond the window is
+        // findable in-turn. Merged by posting id; the supplement never
+        // throws (loader contract), and any failure here leaves the
+        // window pool standing on its own — the turn keeps its honest
+        // named stop, never a crash, never an invented role.
+        postings = pool.postings;
+        try {
+          const target = typeof (CareerRouter as any).namedRoleTargetOf === "function" ? (CareerRouter as any).namedRoleTargetOf(message, null) : null;
+          if (target && target.company) {
+            const extra = await poolLoader.loadTargeted(target);
+            if (extra.postings.length) {
+              const seen = new Set(postings.map((p: any) => p.job_id));
+              postings = postings.concat(extra.postings.filter((p: any) => !seen.has(p.job_id)));
+            }
           }
-        }
-      } catch { /* the window pool stands on its own */ }
+        } catch { /* the window pool stands on its own */ }
+        (ctx as any).postings = postings;
+      };
       // MUSE-F-002: the thread's batch, if it has one, read back from the worker's own record so a plain-words status ask
       // answers with its true state. Read only; a failed read leaves the thread's standing state to answer.
       let batchRunRecord: unknown = null;
@@ -343,7 +368,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (typeof batchRunId === "string" && batchRunId) {
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on" /* FEATURE 9: needs migration 20261026090009 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on" /* FEATURE 9: needs migration 20261026090009 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
@@ -660,6 +685,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
         if (turn.stopped === "model_error" && !turn.tool_calls.some((t) => t.ok && t.effect === "write_own")) {
           console.error("agent brain: model unavailable, answering with the router");
+          await ensurePool();
           out = host.runTurn(message, ctx);
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
@@ -676,6 +702,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const f5Free = !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
         const f5JudgeOn = Deno.env.get("CAREER_JUDGE") === "on";
         const f5Prompt = f5Free ? await judgePromptTurn({ message, userId: user.id, now: Date.now(), memory: supabaseMemoryStore(admin), judgeOn: f5JudgeOn }) : null;
+        if (!f5Prompt) await ensurePool();
         out = f5Prompt
           ? { reply: f5Prompt.reply, intent: f5Prompt.intent, resultStatus: f5Prompt.status, contained: false, handler: "judge_prompt" }
           : host.runTurn(message, ctx);
@@ -805,6 +832,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (m.failed > 0) artifactNote = "One file from this turn couldn't be attached here — ask me to send it again and I'll rebuild it.";
         }
       }
+      // LAUNCH READINESS X7: a model call refused by the daily ceiling (or an unreadable spend) is said, never hidden.
+      const spendNote = spend.note();
+      if (spendNote) {
+        out = { ...out, reply: `${out.reply}\n${spendNote}`, ...(out.parts ? { parts: [...out.parts, spendNote] } : {}) };
+        agentMeta = { ...(agentMeta || {}), model_limit: spend.refused() };
+      }
       const reply = (flowCtx.note ? `${flowCtx.note} ${out.reply}` : out.reply) + (artifactNote ? `\n${artifactNote}` : "");
       const reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
       const reminderLines = reminders.map((r:any) => typeof r.speak_line === "string" ? r.speak_line.slice(0,2000) : "").filter(Boolean);
@@ -827,6 +860,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
       const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
       return json(cors, { error: code, reply: conflict ? "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started." : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
+    } finally {
+      await gate?.leave();
     }
   } catch (e) {
     console.error(e);

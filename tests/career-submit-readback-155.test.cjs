@@ -93,7 +93,8 @@ test("155 readback: confirmed counted apart from sent-unconfirmed, and the error
     `the sent-unconfirmed row is named as not submitted: ${lines.join(" | ")}`);
   const errLine = lines.find((l) => l.includes("TestCo 3"));
   assert.ok(errLine, `the errored row appears in the spoken readback: ${lines.join(" | ")}`);
-  assert.ok(errLine.includes(sm.stops[0].code), `and it appears WITH its recorded error: ${errLine}`);
+  // Launch readiness Q3 (2026-10-26): the error is said in plain words; its code stays on the record (sm.stops above).
+  assert.ok(/stopped with an error/.test(errLine) && !errLine.includes(sm.stops[0].code), `and it appears WITH its recorded error, in plain words: ${errLine}`);
 
   // the exactly-once accounting still holds over all three outcomes
   assert.doesNotThrow(() => Batch.assertAccounted(run), "every selected application is accounted for exactly once");

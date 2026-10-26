@@ -38262,6 +38262,14 @@ const CareerRouter = (() => {
     for (const f of profile.facts || []) if (f && f.source === "resume-ingest" && f.needs_confirmation) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
     const total = Object.values(byKind).reduce((a, b) => a + b, 0);
     const counts = Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ");
+    // FEATURE 16 (2026-10-26): the same resume sent again. Every entry it holds is already confirmed (122 skips a draft
+    // that duplicates a confirmed fact), so there is nothing to present; the old reply said "I read it as 0 facts — every
+    // one is held as a DRAFT" and asked for a yes to nothing. Said as it is, and nothing is asked.
+    const known = (res.skipped_duplicates || []).filter((d) => d && d.existing_fact_id).length;
+    if (!total && known) {
+      return { intent: "career_resume_ingest", resultStatus: "already_on_record", sends: 0, resume_ingest: { drafts: 0, known },
+        reply: compose({ headline: "That resume is already on your record.", facts: [`All ${known} of its entries are confirmed facts already, so there is nothing new to confirm and nothing was changed.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." }) };
+    }
     const mir = threadMirrorForWrite(ctx);
     // SPLIT-1146 (a): the presentation is BOUND — the marker carries
     // the ids of exactly the drafts this paste produced and the hash
@@ -38279,7 +38287,7 @@ const CareerRouter = (() => {
       // after presentation invalidates the yes; see the confirm).
       entries: presented.map((f) => ({ id: f.id, sha256: sha256(f.text) })) };
     const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
-    const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
+    const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.${known ? ` ${known} more ${known === 1 ? "is" : "are"} already confirmed on your record and stay as they are.` : ""}`];
     // JOIN-1213 (the evidence gap, architect test 1a): a count alone
     // evidences nothing — the handler's evidence step can only stamp
     // entries whose own words were actually SHOWN to the person, so

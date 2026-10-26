@@ -159,8 +159,11 @@ export function afterRouter(d: IntakeDecision | null, out: { intent?: string | n
   if (erased) return { state: undefined, reply: null };
   const presented = out.intent === "career_resume_ingest" && out.resultStatus === "awaiting_user";
   const confirmed = out.intent === "career_resume_ingest" && out.resultStatus === "completed";
+  // The same resume again: every entry is confirmed already (the router says so); nothing waits for a yes.
+  const known = out.intent === "career_resume_ingest" && out.resultStatus === "already_on_record";
   if (d?.kind === "route") {
     if (presented) return { state: d.state, reply: null };
+    if (known) return { state: { ...(d.state ?? {}), upload: null }, reply: null };
     if (d.source === "file") return { state: { ...(d.state ?? {}), upload: null }, reply: `I read ${filename ?? "the file"}, but I couldn't put it on your record as a resume, so nothing from it was saved. Paste the text here and I'll read it.` };
     return { state: d.state, reply: null };
   }

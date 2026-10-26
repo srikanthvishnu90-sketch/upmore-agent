@@ -14257,6 +14257,11 @@ const CareerRouter = (() => {
     for (const f of profile.facts || []) if (f && f.source === "resume-ingest" && f.needs_confirmation) byKind[f.kind] = (byKind[f.kind] || 0) + 1;
     const total = Object.values(byKind).reduce((a, b) => a + b, 0);
     const counts = Object.entries(byKind).map(([k, n]) => `${n} ${k}`).join(", ");
+    const known = (res.skipped_duplicates || []).filter((d) => d && d.existing_fact_id).length;
+    if (!total && known) {
+      return { intent: "career_resume_ingest", resultStatus: "already_on_record", sends: 0, resume_ingest: { drafts: 0, known },
+        reply: compose({ headline: "That resume is already on your record.", facts: [`All ${known} of its entries are confirmed facts already, so there is nothing new to confirm and nothing was changed.`], nextStep: "Name a role (or paste a posting) and the tailoring runs on them." }) };
+    }
     const mir = threadMirrorForWrite(ctx);
     const presentedIds = (res.factIds || res.added_fact_ids || []).slice();
     const presented = presentedIds
@@ -14265,7 +14270,7 @@ const CareerRouter = (() => {
     if (mir) mir.resumeIngest = { at: nowOf(ctx), drafts: total, factIds: presentedIds, contentSha256: sha256(raw),
       entries: presented.map((f) => ({ id: f.id, sha256: sha256(f.text) })) };
     const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
-    const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
+    const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.${known ? ` ${known} more ${known === 1 ? "is" : "are"} already confirmed on your record and stay as they are.` : ""}`];
     const nextStep = target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them.";
     const composed = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep });
     const list = presented.length ? `Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}` : "";

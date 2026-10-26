@@ -74,6 +74,8 @@ Deno.test("the file a resume was read from binds the yes only for that exact sto
   eq(afterRouter(null, { intent: "career_resume_ingest", resultStatus: "completed", reply: "" }, { upload }, false, null).state, { upload: null });
   eq(afterRouter(null, { intent: "career_resume_ingest", resultStatus: "awaiting_user", reply: "" }, { upload }, false, null).state, { upload: null });
   eq(afterRouter(null, { intent: "career_tailor", resultStatus: "completed", reply: "" }, { upload }, false, null).state, { upload }, "an unrelated turn leaves it");
+  eq(afterRouter({ kind: "route", message: "", userContent: "", note: null, upload, state: { upload }, source: "file" }, { intent: "career_resume_ingest", resultStatus: "already_on_record", reply: "That resume is already on your record." }, null, false, "cv.pdf"),
+    { state: { upload: null }, reply: null }, "the same file again: the router's own reply stands");
   eq(afterRouter(null, { intent: "career_profile_erased", resultStatus: "complete", reply: "" }, { upload }, true, null).state, undefined);
   // A file the router did not present as a resume: said, and nothing kept.
   const routed = { kind: "route" as const, message: "", userContent: "", note: null, upload, state: { upload }, source: "file" as const };

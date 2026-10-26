@@ -8,7 +8,8 @@
 // question or ask pushed, no mail read, no interview draft or digest queued. Outreach's claim reads the same state in
 // the database, and delivery checks it again before a queued text goes out (channel.ts deliverDue).
 import { equalSecret } from "../_shared/message_service.ts";
-import { type QuestionRow, runAlerts, runAsks, runCards, runDigest, runInterviewDrafts, runMail, runQuestions, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import { type QuestionRow, runAlerts, runAsks, runCards, runDigest, runInterviewDrafts, runMail, runPrepareAhead, runQuestions, runReceipts, type ReadyRow, type RunStats } from "../_shared/career_proactive_run.ts";
+import type { AheadCandidate, AheadOutcome, AheadStore } from "../_shared/career_prepare_ahead.ts";
 import type { AskStore, ConfirmStore } from "../_shared/career_apply_confirm.ts";
 import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import type { AlertStore, Outbox } from "../_shared/career_alert_store.ts";
@@ -51,6 +52,10 @@ export interface ProactiveDeps {
   // The watch records of people whose alerts were set by text (career_watch_kv, career:watch-profile:<user>), by user.
   // Absent, or a read that fails: those people get no alerts this run (career_proactive_run.ts, verifiedWatches).
   watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
+  // FEATURE 3 (D-011; G4): applications prepared before the person asks, and one card a day. Runs only with
+  // CAREER_PREPARE_AHEAD=on. `prepare` is the queue path's preparation (workers/career-browser/prepare-ahead.ts
+  // prepareOne), which needs the engine; absent, nothing is prepared this run.
+  prepareAhead?: { store: () => AheadStore; prepare: (c: AheadCandidate) => Promise<AheadOutcome> };
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string; errors?: Record<string, string> | null }) => Promise<void>;
   now: () => number;
 }
@@ -82,6 +87,14 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   const store = d.store();
   const alertStore = d.quiet ? { ...store, active: async () => awake(await store.active(), (r) => r.id) } : store;
   await step("alerts", () => runAlerts({ store: alertStore, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById, watches: d.watches }), (s) => Object.assign(stats, s));
+  // FEATURE 3: before the cards rail, so the day's card (with its coverage and stops) is the one shown, and a card held
+  // back is tried again here first.
+  if (d.prepareAhead && d.env.get("CAREER_PREPARE_AHEAD") === "on") {
+    const pa = d.prepareAhead;
+    await step("prepare_ahead", () => runPrepareAhead({ store: alertStore, now: started, recentPostings: d.recentPostings, watches: d.watches, ahead: pa.store(), prepare: pa.prepare }), (s) => {
+      Object.assign(stats, { ahead_people: s.people, ahead_picked: s.picked, ahead_ready: s.ready, ahead_cards: s.cards });
+    });
+  }
   if (d.finishedApplications) await step("receipts", () => runReceipts({ outbox: store, now: started, finished: d.finishedApplications!, events: d.events ? d.events() : null }), (n) => { stats.receipts = n; });
   if (d.readyApplications && d.pushCard) {
     const ready = d.readyApplications;

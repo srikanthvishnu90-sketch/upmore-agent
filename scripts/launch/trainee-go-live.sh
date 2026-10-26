@@ -2,7 +2,7 @@
 # Trainee go-live: one command from the OWNER's own shell, never an agent's (AGENTS.md: agents never deploy, apply
 # migrations to a live project or create credentials). From the repo, checked out at the exact commit to ship:
 #   bash scripts/launch/trainee-go-live.sh --sha <40-character commit> [--label <who>] [--dry-run] [--skip-migrations]
-#                                          [--skip-deploy] [--only-smoke] [--brain agent|router] [--allow-send] [--no-wait]
+#                                          [--skip-deploy] [--only-smoke] [--brain agent|staged|router] [--allow-send] [--no-wait]
 #   bash scripts/launch/trainee-go-live.sh --verify <40-character commit>     (reads only; exit 1 on any mismatch)
 # WO-093 provenance: a run that changes anything ships exactly the commit named by --sha. It refuses a dirty tree, a HEAD
 # that is not that sha, and a stale router bundle (build-router-core.py --check and --career-only --check), then stages
@@ -33,7 +33,8 @@
 #                 to replay), and one missing live stops the run before anything is deployed on top of it; then every
 #                 mark is read again and any missing one fails the run (a ledger row never stands in for the schema)
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
-#                 with --brain agent (--brain router unsets it; without --brain it is not touched)
+#                 with --brain agent, CAREER_BRAIN=staged only with --brain staged (--brain router unsets it; without
+#                 --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
 #                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
@@ -71,7 +72,7 @@ while (( $# )); do
   esac
   shift
 done
-[[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == router ]] || { echo "--brain takes agent or router"; exit 64; }
+[[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == staged || "$BRAIN" == router ]] || { echo "--brain takes agent, staged or router"; exit 64; }
 SHA40_RE='^[0-9a-f]{40}$'; LABEL_RE='^[A-Za-z0-9 ._@:+-]{1,100}$'
 [[ "$DEPLOY_LABEL" =~ $LABEL_RE ]] || { echo "--label: 1 to 100 of A-Z a-z 0-9 space . _ @ : + -"; exit 64; }
 if [[ -n "$VERIFY_MODE" ]]; then
@@ -142,6 +143,7 @@ MIGRATIONS=(
   20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql
   20261025180000_career_outbox_card_id.sql
+  20261026080008_career_mail_drafts_sent.sql
   20261026140000_career_apply_receipt_store.sql
 )
 MIGRATION_MARK=(
@@ -202,6 +204,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
+  "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
   "to_regclass('public.career_apply_receipt_files') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -634,6 +637,8 @@ else
   done
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
+  # FEATURE 13: the staged release (question and advice turns to the brain, every action to code) only with --brain staged.
+  if [[ "$BRAIN" == staged ]]; then add CAREER_BRAIN staged staged; fi
   if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
   else
     ENVF="$(umask 077; mktemp "${TMPDIR:-/tmp}/trainee-secrets.XXXXXX")"; chmod 600 "$ENVF"
@@ -645,6 +650,7 @@ else
   unset LINES
   case "$BRAIN" in
     agent) echo "  CAREER_BRAIN=agent: the agent brain answers career turns (the router still takes structured tasks and model outages)" ;;
+    staged) echo "  CAREER_BRAIN=staged: the brain answers question and advice turns; every action, a model outage and any class in CAREER_BRAIN_ROUTER_INTENTS stay with code and the router (--brain router turns it off)" ;;
     router) run "supabase secrets unset CAREER_BRAIN --project-ref $REF" supabase secrets unset CAREER_BRAIN --project-ref "$REF" ;;
     *) echo "  CAREER_BRAIN not touched (the router answers unless it was set to agent before; --brain agent|router changes it)" ;;
   esac

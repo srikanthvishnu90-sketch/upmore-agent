@@ -21,14 +21,15 @@ export const STANDING_INTENT = "career_apply_status"; // the status ask keeps it
 export const INBOX_INTENT = "career_inbox";
 export const FOLLOWUPS_INTENT = "career_followups_due";
 
-export interface DraftRow { draft_key: string; application_ref: string; kind: "followup" | "thank_you"; company: string; role?: string | null; text: string; basis: string; state: string; created_at: string }
+export interface DraftRow { draft_key: string; application_ref: string; kind: "followup" | "thank_you"; company: string; role?: string | null; text: string; basis: string; state: string; created_at: string; sent_at?: string | null }
 // What the reader read, one field per record; a record that failed is null and named in unreadable.
 // receipts (FEATURE 14): the companies with a receipt on record (career_apply_receipts), for the link to it; absent or null: no link.
 export interface StandingRows { jobs: AppRow[] | null; mail: StatusEvent[] | null; tracker: any[] | null; drafts: DraftRow[] | null; read_through?: string | null; receipts?: string[] | null; unreadable: string[] }
 export type ReadStanding = (userId: string) => Promise<StandingRows>;
 // apps: the merged applications (the mail run's mergeApps, then the mail events folded in); tracker: every tracker row as
 // the person told it, unmerged, for the per-employer view.
-export interface Standing { jobs: AppRow[] | null; apps: TrackedApp[]; tracker: TrackedApp[]; mail: StatusEvent[]; drafts: DraftRow[]; due: Draft[]; read_through: string | null; receipts: string[]; unreadable: string[] }
+// FEATURE 8: sent, the follow-ups the person approved in chat and Trainee sent from their Gmail (state "sent"); never due again.
+export interface Standing { jobs: AppRow[] | null; apps: TrackedApp[]; tracker: TrackedApp[]; mail: StatusEvent[]; drafts: DraftRow[]; sent?: DraftRow[]; due: Draft[]; read_through: string | null; receipts: string[]; unreadable: string[] }
 
 export function standingFrom(r: StandingRows, now: number): Standing {
   const queue = appsFromQueue(r.jobs ?? []), tracker = appsFromTracker(r.tracker ?? []);
@@ -42,9 +43,10 @@ export function standingFrom(r: StandingRows, now: number): Standing {
   }
   const apps = foldEvents(merged, r.mail ?? []);
   const drafts = (r.drafts ?? []).filter((d) => d && d.state === "drafted");
-  // "No reply in N days" cannot be said when the mail record was not read.
-  const due = r.mail === null ? [] : followUps(apps, now).filter((d) => !drafts.some((x) => x.draft_key === d.key));
-  return { jobs: r.jobs, apps, tracker, mail: r.mail ?? [], drafts, due, read_through: r.read_through ?? null, receipts: r.receipts ?? [], unreadable: r.unreadable };
+  const sent = (r.drafts ?? []).filter((d) => d && d.state === "sent");
+  // "No reply in N days" cannot be said when the mail record was not read. A follow-up drafted or sent is never due again.
+  const due = r.mail === null ? [] : followUps(apps, now).filter((d) => !drafts.some((x) => x.draft_key === d.key) && !sent.some((x) => x.draft_key === d.key));
+  return { jobs: r.jobs, apps, tracker, mail: r.mail ?? [], drafts, sent, due, read_through: r.read_through ?? null, receipts: r.receipts ?? [], unreadable: r.unreadable };
 }
 
 // The production reader: the four records in one parallel batch; each failure is logged, named and never guessed.
@@ -61,7 +63,7 @@ export function supabaseStanding(admin: any, read: ReadApplications = supabaseAp
       q("mail", admin.from("career_mail_events").select("application_ref,kind,company,role,stage,flagged,evidence,message_hash,mail_at").eq("user_id", userId).order("mail_at", { ascending: false }).limit(500),
         (rows) => rows.map((r): StatusEvent => ({ hash: r.message_hash, ref: r.application_ref, kind: r.kind, company: r.company, role: r.role ?? undefined, stage: r.stage, flagged: !!r.flagged, evidence: r.evidence, at: r.mail_at, new_app: false }))),
       q("tracker", admin.from("agent_flow_state").select("rows:state->career->stores->trackStore->rows").eq("user_id", userId).limit(200), (rows) => rows.flatMap((t) => (Array.isArray(t.rows) ? t.rows : []))),
-      q("drafts", admin.from("career_mail_drafts").select("draft_key,application_ref,kind,company,role,text,basis,state,created_at").eq("user_id", userId).eq("state", "drafted").order("created_at", { ascending: false }).limit(50), (rows) => rows as DraftRow[]),
+      q("drafts", admin.from("career_mail_drafts").select("draft_key,application_ref,kind,company,role,text,basis,state,created_at,sent_at").eq("user_id", userId).in("state", ["drafted", "sent"]).order("created_at", { ascending: false }).limit(50), (rows) => rows as DraftRow[]),
       q("mail cursor", admin.from("career_mail_cursors").select("read_through").eq("user_id", userId).limit(1), (rows) => (rows[0]?.read_through ?? null) as string | null),
       // FEATURE 14: only for the link to the receipt; unread, the link is left out (the status itself never depends on it).
       receiptCompanies(admin, userId).catch((e) => { console.error("standing: receipts:", e instanceof Error ? e.message : String(e)); return null; }),
@@ -160,12 +162,16 @@ function followupsText(s: Standing): string {
   const drafted = s.drafts.map((d) => `- ${withRole(d.company, d.role)}: ${d.kind === "followup" ? "follow-up" : "thank-you"} drafted ${day(d.created_at) ?? ""} (${d.basis}); not sent.`);
   const due = s.due.map((d) => `- ${withRole(d.company, d.role)}: ${d.kind === "followup" ? "follow-up" : "thank-you"} due (${d.basis}); not drafted yet.`);
   const notes = missing(s, ["tracker"]);
+  // FEATURE 8: what Trainee sent from the person's Gmail on their yes, from the record only.
+  const sent = (s.sent ?? []).map((d) => `- ${withRole(d.company, d.role)}: ${d.kind === "followup" ? "follow-up" : "thank-you"} sent ${day(d.sent_at) ?? ""} from your Gmail, on your yes.`);
   if (!drafted.length && !due.length) {
-    return [`No follow-up is due right now${readNote(s)}: an application gets one after ${FOLLOW_UP_DAYS} quiet days, an interview step after ${THANK_YOU_DAYS}.`, ...notes].join("\n");
+    return [`No follow-up is due right now${readNote(s)}: an application gets one after ${FOLLOW_UP_DAYS} quiet days, an interview step after ${THANK_YOU_DAYS}.`, ...sent, ...notes].join("\n");
   }
   const texts = [...s.drafts.map((d) => ({ who: withRole(d.company, d.role), text: d.text })), ...s.due.map((d) => ({ who: withRole(d.company, d.role), text: d.text }))].slice(0, 3)
     .map((x) => `For ${x.who}:\n${x.text}`);
-  return [`Follow-ups:`, ...drafted, ...due, ...texts, "Nothing is sent by Trainee: send one from your own mail if you want to, as it is or changed.", ...notes].join("\n");
+  const first = [...s.drafts, ...s.due][0];
+  return [`Follow-ups:`, ...drafted, ...due, ...sent, ...texts, "Nothing is sent by Trainee without your yes: send one from your own mail if you want to, as it is or changed.",
+    ...(first ? [`Or say "send the ${first.kind === "followup" ? "follow-up" : "thank-you"} to ${first.company}": you see the exact email from your Gmail first, and only your yes sends it.`] : []), ...notes].join("\n");
 }
 
 // One chat turn: null when the text is not one of these asks (nothing is read); the one model otherwise.

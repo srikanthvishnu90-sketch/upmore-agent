@@ -161,3 +161,12 @@ Deno.test("SEALED/13 the committed sealed set is well formed, 150+ items over ev
   const rcpt = JSON.parse(await Deno.readTextFile("evals/career/sealed/recipient.json"));
   assert(s.recipients.some((r) => r.secret_env === rcpt.secret_env && r.pub === rcpt.pub), "not sealed to the CI recipient");
 });
+
+Deno.test("SEALED/14 a router watch counts by the host's own rule: an interest and no global opt-out", async () => {
+  const { routerWatches } = await import("../../evals/career/harness.ts");
+  assert(routerWatches({ "career:watch-profile:u1": { interests: [{ interest_id: "i1" }] } }) === 1);
+  assert(routerWatches({ "career:watch-profile:u1": { interests: [] } }) === 0, "an empty watch counted");
+  assert(routerWatches({ "career:watch-profile:u1": { interests: [{ interest_id: "i1" }], opt_out: { global: true } } }) === 0, "an opted-out watch counted");
+  assert(routerWatches({ "career:reminder-queue:u1": { interests: [{}] } }) === 0, "another record counted");
+  assert(outcomeOf({ stores: { alertWatchState: { "career:watch-profile:u1": { interests: [{ interest_id: "i1" }] } } }, account: null }).alerts === 1);
+});

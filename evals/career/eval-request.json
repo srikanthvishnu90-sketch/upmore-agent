@@ -3,6 +3,7 @@
  "action": "eval",
  "set": "dev",
  "brains": [
+  "router",
   "staged",
   "agent"
  ],

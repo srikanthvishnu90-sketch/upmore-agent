@@ -58,6 +58,7 @@ import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
+import { feature1Deps } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
@@ -464,8 +465,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
           .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
         : null;
+      // FEATURE 1: apply from chat (career_apply_from_chat.ts). The apply turn below also resolves positions ("apply to 1
+      // and 3", "the 2nd one") on the thread's last list, refuses a listed posting closed or not found on file and every
+      // posting when no confirmed resume is on file, asks the worker's prepare-ahead for exactly the rows queued (only with
+      // CAREER_PREPARE_AHEAD_URL set; off by default) and starts its reply with the coverage ("3/3 queued; ..."). After the
+      // router's batch turn, an answer it recorded in chat is recorded on the matching open queue question as well
+      // (career_apply_answers_for reads it). Nothing is approved or sent here: only the card's tap does that.
+      const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
+      // FEATURE 1 end
       const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
+          ...feature1.apply,
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id),
           facts: screenFacts,
@@ -706,6 +716,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
       }
+      // FEATURE 1: answer capture (DIAGNOSIS F1): the router's batch stack records a chat answer to a stopped application
+      // on its own run; the queue executor reads career_apply_questions. The same answer goes on the person's matching
+      // open question there too, checked against its choices; the reply says so only when it was recorded.
+      if (out.handler !== "agent" && out.intent === "career_batch_apply") {
+        const f1 = await feature1.afterRouter({ reply: out.reply, before: (loaded.snapshot as any)?.stores?.profile ?? null, after: (ctx as any).profile ?? null,
+          runBefore: (loaded.snapshot as any)?.stores?.batchApplyState ?? null, runAfter: (ctx as any).batchApplyState ?? null });
+        if (f1.reply !== out.reply) out = { ...out, reply: f1.reply };
+      }
+      // FEATURE 1 end
       // FEATURE 4: tailored resume rewrite. The router's tailored resume (select and reorder) gets its bullets reworded
       // toward the posting by the model, each one kept only if the truth audit traces every word, number and name to the
       // fact it cites; the PDF is re-rendered and the reply says what changed and why. CAREER_TAILOR_REWRITE=on only;

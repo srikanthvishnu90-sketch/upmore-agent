@@ -145,6 +145,7 @@ MIGRATIONS=(
   20261025180000_career_outbox_card_id.sql
   20261026080008_career_mail_drafts_sent.sql
   20261026090009_career_account_memory.sql
+  20261026100001_career_apply_want_guard.sql
   20261026140000_career_apply_receipt_store.sql
 )
 MIGRATION_MARK=(
@@ -207,6 +208,7 @@ MIGRATION_MARK=(
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
   "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

@@ -7,7 +7,8 @@
 // own gate again at the moment of queuing (matchPosting: their keywords, place and relevance floor; and news, not
 // backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
 // that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
-import { DEFAULT_PREFS, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { DEFAULT_PREFS, fitFloorOk, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { alertFits } from "./career_alert_fit.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { interestsFromWatch } from "./career_watch_alerts.ts";
@@ -25,8 +26,9 @@ import { type OpenQuestion, questionsText } from "./career_apply_questions.ts";
 import { extractInvite, type InterviewRow, interviewDrafts, interviewRow, inviteBrief, inviteRef } from "./career_invite.ts";
 import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
+import { type AheadCandidate, aheadCap, aheadCardText, type AheadOutcome, type AheadStore, AHEAD_WINDOW_MS, selectAhead, stopWhy } from "./career_prepare_ahead.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number; ahead_people?: number; ahead_picked?: number; ahead_ready?: number; ahead_cards?: number; below_fit?: number; fit_scored?: number }
 // WO-091c: a rail that failed for some people still reports what it did for the rest. The error carries that result as
 // `partial`, so the scheduled run records true counts beside the failure, and the message is unchanged.
 export function partialError<T>(message: string, partial: T): Error & { partial: T } {
@@ -41,7 +43,9 @@ const localDate = (at: number, tz: string) =>
 // copy whose write failed must never keep alerting after the person paused, stopped or erased. Record gone (erased): the
 // row sends nothing and is removed. Paused, or no watch left: nothing. The watches matched are the record's. No reader,
 // or a read that fails: no watch row sends anything this run. Rows set otherwise (no interests) are not touched.
-async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches?: (userIds: string[]) => Promise<Map<string, unknown>> }, stats: RunStats): Promise<AlertRow[]> {
+// F7: with each verified row, the scoring profile its watch record carries (the person's confirmed facts in 121's shape),
+// for the fit the alerts are ranked and floored by.
+async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches?: (userIds: string[]) => Promise<Map<string, unknown>> }, stats: RunStats, profiles: Map<string, unknown>): Promise<AlertRow[]> {
   const theirs = rows.filter((r) => r.prefs?.interests?.length);
   if (!theirs.length) return rows;
   let record: Map<string, unknown> | null = null;
@@ -63,6 +67,7 @@ async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches
       if (!wp && o.store.remove) await o.store.remove(r.id).catch((e) => console.error("alerts: remove an erased watch's settings:", errText(e)));
       continue;
     }
+    if (wp?.scoring_profile && typeof wp.scoring_profile === "object") profiles.set(r.id, wp.scoring_profile);
     out.push({ ...r, prefs: { ...r.prefs, interests } });
   }
   return out;
@@ -74,7 +79,8 @@ export async function runAlerts(o: {
   watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
 }): Promise<RunStats> {
   const stats: RunStats = { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 };
-  const rows = await verifiedWatches(await o.store.active(), o, stats);
+  const profiles = new Map<string, unknown>();
+  const rows = await verifiedWatches(await o.store.active(), o, stats, profiles);
   stats.users = rows.length;
   if (!rows.length) return stats;
   const recent = await o.recentPostings(new Date(o.now - 26 * 3600000).toISOString());
@@ -88,7 +94,11 @@ export async function runAlerts(o: {
   const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0,
     sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
   const byId = new Map(postings.map((p) => [p.job_id, p]));
-  const plan = planProactive({ users, postings, now: o.now });
+  // F7: the fit to each matching posting, for people whose watch record carries their confirmed facts; ranked and floored
+  // by the planner, and the floor checked again below at the moment of queuing.
+  const fits = await alertFits({ users, postings, profiles, full: o.postingsById });
+  stats.fit_scored = [...fits.values()].reduce((n, m) => n + m.size, 0);
+  const plan = planProactive({ users, postings, now: o.now, fits });
   // WO-091c: one person's failure (a queue or save error) is recorded and never stops the next person's alerts.
   const failed: string[] = [];
   for (const u of users) {
@@ -103,6 +113,7 @@ export async function runAlerts(o: {
         if (p.kind === "alert") {
           const posting = byId.get(p.job_id);
           if (!posting || !freshWhenSeen(posting) || !matchPosting(posting, u.prefs)) { stats.below_threshold = (stats.below_threshold ?? 0) + 1; continue; }
+          if (!fitFloorOk(fits.get(u.id)?.get(p.job_id), u.prefs)) { stats.below_fit = (stats.below_fit ?? 0) + 1; continue; }
           const seen = Date.parse(String(posting.first_seen_at ?? ""));
           if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
         }
@@ -126,6 +137,70 @@ export async function runAlerts(o: {
     }
   }
   if (failed.length) throw partialError(`alerts failed for ${failed.length} people (${stats.alerts} alerts queued): ${failed[0]}`, stats);
+  return stats;
+}
+
+// FEATURE 3 (D-011; G4): applications prepared before the person asks. For each person with alerts on (the watch
+// records verified as runAlerts verifies them), an account that is not paused and a resume on file: once a local day,
+// today's best new matches for their watches (selectAhead), up to their cap (aheadCap), each prepared by `prepare` (the
+// queue path's own preparation: the engine's dry run, the tailored resume and the drafted cover note bound into the
+// payload hash), then ONE card for the day ("8/10 applications ready for your yes", each stop named), pushed through the
+// database's own card push (career_apply_card_push_as: a texting thread, no STOP, no other card open, the thread not
+// busy). Outside quiet hours only; a card held back is tried again by later runs that day. Nothing is approved, queued
+// or sent here: the person's tap on the card is the only approval. One person's failure never stops the next.
+export interface AheadStats { people: number; picked: number; ready: number; cards: number; no_resume: number; pace_unreadable: number }
+export async function runPrepareAhead(o: {
+  store: AlertStore; now: number; recentPostings: (sinceIso: string) => Promise<any[]>;
+  watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
+  ahead: AheadStore; prepare: (c: AheadCandidate) => Promise<AheadOutcome>;
+}): Promise<AheadStats> {
+  const stats: AheadStats = { people: 0, picked: 0, ready: 0, cards: 0, no_resume: 0, pace_unreadable: 0 };
+  const rows = (await verifiedWatches(await o.store.active(), o, { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 }))
+    .filter((r) => r.prefs?.on);
+  if (!rows.length) return stats;
+  const accounts = await o.ahead.accounts(rows.map((r) => r.id));
+  let postings: any[] | null = null;
+  const failed: string[] = [];
+  for (const u of rows) {
+    const acct = accounts.get(u.id);
+    if (!acct) continue;
+    try {
+      const date = localDate(o.now, u.tz);
+      const quiet = quietAt(o.now, u.tz || "America/New_York", { quiet_start: u.prefs.quiet_start ?? DEFAULT_PREFS.quiet_start, quiet_end: u.prefs.quiet_end ?? DEFAULT_PREFS.quiet_end });
+      let day = await o.ahead.day(u.id);
+      if (!day || day.date !== date) {
+        if (!(await o.ahead.resumeOnFile(u.id))) { stats.no_resume++; continue; }
+        const { cap, why } = aheadCap(await o.ahead.pace(u.id));
+        if (why) { stats.pace_unreadable++; continue; }
+        postings ??= await o.recentPostings(new Date(o.now - AHEAD_WINDOW_MS).toISOString());
+        const { picks } = selectAhead({ prefs: u.prefs, postings, now: o.now, taken: await o.ahead.taken(u.id, o.now), cap });
+        stats.people++;
+        const outcomes: { p: any; r: AheadOutcome }[] = [];
+        for (const p of picks) {
+          const c: AheadCandidate = { user_id: u.id, job_id: String(p.job_id), company: String(p.company ?? ""), title: String(p.title ?? ""), url: String(p.url ?? ""),
+            location: String(p.location ?? ""), description: String(p.description ?? ""), epoch: acct.epoch, version: acct.version };
+          const r = await o.prepare(c).catch((e): AheadOutcome => ({ job_id: c.job_id, outcome: "error", detail: errText(e) }));
+          outcomes.push({ p, r });
+        }
+        const ready = outcomes.filter((x) => x.r.outcome === "ready" && x.r.prepared_id);
+        stats.picked += picks.length;
+        stats.ready += ready.length;
+        day = {
+          date, picked: picks.length, ready_ids: ready.map((x) => x.r.prepared_id!), card_id: null,
+          stops: outcomes.filter((x) => !(x.r.outcome === "ready" && x.r.prepared_id)).map((x) => ({ company: String(x.p.company ?? ""), title: String(x.p.title ?? ""), why: stopWhy(x.r) })),
+        };
+        await o.ahead.saveDay(u.id, day);
+      }
+      if (day.card_id || !day.ready_ids.length || quiet) continue;
+      const card = aheadCardText({ picked: day.picked, ready: await o.ahead.ready(u.id, day.ready_ids), stops: day.stops });
+      if (!card) continue;
+      const id = await o.ahead.push(u.id, card.take.map((p) => p.id), card.text);
+      if (id) { stats.cards++; await o.ahead.saveDay(u.id, { ...day, card_id: id }); }
+    } catch (e) {
+      failed.push(errText(e));
+    }
+  }
+  if (failed.length) throw partialError(`prepare ahead failed for ${failed.length} people (${stats.ready}/${stats.picked} ready): ${failed[0]}`, stats);
   return stats;
 }
 

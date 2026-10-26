@@ -106,6 +106,7 @@ edge_tests=(
   tests/edge/agent-guards.test.ts
   tests/edge/conversation-hardening.test.ts
   tests/edge/career-ingest.test.ts
+  tests/edge/career-ingest-scale.test.ts
   tests/edge/career-alerts.test.ts
   tests/edge/career-proactive.test.ts
   tests/edge/channel.test.ts
@@ -154,6 +155,7 @@ PY
 # every suite.
 browser_node_tests=(
   tests/career-approval-card-browser.test.cjs
+  tests/career-dashboard-browser.test.cjs
   tests/career-extension-agent-submits.test.cjs
   tests/career-extension-browser.test.cjs
   tests/career-extension-person-submits.test.cjs

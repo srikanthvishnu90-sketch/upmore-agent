@@ -176,10 +176,23 @@ Status, 2026-10-24 (branch `arch/backend-g6-receipts`, not merged):
     directory's age is its newest file's; a link (and its target), a non-private directory, one holding another
     file, another name: never removed. Six mutations of the module, each red (links followed, non-private
     accepted, foreign files accepted, a listing deletes, the directory's own time only, any name).
-- **Still open:**
+- **Still open (before FEATURE 14):**
   - The pictures stay on the device or VM; only their hashes are in the row.
   - The receipt does not show them.
   - Inbox confirmation is off.
+- **FEATURE 14 (2026-10-25, `feat/f14-receipts-20261025`):** a stored receipt per application, readable in chat.
+  - `20261026140000_career_apply_receipt_store.sql`: `career_apply_receipts` is written by the database when a queue
+    row finishes (any finish path), with the answers and their facts, where, when, the hashes, the confirmation id and
+    the page text. `career_apply_receipt_files` keeps the bound proof's two pictures, sent by the person's worker under
+    its lease (`career_apply_receipt_attach_own`), checked against their hashes; kept 90 days (PROPOSED). Both tables
+    are service-role only. The page text never rides the row's evidence.
+  - Chat: "show me the receipt for X", "what did you send to X" (`career_apply_receipt_read.ts`, FEATURE 14 block in
+    `handler-career.ts`); the pictures go out through `channel_artifacts`. The status reply links to it.
+  - Tests: `tests/architect/flow-receipt.test.ts` (real Postgres, browser, engine, `handleChat`),
+    `tests/architect/receipt-read.test.ts`, `tests/db/career_apply_receipt_store.test.sql`.
+  - Still open: the cloud worker passes no `--application-id`, so its proof is never bound and its receipts carry no
+    pictures; the extension path writes receipts without pictures; nothing schedules the 90-day expiry; inbox
+    confirmation is off (the owner's flag).
 
 ### G7. Jobs never reach a user
 

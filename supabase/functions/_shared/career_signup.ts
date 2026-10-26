@@ -33,9 +33,9 @@ export function termsFrom(env: Env): Terms | null {
 // yes / no / an age. A number decides when there is one ("yes I'm 17" is under 18); otherwise yes or no.
 export function readAge(text: string): "adult" | "minor" | null {
   const t = String(text ?? "").trim().toLowerCase();
+  if (/\b(under|younger than|not|less than|below)\s*(18|eighteen)\b/.test(t)) return "minor";
   const nums = [...t.matchAll(/\b(\d{1,3})\b/g)].map((m) => Number(m[1])).filter((n) => n >= 1 && n <= 120);
   if (nums.length) return nums.some((n) => n < 18) ? "minor" : "adult";
-  if (/\b(under|younger than|not)\s*(18|eighteen)\b/.test(t)) return "minor";
   if (/^(yes|yeah|yep|yup|y|i am|i'm|im|correct|of course|sure)\b/.test(t) || /\b(over|older than|at least)\s*(18|eighteen)\b/.test(t) || /^18\s*\+/.test(t)) return "adult";
   if (/^(no|nope|nah|n|not yet|i'm not|i am not)\b/.test(t)) return "minor";
   return null;

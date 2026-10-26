@@ -195,3 +195,35 @@ W1–W10 were run at 29a0b0c5, V1–V7 at dd6425fb (restored 14/14), G1–G3 and
 2. The router's reply: it says alert delivery "is not wired in this handler". With the bridge deployed, and
    career-proactive scheduled with delivery on, that understates it. The line is in the frozen router (142).
 3. One owner of `career_alert_prefs` when the brain is released (see Limits).
+
+## 2026-10-26: integrated on arch/diagnosis-1240 (F4; SERIAL-1520, SERIAL-1521)
+
+ALERTS-PAUSE-1126 was a prioritization pause, superseded by the 15-area request. The branch was merged (a6497a80) with
+the diagnosis branch's 142 and host kept (they carry the later form of this alert path; the bridge's 22 unit tests pass
+against them) and 152 taking both SOC rules (derived or stated).
+
+**The real chain, proven** (`tests/architect/alerts-chain-pg.test.ts`, real Postgres 16, nothing faked but the board
+and the provider's send): a watch said in chat through `handleChat`, the production handler (the resume put on file
+first: the router refuses a watch for a person with no profile) → `career_alert_prefs` written by this bridge →
+career-proactive's `handleProactive`, wired as its `index.ts` wires it, reading that row (the watch records only to
+verify it) → `career_outbox` → `deliverDue` → the fake send. Create, two watches in two cities, pause and resume
+(the alert queued before the pause marked `skipped_opt_out`, the run queuing nothing while paused, only new postings
+after the resume), stop, erase, and the in-flight bound. This test replaces the pending `alerts-imessage-pg.test.ts`,
+whose turns drove the host and persistence by hand and were refused as service_role.
+
+**The two gaps (SERIAL-1521), held in writing as D-032 and pinned in `tests/architect/alerts-owner-pins.test.ts`:**
+- (a) competing owner of `career_alert_prefs`: on the live path the bridge is the only writer that sets watches; the
+  scheduled run writes counters and removes a stale copy whose record is gone; the brain's `set_job_alerts` also
+  writes the row and the brain is pinned off. When the brain is released it writes through the watch or goes: the
+  owner's call.
+- (b) wrong legacy reader: the product's scheduled reader is career-proactive over `career_alert_prefs`; the legacy
+  one-account host (`scripts/career/alerts-host.mjs`, `career_watch_kv` only) is imported by nothing the product
+  schedules and its note says it was never deployed; whether it runs anywhere outside this repository is the owner's
+  to confirm.
+
+**Observed, not changed (the router's and the matcher's):** a watch "in Remote" matches postings in any location
+(the watch carries no place and remote_ok); a remote posting matches every watch of its role; so two people watching
+the same role see each other's remote postings as expected, and the test gives each person a role of their own.
+
+Still nothing applied, deployed or switched on: delivery stays NOT_WIRED on the host, no migration, the brain off,
+no live send.

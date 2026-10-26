@@ -13,7 +13,7 @@ import type { Pg } from "./pg.ts";
 import { type Double, postgrestDouble } from "./postgrest.ts";
 
 export const SUPABASE_URL = "http://supabase.test";
-const SERVICE_KEY = "service-test-key", ANON_KEY = "anon-test-key";
+export const SERVICE_KEY = "service-test-key", ANON_KEY = "anon-test-key";
 
 export async function supabaseParity(pg: Pg) {
   await pg.sql(`grant select, insert, update on public.profiles, public.agent_threads, public.agent_messages to authenticated, service_role;

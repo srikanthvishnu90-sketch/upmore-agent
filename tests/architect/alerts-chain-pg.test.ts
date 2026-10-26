@@ -35,7 +35,7 @@ const _d = new Date(); const T0 = Date.UTC(_d.getUTCFullYear(), _d.getUTCMonth()
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const PEOPLE: Record<string, string> = {};
-for (let n = 1; n <= 9; n++) PEOPLE[`tok-${n}`] = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+for (let n = 1; n <= 10; n++) PEOPLE[`tok-${n}`] = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const contactOf = (n: number) => `+1555000${String(n).padStart(4, "0")}`;
 
 let jobs = 0;
@@ -245,6 +245,30 @@ Deno.test({
         await scheduled(pg, admin, T0 + 2 * HOUR);
         const keys2 = (await outbox(pg, q.id)).map((o: any) => o.key).sort();
         eq(keys2, [`alert:${open2}`], `held, not passed: the US-only remote (${us2}) is not queued for a person with no location on record: ${JSON.stringify(keys2)}`);
+      });
+      await t.step("SERIAL-1540 parser: \"supply chain analyst roles in New York\" is the role supply chain analyst in New York, the ask kept as asked; a data analyst or an operations analyst posting never matches it", async () => {
+        const p = await person(10);
+        const ask = "Watch for supply chain analyst roles in New York";
+        const r = await p.say(ask, T0);
+        eq([r.intent, r.resultStatus], ["career_watch_create", "prepared"], r.reply);
+        const wp = JSON.parse(await pg.sql(`select value::text from public.career_watch_kv where user_id = '${p.id}' and key = 'career:watch-profile:${p.id}'`));
+        const i = wp.interests[wp.interests.length - 1];
+        eq(i.role.title, "supply chain analyst", `the role as stated, no location or container word in it: ${JSON.stringify(i.role)}`);
+        eq(i.role.terms.map((t: string) => t.toLowerCase()).sort(), ["supply chain analyst", "supply chain analysts"], `terms are the phrase and its twin, never single words: ${JSON.stringify(i.role.terms)}`);
+        eq(i.role.as_asked, ask, "the raw request is kept");
+        eq(i.filters.locations, ["New York"], JSON.stringify(i.filters));
+        assert(/Watching: supply chain analyst — New York \+ remote\./.test(r.reply), r.reply);
+        const row = await settings(pg, p.id);
+        eq(row.prefs.interests[0].keywords, ["supply chain analyst", "supply chain analysts"], `the bridge carries the phrase only: ${JSON.stringify(row.prefs.interests[0].keywords)}`);
+        const hit = await board(pg, "Supply Chain Analyst", "Omicron", "New York, NY", T0 + HOUR);
+        await board(pg, "Data Analyst", "Pi", "New York, NY", T0 + HOUR);
+        await board(pg, "Operations Analyst", "Rho", "Remote", T0 + HOUR);
+        // The alert matcher's keyword rule (WO-007a/B3): every word of the phrase, whole words, any order — so the
+        // same work under a reordered title still counts, and nothing with only "analyst" in common does.
+        const reordered = await board(pg, "Analyst, Supply Chain Planning", "Sigma", "New York, NY", T0 + HOUR);
+        await scheduled(pg, admin, T0 + 2 * HOUR);
+        const keys = (await outbox(pg, p.id)).map((o: any) => o.key).sort();
+        eq(keys, [`alert:${hit}`, `alert:${reordered}`].sort(), `the supply chain analyst postings only: ${JSON.stringify(keys)}`);
       });
     } finally {
       Date.now = realNow;

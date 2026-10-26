@@ -9828,20 +9828,30 @@ const CareerRouter = (() => {
       const m = raw.match(re);
       if (m && m[1]) segments.push(m[1].trim());
     }
+    // SERIAL-1540: the place clause is the watch's location, not part of the
+    // role ("supply chain analyst roles in New York" was stored as the role
+    // "Supply chain analyst roles in York", "New" being scaffolding), and a
+    // job-container word at either end ("roles", "jobs") is not role content.
+    const CONTAINER = /^(?:jobs?|roles?|openings?|positions?|postings?|opportunit(?:y|ies)|gigs?)$/i;
+    const stripPlace = (seg) => {
+      let out = seg;
+      for (const city of WATCH_CITIES.concat(["NYC", "SF", "LA"])) out = out.replace(new RegExp(`\\s+(?:in|near|around|at|within)\\s+${city}\\b.*$`, "i"), "");
+      return out.replace(/\s+(?:near me|nearby|around me|close to me|in my area)\b.*$/i, "").trim();
+    };
     for (const seg of segments) {
-      const toks = seg.split(/\s+/).filter(Boolean);
+      const toks = stripPlace(seg).split(/\s+/).filter(Boolean);
       const kept = toks.filter((w) => !WATCH_SCAFFOLD.has(lc(w)));
+      while (kept.length && CONTAINER.test(kept[kept.length - 1])) kept.pop();
+      while (kept.length && CONTAINER.test(kept[0])) kept.shift();
       if (!kept.length || kept.length > 6) continue;
       if (!kept.some((w) => !WATCH_NON_ROLE.has(lc(w).replace(/[^a-z]/g, "")))) continue;
       const phrase = kept.join(" ").trim();
       if (phrase.length < 3) continue;
-      const spec = A.roleSpecFor({ title: phrase.replace(/^./, (ch) => ch.toUpperCase()) });
-      // Terms: the phrase itself plus its content words, so a posting
-      // titled with any one of the user's words can match.
-      const terms = new Set(spec.terms || []);
-      terms.add(lc(phrase));
-      for (const w of kept) if (lc(w).length > 2) terms.add(lc(w));
-      spec.terms = [...terms];
+      // The title is the phrase as the user stated it; the terms are that
+      // phrase and its plural/singular twin (152's derived shape) and
+      // NOTHING shorter: a watch keyed to each content word alerted on
+      // every "analyst" title (SERIAL-1540), which is not what was asked.
+      const spec = A.roleSpecFor({ title: phrase });
       return spec;
     }
     return null;
@@ -10024,6 +10034,8 @@ const CareerRouter = (() => {
       }
     }
     const role = watchRoleFromText(text);
+    // SERIAL-1540: the request is kept as asked on the role, whichever source keyed it.
+    if (role) role.as_asked = s(text).trim();
     if (!role) {
       // USER-WORDS TARGET (2026-10-24): with the stated-words fallback
       // in watchRoleFromText, reaching here means the ask carried no

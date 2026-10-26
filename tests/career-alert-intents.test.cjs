@@ -128,7 +128,9 @@ test("create-watch: a role outside 152's taxonomy splits is saved as a DERIVED w
   assert.equal(role.derived, true, "the saved role is marked derived — never passed off as a taxonomy role");
   assert.equal(role.soc, null, "no SOC is invented for a non-taxonomy role");
   assert.equal(role.split, null, "no taxonomy split is invented for a non-taxonomy role");
-  assert.match(role.title, /Boilermaker/, "the title keys on the user's own words");
+  // SERIAL-1540: the title is the phrase exactly as stated (no capitalization added, no container word, no place).
+  assert.equal(role.title, "boilermaker", "the title keys on the user's own words, as stated");
+  assert.equal(role.as_asked, "Watch for boilermaker roles in Chicago", "the request is kept as asked");
   assert.match(r.reply, /not a standard category/i, "the reply discloses the title is not a standard category");
   assert.match(r.reply, /your own words/i, "the reply says the watch keys on the user's own words");
 });

@@ -19736,18 +19736,22 @@ const CareerRouter = (() => {
       const m = raw.match(re);
       if (m && m[1]) segments.push(m[1].trim());
     }
+    const CONTAINER = /^(?:jobs?|roles?|openings?|positions?|postings?|opportunit(?:y|ies)|gigs?)$/i;
+    const stripPlace = (seg) => {
+      let out = seg;
+      for (const city of WATCH_CITIES.concat(["NYC", "SF", "LA"])) out = out.replace(new RegExp(`\\s+(?:in|near|around|at|within)\\s+${city}\\b.*$`, "i"), "");
+      return out.replace(/\s+(?:near me|nearby|around me|close to me|in my area)\b.*$/i, "").trim();
+    };
     for (const seg of segments) {
-      const toks = seg.split(/\s+/).filter(Boolean);
+      const toks = stripPlace(seg).split(/\s+/).filter(Boolean);
       const kept = toks.filter((w) => !WATCH_SCAFFOLD.has(lc(w)));
+      while (kept.length && CONTAINER.test(kept[kept.length - 1])) kept.pop();
+      while (kept.length && CONTAINER.test(kept[0])) kept.shift();
       if (!kept.length || kept.length > 6) continue;
       if (!kept.some((w) => !WATCH_NON_ROLE.has(lc(w).replace(/[^a-z]/g, "")))) continue;
       const phrase = kept.join(" ").trim();
       if (phrase.length < 3) continue;
-      const spec = A.roleSpecFor({ title: phrase.replace(/^./, (ch) => ch.toUpperCase()) });
-      const terms = new Set(spec.terms || []);
-      terms.add(lc(phrase));
-      for (const w of kept) if (lc(w).length > 2) terms.add(lc(w));
-      spec.terms = [...terms];
+      const spec = A.roleSpecFor({ title: phrase });
       return spec;
     }
     return null;
@@ -19862,6 +19866,7 @@ const CareerRouter = (() => {
       }
     }
     const role = watchRoleFromText(text);
+    if (role) role.as_asked = s(text).trim();
     if (!role) {
       const reply = compose({ headline: "I need the role named to set that watch.", facts: ["A watch keys on the role as you state it — any title in your own words works, it does not have to be a standard category.", "With no role named there is nothing honest to watch for, so nothing was saved."], nextStep: "Say it like \"watch for\" plus the role — for example, \"watch for barista roles\" — and the watch is set in this turn." });
       return { intent: "career_watch_create", reply, resultStatus: "awaiting_user", sends: 0 };

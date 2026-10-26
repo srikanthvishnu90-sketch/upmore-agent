@@ -255,7 +255,7 @@ a New York watch for a person in Toronto admitted a "Remote - US" posting, and a
   standing record). A resume's header line is not a confirmed fact (122 reads none from it) and nothing is guessed. The
   gauntlet persona carries its location on `basics.location`; a resume-only person has none until they say it.
 
-**Proven at the real chain** (`alerts-chain-pg.test.ts`, step 8): a person who said "I'm based in Chicago" and watches
+**Proven at the real chain** (`alerts-chain-pg.test.ts`, step 7): a person who said "I'm based in Chicago" and watches
 New York gets the US remote and the open remote posting, never the Canada-only or UK-authorization one; a person who said
 nothing gets the open remote one only, with the US-only one held, and the reply says why. Unit matrix in
 `alerts-remote-region.test.ts` (both implementations on the same table), the router's replies and stored choice in
@@ -280,3 +280,45 @@ That is the 2026-10-24 user-words rule in `watchStatedRole` ("a posting titled w
 match"), not this change; the chain test's no-location person watches "paralegal" to stay clear of it.
 
 Still nothing applied, deployed or switched on; no alert sent live.
+
+## 2026-10-26: the user-words watch parser, and the labeled set kept as collected (SERIAL-1540)
+
+**(1) Parser.** "Watch for supply chain analyst roles in New York" was stored with the role title "Supply chain analyst
+roles in York" ("New" is scaffolding in the stated-words rule, so the place lost its first word and the rest rode into
+the title) and with a term for each content word, so it alerted on any "analyst" title. Now (`watchStatedRole` in 142):
+the place clause ("in / near / around / at <city>", "near me") is stripped first and is the watch's location; a
+job-container word at either end ("roles", "jobs", "positions") is dropped; the title is the phrase exactly as stated
+("supply chain analyst", no capitalization added); the terms are that phrase and its plural/singular twin (152's derived
+shape) and nothing shorter; and the request is kept as asked on the role (`role.as_asked`, every source: split, library,
+stated words). Proven at the real handler on real Postgres (`alerts-chain-pg.test.ts`, step 8, red on da81dbac): the
+watch record and the bridge row carry "supply chain analyst" / "New York"; the run queues the supply chain analyst
+postings (the exact title, and "Analyst, Supply Chain Planning" under the alert matcher's every-word-any-order rule,
+WO-007a/B3) and never a data analyst in New York or an operations analyst remote. The derived-watch pin in
+`career-alert-intents` now expects the title as stated ("boilermaker", not "Boilermaker").
+
+**(2) The WO-037 labeled set, kept as it was.** `candidates.json` is back to its collected form (2026-10-20): the 15
+rows the SERIAL-1530 gate now holds keep their original gate answers and strata. Today's answers live beside it in
+`candidates.reread-2026-10-26.json` (kind "reread": the reason, the gate rule, each changed row's was/now, and the
+coverage per persona against the quota 8 / 3 / 3 / 3 / 3). The re-read is a re-read of the same 200 postings by the
+new gate — not an independent quality measurement: no human label exists for any row, and the postings were picked
+under the old gate. WO-037/A4 checks both: a row outside the re-read answers as stored; a row in it answers as the
+re-read says, and the re-read's "was" is the stored answer.
+
+Coverage against the quota (gate_pass 8, each near miss 3), per persona:
+
+| Persona | Original shortfall | After the re-read | Added by the re-read |
+|---|---|---|---|
+| P01 new-grad SWE, US or remote | none | gate_pass −1, near_miss_floor −2 | gate_pass −1, floor −2 |
+| P02, P03, P10 (city watches, no remote) | none | none | none |
+| P04 RN in Texas | gate_pass −2, floor −3 | same | none |
+| P05 accountant in Chicago | gate_pass −4, title −3 | same | none |
+| P06 mechanical engineer, US | floor −1 | same | none |
+| P07 marketing coordinator, remote only | none | gate_pass −3, floor −3 | gate_pass −3, floor −3 |
+| P08 SDR, Austin or remote | none | gate_pass −4, floor −2 | gate_pass −4, floor −2 |
+| P09 customer success, remote | none | gate_pass −6, floor −1 | gate_pass −6, floor −1 |
+
+P04, P05 and P06 were short at collection (their boards had too few gate passes or floor misses); the re-read adds
+nothing there. The remote personas (P07, P08, P09) and the two "anywhere in the US" ones lose gate passes because a
+country-limited remote posting is now held for a persona with no stated location — which is the rule, and also why
+these personas cannot fill a gate_pass quota from such postings until they state a location. The public-only
+re-collection plan is `docs/architect/reports/ALERT-LABELS-COLLECTION-PLAN-2026-10-26.md`.

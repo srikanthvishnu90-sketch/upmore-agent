@@ -75,10 +75,12 @@ reset role;
 
 -- 5. a resume sent as a file, erased with the account
 set role service_role;
-select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',12,repeat('b',64),'JVBERi0xLjQK',repeat('c',64)) is not null),
+select t.must_fail($select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:forged','resume.pdf','application/pdf',9,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))$,
+ 'invalid resume upload', 'a fabricated fingerprint cannot become a confirmed file');
+select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64)) is not null),
  'the upload is recorded by its reference and sha256');
-select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',12,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))
-  = (select id from career_resume_uploads where sha256 = repeat('b',64))), 'the same upload twice is one row');
+select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64))
+  = (select id from career_resume_uploads where sha256 = encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'))), 'the same upload twice is one row');
 reset role;
 select t.as_user('00000000-0000-4000-8000-000000001602');set role authenticated;
 select t.ok((select count(*) = 0 from career_resume_uploads), 'nobody else reads it');

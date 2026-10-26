@@ -70,6 +70,10 @@ const CareerHost = (() => {
     // brain's offer_benchmark asks for it once and reads the answer with the rest. Cleared once benchmarked; an
     // erase resets the stores.
     "offerBenchmark",
+    // FEATURE 16: resume intake (career_resume_intake.ts): the first part of a paste Telegram split, held for the
+    // rest, and the file a presented resume was read from (its reference and sha256), kept until the yes so the
+    // confirmation's events name the file. An erase resets it with the rest.
+    "resumeIntake",
   ];
 
   function cloneJson(v) {

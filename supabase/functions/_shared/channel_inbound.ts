@@ -13,7 +13,10 @@ import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards
 //   a yes from it links the new one.
 import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
 import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./conversation.ts";
-import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type StatusEvent } from "./channel_adapters.ts";
+import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, type InboundUpload, packMessages, type Provider, type StatusEvent } from "./channel_adapters.ts";
+// FEATURE 16: the most text one channel message carries to the turn (WhatsApp's own limit); the turn cuts a resume past
+// its bound and says so.
+export const CHANNEL_TEXT_MAX = 65_536;
 import { telegramDeepLink } from "./telegram.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
@@ -62,7 +65,8 @@ export interface CoreDeps {
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null }>;
+  // file (FEATURE 16): a file the adapter downloaded, read by the turn as a resume. The channel is never sent (WO-038).
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; file?: InboundUpload | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
 }
 type Out = { status: number; body: Record<string, unknown> };
@@ -119,11 +123,12 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (msg.kind === "seen") {
       // WO-106 (live 2026-10-21: a resume sent as a file got no answer at all): a file or photo from a known person is told
       // what to do instead; a sticker or reaction is still left alone.
-      if (msg.file && person) {
+      // FEATURE 16: a file the adapter downloaded goes to the turn (below), which reads it; one it could not is answered here.
+      if (msg.file && person && !msg.upload) {
         const r = await d.reply(contact, d.render(FILE_NOT_READ_REPLY));
         return ok({ ignored: "a file (not read yet); told to paste the text", sent: r.ok });
       }
-      return ok({ ignored: "no text (attachments are not read yet)" });
+      if (!(msg.upload && person)) return ok({ ignored: "no text (attachments are not read yet)" });
     }
 
     if (msg.startPayload && store.redeemLinkNonce) {
@@ -200,7 +205,10 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
       const said = msg.text || (command ? `/${command}` : "");
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
+      // FEATURE 16: the whole text goes to the turn (it was cut at 4,000 characters here, silently); the turn reads a long
+      // resume and says what it cut, and answers any other long message in plain words.
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, CHANNEL_TEXT_MAX), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}),
+        ...(msg.upload ? { file: msg.upload } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
       // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
       // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on

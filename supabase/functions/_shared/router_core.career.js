@@ -14266,8 +14266,10 @@ const CareerRouter = (() => {
       entries: presented.map((f) => ({ id: f.id, sha256: sha256(f.text) })) };
     const target = mir && mir.tailorTarget && mir.tailorTarget.company ? mir.tailorTarget : null;
     const facts = [`I read it as ${total} facts${counts ? ` (${counts})` : ""} — every one is held as a DRAFT on your profile, not yet confirmed, and nothing is tailored or submitted from a draft.`];
-    if (presented.length) facts.push(`Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}`);
-    const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
+    const nextStep = target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them.";
+    const composed = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep });
+    const list = presented.length ? `Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}` : "";
+    const reply = !list ? composed : composed.endsWith(nextStep) ? `${composed.slice(0, -nextStep.length).trimEnd()}\n${list}\n${nextStep}` : `${composed}\n${list}\n${nextStep}`;
     return { intent: "career_resume_ingest", reply, resultStatus: "awaiting_user", sends: 0, resume_ingest: { drafts: total, byKind } };
   }
   function handleResumeIngestConfirm(text, ctx) {
@@ -20090,6 +20092,7 @@ const CareerRouter = (() => {
     const raw = s(text);
     const t = lc(raw);
     if (!t) return null;
+    if (raw.split(/\r?\n/).length >= 6 && raw.length >= 300 && resumePasteDraftsOf(raw)) return null;
     const wp = loadWatchProfileSync(ctx);
     const frame = alertFrameStanding(ctx, wp);
     const alertNoun = /\b(alerts?|watch|watches|watching)\b/.test(t);
@@ -21048,7 +21051,7 @@ const CareerRouter = (() => {
     if (discl) return discl;
     const pendingAffirm = handlePendingAffirmation(text, c);
     if (pendingAffirm) return pendingAffirm;
-    const resumeIngest = handleResumePasteIngest(text, c);
+    const resumeIngest = handleResumePasteIngest(rawText, c);
     if (resumeIngest) return resumeIngest;
     const resumeConfirm = handleResumeIngestConfirm(text, c);
     if (resumeConfirm) return resumeConfirm;
@@ -23193,7 +23196,7 @@ const CareerRouter = (() => {
       syncThreadOut(c);
       return financeScopeResult();
     }
-    if (multi && res && res.intent !== "career_fallback") {
+    if (multi && res && res.intent !== "career_fallback" && res.intent !== "career_resume_ingest") {
       const servedFamily = { career_discovery: "find", career_internship_discovery: "find", outreach_clarification: "networking", outreach_draft: "networking", tracking_status: "tracking", tracking_log: "tracking", negotiation_advice: "negotiation", negotiation_plan: "negotiation", negotiation_draft: "negotiation", prep_brief: "prep", prep_needs_profile: "prep", career_watch_create: "watch", career_watch_manage: "watch", career_os_market_value: "worth" }[res.intent] || null;
       const unserved = parts.filter((p) => p.key !== servedFamily && p.key !== "finance" && !(p.key === "log" && servedFamily === "tracking"));
       const financePart = parts.find((p) => p.key === "finance");

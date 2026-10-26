@@ -2000,8 +2000,14 @@ const CareerRouter = (() => {
     // entries whose own words were actually SHOWN to the person, so
     // the presenting reply lists each entry itself, whole. These are
     // the same entries the marker binds and the yes will approve.
-    if (presented.length) facts.push(`Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}`);
-    const reply = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep: target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them." });
+    // FEATURE 16 (2026-10-26): the list rides OUTSIDE compose. compose keeps the first sentence of each fact and lints
+    // each bubble, so a two-page resume's entries (each a title and its bullets, with periods inside) were cut to the
+    // first entry: the person saw one entry of twenty, and the evidence step then held the other nineteen as "not
+    // shown". The entries now stand whole, numbered, between the count and the closing next step.
+    const nextStep = target ? `Say "yes, that's my resume" and I confirm them and tailor for ${target.label} in the same turn.` : "Say \"yes, that's my resume\" and I confirm them as your facts — then name a role and the tailoring runs on them.";
+    const composed = compose({ headline: "Your resume is on record — as drafts, awaiting your word.", facts, nextStep });
+    const list = presented.length ? `Here is what I read from it:\n${presented.map((f, i) => `${i + 1}. ${f.text}`).join("\n")}` : "";
+    const reply = !list ? composed : composed.endsWith(nextStep) ? `${composed.slice(0, -nextStep.length).trimEnd()}\n${list}\n${nextStep}` : `${composed}\n${list}\n${nextStep}`;
     return { intent: "career_resume_ingest", reply, resultStatus: "awaiting_user", sends: 0, resume_ingest: { drafts: total, byKind } };
   }
   // The confirmation half of the paste journey: the user's yes
@@ -10341,6 +10347,11 @@ const CareerRouter = (() => {
     const raw = s(text);
     const t = lc(raw);
     if (!t) return null;
+    // FEATURE 16 (2026-10-26): a pasted resume is not an alert command. A two-page paste carries "Summary" and "set
+    // carrier targets" or "at 9", which read as "set my daily summary time", so the alert path answered the resume with
+    // "I can't set a daily summary time yet" and its entries were never read. A multi-line text the resume step itself
+    // reads as a resume (resumePasteDraftsOf) stands down here; short alert asks never reach that test's 6 lines.
+    if (raw.split(/\r?\n/).length >= 6 && raw.length >= 300 && resumePasteDraftsOf(raw)) return null;
     const wp = loadWatchProfileSync(ctx);
     const frame = alertFrameStanding(ctx, wp);
     const alertNoun = /\b(alerts?|watch|watches|watching)\b/.test(t);
@@ -11722,7 +11733,11 @@ const CareerRouter = (() => {
     // ahead of the tracker/recommendation/intel matchers that read
     // its lines as other intents on the deployed product — and its
     // confirmation continuation runs the standing tailor target.
-    const resumeIngest = handleResumePasteIngest(text, c);
+    // FEATURE 16 (2026-10-26): the ingest is a RECORD, so it reads the person's original words, like the stated-facts
+    // capture above. It read detypo's routing copy, which rewrote any word one edit from the route vocabulary: every
+    // "Negotiated 3 carrier contracts" bullet became "Negotiate 3 carrier contracts" in the drafts, words the person
+    // never wrote, and the evidence step then (rightly) refused to confirm them as "not in the resume you gave me".
+    const resumeIngest = handleResumePasteIngest(rawText, c);
     if (resumeIngest) return resumeIngest;
     const resumeConfirm = handleResumeIngestConfirm(text, c);
     if (resumeConfirm) return resumeConfirm;
@@ -15204,7 +15219,10 @@ const CareerRouter = (() => {
       syncThreadOut(c);
       return financeScopeResult();
     }
-    if (multi && res && res.intent !== "career_fallback") {
+    // FEATURE 16 (2026-10-26): a pasted resume is a document, not a message of several asks. Its lines ("Negotiated 3
+    // carrier contracts", "closed variances above 40 dollars") read as a negotiation and a money question, and the
+    // resume's presentation came back with an invented "exploding offer" preview and a queue of asks nobody made.
+    if (multi && res && res.intent !== "career_fallback" && res.intent !== "career_resume_ingest") {
       const servedFamily = { career_discovery: "find", career_internship_discovery: "find", outreach_clarification: "networking", outreach_draft: "networking", tracking_status: "tracking", tracking_log: "tracking", negotiation_advice: "negotiation", negotiation_plan: "negotiation", negotiation_draft: "negotiation", prep_brief: "prep", prep_needs_profile: "prep", career_watch_create: "watch", career_watch_manage: "watch", career_os_market_value: "worth" }[res.intent] || null;
       const unserved = parts.filter((p) => p.key !== servedFamily && p.key !== "finance" && !(p.key === "log" && servedFamily === "tracking"));
       const financePart = parts.find((p) => p.key === "finance");

@@ -27,9 +27,10 @@ const { execFileSync } = require("node:child_process");
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 const HEX64 = /^[0-9a-f]{64}$/;
-// The same static-import rule scripts/career/stage-career.cjs stages agent-chat by (relative specs are files to walk;
+// The same import rule scripts/career/stage-career.cjs stages agent-chat by (relative specs, static or a literal relative
+// import("./x") that loads a module on demand (FEATURE 16: the vendored pdf.js), are files to walk;
 // any other spec, npm:, jsr: or https:, is a remote import the platform resolves and is named in the bundle hash).
-const IMPORT_RE = /(?:import|export)[^"']*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']/g;
+const IMPORT_RE = /(?:import|export)[^"']*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']|import\(\s*["'](\.\.?\/[^"']+)["']\s*\)/g;
 // agent-chat ships its career entry (owner, 2026-10-15): index-career.ts staged as agent-chat/index.ts.
 const ENTRY = { "agent-chat": { src: "agent-chat/index-career.ts", as: "agent-chat/index.ts" } };
 
@@ -42,7 +43,7 @@ function importsOf(file) {
   IMPORT_RE.lastIndex = 0;
   let m;
   while ((m = IMPORT_RE.exec(src))) {
-    const spec = m[1] || m[2];
+    const spec = m[1] || m[2] || m[3];
     if (!spec) continue;
     if (spec.startsWith("./") || spec.startsWith("../")) local.push(spec); else remote.push(spec);
   }

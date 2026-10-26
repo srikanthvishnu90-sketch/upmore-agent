@@ -1,0 +1,62 @@
+Third-party code vendored for FEATURE 16 (resume files: _shared/career_resume_ingest_files.ts). Each file is the
+package's published build, byte for byte; nothing is edited. Re-vendor only by replacing the file whole and updating
+the pins below (and the sha256 pins in tests/architect/resume-files-vendor.test.ts).
+
+pdfjs-serverless-unpdf-1.8.1.mjs
+  npm unpdf@1.8.1, file dist/pdfjs.mjs (the serverless build of Mozilla pdf.js 6.1.200, worker inlined)
+  npm integrity sha512-xkURhy2SoGpOIH0a1gLHNkASPIQYonadDJs2AQwPEfUakafeD9EA1WTWWsaR++gfTCXJpV27W7tU1nXuk82UKQ==
+  file sha256 6c826bd6198f20a1ac5c7bf99649cee30a0cc5d0a0730f15f238d5523dcd30b8, 1,676,063 bytes
+  pdf.js: Apache License 2.0, Copyright Mozilla Foundation (https://github.com/mozilla/pdf.js/blob/master/LICENSE)
+  unpdf: MIT License, Copyright (c) 2023-PRESENT Johann Schopplich (text below)
+
+fflate-0.8.2.mjs
+  npm fflate@0.8.2, file esm/browser.js
+  npm integrity sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==
+  file sha256 8cc1f687e0159e977addb6b85e274dbd11e622cf151f4fcb7b85d49622ea43e7, 89,198 bytes
+  MIT License, Copyright (c) 2023 Arjun Barrett (text below)
+
+----- unpdf LICENSE -----
+MIT License
+
+Copyright (c) 2023-PRESENT Johann Schopplich
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+----- fflate LICENSE -----
+MIT License
+
+Copyright (c) 2023 Arjun Barrett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

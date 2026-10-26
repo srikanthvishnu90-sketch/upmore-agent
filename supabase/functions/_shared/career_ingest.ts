@@ -10,6 +10,7 @@
 // Network and storage are injected; nothing here deploys, schedules or spends.
 import { CareerJobs } from "./router_core.career.js";
 import { applyEmailOf } from "./apply_email.ts";
+import { BACKLOG_MS, freshWhenSeen } from "./career_fresh.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
@@ -124,15 +125,7 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   return st;
 }
 
-// ------------------------------------------------------------------------------------------------ news vs backlog
-// A board read for the first time brings its whole backlog in at once, every posting "first seen" now. A posting its
-// employer published more than BACKLOG_MS before Trainee first saw it is a discovery, not news: searchable, never an
-// alert or a "new in the last day". No publish time, or one that does not parse, keeps the old behavior (news).
-export const BACKLOG_MS = 3 * 86400000;
-export function freshWhenSeen(p: { posted_at?: string | null; first_seen_at: string }): boolean {
-  const posted = Date.parse(String(p.posted_at ?? "")), seen = Date.parse(p.first_seen_at);
-  return !Number.isFinite(posted) || !Number.isFinite(seen) || posted >= seen - BACKLOG_MS;
-}
+export { BACKLOG_MS, freshWhenSeen } from "./career_fresh.ts";
 
 // ------------------------------------------------------------------------------------------------ search words
 // Words that say "a job" rather than which job; every remaining word must match.

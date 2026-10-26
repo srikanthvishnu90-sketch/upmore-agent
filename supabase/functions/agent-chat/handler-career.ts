@@ -51,6 +51,7 @@ import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_opti
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
+import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
@@ -329,7 +330,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
-        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
@@ -652,6 +653,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.
       if (ctx._hostPatch?.erase === true) await supabaseResumeStore(admin).removeAll(user.id).catch((e) => console.error("career erase: resumes", e?.message ?? e));
+      // A job watch set, changed, paused or stopped by text is the person's alert settings, which the scheduled alerts
+      // run reads (career_watch_alerts.ts). After the save: a refused save writes none; a failed write never fails it.
+      await syncWatchAlerts({ userId: user.id, before: loaded.watchState, after: ctx.alertWatchState, erased: ctx._hostPatch?.erase === true, store: supabaseAlertStore(admin), now: Date.now() })
+        .then((r) => { if (r.action === "refused") console.error("career watch alerts: not saved:", r.reason); })
+        .catch((e) => console.error("career watch alerts:", e?.message ?? e));
       flowCtx.note = null;
       return json(cors, saved.response, 200);
     } catch (error) {

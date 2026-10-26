@@ -14,7 +14,8 @@
 import { COMPANY_COOLDOWN_DAYS, INT4_MAX, type Limits, PACE_RE } from "./career_apply.ts";
 import { type EmployerAnswer, employerQuestion, type Pick, queueWants, screenPicks, type WantStore } from "./career_apply_want.ts";
 import type { AppRow } from "./career_apply_status.ts";
-import { searchWords } from "./career_ingest.ts";
+import { type FetchFeed, type PostingsDb, searchWords } from "./career_ingest.ts";
+import { linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./career_apply_link.ts";
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
@@ -93,6 +94,9 @@ export interface ApplyChatDeps {
   resumeOnFile?: () => Promise<boolean | null>;
   // FEATURE 1: ask the server's prepare for exactly the rows queued; absent, nothing is said about preparing.
   prepare?: (jobIds: string[]) => Promise<PrepareKick>;
+  // FEATURE E2E: the posting a link names, read on demand from the ATS's public API and stored as the ingest stores it
+  // (career_apply_link.ts); absent, a link is not this turn's.
+  link?: { db: PostingsDb; fetchFeed: FetchFeed } | null;
 }
 // A posting held back by the possible-match question (SERIAL-1490): queued only when the person answers no.
 export interface EmployerQuestion { job_id: string | null; url: string; company: string; title: string }
@@ -180,6 +184,12 @@ const NOTHING_SENT = (company: string) =>
   `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
 
 export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
+  // FEATURE E2E: a pasted posting link, or a role named by the company's possessive, read from the ATS on demand
+  // (career_apply_link.ts); only with the link deps wired (agent-chat), otherwise as before.
+  if (o.link) {
+    const linked = await linkApplyTurn(o);
+    if (linked) return linked;
+  }
   // The batch ask first: applyAsk's employer grammar is case-blind, so "apply to the top 2" would read as an employer.
   if (applyManyAsk(o.message)) return applyManyTurn(o);
   const ask = applyAsk(o.message);
@@ -194,14 +204,21 @@ export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | nul
   const roleWords = ask.role ? searchWords(ask.role) : [];
   const matching = roleWords.length ? atCompany.filter((p) => { const t = lower(p?.title); return roleWords.every((w) => t.includes(lower(w))); }) : atCompany;
   if (!matching.length) {
-    if (!atCompany.length) return null;
+    // FEATURE E2E: nothing at that employer on file: its registered board, read on demand (career_apply_link.ts).
+    if (!atCompany.length) return o.link && ask.role ? await roleFromBoard(o, ask.company, ask.role) : null;
     const near = `${ask.company} has ${atCompany.length === 1 ? "one open posting" : `${atCompany.length} open postings`} on file: ${atCompany.slice(0, 3).map((p) => p.title).join("; ")}.`;
     return { reply: `I have no open posting for ${ask.role} at ${ask.company} on file, so nothing was queued. ${near} Say "apply to the <role> role at ${ask.company}" for one of those, or paste the posting's link.`, status: "none", intent };
   }
   if (matching.length > 1 && !ask.role) {
     return { reply: `${ask.company} has ${matching.length} open postings on file. Which one? ${matching.slice(0, 5).map((p, i) => `${i + 1}. ${p.title}`).join(" ")} Say "apply to the <role> role at ${ask.company}".`, status: "which", intent };
   }
-  const p = matching[0];
+  return await applyPicked(o, matching[0]);
+}
+
+// One posting the person named, through the same screens, resume check, pace and queue as every single ask.
+// deno-lint-ignore no-explicit-any
+export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatResult> {
+  const intent = APPLY_QUEUE_INTENT;
   const pick: Pick = { job_id: p.job_id, url: p.url, company: p.company, title: p.title, location: p.location };
   let apps: TrackedApp[];
   try { apps = trackedFromRows(await o.apps()); }
@@ -435,4 +452,45 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
   if (refused.length) parts.push(`Not queued: ${refused.join("; ")}.`);
   const tail = queued.length || already ? ` ${NOTHING_SENT_MANY}` : "";
   return { reply: `${parts.join(" ")}${more}${tail}`.trim(), status: queued.length ? "queued" : already ? "already" : "refused", intent, pending: rest, answers };
+}
+
+// ------------------------------------------------------------------------------------- FEATURE E2E: links and boards
+// "apply me to this: <link>": the posting the link names (on file, or read from its ATS now and stored), then the single
+// ask's screens. A link to a posting its board no longer lists, or a board that cannot be read, queues nothing and says so.
+async function linkApplyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
+  const intent = APPLY_QUEUE_INTENT;
+  const ask = linkAsk(o.message);
+  if (!ask) {
+    const named = possessiveAsk(o.message);
+    return named ? await roleFromBoard(o, named.company, named.role, true) : null;
+  }
+  const found = await postingForLink({ ask, db: o.link!.db, fetchFeed: o.link!.fetchFeed, now: o.now }).catch((e) => ({ kind: "unreadable" as const, why: String(e?.message ?? e) }));
+  if (found.kind === "unreadable") {
+    return { reply: `${coverageLine(0, 1)} I couldn't read that posting from ${ask.family === "ashby" ? "Ashby" : ask.family === "lever" ? "Lever" : "Greenhouse"} just now, so nothing was queued. Send the link again in a minute.`, status: "unreadable", intent, coverage: { queued: 0, total: 1 } };
+  }
+  if (found.kind === "not_on_board" || found.kind === "closed") {
+    return { reply: `${coverageLine(0, 1)} Not queued: ${ask.url} is not among the open postings its board lists right now (it may have closed), so there is nothing to apply to.`, status: "none", intent, coverage: { queued: 0, total: 1 } };
+  }
+  return await applyPicked(o, found.posting);
+}
+
+// A role at a company with nothing on file: the company's registered board (121 BOARD_REGISTRY), read now. Exactly one
+// open posting whose title carries every word of the role is queued only when the person named it by the company's
+// possessive and the board is the registry's; more than one, or none, is listed with links and nothing is queued.
+async function roleFromBoard(o: ApplyChatDeps, company: string, role: string, mayQueue = false): Promise<ApplyChatResult | null> {
+  const intent = APPLY_QUEUE_INTENT;
+  const r = await postingsForRole({ company, role, fetchFeed: o.link!.fetchFeed }).catch(() => null);
+  if (!r) return null; // no registered board: the router answers as before
+  if ("why" in r) return { reply: `${coverageLine(0, 1)} I couldn't read ${r.board.company}'s job board just now, so nothing was queued. Ask again in a minute, or paste the posting's link.`, status: "unreadable", intent, coverage: { queued: 0, total: 1 } };
+  if (!r.hits.length) return { reply: `${coverageLine(0, 1)} ${r.board.company}'s job board lists no open posting for "${role}" right now, so nothing was queued. Paste the posting's link if you have it.`, status: "none", intent, coverage: { queued: 0, total: 1 } };
+  if (r.hits.length > 1 || !mayQueue) {
+    const list = r.hits.slice(0, 5).map((p, i) => `${i + 1}. ${p.title}${p.location ? ` (${p.location})` : ""}: ${p.url}`).join("\n");
+    return { reply: `${r.board.company}'s job board lists ${r.hits.length === 1 ? "one open posting" : `${r.hits.length} open postings`} for "${role}":\n${list}\nSay "apply me to <link>" with the one you want; nothing was queued yet.`, status: "which", intent };
+  }
+  const p = r.hits[0], at = new Date(o.now).toISOString();
+  const posting = { ...p, provider: r.board.provider, board: r.board.board.toLowerCase(), first_seen_at: at, last_seen_at: at, closed_at: null };
+  const onFile = await o.link!.db.get(p.job_id).catch(() => null);
+  if (onFile) posting.first_seen_at = onFile.first_seen_at;
+  await o.link!.db.put(posting);
+  return await applyPicked(o, posting);
 }

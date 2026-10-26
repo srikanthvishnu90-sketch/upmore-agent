@@ -2021,6 +2021,7 @@
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
 <!--__CAREER_APPROVAL_CARD__-->
+<!--__CAREER_APPLY_CARD__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
@@ -7930,6 +7931,7 @@
       m.innerHTML = `<p>${md(txt)}</p>`;
       el.appendChild(m);
       renderCareerApproval(m, meta, chatRequests.capture());
+      renderCareerApplyCard(m, meta, chatRequests.capture());
     }
   }
   async function openGuideChat(id) {
@@ -8001,6 +8003,15 @@
       target.textContent = 'This approval could not be verified. Nothing was approved.';
       target.setAttribute('role', 'alert');
     });
+  }
+  /* FEATURE E2E (2026-10-26): the chat's card of prepared applications (meta.intent career_apply_card, meta.card_id)
+     gets Approve and Decline under its message. src/career-apply-card.js reads the card and the prepared applications
+     with this session (RLS), shows their own lines, refuses a card whose hashes no longer match, and answers with
+     career_apply_card_answer_own(card, exactly its numbers). */
+  function renderCareerApplyCard(host, metadata, ticket) {
+    if (typeof TraineeApplyCard !== 'object' || !TraineeApplyCard.cardIdOf(metadata) || !session?.user?.id) return;
+    TraineeApplyCard.mount(host, metadata, { from: t => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => ticket.current() })
+      .catch(() => { if (ticket.current()) toast('This card could not be shown. Nothing was approved.'); });
   }
   /* FEATURE 15 (2026-10-25): the Trainee dashboard. src/career-dashboard.js renders; this host reads the person's own
      rows with their session (RLS), mounts each open approval card with the same TraineeApprovalCards controller and the
@@ -12541,6 +12552,7 @@ function addAI(paras, card, prov, requestTicket, workflowAction, messageMeta) {
     }
     m.insertAdjacentHTML("beforeend", html);
     renderCareerApproval(m, messageMeta?.intent === 'career_message_approval' ? messageMeta : workflowAction, ticket);
+    renderCareerApplyCard(m, messageMeta, ticket);
     const workflow=ticket.workflow(workflowAction);
     if(workflow){const review=document.createElement('button');review.type='button';review.className='ghostbtn';review.textContent='Review bill next step';review.onclick=()=>workflow.open(link=>{openBillWorkflow(link,ticket).catch(()=>{if(ticket.current())toast('Bill details are unavailable. Reload bills to try again.');});});m.appendChild(review);}
     const b = m.querySelector("[data-open]");

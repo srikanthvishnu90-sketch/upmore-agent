@@ -54,7 +54,7 @@ import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from
 import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
-import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
+import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
@@ -476,6 +476,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           ...feature1.apply,
+          // FEATURE E2E: a pasted posting link (or a role at a registered board) read from the ATS's public API on demand
+          // and stored as the ingest stores it (career_apply_link.ts). CAREER_APPLY_LINK=off turns the read off.
+          link: Deno.env.get("CAREER_APPLY_LINK") === "off" ? null
+            : { db: supabasePostingsDb(admin), fetchFeed: boardFetchFeed((i, init) => fetch(i, init), { timeoutMs: 8000 }) },
           message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
           apps: () => supabaseApplications(admin)(user.id),
           facts: screenFacts,

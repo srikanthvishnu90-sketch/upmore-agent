@@ -43,8 +43,9 @@ and seven checks only the owner can run, each with the SQL that proves it.
 3. **The chat scenario, as the test account.** Every turn goes to the live `agent-chat` endpoint. After each turn
    the suite asserts two things: the reply is the reply the database recorded for that `turn_key`, and the reply
    agrees with the rows the turn wrote. No turn asks to apply to a real posting: the chat guard refuses any apply ask
-   except two fixed probes, and neither names a real employer's posting (a question in a fresh thread with nothing
-   listed, and a LinkedIn link that is not a posting). At the end, `SAFETY.no_queue_row` checks that the test account
+   except four fixed probes, and none names a real employer's posting: a question in a fresh thread with nothing
+   listed, a LinkedIn link that is not a posting, a statement for the tracker about a company with no posting, and a
+   status question about it. At the end, `SAFETY.no_queue_row` checks that the test account
    has no queued application and no job.
 4. **Waiting on scheduled outcomes.** Alerts and prepare-ahead run on a schedule, so the suite polls for them for up
    to `--wait-min` minutes (20 by default).
@@ -68,7 +69,7 @@ yet) is NOT_RUN, not PASS: 0/0 proves nothing.
 | Protocol: each statement goes as one extended-protocol query (postgres.js, `simple: false`), never psql's simple protocol. Postgres refuses a second command in it ("cannot insert multiple commands into a prepared statement"), and it runs inside `begin read only` | `lib.ts pgExec` (test: `select 1; delete …` refused by Postgres; `nextval` and `delete` refused as a superuser inside the transaction) |
 | Role: a SELECT-only role (BYPASSRLS to read, no write grant anywhere) with `default_transaction_read_only = on`, which the connection also asks for at startup. The run refuses any other role | `lib.ts assertReadOnlyRole`, `scripts/live/test-account.sql` step 2b |
 | HTTP allows only these: POST to `agent-chat` and `trainee-telegram`, the password sign-in, a CORS preflight to `agent-chat`, GET of exactly `/rest/v1/<table>` for 4 named tables, the app page itself, and for this project only the Management API's function list and one count-only edge-log query; and the cloud runner's dispatch with a *wrong* secret and `{"want":0}`. A path with `%`, `//`, a backslash or a dot segment is refused before it is compared, and so is any path the URL parser rewrote. Anything else throws, including `/rest/v1//rpc/x`, `/rest/v1/%72pc/x`, PostgREST writes, the card-approve RPC, other functions, other projects and other hosts | `lib.ts guardedFetch` |
-| The chat guard: a word that could approve or send (yes, ok, sure, approve…, send…, submit…, confirm…, go ahead, do it) is refused anywhere in a message, not only at its start ("please send it" is refused). The one exception is the resume confirmation, said once, word for word, in a thread that has shown no card. An apply ask is refused unless it is one of the two fixed probes. So no card is ever answered, no application is ever queued for a real posting, and nothing reaches an employer | `lib.ts ChatGuard`; checked every run by `SAFETY.never_approved` and `SAFETY.no_queue_row` |
+| The chat guard: a word that could approve or send (yes, ok, sure, approve…, send…, submit…, confirm…, go ahead, do it) is refused anywhere in a message, not only at its start ("please send it" is refused). The one exception is the resume confirmation, said once, word for word, in a thread that has shown no card. An apply ask is refused unless it is one of the four fixed probes. So no card is ever answered, no application is ever queued for a real posting, and nothing reaches an employer | `lib.ts ChatGuard`; checked every run by `SAFETY.never_approved` and `SAFETY.no_queue_row` |
 | Telegram is posted only after the test chat is proven linked to the test account | `checks.ts telegramLinked` |
 | Outreach contacts are `@example.test`. A draft addressed to anyone else FAILs | `checks.ts outreachDrafted` |
 
@@ -134,10 +135,36 @@ sets (not the audit's) are marked "bar", for the owner to confirm.
 | SEC5 service key on the VM | `AUDIT.SEC5.no_service_key_on_prepare_vm` | Not visible to the database or the API: NOT_RUN; proven by B2's fix moving preparation to per-job tokens | NOT_RUN |
 | SEC6 extension asks for every site | `AUDIT.SEC6.extension_asks_only_ats_hosts` | The commit's `extension/manifest.json` names hosts, not `<all_urls>` (the store copy is built from it) | `<all_urls>` |
 
+### 2c. What a brand-new person can trigger, beyond the fifteen features (owner directive, 16:12 CDT)
+
+The question for each: is the task actually done, in state, and is the reply true to it? Every check is in
+`scripts/live/journeys.ts`, tested in `tests/architect/live-verify-journeys.test.ts`, on the web channel, phrased the
+way a new person would (loose wording, half an offer first, changing their mind).
+
+| Capability | What the person says | Check (id) | What must be true in production |
+|---|---|---|---|
+| Logging what I applied to | "I applied to Verifyco Test for the data analyst role last week" | `USER.tracker_logs_what_i_applied_to` | the company is on the tracker (account or thread state), and the reply names it |
+| Truthful status | "did my Verifyco Test application go through?" | `USER.status_never_claims_an_unsent_application` | with nothing sent, no sentence claims a send, and the reply says plainly that nothing went out |
+| Reminders | "remind me tomorrow at 9am to email Riley about coffee" | `USER.reminder_recorded` | a pending `career_reminder_outbox` row, and the reply says it is set. An honest "I don't run reminders" is a FAIL with the reason "not built" |
+| Help | "hey, what can you actually do for me?" | `USER.what_can_you_do` | a plain answer naming at least 3 things it does |
+| Company research | "tell me about Stripe as an employer" | `USER.company_research_sourced_or_says_none` | says where its facts come from, or that it has none |
+| Connect Telegram (connector) | "connect telegram" | `USER.connect_telegram_gives_a_link` | a one-time link is issued (`channel_link_nonces`) and given as a `t.me` link |
+| Connect Gmail (connector) | "how do I connect my gmail?" | `USER.connect_gmail_gives_the_way` | the way to connect is given, and no grant is claimed that `user_oauth_connections` does not hold |
+| Preferred location | "my preferred location is Chicago" | `USER.preferred_location_saved` | on the account record, and the reply says so |
+| A standing need | "never show me staffing agencies" | `USER.standing_need_kept` | kept as a standing instruction, with its `instruction_kept` event |
+| The judge prompt: set, show, forget | "judge prompt: …", "what's my judge prompt?", "forget my judge prompt" | `USER.judge_prompt_kept`, `_shown`, `_gone` | kept, shown word for word, then gone |
+| A half-told offer | "I got an offer from Google!" then "it's $150,000 base as a software engineer in New York" | `USER.offer_asks_once_then_benchmarks` | asked once for what is missing, not again, then the benchmark medians cited |
+| Weak-spot drill | "drill my weak spots" (new thread) | `USER.drill_uses_recorded_weak_spots` | the drill names a skill the last `mock_done` recorded weak |
+| Changing my mind | "actually I'm a senior, not a junior", then "what do you know about me?" in a new thread | `USER.correction_replaces_the_old_fact` | the record and the new thread say senior, never junior |
+| Stop alerts (undo) | "stop my job alerts" | `USER.stop_alerts_stops_them` | `career_alert_prefs` is off, and the reply says so |
+| Pause, resume, a loose hold-off | "pause all career work", "resume career work", "can you hold off on everything for a bit?" | `USER.pause_pauses`, `USER.resume_resumes`, `USER.hold_off_reply_matches_state` | the account's paused flag is what each reply says |
+| SMS | — | `USER.sms_channel` | NOT_RUN every run: a reply over LoopMessage is a real text, and nothing may be sent under the hold |
+
 ### Counts
 
-116 checks a run: 52 across F1–F15 (F1 3, F2 2, F3 3, F4 4, F5 3, F6 5, F7 7, F8 3, F9 4, F10 5, F11 2, F12 2, F13 3,
-F14 3, F15 3), E2E 4, the cloud sender 3, Telegram 3, the audit 40, preflight 6, erase 3, safety 5. Eight of them are
+136 checks a run: 52 across F1–F15 (F1 3, F2 2, F3 3, F4 4, F5 3, F6 5, F7 7, F8 3, F9 4, F10 5, F11 2, F12 2, F13 3,
+F14 3, F15 3), E2E 4, the cloud sender 3, Telegram 3, the audit 40, new-user capabilities 20, preflight 6, erase 3,
+safety 5. Eight of them are
 NOT_RUN on every run by design, because they need an apply turn the suite never sends (F1 2, E2E 4, B2, Q2). Owner
 check O-1 proves them, and the matrix shows them as not passed. Counted from the
 JSON of a whole run against a dead product (`tests/architect/live-verify-checks.test.ts`), one row per check id.
@@ -282,8 +309,9 @@ that posts often. `--allow-not-run` exits 0 with NOT_RUNs left (they stay "not p
 
 ## 7. Evidence for this PR
 
-- Tests: `live-verify-checks.test.ts` and `live-verify-audit.test.ts` (with `live-verify-pg.ts`, the SELECT-only
-  connection the tests read through) run locally on Postgres 16 with the career schema: 11/11 tests, 33 steps, pass.
+- Tests: `live-verify-checks.test.ts`, `live-verify-audit.test.ts` and `live-verify-journeys.test.ts` (with
+  `live-verify-pg.ts`, the SELECT-only connection the tests read through) run locally on Postgres 16 with the career
+  schema: 13/13 tests, 40 steps, pass.
   On the base (trunk `fe8405586`) both fail to load: `scripts/live/*` does not exist there.
 - **Independent review of 2026-10-26 (REQUEST CHANGES): 8/8 items fixed on this branch.** Fail-first is the same
   probe script (scratchpad `failfirst.ts`) run against the reviewed head `e6282673` and against the fix:
@@ -291,7 +319,7 @@ that posts often. `--allow-not-run` exits 0 with NOT_RUNs left (they stay "not p
 | # | Probe | Reviewed head `e6282673` | Fix |
 |---|---|---|---|
 | 1 | `select '--' as a) lv_row; commit; delete from career_postings; select (1` | `assertReadOnlySql` accepted it, and psql ran it: the seeded `career_postings` row was **deleted** (0/1 left) | refused by the code check; sent anyway, Postgres refuses it ("cannot insert multiple commands into a prepared statement"): 1/1 left |
-| 2 | the scenario's apply turns; the authority preflight | `verify.ts` sent `apply to ${pickIdx + 1}` and `apply me to this: ${e2eUrl}` to real postings; no preflight | no apply turn but the two fixed probes; refuses to start on any apply authority; `SAFETY.no_queue_row` |
+| 2 | the scenario's apply turns; the authority preflight | `verify.ts` sent `apply to ${pickIdx + 1}` and `apply me to this: ${e2eUrl}` to real postings; no preflight | no apply turn but the four fixed probes (none a real posting); refuses to start on any apply authority; `SAFETY.no_queue_row` |
 | 3 | `exec_vault_read(...)`, `vault.decrypted_secrets`, `cron.schedule(...)` | all three accepted | all three refused |
 | 4 | GET `/rest/v1//rpc/x`, `/rest/v1/%72pc/x`, `/rest/v1/career_out<TAB>box` | all three let through | all three refused |
 | 5 | triggers | a push to `ci/live-verify` started it | `workflow_dispatch` only, and only from trunk |
@@ -299,7 +327,12 @@ that posts often. `--allow-not-run` exits 0 with NOT_RUNs left (they stay "not p
 | 7 | the two surviving mutants (the drafts term in `noForeignWrites`; the one-statement rule) | reproduced: each mutant left the reviewed head's tests green | each now turns a test red (R7a, R1b) |
 | 8 | "please send it", "looks good, send them" | let through | refused (a word that could approve or send, anywhere in the message) |
 
-- Mutation check against this head, each guard broken once and the named test run (`--filter`): **29/29 went red.**
+- Mutation check against this head, each guard broken once and the named test run (`--filter`): **39/39 went red**
+  (29 below, and 10 for the new-user checks, J1–J10: a claimed send, a claimed reminder with no row, a pause the
+  state does not hold, a stale readback, a Telegram link with no token, a claimed Gmail grant, an offer asked twice, a
+  standing need with no event, a tracker company not on record, a drill on the wrong skill). Seven of the ten first
+  survived because one fail-shaped seed tripped two guards at once. Each test now has a seed that trips only its own
+  guard, and asserts the reason.
   - Review round, 21: R1a (the old lexer order), R1b (`;` allowed), R1c (simple protocol), R1d (plain `begin`), R1e
     (no startup read-only), R1f (superuser allowed), R1g (a writable role allowed), R3a (function allow-list off),
     R3b (schema allow-list off), R3c (an alias may shadow a schema), R4a and R4a2 (path normalisation off, partly and

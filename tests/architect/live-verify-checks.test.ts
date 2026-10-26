@@ -562,9 +562,9 @@ Deno.test({ name: "live verify: a run refuses a non-test account and calls nothi
     assertEquals(feat.filter((r: L.Result) => r.status === "PASS" && !stateOnly(r.check)).map((r: L.Result) => r.check), [], "a dead product passes nothing");
     // The audit checks a reply decides, and the erase checks, pass nothing either (an erase that did not run is NOT_RUN,
     // never an empty-and-therefore-PASS).
-    const replyDriven = report.results.filter((r: L.Result) => /^AUDIT\.(?:B2|B6|Q2|Q3|S2|S3|R1|Q4)\.|^ERASE\./.test(r.check));
-    assert(replyDriven.length >= 14, `${replyDriven.length} reply-driven audit and erase checks`);
-    assertEquals(replyDriven.filter((r: L.Result) => r.status === "PASS").map((r: L.Result) => r.check), [], "no reply-driven audit or erase check passes on a dead product");
+    const replyDriven = report.results.filter((r: L.Result) => /^AUDIT\.(?:B2|B6|Q2|Q3|S2|S3|R1|Q4)\.|^ERASE\.|^USER\./.test(r.check));
+    assert(replyDriven.length >= 30, `${replyDriven.length} reply-driven audit, erase and new-user checks`);
+    assertEquals(replyDriven.filter((r: L.Result) => r.status === "PASS").map((r: L.Result) => r.check), [], "no reply-driven audit, erase or new-user check passes on a dead product");
     assertEquals(report.results.filter((r: L.Result) => r.check === "ERASE.erased" || r.check === "AUDIT.S2.erase_covers_every_table").map((r: L.Result) => r.status), ["NOT_RUN", "NOT_RUN"]);
     assert(report.summary.not_run > 0 && report.summary.pass < report.summary.total, "NOT_RUN counted as not passed");
     assert(report.results.some((r: L.Result) => r.check === "ACCOUNT.test_account" && r.status === "PASS"));

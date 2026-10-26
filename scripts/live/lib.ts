@@ -33,6 +33,7 @@ export const FEATURES: Record<string, string> = {
   F14: "Receipts",
   F15: "Dashboard / approval card",
   AUDIT: "Launch-readiness audit (PR #192) BLOCKERs and MAJORs",
+  USER: "New-user capabilities beyond the 15 features",
   E2E: "E2E chat-submit path",
   CLOUD: "Cloud sender (cloud runner)",
   TG: "Telegram channel",
@@ -289,13 +290,15 @@ export function guardedFetch(policy: FetchPolicy, inner: typeof fetch = fetch): 
 // ------------------------------------------------------------------------------------------------ the chat guard
 // The suite never approves, sends or applies. Words that could approve or send are refused ANYWHERE in a message; the
 // only exception is the resume confirmation, said once, word for word, in a thread that has shown no card. An apply
-// ask is refused unless it is one of the two probes below, neither of which names a real employer's posting.
+// ask is refused unless it is one of the four fixed probes below, none of which names a real employer's posting.
 export const APPROVING = /\b(?:yes|yeah|yep|yup|ok|okay|sure|approve\w*|go ahead|do it|send\w*|submit\w*|confirm\w*|lgtm|ship it|sounds good)\b/i;
 export const APPLYING = /\bappl(?:y|ies|ying|ied|ication|ications)\b/i;
 export const RESUME_CONFIRMATION = "yes, that's my resume";
 export const APPLY_PROBES = new Set([
   "can you apply to jobs for me?", // the audit's Q3 phrasing, in a fresh thread with no postings listed
   "apply me to this: https://www.linkedin.com/jobs/view/trainee-live-verify-not-a-posting", // not a posting; LinkedIn is never applied to
+  "I applied to Verifyco Test for the data analyst role last week", // a statement for the tracker, about a company with no posting
+  "did my Verifyco Test application go through?", // a status question; nothing is queued by asking
 ]);
 export class ChatGuard {
   private carded = new Set<string>();

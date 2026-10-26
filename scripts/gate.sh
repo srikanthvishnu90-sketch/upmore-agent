@@ -226,7 +226,7 @@ if [[ $partition == all || $partition == architect ]]; then
   step apply-cli-typecheck deno check scripts/apply.ts
   # The live production verification suite (docs/architect/LIVE-VERIFICATION-PLAN-2026-10-26.md) runs only in
   # live-verify.yml; its checks are tested in tests/architect/live-verify-checks.test.ts, its types here.
-  step live-verify-typecheck deno check scripts/live/verify.ts tests/architect/live-verify-checks.test.ts
+  step live-verify-typecheck deno check scripts/live/verify.ts tests/architect/live-verify-checks.test.ts tests/architect/live-verify-audit.test.ts tests/architect/live-verify-journeys.test.ts
 fi
 if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"

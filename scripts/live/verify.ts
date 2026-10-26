@@ -24,6 +24,7 @@ import {
 } from "./lib.ts";
 import * as C from "./checks.ts";
 import * as AU from "./audit.ts";
+import * as J from "./journeys.ts";
 import type { Run, Target, Turn } from "./checks.ts";
 
 export interface Options { out: string; waitMin: number; role: string; place: string; allowNotRun: boolean; turnTimeoutMs: number }
@@ -222,6 +223,41 @@ async function scenario(ctx: Ctx, env: Env) {
   await guarded(ctx, "F9", "F9.fact_turn", () => C.turnRecorded(db, "F9", "F9.fact_turn", factA, run));
   await say(ctx, "memory-a", `my name is ${STATED_NAME}`);
 
+  // New-user capabilities (journeys.ts): each outcome in state, each reply checked against it.
+  const loc = await say(ctx, "memory-a", "my preferred location is Chicago");
+  await guarded(ctx, "USER", "USER.preferred_location_saved", () => J.preferredLocation(db, loc, run, "Chicago"));
+  const logged = await say(ctx, "tracker", "I applied to Verifyco Test for the data analyst role last week");
+  await guarded(ctx, "USER", "USER.tracker_logs_what_i_applied_to", () => J.trackerLogged(db, logged, run, "Verifyco Test"));
+  const status = await say(ctx, "tracker", "did my Verifyco Test application go through?");
+  await guarded(ctx, "USER", "USER.status_never_claims_an_unsent_application", () => J.statusTruthful(db, status, run, "Verifyco Test"));
+  const remind = await say(ctx, "tracker", "remind me tomorrow at 9am to email Riley about coffee");
+  await guarded(ctx, "USER", "USER.reminder_recorded", () => J.reminderRecorded(db, remind, run));
+  const help = await say(ctx, "help", "hey, what can you actually do for me?");
+  add(ctx, J.helpAnswer(help));
+  const intel = await say(ctx, "help", "tell me about Stripe as an employer");
+  add(ctx, J.companyResearch(intel));
+  const tgc = await say(ctx, "connect", "connect telegram");
+  await guarded(ctx, "USER", "USER.connect_telegram_gives_a_link", () => J.telegramConnectIssued(db, tgc, run));
+  const gm = await say(ctx, "connect", "how do I connect my gmail?");
+  await guarded(ctx, "USER", "USER.connect_gmail_gives_the_way", () => J.gmailConnectHonest(db, gm, run));
+  const need = await say(ctx, "standing", "never show me staffing agencies");
+  await guarded(ctx, "USER", "USER.standing_need_kept", () => J.standingKept(db, need, run, "staffing agencies"));
+  const jp = "rate any posting that needs Java as no";
+  const jset = await say(ctx, "standing", `judge prompt: ${jp}`);
+  await guarded(ctx, "USER", "USER.judge_prompt_kept", () => J.judgePromptState(db, jset, run, jp, "kept"));
+  const jshow = await say(ctx, "standing", "what's my judge prompt?");
+  await guarded(ctx, "USER", "USER.judge_prompt_shown", () => J.judgePromptState(db, jshow, run, jp, "shown"));
+  const jgone = await say(ctx, "standing", "forget my judge prompt");
+  await guarded(ctx, "USER", "USER.judge_prompt_gone", () => J.judgePromptState(db, jgone, run, jp, "gone"));
+  // A half-told offer, then the rest of it.
+  const half = await say(ctx, "offer-2", "I got an offer from Google!");
+  const rest = await say(ctx, "offer-2", "it's $150,000 base as a software engineer in New York");
+  await guarded(ctx, "USER", "USER.offer_asks_once_then_benchmarks", async () => {
+    const m = await import("../../supabase/functions/_shared/career_offer.ts");
+    return J.offerAsksOnce(half, rest, m.benchmarks(m.parseOfferWords("I got an offer from Google for $150,000 base as a software engineer in New York")) as C.Bench[]);
+  });
+  add(ctx, notRun("USER", "USER.sms_channel", "SMS (LoopMessage) replies are real texts to a real number; nothing may be sent under the owner's hold, so no capability is driven on SMS"));
+
   // F13: an advice question goes to the staged brain and is metered.
   const advice = await say(ctx, "advice", "how should I follow up after an interview?");
   await guarded(ctx, "F13", "F13.turn", () => C.turnRecorded(db, "F13", "F13.turn", advice, run));
@@ -270,6 +306,9 @@ async function scenario(ctx: Ctx, env: Env) {
   const mock2 = await say(ctx, "mock-stop", `mock me for a ${role} interview`);
   if (ok(mock2) && /Mock interview|Q1/i.test(mock2.reply)) await guarded(ctx, "AUDIT", "AUDIT.B6.stop_the_interview", async () => AU.stopInterview(await say(ctx, "mock-stop", "stop the interview")));
   else add(ctx, fail("AUDIT", "AUDIT.B6.stop_the_interview", `the second mock did not start: ${mock2.reply.slice(0, 120)}`));
+
+  const drill = await say(ctx, "drill", "drill my weak spots");
+  await guarded(ctx, "USER", "USER.drill_uses_recorded_weak_spots", () => J.drillMatchesWeakSpots(db, drill, run));
 
   // F7: a watch (its alert is waited for below).
   const watch = await say(ctx, "watch", `Watch for ${role} roles in ${place}`);
@@ -326,6 +365,10 @@ async function scenario(ctx: Ctx, env: Env) {
   const factB = await say(ctx, "memory-b", "what do you know about me?");
   await guarded(ctx, "F9", "F9.fact_used_in_new_thread", () => C.memoryAcrossThreads(db, factA, factB, run, ["junior", "economics"]));
   add(ctx, AU.nameRemembered(factB, STATED_NAME));
+  // Changing my mind: a correction replaces the old fact, in state and in a later thread.
+  await say(ctx, "memory-a", "actually I'm a senior, not a junior");
+  const factC = await say(ctx, "memory-c", "what do you know about me?");
+  await guarded(ctx, "USER", "USER.correction_replaces_the_old_fact", () => J.factCorrected(db, factC, run, "senior", "junior"));
 
   // F15: the dashboard's reads, through RLS, as the test account.
   if (!ctx.anonKey) add(ctx, notRun("F15", "F15.dashboard_reads_own_rows", "no SUPABASE_ANON_KEY: PostgREST was not read"));
@@ -347,6 +390,15 @@ async function scenario(ctx: Ctx, env: Env) {
     { feature: "F7", check: "F7.alert_for_new_posting", fn: () => C.alertQueued(db, run, words(role)) },
     { feature: "F3", check: "F3.test_account_prepared_and_carded", fn: () => C.preparedBound(db, "F3", "F3.test_account_prepared_and_carded", run, {}) },
   ]);
+  // Follow-through after the scheduled outcomes: stop alerts, pause, a loose hold-off, resume.
+  const stop = await say(ctx, "watch", "stop my job alerts");
+  await guarded(ctx, "USER", "USER.stop_alerts_stops_them", () => J.alertsStopped(db, stop, run));
+  const p1 = await say(ctx, "control", "pause all career work");
+  await guarded(ctx, "USER", "USER.pause_pauses", () => J.pauseMatches(db, p1, run, "pause_pauses", true));
+  const r1 = await say(ctx, "control", "resume career work");
+  await guarded(ctx, "USER", "USER.resume_resumes", () => J.pauseMatches(db, r1, run, "resume_resumes", false));
+  const h1 = await say(ctx, "control", "can you hold off on everything for a bit?");
+  await guarded(ctx, "USER", "USER.hold_off_reply_matches_state", () => J.pauseMatches(db, h1, run, "hold_off_reply_matches_state", null));
   add(ctx, notRun("AUDIT", "AUDIT.B2.phone_only_person_gets_card", "needs an apply-by-link turn, which the suite never sends for a real posting; owner check O-1 proves it"));
   add(ctx, notRun("AUDIT", "AUDIT.Q2.apply_reply_promises_only_what_happens", "needs an apply turn, which the suite never sends for a real posting; owner check O-1 reads the reply"));
 

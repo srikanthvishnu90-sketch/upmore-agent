@@ -3485,7 +3485,8 @@ const CareerRouter = (() => {
       `Stop rules planned, not enforced today: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
       sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the pace that runs today, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
-    const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
+    // SERIAL-1511: never general campaign permission; an approval is the exact messages reviewed, within the approved scope, until the 7-day lapse.
+    const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Your approval will cover only the exact messages you review, within the scope you approve, until it lapses after 7 days — never the campaign in general or messages you have not seen; nothing outside what you approved goes out." });
     // BUG-108: the REAL 124 card (already built above as `sp`) is
     // the artifact — the campaign-plan branch's shape (card +
     // committed:false + sends:0 at awaiting_user). Before this the

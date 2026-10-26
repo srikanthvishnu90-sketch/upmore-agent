@@ -92,3 +92,23 @@ approval rounds, each within 72 hours of its drafts being written, and the rest 
 
 Nothing here is a recommendation to send; no send path is on. The only change in this follow-up is words (124/142),
 a test (3), and this table.
+
+### SERIAL-1510: the expiry is disclosed (built; windows unchanged)
+The approval reply now ends: "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how
+many, and you can approve them again." When the run drops approvals as expired, the next "show my drafts" (never a
+proactive message) opens with how many lapsed, that the approval is no longer valid, and "show lapsed"; that shows
+exactly the unsent drafts again as a fresh batch, approved only by a fresh "send"; the old rows stay dead. No
+extension, no auto-renew: `APPROVAL_TTL_MS` and `BATCH_TTL_MS` are unchanged (`tests/architect/outreach-lapse.test.ts`).
+
+### SERIAL-1511: approval scope wording; a benchmark gap for F6
+The safety-plan card (124 `safetyPlanText`, `safetyPlan.approval`) and the router's card reply (142) no longer say
+"approve once, then it runs alone" or "one approval covers this whole plan": an approval covers only the exact
+messages the person reviewed, within the scope they approved, until it lapses after 7 days; never general permission
+for the campaign, never messages they have not seen (`tests/career-approval-scope-wording.test.cjs`).
+
+**Benchmark gaps (for F6).** `tests/career-wording-backlog-guard.test.cjs` reads a private document outside the
+repository (`~/workspace/your_files/upmore-career-300-scenarios.md`); it now reports SKIPPED-UNVERIFIED when the file
+is absent instead of passing or crashing, and the gate's own exclusion of machine-path tests still applies. The
+private path is not copied into CI. The same class, from the diagnosis (§5): `tests/career-textpath-heldout-blind1-20261024.test.cjs`
+(`/root/workspace/heldout-blind1-records.jsonl`), `tests/career-quality-routing.test.cjs:57`, `tests/career-spec-gates.test.cjs:273`.
+Until these benchmarks are in the repository or replaced by sealed in-repo sets, nothing they assert counts as verified.

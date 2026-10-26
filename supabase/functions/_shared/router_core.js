@@ -25004,10 +25004,12 @@ const CareerOutreach = (() => {
       per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
       scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
       stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
-      approval: "one approval covers this whole plan; nothing outside it sends" };
+      // SERIAL-1511: an approval covers only the exact messages the person reviewed, within the scope they approved, until
+      // the 7-day lapse; it is never general campaign permission and never covers messages they have not seen.
+      approval: "an approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days; never general permission for the campaign, never messages you have not seen" };
   }
   function safetyPlanText(p) {
-    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. What runs today: 10 a day in your first week of sending, then your own number (20 unless set, never above 30), 90 seconds apart, at most 3 emails to one address in 30 days, never to anyone who said stop. Planned, not enforced today: a daily cap starting at ${p.daily_cap_start}/day that ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
+    return [`Safety plan — your approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days; it is never general permission for the campaign or for messages you have not seen:`, `Channel: Gmail (your own account) only. What runs today: 10 a day in your first week of sending, then your own number (20 unless set, never above 30), 90 seconds apart, at most 3 emails to one address in 30 days, never to anyone who said stop. Planned, not enforced today: a daily cap starting at ${p.daily_cap_start}/day that ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
   }
   function honestYield(records, query, opts) {
     opts = opts || {}; const pool = buildList(records, query, opts); const kept = (pool.selected || []).concat(pool.reserve || []);
@@ -39757,7 +39759,8 @@ const CareerRouter = (() => {
       `Stop rules planned, not enforced today: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
       sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the pace that runs today, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
-    const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
+    // SERIAL-1511: never general campaign permission; an approval is the exact messages reviewed, within the approved scope, until the 7-day lapse.
+    const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Your approval will cover only the exact messages you review, within the scope you approve, until it lapses after 7 days — never the campaign in general or messages you have not seen; nothing outside what you approved goes out." });
     // BUG-108: the REAL 124 card (already built above as `sp`) is
     // the artifact — the campaign-plan branch's shape (card +
     // committed:false + sends:0 at awaiting_user). Before this the

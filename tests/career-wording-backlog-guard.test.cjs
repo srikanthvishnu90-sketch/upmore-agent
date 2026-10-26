@@ -14,9 +14,16 @@ const L = require("../scripts/career/gauntlet/pilot-lib.cjs");
 const Outreach = require("../packages/domain/124-career-outreach.js");
 const Doorstep = require("../packages/domain/141-career-doorstep.js");
 
-const doc = fs.readFileSync(path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md"), "utf8");
+// SERIAL-1511: the 300-scenario document is private and lives outside the repository. Without it every test here is
+// SKIPPED-UNVERIFIED (a skip, never a pass), and the gap is listed for F6 (docs/architect/reports/OUTREACH-CEILINGS-2026-10-26.md,
+// "Benchmark gaps"). The path is never copied into CI.
+const DOC_PATH = path.join(process.env.HOME || "", "workspace/your_files/upmore-career-300-scenarios.md");
+const doc = fs.existsSync(DOC_PATH) ? fs.readFileSync(DOC_PATH, "utf8") : null;
+const SKIP = doc === null ? "SKIPPED-UNVERIFIED: the private 300-scenario document is not on this machine; nothing here was checked" : false;
+const nodeTest = test;
+const test_ = (name, fn) => nodeTest(name, { skip: SKIP }, fn);
 const CANON = new Map();
-for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !CANON.has(m[1])) CANON.set(m[1], m[2].trim()); }
+for (const line of (doc || "").split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !CANON.has(m[1])) CANON.set(m[1], m[2].trim()); }
 
 function turn(idOrAsk, profileName) {
   const ask = CANON.get(idOrAsk) || idOrAsk;
@@ -27,7 +34,7 @@ function turn(idOrAsk, profileName) {
 const text = (r) => (r.delivered || []).join("\n");
 
 // ---- BUG-125: the plan stance is building-now, never "Say go" deferral ----
-test("BUG-125: plan replies open building-now and never defer with 'Say go'", () => {
+test_("BUG-125: plan replies open building-now and never defer with 'Say go'", () => {
   for (const id of ["SC-004", "SC-013", "SC-014", "SC-015", "SC-016", "SC-020", "SC-026", "SC-027", "SC-030", "SC-055", "SC-059"]) {
     const t = text(turn(id));
     assert.ok(t.startsWith("Building the list now:"), `${id}: plan reply must open building-now, got: ${t.slice(0, 80)}`);
@@ -36,7 +43,7 @@ test("BUG-125: plan replies open building-now and never defer with 'Say go'", ()
 });
 
 // ---- BUG-125/127: every parsed facet is spoken (no if/else single-filter) ----
-test("BUG-127: plan replies speak every filter the ask carries", () => {
+test_("BUG-127: plan replies speak every filter the ask carries", () => {
   const cases = [
     ["SC-015", [/seed-stage/i, /first PM/i]],                       // stage AND first-hire
     ["SC-055", [/Series A/i, /GitHub/i]],                           // stage AND github
@@ -62,7 +69,7 @@ test("BUG-127: plan replies speak every filter the ask carries", () => {
 });
 
 // ---- BUG-124: prose lookalikes never extract as firms ----
-test("BUG-124: 'competition-math' never yields MATH Venture Partners", () => {
+test_("BUG-124: 'competition-math' never yields MATH Venture Partners", () => {
   const q = Outreach.parseTarget(CANON.get("SC-016"), {});
   assert.ok(!q.firms.includes("MATH Venture Partners"), `firms: ${q.firms}`);
   assert.equal(q.firm_set, "quant");
@@ -72,7 +79,7 @@ test("BUG-124: 'competition-math' never yields MATH Venture Partners", () => {
 });
 
 // ---- BUG-126: a shadow phrase is the user's firm, verbatim ----
-test("BUG-126: 'Bain Capital' is never rewritten to Bain & Company", () => {
+test_("BUG-126: 'Bain Capital' is never rewritten to Bain & Company", () => {
   const q = Outreach.parseTarget(CANON.get("SC-027"), {});
   assert.ok(q.firms.includes("Bain Capital"), `firms: ${q.firms}`);
   assert.ok(!q.firms.includes("Bain & Company"), `firms: ${q.firms}`);
@@ -83,7 +90,7 @@ test("BUG-126: 'Bain Capital' is never rewritten to Bain & Company", () => {
 });
 
 // ---- BUG-128: a population ask never hears the default count as its size ----
-test("BUG-128: population asks are answered as populations, not the default 40", () => {
+test_("BUG-128: population asks are answered as populations, not the default 40", () => {
   const t5 = text(turn("SC-005"));
   assert.ok(/every founder in the latest YC batch/i.test(t5), `SC-005: ${t5.slice(0, 120)}`);
   assert.ok(!/\b40\b/.test(t5), `SC-005 must not state 40 anywhere: ${t5}`);
@@ -93,7 +100,7 @@ test("BUG-128: population asks are answered as populations, not the default 40",
 });
 
 // ---- BUG-129: firm-less asks are proposed their own universe ----
-test("BUG-129: no bulge-bracket proposal serves a non-banking ask", () => {
+test_("BUG-129: no bulge-bracket proposal serves a non-banking ask", () => {
   const t10 = text(turn("SC-010"));
   assert.ok(/Blackstone/.test(t10) && !/bulge bracket/i.test(t10), `SC-010 proposes the PE set: ${t10.slice(0, 200)}`);
   for (const id of ["SC-026", "SC-028", "SC-029", "SC-059", "SC-060"]) {
@@ -107,14 +114,14 @@ test("BUG-129: no bulge-bracket proposal serves a non-banking ask", () => {
 });
 
 // ---- BUG-130: a decision the user already gave is never re-asked ----
-test("BUG-130: SC-025 states the Tier C hold as settled", () => {
+test_("BUG-130: SC-025 states the Tier C hold as settled", () => {
   const t = text(turn("SC-025"));
   assert.ok(/held at zero, exactly as you set it/i.test(t), `SC-025: ${t.slice(0, 120)}`);
   assert.ok(!/Hold Tier C back, or release it/.test(t), "the decided question is re-asked");
 });
 
 // ---- BUG-131: carried shapes speak their records ----
-test("BUG-131: voice ask keeps its own sample count; reserve speaks its split; safety plan states the cap", () => {
+test_("BUG-131: voice ask keeps its own sample count; reserve speaks its split; safety plan states the cap", () => {
   const t40 = text(turn("SC-040"));
   assert.ok(/the 8 emails you mentioned/.test(t40), `SC-040: ${t40.slice(-140)}`);
   const t48 = text(turn("SC-048"));
@@ -137,14 +144,14 @@ test("BUG-131: voice ask keeps its own sample count; reserve speaks its split; s
 });
 
 // ---- BUG-132: a calendar proposal names its offered times ----
-test("BUG-132: SC-031 names both offered times with absolute dates", () => {
+test_("BUG-132: SC-031 names both offered times with absolute dates", () => {
   const t = text(turn("SC-031"));
   assert.ok(/(Tuesday|Wednesday) [A-Z][a-z]+ \d+ at 5:00 PM/.test(t), `SC-031: ${t.slice(0, 240)}`);
   assert.ok(!/Tell me what you'd like to do next/.test(t), "generic closer is back");
 });
 
 // ---- plan replies stay pairwise distinct across the family ----
-test("BUG-125: no two plan replies in the family are byte-identical", () => {
+test_("BUG-125: no two plan replies in the family are byte-identical", () => {
   const ids = ["SC-004", "SC-005", "SC-006", "SC-010", "SC-012", "SC-013", "SC-014", "SC-015", "SC-016", "SC-017", "SC-018", "SC-019", "SC-020", "SC-021", "SC-022", "SC-023", "SC-024", "SC-026", "SC-027", "SC-028", "SC-029", "SC-030", "SC-055", "SC-056", "SC-058", "SC-059", "SC-060"];
   const seen = new Map();
   for (const id of ids) {
@@ -159,7 +166,7 @@ test("BUG-125: no two plan replies in the family are byte-identical", () => {
 // ---- BUG-133: a prep-set headline claims a company match only when
 // a company file grounds it; track sets name their track; a quant
 // ask leads with the quant drills; a PM set exists ----
-test("BUG-133: prep sets speak their true track and grounding", () => {
+test_("BUG-133: prep sets speak their true track and grounding", () => {
   const t183 = text(turn("SC-183"));
   assert.ok(/Your SWE coding prep set\./.test(t183), `SC-183: ${t183.slice(0, 90)}`);
   assert.ok(!/matched to how this round actually runs/.test(t183), "SC-183: ungrounded match claim");
@@ -176,7 +183,7 @@ test("BUG-133: prep sets speak their true track and grounding", () => {
 
 // ---- BUG-134: story matching is spoken from the record; an empty
 // STAR bank is answered as an empty bank ----
-test("BUG-134: question bank and STAR bank speak their true match state", () => {
+test_("BUG-134: question bank and STAR bank speak their true match state", () => {
   const t177 = text(turn("SC-177"));
   assert.ok(/story match stated per question/.test(t177), `SC-177: ${t177.slice(0, 90)}`);
   assert.ok(/No story is matched to any question yet/.test(t177), "SC-177: empty match stated");
@@ -188,7 +195,7 @@ test("BUG-134: question bank and STAR bank speak their true match state", () => 
 });
 
 // ---- BUG-135: producer replies speak their own records, once ----
-test("BUG-135: producer replies speak their records with per-shape next steps", () => {
+test_("BUG-135: producer replies speak their records with per-shape next steps", () => {
   const t184 = text(turn("SC-184"));
   assert.ok(/Work these prompts/.test(t184) && /The framework, in order/.test(t184), `SC-184: ${t184.slice(0, 160)}`);
   const t194 = text(turn("SC-194"));
@@ -214,7 +221,7 @@ test("BUG-135: producer replies speak their records with per-shape next steps", 
 });
 
 // ---- BUG-136: briefs and coffee chats speak their records ----
-test("BUG-136: brief replies speak bar, loop, and story state; coffee chats speak their points", () => {
+test_("BUG-136: brief replies speak bar, loop, and story state; coffee chats speak their points", () => {
   const t176 = text(turn("SC-176"));
   assert.ok(/Your night-before brief for Stripe\./.test(t176) && /The bar at Stripe:/.test(t176) && /The loop, from the company file:/.test(t176), `SC-176: ${t176.slice(0, 200)}`);
   const t190 = text(turn("SC-190"));
@@ -233,7 +240,7 @@ test("BUG-136: brief replies speak bar, loop, and story state; coffee chats spea
 
 // ---- BUG-137: stage announcements speak the event, its true
 // source, and the company state the record carries ----
-test("BUG-137: announcements name the event, its source, and its next step", () => {
+test_("BUG-137: announcements name the event, its source, and its next step", () => {
   const t122 = text(turn("SC-122"));
   assert.ok(/Confirmation on the record/.test(t122) && /came from the confirmation email itself/.test(t122), `SC-122: ${t122.slice(0, 160)}`);
   assert.ok(/carried as company not stated/.test(t122), "SC-122: TN-1a state spoken");
@@ -251,7 +258,7 @@ test("BUG-137: announcements name the event, its source, and its next step", () 
 });
 
 // ---- BUG-138: an empty tracker answers in the shape of the ask ----
-test("BUG-138: empty-tracker replies take the ask's shape", () => {
+test_("BUG-138: empty-tracker replies take the ask's shape", () => {
   const t134 = text(turn("SC-134"));
   assert.ok(/Your offer expires Friday, [A-Z][a-z]+ \d+ — I will flag it daily until you decide/.test(t134), `SC-134: ${t134.slice(0, 120)}`);
   const t139 = text(turn("SC-139"));
@@ -265,7 +272,7 @@ test("BUG-138: empty-tracker replies take the ask's shape", () => {
 
 // ---- BUG-139: drafts are shown or their missing input is named —
 // never described as if they existed ----
-test("BUG-139: nudge, thank-you, and classification speak their true state", () => {
+test_("BUG-139: nudge, thank-you, and classification speak their true state", () => {
   const t129 = text(turn("SC-129"));
   assert.ok(/The thank-you is not drafted yet/.test(t129), `SC-129: ${t129.slice(0, 120)}`);
   assert.ok(!/drafted from your note/.test(t129), "SC-129: no note claimed that the record does not hold");
@@ -279,7 +286,7 @@ test("BUG-139: nudge, thank-you, and classification speak their true state", () 
 
 // ---- BUG-140: digests, funnel, season, and briefs speak their
 // records' numbers ----
-test("BUG-140: track summaries speak their records", () => {
+test_("BUG-140: track summaries speak their records", () => {
   const t131 = text(turn("SC-131"));
   assert.ok(/Applications out 0, replies in 0, interviews 0/.test(t131), `SC-131: ${t131.slice(0, 160)}`);
   const t133 = text(turn("SC-133"));
@@ -305,7 +312,7 @@ test("BUG-140: track summaries speak their records", () => {
 // deliverables deferred instead of computed in the reply.
 
 // ---- BUG-187: no approval-gated build closers; peer tone at the user's level ----
-test("BUG-187: proposed-set and category plans build now; the peer tone speaks peer to peer", () => {
+test_("BUG-187: proposed-set and category plans build now; the peer tone speaks peer to peer", () => {
   for (const id of ["SC-010", "SC-028", "SC-029", "SC-060"]) {
     const t = text(turn(id));
     assert.ok(!/Approve the (category|proposed set) and I build/.test(t), `${id}: approval-gated build closer is back: ${t.slice(-200)}`);
@@ -316,7 +323,7 @@ test("BUG-187: proposed-set and category plans build now; the peer tone speaks p
 });
 
 // ---- BUG-188: the timeline reconciles with the per-firm cap ----
-test("BUG-188: closed/named firm sets get window arithmetic, not a ramp-only timeline", () => {
+test_("BUG-188: closed/named firm sets get window arithmetic, not a ramp-only timeline", () => {
   const cases = [["SC-012", /4 monthly windows/], ["SC-017", /5 monthly windows/], ["SC-022", /3 monthly windows/], ["SC-027", /4 monthly windows/], ["SC-030", /2 monthly windows/]];
   for (const [id, re] of cases) {
     const t = text(turn(id));
@@ -326,7 +333,7 @@ test("BUG-188: closed/named firm sets get window arithmetic, not a ramp-only tim
 });
 
 // ---- BUG-189: parse facets — years are not counts, listed firms all named, sets and phrases un-narrowed ----
-test("BUG-189: cohort years never parse as a headcount; every listed firm is named; the school capture stops at the school", () => {
+test_("BUG-189: cohort years never parse as a headcount; every listed firm is named; the school capture stops at the school", () => {
   const t8 = text(turn("SC-008"));
   assert.ok(!/2023 associates|2,?023 first emails/.test(t8), `SC-008: year-as-count is back: ${t8.slice(0, 200)}`);
   assert.ok(/2023–25 classes/.test(t8) && /M&A/.test(t8) && /\(Wharton\)/.test(t8), `SC-008 facets: ${t8.slice(0, 260)}`);
@@ -342,7 +349,7 @@ test("BUG-189: cohort years never parse as a headcount; every listed firm is nam
 });
 
 // ---- BUG-190: a question is not a decision; the safety card states its cap once and dates its ramp ----
-test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap reads one way with dated finish arithmetic", () => {
+test_("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap reads one way with dated finish arithmetic", () => {
   const t50 = text(turn("SC-050"));
   assert.ok(!/exactly as you set it/.test(t50), `SC-050: question credited as a decision: ${t50.slice(0, 160)}`);
   assert.ok(/Hold Tier C back, or release it/.test(t50) && /372 Tier A and B/.test(t50), `SC-050: ${t50.slice(0, 260)}`);
@@ -354,7 +361,7 @@ test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap 
 });
 
 // ---- BUG-191: waves, surgery counts, and the bounce check are computed in the reply ----
-test("BUG-191: empty-record deliverables state their zero with the arithmetic shown", () => {
+test_("BUG-191: empty-record deliverables state their zero with the arithmetic shown", () => {
   const t36 = text(turn("SC-036"));
   assert.ok(/day-6 wave: 0 drafts/.test(t36) && /how many went out, minus replies, minus bounces/.test(t36), `SC-036: ${t36.slice(0, 200)}`);
   assert.ok(!/Want the wave drafted against/.test(t36), "SC-036: draft-it-later closer is back");
@@ -373,7 +380,7 @@ test("BUG-191: empty-record deliverables state their zero with the arithmetic sh
 // source line.
 
 // ---- BUG-201: advice answers are topic-shaped, truly sourced, and complete ----
-test("BUG-201: no advice reply carries the shared opener, the degree-as-source, or the population grounding line; topics answer on topic", () => {
+test_("BUG-201: no advice reply carries the shared opener, the degree-as-source, or the population grounding line; topics answer on topic", () => {
   for (const id of ["SC-222", "SC-223", "SC-224", "SC-226", "SC-228", "SC-229", "SC-230", "SC-231", "SC-232", "SC-233", "SC-234", "SC-235", "SC-236", "SC-237", "SC-238", "SC-239", "SC-240", "SC-241", "SC-242", "SC-243", "SC-245", "SC-246"]) {
     const t = text(turn(id));
     assert.ok(!/Here is the honest shape of that/.test(t), `${id}: shared opener survives`);
@@ -401,7 +408,7 @@ test("BUG-201: no advice reply carries the shared opener, the degree-as-source, 
 });
 
 // ---- BUG-202: company-file replies print the details the file holds ----
-test("BUG-202: route details and cadence windows are spoken, comparisons are two-sided, the cohort school row states the pattern or its absence", () => {
+test_("BUG-202: route details and cadence windows are spoken, comparisons are two-sided, the cohort school row states the pattern or its absence", () => {
   for (const id of ["SC-254", "SC-257", "SC-259"]) assert.ok(!/See route details/.test(text(turn(id))), `${id}: the route pointer survives`);
   assert.ok(/also on file: Intern \/ new-grad pipeline/.test(text(turn("SC-254"))), "SC-254: all routes named");
   assert.ok(/applications open September 8, 2026, close November 15, 2026/.test(text(turn("SC-257"))) && /January 1 – February 1, 2026 window/.test(text(turn("SC-257"))), "SC-257: both cycles' windows spoken");
@@ -421,7 +428,7 @@ test("BUG-202: route details and cadence windows are spoken, comparisons are two
 // asserted state they didn't write, and brief residuals.
 
 // ---- BUG-197: announce claims are read off the record; drafts are shown; gates are surfaced ----
-test("BUG-197: no deadline or expiry is claimed without a value on the record; the clarifying draft is shown; the nudge blocker names its gate", () => {
+test_("BUG-197: no deadline or expiry is claimed without a value on the record; the clarifying draft is shown; the nudge blocker names its gate", () => {
   const t126 = text(turn("SC-126"));
   assert.ok(!/its deadline is set/.test(t126) && /no deadline was stated, so none is set/.test(t126), `SC-126: ${t126.slice(0, 200)}`);
   const t127 = text(turn("SC-127"));
@@ -445,7 +452,7 @@ test("BUG-197: no deadline or expiry is claimed without a value on the record; t
 // turn clock at the ledger's delivery instant (Wed Oct 14, 8:35 PM
 // CT). The standing guard for the whole clock-source class is
 // tests/career-clock-source-guard.test.cjs.
-test("BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed", () => {
+test_("BUG-198: offered slots that have all passed are re-proposed for the next day, disclosed", () => {
   const r143 = Doorstep.emitCalendarProposal(
     { now: Date.parse("2026-10-15T01:35:00Z"), timezone: "America/New_York" },
     { title: "Interview", timezone: "America/New_York", slots: ["2026-10-14T13:00:00.000Z", "2026-10-14T14:00:00.000Z", "2026-10-14T15:00:00.000Z"].map((start) => ({ start, timezone: "America/New_York", durationMin: 30 })) });
@@ -455,7 +462,7 @@ test("BUG-198: offered slots that have all passed are re-proposed for the next d
 });
 
 // ---- BUG-199: status shapes assert only the state they hold ----
-test("BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries carry dates, the dashboard addresses the plan, the retro delivers the plan", () => {
+test_("BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries carry dates, the dashboard addresses the plan, the retro delivers the plan", () => {
   const t139 = text(turn("SC-139"));
   assert.ok(/that pattern is labeled ghosted/.test(t139) && !/The label goes on the record/.test(t139), `SC-139: ${t139.slice(0, 200)}`);
   const t140 = text(turn("SC-140"));
@@ -469,7 +476,7 @@ test("BUG-199: ghosted names a pattern, quiet hours arm conditionally, expiries 
 });
 
 // ---- BUG-200: a named appointment carries its timezone; two interviews are individuated or the gap is stated ----
-test("BUG-200: interview times carry a timezone, the interviewer gap is stated, and a two-interview pack is marked as its own shape", () => {
+test_("BUG-200: interview times carry a timezone, the interviewer gap is stated, and a two-interview pack is marked as its own shape", () => {
   const t135 = text(turn("SC-135"));
   assert.ok(/2:00 PM (CDT|CST|EDT|EST|MDT|MST|PDT|PST)\b/.test(t135) && /no interviewer brief to build/.test(t135), `SC-135: ${t135.slice(0, 240)}`);
   const r136 = turn("SC-136");
@@ -485,7 +492,7 @@ test("BUG-200: interview times carry a timezone, the interviewer gap is stated, 
 // empty records, and prep sets carrying other tracks' drills.
 
 // ---- BUG-192: every round shape gets its own brief ----
-test("BUG-192: research talk, teaching demo, and bar-raiser briefs are three different briefs", () => {
+test_("BUG-192: research talk, teaching demo, and bar-raiser briefs are three different briefs", () => {
   const t201 = text(turn("SC-201")), t202 = text(turn("SC-202")), t205 = text(turn("SC-205"));
   assert.ok(/research-talk brief/i.test(t201) && /one arc/.test(t201), `SC-201: ${t201.slice(0, 160)}`);
   assert.ok(/teaching-demo brief/i.test(t202) && /learning goal/.test(t202), `SC-202: ${t202.slice(0, 160)}`);
@@ -499,7 +506,7 @@ test("BUG-192: research talk, teaching demo, and bar-raiser briefs are three dif
 });
 
 // ---- BUG-193: brief facts never repeat, never carry scaffolding, never end mid-word ----
-test("BUG-193: the night-before pack has no repeated sentence and no listing scaffolding", () => {
+test_("BUG-193: the night-before pack has no repeated sentence and no listing scaffolding", () => {
   const t = text(turn("SC-176"));
   const sents = t.split(/(?<=[.!?])\s+/).map((x) => x.trim().toLowerCase()).filter((x) => x.length > 30);
   assert.equal(new Set(sents).size, sents.length, `SC-176 repeats a sentence: ${t.slice(0, 300)}`);
@@ -508,7 +515,7 @@ test("BUG-193: the night-before pack has no repeated sentence and no listing sca
 });
 
 // ---- BUG-194: producer replies assert only what their record holds ----
-test("BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothing, the standard set is delivered", () => {
+test_("BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothing, the standard set is delivered", () => {
   const t182 = text(turn("SC-182"));
   assert.ok(/5 questions in the brief/.test(t182) && /What not to ask/.test(t182), `SC-182: ${t182.slice(0, 200)}`);
   const t189 = text(turn("SC-189"));
@@ -526,7 +533,7 @@ test("BUG-194: counts are spoken truthfully, empty debriefs mine and draft nothi
 });
 
 // ---- BUG-195: a prep set carries its own track's drills, whole ----
-test("BUG-195: the quant set is only quant, the finance set is complete, the PM set speaks the shipped work", () => {
+test_("BUG-195: the quant set is only quant, the finance set is complete, the PM set speaks the shipped work", () => {
   const t186 = text(turn("SC-186"));
   assert.ok(!/three financial statements/.test(t186) && /How many flips do you expect/.test(t186) && !/No company is named in this session/.test(t186), `SC-186: ${t186.slice(0, 240)}`);
   const t187 = text(turn("SC-187"));
@@ -540,7 +547,7 @@ test("BUG-195: the quant set is only quant, the finance set is complete, the PM 
 // ---- BUG-196: the verification wave's own repairs — claim verbs
 // in noun clothing, set replies that read as canned shortlists,
 // and tracking reads that must carry their doorstep record ----
-test("BUG-196: no claim-verb nouns in wave replies; set replies name their head, not a shortlist; status answers carry the record", () => {
+test_("BUG-196: no claim-verb nouns in wave replies; set replies name their head, not a shortlist; status answers carry the record", () => {
   for (const id of ["SC-036", "SC-037"]) {
     const t = text(turn(id));
     assert.ok(!/\bsent\b/.test(t), `${id}: the word "sent" in any clothing trips the claim check (H-7): ${t.slice(0, 200)}`);
@@ -566,26 +573,26 @@ test("BUG-196: no claim-verb nouns in wave replies; set replies name their head,
 // replies speak their sets; no internal tokens are spoken.
 
 // ---- BUG-181: policy replies deliver, not describe ----
-test("BUG-181: the saved sponsorship answer is printed word for word", () => {
+test_("BUG-181: the saved sponsorship answer is printed word for word", () => {
   const t = text(turn("SC-072"));
   assert.ok(/exactly as stored: "[^"]+"/.test(t), `SC-072: ${t.slice(0, 200)}`);
 });
 
-test("BUG-181: referral stacking runs against the named role and states the no-invention rule in user terms", () => {
+test_("BUG-181: referral stacking runs against the named role and states the no-invention rule in user terms", () => {
   const t = text(turn("SC-066"));
   assert.ok(/checked for Palantir FDSE/.test(t), `SC-066: ${t.slice(0, 140)}`);
   assert.ok(/no referral will be claimed that does not exist/.test(t), "SC-066: D6 line in user terms");
   assert.ok(!/Name the role and I will run the check/.test(t), "SC-066: re-ask-the-named-role closer gone");
 });
 
-test("BUG-181: the truth audit reports its result; the diff is shown line by line", () => {
+test_("BUG-181: the truth audit reports its result; the diff is shown line by line", () => {
   const t71 = text(turn("SC-071"));
   assert.ok(/The truth audit ran/.test(t71), `SC-071: ${t71.slice(0, 120)}`);
   const t97 = text(turn("SC-097"));
   assert.ok(/Changed 4 bullets/.test(t97) && /Moved Projects up/.test(t97) && /Added Kubernetes \(Project X\)/.test(t97), `SC-097: ${t97.slice(0, 200)}`);
 });
 
-test("BUG-181: the knockout the user named is named as the reason; the cooldown headline never claims an uncomputed date", () => {
+test_("BUG-181: the knockout the user named is named as the reason; the cooldown headline never claims an uncomputed date", () => {
   const t75 = text(turn("SC-075"));
   assert.ok(/knockout is real: 5 years of Java/.test(t75), `SC-075: ${t75.slice(0, 140)}`);
   const t80 = text(turn("SC-080"));
@@ -593,14 +600,14 @@ test("BUG-181: the knockout the user named is named as the reason; the cooldown 
   assert.ok(/lift date is computed from the application on your tracker/.test(t80), `SC-080: ${t80.slice(0, 160)}`);
 });
 
-test("BUG-181: an empty-log autopsy asks for the user's applications first", () => {
+test_("BUG-181: an empty-log autopsy asks for the user's applications first", () => {
   const t = text(turn("SC-116"));
   assert.ok(/needs your 34 applications in the log first/.test(t), `SC-116: ${t.slice(0, 140)}`);
   assert.ok(/Paste your 34 applications here/.test(t), "SC-116: closer asks for the import");
 });
 
 // ---- BUG-182: headlines state the finding, never outrun the record ----
-test("BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding", () => {
+test_("BUG-182: essay headline leads with the missing-theme gap; hold headline drops the unshown math; gap headline states the finding", () => {
   const t96 = text(turn("SC-096"));
   assert.ok(/outline is built — from your 3 usable facts, and it holds no clinical or research experience/.test(t96), `SC-096: ${t96.slice(0, 160)}`);
   assert.ok(!/essay packet is ready/.test(t96), "SC-096: 'ready' headline over a missing-theme record is gone");
@@ -611,7 +618,7 @@ test("BUG-182: essay headline leads with the missing-theme gap; hold headline dr
 });
 
 // ---- BUG-183: tailor/batch replies speak their sets ----
-test("BUG-183: the review set is tailored whole; variants are delivered as named cuts; bucket reasons are spoken", () => {
+test_("BUG-183: the review set is tailored whole; variants are delivered as named cuts; bucket reasons are spoken", () => {
   const r68 = turn("SC-068");
   const t68 = text(r68);
   assert.ok(/review set is tailored — the first 3/.test(t68) && /of the 17 you named/.test(t68), `SC-068: ${t68.slice(0, 200)}`);
@@ -626,7 +633,7 @@ test("BUG-183: the review set is tailored whole; variants are delivered as named
 });
 
 // ---- BUG-184: no internal tokens or binding jargon; packet rules answered from the packet ----
-test("BUG-184: graph rule speaks plain caps; packet document line is plain words; one-page and ATS rules are answered", () => {
+test_("BUG-184: graph rule speaks plain caps; packet document line is plain words; one-page and ATS rules are answered", () => {
   const t100 = text(turn("SC-100"));
   assert.ok(!/\(124 CAPS\)/.test(t100) && /15 sends to one firm in 30 days/.test(t100), `SC-100: ${t100.slice(0, 200)}`);
   const t101 = text(turn("SC-101"));
@@ -639,7 +646,7 @@ test("BUG-184: graph rule speaks plain caps; packet document line is plain words
 });
 
 // ---- BUG-185: restatements and closers carry the ask's own terms ----
-test("BUG-185: autopilot rule restated in full; watch carries the window and the hour; triage uses the user's flags", () => {
+test_("BUG-185: autopilot rule restated in full; watch carries the window and the hour; triage uses the user's flags", () => {
   const t78 = text(turn("SC-078"));
   assert.ok(/no Reach roles/.test(t78) && /nightly summary/.test(t78), `SC-078: ${t78.slice(0, 220)}`);
   const t63 = text(turn("SC-063"));
@@ -655,7 +662,7 @@ test("BUG-185: autopilot rule restated in full; watch carries the window and the
 });
 
 // ---- BUG-186: a status question about MY application is answered from the log + inbox ----
-test("BUG-186: 'What happened with my Stripe application?' reaches the application-status answer, not the company file", () => {
+test_("BUG-186: 'What happened with my Stripe application?' reaches the application-status answer, not the company file", () => {
   const r = turn("SC-115");
   assert.equal((r.result || {}).intent, "tracking_status", `SC-115 intent: ${JSON.stringify(r.result || {}).slice(0, 120)}`);
   const t = text(r);
@@ -663,14 +670,14 @@ test("BUG-186: 'What happened with my Stripe application?' reaches the applicati
 });
 
 // ---- BUG-204: the residual sweep (Outreach/Prep/Track/Apply/Intelligence) ----
-test("BUG-204: a proposed closed set gets window arithmetic, not a ramp-only timeline (SC-010)", () => {
+test_("BUG-204: a proposed closed set gets window arithmetic, not a ramp-only timeline (SC-010)", () => {
   const t = text(turn("SC-010"));
   assert.match(t, /caps one 30-day window at 75/);
   assert.match(t, /2 monthly windows/);
   assert.doesNotMatch(t, /re-point before anything is built/);
 });
 
-test("BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)", () => {
+test_("BUG-204: a user-named category is never handed back as the plan's proposal (SC-028)", () => {
   const t = text(turn("SC-028"));
   assert.doesNotMatch(t, /plan proposes that category/);
   // Amended by BUG-205's dedupe: the user-named framing now rides
@@ -680,11 +687,11 @@ test("BUG-204: a user-named category is never handed back as the plan's proposal
   assert.match(t, /starting proposal/);
 });
 
-test("BUG-204: the safety plan states its milestone anchor (SC-043)", () => {
+test_("BUG-204: the safety plan states its milestone anchor (SC-043)", () => {
   assert.match(text(turn("SC-043")), /counting from tomorrow/);
 });
 
-test("BUG-204: the coffee-chat brief speaks every question it counts (SC-182)", () => {
+test_("BUG-204: the coffee-chat brief speaks every question it counts (SC-182)", () => {
   const r = turn("SC-182");
   const held = ((r.result || {}).brief || (r.result || {}).payload || {}).questions || [];
   const t = text(r);
@@ -692,41 +699,41 @@ test("BUG-204: the coffee-chat brief speaks every question it counts (SC-182)", 
   for (const q of held) assert.ok(t.includes(q.slice(0, 30)), `spoken brief includes: ${q.slice(0, 40)}`);
 });
 
-test("BUG-204: a quant prep set carries no generic behavioral opener (SC-186)", () => {
+test_("BUG-204: a quant prep set carries no generic behavioral opener (SC-186)", () => {
   assert.doesNotMatch(text(turn("SC-186")), /Tell me about yourself and why this role/);
 });
 
-test("BUG-204: no reply says 'merged company file' (SC-193/SC-200)", () => {
+test_("BUG-204: no reply says 'merged company file' (SC-193/SC-200)", () => {
   for (const id of ["SC-193", "SC-200"]) assert.doesNotMatch(text(turn(id)), /merged company file/i);
 });
 
-test("BUG-204: the rejection note's own first line rides the reply (SC-123)", () => {
+test_("BUG-204: the rejection note's own first line rides the reply (SC-123)", () => {
   assert.match(text(turn("SC-123")), /The note itself reads: rejection logged/);
 });
 
-test("BUG-204: the calendar proposal names its pick first (SC-143)", () => {
+test_("BUG-204: the calendar proposal names its pick first (SC-143)", () => {
   const r = turn("SC-143");
   assert.match((r.delivered || [])[0] || "", /^The pick: /);
 });
 
-test("BUG-204: a not-found status never offers a timeline for the missing application (SC-115)", () => {
+test_("BUG-204: a not-found status never offers a timeline for the missing application (SC-115)", () => {
   assert.doesNotMatch(text(turn("SC-115")), /full timeline for it/);
 });
 
-test("BUG-204: an autopilot ask hears the doorstep rule first (SC-061)", () => {
+test_("BUG-204: an autopilot ask hears the doorstep rule first (SC-061)", () => {
   assert.match(text(turn("SC-061")), /Autopilot submission is off, and that rule has no override/);
 });
 
-test("BUG-204: no fixture marker rides a spoken tailor bullet (SC-094)", () => {
+test_("BUG-204: no fixture marker rides a spoken tailor bullet (SC-094)", () => {
   assert.doesNotMatch(text(turn("SC-094")), /\(TEST\)/);
 });
 
-test("BUG-204: file prose never speaks the file's claim verbs as this turn's acts (SC-255)", () => {
+test_("BUG-204: file prose never speaks the file's claim verbs as this turn's acts (SC-255)", () => {
   const t = text(turn("SC-255"));
   assert.doesNotMatch(t, /\bsubmitted\b|\bapplied\b/);
 });
 
-test("BUG-204: every advice record's bottom line is under 30 words and carries no claim-verb adjectives (F7)", () => {
+test_("BUG-204: every advice record's bottom line is under 30 words and carries no claim-verb adjectives (F7)", () => {
   for (const id of ["SC-222", "SC-224", "SC-228", "SC-230", "SC-232", "SC-233", "SC-234", "SC-237", "SC-238", "SC-240", "SC-241", "SC-245", "SC-246"]) {
     const r = turn(id);
     const p = (r.result || {}).payload || {};
@@ -738,7 +745,7 @@ test("BUG-204: every advice record's bottom line is under 30 words and carries n
 
 // ---- BUG-205: Negotiation + Referrals + Career OS/Access + leftovers ----
 const T205 = (id) => text(turn(id));
-test("BUG-205 negotiation: scripts delivered, absence never contradicted", () => {
+test_("BUG-205 negotiation: scripts delivered, absence never contradicted", () => {
   assert.match(T205("SC-214"), /The email, word for word:/);
   assert.match(T205("SC-214"), /held for your approval/);
   assert.match(T205("SC-216"), /No sentence gets drafted from a range that does not exist/);
@@ -751,7 +758,7 @@ test("BUG-205 negotiation: scripts delivered, absence never contradicted", () =>
   assert.match(t209, /Source class: company file compensation notes, checked as of/);
   assert.doesNotMatch(T205("SC-217"), /no benchmark figure is claimed/);
 });
-test("BUG-205 referrals: keep-warm and timing answers are per-ask, closers name the input", () => {
+test_("BUG-205 referrals: keep-warm and timing answers are per-ask, closers name the input", () => {
   assert.match(T205("SC-157"), /not logged in your graph yet/);
   assert.match(T205("SC-158"), /drafted around your new offer or project/);
   assert.match(T205("SC-164"), /past the six-week mark, so a revival touch is due/);
@@ -769,7 +776,7 @@ test("BUG-205 referrals: keep-warm and timing answers are per-ask, closers name 
   assert.match(T205("SC-154"), /tell me one firm to map first/);
   assert.match(T205("SC-160"), /A new hire from your school is flagged only with/);
 });
-test("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps", () => {
+test_("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked steps", () => {
   assert.match(T205("SC-272"), /not invented to complete the count/);
   assert.match(T205("SC-272"), /tie-break, not a measured gap/);
   assert.doesNotMatch(T205("SC-273"), /in Remote, and nothing/);
@@ -784,7 +791,7 @@ test("BUG-205 career OS + access: shortfalls, ties, rungs, grounding, picked ste
   assert.match(T205("SC-300"), /you do not need to ask again/);
   assert.doesNotMatch(T205("SC-300"), /tell me when the queue state is reloaded/);
 });
-test("BUG-205 leftovers: closers and dedupes hold", () => {
+test_("BUG-205 leftovers: closers and dedupes hold", () => {
   assert.match(T205("SC-115"), /what I will do, only on your word, is log it/);
   assert.match(T205("SC-247"), /reachable employers for that first internship/);
   assert.match(T205("SC-269"), /nothing re-enters on the old date/);

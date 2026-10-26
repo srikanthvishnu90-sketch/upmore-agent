@@ -377,6 +377,15 @@ function fnWidgetValue(sel) {
 /* Read ONE binding's current value as the board renders it (undefined
  * when the field carries no value). For a react-select widget that is
  * the single-value under the control — never the search text. */
+// FEATURE E2E: the pressed button of an Ashby yes/no pair ("yes", "no"), or null when none is pressed or the box is not one.
+function fnYesNoPressed(el) {
+  const box = el.closest && el.closest("[class*='yesno']");
+  if (!box) return null;
+  for (const b of box.querySelectorAll("button[data-option]")) {
+    if (b.getAttribute("aria-pressed") === "true") return String(b.getAttribute("data-option") || "").toLowerCase() || null;
+  }
+  return null;
+}
 async function readbackBinding(board, b) {
   const nodes = [];
   for (const ref of b.elementRefs || []) nodes.push(await connected(board, ref));
@@ -397,7 +406,13 @@ async function readbackBinding(board, b) {
     return { filename: f.name, sha256: Array.from(new Uint8Array(digest)).map((n) => n.toString(16).padStart(2, "0")).join("") };
   });
   else if (b.inputType === "select") value = await nodes[0].evaluate((el) => el.options[el.selectedIndex]?.textContent.trim() || "");
-  else if (b.inputType === "checkbox") value = (await nodes[0].isChecked()) ? true : undefined;
+  else if (b.inputType === "checkbox") {
+    // FEATURE E2E: an Ashby yes/no question is a pair of buttons over a hidden box; a "No" leaves the box unchecked, so
+    // the pressed button is the answer (true for Yes, false for No, absent when neither is pressed).
+    const pressed = await nodes[0].evaluate(fnYesNoPressed);
+    value = pressed === "yes" ? true : pressed === "no" ? false : (await nodes[0].isChecked()) ? true : undefined;
+    if (value === false) return false;
+  }
   else if (["radio_group", "checkbox_group"].includes(b.inputType)) {
     const chosen = [];
     for (const opt of b.options || []) if (await (await connected(board, opt.ref)).isChecked()) chosen.push(opt.label);
@@ -450,7 +465,19 @@ async function fillOnceHandles(board, cmd) {
     return { filled: true, expect: b.inputType === "radio_group" ? hits[0] : hits };
   }
   if (b.inputType === "checkbox") {
-    if (value === true || value === "true") await nodes[0].check(); else await nodes[0].uncheck();
+    // FEATURE E2E: an Ashby yes/no question is answered by pressing its Yes or No button, as a person does; checking or
+    // unchecking the hidden box leaves a "No" unanswered.
+    const yes = value === true || value === "true";
+    const button = await nodes[0].evaluateHandle((el, want) => {
+      const box = el.closest && el.closest("[class*='yesno']");
+      return box ? box.querySelector(`button[data-option="${want}"]`) : null;
+    }, yes ? "yes" : "no");
+    const el = button.asElement();
+    if (el) {
+      await el.click();
+      return { filled: true, expect: yes ? true : false };
+    }
+    if (yes) await nodes[0].check(); else await nodes[0].uncheck();
     return { filled: true, expect: value === true || value === "true" ? true : "__absent__" };
   }
   // A number input takes a number: a non-numeric value (a date string sent to

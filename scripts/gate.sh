@@ -224,6 +224,7 @@ if [[ $partition == all || $partition == architect ]]; then
   # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
   step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
   step apply-cli-typecheck deno check scripts/apply.ts
+  step invite-cli-typecheck deno check scripts/launch/invite-wave.ts
 fi
 if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"

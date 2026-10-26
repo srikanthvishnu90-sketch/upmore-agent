@@ -46,6 +46,8 @@ import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
+// FEATURE 14: receipts
+import { receiptTurn, supabaseReceipts } from "../_shared/career_apply_receipt_read.ts";
 import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
@@ -471,6 +473,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           employerAnswers: () => employerAsk.answers(tid),
         })
         : null;
+      // FEATURE 14: receipts (D-024, G6). "show me the receipt for Stripe", "what did you send to Acme": the receipt the
+      // database wrote when the application finished (career_apply_receipts), the person's own only, read by code; what was
+      // sent field by field with each answer's fact, where and when, the hashes, the employer's words, and the pictures of
+      // the proof attached through the channel artifact path. Nothing is sent or changed by it.
+      const receiptAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await receiptTurn({ message, userId: user.id, now: Date.now(), read: supabaseReceipts(admin) }).catch((e) => { console.error("receipt turn:", e?.message ?? e); return null; })
+        : null;
+      // END FEATURE 14
       // WO-107 (F3): "where are my applications" / "did my application to X go through" / "where do I stand with X", "who
       // emailed me" / "any news from X", "what follow-ups are due": one read model (the queue, the mail events, every
       // thread's tracker, the mail drafts), each record's line named, an unreadable one said. The queue-only status turn
@@ -480,7 +490,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // follow-up to X": the due or drafted follow-up as one email card (outreach store, hash-bound); "yes" while it is the
       // last word sends exactly it once from their Gmail, only with CAREER_EMAIL_SEND=on and gmail.send.
       const f08Stores = supabaseFollowupStores(admin), f08Grant = careerGrant(admin, Deno.env, fetch);
-      const f08 = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const f08 = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await followupTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
             read: supabaseStanding(admin), outreach: outreachStore, events, lastAssistant: f08Stores.lastAssistant, addressOnRecord: f08Stores.addressOnRecord,
             name: () => ((ctx as any).profile?.basics?.name ?? null), markSent: f08Stores.markSent,
@@ -490,10 +500,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             send: (u, m) => gmailSender({ fetch, token: (uu) => sendToken(uu) }).send(u, m), connectAsk: missingIntegration("gmail"),
           } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
         : null;
-      const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
         : null;
-      const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
       // FEATURE 10: networking from chat. A contacts CSV pasted or attached (`attachments`: [{ name, mime, text }]) is
@@ -502,7 +512,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // Only addresses in the person's own contacts; the model writes only with CAREER_NETWORKING_DRAFT=on (metered).
       // Nothing is sent here: sending stays career-proactive's, behind CAREER_OUTREACH_SEND.
       const netMeter = newMeter();
-      const networking = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const networking = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await networkingTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>, store: outreachStore, events,
             attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "contacts.csv"), mime: typeof a.mime === "string" ? a.mime : "", text: typeof a.text === "string" ? a.text : null })) : [],
             model: Deno.env.get("CAREER_NETWORKING_DRAFT") === "on" ? (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: netMeter, role: "chat" }) : null,
@@ -519,7 +529,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // offer placed against DOL LCA, BLS OEWS and the pay open postings on file state (a median only from 5 or more), and
       // the counter drafted on a card that cites it. Code's, before the router; nothing is sent. The thread keeps its
       // offers in the offerBenchmark store, which the snapshot carries and an erase clears.
-      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await offerChatTurn({ message, now: Date.now(), state: (ctx as any).offerBenchmark ?? null, postings: supabasePostingsDb(admin) })
           .catch((e) => { console.error("offer turn:", e?.message ?? e); return null; })
         : null;
@@ -574,6 +584,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const asking = !!queued.ask?.length;
         out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
         if (asking) agentMeta = { employer_question: queued.ask };
+      } else if (receiptAns) {
+        // FEATURE 14: the pictures ride result.documents, materialized below like every turn document.
+        out = { reply: receiptAns.reply, intent: receiptAns.intent, resultStatus: receiptAns.status, contained: false, handler: "receipt", ...(receiptAns.result ? { result: receiptAns.result as unknown as Record<string, unknown> } : {}) };
       } else if (f08) {
         // FEATURE 8: a card or a question waiting for its answer is this thread's last word by its meta.
         out = { reply: f08.reply, intent: f08.intent, resultStatus: f08.status, contained: false, handler: "followup" };

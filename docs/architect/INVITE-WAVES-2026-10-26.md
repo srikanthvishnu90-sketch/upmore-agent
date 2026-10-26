@@ -39,7 +39,21 @@ The owner asked for this on 2026-10-26: "not 100 people, as many people as much,
    ```
    Duplicate numbers can stay. A wave takes the earliest signup for each number.
 
-## 2. Wave mechanics (migration `20261026233017_career_invite_waves.sql`)
+## 2. One wave and invite system
+PR #195, the web app, first shipped its own waves. `trainee_invite_wave(n)` marked waitlist rows invited, and a confirmed phone claimed them through `site_waitlist.invited_at` and `claimed_by`. This PR builds on #195: its branch is merged in, and the two are now one system.
+- **The web gate** (`TRAINEE_WEB_SIGNUP=invite`, `trainee_admit`, `admitWebUser`) keeps two admissions:
+  - **existing**: the account existed before the gate;
+  - **allow-list**: the env names the account.
+
+  It admits by waitlist only through an invite:
+  - the account's redeemed invite;
+  - the invite link's `invite` token, redeemed as the person inside the gate;
+  - a confirmed phone that matches an invite that was sent. That invite is taken once.
+- **What was dropped**: `trainee_invite_wave`, `trainee_waitlist_invited` and the four claim columns.
+- **Admission on every channel**: every bound invite records its admission, so a person who came in on Telegram or iMessage is admitted on the web too.
+- **Migration order**: the migration is `20261026233017` so it runs after #195's `20261026230000`.
+
+## 3. Wave mechanics (migration `20261026233017_career_invite_waves.sql`)
 - **Open** (`career_wave_open(size, key, override_reason, now)`): takes the next N eligible people in signup order and makes them invites (`ready`), each with its own 32-character token. Nothing is sent.
   - Eligible means:
     - consent is given and its words are on record;
@@ -84,7 +98,7 @@ The owner asked for this on 2026-10-26: "not 100 people, as many people as much,
   - The waitlist's SMS consent is recorded with its exact text.
   - STOP and "stop everything" always reach the existing account controls.
 
-## 3. Gates (`career_wave_gate_rows(now)`, view `career_wave_gates`)
+## 4. Gates (`career_wave_gate_rows(now)`, view `career_wave_gates`)
 Every threshold is a column of `career_wave_policy`. **Every value is PROPOSED** and the owner sets them.
 
 | Gate | Measure | Pass | Warn | Fail |
@@ -108,19 +122,19 @@ The recommendation (`career_wave_recommendation(now)`) follows these rules:
 
 Starting at 100, ten doublings reach 102,400, which is more than 98k.
 
-## 4. Owner steps and decisions
+## 5. Owner steps and decisions
 1. **Find the 98k and import them** (section 1). Until then, a wave opens with 0 people.
-2. Apply the migration `20261026233017_career_invite_waves.sql`. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
+2. Apply `20261026230000_trainee_web_admission.sql`, then `20261026233017_career_invite_waves.sql`, in that order. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
 3. Set these environment variables:
    - `TRAINEE_TERMS_URL`, `TRAINEE_TERMS_VERSION`, `TRAINEE_PRIVACY_URL` and `TRAINEE_PRIVACY_VERSION`. Until they're set, sign-up stops at the terms step and says so.
    - `TRAINEE_APP_URL` and/or `TELEGRAM_BOT_USERNAME` for the links.
 4. **Decision: people under 18.** The default is to block them (`TRAINEE_UNDER18_POLICY` unset). `allow` records the answer and goes on.
 5. **Decision: the thresholds and the first wave size** in `career_wave_policy`.
 6. **Decision: non-iPhone numbers.** LoopMessage sends iMessage. An SMS provider needs its own A2P 10DLC registration, and none is wired.
-7. **Decision: web sign-up.** The web stays open to anyone signed in, as it is today. Only invited accounts go through the sign-up steps.
+7. **Decision: web sign-up.** Go-live sets `TRAINEE_WEB_SIGNUP=invite` (from #195), so the web admits only existing, allow-listed and invited accounts. `open` admits anyone who signs in. Either way, only invited accounts go through the sign-up steps.
 8. For each wave, run `invite-wave.ts` in this order: `gates`, `open`, `list` (review the list), `approve` (the exact text and count), `send`.
 
-## 5. Not done
+## 6. Not done
 - **Telegram accounts**: on trunk, `createPerson` asks Supabase Auth for a user with neither an email nor a phone. Real Supabase refuses that. PR #194 fixes it. The flow test fakes GoTrue's create, so a live Telegram redemption needs #194.
 - **The unsubscribe page**: the database side is `career_invite_stop(token)`, which anyone with the token can call. No web page calls it yet.
 - **Failed sends**: they stay `failed`. There's no retry command.

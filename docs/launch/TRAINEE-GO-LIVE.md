@@ -121,14 +121,23 @@ web app (sign in with a texted code, the chat, the approval card, the applicatio
 `site/app/` by `python3 scripts/web/build-trainee-web.py`. Its production branch is `main`.
 
 - **Who can use it.** With `TRAINEE_WEB_SIGNUP=invite`, accounts that existed before migration
-  `20261026230000_trainee_web_admission.sql` keep working; anyone else needs a confirmed phone or email on
-  `TRAINEE_ALLOWED_CONTACTS`, or an invited waitlist spot. A person still waiting sees "Your spot hasn't opened yet" and
-  no turn runs.
-- **Opening a wave.** In the SQL editor (service role): `select * from public.trainee_invite_wave(1000);` invites the
-  1,000 oldest waitlist rows that consented and are not invited yet, as the next numbered wave, and returns
-  `(wave, invited)`. Nothing is sent: telling those people their spot opened is a separate, approved message.
+  `20261026230000_trainee_web_admission.sql` keep working. Anyone else needs one of two things:
+  - a confirmed phone or email on `TRAINEE_ALLOWED_CONTACTS`;
+  - an invite from a wave (`20261026233017_career_invite_waves.sql`, the one wave and invite system). That can be the link's token, or a confirmed phone that matches an invite that was sent.
+
+  A person still waiting sees "Your spot hasn't opened yet", and no turn runs.
+- **Opening a wave.** `deno run -A scripts/launch/invite-wave.ts gates | open | list | approve | send`, in that order
+  (docs/architect/INVITE-WAVES-2026-10-26.md).
+  - Opening sends nothing.
+  - Sending needs the owner's approval of the exact text (its sha256) and the exact count.
+  - The gates (`career_wave_gates`) recommend the next size: double, hold or close.
 - **The waitlist.** The home page's form writes `public.site_waitlist` through `site-signup`. A list kept anywhere
-  else has to be loaded into that table (name, phone in E.164, consent true) before a wave can invite it.
+  else has to be loaded into that table before a wave can invite it. Each row needs:
+  - the name;
+  - the phone in E.164;
+  - consent true;
+  - the consent words in `consent_text`;
+  - the original `created_at`.
 - **Sign-in by text** needs Supabase Auth's phone provider with an SMS provider (Authentication > Sign In / Providers >
   Phone). Email codes need the Magic Link email template to include `{{ .Token }}`.
 

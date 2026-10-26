@@ -21,7 +21,7 @@
 #   INGEST_CONTACT_EMAIL, TRAINEE_ALLOWED_CONTACTS, LOOPMESSAGE_DAILY_CONTACTS   settings; Enter keeps what is set
 #   UPMORE_TEST_JWT (optional), TRAINEE_SMOKE_CONTACT (with --allow-send)        for the smoke checks
 #   TRAINEE_WEB_SIGNUP (optional)                open lets anyone who signs in on the web chat; anything else, or unset,
-#                                                sets invite (admitted accounts only; trainee_invite_wave opens a wave)
+#                                                sets invite (admitted accounts only; scripts/launch/invite-wave.ts opens a wave)
 #   PDL_API_KEY (optional)                       People Data Labs, hired-candidate aggregates (WO-036, D-018); Enter keeps
 # Optional, one channel each (WO-038); a channel left empty stays NOT_WIRED (its rows wait, its webhook answers 503):
 #   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET (Enter generates one when a token is given), TELEGRAM_BOT_USERNAME
@@ -705,8 +705,8 @@ else
   if [[ -n "${LOOPMESSAGE_DAILY_CONTACTS:-}" ]]; then add LOOPMESSAGE_DAILY_CONTACTS "$LOOPMESSAGE_DAILY_CONTACTS" "***"; else echo "  kept: LOOPMESSAGE_DAILY_CONTACTS (unset means 300 a day)"; fi
   if [[ -n "${TRAINEE_ALLOWED_CONTACTS:-}" ]]; then add TRAINEE_ALLOWED_CONTACTS "$TRAINEE_ALLOWED_CONTACTS" "***"; else echo "  kept: TRAINEE_ALLOWED_CONTACTS (sign-up stays closed to anyone not listed or already linked)"; fi
   # Launch readiness B7/X1: the web app's sign-up gate. invite (the default on every run): a signed-in person chats once
-  # admitted (an account from before the gate, a confirmed phone or email on TRAINEE_ALLOWED_CONTACTS, or a waitlist spot
-  # invited with trainee_invite_wave). TRAINEE_WEB_SIGNUP=open on this run opens the web to anyone who signs in.
+  # admitted (an account from before the gate, a confirmed phone or email on TRAINEE_ALLOWED_CONTACTS, or an invite from
+  # a wave: scripts/launch/invite-wave.ts). TRAINEE_WEB_SIGNUP=open on this run opens the web to anyone who signs in.
   if [[ "${TRAINEE_WEB_SIGNUP:-}" == open ]]; then add TRAINEE_WEB_SIGNUP open open; else add TRAINEE_WEB_SIGNUP invite invite; fi
   if [[ -n "${PDL_API_KEY:-}" ]]; then add PDL_API_KEY "$PDL_API_KEY" "***"; else echo "  kept: PDL_API_KEY (not given; hired-candidate backgrounds say NO DATA until it is set)"; fi
   # OpenAI only (owner, 2026-10-12): the key goes with MODEL_PROVIDER=openai, as in go-live.sh.

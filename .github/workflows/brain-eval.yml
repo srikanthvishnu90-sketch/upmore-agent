@@ -46,6 +46,8 @@ jobs:
     timeout-minutes: 90
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Used solely to decrypt an already-rewrapped sealed set; never replaces the API credential.
+      HELDOUT_SEAL_KEY: ${{ secrets.HELDOUT_SEAL_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
       # Owner, 2026-10-21: "gpt-4.1-mini judges every run from now on ... A judge that runs only sometimes makes runs

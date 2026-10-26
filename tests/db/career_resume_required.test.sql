@@ -75,8 +75,14 @@ reset role;
 
 -- 5. a resume sent as a file, erased with the account
 set role service_role;
-select t.must_fail($select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:forged','resume.pdf','application/pdf',9,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))$,
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:forged','resume.pdf','application/pdf',9,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))$,
  'invalid resume upload', 'a fabricated fingerprint cannot become a confirmed file');
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:bad-base64','resume.pdf','application/pdf',9,repeat('b',64),'@not-base64!',repeat('d',64))$$,
+ 'invalid symbol', 'malformed base64 is refused without a row');
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:bad-size','resume.pdf','application/pdf',10,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('e',64))$$,
+ 'invalid resume upload', 'wrong declared size is refused without a row');
+select t.ok((select count(*) = 0 from career_resume_uploads where user_id = '00000000-0000-4000-8000-000000001601'),
+ 'failed forged, malformed and wrong-size uploads persisted zero rows');
 select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64)) is not null),
  'the upload is recorded by its reference and sha256');
 select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64))

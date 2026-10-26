@@ -1,18 +1,20 @@
-// Upmore gmail-oauth edge function (2026-09-28; career grant added 2026-10-12, ACCS-001/002).
-// Connects the user's Gmail so the execution agent can fetch merchant sign-in
-// codes itself instead of asking the user to retype them, and (career grant)
-// so the career agent can send outreach from the user's OWN Gmail and read /
-// create Google Calendar entries. Reuses the founder's existing Google OAuth
-// client (same one Ring uses).
+// Upmore gmail-oauth edge function (2026-09-28; career grant added 2026-10-12, ACCS-001/002; Google verification
+// changes 2026-10-26). Since the verification submission (docs/launch/GOOGLE-VERIFICATION-2026-10-26.md):
+//   - a consent asks Google only for openid, email and gmail.readonly (career.ts requestScopesFor); gmail.send only once
+//     the owner sets GOOGLE_APPROVED_EXTRA_SCOPES after Google approves it; Calendar never;
+//   - the legacy read-only grant for Upmore's finance agent ("start") is off unless UPMORE_LEGACY_GMAIL_CONNECT=on;
+//   - the career grant's callback lands on its own page, not the Upmore app; GOOGLE_OAUTH_REDIRECT_URI moves the callback
+//     to Trainee's own domain;
+//   - disconnect revokes at Google and deletes, checked and read back (_shared/google_disconnect.ts).
+// Trainee's verified app needs its own Google Cloud client; the founder's shared client (the one Ring uses) must not be
+// the one submitted.
 //
 // Routes:
-//   POST {action:"start"}        (JWT) -> {url}  legacy consent, gmail.readonly
-//       ONLY (minimal), stored as provider "gmail" / oauth_gmail_<uid>.
-//   POST {action:"start_career"} (JWT) -> {url}  career consent: gmail.readonly
-//       + gmail.send + calendar.freebusy + calendar.events, stored separately
-//       as provider "google_career" / oauth_google_career_<uid>. The signed
-//       state's purpose routes the callback; the two grants never overwrite
-//       each other. The user's own Gmail via this grant is THE send rail.
+//   POST {action:"start"}        (JWT) -> 410 unless UPMORE_LEGACY_GMAIL_CONNECT=on; then {url}, legacy consent,
+//       gmail.readonly, stored as provider "gmail" / oauth_gmail_<uid>.
+//   POST {action:"start_career"} (JWT) -> {url}  career consent: openid email gmail.readonly (send only once approved),
+//       stored separately as provider "google_career" / oauth_google_career_<uid>. The signed state's purpose routes
+//       the callback; the two grants never overwrite each other.
 //   GET ?code=..&state=..                Google callback -> exchange, store
 //       tokens in Supabase Vault under the purpose's name, upsert that
 //       purpose's connection row, redirect to the app. Tokens NEVER touch
@@ -39,9 +41,13 @@ import {
   vaultNameFor,
   verifyState,
   issueState,
+  careerLanding,
+  LEGACY_OFF_MESSAGE,
+  redirectUriFrom,
   requestScopesFor,
-  revokeAtGoogle,
+  startAllowed,
 } from "./career.ts";
+import { disconnectGoogle, disconnectReply } from "../_shared/google_disconnect.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -63,9 +69,9 @@ function corsFor(req: Request): Record<string, string> {
   return h;
 }
 
+// Google verification (2026-10-26): GOOGLE_OAUTH_REDIRECT_URI routes the callback through Trainee's own verified domain.
 function redirectUri(): string {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  return `${supabaseUrl}/functions/v1/gmail-oauth`;
+  return redirectUriFrom(Deno.env);
 }
 
 serve(async (req) => {
@@ -85,15 +91,11 @@ serve(async (req) => {
     // ---- Google callback (GET, no JWT — trust comes from signed state) ----
     const url = new URL(req.url);
     if (req.method === "GET" && (url.searchParams.has("code") || url.searchParams.has("error"))) {
-      // Legacy landings keep ?gmail=..; a career grant lands on ?career=.. so the app can tell them apart.
+      // Legacy landings keep the Upmore app's ?gmail=..; a career grant lands on careerLanding (career.ts).
       let purpose: "gmail" | "career" = "gmail";
+      // The career (Trainee) grant lands on its own plain page, never on the Upmore app; the legacy grant keeps Upmore's.
       const done = (ok: boolean) =>
-        Response.redirect(
-          purpose === "career"
-            ? `${APP_URL}/#you?career=${ok ? "connected" : "error"}`
-            : `${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`,
-          302,
-        );
+        purpose === "career" ? careerLanding(ok) : Response.redirect(`${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`, 302);
       try {
         if (url.searchParams.get("error")) return done(false);
         const code = url.searchParams.get("code") || "";
@@ -101,6 +103,8 @@ serve(async (req) => {
         const verified = await verifyState(state, stateSecret);
         purpose = verified.purpose;
         const userId = verified.userId;
+        // A legacy consent started before the legacy path was switched off is not stored either.
+        if (!startAllowed(purpose, Deno.env)) throw new Error("legacy Gmail connect is off");
         if (!clientId || !clientSecret) throw new Error("OAuth not configured");
         const tokRes = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
@@ -162,6 +166,7 @@ serve(async (req) => {
 
     const startPurpose = purposeForAction(action);
     if (startPurpose) {
+      if (!startAllowed(startPurpose, Deno.env)) return json({ error: LEGACY_OFF_MESSAGE }, 410);
       if (!clientId) return json({ error: startPurpose === "career" ? "Google connect is not configured yet" : "Gmail connect is not configured yet" }, 503);
       const state = await issueState(user.id, startPurpose, stateSecret);
       // Only scopes in the Google verification submission (or approved since): never calendar, and gmail.send only once
@@ -188,22 +193,15 @@ serve(async (req) => {
     }
 
     if (action === "disconnect") {
+      // Google verification (2026-10-26): one implementation with the chat's "disconnect gmail" (_shared/google_disconnect.ts):
+      // each grant revoked at Google (timeout, retries, only a 200 counts), its tokens and row deleted with every result
+      // checked, then read back. A partial failure is ok:false with what is left, never ok:true.
       const plan = disconnectPlan(user.id, typeof body.source === "string" ? body.source : undefined);
-      // Revoke each grant at Google before Trainee's copy is deleted, so disconnecting also removes Trainee from the
-      // person's Google account (privacy policy, "Disconnecting Google").
-      const revoked: Record<string, string> = {};
-      for (const name of plan.vault_names) {
-        const { data: raw } = await admin.rpc("oauth_vault_read", { p_name: name });
-        revoked[name.startsWith("oauth_google_career_") ? "google_career" : "gmail"] = await revokeAtGoogle(fetch, typeof raw === "string" ? raw : null);
-      }
-      for (const name of plan.vault_names) await admin.rpc("oauth_vault_delete", { p_name: name });
-      // Row deletes also fire the vault-cleanup trigger (20261012060000); the explicit delete above keeps the
-      // pre-career behaviour on projects where that migration has not landed yet.
-      await admin.from("user_oauth_connections").delete().eq("user_id", user.id).in("provider", plan.providers);
+      const r = await disconnectGoogle(admin, user.id, { fetch }, plan.providers);
       return json({
-        ok: true, disconnected: true, source: plan.source,
-        removed_providers: plan.providers, also_affects: plan.also_affects, note: plan.note, revoked_at_google: revoked,
-      });
+        ok: r.ok, disconnected: r.ok, source: plan.source, removed_providers: r.ok ? r.had : [],
+        also_affects: plan.also_affects, note: plan.note, revoked_at_google: r.revoke, failures: r.failures, reply: disconnectReply(r),
+      }, r.ok ? 200 : 500);
     }
 
     return json({ error: "unknown action" }, 400);

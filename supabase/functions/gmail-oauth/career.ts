@@ -202,23 +202,31 @@ export function disconnectPlan(userId: string, rawSource: string | undefined | n
   return { source: "gmail", providers: [legacy.provider], vault_names: [legacy.vault], also_affects: [], note: null };
 }
 
-// ---- Revoke at Google (Google verification, 2026-10-26). Disconnect used to delete only Trainee's copy of the tokens, so
-// the grant stayed authorized in the person's Google account. Google's revoke endpoint takes the refresh token (which
-// revokes the whole grant) or, without one, the access token. 200: revoked. 400: Google no longer holds the token
-// (already revoked), which is the outcome wanted. Anything else, or a network failure: not confirmed; the caller still
-// deletes the stored tokens and tells the person to remove access at myaccount.google.com/permissions.
-export const GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
-export type RevokeOutcome = "revoked" | "not_confirmed" | "no_token";
-export async function revokeAtGoogle(f: typeof fetch, storedSecret: string | null | undefined): Promise<RevokeOutcome> {
-  let tok: { refresh_token?: unknown; access_token?: unknown } = {};
-  try { tok = JSON.parse(String(storedSecret ?? "")) ?? {}; } catch { return "no_token"; }
-  const token = typeof tok.refresh_token === "string" && tok.refresh_token ? tok.refresh_token
-    : typeof tok.access_token === "string" && tok.access_token ? tok.access_token : "";
-  if (!token) return "no_token";
-  try {
-    const r = await f(GOOGLE_REVOKE, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token }) });
-    return r.ok || r.status === 400 ? "revoked" : "not_confirmed";
-  } catch {
-    return "not_confirmed";
-  }
+// ---- Which consents this function may start (Google verification, 2026-10-26, review of PR #196). The legacy
+// purpose ("start": a read-only Gmail grant for Upmore's finance cancellation agent, which agent-exec reads with
+// format=full) is not part of Trainee's verified app and its privacy policy, so it is off unless the owner turns it on
+// for Upmore with UPMORE_LEGACY_GMAIL_CONNECT=on. agent-exec is a finance-era leftover the owner may retire.
+export function startAllowed(purpose: Purpose, env: { get(k: string): string | undefined }): boolean {
+  return purpose === "career" || env.get("UPMORE_LEGACY_GMAIL_CONNECT") === "on";
+}
+export const LEGACY_OFF_MESSAGE = "The read-only Gmail connection for Upmore's cancellation agent is switched off. Trainee connects Gmail by texting \"connect gmail\".";
+
+// Where Google's callback sends the person. The career (Trainee) grant ends on a plain page of its own, never on the
+// Upmore app; the legacy grant keeps Upmore's landing.
+export function careerLanding(ok: boolean): Response {
+  const title = ok ? "Gmail connected" : "Gmail wasn't connected";
+  const line = ok ? "You can close this tab and go back to your chat with Trainee." : "Nothing was saved. Text \"connect gmail\" to Trainee to try again.";
+  return new Response(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>` +
+      `<style>body{font:16px/1.5 system-ui,sans-serif;background:#F5F4F7;color:#141414;margin:0;padding:16px}main{max-width:480px;margin:48px auto;background:#fff;border-radius:12px;padding:24px}h1{font-size:20px;margin:0 0 12px;color:#4A2F5E}</style>` +
+      `</head><body><main><h1>${title}</h1><p>${line}</p></main></body></html>`,
+    { status: ok ? 200 : 400, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer" } },
+  );
+}
+
+// The OAuth redirect URI: GOOGLE_OAUTH_REDIRECT_URI when the owner routes it through Trainee's own domain (it must be
+// on a verified domain for Google's verification), else this function's Supabase address.
+export function redirectUriFrom(env: { get(k: string): string | undefined }): string {
+  const own = String(env.get("GOOGLE_OAUTH_REDIRECT_URI") ?? "").trim();
+  return /^https:\/\/[a-z0-9.-]+\/[^\s]*$/i.test(own) ? own : `${String(env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "")}/functions/v1/gmail-oauth`;
 }

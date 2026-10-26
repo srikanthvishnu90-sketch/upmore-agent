@@ -11,8 +11,17 @@ was changed.
 without the owner's approval, and no pushes to release/production. Every deploy, domain, DNS and Vercel step below waits for
 the owner's go. This PR changes code and docs only.
 
-Placeholders you fill once (§5 step 0 replaces them everywhere): `{{DOMAIN}}` (Trainee's own domain, for example
-`trainee.app`), `{{SUPPORT_EMAIL}}`, `{{LEGAL_NAME}}` (the legal entity that runs Trainee), `{{GOVERNING_STATE}}`.
+**Owner inputs, not invented here.** These three go in `docs/launch/legal-pages/owner-inputs.json`:
+
+- `LEGAL_NAME`: the legal entity that runs Trainee;
+- `SUPPORT_EMAIL`;
+- `GOVERNING_STATE`.
+
+Today all three are null, so `scripts/launch/build-legal-pages.ts` refuses to build. It exits 1, names each missing input
+and writes nothing. The legal pages therefore stay unpublished: their templates live in `docs/launch/legal-pages/`, outside
+the served `site/` folder, and no file under `site/` carries a placeholder (`google-verification.test.ts` GV/11).
+
+`{{DOMAIN}}` in this document means the domain you buy (§4.1).
 
 ---
 
@@ -25,6 +34,8 @@ Placeholders you fill once (§5 step 0 replaces them everywhere): `{{DOMAIN}}` (
 - **Hard blocker: Trainee has no domain of its own.** It is served at `trainee-six.vercel.app`, and the Google callback is at
   `mrwngntwmnaqrqhupvlt.supabase.co`. Google requires every authorized domain to be verified by you in Search Console, and
   you can't put a DNS record on `vercel.app` or `supabase.co` (§4.1).
+- **Owner inputs:** the legal pages can't be published until you fill the legal name, support email and governing state.
+  The build refuses until then (§5 step 0).
 - **Second blocker: the demo video must show both features working,** and today neither is deployed. `career-email-code` and
   `career-connect` are not deployed, and mail tracking's switch is off (§4.3).
 - **Cost and time:** Google charges nothing. The CASA lab costs about $540 to $720 at TAC Security (Aug 2025 list prices);
@@ -41,7 +52,7 @@ Placeholders you fill once (§5 step 0 replaces them everywhere): `{{DOMAIN}}` (
 | Where | Scopes asked | Who calls it |
 |---|---|---|
 | `supabase/functions/gmail-oauth/career.ts:13-17` (`start_career`, provider `google_career`) | gmail.readonly, gmail.send, calendar.freebusy, calendar.events | **No client calls it** (connectors audit 2026-10-26, row 2) |
-| `gmail-oauth` `start` (legacy finance grant, provider `gmail`) | gmail.readonly | The Upmore finance app (live v26; 0 rows ever) |
+| `gmail-oauth` `start` (legacy finance grant, provider `gmail`) | gmail.readonly | The Upmore finance app (live v26; 0 rows ever). **Off after this PR:** it answers 410 unless `UPMORE_LEGACY_GMAIL_CONNECT=on`, and a legacy callback is not stored. Its reader, `agent-exec` (`format=full`), is a finance-era leftover outside Trainee's policy. You may retire it; it can't get a new grant through this app |
 | PR #191 `_shared/career_connectors.ts:98` (`career-connect`, one-time link from any channel) | gmail.readonly and/or gmail.send per need, plus `openid email` | "connect gmail" in chat (not merged) |
 | `_shared/career_mail_gmail.ts` (WO-024 mail tracking, F8) | uses gmail.readonly | `career-proactive` (not deployed; `CAREER_MAIL_TRACKING` off) |
 | `_shared/career_email_code.ts` (WO-096 emailed codes) | uses gmail.readonly | `career-email-code` (not deployed) |
@@ -120,9 +131,12 @@ Sources (fetched 2026-10-26):
   must also carry "an affirmative ... statement that your use of the data complies with the Limited Use restrictions", and
   Workspace data may not train AI/ML models.
 - **Values.**
-  - Privacy policy: `https://{{DOMAIN}}/privacy` (`site/privacy.html`; the Google section is `#google`, the statement is `#limited-use`).
-  - Terms: `https://{{DOMAIN}}/terms` (`site/terms.html`).
-  - Pre-consent explanation, public copy: `https://{{DOMAIN}}/google` (`site/google.html`).
+  - Privacy policy: `https://{{DOMAIN}}/privacy`. Built to `site/privacy.html` from
+    `docs/launch/legal-pages/privacy.template.html`. The Google section is `#google`; the statement is `#limited-use`.
+  - Terms: `https://{{DOMAIN}}/terms`, built from `terms.template.html`.
+  - Pre-consent explanation, public copy: `https://{{DOMAIN}}/google`, built from `consentNotice`.
+  - The same build points the homepage's legal links and help pages at these pages. Until then, the homepage stays as it
+    is on trunk.
 - **The Limited Use statement, as published:**
 
   > Trainee's use and transfer to any other app of information received from Google APIs will adhere to the Google API
@@ -295,7 +309,7 @@ refresh tokens expire after 7 days in Testing (FAQ; connectors research §3.1).
 
 ## 3. What the code does, checked line by line against the policy
 
-Each claim in `site/privacy.html`, `site/google.html` and the notice in `_shared/google_scopes.ts`, mapped to what makes it
+Each claim in the privacy template (`docs/launch/legal-pages/privacy.template.html`), the built `/google` page and the notice in `_shared/google_scopes.ts`, mapped to what makes it
 true. "Fixed here" means this PR made it true.
 
 | Claim | Made true by |
@@ -308,8 +322,10 @@ true. "Fixed here" means this PR made it true.
 | Keeps only result, employer, role, an evidence line, a hash, the date | `career_mail_events` columns. `evidence` is at most 300 characters with no 6+ digit runs (DB check) |
 | Unclear mail may go to OpenAI, masked | `career_mail_model.ts` `mailModelPayload` and `redact`, only with `CAREER_MAIL_MODEL=on`. OpenAI API data is not used for training by default ([OpenAI](https://developers.openai.com/api/docs/guides/your-data)) |
 | Tokens encrypted, server-only | Vault `oauth_google_career_<uid>`; RLS on `user_oauth_connections` (`20261012060000`) |
-| Disconnect revokes at Google | **Fixed here:** `gmail-oauth` disconnect calls `revokeAtGoogle` before deleting (it never revoked before). PR #191's `disconnectGoogle` also revokes |
-| Disconnect deletes tracked results, drafts, read time | **Fixed here:** migration `20261026200011_google_disconnect_erase.sql` (a trigger on the career Google row's delete). Before, these rows outlived the disconnect |
+| "disconnect gmail" in chat disconnects | **Fixed here:** `agent-chat/handler-career.ts` FEATURE GV calls `_shared/google_disconnect.ts` `disconnectGoogle` for both Google grants. Before this, the router answered "Nothing is deleted by this message alone". Proven end to end on real Postgres (`flow-google-disconnect.test.ts`): each grant's refresh token is posted to Google's revoke endpoint, and rows, Vault tokens and mail rows are gone. On trunk's handler the same test is 0/3 |
+| Disconnect revokes at Google, and says so only when Google confirms | **Fixed here:** `revokeAtGoogle`. Only a 200 counts as revoked; a 400 is "refused", not confirmed. It uses a 5-second timeout, 3 tries on a network failure, timeout, 429 or 5xx, then the access token if the refresh token is refused. The reply names myaccount.google.com/permissions whenever Google didn't confirm (GV/5, flow test 2) |
+| Disconnect deletes tracked results, drafts, read time | **Fixed here:** migration `20261026200011_google_disconnect_erase.sql` (a trigger on the career Google row's delete). Before this, these rows outlived the disconnect |
+| A partial failure is never reported as done | **Fixed here:** every delete's result is checked, then rows, tokens and mail rows are read back. Any failure gives `ok:false` and a reply saying what couldn't be done (GV/6, eight failure paths). `gmail-oauth`'s disconnect uses the same code and answers 500 |
 | "forget everything" deletes mail rows | `20261021090000_career_mail_erase.sql` |
 | Can't send, delete, label or change mail | Only gmail.readonly is granted |
 | No human reads mail | **Operational:** no admin screen exposes these rows (repo grep). It holds only if you and anyone with the service key keep it |
@@ -317,14 +333,20 @@ true. "Fixed here" means this PR made it true.
 **Required changes found, and their status:**
 
 1. Calendar and unapproved send in the consent URL: **done** (gmail-oauth).
-2. No revocation at Google: **done** (gmail-oauth; #191 already revokes).
+2. No revocation at Google: **done** (chat and gmail-oauth, one implementation; #191's own `disconnectGoogle` should call
+   `_shared/google_disconnect.ts` when it merges).
 3. Gmail-derived data kept after disconnect: **done** (migration plus SQL test).
 4. Email address not requested (no `email` scope): **done**.
 5. The pre-consent screen: **the words are done** (`consentNotice`, published at `/google`). The in-app screen is #191's
    link page (`career_connect_flow.ts` GET `?t=`), which must render those same lines; see §4.4.
-6. The chat's "disconnect gmail": on trunk the router answers "the host runs it" and nothing is disconnected (connectors
-   audit). **#191 makes it real.** The policy's disconnect promise depends on #191 being merged and deployed before you
-   submit.
+6. The chat's "disconnect gmail": **done here** (FEATURE GV in `handler-career.ts`), for the google_career grant and the
+   legacy one.
+7. The legacy finance consent (`start`, read by `agent-exec` with `format=full`) was offered by the same function:
+   **off** unless `UPMORE_LEGACY_GMAIL_CONNECT=on`.
+8. The career grant used to land on the Upmore app (`APP_URL`): **done**. It now lands on its own page, and
+   `GOOGLE_OAUTH_REDIRECT_URI` can move the callback to Trainee's domain.
+9. Placeholders in published pages: **done**. The build refuses until the owner fills them, and nothing is under `site/`
+   until then.
 
 ---
 
@@ -350,24 +372,25 @@ true. "Fixed here" means this PR made it true.
    `requestableScopes(scopes, Deno.env).scopes` from `_shared/google_scopes.ts`: one line in `mintLink`. Also replace the
    body lines of its peek page with `consentNotice(p.scopes)` (reads, never, undo), so the in-app screen says exactly what
    `/google` says. If it asks for an unapproved scope after verification, Google shows the unverified warning again.
-5. **Fill the placeholders** (§5 step 0), and confirm the owner-confirm items in §2.2.
-6. **`site/privacy.html` on trunk versus main.** Production deploys from `main`, where `site/privacy.html` is the
-   extension-only policy (`b09c3c57`). This PR replaces it on trunk with the full policy and keeps the extension text as
-   `#extension`. Expect an add/add conflict when trunk is promoted to main: take trunk's file. The Chrome Web Store listing
-   can keep its `/privacy` link.
+5. **Fill the owner inputs** (§5 step 0), and confirm the owner-confirm items in §2.2.
+6. **`site/privacy.html` on main.** Production deploys from `main`, where `site/privacy.html` is the extension-only policy
+   (`b09c3c57`). This PR adds no page under `site/`; the only file it adds there is the logo candidate `site/brand/trainee-logo-120.png`. The build writes the full policy to `site/privacy.html`, with the
+   extension text kept as `#extension`, only once the inputs are filled. The Chrome Web Store listing can keep its
+   `/privacy` link.
 
 ---
 
 ## 5. Your click path, with every value
 
-**Step 0: fill the placeholders (2 minutes, in the repo).**
+**Step 0: your inputs, then the build (2 minutes, in the repo).**
 
-```bash
-D=trainee.app; E=support@trainee.app; L="Trainee, Inc."; S="Illinois"   # your real values
-sed -i "s/{{DOMAIN}}/$D/g; s/{{SUPPORT_EMAIL}}/$E/g; s/{{LEGAL_NAME}}/$L/g; s/{{GOVERNING_STATE}}/$S/g" site/privacy.html site/terms.html docs/launch/GOOGLE-VERIFICATION-2026-10-26.md
-sed -i "s/support@example.com/$E/" site/index.html
-deno run -A scripts/launch/build-google-notice-page.ts   # rebuilds /google from the updated privacy page
-```
+1. In `docs/launch/legal-pages/owner-inputs.json`, replace each `null` with your real value: `LEGAL_NAME`,
+   `SUPPORT_EMAIL` (one address you read) and `GOVERNING_STATE`.
+2. Run `deno run -A scripts/launch/build-legal-pages.ts`.
+   - It writes `site/privacy.html`, `site/terms.html` and `site/google.html`, and updates `site/index.html`: the legal
+     links, the help pages and `supportEmail`.
+   - If any input is missing or malformed, it prints `REFUSED: owner inputs missing or invalid: …` and writes nothing.
+3. Review the diff, then commit.
 
 **Step 1: the domain on Vercel.** Vercel → project `trainee` → Settings → Domains → Add `{{DOMAIN}}`. Use the A/CNAME records
 Vercel shows at your registrar. Then deploy `main` with these pages.
@@ -434,15 +457,30 @@ Then go to APIs & Services → Library → **Gmail API** → Enable.
 
 ## 6. Proof in this PR
 
-- `tests/architect/google-verification.test.ts` (12 tests, gate (architect)):
+- `tests/architect/google-verification.test.ts` (13 tests, gate (architect)):
   - the scope filter and its lockstep copy;
-  - revoke at Google (exact URL and body, 200/400/5xx/network/no-token, an injection-shaped token);
-  - the handler's start and disconnect order;
-  - identity scopes in both status readers;
-  - the migration's wiring;
-  - the policy's Limited Use text and claims;
-  - homepage links;
-  - `/google` built from the notice.
+  - revoke at Google: only 200 revokes; a 400 is refused; it uses a timeout signal, a call that hangs is cut and retried,
+    5xx/429/network are retried 3 times with backoff, a 401 is not retried, and the access token is the fallback;
+  - disconnect: success, Google unreachable, nothing connected, and eight failure paths, each `ok:false` with a plain
+    reply;
+  - the asks that disconnect and the ones that don't;
+  - the legacy consent off, the career landing, and the redirect URI;
+  - the build refusing with today's null inputs (the real command exits 1 and writes nothing);
+  - no placeholder anywhere under `site/`;
+  - pages built from sample inputs carrying Limited Use, the true scope list, the disconnect promise, the homepage links,
+    and `/google` word for word.
+- `tests/architect/flow-google-disconnect.test.ts` (3 tests, real `handleChat` on real Postgres, fake Google):
+  - "disconnect gmail" posts `token=rt-c-…` and `token=rt-l-…` to Google;
+  - the person's rows, Vault tokens and mail rows go from 2/2/3 to 0/0/0, while another person's stay 2/2/3;
+  - Google down: 12 tries (3 per token, 2 tokens per grant, 2 grants), still deleted, and the reply says it wasn't
+    confirmed;
+  - nothing connected: no request to Google.
+  - Fail-first: on trunk's handler, 0/3 ("Nothing is deleted by this message alone", no revoke request).
+- Mutations, each red:
+  - 400 counted as revoked, timeout removed, retries removed (GV/5);
+  - each delete check removed, each read-back removed, the reply claiming a confirmation (GV/6);
+  - the legacy gate removed, from the helper (GV/10) or the handler (GV/4);
+  - the build ignoring missing inputs (GV/11).
 - `tests/db/google_disconnect_erase.test.sql` (8 checks, database job):
   - a disconnect deletes events, drafts and cursor;
   - a reconnect (upsert) keeps them;

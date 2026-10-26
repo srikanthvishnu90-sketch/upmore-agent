@@ -6,8 +6,9 @@ import { createRequire } from "node:module";
 import {
   approvedExtras, consentNotice, EMAIL, GMAIL_READONLY, GMAIL_SEND, OPENID, permissionScopes, requestableScopes, SUBMITTED_SCOPES,
 } from "../../supabase/functions/_shared/google_scopes.ts";
-import { GOOGLE_REVOKE, requestScopesFor, revokeAtGoogle, scopeSet } from "../../supabase/functions/gmail-oauth/career.ts";
-import { buildNoticePage } from "../../scripts/launch/build-google-notice-page.ts";
+import { careerLanding, LEGACY_OFF_MESSAGE, redirectUriFrom, requestScopesFor, scopeSet, startAllowed } from "../../supabase/functions/gmail-oauth/career.ts";
+import { disconnectGoogle, disconnectReply, GOOGLE_REVOKE, isGoogleDisconnect, revokeAtGoogle, REVOKE_TIMEOUT_MS } from "../../supabase/functions/_shared/google_disconnect.ts";
+import { buildLegal, buildNoticePage, missingInputs, OWNER_INPUTS } from "../../scripts/launch/build-legal-pages.ts";
 import OAUTH_SRC from "../../supabase/functions/gmail-oauth/index.ts" with { type: "text" };
 import GO_LIVE from "../../scripts/launch/trainee-go-live.sh" with { type: "text" };
 import DB_RUN from "../db/run.sh" with { type: "text" };
@@ -46,55 +47,13 @@ Deno.test("GV/2 gmail.send comes back only when the owner says Google approved i
   eq(requestableScopes([GMAIL_READONLY], env({ GOOGLE_APPROVED_EXTRA_SCOPES: "" })).scopes, [OPENID, EMAIL, GMAIL_READONLY], "empty switch");
 });
 
-Deno.test("GV/3 gmail-oauth (deploys alone) asks Google exactly what the shared module allows, for both grants", () => {
+Deno.test("GV/3 gmail-oauth asks Google exactly what the shared module allows, for both grants", () => {
   for (const extras of [undefined, "", GMAIL_SEND, `${GMAIL_SEND} ${CAL_FB}`, "nonsense"]) {
     const e = env(extras === undefined ? {} : { GOOGLE_APPROVED_EXTRA_SCOPES: extras });
     eq(requestScopesFor("career", extras), requestableScopes([GMAIL_READONLY, GMAIL_SEND, CAL_FB, CAL_EV], e), `career grant, extras ${extras}`);
     eq(requestScopesFor("gmail", extras), requestableScopes([GMAIL_READONLY], e), `legacy grant, extras ${extras}`);
   }
   eq(requestScopesFor("career").scopes, [OPENID, EMAIL, GMAIL_READONLY], "the career consent today");
-});
-
-Deno.test("GV/4 the handler builds its consent URL and its fallback granted list from the filter, never the raw career set", () => {
-  const start = OAUTH_SRC.slice(OAUTH_SRC.indexOf("const startPurpose = purposeForAction(action);"), OAUTH_SRC.indexOf('if (action === "status")'));
-  assert(/requestScopesFor\(startPurpose, Deno\.env\.get\("GOOGLE_APPROVED_EXTRA_SCOPES"\)\)/.test(start), "the start route filters");
-  assert(/scope: asked\.scopes\.join\(" "\)/.test(start), "and puts only the filtered scopes in the URL");
-  assert(!/scopesForPurpose/.test(OAUTH_SRC), "nothing in the handler asks for the raw career set (Calendar, unapproved send)");
-  assert(/: requestScopesFor\(purpose, Deno\.env\.get\("GOOGLE_APPROVED_EXTRA_SCOPES"\)\)\.scopes\.join\(" "\);/.test(OAUTH_SRC),
-    "when Google echoes no scope list, the row records what was asked, not the raw set");
-});
-
-Deno.test("GV/5 revoke at Google: the refresh token (else the access token) is posted to Google's revoke endpoint", async () => {
-  const calls: { url: string; body: string; method: string; type: string }[] = [];
-  const fake = (status: number | "throw") => (async (url: string | URL | Request, init?: RequestInit) => {
-    calls.push({ url: String(url), body: String(init?.body), method: String(init?.method), type: new Headers(init?.headers).get("content-type") ?? "" });
-    if (status === "throw") throw new TypeError("network down");
-    return new Response(status === 200 ? "" : JSON.stringify({ error: "invalid_token" }), { status });
-  }) as typeof fetch;
-  eq(await revokeAtGoogle(fake(200), JSON.stringify({ access_token: "at-1", refresh_token: "rt-1" })), "revoked", "200 revokes");
-  eq(calls[0], { url: GOOGLE_REVOKE, body: "token=rt-1", method: "POST", type: "application/x-www-form-urlencoded" }, "the refresh token, form-encoded, to Google");
-  eq(GOOGLE_REVOKE, "https://oauth2.googleapis.com/revoke", "Google's own endpoint");
-  eq(await revokeAtGoogle(fake(200), JSON.stringify({ access_token: "at-2", refresh_token: null })), "revoked", "no refresh token");
-  eq(calls[1].body, "token=at-2", "falls back to the access token");
-  eq(await revokeAtGoogle(fake(400), JSON.stringify({ refresh_token: "rt-3" })), "revoked", "400: Google no longer holds it");
-  eq(await revokeAtGoogle(fake(503), JSON.stringify({ refresh_token: "rt-4" })), "not_confirmed", "a server error is not a confirmed revoke");
-  eq(await revokeAtGoogle(fake("throw"), JSON.stringify({ refresh_token: "rt-5" })), "not_confirmed", "a network failure is not either");
-  const before = calls.length;
-  eq(await revokeAtGoogle(fake(200), null), "no_token", "no stored secret");
-  eq(await revokeAtGoogle(fake(200), "not json{"), "no_token", "a broken secret");
-  eq(await revokeAtGoogle(fake(200), JSON.stringify({ email: "x@example.test" })), "no_token", "a secret with no token");
-  eq(calls.length, before, "and none of those calls Google");
-  // A hostile token value is sent as one form field, never as extra fields.
-  await revokeAtGoogle(fake(200), JSON.stringify({ refresh_token: "a&token=b" }));
-  eq(new URLSearchParams(calls.at(-1)!.body).getAll("token"), ["a&token=b"], "the token is one encoded field");
-});
-
-Deno.test("GV/6 disconnect revokes every grant at Google before Trainee's copy of the tokens is deleted", () => {
-  const block = OAUTH_SRC.slice(OAUTH_SRC.indexOf('if (action === "disconnect")'), OAUTH_SRC.indexOf('return json({ error: "unknown action" }, 400);'));
-  const read = block.indexOf('admin.rpc("oauth_vault_read"'), revoke = block.indexOf("revokeAtGoogle(fetch"), del = block.indexOf('admin.rpc("oauth_vault_delete"');
-  assert(read > 0 && revoke > read && del > revoke, `read the token, revoke it, then delete it (read ${read}, revoke ${revoke}, delete ${del})`);
-  assert(/for \(const name of plan\.vault_names\) \{[\s\S]*?revokeAtGoogle/.test(block), "for every vault entry the plan removes");
-  assert(/revoked_at_google: revoked/.test(block), "and the answer says whether Google confirmed it");
 });
 
 Deno.test("GV/7 openid and email never change what a grant may do (both status readers)", () => {
@@ -119,42 +78,219 @@ Deno.test("GV/8 the disconnect erase migration is applied by go-live and tested 
   assert(/if old\.provider = 'google_career' then/.test(MIGRATION), "only on the career Google grant's delete");
 });
 
-const PRIVACY = read("site/privacy.html"), TERMS = read("site/terms.html"), HOME = read("site/index.html"), NOTICE = read("site/google.html");
-const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&larr;/g, "←").replace(/\s+/g, " ");
 
-Deno.test("GV/9 the privacy policy carries Google's Limited Use statement and names every scope asked, and nothing else", () => {
-  const t = text(PRIVACY);
-  assert(t.includes("Trainee's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements."), "the Limited Use sentence, verbatim");
-  assert(PRIVACY.includes('href="https://developers.google.com/terms/api-services-user-data-policy"'), "linked to Google's policy");
-  assert(/never used to create, train or improve a machine learning or artificial intelligence model/.test(t), "the AI/ML training statement");
-  for (const s of ["openid", "email", "gmail.readonly"]) assert(PRIVACY.includes(`<code>${s}</code>`), `names ${s}`);
-  for (const s of ["gmail.send", "calendar", "gmail.modify", "mail.google.com"]) assert(!PRIVACY.includes(`<code>${s}`), `does not claim ${s}`);
-  assert(/Trainee cannot send, delete, label or change any of your email/.test(t), "says what the read-only scope cannot do");
-  assert(/Say "disconnect gmail"[^.]*\. Trainee revokes its access at Google, deletes the stored tokens, and deletes the tracked email results, drafts and read time/.test(t),
-    "the disconnect promise the migration and revokeAtGoogle keep");
-  assert(/Security codes:<\/strong> never stored/.test(PRIVACY), "codes never stored (career_email_code.ts EmailCode)");
-  assert(/id="limited-use"/.test(PRIVACY) && /id="google"/.test(PRIVACY) && /id="extension"/.test(PRIVACY), "anchors the consent screen and the extension listing link to");
+Deno.test("GV/4 the handler: filtered consent URL, legacy consent off, its own landing and redirect, one disconnect", () => {
+  const start = OAUTH_SRC.slice(OAUTH_SRC.indexOf("const startPurpose = purposeForAction(action);"), OAUTH_SRC.indexOf('if (action === "status")'));
+  assert(/if \(!startAllowed\(startPurpose, Deno\.env\)\) return json\(\{ error: LEGACY_OFF_MESSAGE \}, 410\);/.test(start), "the legacy start is refused first");
+  assert(/requestScopesFor\(startPurpose, Deno\.env\.get\("GOOGLE_APPROVED_EXTRA_SCOPES"\)\)/.test(start) && /scope: asked\.scopes\.join\(" "\)/.test(start), "the URL carries only filtered scopes");
+  assert(!/scopesForPurpose/.test(OAUTH_SRC), "nothing in the handler asks for the raw career set");
+  assert(/: requestScopesFor\(purpose, Deno\.env\.get\("GOOGLE_APPROVED_EXTRA_SCOPES"\)\)\.scopes\.join\(" "\);/.test(OAUTH_SRC), "the fallback granted list is the filtered one");
+  assert(/if \(!startAllowed\(purpose, Deno\.env\)\) throw new Error/.test(OAUTH_SRC), "a legacy callback is not stored either");
+  assert(/purpose === "career" \? careerLanding\(ok\)/.test(OAUTH_SRC), "the career grant never lands on the Upmore app");
+  assert(/return redirectUriFrom\(Deno\.env\);/.test(OAUTH_SRC), "the redirect URI can move to Trainee's domain");
+  const dis = OAUTH_SRC.slice(OAUTH_SRC.indexOf('if (action === "disconnect")'), OAUTH_SRC.indexOf('return json({ error: "unknown action" }, 400);'));
+  assert(/await disconnectGoogle\(admin, user\.id, \{ fetch \}, plan\.providers\)/.test(dis), "disconnect is the shared, checked implementation");
+  assert(/ok: r\.ok, disconnected: r\.ok/.test(dis) && /r\.ok \? 200 : 500/.test(dis), "a partial failure is never ok:true");
+  assert(!/oauth_vault_delete|\.delete\(\)/.test(dis), "no unchecked delete left in the handler");
 });
 
-Deno.test("GV/10 the homepage links the same privacy policy and terms the consent screen will name; no template text left there", () => {
-  assert(!/#product\/privacy|#product\/terms/.test(HOME), "no hash-only policy links");
-  assert((HOME.match(/href="\/privacy"/g) ?? []).length >= 3 && (HOME.match(/href="\/terms"/g) ?? []).length >= 2, "footer, sign-up consent and help pages link /privacy and /terms");
-  assert(!/\[Name, phone number, resume contents|\[With employers when you apply|\[Eligibility, account responsibilities|\[Describe how connections are authorized/.test(HOME), "the template placeholders are gone");
-  assert(/<h1>Trainee Terms of Service<\/h1>/.test(TERMS) && /href="\/privacy"/.test(TERMS), "terms exist and point to the policy");
-  for (const page of [PRIVACY, TERMS]) assert(/<a href="\/privacy">Privacy<\/a>/.test(page) && /<a href="\/terms">Terms<\/a>/.test(page), "each page links both");
+Deno.test("GV/5 revoke at Google: only a 200 is revoked; timeout, retries, and every other answer said as not confirmed", async () => {
+  type Call = { url: string; body: string; signal: boolean };
+  const make = (answers: (number | "throw" | "hang")[]) => {
+    const calls: Call[] = [], slept: number[] = [];
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), body: String(init?.body), signal: init?.signal instanceof AbortSignal });
+      const a = answers[Math.min(calls.length - 1, answers.length - 1)];
+      if (a === "throw") throw new TypeError("network down");
+      if (a === "hang") return await new Promise<Response>((_, no) => init!.signal!.addEventListener("abort", () => no(init!.signal!.reason)));
+      return new Response(a === 200 ? "" : JSON.stringify({ error: "invalid_token" }), { status: a });
+    }) as typeof fetch;
+    return { calls, slept, d: { fetch: f, sleep: async (ms: number) => { slept.push(ms); }, timeoutMs: 20 } };
+  };
+  const both = JSON.stringify({ access_token: "at-1", refresh_token: "rt-1" });
+  let m = make([200]);
+  eq(await revokeAtGoogle(m.d, both), "revoked", "200");
+  eq(m.calls.map((c) => [c.url, c.body, c.signal]), [[GOOGLE_REVOKE, "token=rt-1", true]], "the refresh token, once, with a timeout signal");
+  m = make([400, 400]);
+  eq(await revokeAtGoogle(m.d, both), "refused", "400 is Google refusing the token, not a confirmed revoke");
+  eq(m.calls.map((c) => c.body), ["token=rt-1", "token=at-1"], "a refused refresh token: the access token is tried, each once");
+  m = make([400, 200]);
+  eq(await revokeAtGoogle(m.d, both), "revoked", "the access token's 200 revokes the grant");
+  m = make([503, 503, 503, 503, 503, 503]);
+  eq(await revokeAtGoogle(m.d, both), "not_confirmed", "5xx every time");
+  eq(m.calls.length, 6, "3 tries per token");
+  eq(m.slept, [500, 1000, 500, 1000], "backing off between tries");
+  m = make(["throw", 200]);
+  eq(await revokeAtGoogle(m.d, both), "revoked", "a network failure is retried");
+  m = make(["hang", 200]);
+  eq(await revokeAtGoogle(m.d, both), "revoked", "a call that hangs is cut by the timeout and retried");
+  m = make([429, 429, 429, 401]);
+  eq(await revokeAtGoogle(m.d, both), "not_confirmed", "429 retried; a 401 is not");
+  eq(m.calls.length, 4, "three 429s then one 401 on the access token");
+  eq(REVOKE_TIMEOUT_MS, 5000, "the default timeout");
+  m = make([200]);
+  for (const bad of [null, "not json{", JSON.stringify({ email: "x@example.test" }), JSON.stringify({ refresh_token: "", access_token: 5 })]) {
+    eq(await revokeAtGoogle(m.d, bad), "no_token", `no token in ${bad}`);
+  }
+  eq(m.calls.length, 0, "and none of those calls Google");
+  await revokeAtGoogle(m.d, JSON.stringify({ refresh_token: "a&token=b" }));
+  eq(new URLSearchParams(m.calls.at(-1)!.body).getAll("token"), ["a&token=b"], "a hostile token is one encoded field");
 });
 
-Deno.test("GV/11 the pre-consent page is built from the consent notice, word for word", () => {
-  eq(NOTICE, buildNoticePage(PRIVACY), "site/google.html is current (deno run -A scripts/launch/build-google-notice-page.ts)");
+// A service-role client double: the person's rows in memory; each call can be told to fail.
+function adminDouble(o: { rows?: string[]; vault?: Record<string, string>; mail?: number; fail?: Set<string> } = {}) {
+  const state = { rows: [...(o.rows ?? [])], vault: { ...(o.vault ?? {}) }, mail: o.mail ?? 0 };
+  const fail = o.fail ?? new Set<string>();
+  const err = (k: string) => (fail.has(k) ? { message: `${k} failed` } : null);
+  const q = (table: string) => {
+    let op = "select";
+    const self: any = {
+      select: () => self, eq: () => self, limit: () => self,
+      delete: () => { op = "delete"; return self; },
+      in: (_c: string, ps: string[]) => { self.ps = ps; return self; },
+      then: (ok: (v: unknown) => void) => {
+        if (table === "career_mail_events") return ok({ data: err("mail_read") ? null : Array.from({ length: state.mail }, (_, i) => ({ id: i })), error: err("mail_read") });
+        if (op === "delete") {
+          if (err("row_delete")) return ok({ data: null, error: err("row_delete") });
+          if (!fail.has("row_delete_silent")) { state.rows = state.rows.filter((p) => !self.ps.includes(p)); if (self.ps.includes("google_career")) state.mail = 0; }
+          return ok({ data: null, error: err("row_delete_done") });
+        }
+        const key = state.rows.length && op === "select" && self.readBack ? "row_readback" : "row_read";
+        self.readBack = true;
+        return ok({ data: err(key) ? null : state.rows.filter((p) => self.ps.includes(p)).map((provider) => ({ provider })), error: err(key) });
+      },
+    };
+    return self;
+  };
+  let reads = 0;
+  const admin = {
+    from: (t: string) => q(t),
+    rpc: async (fn: string, a: { p_name: string }) => {
+      if (fn === "oauth_vault_read") { reads++; if (err("vault_read")) return { data: null, error: err("vault_read") }; return { data: state.vault[a.p_name] ?? null, error: null }; }
+      if (fn === "oauth_vault_delete") {
+        if (err("vault_delete")) return { data: null, error: err("vault_delete") };
+        delete state.vault[a.p_name];
+        return { data: null, error: err("vault_delete_done") }; // deleted, but the answer was an error (a timeout after commit)
+      }
+      throw new Error(fn);
+    },
+  };
+  return { admin, state, reads: () => reads };
+}
+const U = "00000000-0000-4000-8000-0000000004b1";
+const ok200 = { fetch: (async () => new Response("", { status: 200 })) as typeof fetch, sleep: async () => {}, timeoutMs: 20 };
+const down = { fetch: (async () => { throw new TypeError("down"); }) as typeof fetch, sleep: async () => {}, timeoutMs: 20 };
+const grant = (p: string) => ({ [`oauth_${p}_${U}`]: JSON.stringify({ refresh_token: `rt-${p}` }) });
+
+Deno.test("GV/6 disconnect: revoked, deleted and read back; every failure path is ok:false and said plainly", async () => {
+  let w = adminDouble({ rows: ["google_career", "gmail"], vault: { ...grant("google_career"), ...grant("gmail") }, mail: 2 });
+  let r = await disconnectGoogle(w.admin, U, ok200);
+  eq([r.ok, r.had, r.revoke, r.failures], [true, ["google_career", "gmail"], { google_career: "revoked", gmail: "revoked" }, []], "both grants");
+  eq([w.state.rows, w.state.vault, w.state.mail], [[], {}, 0], "rows, tokens and mail rows gone");
+  assert(/^Gmail is disconnected\. Google confirmed Trainee's access is revoked\./.test(disconnectReply(r)), disconnectReply(r));
+  w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 1 });
+  r = await disconnectGoogle(w.admin, U, down);
+  eq([r.ok, r.revoke.google_career], [true, "not_confirmed"], "Google unreachable: still deleted, revoke not confirmed");
+  assert(/Gmail is disconnected\. Google didn't confirm that Trainee's access is revoked, so please remove Trainee at myaccount\.google\.com\/permissions/.test(disconnectReply(r)), disconnectReply(r));
+  r = await disconnectGoogle(adminDouble().admin, U, ok200);
+  eq([r.ok, r.had], [true, []], "nothing connected");
+  eq(disconnectReply(r), "No Google account is connected to Trainee, so there was nothing to disconnect.", "said so");
+  const cases: [string, string][] = [
+    ["row_read", "read which Google accounts are connected"], ["vault_read", "read the stored Google access to revoke it"],
+    ["vault_delete", "delete the stored Google tokens"], ["row_delete", "delete the Google connection"],
+    ["row_delete_silent", "delete the Google connection"], ["mail_read", "check that everything was deleted"],
+    // The store answered an error though the delete went through: never reported as done (the person retries; it is safe).
+    ["vault_delete_done", "delete the stored Google tokens"], ["row_delete_done", "delete the Google connection"],
+  ];
+  for (const [f, said] of cases) {
+    w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 1, fail: new Set([f]) });
+    r = await disconnectGoogle(w.admin, U, ok200);
+    eq(r.ok, false, `${f}: not ok`);
+    assert(r.failures.includes(said), `${f}: ${JSON.stringify(r.failures)}`);
+    const reply = disconnectReply(r);
+    assert(reply.startsWith("I couldn't finish disconnecting Gmail: I wasn't able to ") && reply.includes(said) && /Say "disconnect gmail" again to retry\./.test(reply), `${f}: ${reply}`);
+  }
+  // A token left behind (the delete said yes but the read-back still finds it) is a failure too.
+  w = adminDouble({ rows: ["google_career"], vault: grant("google_career") });
+  const sticky = { ...w.admin, rpc: async (fn: string, a: { p_name: string }) => fn === "oauth_vault_delete" ? { data: null, error: null } : w.admin.rpc(fn, a) };
+  r = await disconnectGoogle(sticky, U, ok200);
+  eq([r.ok, r.failures], [false, ["delete the stored Google tokens"]], "read-back finds the token");
+  // A legacy-only disconnect does not judge mail rows (they belong to the career grant, which stays).
+  w = adminDouble({ rows: ["google_career", "gmail"], vault: { ...grant("google_career"), ...grant("gmail") }, mail: 3 });
+  r = await disconnectGoogle(w.admin, U, ok200, ["gmail"]);
+  eq([r.ok, w.state.rows, w.state.mail], [true, ["google_career"], 3], "only the legacy grant goes");
+});
+
+Deno.test("GV/9 the asks that disconnect, and the ones that don't", () => {
+  for (const t of ["disconnect gmail", "Disconnect my Gmail", "disconnect google", "disconnect my google account", "remove access to gmail", "revoke gmail.", "please unlink my gmail"]) assert(isGoogleDisconnect(t), t);
+  for (const t of ["disconnect linkedin", "should I disconnect gmail?", "how do I disconnect gmail", "connect gmail", "disconnect gmail and then apply to Stripe", "don't disconnect gmail"]) assert(!isGoogleDisconnect(t), t);
+});
+
+Deno.test("GV/10 the legacy finance consent is off for Trainee; the career grant ends on its own page and its own redirect", async () => {
+  eq([startAllowed("career", env()), startAllowed("gmail", env()), startAllowed("gmail", env({ UPMORE_LEGACY_GMAIL_CONNECT: "on" }))], [true, false, true], "legacy only by the owner's switch");
+  assert(/switched off/.test(LEGACY_OFF_MESSAGE), "and the refusal says so");
+  const page = await careerLanding(true).text();
+  assert(/Gmail connected/.test(page) && !/upmore/i.test(page), "the landing is Trainee's, with no Upmore link");
+  eq(careerLanding(false).status, 400, "a failed grant says so");
+  eq(redirectUriFrom(env({ SUPABASE_URL: "https://ref.supabase.co/" })), "https://ref.supabase.co/functions/v1/gmail-oauth", "default");
+  eq(redirectUriFrom(env({ SUPABASE_URL: "https://ref.supabase.co", GOOGLE_OAUTH_REDIRECT_URI: "https://trainee.example/connect/google" })), "https://trainee.example/connect/google", "Trainee's domain");
+  eq(redirectUriFrom(env({ SUPABASE_URL: "https://ref.supabase.co", GOOGLE_OAUTH_REDIRECT_URI: "http://evil.example/x" })), "https://ref.supabase.co/functions/v1/gmail-oauth", "never a non-https one");
+});
+
+const TEMPLATES = { privacy: read("docs/launch/legal-pages/privacy.template.html"), terms: read("docs/launch/legal-pages/terms.template.html"), home: read("site/index.html") };
+const SAMPLE = { LEGAL_NAME: "Sample Test Entity", SUPPORT_EMAIL: "help@trainee.example", GOVERNING_STATE: "Sample State" };
+const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/\s+/g, " ");
+
+Deno.test("GV/11 the legal pages are never published with a placeholder: the build refuses until the owner fills every input", async () => {
+  const inputs = JSON.parse(read("docs/launch/legal-pages/owner-inputs.json"));
+  eq(OWNER_INPUTS, ["LEGAL_NAME", "SUPPORT_EMAIL", "GOVERNING_STATE"], "the owner inputs");
+  eq(missingInputs(inputs), ["LEGAL_NAME", "SUPPORT_EMAIL", "GOVERNING_STATE"], "today every one is unfilled (no value invented)");
+  eq(buildLegal(inputs, TEMPLATES), { ok: false, missing: ["LEGAL_NAME", "SUPPORT_EMAIL", "GOVERNING_STATE"], left: [] }, "so the build refuses");
+  eq(missingInputs({ ...SAMPLE, SUPPORT_EMAIL: "not an email" }), ["SUPPORT_EMAIL"], "a malformed email is refused");
+  eq(missingInputs({ ...SAMPLE, LEGAL_NAME: "{{LEGAL_NAME}}" }), ["LEGAL_NAME"], "a placeholder as a value is refused");
+  eq(missingInputs({ ...SAMPLE, GOVERNING_STATE: "  " }), ["GOVERNING_STATE"], "blank is refused");
+  // The command itself: exit 1, nothing written.
+  const out = await Deno.makeTempDir();
+  const run = await new Deno.Command(Deno.execPath(), { args: ["run", "-A", "scripts/launch/build-legal-pages.ts", "--out", out], cwd: ROOT.pathname, stdout: "piped", stderr: "piped" }).output();
+  eq(run.code, 1, "the build exits 1");
+  assert(/REFUSED: owner inputs missing or invalid: LEGAL_NAME, SUPPORT_EMAIL, GOVERNING_STATE/.test(new TextDecoder().decode(run.stderr)), new TextDecoder().decode(run.stderr));
+  eq([...Deno.readDirSync(out)].length, 0, "and writes nothing");
+  // Nothing under site/ carries a placeholder, and the pages are not published yet.
+  const walk = (dir: URL): string[] => [...Deno.readDirSync(dir)].flatMap((e) => e.isDirectory ? walk(new URL(`${e.name}/`, dir)) : /\.(html|js|json|txt)$/.test(e.name) ? [new URL(e.name, dir).pathname] : []);
+  for (const f of walk(new URL("site/", ROOT))) assert(!/\{\{(LEGAL_NAME|SUPPORT_EMAIL|GOVERNING_STATE|DOMAIN)\}\}/.test(Deno.readTextFileSync(f)), `${f} carries a placeholder`);
+  for (const f of ["site/privacy.html", "site/terms.html", "site/google.html"]) assert(!(() => { try { Deno.statSync(new URL(f, ROOT)); return true; } catch { return false; } })(), `${f} is not published before the owner's inputs`);
+});
+
+Deno.test("GV/12 once filled, the pages say only what the code does, with Google's Limited Use statement", async () => {
+  const r = buildLegal(SAMPLE, TEMPLATES);
+  assert(r.ok, JSON.stringify(r));
+  const f = (r as any).built.files as Record<string, string>;
+  for (const [n, html] of Object.entries(f)) assert(!/\{\{[A-Z_]+\}\}/.test(html), `${n}: no placeholder left`);
+  const t = text(f["privacy.html"]);
+  assert(t.includes("Trainee's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements."), "Limited Use, verbatim");
+  assert(/never used to create, train or improve a machine learning or artificial intelligence model/.test(t), "AI/ML statement");
+  for (const s of ["openid", "email", "gmail.readonly"]) assert(f["privacy.html"].includes(`<code>${s}</code>`), `names ${s}`);
+  for (const s of ["gmail.send", "calendar", "gmail.modify", "mail.google.com"]) assert(!f["privacy.html"].includes(`<code>${s}`), `does not claim ${s}`);
+  assert(/Say "disconnect gmail" to Trainee at any time\. Trainee revokes its access at Google, deletes the stored tokens, and deletes the tracked email results, drafts and read time described above\. If Google doesn't confirm the revoke, or anything can't be deleted, Trainee tells you so in its reply\./.test(t),
+    "the disconnect promise GV/6 and flow-google-disconnect keep");
+  assert(t.includes("Sample Test Entity") && t.includes("help@trainee.example"), "the owner's inputs filled in");
+  const home = f["index.html"];
+  assert(!/#product\/privacy|#product\/terms/.test(home) && (home.match(/href="\/privacy"/g) ?? []).length >= 3 && (home.match(/href="\/terms"/g) ?? []).length >= 2, "homepage links /privacy and /terms");
+  assert(!/\[Describe how connections are authorized|\[Name, phone number, resume contents|support@example\.com/.test(home), "and no template text or example address is left");
+  eq(f["google.html"], buildNoticePage(f["privacy.html"]), "the notice page is the notice");
   const n = consentNotice([OPENID, EMAIL, GMAIL_READONLY], { modelCheck: true });
-  for (const line of [...n.reads, ...n.never, ...n.undo]) assert(text(NOTICE).includes(line), `the page says: ${line}`);
-  const send = consentNotice([OPENID, EMAIL, GMAIL_READONLY, GMAIL_SEND]);
-  assert(send.reads.some((l) => /approved word for word/.test(l)) && send.never.includes("Trainee never sends an email you did not approve."), "with send, the notice says so");
-  assert(!n.reads.some((l) => /\bSend\b/.test(l)) && n.never.includes("Trainee can't send, delete, label or change any email."), "without it, it says it can't");
-  assert(!consentNotice([OPENID, EMAIL, GMAIL_READONLY]).reads.some((l) => /OpenAI/.test(l)), "the model line only when the second pass is on");
+  for (const line of [...n.reads, ...n.never, ...n.undo]) assert(text(f["google.html"]).includes(line), `notice: ${line}`);
+  assert(/<h1>Trainee Terms of Service<\/h1>/.test(f["terms.html"]) && t.length > 0, "terms built");
+  // The command writes the same files when the inputs are given.
+  const dir = await Deno.makeTempDir(), inputs = `${dir}/inputs.json`;
+  Deno.writeTextFileSync(inputs, JSON.stringify(SAMPLE));
+  const run = await new Deno.Command(Deno.execPath(), { args: ["run", "-A", "scripts/launch/build-legal-pages.ts", "--inputs", inputs, "--out", dir], cwd: ROOT.pathname, stdout: "piped", stderr: "piped" }).output();
+  eq(run.code, 0, new TextDecoder().decode(run.stderr));
+  for (const name of Object.keys(f)) eq(Deno.readTextFileSync(`${dir}/${name}`), f[name], `${name} written`);
 });
 
-Deno.test("GV/12 the launch doc states the same scope set the code requests", () => {
+Deno.test("GV/13 the launch doc states the same scope set the code requests", () => {
   for (const s of SUBMITTED_SCOPES) assert(DOC.includes(s === OPENID || s === EMAIL ? `\`${s}\`` : s), `the doc names ${s}`);
   assert(/gmail\.send[^\n]*Deferred/i.test(DOC), "and records gmail.send as deferred");
+  assert(/agent-exec[^\n]*finance/i.test(DOC), "and names agent-exec as the finance leftover");
 });

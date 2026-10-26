@@ -711,7 +711,7 @@ kbd{font-family:inherit;font-size:12px;border:1px solid var(--d-line);border-rad
             </div>
             <label class="consent">
               <input type="checkbox" id="su-consent" required>
-              <span>I agree to receive automated texts from Trainee about the waitlist, my account and my job search. Message frequency varies. Message and data rates may apply. Consent isn't a condition of purchase. Reply STOP to opt out or HELP for help. See the <a href="#product/sms-terms">SMS Terms</a>, <a href="#product/terms">Terms</a> and <a href="#product/privacy">Privacy Policy</a>.</span>
+              <span>I agree to receive automated texts from Trainee about the waitlist, my account and my job search. Message frequency varies. Message and data rates may apply. Consent isn't a condition of purchase. Reply STOP to opt out or HELP for help. See the <a href="#product/sms-terms">SMS Terms</a>, <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</span>
             </label>
             <p class="err" id="su-err" role="alert"></p>
             <button class="btn" type="submit" id="su-btn"><svg class="imsg" viewBox="0 0 24 24" role="img" aria-label="iMessage"><path fill="#34DA50" d="M5.285 0A5.273 5.273 0 0 0 0 5.285v13.43A5.273 5.273 0 0 0 5.285 24h13.43A5.273 5.273 0 0 0 24 18.715V5.285A5.273 5.273 0 0 0 18.715 0ZM12 4.154a8.809 7.337 0 0 1 8.809 7.338A8.809 7.337 0 0 1 12 18.828a8.809 7.337 0 0 1-2.492-.303A8.656 7.337 0 0 1 5.93 19.93a9.929 7.337 0 0 0 1.54-2.155 8.809 7.337 0 0 1-4.279-6.283A8.809 7.337 0 0 1 12 4.154"/></svg>Join the waitlist</button>
@@ -901,8 +901,8 @@ kbd{font-family:inherit;font-size:12px;border:1px solid var(--d-line);border-rad
       <a href="#about">About</a>
       <a href="#careers">Careers</a>
       <a href="#product/security">Security</a>
-      <a href="#product/privacy">Privacy</a>
-      <a href="#product/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
       <a href="#product/support">Contact</a>
     </nav>
     <span class="muted">© 2026 Trainee</span>
@@ -1286,47 +1286,22 @@ var PAGES = [
 <h2>Your approval comes first</h2>
 <p>Trainee never submits an application or sends an email in your name without your approval or a rule you set.</p>
 <h2>Data protection</h2>
-<p>[Describe encryption in transit and at rest, where data is hosted, and who on your team can access it.]</p>
+<p>Information is sent over encrypted connections. Each person can read only their own records, and the tokens of accounts you connect are kept in an encrypted secret store that only Trainee's servers use.</p>
 <h2>Connected accounts</h2>
-<p>[Describe how connections are authorized, for example through OAuth, and that passwords are never stored.]</p>
+<p>Google is connected on Google's own page, so Trainee never sees your Google password. Saying "disconnect gmail" revokes Trainee's access at Google and deletes what it kept. See <a href="/google">what Trainee reads in Gmail</a>.</p>
 <h2>Reporting a problem</h2>
 <p>Email <a class="js-support" href="#">support</a> to report a security concern.</p>`},
 
 { slug:'privacy', group:'Trust & Legal', title:'Privacy Policy',
   desc:'What we collect, why, and the choices you have.',
   html:`
-<div class="note"><i class="ph" aria-hidden="true"><svg class="ic"><use href="#i-warning"/></svg></i><p>Template only. Have a lawyer review this before launch.</p></div>
-<p class="mut">Last updated: [DATE]</p>
-<h2>Information we collect</h2>
-<p>[Name, phone number, resume contents, job preferences, messages you send to Trainee, and data from accounts you connect.]</p>
-<h2>How we use it</h2>
-<p>[To find roles, prepare applications, send messages you approve, and improve Trainee.]</p>
-<h2>How we share it</h2>
-<p>[With employers when you apply, with people you choose to contact, and with service providers that help run Trainee. We do not sell your personal information.]</p>
-<h2>Mobile information</h2>
-<p>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Text messaging opt-in data and consent will not be shared with any third parties.</p>
-<h2>Your choices</h2>
-<p>[How to access, export or delete your data, and how to disconnect accounts.]</p>
-<h2>Contact</h2>
-<p>[Company legal name, address and privacy contact email.]</p>`},
+<p>Trainee's Privacy Policy, including how it uses data from a Google account you connect (Google API Services User Data Policy, Limited Use), is at <a href="/privacy">/privacy</a>.</p>
+<p>What Trainee reads in Gmail, before you connect it: <a href="/google">/google</a>.</p>`},
 
 { slug:'terms', group:'Trust & Legal', title:'Terms of Service',
   desc:'The rules for using Trainee.',
   html:`
-<div class="note"><i class="ph" aria-hidden="true"><svg class="ic"><use href="#i-warning"/></svg></i><p>Template only. Have a lawyer review this before launch.</p></div>
-<p class="mut">Last updated: [DATE]</p>
-<h2>Using Trainee</h2>
-<p>[Eligibility, account responsibilities, and acceptable use.]</p>
-<h2>Your content</h2>
-<p>[You own your resume and materials. You give Trainee permission to use them to provide the service.]</p>
-<h2>Actions taken for you</h2>
-<p>[Trainee acts on your approval. You're responsible for the accuracy of information you provide.]</p>
-<h2>Payments</h2>
-<p>[Billing, renewals, refunds and cancellation.]</p>
-<h2>Limits of liability</h2>
-<p>[Standard disclaimers. Trainee can't guarantee interviews or offers.]</p>
-<h2>Contact</h2>
-<p>[Company legal name, address and contact email.]</p>`},
+<p>Trainee's Terms of Service are at <a href="/terms">/terms</a>.</p>`},
 
 { slug:'sms-terms', group:'Trust & Legal', title:'SMS Terms',
   desc:'How Trainee texts you, and how to stop.',
@@ -1345,7 +1320,7 @@ var PAGES = [
 <h2>Carriers</h2>
 <p>Carriers are not liable for delayed or undelivered messages.</p>
 <h2>Privacy</h2>
-<p>See our <a href="#product/privacy">Privacy Policy</a>.</p>`},
+<p>See our <a href="/privacy">Privacy Policy</a>.</p>`},
 
 { slug:'support', group:'Support', title:'Contact support',
   desc:'We usually reply within one business day.',
@@ -1360,7 +1335,7 @@ var PAGES = [
 <h3>How do I stop texts?</h3>
 <p>Text <code>STOP</code>. See <a href="#product/sms-terms">SMS Terms</a>.</p>
 <h3>How do I delete my data?</h3>
-<p>Email support and we'll delete your account and data. See the <a href="#product/privacy">Privacy Policy</a>.</p>`}
+<p>Email support and we'll delete your account and data. See the <a href="/privacy">Privacy Policy</a>.</p>`}
 ];
 </script>
 

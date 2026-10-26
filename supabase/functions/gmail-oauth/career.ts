@@ -35,6 +35,19 @@ export function scopesForPurpose(purpose: Purpose): string[] {
   return purpose === "career" ? [...CAREER_SCOPES] : [GMAIL_SCOPE];
 }
 
+// ---- What a consent URL asks Google for (Google verification, 2026-10-26). Only the scopes in the verification
+// submission (openid, email, gmail.readonly) plus any the owner lists in GOOGLE_APPROVED_EXTRA_SCOPES after Google
+// approves them (gmail.send, later). Calendar is never asked: nothing reads it. A copy of _shared/google_scopes.ts's
+// requestableScopes so this function keeps deploying from its own directory; tests/architect/google-verification.test.ts
+// pins the two to the same answers.
+export const SUBMITTED_SCOPES: string[] = ["openid", "email", GMAIL_SCOPE];
+const SCOPE_WORD = /^(?:openid|email|profile|https:\/\/www\.googleapis\.com\/auth\/[a-z0-9._-]+)$/;
+export function requestScopesFor(purpose: Purpose, approvedExtras?: string | null): { scopes: string[]; dropped: string[] } {
+  const allowed = new Set([...SUBMITTED_SCOPES, ...String(approvedExtras ?? "").split(/[\s,]+/).filter((s) => SCOPE_WORD.test(s))]);
+  const want = scopesForPurpose(purpose);
+  return { scopes: [...new Set(["openid", "email", ...want.filter((s) => allowed.has(s))])], dropped: want.filter((s) => !allowed.has(s)) };
+}
+
 // ---- HMAC state (CSRF + user binding + purpose routing). Payload: <userId>.<exp>.<purpose> ----
 // Legacy states issued before the career grant existed have no purpose segment (3 parts); they verify as
 // purpose "gmail" so a consent started just before a deploy still lands.
@@ -93,7 +106,11 @@ export function parseScopes(input: unknown): string[] {
   return [];
 }
 export type ScopeSet = "none" | "readonly" | "career" | "partial";
-export function scopeSet(scopes: string[]): ScopeSet {
+// openid and email only name the account (Google verification, 2026-10-26: every consent now asks for them so the
+// connected address can be shown); they never change what a grant may do with mail, so they are left out here.
+const IDENTITY = new Set(["openid", "email", "profile", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]);
+export function scopeSet(all: string[]): ScopeSet {
+  const scopes = all.filter((s) => !IDENTITY.has(s));
   if (!scopes.length) return "none";
   const has = (s: string) => scopes.includes(s);
   if (has(GMAIL_SEND_SCOPE) && has(CALENDAR_FREEBUSY_SCOPE) && has(CALENDAR_EVENTS_SCOPE)) return "career";
@@ -183,4 +200,25 @@ export function disconnectPlan(userId: string, rawSource: string | undefined | n
   }
   // "gmail" (and the pre-career no-source call): the legacy grant only. Career Gmail is removed via "career".
   return { source: "gmail", providers: [legacy.provider], vault_names: [legacy.vault], also_affects: [], note: null };
+}
+
+// ---- Revoke at Google (Google verification, 2026-10-26). Disconnect used to delete only Trainee's copy of the tokens, so
+// the grant stayed authorized in the person's Google account. Google's revoke endpoint takes the refresh token (which
+// revokes the whole grant) or, without one, the access token. 200: revoked. 400: Google no longer holds the token
+// (already revoked), which is the outcome wanted. Anything else, or a network failure: not confirmed; the caller still
+// deletes the stored tokens and tells the person to remove access at myaccount.google.com/permissions.
+export const GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
+export type RevokeOutcome = "revoked" | "not_confirmed" | "no_token";
+export async function revokeAtGoogle(f: typeof fetch, storedSecret: string | null | undefined): Promise<RevokeOutcome> {
+  let tok: { refresh_token?: unknown; access_token?: unknown } = {};
+  try { tok = JSON.parse(String(storedSecret ?? "")) ?? {}; } catch { return "no_token"; }
+  const token = typeof tok.refresh_token === "string" && tok.refresh_token ? tok.refresh_token
+    : typeof tok.access_token === "string" && tok.access_token ? tok.access_token : "";
+  if (!token) return "no_token";
+  try {
+    const r = await f(GOOGLE_REVOKE, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token }) });
+    return r.ok || r.status === 400 ? "revoked" : "not_confirmed";
+  } catch {
+    return "not_confirmed";
+  }
 }

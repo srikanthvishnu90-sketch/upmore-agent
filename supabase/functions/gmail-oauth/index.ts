@@ -36,10 +36,11 @@ import {
   GMAIL_SCOPE,
   providerForPurpose,
   purposeForAction,
-  scopesForPurpose,
   vaultNameFor,
   verifyState,
   issueState,
+  requestScopesFor,
+  revokeAtGoogle,
 } from "./career.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
@@ -125,7 +126,7 @@ serve(async (req) => {
         // Scopes actually granted (Google echoes them on the token response) win over scopes requested.
         const grantedScopes = typeof tok.scope === "string" && tok.scope.trim()
           ? tok.scope.split(/\s+/).filter(Boolean).join(" ")
-          : scopesForPurpose(purpose).join(" ");
+          : requestScopesFor(purpose, Deno.env.get("GOOGLE_APPROVED_EXTRA_SCOPES")).scopes.join(" ");
         const admin = createClient(supabaseUrl, serviceKey);
         const secret = JSON.stringify({
           access_token: tok.access_token,
@@ -163,11 +164,15 @@ serve(async (req) => {
     if (startPurpose) {
       if (!clientId) return json({ error: startPurpose === "career" ? "Google connect is not configured yet" : "Gmail connect is not configured yet" }, 503);
       const state = await issueState(user.id, startPurpose, stateSecret);
+      // Only scopes in the Google verification submission (or approved since): never calendar, and gmail.send only once
+      // the owner sets GOOGLE_APPROVED_EXTRA_SCOPES (career.ts requestScopesFor, in lockstep with _shared/google_scopes.ts);
+      // openid + email so the userinfo call below can name the address.
+      const asked = requestScopesFor(startPurpose, Deno.env.get("GOOGLE_APPROVED_EXTRA_SCOPES"));
       const q = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri(),
         response_type: "code",
-        scope: scopesForPurpose(startPurpose).join(" "),
+        scope: asked.scopes.join(" "),
         access_type: "offline",
         prompt: "consent",
         state,
@@ -184,13 +189,20 @@ serve(async (req) => {
 
     if (action === "disconnect") {
       const plan = disconnectPlan(user.id, typeof body.source === "string" ? body.source : undefined);
+      // Revoke each grant at Google before Trainee's copy is deleted, so disconnecting also removes Trainee from the
+      // person's Google account (privacy policy, "Disconnecting Google").
+      const revoked: Record<string, string> = {};
+      for (const name of plan.vault_names) {
+        const { data: raw } = await admin.rpc("oauth_vault_read", { p_name: name });
+        revoked[name.startsWith("oauth_google_career_") ? "google_career" : "gmail"] = await revokeAtGoogle(fetch, typeof raw === "string" ? raw : null);
+      }
       for (const name of plan.vault_names) await admin.rpc("oauth_vault_delete", { p_name: name });
       // Row deletes also fire the vault-cleanup trigger (20261012060000); the explicit delete above keeps the
       // pre-career behaviour on projects where that migration has not landed yet.
       await admin.from("user_oauth_connections").delete().eq("user_id", user.id).in("provider", plan.providers);
       return json({
         ok: true, disconnected: true, source: plan.source,
-        removed_providers: plan.providers, also_affects: plan.also_affects, note: plan.note,
+        removed_providers: plan.providers, also_affects: plan.also_affects, note: plan.note, revoked_at_google: revoked,
       });
     }
 

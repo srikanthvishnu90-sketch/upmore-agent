@@ -104,6 +104,8 @@ export function hasConfirmedResume(profile: any): boolean {
 }
 export const NO_RESUME_REASON = "no resume on file: I have no confirmed resume to prepare it from";
 export const NO_RESUME_NEXT = "Paste or attach your resume, confirm it, then ask again.";
+// With the server prepare off, a posting is queued without a resume on file; nothing can be prepared from it until one is.
+export const NO_RESUME_WAIT = "I have no confirmed resume on file yet, so nothing can be prepared until you paste or attach your resume and confirm it.";
 
 // --------------------------------------------------------------------------------------------- the server-side prepare
 export type PrepareKick = "started" | "off" | "failed";
@@ -114,7 +116,7 @@ export async function kickPrepare(o: {
   env: { get(k: string): string | undefined }; fetch: typeof fetch; userId: string; jobIds: string[];
 }): Promise<PrepareKick> {
   const url = (o.env.get("CAREER_PREPARE_AHEAD_URL") ?? "").trim(), token = (o.env.get("CAREER_PREPARE_AHEAD_TOKEN") ?? "").trim();
-  if (!url || !token || !o.jobIds.length) return "off";
+  if (!prepareConfigured(o.env) || !o.jobIds.length) return "off";
   try {
     const res = await o.fetch(url, {
       method: "POST",
@@ -127,6 +129,10 @@ export async function kickPrepare(o: {
   } catch {
     return "failed";
   }
+}
+// The owner configured the worker's prepare door (both its URL and its token): a row queued from chat is prepared at once.
+export function prepareConfigured(env: { get(k: string): string | undefined }): boolean {
+  return !!(env.get("CAREER_PREPARE_AHEAD_URL") ?? "").trim() && !!(env.get("CAREER_PREPARE_AHEAD_TOKEN") ?? "").trim();
 }
 export function prepareSentence(k: PrepareKick | null, n: number): string {
   if (k === null || n < 1) return "";
@@ -237,6 +243,7 @@ export function feature1Deps(o: {
       posting: o.posting,
       resumeOnFile: resumeOnFileReader(o.admin, o.userId),
       prepare: (jobIds: string[]) => kickPrepare({ env: o.env, fetch: o.fetch, userId: o.userId, jobIds }),
+      prepareOn: () => prepareConfigured(o.env),
     },
     // After the router's batch turn: an answer it recorded in chat is recorded on the matching open queue question too.
     // deno-lint-ignore no-explicit-any

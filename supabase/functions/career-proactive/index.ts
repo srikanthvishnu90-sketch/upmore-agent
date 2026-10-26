@@ -67,6 +67,9 @@ serve((req) => {
       if (error) throw new Error(`push a card: ${error.message}`);
       return data ?? null;
     },
+    // FEATURE 3 (prepareAhead) is not wired here: preparing runs the engine's dry run in a browser, which an edge function
+    // cannot start. The host that has the engine runs the same rail (career_proactive_run.ts runPrepareAhead) with
+    // `deno run -A workers/career-browser/prepare-ahead.ts daily` under CAREER_PREPARE_AHEAD=on.
     // Mail tracking (WO-024) reads people's mail, so it runs only once the owner turns it on at deploy.
     mail: Deno.env.get("CAREER_MAIL_TRACKING") === "on" ? {
       store: () => supabaseMailStore(admin),

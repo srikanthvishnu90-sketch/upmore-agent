@@ -16,7 +16,17 @@ on:
       - evals/career/**
       - supabase/functions/_shared/**
       - supabase/functions/agent-chat/career_brain.ts
-  workflow_dispatch: {}
+      - supabase/functions/agent-chat/career_staged.ts
+  # FEATURE 13: a manual run can measure the staged release (CAREER_BRAIN=staged: question and advice turns to the brain,
+  # every other turn to the router) instead of the full agent; a push measures the agent, as before. Same set, same
+  # judges, same spend cap; the router comparison runs either way.
+  workflow_dispatch:
+    inputs:
+      brain:
+        description: "Which brain the five passes measure: agent (every turn) or staged (question and advice turns only)"
+        type: choice
+        options: [agent, staged]
+        default: agent
 permissions:
   contents: write
 concurrency: { group: brain-eval, cancel-in-progress: false }
@@ -25,6 +35,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
+      EVAL_BRAIN: ${{ inputs.brain || 'agent' }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CAREER_MODEL: gpt-5-mini
       EVAL_JUDGE_MODEL: gpt-5-mini
@@ -48,9 +59,9 @@ jobs:
       # Five full passes of the same build, in parallel (second judge's ruling, 2026-10-21: the pass-to-pass swing is
       # 16-18 points in one run, so three passes cannot resolve a change under about 5 points; keep decisions use five).
       # Each pass is logged; the bar is still one full pass at 95%.
-      - name: Held-out set, agent brain (the bar), five passes
+      - name: Held-out set, ${{ env.EVAL_BRAIN }} brain (the bar), five passes
         run: |
-          for p in 1 2 3 4 5; do deno run -A evals/career/run.ts --brain agent --set heldout --label "heldout-agent-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
+          for p in 1 2 3 4 5; do deno run -A evals/career/run.ts --brain "${{ env.EVAL_BRAIN }}" --set heldout --label "heldout-${{ env.EVAL_BRAIN }}-${{ github.run_id }}-p$p" > "$RUNNER_TEMP/h-agent-$p.txt" 2>&1 & done
           wait; cat "$RUNNER_TEMP"/h-agent-*.txt
       # Re-scores of recorded runs listed in evals/career/rejudge.txt ("<label> <judge model>"), once each, judge only.
       - name: Re-score recorded runs (judge only)
@@ -64,14 +75,14 @@ jobs:
       - name: The score log and the verdict
         if: always()
         run: |
-          deno run -A evals/career/score-log.ts evals/career/results/heldout-agent-${{ github.run_id }}-p*.json evals/career/results/heldout-router-${{ github.run_id }}.json --run ${{ github.run_id }}
+          deno run -A evals/career/score-log.ts evals/career/results/heldout-${{ env.EVAL_BRAIN }}-${{ github.run_id }}-p*.json evals/career/results/heldout-router-${{ github.run_id }}.json --run ${{ github.run_id }}
           deno eval '
-            const ps = [1, 2, 3, 4, 5].map((p) => { try { return JSON.parse(Deno.readTextFileSync(`evals/career/results/heldout-agent-${{ github.run_id }}-p${p}.json`)); } catch { return null; } });
+            const ps = [1, 2, 3, 4, 5].map((p) => { try { return JSON.parse(Deno.readTextFileSync(`evals/career/results/heldout-${{ env.EVAL_BRAIN }}-${{ github.run_id }}-p${p}.json`)); } catch { return null; } });
             const bad = (a) => !a || a.stopped || a.items.some((x) => /^judge error/.test(x.note ?? "") || (x.judges ?? []).some((j) => /^judge error/.test(j.note ?? "")));
             const ok = ps.filter((a) => !bad(a));
             if (!ok.length) { console.log("WO-061: NOT A SCORE (no pass finished cleanly: spend cap or judge errors)"); Deno.exit(0); }
             const best = Math.max(...ok.map((a) => a.pass_rate));
-            console.log(`WO-061: held-out agent passes ${ps.map((a) => bad(a) ? "void" : a.passed).join(", ")} of ${ok[0].total} both-pass of gpt-5-mini and gpt-4.1-mini, brain ${ok[0].source_commit}: ${best >= 0.95 ? "a pass at 95% on the two CI judges; the score also needs Instinct, on the live build" : "BELOW THE BAR (95%) on the two CI judges"}`);
+            console.log(`WO-061: held-out ${{ env.EVAL_BRAIN }} passes ${ps.map((a) => bad(a) ? "void" : a.passed).join(", ")} of ${ok[0].total} both-pass of gpt-5-mini and gpt-4.1-mini, brain ${ok[0].source_commit}: ${best >= 0.95 ? "a pass at 95% on the two CI judges; the score also needs Instinct, on the live build" : "BELOW THE BAR (95%) on the two CI judges"}`);
           ' | tee "$RUNNER_TEMP/verdict.txt"
       - name: Commit the results to ci/brain-eval
         if: always()

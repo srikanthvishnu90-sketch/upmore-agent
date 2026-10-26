@@ -48,12 +48,16 @@ export function validPrefs(input: Record<string, unknown>, base: AlertPrefs = DE
   if (!Number.isInteger(cap) || cap < 0 || cap > MAX_INSTANT_PER_DAY) return { ok: false, error: `max_instant_per_day must be 0 to ${MAX_INSTANT_PER_DAY}` };
   const week = input.max_per_week === undefined ? base.max_per_week : Number(input.max_per_week);
   if (week !== undefined && (!Number.isInteger(week) || week < 0 || week > WEEKLY_MAX)) return { ok: false, error: `max_per_week must be 0 to ${WEEKLY_MAX}` };
+  // F7: the lowest fit score the person wants alerted; null clears it, a field left out keeps the saved one.
+  const minFit = input.min_fit === undefined ? base.min_fit : input.min_fit === null ? undefined : Number(input.min_fit);
+  if (minFit !== undefined && (!Number.isInteger(minFit) || minFit < 0 || minFit > 100)) return { ok: false, error: "min_fit must be a whole number from 0 to 100" };
   if (input.remote_ok !== undefined && typeof input.remote_ok !== "boolean") return { ok: false, error: "remote_ok must be true or false" };
   // The relevance floor (C-04): only what the person stated; a floor not given keeps the one already saved.
   const fl = input.floor === undefined ? { ok: true as const, floor: base.floor } : validFloor(input.floor);
   if (!fl.ok) return { ok: false, error: fl.error };
   const floor = fl.floor && Object.keys(fl.floor).length ? fl.floor : undefined;
-  return { ok: true, prefs: { ...base, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, quiet_start, quiet_end, max_instant_per_day: cap, floor, ...(week !== undefined ? { max_per_week: week } : {}) } };
+  const { min_fit: _was, ...kept } = base;
+  return { ok: true, prefs: { ...kept, on: true, keywords, locations, remote_ok: input.remote_ok === undefined ? base.remote_ok : input.remote_ok as boolean, report_hour, quiet_start, quiet_end, max_instant_per_day: cap, floor, ...(week !== undefined ? { max_per_week: week } : {}), ...(minFit !== undefined ? { min_fit: minFit } : {}) } };
 }
 export function validZone(tz: unknown): string | null {
   if (typeof tz !== "string" || !tz || tz.length > 64) return null;

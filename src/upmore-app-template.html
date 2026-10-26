@@ -1137,6 +1137,7 @@
   #billAssessment { margin-top:20px; }
   .bill-row .btn { margin-right:8px; margin-top:8px; }
   #bills .btn { min-height:44px; }
+/*__CAREER_DASHBOARD_CSS__*/
 </style>
 </head>
 <body>
@@ -1825,6 +1826,7 @@
       </div>
       <button class="ctasksbtn" id="guideChatsBtn" style="right:108px" aria-label="Your chats">Chats</button>
       <button class="ctasksbtn" id="guideTasksBtn" aria-label="Open tasks">Tasks<span class="taskbadge" hidden></span></button>
+      <button class="ctasksbtn" id="careerDashBtn" style="left:12px;right:auto" aria-label="Your applications">Applications</button>
     </div>
     <div class="cfeed" id="chatFeed" aria-live="polite"></div>
     <div class="ccomposer">
@@ -1839,6 +1841,14 @@
         </div>
       </div>
       <p class="cfine">Upmore is an AI assistant &mdash; it explains and does the prep. It&apos;s not a human advisor and never gives personalized financial advice.</p>
+    </div>
+    <nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+
+  <!-- ================= TRAINEE DASHBOARD (FEATURE 15, 2026-10-25) ================= -->
+  <section class="screen nx" id="careerDash" aria-label="Your applications">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div id="careerDashboard"></div>
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
@@ -2011,9 +2021,11 @@
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
 <!--__CAREER_APPROVAL_CARD__-->
+<!--__CAREER_APPLY_CARD__-->
 <script>
 /*__CONNECT_CARDS__*/
 /*__MANUAL_CONNECT__*/
+/*__CAREER_DASHBOARD__*/
 /*__MANUAL_PLAYBOOKS__*/
   /* Phone frame on larger screens */
   (function () {
@@ -2206,6 +2218,7 @@
     if (id === "plan") buildPlan();
     if (id === "home") renderHome();
     if (id === "chat") renderChatTab();
+    if (id === "careerDash") renderCareerDashboard();
     if (id === "tasks") renderTasks();
     if (id === "feed") renderFeed();
     if (id === "explore") { renderExplore(); renderQueue(); }
@@ -7918,6 +7931,7 @@
       m.innerHTML = `<p>${md(txt)}</p>`;
       el.appendChild(m);
       renderCareerApproval(m, meta, chatRequests.capture());
+      renderCareerApplyCard(m, meta, chatRequests.capture());
     }
   }
   async function openGuideChat(id) {
@@ -7988,6 +8002,64 @@
       if (!ticket.current()) return;
       target.textContent = 'This approval could not be verified. Nothing was approved.';
       target.setAttribute('role', 'alert');
+    });
+  }
+  /* FEATURE E2E (2026-10-26): the chat's card of prepared applications (meta.intent career_apply_card, meta.card_id)
+     gets Approve and Decline under its message. src/career-apply-card.js reads the card and the prepared applications
+     with this session (RLS), shows their own lines, refuses a card whose hashes no longer match, and answers with
+     career_apply_card_answer_own(card, exactly its numbers). */
+  function renderCareerApplyCard(host, metadata, ticket) {
+    if (typeof TraineeApplyCard !== 'object' || !TraineeApplyCard.cardIdOf(metadata) || !session?.user?.id) return;
+    TraineeApplyCard.mount(host, metadata, { from: t => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => ticket.current() })
+      .catch(() => { if (ticket.current()) toast('This card could not be shown. Nothing was approved.'); });
+  }
+  /* FEATURE 15 (2026-10-25): the Trainee dashboard. src/career-dashboard.js renders; this host reads the person's own
+     rows with their session (RLS), mounts each open approval card with the same TraineeApprovalCards controller and the
+     same hash-bound RPCs as the chat card (bound to the card's own thread), and hands drafts to the chat composer. */
+  async function careerDashDraft(text, threadId) {
+    show("chat");
+    if (threadId && upmoreThreads.some(row => row.id === threadId && row.user_id === session?.user?.id)) await openGuideChat(threadId);
+    const ta = $("chatInput");
+    if (ta) { ta.value = text; ta.focus(); if (typeof chatSendReady === "function") chatSendReady(); }
+  }
+  async function renderCareerDashboard() {
+    const host = $("careerDashboard");
+    if (!host || typeof TraineeDashboard !== "object") return;
+    const uid = session?.user?.id || null;
+    if (!uid) { host.textContent = "Sign in to see your applications."; return; }
+    host.textContent = "Loading your applications\u2026";
+    let data;
+    try { data = await TraineeDashboard.load(supa, uid); }
+    catch (e) { if (session?.user?.id === uid) host.textContent = "Couldn't load your applications. Check your connection and try again."; return; }
+    if (session?.user?.id !== uid || current !== "careerDash") return;
+    TraineeDashboard.mount(host, data, {
+      now: () => Date.now(),
+      brandIcons: BRAND_ICONS,
+      draft: careerDashDraft,
+      mountCard: typeof TraineeApprovalCards === "object" ? TraineeDashboard.cardMounter({
+        testUserId: CAREER_APPROVAL_TEST_USER_ID,
+        identity: () => session?.user?.id || null,
+        current: () => session?.user?.id === uid,
+        authenticate: async () => {
+          const { data, error } = await supa.auth.getUser();
+          if (error || !data?.user?.id) throw Error("Sign in again to review this approval.");
+          return data.user.id;
+        },
+        rpc: (name, args) => supa.rpc(name, args),
+        now: () => Date.now(), crypto: globalThis.crypto
+      }) : null,
+      send: async (text, threadId) => {
+        const token = await getSessionToken();
+        if (!token) throw Error("sign in again");
+        const response = await fetch(UPMORE_BACKEND_URL + "/functions/v1/agent-chat", { method: "POST", headers: { "content-type": "application/json", apikey: UPMORE_ANON_KEY, authorization: "Bearer " + token }, body: JSON.stringify({ thread_id: threadId || null, message: text }) });
+        if (!response.ok) throw Error("chat unavailable");
+        return await response.json();
+      },
+      saveName: async name => {
+        const { error } = await supa.from("profiles").update({ display_name: name, updated_at: new Date().toISOString() }).eq("id", uid);
+        if (error) throw error;
+      },
+      onDone: () => { if (current === "careerDash") renderCareerDashboard(); },
     });
   }
   const chatRequests=UpmoreChatRequests({
@@ -8517,6 +8589,7 @@
     if ($("tasksRow")) $("tasksRow").onclick = () => show("tasks");
     if ($("feedRow")) $("feedRow").onclick = () => show("feed");
     if ($("guideTasksBtn")) $("guideTasksBtn").onclick = () => show("tasks");
+    if ($("careerDashBtn")) $("careerDashBtn").onclick = () => show("careerDash");
     // Subscription row: shows status, opens checkout or subscription detail.
     if ($("subscriptionRow")) {
       $("subscriptionRow").onclick = () => show("subscription");
@@ -12479,6 +12552,7 @@ function addAI(paras, card, prov, requestTicket, workflowAction, messageMeta) {
     }
     m.insertAdjacentHTML("beforeend", html);
     renderCareerApproval(m, messageMeta?.intent === 'career_message_approval' ? messageMeta : workflowAction, ticket);
+    renderCareerApplyCard(m, messageMeta, ticket);
     const workflow=ticket.workflow(workflowAction);
     if(workflow){const review=document.createElement('button');review.type='button';review.className='ghostbtn';review.textContent='Review bill next step';review.onclick=()=>workflow.open(link=>{openBillWorkflow(link,ticket).catch(()=>{if(ticket.current())toast('Bill details are unavailable. Reload bills to try again.');});});m.appendChild(review);}
     const b = m.querySelector("[data-open]");

@@ -89,6 +89,46 @@ export function heldReply(r: EvidenceResult): string | null {
   return `${head} A draft is never tailored, put on a form or sent.`;
 }
 
+// FEATURE 9: a fact the person states in chat ("I'm a junior", "I need sponsorship", "my recruiter at Acme is Dana") is
+// captured by the router into the account's stated facts with no event behind it. This gives each such fact the same
+// provenance a confirmed resume entry gets, under the same rule: only what this turn added (absent from the record the
+// turn started from, or a new value under the same identity), only when its words are in the person's own message this
+// turn, and only once the event is recorded. A fact whose event cannot be recorded stays as it was: a statement on the
+// record, never called confirmed.
+export const STATED_FACT_PROVENANCE = "owner stated in chat, in their own words";
+export interface StatedEvidence { stamped: number; untraced: number; refused: number }
+// deno-lint-ignore no-explicit-any
+const statedIdOf = (f: any) => f && typeof f.key === "string" && f.key ? `key:${f.kind}:${f.key.toLowerCase()}` : `${f?.kind}:${words(f?.value)}`;
+export async function evidenceStatedFacts(o: {
+  // deno-lint-ignore no-explicit-any
+  userId: string; threadId: string; now: number; message: string; before: any[] | null | undefined; after: any[] | null | undefined;
+  events: EventStore | null | undefined;
+}): Promise<StatedEvidence> {
+  const r: StatedEvidence = { stamped: 0, untraced: 0, refused: 0 };
+  // deno-lint-ignore no-explicit-any
+  const had = new Map((Array.isArray(o.before) ? o.before : []).filter(Boolean).map((f: any) => [statedIdOf(f), words(f.value)]));
+  // deno-lint-ignore no-explicit-any
+  const fresh = (Array.isArray(o.after) ? o.after : []).filter((f: any) => f && typeof f === "object" && f.kind && words(f.value) &&
+    !f.confirmation_event_id && (!had.has(statedIdOf(f)) || had.get(statedIdOf(f)) !== words(f.value)));
+  if (!fresh.length) return r;
+  const said = words(o.message), at = new Date(o.now).toISOString(), message_sha256 = await sha256Hex(String(o.message ?? ""));
+  for (const f of fresh) {
+    // Their words: the fact's own evidence quote, else its value, must be in what they wrote this turn.
+    const quote = words(f.evidence) && said.includes(words(f.evidence)) ? words(f.evidence) : (said.includes(words(f.value)) ? words(f.value) : "");
+    if (!quote) { r.untraced++; continue; }
+    const event = crypto.randomUUID();
+    const kept = await recordEvent(o.events, {
+      user_id: o.userId, at: o.now, kind: "fact_confirmed", subject: `${f.kind}: ${String(f.value)}`.slice(0, 300), source: "chat",
+      detail: { kind: f.kind, ...(f.key ? { key: f.key } : {}), value: String(f.value).slice(0, 200), confirmation_event_id: event, message_sha256,
+        thread_id: o.threadId, via: "router: stated by the person in chat" },
+    });
+    if (!kept) { r.refused++; continue; }
+    Object.assign(f, { provenance: `${STATED_FACT_PROVENANCE} (${at})`, confirmation_event_id: event, confirmed_at: at });
+    r.stamped++;
+  }
+  return r;
+}
+
 // What the person was shown and what they gave, from their thread's messages (newest first, as read): the assistant's
 // replies since their latest message that carries the confirmed entries' words, and that message, as their upload.
 // deno-lint-ignore no-explicit-any

@@ -2,7 +2,7 @@
 # Trainee go-live: one command from the OWNER's own shell, never an agent's (AGENTS.md: agents never deploy, apply
 # migrations to a live project or create credentials). From the repo, checked out at the exact commit to ship:
 #   bash scripts/launch/trainee-go-live.sh --sha <40-character commit> [--label <who>] [--dry-run] [--skip-migrations]
-#                                          [--skip-deploy] [--only-smoke] [--brain agent|router] [--allow-send] [--no-wait]
+#                                          [--skip-deploy] [--only-smoke] [--brain agent|staged|router] [--allow-send] [--no-wait]
 #   bash scripts/launch/trainee-go-live.sh --verify <40-character commit>     (reads only; exit 1 on any mismatch)
 # WO-093 provenance: a run that changes anything ships exactly the commit named by --sha. It refuses a dirty tree, a HEAD
 # that is not that sha, and a stale router bundle (build-router-core.py --check and --career-only --check), then stages
@@ -33,7 +33,8 @@
 #                 to replay), and one missing live stops the run before anything is deployed on top of it; then every
 #                 mark is read again and any missing one fails the run (a ledger row never stands in for the schema)
 #   3 secrets     one `supabase secrets set --env-file` from a 0600 temp file removed at once; CAREER_BRAIN=agent only
-#                 with --brain agent (--brain router unsets it; without --brain it is not touched)
+#                 with --brain agent, CAREER_BRAIN=staged only with --brain staged (--brain router unsets it; without
+#                 --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
 #                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
 #                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
@@ -71,7 +72,7 @@ while (( $# )); do
   esac
   shift
 done
-[[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == router ]] || { echo "--brain takes agent or router"; exit 64; }
+[[ -z "$BRAIN" || "$BRAIN" == agent || "$BRAIN" == staged || "$BRAIN" == router ]] || { echo "--brain takes agent, staged or router"; exit 64; }
 SHA40_RE='^[0-9a-f]{40}$'; LABEL_RE='^[A-Za-z0-9 ._@:+-]{1,100}$'
 [[ "$DEPLOY_LABEL" =~ $LABEL_RE ]] || { echo "--label: 1 to 100 of A-Z a-z 0-9 space . _ @ : + -"; exit 64; }
 if [[ -n "$VERIFY_MODE" ]]; then
@@ -142,7 +143,14 @@ MIGRATIONS=(
   20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql
   20261025180000_career_outbox_card_id.sql
+  20261026060006_career_more_providers.sql
+  20261026060106_career_ingest_runs.sql
+  20261026070007_career_alert_min_fit.sql
+  20261026080008_career_mail_drafts_sent.sql
+  20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql
+  20261026100001_career_apply_want_guard.sql
+  20261026140000_career_apply_receipt_store.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -202,7 +210,14 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
+  "exists (select 1 from pg_constraint where conname = 'career_board_state_provider_check' and pg_get_constraintdef(oid) like '%workday%')"
+  "to_regclass('public.career_ingest_runs') is not null and exists (select 1 from pg_proc where proname = 'career_ingest_coverage')"
+  "exists (select 1 from pg_constraint where conname = 'career_alert_prefs_min_fit')"
+  "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
+  "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
+  "to_regclass('public.career_apply_receipt_files') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -634,6 +649,8 @@ else
   done
   # The router answers unless the owner asks for the agent brain on this run (D-008); the environment never decides it.
   if [[ "$BRAIN" == agent ]]; then add CAREER_BRAIN agent agent; fi
+  # FEATURE 13: the staged release (question and advice turns to the brain, every action to code) only with --brain staged.
+  if [[ "$BRAIN" == staged ]]; then add CAREER_BRAIN staged staged; fi
   if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
   else
     ENVF="$(umask 077; mktemp "${TMPDIR:-/tmp}/trainee-secrets.XXXXXX")"; chmod 600 "$ENVF"
@@ -645,6 +662,7 @@ else
   unset LINES
   case "$BRAIN" in
     agent) echo "  CAREER_BRAIN=agent: the agent brain answers career turns (the router still takes structured tasks and model outages)" ;;
+    staged) echo "  CAREER_BRAIN=staged: the brain answers question and advice turns; every action, a model outage and any class in CAREER_BRAIN_ROUTER_INTENTS stay with code and the router (--brain router turns it off)" ;;
     router) run "supabase secrets unset CAREER_BRAIN --project-ref $REF" supabase secrets unset CAREER_BRAIN --project-ref "$REF" ;;
     *) echo "  CAREER_BRAIN not touched (the router answers unless it was set to agent before; --brain agent|router changes it)" ;;
   esac
@@ -679,7 +697,7 @@ else
   if [[ -n "$DRY" ]]; then
     echo "DRY: supabase functions download agent-chat --project-ref $REF (into $HOME/trainee-rollback/agent-chat-<UTC>; best effort, the rollback copy)"
     echo "DRY: node scripts/career/stage-career.cjs <stage>/supabase/functions (index-career.ts staged as agent-chat/index.ts)"
-    echo "DRY: (cd <stage> && supabase functions deploy agent-chat --project-ref $REF) (verify_jwt = true)"
+    echo "DRY: (cd <stage> && supabase functions deploy agent-chat --project-ref $REF --use-docker) (verify_jwt = true; bundled locally: the 20 MB limit, not the 5 MB server-side one)"
     echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, agent-chat, its bundle sha256 from the manifest, the platform version, --label)"
   else
     db_init
@@ -689,13 +707,13 @@ else
     STAGE="$(mktemp -d "${TMPDIR:-/tmp}/trainee-agent-chat.XXXXXX")"
     run "node scripts/career/stage-career.cjs $STAGE/supabase/functions" node scripts/career/stage-career.cjs "$STAGE/supabase/functions"
     printf '[functions.agent-chat]\nverify_jwt = true\n' >"$STAGE/supabase/config.toml"
-    echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF)"
-    (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
+    echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF --use-docker)"
+    (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF" --use-docker) 2>&1 | mask
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
-    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
+    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

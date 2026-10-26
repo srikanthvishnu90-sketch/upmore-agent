@@ -141,7 +141,9 @@ const MEMBER = "(?:studied at|study at|studying at|went to|go to|graduated from|
 const FIRST = new RegExp(`\\b(?:I|I'm|I’m|I am|I've|I’ve|I have|I was|my)\\b(?:(?!\\byou)[^.!?\\n]){0,40}?\\b${MEMBER}\\s+(?:the\\s+)?${ENTITY}`, "g");
 const SECOND = new RegExp(`\\b(?:you|you're|you’re|you are|you've|you’ve|your)\\b(?:(?!\\b(?:I|my|me)\\b)[^.!?\\n]){0,40}?\\b(?:${MEMBER.slice(3, -1)}|at)\\s+(?:the\\s+)?${ENTITY}`, "g");
 
-export interface LockSources { facts: string[]; recipient: Recipient; shared: Shared[] }
+// `topic` (F10): what the person asked to write about, in their own words this turn ("the data analyst role"). Its words
+// may be named, but it is never a source for a claim about either side: "I ... at X" still needs X in the facts.
+export interface LockSources { facts: string[]; recipient: Recipient; shared: Shared[]; topic?: string }
 export interface Lock { pass: boolean; untraced: string[]; misattributed: string[] }
 const sentencesOf = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
 const trimEntity = (e: string) => e.replace(/^(?:the|of|and|&)\s+/i, "").replace(/\s+(?:of|the|and|&)$/i, "").replace(/['’]s$/, "").replace(/[.]+$/, "").trim();
@@ -151,7 +153,7 @@ export function outreachLock(text: string, s: LockSources): Lock {
   const personCorpus = s.facts.join(" \n ");
   const rowCorpus = [r.name, r.firm, r.title, r.school, ...(r.prior_firms ?? [])].join(" \n ");
   const sharedCorpus = s.shared.map((x) => x.value).join(" \n ");
-  const all = [personCorpus, rowCorpus, sharedCorpus].join(" \n ");
+  const all = [personCorpus, rowCorpus, sharedCorpus, s.topic ?? ""].join(" \n ");
   const inAny = (e: string) => hasWords(all, e) || sameFirmIn(all, e);
   const untraced: string[] = [], misattributed: string[] = [];
   const miss = (v: string) => { if (!untraced.some((u) => plain(u) === plain(v))) untraced.push(v); };
@@ -221,7 +223,7 @@ const SYSTEM = [
   "3. Output exactly: a first line 'Subject: <subject>', a blank line, then the body starting with a greeting. No sign-off and no name at the end: the seeker's own signature is added after it.",
   "4. Never mention AI, Upmore or Trainee. No stock phrases (\"I hope this email finds you well\", \"pick your brain\", \"I came across your profile\").",
 ].join("\n");
-export function draftPayload(o: { facts: any[]; r: Recipient; shared: Shared[]; previous?: string | null; fix?: string[] }) {
+export function draftPayload(o: { facts: any[]; r: Recipient; shared: Shared[]; previous?: string | null; fix?: string[]; topic?: string | null }) {
   const lines = [
     "THE SEEKER'S CONFIRMED FACTS (the only things you may say about them):",
     ...(o.facts.length ? o.facts.map((f) => `- [${[f.id, f.kind].filter(Boolean).join(", ")}] ${factText(f)}`) : ["- (none)"]),
@@ -229,6 +231,7 @@ export function draftPayload(o: { facts: any[]; r: Recipient; shared: Shared[]; 
     `- name: ${o.r.name}`, `- firm: ${o.r.firm || "(not given)"}`, `- title: ${o.r.title || "(not given)"}`, `- school: ${o.r.school || "(not given)"}`,
     "SHARED (on both sides; the only things you may call shared):",
     ...(o.shared.length ? o.shared.map((x) => `- same ${x.kind}: ${x.value}`) : ["- nothing"]),
+    o.topic ? `WHAT THE SEEKER WANTS TO ASK ABOUT (their own words; the ask, never a fact about either side):\n- ${o.topic}` : "",
     o.previous ? `\nWrite a different version from this earlier one:\n${o.previous}` : "",
     o.fix?.length ? `\nYour last version broke these rules. Write it again without breaking them:\n${o.fix.map((x) => `- ${x}`).join("\n")}` : "",
   ].filter(Boolean);
@@ -242,15 +245,16 @@ function parseDraft(msg: any): { subject: string; body: string; cut: boolean } {
   return { subject, body, cut: msg?.stop_reason === "max_tokens" || !/[.!?)"”]$/.test(body) };
 }
 export type Drafted = { ok: true; subject: string; body: string; shared: Shared[]; tries: number } | { ok: false; why: string; detail: string[]; tries: number };
-export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null }): Promise<Drafted> {
+export async function draftFor(o: { model: ModelFn; facts: unknown[]; r: Recipient; previous?: string | null; topic?: string | null }): Promise<Drafted> {
   const facts = confirmed(o.facts);
   if (!facts.length) return { ok: false, why: "thin", detail: ["no confirmed facts to write from"], tries: 0 };
   const shared = sharedFacts(facts, o.r);
-  const sources: LockSources = { facts: facts.map(factText), recipient: o.r, shared };
+  const topic = o.topic ? String(o.topic).replace(/\s+/g, " ").trim().slice(0, 200) : "";
+  const sources: LockSources = { facts: facts.map(factText), recipient: o.r, shared, ...(topic ? { topic } : {}) };
   let fix: string[] = [], last: string[] = [];
   for (let tries = 1; tries <= 2; tries++) {
     let msg: any;
-    try { msg = await o.model(draftPayload({ facts, r: o.r, shared, previous: o.previous, fix })); }
+    try { msg = await o.model(draftPayload({ facts, r: o.r, shared, previous: o.previous, fix, topic: topic || null })); }
     catch (e) { return { ok: false, why: "model", detail: [e instanceof Error ? e.message : String(e)], tries }; }
     const d = parseDraft(msg);
     if (!d.subject || !d.body) { last = ["it did not write a subject and a body"]; fix = ["Write 'Subject: ...', a blank line, then the body."]; continue; }

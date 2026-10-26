@@ -109,6 +109,14 @@ Function secrets are project-wide in Supabase: every function sees every one.
 5. **schedules**: runs `schedule-career-ingest.sql` (every 5 min), `schedule-career-proactive.sql` (every 5 min) and
    `schedule-trainee-deliver.sql` (every minute), each with its secret passed by env as the script's header says. Each
    stores the secret in Vault and replaces its pg_cron job. **From here texts go out** to people with a linked contact.
+   Ingest (Feature 6) is one job per lane: the lane plan in `packages/career-data/ingest-lane-plan.json` (lanes, window
+   60 min, posting budget per run, measured offline by `scripts/career/measure-ingest-lane.ts`) is written into the SQL by
+   `node scripts/launch/build-ingest-schedule.cjs`; `-v lanes=<n>` overrides it. It needs migrations
+   `20261026060006_career_more_providers.sql` (eleven providers) and `20261026060106_career_ingest_runs.sql` (run log,
+   board body hash) applied and `career-ingest` deployed first. Health:
+   `select * from public.career_ingest_coverage(interval '1 hour')` (one row per lane: runs, boards read of due,
+   failures, the last report with fresh-within-the-hour fractions for the lane and the directory). The first full read of
+   all 27,751 boards takes a few hours (the plan's `first_coverage_hours`); after it, every board within the hour.
 6. **smoke**: `node scripts/launch/trainee-smoke.cjs`: each function refuses a wrong secret and answers the right one
    (503 `NOT_WIRED` or "not configured" is a WARN, never a pass), agent-chat refuses no JWT and answers "hi" for the test
    user, the three pg_cron jobs fired and each run record (`career_ingest_state.last_run_at`, `career_proactive_runs`,
@@ -120,6 +128,12 @@ Function secrets are project-wide in Supabase: every function sees every one.
    POST. A channel not given is printed `NOT RUN … NOT_WIRED` and does not fail the run. None of them sends a message.
    Re-run it any time: `SUPABASE_URL=https://<ref>.supabase.co … node scripts/launch/trainee-smoke.cjs` (exit 0 pass,
    1 a FAIL, 2 NOT RUN).
+
+Networking emails from chat (FEATURE 10): a contacts CSV pasted or attached in chat is imported, and "who do I know at
+X" answers from it, with no switch. Drafting ("email Maya at Stripe about ...") makes one model call per recipient, so it
+runs only once you set `CAREER_NETWORKING_DRAFT=on` on agent-chat (off: the reply names who would be written to and
+nothing is drafted). Drafts land on the outreach batch and need "send N" on the exact message; they go out only through
+career-proactive with `CAREER_OUTREACH_SEND=on` and a Gmail grant with send scope. No migration.
 
 ## LoopMessage
 
@@ -242,7 +256,8 @@ its rows is a separate decision of yours, never part of a rollback.
   (each channel then answers 503 NOT_WIRED and sends nothing; its messages wait in the outbox), and/or remove the webhook
   in LoopMessage, call Telegram's `deleteWebhook`, or unsubscribe `messages` in Meta's webhook settings. One channel
   alone: unset only its token.
-- **Stop the schedules**: `psql "$SUPABASE_DB_URL" -c "select cron.unschedule(j) from unnest(array['trainee-deliver','trainee-career-proactive','trainee-career-ingest']) j"`.
+- **Stop the schedules**: `psql "$SUPABASE_DB_URL" -c "select cron.unschedule(j) from unnest(array['trainee-deliver','trainee-career-proactive','trainee-career-ingest']) j"`; then the ingest lanes:
+  `psql "$SUPABASE_DB_URL" -c "select cron.unschedule(jobname) from cron.job where jobname like 'trainee-career-ingest-lane-%'"`.
   Re-running step 5 brings them back. Their Vault secrets (`trainee_*_secret`) can stay.
 - **Everything back to an earlier commit that has WO-093**: `git checkout --detach <earlier sha>`, then
   `bash scripts/launch/trainee-go-live.sh --sha <earlier sha> --skip-migrations`, then `--verify <earlier sha>`. The

@@ -40,6 +40,11 @@ for marker, filename, wrapped in [
     ('<!--__BILL_CONTROLLER__-->', 'bill-workflow-controller.js', True),
     ('<!--__CHAT_CONTROLLER__-->', 'chat-request-controller.js', True),
     ('<!--__CAREER_APPROVAL_CARD__-->', 'career-approval-card.js', True),
+    # FEATURE E2E (2026-10-26): Approve / Decline on the chat's card of prepared applications.
+    ('<!--__CAREER_APPLY_CARD__-->', 'career-apply-card.js', True),
+    # FEATURE 15 (2026-10-25): the Trainee dashboard (matches, queue, tracker, approval cards, setup) and its styles.
+    ('/*__CAREER_DASHBOARD__*/', 'career-dashboard.js', False),
+    ('/*__CAREER_DASHBOARD_CSS__*/', 'career-dashboard.css', False),
     ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
     ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),

@@ -11,7 +11,9 @@
     const label = s => LABELS[String(s || "").toLowerCase()] || (String(s || "that source").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
     const iso = t => (t == null ? null : new Date(t).toISOString());
     const parseScopes = input => Array.isArray(input) ? input.map(String).filter(Boolean) : typeof input === "string" ? input.split(/[\s,]+/).filter(Boolean) : [];
-    function scopeSet(scopes) {
+    const IDENTITY_SCOPES = new Set(["openid", "email", "profile", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]);
+    function scopeSet(all) {
+      const scopes = all.filter(s => !IDENTITY_SCOPES.has(s));
       if (!scopes.length) return "none";
       const has = s => scopes.includes(s);
       if (has(GMAIL_SEND_SCOPE) && has(CALENDAR_FREEBUSY_SCOPE) && has(CALENDAR_EVENTS_SCOPE)) return "career";

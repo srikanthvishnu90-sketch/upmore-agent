@@ -23,7 +23,7 @@ export const SEND_SCOPE = GMAIL_SEND;
 export type Goal = "apply" | "email_code" | "track_replies" | "outreach";
 export type NeedId =
   | "resume" | "resume_confirm" | "name" | "email" | "phone" | "work_authorization" | "sponsorship" | "form_question"
-  | "gmail_read" | "gmail_send" | "code_by_hand";
+  | "gmail_read" | "gmail_send" | "send_unavailable" | "code_by_hand";
 export type FormNeed = "name" | "email" | "phone" | "work_authorization" | "sponsorship";
 // A fact Trainee has, with where it came from: the person's resume (the upload they confirmed), their own words in chat,
 // or the profile's own record.
@@ -42,6 +42,8 @@ export interface NeedsState {
   pending: Pending[];
   // Needs already offered without being asked (career_needs_asked): an offer is made once.
   offered: string[];
+  // Whether sending from Gmail may be asked for now (google_scopes.ts: deferred until approved). Absent: it may not.
+  sendAvailable?: boolean;
 }
 export interface Target { company: string | null; title: string | null; requires?: FormNeed[]; open_questions?: string[] }
 export interface Need {
@@ -121,7 +123,9 @@ export function nextNeed(s: NeedsState, goal: Goal, target: Target | null = null
       why: "I can only see employers' replies in your Gmail", how: "connect Gmail so I can read employers' replies" };
   }
   if (goal === "outreach") {
-    return s.scopes.includes(SEND_SCOPE) ? null : { id: "gmail_send", blocking: true, target: null, scopes: [SEND_SCOPE],
+    if (s.scopes.includes(SEND_SCOPE)) return null;
+    if (!s.sendAvailable) return { id: "send_unavailable", blocking: true, target: null, why: "sending from your Gmail isn't available in Trainee yet", how: "send it from your own email yourself" };
+    return { id: "gmail_send", blocking: true, target: null, scopes: [SEND_SCOPE],
       why: "messages go from your own Gmail, and only the ones you approve", how: "connect Gmail for sending" };
   }
   return null;

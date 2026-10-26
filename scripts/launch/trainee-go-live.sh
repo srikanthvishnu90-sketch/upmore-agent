@@ -166,6 +166,7 @@ MIGRATIONS=(
   20261026100001_career_apply_want_guard.sql
   20261026140000_career_apply_receipt_store.sql
   20261026160000_career_connect_needs.sql
+  20261026200011_google_disconnect_erase.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -234,6 +235,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
   "exists (select 1 from pg_proc where proname = 'career_connect_link_finish') and to_regclass('public.career_needs_asked') is not null"
+  "exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_google_erase')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

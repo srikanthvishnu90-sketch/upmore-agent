@@ -16,7 +16,7 @@
 import { connectorOf } from "./connectors/index.ts";
 import type { Connector } from "./connectors/types.ts";
 import { storeGrant } from "./connectors/grant_store.ts";
-import { linkBase, scopeLines } from "./career_connectors.ts";
+import { linkBase } from "./career_connectors.ts";
 
 const STATE_MS = 15 * 60 * 1000;
 
@@ -74,7 +74,6 @@ const GONE: Record<string, string> = {
   expired: "This link expired. Links last 15 minutes: ask Trainee for a new one by texting \"connect gmail\".",
   invalid: "This link isn't valid. Ask Trainee for a new one by texting \"connect gmail\".",
 };
-const plain = (lines: string[]) => lines.map((l) => l.replace(/^- /, ""));
 
 // How to carry on with what the person was doing when they asked for the link, said only when what it needs was granted.
 const CARRY_ON: Record<string, { cap: "read" | "send"; text: string }> = {
@@ -85,12 +84,14 @@ const CARRY_ON: Record<string, { cap: "read" | "send"; text: string }> = {
 };
 // What the person is told in the chat once the provider answered: what was granted, in plain words, how to carry on, and
 // how to undo it.
-export function connectedMessage(email: string | null, granted: string[], o: { c?: Connector; purpose?: string } = {}): string {
+// asked: the scopes the link asked for (only those are said as not allowed; nothing never asked for is mentioned).
+export function connectedMessage(email: string | null, granted: string[], o: { c?: Connector; purpose?: string; asked?: string[] } = {}): string {
   const c = o.c ?? connectorOf("google")!;
+  const asked = o.asked ?? [c.scopes.read, c.scopes.send];
   const has = (k: "read" | "send") => granted.includes(c.scopes[k]);
   const can = [has("read") ? "read your mail, for employers' replies and application codes" : null,
     has("send") ? `send from your ${c.label}, only messages you approve word for word` : null].filter(Boolean);
-  const not = [!has("read") ? "reading mail" : null, !has("send") ? "sending" : null].filter(Boolean);
+  const not = [asked.includes(c.scopes.read) && !has("read") ? "reading mail" : null, asked.includes(c.scopes.send) && !has("send") ? "sending" : null].filter(Boolean);
   const next = o.purpose ? CARRY_ON[o.purpose] : undefined;
   return `${c.label} connected: ${email ?? "your account"}.${can.length ? ` You allowed me to ${can.join(", and to ")}.` : ""}` +
     `${not.length ? ` You didn't allow ${not.join(" or ")}, so I won't do that.` : ""}${next && has(next.cap) ? ` ${next.text}` : ""} Say "disconnect gmail" any time to remove it.`;
@@ -123,7 +124,7 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
       const ex = await c.exchange({ fetch: d.fetch, code: url.searchParams.get("code")!, clientId: id, clientSecret, redirectUri: self });
       const granted = await storeGrant(d.admin, c, { userId: link.user_id, ex, asked: link.scopes as string[], now });
       await d.admin.from("career_connect_links").update({ outcome: "connected" }).eq("id", linkId);
-      const text = connectedMessage(ex.email, granted, { c, purpose: link.purpose });
+      const text = connectedMessage(ex.email, granted, { c, purpose: link.purpose, asked: link.scopes as string[] });
       await tell(d, link, linkId, text, now);
       return page(`${c.label} connected${ex.email ? `: ${ex.email}` : ""}`, [text.replace(/^\S+ connected: [^\s]*\.\s*/, ""), "You can close this tab and go back to the chat."]);
     } catch (e) {
@@ -144,7 +145,9 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
     if (!id || !clientSecret || !secret) return page("Not available yet", [`Connecting ${c.label} isn't switched on yet, so nothing was connected. Your link still works once it is.`], 503);
     const r = await d.admin.rpc("career_connect_link_open", { p_nonce: token, p_now: new Date(now).toISOString() });
     if (r.error || !r.data || r.data.error) return page("This link can't be used", [GONE[r.data?.error] ?? GONE.invalid], 400);
-    const to = c.consentUrl({ clientId: id, redirectUri: self, scopes: r.data.scopes as string[], state: await issueState(String(r.data.link_id), secret, now) });
+    // The consent asks only what may be asked now (google_scopes.ts): a scope deferred since the link was made is dropped.
+    const scopes = c.requestable(r.data.scopes as string[], d.env).scopes;
+    const to = c.consentUrl({ clientId: id, redirectUri: self, scopes, state: await issueState(String(r.data.link_id), secret, now) });
     return new Response(null, { status: 303, headers: { location: to, "cache-control": "no-store", "referrer-policy": "no-referrer" } });
   }
 
@@ -156,10 +159,11 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
     const c = connectorOf(p.connector);
     if (p.status !== "ok" || !c) return page("This link can't be used", [GONE[p.status] ?? GONE.invalid], 410);
     const whose = p.hint ? `the Trainee account ${p.hint}` : "the Trainee account you're chatting with";
+    // The words Google verification wrote for the screen before consent (google_scopes.ts consentNotice).
+    const n = c.notice(c.requestable(p.scopes ?? [], d.env).scopes);
     return page(`Connect ${c.label} to Trainee`, [
       `This connects your ${c.label} to ${whose}. Continue only if you asked Trainee for this link in the last 15 minutes.`,
-      "Google will ask you to allow:", ...plain(scopeLines(p.scopes ?? [], c)), "and your email address, so Trainee can tell you which one you connected.",
-      "Trainee never sees your Google password.",
+      "With it, Trainee reads:", ...n.reads, ...n.never, ...n.undo,
     ], 200, { action: self, token, label: "Continue to Google" });
   }
   return page("Nothing here", ["Ask Trainee for a link by texting \"connect gmail\"."], 404);

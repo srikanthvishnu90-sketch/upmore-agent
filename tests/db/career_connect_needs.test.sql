@@ -43,6 +43,14 @@ select t.ok(true, 'a scope beyond the Gmail ones is refused');
 -- Burn: every live link of a person, none of another's.
 select t.ok((select public.career_connect_links_burn('00000000-0000-0000-0000-0000000000c2', now()) = 1), 'Sam''s live link burned');
 select t.ok((select count(*) = 0 from public.career_connect_links where user_id = '00000000-0000-0000-0000-0000000000c2' and finished_at is null), 'none of Sam''s works');
+-- A Google grant deleted (any disconnect path): the person's live links die with it; a reconnect (upsert) burns nothing.
+create temp table l5 as select public.career_connect_link_issue('00000000-0000-0000-0000-0000000000c1','telegram',null,array['email'], now()) as tok;
+insert into public.user_oauth_connections (user_id, provider, vault_name, email, scopes) values ('00000000-0000-0000-0000-0000000000c1', 'google_career', 'oauth_google_career_00000000-0000-0000-0000-0000000000c1', 'p@g.test', 'openid email');
+update public.user_oauth_connections set scopes = 'openid email https://www.googleapis.com/auth/gmail.readonly' where user_id = '00000000-0000-0000-0000-0000000000c1';
+select t.ok((select finished_at is null from public.career_connect_links where nonce_hash = encode(sha256(convert_to((select tok from l5),'UTF8')),'hex')), 'a reconnect burns no link');
+delete from public.user_oauth_connections where user_id = '00000000-0000-0000-0000-0000000000c1';
+select t.ok((select finished_at is not null and outcome = 'error' from public.career_connect_links where nonce_hash = encode(sha256(convert_to((select tok from l5),'UTF8')),'hex')), 'a disconnect burns every live link of the person');
+select t.ok((select public.career_connect_link_open((select tok from l5), now())->>'error' = 'used'), 'so a link sent before it never opens');
 -- An offered need, once.
 select t.ok(public.career_needs_mark('00000000-0000-0000-0000-0000000000c1','gmail_read:email_code',now()), 'offered the first time');
 select t.ok(not public.career_needs_mark('00000000-0000-0000-0000-0000000000c1','gmail_read:email_code',now()), 'never twice');

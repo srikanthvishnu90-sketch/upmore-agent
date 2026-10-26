@@ -45,7 +45,8 @@ Deno.test("needs: Gmail is never a step of applying; an emailed code offers it o
   eq(nextNeed(base({ pending: [code], resume: "none" }), "apply", T)!.id, "resume", "a blocking need for this application comes before the offer");
   eq(nextNeed(base({ pending: [code], offered: ["gmail_read:email_code"] }), "email_code")!.id, "code_by_hand", "offered once");
   eq(nextNeed(base({ pending: [code], scopes: [READ_SCOPE] }), "email_code"), null, "connected: the reader takes it");
-  eq(nextNeed(base(), "outreach")!.scopes, [SEND_SCOPE]);
+  eq(nextNeed(base(), "outreach")!.id, "send_unavailable", "sending is deferred in Google verification until approved");
+  eq(nextNeed(base({ sendAvailable: true }), "outreach")!.scopes, [SEND_SCOPE]);
   eq(nextNeed(base({ scopes: [SEND_SCOPE] }), "outreach"), null);
   eq(nextNeed(base(), "track_replies")!.scopes, [READ_SCOPE]);
 });
@@ -59,7 +60,7 @@ Deno.test("connector asks: connect, disconnect and what can you see; past tense 
 
 Deno.test("connect reply: each scope in plain words, the link alone, never a password or a code", () => {
   const r = connectReply({ scopes: [READ_SCOPE], url: "https://x.test/functions/v1/career-connect?t=abc" });
-  assert(/read: Google's permission covers all of your mail/.test(r) && !/send:/.test(r), r);
+  assert(/the security code the application system \(Greenhouse, Lever, Ashby or Workday\) emails you/.test(r) && !/Send one email you approved/.test(r), r);
   assert(/expires in 15 minutes/.test(r) && /never ask for your password or a code/.test(r), r);
   eq(r.split("\n").at(-1), "https://x.test/functions/v1/career-connect?t=abc");
 });
@@ -129,7 +130,7 @@ Deno.test("apply gate: only with CAREER_NEEDS_RESUME_FIRST=on, only for an apply
 function fakeAdmin(tables: Record<string, unknown[]>, rpcs: Record<string, unknown>) {
   const calls: string[] = [];
   const query = (t: string) => {
-    const q: any = { select: () => q, eq: () => q, in: () => q, order: () => q, limit: () => q,
+    const q: any = { select: () => q, eq: () => q, in: () => q, order: () => q, limit: () => q, delete: () => q,
       maybeSingle: () => Promise.resolve({ data: (tables[t] ?? [])[0] ?? null, error: null }),
       then: (ok: (v: unknown) => unknown, no?: (e: unknown) => unknown) => Promise.resolve({ data: tables[t] ?? [], error: null }).then(ok, no) };
     return q;
@@ -167,7 +168,13 @@ Deno.test("apply gate: only the resume holds an apply ask; a missing email is sa
 
 Deno.test("the Google scopes are listed in one place, and the database allows exactly those", async () => {
   const { google } = await import("../../supabase/functions/_shared/connectors/google.ts");
-  eq(google.allScopes(), ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send", "openid", "email"]);
+  eq(google.allScopes(), ["openid", "email", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"]);
+  // What a consent may ask for today: exactly the verification submission (google_scopes.ts), gmail.send deferred.
+  const none = { get: (_k: string) => undefined };
+  eq(google.requestable(["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send"], none),
+    { scopes: ["openid", "email", "https://www.googleapis.com/auth/gmail.readonly"], dropped: ["https://www.googleapis.com/auth/gmail.send"] });
+  const approved = { get: (k: string) => (k === "GOOGLE_APPROVED_EXTRA_SCOPES" ? "https://www.googleapis.com/auth/gmail.send" : undefined) };
+  eq(google.requestable(["https://www.googleapis.com/auth/gmail.send"], approved).scopes, ["openid", "email", "https://www.googleapis.com/auth/gmail.send"]);
   const sql = await Deno.readTextFile(new URL("../../supabase/migrations/20261026160000_career_connect_needs.sql", import.meta.url));
   const listed = /scopes <@ array\[([^\]]+)\]::text\[\]/.exec(sql)![1].match(/'([^']+)'/g)!.map((x) => x.slice(1, -1));
   eq(listed.sort(), [...google.allScopes()].sort());
@@ -200,8 +207,8 @@ Deno.test("disconnect that fails part way says so, and never claims it disconnec
   const admin = { ...f.admin, rpc: (n: string, a: unknown) => n === "oauth_vault_delete" ? Promise.resolve({ data: null, error: { message: "vault down" } }) : f.admin.rpc(n) };
   const out = await needsTurn({ admin, message: "disconnect gmail", userId: "u", threadId: "th", bridge: false, now: 0, profile: null, situation: null,
     env: { get: () => undefined }, fetch: (() => Promise.resolve(new Response("", { status: 200 }))) as unknown as typeof fetch, answered: {} });
-  eq(out?.resultStatus, "failed");
-  assert(/couldn't finish disconnecting Gmail just now, so it may still be connected/.test(out!.reply) && !/Gmail disconnected/.test(out!.reply), out!.reply);
+  eq([out?.intent, out?.resultStatus], ["career_google_disconnect", "failed"], "the one disconnect (google_disconnect.ts), through the connector");
+  assert(/^I couldn't finish disconnecting Gmail: I wasn't able to delete the stored Google tokens/.test(out!.reply) && !/Gmail is disconnected/.test(out!.reply), out!.reply);
 });
 
 Deno.test("needs state: a resume confirmed in another thread counts, even with unconfirmed drafts in this one", async () => {
@@ -219,14 +226,24 @@ Deno.test("the email card's 'connect Gmail in the Trainee app' becomes the signe
   const f = fakeAdmin({ channel_contacts: [{ channel: "telegram" }] }, { career_connect_link_issue: "s".repeat(32) });
   const issued: unknown[] = [];
   const admin = { ...f.admin, rpc: (n: string, a: unknown) => { if (n === "career_connect_link_issue") issued.push(a); return f.admin.rpc(n); } };
+  const emailed = { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED", waiting: true, card_id: "card-1" };
+  const fetchNone = (() => { throw new Error("no network"); }) as unknown as typeof fetch;
+  // Sending deferred (google_scopes.ts): no link is made for it, and the reply says so instead of pointing anywhere.
+  const deferred = await needsTurn({ admin, message: "yes", userId: "u", threadId: "th", bridge: true, now: 0, profile: null, situation: null,
+    env: { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : undefined) }, fetch: fetchNone, answered: { emailed } });
+  eq([deferred?.intent, deferred?.resultStatus], [EMAIL_INTENT, "NOT_WIRED"]);
+  assert(/^NOT_WIRED: not sent\. Trainee can't send from your Gmail yet\.\nSending from your Gmail isn't available in Trainee yet: Google hasn't approved it/.test(deferred!.reply) && !/Trainee app|career-connect/.test(deferred!.reply), deferred!.reply);
+  eq((deferred!.meta as any).email_card, "card-1");
+  eq(issued.length, 0, "no link for a scope that may not be asked");
+  // Once the owner names gmail.send approved: the signed link for sending.
   const out = await needsTurn({ admin, message: "yes", userId: "u", threadId: "th", bridge: true, now: 0, profile: null, situation: null,
-    env: { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : undefined) }, fetch: (() => { throw new Error("no network"); }) as unknown as typeof fetch,
-    answered: { emailed: { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED", waiting: true, card_id: "card-1" } } });
+    env: { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : k === "GOOGLE_APPROVED_EXTRA_SCOPES" ? "https://www.googleapis.com/auth/gmail.send" : undefined) }, fetch: fetchNone,
+    answered: { emailed } });
   eq([out?.intent, out?.resultStatus, out?.handler], [EMAIL_INTENT, "NOT_WIRED", "email"]);
   assert(/Connect Gmail for sending with the link below, then say yes again\./.test(out!.reply) && !/Trainee app/.test(out!.reply), out!.reply);
-  assert(/send: only a message you approve/.test(out!.reply) && !/read: Google/.test(out!.reply) && out!.reply.endsWith("https://p.test/functions/v1/career-connect?t=" + "s".repeat(32)), out!.reply);
+  assert(/Send one email you approved word for word in the chat, from your own Gmail/.test(out!.reply) && !/security code/.test(out!.reply) && out!.reply.endsWith("https://p.test/functions/v1/career-connect?t=" + "s".repeat(32)), out!.reply);
   eq((out!.meta as any).email_card, "card-1", "the card stays this thread's last word by its id");
-  eq((issued[0] as any).p_scopes, ["https://www.googleapis.com/auth/gmail.send", "openid", "email"]);
+  eq((issued[0] as any).p_scopes, ["openid", "email", "https://www.googleapis.com/auth/gmail.send"]);
   eq((issued[0] as any).p_purpose, "send_email");
 });
 

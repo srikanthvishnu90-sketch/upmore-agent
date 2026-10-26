@@ -30,7 +30,7 @@ import { connectUrl } from "./agent/integrations.ts";
 import { type Goal, type Known, type Need, needSentence, type NeedsState, nextNeed, READ_SCOPE, SEND_SCOPE, type Target } from "./career_needs.ts";
 import { type Capability, type Connector, connectorOf } from "./connectors/index.ts";
 import { needsText } from "./career_situation.ts";
-import { deleteGrant, type Grant, readGrant as readConnectorGrant } from "./connectors/grant_store.ts";
+import { type Grant, readGrant as readConnectorGrant } from "./connectors/grant_store.ts";
 
 export const CONNECT_INTENT = "career_connect";
 export const LINK_MINUTES = 15;
@@ -59,19 +59,23 @@ export function connectorAsk(message: string): ConnectorAsk | null {
 }
 
 // ------------------------------------------------------------------------------------------------ plain words
+// What is read with these scopes, in the words Google verification wrote for the consent screen (google_scopes.ts
+// consentNotice), so the chat never says more or less than the submission.
 const capOf = (c: Connector, scope: string): Capability | null => (scope === c.scopes.read ? "read" : scope === c.scopes.send ? "send" : null);
 export function scopeLines(scopes: string[], c: Connector = GOOGLE): string[] {
-  return scopes.map((s) => capOf(c, s)).filter((x): x is Capability => !!x).map((k) => `- ${c.words[k]}`);
+  return c.notice(scopes).reads.map((l) => `- ${l}`);
 }
+// Sending from the person's Gmail: deferred in Google verification until the owner names the scope as approved.
+export const SEND_UNAVAILABLE = "Sending from your Gmail isn't available in Trainee yet: Google hasn't approved it, so I can't send anything from your account. You can send it from your own email yourself.";
+export const sendRequestable = (env: { get(k: string): string | undefined }, c: Connector = GOOGLE) => !c.requestable([c.scopes.send], env).dropped.length;
 // Google refuses OAuth inside an app's own browser (its "disallowed_useragent" error), which is what Telegram opens links in.
 export const TELEGRAM_BROWSER = "Open it in your phone's browser (Safari or Chrome): Google doesn't allow signing in inside Telegram's own browser. If it opens inside Telegram, use that page's menu to open it in your browser.";
 export function connectReply(o: { scopes: string[]; url: string; lead?: string | null; channel?: string; c?: Connector }): string {
   const c = o.c ?? GOOGLE;
   return [
     o.lead ?? `Here's your link to connect ${c.label}.`,
-    `It opens Google's own page and asks for only this:`,
+    `It opens Google's own page. With it I can:`,
     ...scopeLines(o.scopes, c),
-    `Google also tells me which address you connected, so I can confirm it here.`,
     `The link works once, for you, and expires in ${LINK_MINUTES} minutes. I'll never ask for your password or a code in this chat.`,
     ...(o.channel === "telegram" ? [TELEGRAM_BROWSER] : []),
     "",
@@ -100,21 +104,18 @@ export function linkBase(env: { get(k: string): string | undefined }): string | 
 }
 // A fresh one-time link for exactly these scopes (plus the connector's identity scopes, to name the address), or null when
 // none was made.
-export async function mintLink(admin: Admin, o: { userId: string; channel: string; threadId: string | null; scopes: string[]; purpose: Purpose; now: number; base: string | null; c?: Connector }): Promise<string | null> {
+export async function mintLink(admin: Admin, o: { userId: string; channel: string; threadId: string | null; scopes: string[]; purpose: Purpose; now: number; base: string | null; env: { get(k: string): string | undefined }; c?: Connector }): Promise<string | null> {
   const c = o.c ?? GOOGLE;
   if (!o.base) return null;
-  const scopes = [...new Set([...o.scopes.filter((s) => capOf(c, s)), ...c.identity])];
+  // Only what may be asked now (the approved list): a deferred scope never reaches a link, and with nothing left to ask
+  // for, no link is made.
+  const req = c.requestable(o.scopes.filter((s) => capOf(c, s)), o.env);
+  if (!req.scopes.some((s) => capOf(c, s))) return null;
+  const scopes = req.scopes;
   const { data, error } = await admin.rpc("career_connect_link_issue", { p_user: o.userId, p_channel: o.channel, p_thread: o.threadId, p_scopes: scopes,
     p_now: new Date(o.now).toISOString(), p_connector: c.id, p_purpose: o.purpose });
   if (error || typeof data !== "string" || !data) { if (error) console.error("connect link:", error.message); return null; }
   return `${o.base}?t=${encodeURIComponent(data)}`;
-}
-
-// "disconnect gmail": every grant of the connector revoked at the provider, its vault entry and row deleted, live links burned.
-export async function disconnectGoogle(admin: Admin, o: { userId: string; fetch: typeof fetch; now: number }): Promise<{ removed: string[]; revoked: boolean | null }> {
-  const burned = await admin.rpc("career_connect_links_burn", { p_user: o.userId, p_now: new Date(o.now).toISOString() });
-  if (burned.error) throw new Error("burn the live connect links");
-  return await deleteGrant(admin, GOOGLE, { userId: o.userId, fetch: o.fetch });
 }
 
 // ------------------------------------------------------------------------------------------------ the person's state
@@ -235,6 +236,9 @@ export interface NeedsTurnDeps {
 }
 
 const UNSIGNED = connectUrl("gmail");
+// A reply's connect sentence and the unsigned app link taken out, for a feature that can't be connected yet.
+const unsignedOut = (text: string) => String(text).split(UNSIGNED).join("").replace(/\s*I can't see your email\. Forward or paste it here, or connect Gmail - here's the link\./, "")
+  .replace(/\s*Connect Gmail in the Trainee app[^.]*\./, "").replace(/\n{2,}/g, "\n").trim();
 const replaceLink = (text: string, url: string) => String(text).split(UNSIGNED).join(url);
 const withMeta = (a: Record<string, unknown> | null | undefined, b: Record<string, unknown> | null) => (a || b ? { ...(a ?? {}), ...(b ?? {}) } : null);
 
@@ -255,11 +259,16 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
   const base = linkBase(d.env);
   let channel: string | null = null;
   const chan = async () => (channel ??= await channelOf(d.admin, d.userId, d.threadId, d.bridge));
-  const link = async (scopes: string[], purpose: Purpose) => mintLink(d.admin, { userId: d.userId, channel: await chan(), threadId: d.threadId, scopes, purpose, now: d.now, base });
+  const link = async (scopes: string[], purpose: Purpose) => mintLink(d.admin, { userId: d.userId, channel: await chan(), threadId: d.threadId, scopes, purpose, now: d.now, base, env: d.env });
 
   if (ask === "connect") {
     const grant = await readGrant(d.admin, d.userId);
-    const wanted = /\b(?:send|sending|outreach)\b/i.test(d.message) && !/\bread\b/i.test(d.message) ? [SEND_SCOPE] : /\bread\b/i.test(d.message) && !/\bsend\b/i.test(d.message) ? [READ_SCOPE] : [READ_SCOPE, SEND_SCOPE];
+    // Reading is what Gmail is for today; sending only when the person asks for it and Google has approved it.
+    const forSending = /\b(?:send|sending|outreach)\b/i.test(d.message);
+    if (forSending && !sendRequestable(d.env)) {
+      return { reply: `${SEND_UNAVAILABLE}${(grant?.scopes ?? []).includes(READ_SCOPE) ? "" : ' To let me read employers\' replies and application codes, say "connect gmail".'}`, intent: CONNECT_INTENT, resultStatus: "unavailable", handler: "connectors" };
+    }
+    const wanted = forSending ? [SEND_SCOPE] : [READ_SCOPE];
     const missing = wanted.filter((s) => !(grant?.scopes ?? []).includes(s));
     if (grant && grant.scopes.length && !missing.length) {
       return { reply: `Gmail is already connected${grant.email ? `: ${grant.email}` : ""}, with:\n${scopeLines(wanted).join("\n")}\nSay "disconnect gmail" to remove it.`, intent: CONNECT_INTENT, resultStatus: "already", handler: "connectors" };
@@ -269,15 +278,10 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
     return { reply: connectReply({ scopes: missing, url, channel: await chan() }), intent: CONNECT_INTENT, resultStatus: "link", handler: "connectors", meta: linkMeta(url, await chan()) };
   }
   if (ask === "disconnect") {
-    let r: { removed: string[]; revoked: boolean | null };
-    try { r = await disconnectGoogle(d.admin, { userId: d.userId, fetch: d.fetch, now: d.now }); }
-    catch (e) {
-      console.error("disconnect:", (e as Error)?.message ?? e);
-      return { reply: "I couldn't finish disconnecting Gmail just now, so it may still be connected. Say \"disconnect gmail\" again, and you can also remove Trainee at myaccount.google.com/permissions.", intent: CONNECT_INTENT, resultStatus: "failed", handler: "connectors" };
-    }
-    if (!r.removed.length) return { reply: "Gmail isn't connected, so there was nothing to disconnect. Nothing of yours is stored from Google.", intent: CONNECT_INTENT, resultStatus: "none", handler: "connectors" };
-    const google = r.revoked === true ? "Google confirmed the access is revoked" : "Google didn't confirm the revoke, so you can also remove Trainee at myaccount.google.com/permissions";
-    return { reply: `Gmail disconnected. The stored tokens are deleted and ${google}. I can't read or send anything from your Gmail now, and any connect link I sent you no longer works.`, intent: CONNECT_INTENT, resultStatus: "disconnected", handler: "connectors" };
+    // The words Google verification's disconnect does not take ("stop reading my email"): the same one implementation
+    // (google_disconnect.ts through the connector), never a second. Live connect links die with the grant (a trigger).
+    const r = await GOOGLE.disconnect({ admin: d.admin, userId: d.userId, fetch: d.fetch });
+    return { reply: r.reply, intent: "career_google_disconnect", resultStatus: r.ok ? (r.had.length ? "completed" : "nothing") : "failed", handler: "google_disconnect" };
   }
   if (ask === "see") return { reply: await seeReply(d), intent: CONNECT_INTENT, resultStatus: "shown", handler: "connectors" };
   if (ask === "can") return { reply: await canReply(d), intent: CONNECT_INTENT, resultStatus: "capabilities", handler: "connectors" };
@@ -301,6 +305,9 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
   const reading = a.f08?.intent === "career_inbox_check";
   for (const [turn, scope, handler, purpose] of [[a.f08, reading ? READ_SCOPE : SEND_SCOPE, "followup", reading ? "track_replies" : "send_email"], [a.outreach, SEND_SCOPE, "outreach", "outreach"]] as const) {
     if (turn && typeof turn.reply === "string" && turn.reply.includes(UNSIGNED)) {
+      if (scope === SEND_SCOPE && !sendRequestable(d.env)) {
+        return { reply: `${unsignedOut(turn.reply)}\n${SEND_UNAVAILABLE}`, intent: turn.intent, resultStatus: turn.status, handler, meta: turn.meta ?? null, ...(turn.parts ? { parts: turn.parts } : {}) };
+      }
       const url = await link([scope], purpose);
       if (!url) return null;
       const text = replaceLink(turn.reply.replace(/connect it in the Trainee app[^,.]*|Connect Gmail in the Trainee app[^,.]*/g, (m: string) => m.replace(/in the Trainee app/, "with the link below")), url);
@@ -312,6 +319,11 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
   // The email card's send (WO-032) with no grant that may send: "Connect Gmail in the Trainee app" named a page that carries
   // no person; it becomes the signed link for sending. The card stays this thread's last word, by its id, as before.
   if (a.emailed && a.emailed.status === "NOT_WIRED" && typeof a.emailed.reply === "string") {
+    if (!sendRequestable(d.env)) {
+      const card = a.emailed.waiting && a.emailed.card_id ? { email_card: a.emailed.card_id } : null;
+      return { reply: `${a.emailed.reply.replace(/\s*Connect Gmail in the Trainee app[^,]*,?\s*then say yes(?: to this email)? again\.?/, "")}\n${SEND_UNAVAILABLE}`,
+        intent: a.emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: a.emailed.status, handler: "email", meta: card };
+    }
     const url = await link([SEND_SCOPE], "send_email");
     if (!url) return null;
     const text = a.emailed.reply.replace(/Connect Gmail in the Trainee app[^,]*/, "Connect Gmail for sending with the link below");
@@ -393,7 +405,7 @@ async function canReply(d: NeedsTurnDeps): Promise<string> {
     `5. Offers: ready. Tell me the offer, and I'll compare it with what employers pay for that role.`,
     `6. Job alerts: ${cap("alerts")?.status === "on" ? cap("alerts").line.replace(/^Job alerts: /, "") : cap("alerts")?.status === "unknown" ? "I couldn't read your alert settings just now." : "off; tell me what jobs to watch."}`,
     `7. Track employers' replies: ${!on("CAREER_MAIL_TRACKING") ? "not switched on yet, so I can't read any mail for you." : read ? "ready (Gmail connected)." : 'needs Gmail; say "connect gmail".'}`,
-    `8. Send follow-ups and application emails you approve: ${!on("CAREER_EMAIL_SEND") ? "not switched on yet, so nothing is sent from your Gmail." : send ? "ready (Gmail connected for sending)." : 'needs Gmail for sending; say "connect gmail".'}`,
+    `8. Send follow-ups and application emails you approve: ${!on("CAREER_EMAIL_SEND") ? "not switched on yet, so nothing is sent from your Gmail." : !sendRequestable(d.env) ? "not available yet: Google hasn't approved sending for Trainee." : send ? "ready (Gmail connected for sending)." : 'needs Gmail for sending; say "connect gmail to send".'}`,
     "Never: applying, messaging or scraping on LinkedIn or Indeed; solving a captcha; taking a password, key or code in chat.",
   ];
   return lines.join("\n");
@@ -414,7 +426,7 @@ export function secretTurn(message: string): { about: string; reply: string } | 
   const about = /\b(?:gmail|google|e-?mail|inbox)\b/i.test(t) ? "google" : /\b(?:linkedin|indeed)\b/i.test(t) ? "linkedin"
     : /\b(?:workday|greenhouse|lever|ashby|icims|taleo|smartrecruiters|employer|application|portal|career site)\b/i.test(t) ? "employer" : kind;
   const reply = about === "google"
-    ? `I don't need your Google password or any Google key. To let me read employers' replies or send what you approve, connect Gmail on Google's own page: say "connect gmail" and I'll send a one-time link.${kind === "password" ? " If you shared that password anywhere else, change it." : ""}`
+    ? `I don't need your Google password or any Google key. To let me read employers' replies and application codes, connect Gmail on Google's own page: say "connect gmail" and I'll send a one-time link.${kind === "password" ? " If you shared that password anywhere else, change it." : ""}`
     : about === "linkedin"
     ? "I never sign in to LinkedIn or Indeed for you, so there's nothing to give me for them. If you shared that password anywhere else, change it."
     : about === "employer"

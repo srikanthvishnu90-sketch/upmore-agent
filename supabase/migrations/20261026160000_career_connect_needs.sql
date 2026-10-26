@@ -4,8 +4,9 @@
 --    person of the turn, the channel the turn came on (web, telegram, imessage, whatsapp; home when a channel turn's thread
 --    has no contact row) and that thread, so the callback can answer in the same place; to the connector (google today;
 --    Microsoft is planned and is one more value here) and the purpose it was asked for (so the answer says how to carry
---    on); and to the scopes the need asked for, never more. The scope list mirrors the one audited list in
---    supabase/functions/_shared/connectors/google.ts (a unit test keeps the two equal). The token is stored only as its SHA-256, lives 15 minutes, and at most three are live per
+--    on); and to the scopes the need asked for, never more. The scope list is Google verification's (google_scopes.ts:
+--    openid, email, gmail.readonly) plus gmail.send, deferred: it can be asked only once the owner names it approved
+--    (GOOGLE_APPROVED_EXTRA_SCOPES). A unit test keeps this list equal to connectors/google.ts allScopes(). The token is stored only as its SHA-256, lives 15 minutes, and at most three are live per
 --    person (an older one is burned).
 --      career_connect_link_issue(user, channel, thread, scopes, now, connector, purpose) -> the token (service role only)
 --      career_connect_link_peek(token, now)   -> {status: ok|used|expired|invalid, scopes, channel, connector, hint}; never uses it.
@@ -110,6 +111,20 @@ begin
   get diagnostics n = row_count;
   return n;
 end $$;
+
+-- A Google grant deleted, by any path ("disconnect gmail" in the chat: google_disconnect.ts; gmail-oauth's disconnect; an
+-- account erase): every live connect link of the person dies with it, so a link sent before the disconnect can never
+-- connect again. A reconnect is an upsert, never a delete, so it burns nothing.
+create or replace function public.career_connect_links_burn_on_disconnect() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform public.career_connect_links_burn(old.user_id, now());
+  return old;
+end $$;
+drop trigger if exists career_connect_links_burn_on_disconnect on public.user_oauth_connections;
+create trigger career_connect_links_burn_on_disconnect after delete on public.user_oauth_connections
+  for each row when (old.provider in ('google_career', 'gmail')) execute function public.career_connect_links_burn_on_disconnect();
+revoke all on function public.career_connect_links_burn_on_disconnect() from public, anon, authenticated;
 
 create table if not exists public.career_needs_asked (
   user_id uuid not null references auth.users(id) on delete cascade,

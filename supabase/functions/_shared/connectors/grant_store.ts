@@ -2,7 +2,7 @@
 // person's own Supabase Vault entry (oauth_<provider>_<user>, written and read only through the service-role
 // oauth_vault_* functions), and a user_oauth_connections row that holds no token, only the entry's name, the address
 // and the scopes the provider says were granted. This file is the only place in the connect flow that decrypts a token
-// (to keep an existing refresh token, and to revoke at disconnect); nothing it returns carries a token.
+// (to keep an existing refresh token; disconnect is the connector's own: connectors/google.ts); nothing it returns carries a token.
 import type { Connector, Exchanged } from "./types.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -39,25 +39,4 @@ export async function storeGrant(admin: Admin, c: Connector, o: { userId: string
     scopes: granted.join(" "), connected_at: new Date(o.now).toISOString() }, { onConflict: "user_id,provider" });
   if (row.error) throw new Error("record the connection");
   return granted;
-}
-
-// Every grant of this connector revoked at the provider, its vault entry and row deleted. revoked: true when the provider
-// confirmed every revoke, false when it did not confirm one, null when there was no token to revoke.
-export async function deleteGrant(admin: Admin, c: Connector, o: { userId: string; fetch: typeof fetch }): Promise<{ removed: string[]; revoked: boolean | null }> {
-  const grant = await readGrant(admin, c, o.userId);
-  if (!grant) return { removed: [], revoked: null };
-  let revoked: boolean | null = true;
-  for (const provider of grant.providers) {
-    const vault = `oauth_${provider}_${o.userId}`;
-    const raw = await admin.rpc("oauth_vault_read", { p_name: vault }).then((r: any) => (r.error ? null : r.data), () => null);
-    let token: string | null = null;
-    try { const s = JSON.parse(String(raw ?? "")); token = s?.refresh_token || s?.access_token || null; } catch { token = null; }
-    if (token) { if (!(await c.revoke({ fetch: o.fetch, token }))) revoked = false; }
-    else if (revoked) revoked = null;
-    const del = await admin.rpc("oauth_vault_delete", { p_name: vault });
-    if (del.error) throw new Error(`delete the stored ${c.label} tokens`);
-  }
-  const { error } = await admin.from("user_oauth_connections").delete().eq("user_id", o.userId).in("provider", grant.providers);
-  if (error) throw new Error(`delete the ${c.label} connection: ${error.message}`);
-  return { removed: grant.providers, revoked };
 }

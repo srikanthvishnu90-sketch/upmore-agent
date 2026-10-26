@@ -75,6 +75,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { disconnectGoogle, disconnectReply, isGoogleDisconnect } from "../_shared/google_disconnect.ts"; // FEATURE GV
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -565,17 +566,28 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
       // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
       const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
+      // FEATURE GV: Google verification (2026-10-26). "disconnect gmail" disconnects, on every channel: each Google grant
+      // revoked at Google, its tokens and row deleted (the mail rows read from that Gmail go with the career row), every
+      // result checked and read back (_shared/google_disconnect.ts). The reply says only what the read-back shows. Before
+      // any other turn: a person's own privacy ask is never a card answer, a question or the router's doorstep.
+      const googleOff = !careerTask && !careerBatch && isGoogleDisconnect(message)
+        ? await disconnectGoogle(admin, user.id, { fetch })
+        : null;
+      // END FEATURE GV
       // FEATURE NEEDS: connectors and the one next need (_shared/career_connectors.ts, _shared/career_needs.ts). "connect
       // gmail" gives a one-time link bound to this person, channel and thread, for only the scopes needed; "disconnect
       // gmail" revokes and deletes the grant; "what can you see?" answers from the records. An apply reply that can't go on
       // says exactly the one next need; an employer's emailed code gets the Gmail offer once; a Gmail feature's unsigned
       // app link becomes a signed one. Code's, before the router; nothing is sent or submitted by it.
-      const needsAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const needsAns = !googleOff && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await needsTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env, fetch: (i, init) => fetch(i, init),
             profile: (ctx as any).profile ?? null, stated: (ctx as any).statedFacts?.facts ?? [], situation,
             answered: { gate: needsGate, asked, queued, stood, status, f08, outreach: outreachAns, emailed, other: !!(card || mock || which || cloud || cardYes || paced || employerAns || receiptAns || networking || offerAns) } })
           .catch((e) => { console.error("needs turn:", e?.message ?? e); return null; })
         : null;
+      if (googleOff) {
+        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+      } else
       if (needsAns) {
         out = { reply: needsAns.reply, intent: needsAns.intent, resultStatus: needsAns.resultStatus, contained: false, handler: needsAns.handler, ...(needsAns.parts ? { parts: needsAns.parts } : {}) };
         if (needsAns.meta) agentMeta = needsAns.meta;

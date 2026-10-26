@@ -73,7 +73,7 @@ Deno.test({ name: "FEATURE NEEDS: a brand-new person asks what Trainee can do an
       Deno.env.set("CAREER_EMAIL_SEND", "on");
       try {
         const on = await lee("what else can you help me with");
-        assert(/7\. Track employers' replies: needs Gmail; say "connect gmail"\./.test(on.reply) && /8\. Send follow-ups and application emails you approve: needs Gmail for sending; say "connect gmail"\./.test(on.reply), on.reply);
+        assert(/7\. Track employers' replies: needs Gmail; say "connect gmail"\./.test(on.reply) && /8\. Send follow-ups and application emails you approve: not available yet: Google hasn't approved sending for Trainee\./.test(on.reply), on.reply);
       } finally { Deno.env.delete("CAREER_MAIL_TRACKING"); Deno.env.delete("CAREER_EMAIL_SEND"); }
     });
 
@@ -91,7 +91,7 @@ Deno.test({ name: "FEATURE NEEDS: a brand-new person asks what Trainee can do an
     await t.step("a password typed into the chat: removed before it is stored; the safe path; what they must do recorded once", async () => {
       const r = await lee("ok my gmail password is Hunter2!xyz can you just log in");
       assert(r.reply.startsWith("(I removed the password from your message and didn't keep it."), r.reply);
-      assert(/I don't need your Google password or any Google key\. To let me read employers' replies or send what you approve, connect Gmail on Google's own page: say "connect gmail"/.test(r.reply), r.reply);
+      assert(/I don't need your Google password or any Google key\. To let me read employers' replies and application codes, connect Gmail on Google's own page: say "connect gmail"/.test(r.reply), r.reply);
       assert(/If you shared that password anywhere else, change it\./.test(r.reply), r.reply);
       eq(r.resultStatus, "secret_refused");
       eq(await q(`select count(*) from public.agent_messages m join public.agent_threads t on t.id = m.thread_id where t.user_id = '${LEE}' and m.content like '%Hunter2!xyz%'`), "0", "the password is in no stored message");

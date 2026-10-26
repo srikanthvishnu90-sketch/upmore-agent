@@ -1,21 +1,19 @@
-// FEATURE NEEDS (2026-10-26): Google (Gmail), the one place Trainee's Google scopes are listed for audit (the owner is
-// starting Google's verification). Two capabilities, each one scope, plus the identity scopes that name the address:
-//   read  https://www.googleapis.com/auth/gmail.readonly  (restricted): employers' replies (F8 mail tracking reads From,
-//         Subject, Date and the snippet of new mail) and, during an application the person approved, the code an
-//         application system emails (WO-096 career-email-code; the code is used once and never stored)
-//   send  https://www.googleapis.com/auth/gmail.send      (sensitive): only a message the person approved word for word
-//   identity  openid, email  (non-sensitive): the address shown in "Gmail connected: <address>"
-// Nothing else is asked for: no Calendar, no Drive, no contacts. supabase/migrations/20261026160000 mirrors this list in a
-// check constraint (career_connect_links.scopes), and tests/architect/career-needs-unit.test.ts keeps the two equal.
+// FEATURE NEEDS (2026-10-26): Google (Gmail) as a Connector. The scopes, the words a person reads about them and the
+// disconnect are Google verification's own modules (PR #196), so the connect flow can never ask for or say something the
+// verification submission did not:
+//   ../google_scopes.ts      the one list of Google scopes (openid, email, gmail.readonly; gmail.send deferred until the
+//                            owner names it in GOOGLE_APPROVED_EXTRA_SCOPES), requestableScopes(), consentNotice()
+//   ../google_disconnect.ts  "disconnect gmail": revoke at Google, delete tokens, rows and the mail rows, read back
+// This file adds only what a connect link needs: the consent URL and the code exchange.
 import type { Connector, Exchanged } from "./types.ts";
+import { consentNotice, EMAIL, GMAIL_READONLY, GMAIL_SEND, OPENID, requestableScopes, SUBMITTED_SCOPES } from "../google_scopes.ts";
+import { disconnectGoogle, disconnectReply } from "../google_disconnect.ts";
 
-export const GMAIL_READ = "https://www.googleapis.com/auth/gmail.readonly";
-export const GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
-export const GOOGLE_IDENTITY = ["openid", "email"];
+export const GMAIL_READ = GMAIL_READONLY;
+export { GMAIL_SEND };
 export const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 export const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
-export const GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
 
 // The address that granted access: the ID token Google returned with the code (over TLS, from Google's own token endpoint,
 // so its claims need no signature check: OpenID Connect Core 3.1.3.7), else Google's userinfo for this token.
@@ -40,13 +38,10 @@ export const google: Connector = {
   provider: "google_career",
   legacyProviders: ["gmail"],
   env: { clientId: "GOOGLE_OAUTH_CLIENT_ID", clientSecret: "GOOGLE_OAUTH_CLIENT_SECRET" },
-  scopes: { read: GMAIL_READ, send: GMAIL_SEND },
-  identity: GOOGLE_IDENTITY,
-  allScopes: () => [GMAIL_READ, GMAIL_SEND, ...GOOGLE_IDENTITY],
-  words: {
-    read: "read: Google's permission covers all of your mail. I use it for two things: the sender, subject and short preview of new mail, to spot employers' replies, and, during an application you approved, the code email from that application system",
-    send: "send: only a message you approve word for word in this chat, from your own Gmail",
-  },
+  scopes: { read: GMAIL_READONLY, send: GMAIL_SEND },
+  requestable: (asked, env) => requestableScopes(asked, env),
+  allScopes: () => [...SUBMITTED_SCOPES, GMAIL_SEND],
+  notice: (scopes) => { const n = consentNotice(scopes); return { reads: n.reads, never: n.never, undo: n.undo }; },
   consentUrl: (o) => `${GOOGLE_AUTH}?${new URLSearchParams({ client_id: o.clientId, redirect_uri: o.redirectUri, response_type: "code", scope: o.scopes.join(" "),
     access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: o.state })}`,
   async exchange(o): Promise<Exchanged> {
@@ -61,11 +56,9 @@ export const google: Connector = {
       email: await emailOf(o.fetch, tok),
     };
   },
-  async revoke(o): Promise<boolean> {
-    try {
-      const r = await o.fetch(GOOGLE_REVOKE, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token: o.token }) });
-      // 400 invalid_token: Google no longer holds it (the person already removed it), which is the outcome wanted.
-      return r.ok || r.status === 400;
-    } catch { return false; }
+  async disconnect(o) {
+    const r = await disconnectGoogle(o.admin, o.userId, { fetch: o.fetch });
+    return { reply: disconnectReply(r), ok: r.ok, had: r.had };
   },
 };
+export const GOOGLE_IDENTITY = [OPENID, EMAIL];

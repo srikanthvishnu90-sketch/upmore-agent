@@ -1,24 +1,23 @@
-// FEATURE NEEDS (2026-10-26): the connect link's HTTP side, served by the career-connect edge function (public: a link
-// in a chat and Google's redirect carry no Upmore JWT; the one-time token and the signed state are the authentication).
-//   GET  ?t=<token>          peek only (message previews fetch links): a Trainee page that says which account the Gmail
-//                            would join and exactly what Google will be asked for, with a "Continue to Google" button
-//                            (a form POST to this same URL). Used, expired and unknown tokens get their own page.
+// FEATURE NEEDS (2026-10-26): the connect link's HTTP side, served by the career-connect edge function, the OAuth
+// client's redirect URI after go-live (public, verify_jwt off: a link in a chat and the provider's redirect carry no
+// Upmore JWT; the one-time token and the signed state are the authentication).
+//   GET  ?t=<token>          peek only (message previews fetch links): a Trainee page that says which account the mailbox
+//                            would join and exactly what the provider will be asked for, with a "Continue" button (a form
+//                            POST to this same URL). Used, expired and unknown tokens get their own page.
 //   POST t=<token> (form)    the person's tap: the token is used once (career_connect_link_open) and the browser goes to
-//                            Google's consent for only the link's scopes (offline, so mail can be read later; granted
-//                            scopes kept), with a state signed for this link that expires with it.
-//   GET  ?state&code|error   Google's callback: the state verified, the link finished once (career_connect_link_finish),
-//                            the code exchanged, the grant stored exactly as gmail-oauth stores the career grant (vault
-//                            oauth_google_career_<uid>, user_oauth_connections provider google_career, the scopes Google
-//                            says were granted), and the person told in the same channel: "Gmail connected: <address>".
+//                            the link's connector's consent page for only the link's scopes, with a state signed for this
+//                            link that expires with it.
+//   GET  ?state&code|error   the provider's callback: the state verified, the link finished once
+//                            (career_connect_link_finish), the code exchanged by the connector, the grant stored
+//                            (connectors/grant_store.ts: tokens only in the person's vault entry), and the person told in
+//                            the same channel what was granted and how to carry on with what they were doing.
 // No token, code or secret is logged, put in a URL Trainee shows, or returned. The person is only ever the one the link
 // was minted for; nothing in a query string can name another.
-import { READ_SCOPE, SEND_SCOPE } from "./career_needs.ts";
+import { connectorOf } from "./connectors/index.ts";
+import type { Connector } from "./connectors/types.ts";
+import { storeGrant } from "./connectors/grant_store.ts";
 import { linkBase, scopeLines } from "./career_connectors.ts";
 
-export const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
-export const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
-export const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
-const PROVIDER = "google_career";
 const STATE_MS = 15 * 60 * 1000;
 
 // deno-lint-ignore no-explicit-any
@@ -77,13 +76,24 @@ const GONE: Record<string, string> = {
 };
 const plain = (lines: string[]) => lines.map((l) => l.replace(/^- /, ""));
 
-// What the person is told in the chat once Google answered: what was granted, in plain words, and how to undo it.
-export function connectedMessage(email: string | null, granted: string[]): string {
-  const can = [granted.includes(READ_SCOPE) ? "read your mail, for employers' replies and application codes" : null,
-    granted.includes(SEND_SCOPE) ? "send from your Gmail, only messages you approve word for word" : null].filter(Boolean);
-  const not = [!granted.includes(READ_SCOPE) ? "reading mail" : null, !granted.includes(SEND_SCOPE) ? "sending" : null].filter(Boolean);
-  return `Gmail connected: ${email ?? "your Google account"}.${can.length ? ` You allowed me to ${can.join(", and to ")}.` : ""}` +
-    `${not.length ? ` You didn't allow ${not.join(" or ")}, so I won't do that.` : ""} Say "disconnect gmail" any time to remove it.`;
+// How to carry on with what the person was doing when they asked for the link, said only when what it needs was granted.
+const CARRY_ON: Record<string, { cap: "read" | "send"; text: string }> = {
+  track_replies: { cap: "read", text: "Text \"check my email now\" and I'll look for employers' replies." },
+  email_code: { cap: "read", text: "On your next applications, I'll read the code an application system emails you, while the application you approved is being sent." },
+  send_email: { cap: "send", text: "Go back to the message you were sending and approve it again; I'll send exactly that message." },
+  outreach: { cap: "send", text: "Go back to the drafts you were sending and approve them again; I'll send exactly those messages." },
+};
+// What the person is told in the chat once the provider answered: what was granted, in plain words, how to carry on, and
+// how to undo it.
+export function connectedMessage(email: string | null, granted: string[], o: { c?: Connector; purpose?: string } = {}): string {
+  const c = o.c ?? connectorOf("google")!;
+  const has = (k: "read" | "send") => granted.includes(c.scopes[k]);
+  const can = [has("read") ? "read your mail, for employers' replies and application codes" : null,
+    has("send") ? `send from your ${c.label}, only messages you approve word for word` : null].filter(Boolean);
+  const not = [!has("read") ? "reading mail" : null, !has("send") ? "sending" : null].filter(Boolean);
+  const next = o.purpose ? CARRY_ON[o.purpose] : undefined;
+  return `${c.label} connected: ${email ?? "your account"}.${can.length ? ` You allowed me to ${can.join(", and to ")}.` : ""}` +
+    `${not.length ? ` You didn't allow ${not.join(" or ")}, so I won't do that.` : ""}${next && has(next.cap) ? ` ${next.text}` : ""} Say "disconnect gmail" any time to remove it.`;
 }
 
 // ------------------------------------------------------------------------------------------------ the handler
@@ -91,11 +101,10 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
   const now = (d.now ?? Date.now)();
   const url = new URL(req.url);
   const self = linkBase(d.env) ?? `${url.origin}${url.pathname}`;
-  const clientId = d.env.get("GOOGLE_OAUTH_CLIENT_ID") || "", clientSecret = d.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
   const secret = d.env.get("OAUTH_STATE_SECRET") || "";
-  const configured = !!(clientId && clientSecret && secret);
+  const client = (c: Connector) => ({ id: d.env.get(c.env.clientId) || "", secret: d.env.get(c.env.clientSecret) || "" });
 
-  // Google's callback.
+  // The provider's callback.
   if (req.method === "GET" && url.searchParams.has("state")) {
     const linkId = await verifyState(url.searchParams.get("state") ?? "", secret, now);
     if (!linkId) return page("This didn't work", ["The sign-in came back without a valid link, so nothing was connected. Ask Trainee for a new link by texting \"connect gmail\"."], 400);
@@ -103,53 +112,40 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
     const fin = await d.admin.rpc("career_connect_link_finish", { p_link: linkId, p_outcome: declined ? "declined" : "error", p_now: new Date(now).toISOString() });
     const link = fin.error ? null : fin.data;
     if (!link || link.error) return page("This link was already used", [GONE[link?.error] ?? GONE.invalid], 400);
+    const c = connectorOf(link.connector);
+    if (!c) return page("This didn't work", [GONE.invalid], 400);
     if (declined) {
-      await tell(d, link, linkId, "Gmail wasn't connected: Google's page was closed or declined, so nothing changed. Text \"connect gmail\" if you want a new link.", now);
-      return page("Gmail wasn't connected", ["Nothing changed. You can close this tab and go back to the chat."]);
+      await tell(d, link, linkId, `${c.label} wasn't connected: Google's page was closed or declined, so nothing changed. Text "connect gmail" if you want a new link.`, now);
+      return page(`${c.label} wasn't connected`, ["Nothing changed. You can close this tab and go back to the chat."]);
     }
     try {
-      const tokRes = await d.fetch(GOOGLE_TOKEN, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ code: url.searchParams.get("code")!, client_id: clientId, client_secret: clientSecret, redirect_uri: self, grant_type: "authorization_code" }) });
-      const tok = await tokRes.json().catch(() => ({}));
-      if (!tokRes.ok || typeof tok.access_token !== "string") throw new Error(`token exchange: HTTP ${tokRes.status}`);
-      const email = await emailOf(d, tok);
-      const prior = await d.admin.from("user_oauth_connections").select("scopes").eq("user_id", link.user_id).eq("provider", PROVIDER).maybeSingle();
-      const priorScopes = String(prior.data?.scopes ?? "").split(/[\s,]+/).filter(Boolean);
-      // The scopes Google says this grant now holds (include_granted_scopes keeps earlier ones); without that, what was asked.
-      const granted = typeof tok.scope === "string" && tok.scope.trim() ? tok.scope.split(/\s+/).filter(Boolean) : [...new Set([...priorScopes, ...(link.scopes as string[])])];
-      const vault = `oauth_${PROVIDER}_${link.user_id}`;
-      let refresh: string | null = typeof tok.refresh_token === "string" ? tok.refresh_token : null;
-      if (!refresh) {
-        const old = await d.admin.rpc("oauth_vault_read", { p_name: vault });
-        try { refresh = JSON.parse(String(old.data ?? "")).refresh_token ?? null; } catch { refresh = null; }
-      }
-      const stored = await d.admin.rpc("oauth_vault_store", { p_name: vault, p_secret: JSON.stringify({ access_token: tok.access_token, refresh_token: refresh,
-        expires_at: now + (Number(tok.expires_in) || 3600) * 1000, email, scopes: granted.join(" ") }) });
-      if (stored.error) throw new Error("save the grant");
-      const row = await d.admin.from("user_oauth_connections").upsert({ user_id: link.user_id, provider: PROVIDER, vault_name: vault, email, scopes: granted.join(" "),
-        connected_at: new Date(now).toISOString() }, { onConflict: "user_id,provider" });
-      if (row.error) throw new Error("record the connection");
+      const { id, secret: clientSecret } = client(c);
+      const ex = await c.exchange({ fetch: d.fetch, code: url.searchParams.get("code")!, clientId: id, clientSecret, redirectUri: self });
+      const granted = await storeGrant(d.admin, c, { userId: link.user_id, ex, asked: link.scopes as string[], now });
       await d.admin.from("career_connect_links").update({ outcome: "connected" }).eq("id", linkId);
-      const text = connectedMessage(email, granted);
+      const text = connectedMessage(ex.email, granted, { c, purpose: link.purpose });
       await tell(d, link, linkId, text, now);
-      return page(`Gmail connected${email ? `: ${email}` : ""}`, [text.replace(/^Gmail connected: [^.]*(?:\.[^ ]+)*\.\s*/, ""), "You can close this tab and go back to the chat."]);
+      return page(`${c.label} connected${ex.email ? `: ${ex.email}` : ""}`, [text.replace(/^\S+ connected: [^\s]*\.\s*/, ""), "You can close this tab and go back to the chat."]);
     } catch (e) {
       d.log?.(`career-connect callback failed: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
-      await tell(d, link, linkId, "Gmail wasn't connected: something went wrong on the way back from Google, so nothing was saved. Text \"connect gmail\" for a new link.", now);
-      return page("Gmail wasn't connected", ["Something went wrong on the way back from Google, so nothing was saved. Ask Trainee for a new link by texting \"connect gmail\"."], 502);
+      await tell(d, link, linkId, `${c.label} wasn't connected: something went wrong on the way back from Google, so nothing was saved. Text "connect gmail" for a new link.`, now);
+      return page(`${c.label} wasn't connected`, ["Something went wrong on the way back from Google, so nothing was saved. Ask Trainee for a new link by texting \"connect gmail\"."], 502);
     }
   }
 
-  // The person's tap: use the token once and go to Google.
+  // The person's tap: use the token once and go to the provider.
   if (req.method === "POST") {
     const form = await req.formData().catch(() => null);
     const token = String(form?.get("t") ?? "");
-    if (!configured) return page("Not available yet", ["Connecting Gmail isn't switched on yet, so nothing was connected. Your link still works once it is."], 503);
+    const peek = await d.admin.rpc("career_connect_link_peek", { p_nonce: token, p_now: new Date(now).toISOString() });
+    const c = connectorOf(peek.data?.connector);
+    if (peek.error || !peek.data || peek.data.status !== "ok" || !c) return page("This link can't be used", [GONE[peek.data?.status] ?? GONE.invalid], 400);
+    const { id, secret: clientSecret } = client(c);
+    if (!id || !clientSecret || !secret) return page("Not available yet", [`Connecting ${c.label} isn't switched on yet, so nothing was connected. Your link still works once it is.`], 503);
     const r = await d.admin.rpc("career_connect_link_open", { p_nonce: token, p_now: new Date(now).toISOString() });
     if (r.error || !r.data || r.data.error) return page("This link can't be used", [GONE[r.data?.error] ?? GONE.invalid], 400);
-    const q = new URLSearchParams({ client_id: clientId, redirect_uri: self, response_type: "code", scope: (r.data.scopes as string[]).join(" "),
-      access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: await issueState(String(r.data.link_id), secret, now) });
-    return new Response(null, { status: 303, headers: { location: `${GOOGLE_AUTH}?${q}`, "cache-control": "no-store", "referrer-policy": "no-referrer" } });
+    const to = c.consentUrl({ clientId: id, redirectUri: self, scopes: r.data.scopes as string[], state: await issueState(String(r.data.link_id), secret, now) });
+    return new Response(null, { status: 303, headers: { location: to, "cache-control": "no-store", "referrer-policy": "no-referrer" } });
   }
 
   // The link itself, opened (or fetched by a message preview): peek only.
@@ -157,33 +153,16 @@ export async function handleConnect(req: Request, d: FlowDeps): Promise<Response
     const token = url.searchParams.get("t") ?? "";
     const r = await d.admin.rpc("career_connect_link_peek", { p_nonce: token, p_now: new Date(now).toISOString() });
     const p = r.error ? { status: "invalid" } : r.data ?? { status: "invalid" };
-    if (p.status !== "ok") return page("This link can't be used", [GONE[p.status] ?? GONE.invalid], 410);
+    const c = connectorOf(p.connector);
+    if (p.status !== "ok" || !c) return page("This link can't be used", [GONE[p.status] ?? GONE.invalid], 410);
     const whose = p.hint ? `the Trainee account ${p.hint}` : "the Trainee account you're chatting with";
-    return page("Connect Gmail to Trainee", [
-      `This connects your Gmail to ${whose}. Continue only if you asked Trainee for this link in the last 15 minutes.`,
-      "Google will ask you to allow:", ...plain(scopeLines(p.scopes ?? [])), "and your email address, so Trainee can tell you which one you connected.",
+    return page(`Connect ${c.label} to Trainee`, [
+      `This connects your ${c.label} to ${whose}. Continue only if you asked Trainee for this link in the last 15 minutes.`,
+      "Google will ask you to allow:", ...plain(scopeLines(p.scopes ?? [], c)), "and your email address, so Trainee can tell you which one you connected.",
       "Trainee never sees your Google password.",
     ], 200, { action: self, token, label: "Continue to Google" });
   }
   return page("Nothing here", ["Ask Trainee for a link by texting \"connect gmail\"."], 404);
-}
-
-// The address that granted access: the ID token Google returned with the code (over TLS, from Google's own token
-// endpoint), else Google's userinfo for this token.
-// deno-lint-ignore no-explicit-any
-async function emailOf(d: FlowDeps, tok: any): Promise<string | null> {
-  if (typeof tok.id_token === "string") {
-    try {
-      const part = tok.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const claims = JSON.parse(atob(part + "=".repeat((4 - (part.length % 4)) % 4)));
-      if (typeof claims.email === "string") return claims.email;
-    } catch { /* fall through to userinfo */ }
-  }
-  try {
-    const r = await d.fetch(GOOGLE_USERINFO, { headers: { authorization: `Bearer ${tok.access_token}` } });
-    const me = await r.json().catch(() => ({}));
-    return r.ok && typeof me.email === "string" ? me.email : null;
-  } catch { return null; }
 }
 
 // The answer in the channel the link was asked for in: a channel's outbox row (written into the thread when delivered),

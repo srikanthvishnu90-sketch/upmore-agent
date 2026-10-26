@@ -88,15 +88,16 @@ Deno.test("connect flow: the message says only what Google granted", () => {
 
 Deno.test("connect flow: unconfigured, a tap uses nothing and goes nowhere; a bad state never reaches Google", async () => {
   const calls: string[] = [];
-  const admin = { rpc: (n: string) => { calls.push(n); return Promise.resolve({ data: null, error: null }); }, from: () => { throw new Error("no table read"); } };
+  // The link itself is fine (a peek says ok); only the OAuth client is missing.
+  const admin = { rpc: (n: string) => { calls.push(n); return Promise.resolve({ data: n === "career_connect_link_peek" ? { status: "ok", connector: "google", scopes: [] } : null, error: null }); }, from: () => { throw new Error("no table read"); } };
   const env = { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : undefined) };
   const fetch = (() => { throw new Error("no network"); }) as unknown as typeof globalThis.fetch;
   const tap = await handleConnect(new Request("https://p.test/functions/v1/career-connect", { method: "POST", body: new URLSearchParams({ t: "x".repeat(32) }) }), { admin, env, fetch });
   eq(tap.status, 503);
-  eq(calls, [], "the token is not used while connect is off");
+  eq(calls, ["career_connect_link_peek"], "the token is only peeked, never used, while connect is off");
   const back = await handleConnect(new Request("https://p.test/functions/v1/career-connect?state=c1.bad&code=x"), { admin, env, fetch });
   eq(back.status, 400);
-  eq(calls, []);
+  eq(calls, ["career_connect_link_peek"], "a bad state reaches no record and no provider");
   assert((back.headers.get("content-security-policy") ?? "").includes("frame-ancestors 'none'"));
 });
 
@@ -122,4 +123,92 @@ Deno.test("apply gate: only with CAREER_NEEDS_RESUME_FIRST=on, only for an apply
   eq(await applyGate({ ...base, message: link, env: env({ CAREER_NEEDS_RESUME_FIRST: "on", CAREER_PREPARE_AHEAD_URL: "https://w.test", CAREER_PREPARE_AHEAD_TOKEN: "k" }) }), null,
     "the server prepare is configured: its own no_resume reply asks for the resume");
   eq(await applyGate({ ...base, message: "what can you see?", env: env({ CAREER_NEEDS_RESUME_FIRST: "on" }) }), null, "not an apply ask");
+});
+
+// A stand-in for the service-role client: each table answers its rows, each function its value; every call is recorded.
+function fakeAdmin(tables: Record<string, unknown[]>, rpcs: Record<string, unknown>) {
+  const calls: string[] = [];
+  const query = (t: string) => {
+    const q: any = { select: () => q, eq: () => q, in: () => q, order: () => q, limit: () => q,
+      maybeSingle: () => Promise.resolve({ data: (tables[t] ?? [])[0] ?? null, error: null }),
+      then: (ok: (v: unknown) => unknown, no?: (e: unknown) => unknown) => Promise.resolve({ data: tables[t] ?? [], error: null }).then(ok, no) };
+    return q;
+  };
+  return { calls, admin: { from: (t: string) => { calls.push(`from:${t}`); return query(t); }, rpc: (n: string) => { calls.push(`rpc:${n}`); return Promise.resolve({ data: rpcs[n] ?? null, error: null }); } } };
+}
+
+Deno.test("the offer is made once even when two turns reach it together: a mark that is not the first adds nothing", async () => {
+  const { needsTurn } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  const situation = { tasks: [{ kind: "application", id: "job:1", company: "Ramp", title: null, state: "needs_user", evidence: { reason: "email_code" } }] };
+  const run = async (marked: boolean) => {
+    const f = fakeAdmin({ channel_contacts: [{ channel: "telegram" }] }, { career_needs_mark: marked, career_connect_link_issue: "t".repeat(32) });
+    const out = await needsTurn({ admin: f.admin, message: "where are my applications?", userId: "u", threadId: "th", bridge: true, now: 0, profile: null, situation,
+      env: { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : undefined) }, fetch: (() => { throw new Error("no network"); }) as unknown as typeof fetch,
+      answered: { stood: { reply: "Ramp: stopped, needs you.", intent: "career_apply_status", status: "shown" } } });
+    return { out, calls: f.calls };
+  };
+  const first = await run(true);
+  assert(first.out && /If you connect Gmail, I can read a code like that myself/.test(first.out.reply) && first.out.reply.includes("https://p.test/functions/v1/career-connect?t="), JSON.stringify(first.out));
+  eq((first.out!.meta as any)?.link_button?.url, "https://p.test/functions/v1/career-connect?t=" + "t".repeat(32), "on Telegram the link rides as a URL button");
+  assert(first.out!.reply.includes("Google doesn't allow signing in inside Telegram's own browser"), first.out!.reply);
+  const second = await run(false);
+  eq(second.out, null, "the other turn's mark came first: this reply is left as it was");
+  assert(!second.calls.includes("rpc:career_connect_link_issue"), "and no link is minted for it");
+});
+
+Deno.test("apply gate: only the resume holds an apply ask; a missing email is said after it is queued", async () => {
+  const { gateNeed } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  eq(gateNeed(base({ resume: "none" }), T)!.id, "resume");
+  eq(gateNeed(base({ resume: "drafts" }), T)!.id, "resume_confirm");
+  eq(gateNeed(base(), T), null, "a confirmed resume never holds it");
+  eq(gateNeed(base({ contact: { name: known("A"), email: null, phone: null } }), T), null, "a contact need never holds it");
+  eq(gateNeed(base({ resume: "unknown" }), T), null, "an unreadable record decides nothing");
+});
+
+Deno.test("the Google scopes are listed in one place, and the database allows exactly those", async () => {
+  const { google } = await import("../../supabase/functions/_shared/connectors/google.ts");
+  eq(google.allScopes(), ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send", "openid", "email"]);
+  const sql = await Deno.readTextFile(new URL("../../supabase/migrations/20261026160000_career_connect_needs.sql", import.meta.url));
+  const listed = /scopes <@ array\[([^\]]+)\]::text\[\]/.exec(sql)![1].match(/'([^']+)'/g)!.map((x) => x.slice(1, -1));
+  eq(listed.sort(), [...google.allScopes()].sort());
+  for (const k of ["read", "send"] as const) assert(google.allScopes().includes(google.scopes[k]));
+});
+
+Deno.test("connected message: how to carry on, only when what it needs was granted", () => {
+  const all = [READ_SCOPE, SEND_SCOPE];
+  assert(/Text "check my email now" and I'll look for employers' replies\./.test(connectedMessage("a@g.test", all, { purpose: "track_replies" })));
+  assert(!/check my email now/.test(connectedMessage("a@g.test", [SEND_SCOPE], { purpose: "track_replies" })), "read not granted: no promise to read");
+  assert(/approve it again; I'll send exactly that message/.test(connectedMessage("a@g.test", all, { purpose: "send_email" })));
+  assert(!/approve it again/.test(connectedMessage("a@g.test", [READ_SCOPE], { purpose: "send_email" })));
+  assert(!/check my email now|approve (?:it|them) again|next applications/.test(connectedMessage("a@g.test", all, { purpose: "connect" })));
+});
+
+Deno.test("connect reply on Telegram says to open the link in the phone's browser; elsewhere it doesn't", () => {
+  assert(/Google doesn't allow signing in inside Telegram's own browser/.test(connectReply({ scopes: [READ_SCOPE], url: "https://x.test/?t=a", channel: "telegram" })));
+  assert(!/Telegram/.test(connectReply({ scopes: [READ_SCOPE], url: "https://x.test/?t=a", channel: "web" })));
+});
+
+Deno.test("connectors: only a built connector is one (an unknown or inherited name is not)", async () => {
+  const { connectorOf } = await import("../../supabase/functions/_shared/connectors/index.ts");
+  eq(connectorOf("google")?.provider, "google_career");
+  for (const id of ["microsoft", "__proto__", "constructor", "", null, undefined]) eq(connectorOf(id as any), null, String(id));
+});
+
+Deno.test("disconnect that fails part way says so, and never claims it disconnected", async () => {
+  const { needsTurn } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  const f = fakeAdmin({ user_oauth_connections: [{ provider: "google_career", email: "a@g.test", scopes: "openid email" }] }, { career_connect_links_burn: 0, oauth_vault_read: null });
+  const admin = { ...f.admin, rpc: (n: string, a: unknown) => n === "oauth_vault_delete" ? Promise.resolve({ data: null, error: { message: "vault down" } }) : f.admin.rpc(n) };
+  const out = await needsTurn({ admin, message: "disconnect gmail", userId: "u", threadId: "th", bridge: false, now: 0, profile: null, situation: null,
+    env: { get: () => undefined }, fetch: (() => Promise.resolve(new Response("", { status: 200 }))) as unknown as typeof fetch, answered: {} });
+  eq(out?.resultStatus, "failed");
+  assert(/couldn't finish disconnecting Gmail just now, so it may still be connected/.test(out!.reply) && !/Gmail disconnected/.test(out!.reply), out!.reply);
+});
+
+Deno.test("needs state: a resume confirmed in another thread counts, even with unconfirmed drafts in this one", async () => {
+  const { readNeedsState } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  const confirmed = { facts: [{ status: "confirmed", needs_confirmation: false, confirmation_event_id: "e1" }] };
+  const drafts = { facts: [{ source: "resume-ingest", status: "draft" }] };
+  eq((await readNeedsState(fakeAdmin({}, { career_apply_profile_for: confirmed }).admin, { userId: "u", profile: drafts, situation: null })).resume, "confirmed");
+  eq((await readNeedsState(fakeAdmin({}, { career_apply_profile_for: null }).admin, { userId: "u", profile: drafts, situation: null })).resume, "drafts");
+  eq((await readNeedsState(fakeAdmin({}, { career_apply_profile_for: null }).admin, { userId: "u", profile: null, situation: null })).resume, "none");
 });

@@ -1,22 +1,25 @@
 // FEATURE NEEDS (2026-10-26): connectors from any channel, and the one next need on every apply reply that can't go on.
-// Reached from agent-chat handleChat (Telegram, web, SMS: every channel's turn) through the one FEATURE NEEDS block,
-// before the router and after the code-first turns, so it can answer a connector ask itself and say the next need on a
-// reply another turn wrote.
+// Reached from agent-chat handleChat (Telegram, web, SMS: every channel's turn) through the FEATURE NEEDS blocks, after
+// the code-first turns and before the router, so it can answer a connector ask itself and say the next need on a reply
+// another turn wrote.
 //   "connect gmail" (also google, email, inbox; Trainee's own offer too): a one-time link, bound to this person, the
-//     channel the turn came on and its thread, that opens Google's consent for only the scopes the need asks for, each
-//     explained in plain words. The link lives 15 minutes and works once (career_connect_links); a GET of it only peeks,
-//     so a message preview can never use it. The callback (career_connect_flow.ts) answers in the same channel.
-//   "disconnect gmail": the grant revoked at Google, the stored tokens deleted (vault and connection row), live links
-//     burned; the reply says what was removed and whether Google confirmed the revoke.
+//     channel the turn came on, its thread, the connector (connectors/index.ts) and the purpose it was asked for, that
+//     opens the provider's consent for only the scopes the need asks for, each explained in plain words. The link lives
+//     15 minutes and works once (career_connect_links); a GET only peeks, so a message preview can never use it. Google
+//     refuses sign-in inside in-app browsers (Telegram's), so on Telegram the reply says to open it in the phone's browser
+//     and carries meta.link_button ({ text, url }) for the adapter's URL button (a plain link, never a web_app). The
+//     callback (career_connect_flow.ts) answers in the same channel and says how to carry on.
+//   "disconnect gmail": the grant revoked at the provider, the stored tokens deleted (vault and connection row), live
+//     links burned; the reply says what was removed and whether the provider confirmed the revoke.
 //   "what can you see?": the truth from the records: what is connected and with which permissions, what Trainee reads
 //     with it, the resume on file, what it can't see.
-//   An apply reply that can't proceed (no resume, a resume not yet confirmed, a contact fact neither the resume nor the
-//     person's words give): the reply says exactly the one next need (career_needs.ts), not a list, and nothing the person
-//     already gave is asked again. An application waiting on an employer's emailed code: the Gmail connect offered once
+//   An apply reply that can't proceed: exactly the one next need (career_needs.ts), not a list; nothing the person already
+//     gave is asked again. An application waiting on an employer's emailed code: the Gmail connect offered once
 //     (career_needs_asked), never as a blocker.
 //   A feature that needs Gmail and found none (inbox check, a follow-up or an email card's send): its unsigned app link is
 //     replaced by a signed one for exactly that feature's scope.
-// Never a password, a code or a token through chat: the link goes to Google's own page.
+// Never a password, a code or a token through chat: the link goes to the provider's own page, and no function here
+// returns a token (connectors/grant_store.ts holds them).
 import { contactDraft } from "./contact_draft.ts";
 import { eligibilityDraft } from "./eligibility_draft.ts";
 import { hasConfirmedResume, NO_RESUME_WAIT, prepareConfigured } from "./career_apply_from_chat.ts";
@@ -24,15 +27,18 @@ import { applyAsk, applyManyAsk, APPLY_QUEUE_INTENT } from "./career_apply_chat.
 import { linkAsk, possessiveAsk } from "./career_apply_link.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { type Goal, type Known, type Need, needSentence, type NeedsState, nextNeed, READ_SCOPE, SEND_SCOPE, type Target } from "./career_needs.ts";
+import { type Capability, type Connector, connectorOf } from "./connectors/index.ts";
+import { deleteGrant, type Grant, readGrant as readConnectorGrant } from "./connectors/grant_store.ts";
 
 export const CONNECT_INTENT = "career_connect";
 export const LINK_MINUTES = 15;
-const PROVIDER = "google_career";
-const vaultOf = (userId: string) => `oauth_${PROVIDER}_${userId}`;
+const GOOGLE = connectorOf("google")!;
+export type Purpose = "connect" | "email_code" | "track_replies" | "outreach" | "send_email";
 
 // ------------------------------------------------------------------------------------------------ the asks
 export type ConnectorAsk = "connect" | "disconnect" | "see";
 const SOURCE = "(?:my\\s+)?(?:gmail|google(?:\\s+account)?|e-?mail|inbox|mail)(?:\\s+account)?";
+// "connect" never matches "connected" or "linked" (the inbox check's "I connected my Gmail"): a space must follow it.
 const CONNECT = new RegExp(`\\b(?:connect|link|hook\\s+up|set\\s+up)\\s+(?:to\\s+|with\\s+)?${SOURCE}\\b`, "i");
 const DISCONNECT = new RegExp(`\\b(?:disconnect|unlink|revoke|remove)\\s+(?:access\\s+to\\s+)?${SOURCE}\\b|\\b(?:turn\\s+off|stop)\\s+(?:reading\\s+)?${SOURCE}\\b`, "i");
 const SEE = /\bwhat\s+(?:can|do)\s+you\s+(?:see|access|read|have\s+access\s+to)\b|\bwhat(?:'s|\s+is)\s+connected\b|\bwhat\s+(?:have\s+i|did\s+i)\s+connected\b/i;
@@ -40,45 +46,38 @@ export function connectorAsk(message: string): ConnectorAsk | null {
   const t = String(message ?? "").trim();
   if (!t || t.length > 300) return null;
   if (DISCONNECT.test(t)) return "disconnect";
-  // "I connected my Gmail" is the inbox check's (career_inbox_followups.ts), never a new link.
-  if (CONNECT.test(t) && !/\b(?:connected|linked)\b/i.test(t)) return "connect";
+  if (CONNECT.test(t)) return "connect";
   if (SEE.test(t)) return "see";
   return null;
 }
 
 // ------------------------------------------------------------------------------------------------ plain words
-const SCOPE_WORDS: Record<string, string> = {
-  [READ_SCOPE]: "read: Google's permission covers all of your mail. I use it for two things: the sender, subject and short preview of new mail, to spot employers' replies, and, during an application you approved, the code email from that application system",
-  [SEND_SCOPE]: "send: only a message you approve word for word in this chat, from your own Gmail",
-};
-export function scopeLines(scopes: string[]): string[] {
-  return scopes.filter((s) => SCOPE_WORDS[s]).map((s) => `- ${SCOPE_WORDS[s]}`);
+const capOf = (c: Connector, scope: string): Capability | null => (scope === c.scopes.read ? "read" : scope === c.scopes.send ? "send" : null);
+export function scopeLines(scopes: string[], c: Connector = GOOGLE): string[] {
+  return scopes.map((s) => capOf(c, s)).filter((x): x is Capability => !!x).map((k) => `- ${c.words[k]}`);
 }
-export function connectReply(o: { scopes: string[]; url: string; lead?: string | null }): string {
+// Google refuses OAuth inside an app's own browser (its "disallowed_useragent" error), which is what Telegram opens links in.
+export const TELEGRAM_BROWSER = "Open it in your phone's browser (Safari or Chrome): Google doesn't allow signing in inside Telegram's own browser. If it opens inside Telegram, use that page's menu to open it in your browser.";
+export function connectReply(o: { scopes: string[]; url: string; lead?: string | null; channel?: string; c?: Connector }): string {
+  const c = o.c ?? GOOGLE;
   return [
-    o.lead ?? "Here's your link to connect Gmail.",
+    o.lead ?? `Here's your link to connect ${c.label}.`,
     `It opens Google's own page and asks for only this:`,
-    ...scopeLines(o.scopes),
+    ...scopeLines(o.scopes, c),
     `Google also tells me which address you connected, so I can confirm it here.`,
     `The link works once, for you, and expires in ${LINK_MINUTES} minutes. I'll never ask for your password or a code in this chat.`,
+    ...(o.channel === "telegram" ? [TELEGRAM_BROWSER] : []),
     "",
     o.url,
   ].join("\n");
 }
+const linkMeta = (url: string, channel: string, c: Connector = GOOGLE) => (channel === "telegram" ? { link_button: { text: `Connect ${c.label}`, url } } : null);
 
 // ------------------------------------------------------------------------------------------------ the records
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export interface Grant { email: string | null; scopes: string[]; connected_at: string | null; providers: string[] }
-export async function readGrant(admin: Admin, userId: string): Promise<Grant | null> {
-  const { data, error } = await admin.from("user_oauth_connections").select("provider,email,scopes,connected_at").eq("user_id", userId).in("provider", [PROVIDER, "gmail"]);
-  if (error) throw new Error(`read the Google grant: ${error.message}`);
-  const rows = (data ?? []) as { provider: string; email: string | null; scopes: string | string[] | null; connected_at: string | null }[];
-  if (!rows.length) return null;
-  const career = rows.find((r) => r.provider === PROVIDER) ?? null;
-  const split = (s: unknown) => (Array.isArray(s) ? s.map(String) : String(s ?? "").split(/[\s,]+/)).filter(Boolean);
-  return { email: career?.email ?? rows[0].email ?? null, scopes: career ? split(career.scopes) : [], connected_at: career?.connected_at ?? null, providers: rows.map((r) => r.provider) };
-}
+export type { Grant };
+export const readGrant = (admin: Admin, userId: string) => readConnectorGrant(admin, GOOGLE, userId);
 
 // The channel this turn came on: a channel's turn (service role) runs in the thread its contact row names; else the web.
 export async function channelOf(admin: Admin, userId: string, threadId: string, bridge: boolean): Promise<string> {
@@ -92,39 +91,23 @@ export function linkBase(env: { get(k: string): string | undefined }): string | 
   const u = env.get("CAREER_CONNECT_URL") || (env.get("SUPABASE_URL") ? `${String(env.get("SUPABASE_URL")).replace(/\/+$/, "")}/functions/v1/career-connect` : "");
   return u || null;
 }
-// A fresh one-time link for exactly these scopes (plus openid email, to name the address), or null when none was made.
-export async function mintLink(admin: Admin, o: { userId: string; channel: string; threadId: string | null; scopes: string[]; now: number; base: string | null }): Promise<string | null> {
+// A fresh one-time link for exactly these scopes (plus the connector's identity scopes, to name the address), or null when
+// none was made.
+export async function mintLink(admin: Admin, o: { userId: string; channel: string; threadId: string | null; scopes: string[]; purpose: Purpose; now: number; base: string | null; c?: Connector }): Promise<string | null> {
+  const c = o.c ?? GOOGLE;
   if (!o.base) return null;
-  const scopes = [...new Set([...o.scopes.filter((s) => s === READ_SCOPE || s === SEND_SCOPE), "openid", "email"])];
-  const { data, error } = await admin.rpc("career_connect_link_issue", { p_user: o.userId, p_channel: o.channel, p_thread: o.threadId, p_scopes: scopes, p_now: new Date(o.now).toISOString() });
+  const scopes = [...new Set([...o.scopes.filter((s) => capOf(c, s)), ...c.identity])];
+  const { data, error } = await admin.rpc("career_connect_link_issue", { p_user: o.userId, p_channel: o.channel, p_thread: o.threadId, p_scopes: scopes,
+    p_now: new Date(o.now).toISOString(), p_connector: c.id, p_purpose: o.purpose });
   if (error || typeof data !== "string" || !data) { if (error) console.error("connect link:", error.message); return null; }
   return `${o.base}?t=${encodeURIComponent(data)}`;
 }
 
-// "disconnect gmail": every Google grant of the person revoked at Google, its vault entry and row deleted, live links burned.
+// "disconnect gmail": every grant of the connector revoked at the provider, its vault entry and row deleted, live links burned.
 export async function disconnectGoogle(admin: Admin, o: { userId: string; fetch: typeof fetch; now: number }): Promise<{ removed: string[]; revoked: boolean | null }> {
-  const grant = await readGrant(admin, o.userId);
-  await admin.rpc("career_connect_links_burn", { p_user: o.userId, p_now: new Date(o.now).toISOString() });
-  if (!grant) return { removed: [], revoked: null };
-  let revoked: boolean | null = true; // every grant's token revoked at Google; null when there was no token to revoke
-  for (const provider of grant.providers) {
-    const vault = `oauth_${provider}_${o.userId}`;
-    const raw = await admin.rpc("oauth_vault_read", { p_name: vault }).then((r: any) => (r.error ? null : r.data), () => null);
-    let token: string | null = null;
-    try { const s = JSON.parse(String(raw ?? "")); token = s?.refresh_token || s?.access_token || null; } catch { token = null; }
-    if (token) {
-      try {
-        const r = await o.fetch("https://oauth2.googleapis.com/revoke", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token }) });
-        // 400 invalid_token: Google no longer holds it (already revoked by the person), which is the outcome wanted.
-        if (!r.ok && r.status !== 400) revoked = false;
-      } catch { revoked = false; }
-    } else if (revoked) revoked = null;
-    const del = await admin.rpc("oauth_vault_delete", { p_name: vault });
-    if (del.error) throw new Error("delete the stored Google tokens");
-  }
-  const { error } = await admin.from("user_oauth_connections").delete().eq("user_id", o.userId).in("provider", grant.providers);
-  if (error) throw new Error(`delete the Google connection: ${error.message}`);
-  return { removed: grant.providers, revoked };
+  const burned = await admin.rpc("career_connect_links_burn", { p_user: o.userId, p_now: new Date(o.now).toISOString() });
+  if (burned.error) throw new Error("burn the live connect links");
+  return await deleteGrant(admin, GOOGLE, { userId: o.userId, fetch: o.fetch });
 }
 
 // ------------------------------------------------------------------------------------------------ the person's state
@@ -150,10 +133,12 @@ export async function readNeedsState(admin: Admin, o: { userId: string; profile:
   const profile = o.profile ?? {};
   const facts: any[] = Array.isArray(profile.facts) ? profile.facts : [];
   let resume: NeedsState["resume"] = hasConfirmedResume(profile) ? "confirmed" : facts.some((f) => f?.source === "resume-ingest") ? "drafts" : "none";
-  if (resume === "none") {
-    // Confirmed in another thread: the profile the server prepares from (its most recent thread's).
+  if (resume !== "confirmed") {
+    // Confirmed in another thread: the profile the server prepares from (its most recent thread's). A read that fails
+    // leaves "none" unknown (it decides nothing); drafts here stay drafts.
     const r = await admin.rpc("career_apply_profile_for", { p_user: o.userId }).then((x: any) => x, () => ({ error: true }));
-    resume = r?.error ? "unknown" : hasConfirmedResume(r?.data) ? "confirmed" : "none";
+    if (!r?.error && hasConfirmedResume(r?.data)) resume = "confirmed";
+    else if (r?.error && resume === "none") resume = "unknown";
   }
   // The person's own words, newest first, from every one of their threads; and the resume upload the confirmed entries cite.
   const threads = await admin.from("agent_threads").select("id").eq("user_id", o.userId).limit(200);
@@ -205,7 +190,11 @@ export async function readNeedsState(admin: Admin, o: { userId: string; profile:
 // thing needed. With the server prepare configured the apply turn already refuses with its own no_resume reply (which
 // asks only for the resume), so the gate stands aside; without it the apply turn queues a want nothing can be prepared
 // from (FEATURE 1's design, which its tests hold), so the gate runs only with CAREER_NEEDS_RESUME_FIRST=on (the owner's
-// "no queue row before the resume"). Unknown (the record could not be read) decides nothing: the apply turn runs.
+// "no queue row before the resume"). Only the resume holds an apply ask: every other need is said after it is queued.
+export function gateNeed(state: NeedsState, target: Target | null): Need | null {
+  const need = nextNeed(state, "apply", target);
+  return need && (need.id === "resume" || need.id === "resume_confirm") ? need : null;
+}
 export async function applyGate(d: { admin: Admin; message: string; userId: string; profile: any; stated?: any[]; situation: any | null;
   env: { get(k: string): string | undefined }; shortlist?: unknown[] | null }): Promise<NeedsTurnOut | null> {
   const m = d.message;
@@ -213,10 +202,10 @@ export async function applyGate(d: { admin: Admin; message: string; userId: stri
   const many = link || one ? null : (Array.isArray(d.shortlist) && d.shortlist.length ? applyManyAsk(m) : null);
   if (!link && !one && !many) return null;
   if (d.env.get("CAREER_NEEDS_RESUME_FIRST") !== "on" || prepareConfigured(d.env)) return null;
-  const state = await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation });
-  if (state.resume !== "none" && state.resume !== "drafts") return null;
+  const target = one ? { company: one.company, title: one.role } : null;
+  const need = gateNeed(await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation }), target);
+  if (!need) return null;
   const what = one ? `${one.role ? `the ${one.role} role at ` : ""}${one.company}` : link ? "that posting" : "those postings";
-  const need = nextNeed(state, "apply", one ? { company: one.company, title: one.role } : null)!;
   return { reply: `I haven't put ${what} on your apply list yet. ${needSentence(need)} Then ask me again and I'll queue it.`, intent: APPLY_QUEUE_INTENT, resultStatus: "needs_resume", handler: "apply_queue" };
 }
 
@@ -238,6 +227,7 @@ export interface NeedsTurnDeps {
 
 const UNSIGNED = connectUrl("gmail");
 const replaceLink = (text: string, url: string) => String(text).split(UNSIGNED).join(url);
+const withMeta = (a: Record<string, unknown> | null | undefined, b: Record<string, unknown> | null) => (a || b ? { ...(a ?? {}), ...(b ?? {}) } : null);
 
 export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> {
   const a = d.answered;
@@ -245,7 +235,9 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
   const anyAnswer = !!(a.other || a.queued || a.stood || a.status || a.f08 || a.outreach || a.emailed);
   const ask = anyAnswer ? null : connectorAsk(d.message);
   const base = linkBase(d.env);
-  const link = async (scopes: string[]) => mintLink(d.admin, { userId: d.userId, channel: await channelOf(d.admin, d.userId, d.threadId, d.bridge), threadId: d.threadId, scopes, now: d.now, base });
+  let channel: string | null = null;
+  const chan = async () => (channel ??= await channelOf(d.admin, d.userId, d.threadId, d.bridge));
+  const link = async (scopes: string[], purpose: Purpose) => mintLink(d.admin, { userId: d.userId, channel: await chan(), threadId: d.threadId, scopes, purpose, now: d.now, base });
 
   if (ask === "connect") {
     const grant = await readGrant(d.admin, d.userId);
@@ -254,12 +246,17 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
     if (grant && grant.scopes.length && !missing.length) {
       return { reply: `Gmail is already connected${grant.email ? `: ${grant.email}` : ""}, with:\n${scopeLines(wanted).join("\n")}\nSay "disconnect gmail" to remove it.`, intent: CONNECT_INTENT, resultStatus: "already", handler: "connectors" };
     }
-    const url = await link(missing);
+    const url = await link(missing, "connect");
     if (!url) return { reply: "I couldn't make a connect link just now, so nothing was connected. Try \"connect gmail\" again in a minute.", intent: CONNECT_INTENT, resultStatus: "unavailable", handler: "connectors" };
-    return { reply: connectReply({ scopes: missing, url }), intent: CONNECT_INTENT, resultStatus: "link", handler: "connectors" };
+    return { reply: connectReply({ scopes: missing, url, channel: await chan() }), intent: CONNECT_INTENT, resultStatus: "link", handler: "connectors", meta: linkMeta(url, await chan()) };
   }
   if (ask === "disconnect") {
-    const r = await disconnectGoogle(d.admin, { userId: d.userId, fetch: d.fetch, now: d.now });
+    let r: { removed: string[]; revoked: boolean | null };
+    try { r = await disconnectGoogle(d.admin, { userId: d.userId, fetch: d.fetch, now: d.now }); }
+    catch (e) {
+      console.error("disconnect:", (e as Error)?.message ?? e);
+      return { reply: "I couldn't finish disconnecting Gmail just now, so it may still be connected. Say \"disconnect gmail\" again, and you can also remove Trainee at myaccount.google.com/permissions.", intent: CONNECT_INTENT, resultStatus: "failed", handler: "connectors" };
+    }
     if (!r.removed.length) return { reply: "Gmail isn't connected, so there was nothing to disconnect. Nothing of yours is stored from Google.", intent: CONNECT_INTENT, resultStatus: "none", handler: "connectors" };
     const google = r.revoked === true ? "Google confirmed the access is revoked" : "Google didn't confirm the revoke, so you can also remove Trainee at myaccount.google.com/permissions";
     return { reply: `Gmail disconnected. The stored tokens are deleted and ${google}. I can't read or send anything from your Gmail now, and any connect link I sent you no longer works.`, intent: CONNECT_INTENT, resultStatus: "disconnected", handler: "connectors" };
@@ -267,12 +264,14 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
   if (ask === "see") return { reply: await seeReply(d), intent: CONNECT_INTENT, resultStatus: "shown", handler: "connectors" };
 
   // A Gmail feature that found no grant: its unsigned app link becomes a signed one for exactly that feature's scope.
-  for (const [turn, scope, handler] of [[a.f08, a.f08?.intent === "career_inbox_check" ? READ_SCOPE : SEND_SCOPE, "followup"], [a.outreach, SEND_SCOPE, "outreach"]] as const) {
+  const reading = a.f08?.intent === "career_inbox_check";
+  for (const [turn, scope, handler, purpose] of [[a.f08, reading ? READ_SCOPE : SEND_SCOPE, "followup", reading ? "track_replies" : "send_email"], [a.outreach, SEND_SCOPE, "outreach", "outreach"]] as const) {
     if (turn && typeof turn.reply === "string" && turn.reply.includes(UNSIGNED)) {
-      const url = await link([scope]);
+      const url = await link([scope], purpose);
       if (!url) return null;
-      return { reply: `${replaceLink(turn.reply.replace(/connect it in the Trainee app[^,.]*|Connect Gmail in the Trainee app[^,.]*/g, (m: string) => m.replace(/in the Trainee app/, "with the link below")), url)}\n${scopeLines([scope]).join("\n")}`,
-        intent: turn.intent, resultStatus: turn.status, handler, meta: turn.meta ?? null, ...(turn.parts ? { parts: turn.parts } : {}) };
+      const text = replaceLink(turn.reply.replace(/connect it in the Trainee app[^,.]*|Connect Gmail in the Trainee app[^,.]*/g, (m: string) => m.replace(/in the Trainee app/, "with the link below")), url);
+      return { reply: `${text}\n${scopeLines([scope]).join("\n")}${(await chan()) === "telegram" ? `\n${TELEGRAM_BROWSER}` : ""}`,
+        intent: turn.intent, resultStatus: turn.status, handler, meta: withMeta(turn.meta, linkMeta(url, await chan())), ...(turn.parts ? { parts: turn.parts } : {}) };
     }
   }
 
@@ -290,9 +289,10 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
     if (a.queued.status === "no_resume" && need.id === "resume") return null; // its own reply already asks only for the resume
     // The apply turn's own words stand (what was queued, what was not, what happens next); its resume sentence becomes
     // the one need, said once.
-    const text = await needReply(d, need, null, link);
-    const reply = a.queued.reply.includes(NO_RESUME_WAIT) ? a.queued.reply.replace(NO_RESUME_WAIT, text) : `${a.queued.reply}\n${text}`;
-    return { reply, intent: a.queued.intent, resultStatus: a.queued.status, handler: "apply_queue" };
+    const said = await needReply(d, need, link, chan);
+    if (said === null) return null;
+    const reply = a.queued.reply.includes(NO_RESUME_WAIT) ? a.queued.reply.replace(NO_RESUME_WAIT, said.text) : `${a.queued.reply}\n${said.text}`;
+    return { reply, intent: a.queued.intent, resultStatus: a.queued.status, handler: "apply_queue", meta: said.meta };
   }
   // A status reply while an employer's emailed code waits: the Gmail offer, once.
   const statusTurn = a.stood ?? a.status;
@@ -300,7 +300,9 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
     const state = await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation });
     const need = nextNeed(state, "email_code");
     if (!need || need.id !== "gmail_read") return null;
-    return { reply: `${statusTurn.reply}\n${await needReply(d, need, null, link)}`, intent: statusTurn.intent, resultStatus: statusTurn.status, handler: a.stood ? "standing" : "status" };
+    const said = await needReply(d, need, link, chan);
+    if (said === null) return null;
+    return { reply: `${statusTurn.reply}\n${said.text}`, intent: statusTurn.intent, resultStatus: statusTurn.status, handler: a.stood ? "standing" : "status", meta: said.meta };
   }
   return null;
 }
@@ -311,17 +313,20 @@ function targetForm(situation: any, company: string | null): { open_questions?: 
   const qs = (Array.isArray(situation?.tasks) ? situation.tasks : []).filter((t: any) => t?.kind === "question" && company && String(t.company ?? "").toLowerCase() === String(company).toLowerCase());
   return qs.length ? { open_questions: qs.map((q: any) => String(q.title)) } : {};
 }
-async function needReply(d: NeedsTurnDeps, need: Need, leadLine: string | null, link: (scopes: string[]) => Promise<string | null>): Promise<string> {
-  let text = needSentence(need);
-  if (need.scopes?.length) {
-    if (need.offer_once) {
-      const first = await d.admin.rpc("career_needs_mark", { p_user: d.userId, p_need: need.offer_once, p_now: new Date(d.now).toISOString() });
-      if (first.error || first.data !== true) return leadLine ?? "";
-    }
-    const url = await link(need.scopes);
-    text = url ? `${text}\n${scopeLines(need.scopes).join("\n")}\nThe link works once and expires in ${LINK_MINUTES} minutes:\n${url}` : `${text} Say "connect gmail" when you want the link.`;
+// The need in words, with its link when it is a Gmail need. An offer made without being asked is made once: the mark in
+// career_needs_asked is the one record (two turns at once both reach here; only the first mark is true). null: already
+// offered, so nothing is added.
+async function needReply(d: NeedsTurnDeps, need: Need, link: (scopes: string[], purpose: Purpose) => Promise<string | null>, chan: () => Promise<string>): Promise<{ text: string; meta: Record<string, unknown> | null } | null> {
+  const text = needSentence(need);
+  if (!need.scopes?.length) return { text, meta: null };
+  if (need.offer_once) {
+    const first = await d.admin.rpc("career_needs_mark", { p_user: d.userId, p_need: need.offer_once, p_now: new Date(d.now).toISOString() });
+    if (first.error || first.data !== true) return null;
   }
-  return leadLine ? `${leadLine} ${text}` : text;
+  const url = await link(need.scopes, need.id === "gmail_read" && need.offer_once ? "email_code" : need.id === "gmail_send" ? "outreach" : "track_replies");
+  if (!url) return { text: `${text} Say "connect gmail" when you want the link.`, meta: null };
+  const ch = await chan();
+  return { text: `${text}\n${scopeLines(need.scopes).join("\n")}\nThe link works once and expires in ${LINK_MINUTES} minutes.${ch === "telegram" ? ` ${TELEGRAM_BROWSER}` : ""}\n${url}`, meta: linkMeta(url, ch) };
 }
 
 async function seeReply(d: NeedsTurnDeps): Promise<string> {

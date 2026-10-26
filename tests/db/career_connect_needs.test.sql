@@ -9,6 +9,12 @@ set role service_role;
 create temp table l1 as select public.career_connect_link_issue('00000000-0000-0000-0000-0000000000c1','telegram','00000000-0000-0000-0000-00000000a0c1',
   array['https://www.googleapis.com/auth/gmail.readonly','openid','email'], now()) as tok;
 select t.ok((select length(tok)=32 from l1), 'a 32-character token');
+select t.ok((select connector = 'google' and purpose = 'connect' from public.career_connect_links where nonce_hash = encode(sha256(convert_to((select tok from l1),'UTF8')),'hex')), 'the connector and purpose default to google and connect');
+do $$ begin
+  perform public.career_connect_link_issue('00000000-0000-0000-0000-0000000000c1','web',null,array['email'], now(), 'microsoft', 'connect');
+  raise exception 'an unbuilt connector was accepted';
+exception when check_violation then null; end $$;
+select t.ok(true, 'a connector that is not built is refused');
 select t.ok((select count(*)=1 from public.career_connect_links where nonce_hash = encode(sha256(convert_to((select tok from l1),'UTF8')),'hex')), 'stored only as its hash');
 select t.ok((select count(*)=0 from public.career_connect_links where nonce_hash = (select tok from l1)), 'never the token itself');
 select t.ok((select public.career_connect_link_peek((select tok from l1), now())->>'status' = 'ok'), 'a peek sees it');

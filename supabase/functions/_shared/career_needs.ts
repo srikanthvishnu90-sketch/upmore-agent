@@ -15,8 +15,10 @@
 //      never a blocker: the person can type the code on the page themselves), tracking replies, sending outreach or an
 //      email the person approved. Connecting Gmail is never a step of applying.
 // No I/O, no clock, no model: the handler reads the state (career_connectors.ts readNeedsState) and says the need.
-export const READ_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-export const SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+// The scopes, from the one Google module that lists them for audit (connectors/google.ts).
+import { GMAIL_READ, GMAIL_SEND } from "./connectors/google.ts";
+export const READ_SCOPE = GMAIL_READ;
+export const SEND_SCOPE = GMAIL_SEND;
 
 export type Goal = "apply" | "email_code" | "track_replies" | "outreach";
 export type NeedId =

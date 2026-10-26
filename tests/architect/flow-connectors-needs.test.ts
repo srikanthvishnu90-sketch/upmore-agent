@@ -149,7 +149,8 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       assert(/emailed you a code to finish your application: type the code from that email on the application page in your browser; never send it here\. If you connect Gmail, I can read a code like that myself on your next applications/.test(r.reply), r.reply);
       assert(LINK_RX.test(r.reply), `the offer carries a one-time link: ${r.reply}`);
       assert(/read: Google's permission covers all of your mail/.test(r.reply) && !/send: only a message/.test(r.reply), `read only: ${r.reply}`);
-      eq(await q(`select channel || '|' || array_to_string(scopes, ' ') from public.career_connect_links where user_id = '${PAT}'`), `telegram|${READ} openid email`);
+      eq(await q(`select channel || '|' || connector || '|' || purpose || '|' || array_to_string(scopes, ' ') from public.career_connect_links where user_id = '${PAT}'`), `telegram|google|email_code|${READ} openid email`);
+      eq(r.body?.meta?.link_button?.url, r.reply.match(LINK_RX)![0], "on Telegram the link rides as a URL button (a plain link, opened in the browser)");
       const again = await pat("where are my applications?");
       assert(!LINK_RX.test(again.reply) && !/connect Gmail/.test(again.reply), `offered once: ${again.reply}`);
       eq(await q(`select string_agg(need, ',') from public.career_needs_asked where user_id = '${PAT}'`), "gmail_read:email_code", "one offer recorded, no duplicate");
@@ -165,7 +166,8 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
         assert(LINK_RX.test(r.reply) && !/\/connect\/gmail/.test(r.reply), `the signed link, not the app's: ${r.reply}`);
         assert(new RegExp(`connect it with the link below`).test(r.reply) && /read: Google's permission covers all of your mail/.test(r.reply) && !/send: only/.test(r.reply), r.reply);
         const token = r.reply.match(LINK_RX)![1];
-        eq(await q(`select channel || '|' || array_to_string(scopes, ' ') from public.career_connect_links where nonce_hash = encode(sha256(convert_to('${token}', 'UTF8')), 'hex')`), `telegram|${READ} openid email`);
+        eq(await q(`select channel || '|' || purpose || '|' || array_to_string(scopes, ' ') from public.career_connect_links where nonce_hash = encode(sha256(convert_to('${token}', 'UTF8')), 'hex')`), `telegram|track_replies|${READ} openid email`);
+        assert(/Google doesn't allow signing in inside Telegram's own browser/.test(r.reply), r.reply);
         eq(f.gmail.length, 0, "nothing read: there is no grant");
         eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${PAT}'`), "0");
       } finally { Deno.env.delete("CAREER_MAIL_TRACKING"); }
@@ -185,7 +187,9 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       assert(/send: only a message you approve word for word/.test(r.reply), r.reply);
       assert(/works once, for you, and expires in 15 minutes/.test(r.reply) && /never ask for your password or a code/.test(r.reply), r.reply);
       assert(!/calendar|test email|self-test/i.test(r.reply), `claims only what is true: ${r.reply}`);
+      assert(/Open it in your phone's browser \(Safari or Chrome\): Google doesn't allow signing in inside Telegram's own browser/.test(r.reply), r.reply);
       patLink = r.reply.match(LINK_RX)![0];
+      eq(r.body?.meta?.link_button, { text: "Connect Gmail", url: patLink }, "the Telegram adapter's URL button: the same one-time link, never a web_app");
       for (let i = 0; i < 2; i++) { // a message preview, then the person: neither uses it
         const page = await connect(new Request(patLink));
         eq(page.status, 200);
@@ -296,6 +300,16 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       }
       eq(await q(`select to_regclass('public.career_connect_links') is not null`), "t");
       eq(await patGrant(), before);
+    });
+
+    await t.step("(4f) the chat carries on after the callback: a link asked for by 'check my email now' ends by saying how to continue", async () => {
+      const token = await q(`select public.career_connect_link_issue('${PAT}', 'telegram', '${tg.thread()}', array['${READ}','openid','email'], now(), 'google', 'track_replies')`);
+      const go = await connect(new Request(CONNECT, { method: "POST", body: new URLSearchParams({ t: token }) }));
+      const st = new URL(go.headers.get("location")!).searchParams.get("state")!;
+      eq((await connect(new Request(`${CONNECT}?state=${encodeURIComponent(st)}&code=CODE-PAT`))).status, 200);
+      const told = await q(`select o.text from public.career_outbox o join public.career_connect_links l on o.key = 'status:connect:' || l.id where l.nonce_hash = encode(sha256(convert_to('${token}', 'UTF8')), 'hex')`);
+      assert(/^Gmail connected: pat@gmail\.test\./.test(told) && /Text "check my email now" and I'll look for employers' replies\./.test(told), told);
+      eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${PAT}'`), "1", "one grant, renewed in place");
     });
 
     await t.step("(5) 'what can you see?' answers from the records", async () => {

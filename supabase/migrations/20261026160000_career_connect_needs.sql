@@ -2,15 +2,17 @@
 --
 -- 1. career_connect_links: the one-time link "connect gmail" (or Trainee's offer) sends in the chat. It is bound to the
 --    person of the turn, the channel the turn came on (web, telegram, imessage, whatsapp; home when a channel turn's thread
---    has no contact row) and that thread, so the callback can answer in the same place; and to the Google scopes the need
---    asked for, never more. The token is stored only as its SHA-256, lives 15 minutes, and at most three are live per
+--    has no contact row) and that thread, so the callback can answer in the same place; to the connector (google today;
+--    Microsoft is planned and is one more value here) and the purpose it was asked for (so the answer says how to carry
+--    on); and to the scopes the need asked for, never more. The scope list mirrors the one audited list in
+--    supabase/functions/_shared/connectors/google.ts (a unit test keeps the two equal). The token is stored only as its SHA-256, lives 15 minutes, and at most three are live per
 --    person (an older one is burned).
---      career_connect_link_issue(user, channel, thread, scopes, now) -> the token (service role only)
---      career_connect_link_peek(token, now)   -> {status: ok|used|expired|invalid, scopes, channel, hint}; never uses it.
+--      career_connect_link_issue(user, channel, thread, scopes, now, connector, purpose) -> the token (service role only)
+--      career_connect_link_peek(token, now)   -> {status: ok|used|expired|invalid, scopes, channel, connector, hint}; never uses it.
 --                                                Message previews (Telegram, iMessage, WhatsApp) fetch a link as soon as it
 --                                                is delivered, so a GET only peeks; the person's own POST opens it.
 --      career_connect_link_open(token, now)   -> {link_id, scopes} once (the token is burned), else {error}
---      career_connect_link_finish(link, outcome, now) -> {user_id, channel, thread_id, scopes} once, within 15 minutes of
+--      career_connect_link_finish(link, outcome, now) -> {user_id, channel, thread_id, scopes, connector, purpose} once, within 15 minutes of
 --                                                the open, else {error}: Google's callback lands here exactly once.
 --      career_connect_links_burn(user, now)   -> every live link of the person burned (on "disconnect gmail")
 --    A table of its own, not channel_link_nonces: channel_link_nonce_redeem burns any row by hash and links a Telegram chat,
@@ -24,6 +26,8 @@ create table if not exists public.career_connect_links (
   nonce_hash text not null unique check (nonce_hash ~ '^[0-9a-f]{64}$'),
   user_id uuid not null references auth.users(id) on delete cascade,
   channel text not null check (channel in ('web', 'telegram', 'imessage', 'whatsapp', 'home')),
+  connector text not null default 'google' check (connector in ('google')),
+  purpose text not null default 'connect' check (purpose in ('connect', 'email_code', 'track_replies', 'outreach', 'send_email')),
   thread_id uuid references public.agent_threads(id) on delete set null,
   scopes text[] not null check (cardinality(scopes) between 1 and 4 and scopes <@ array[
     'https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send', 'openid', 'email']::text[]),
@@ -36,7 +40,8 @@ create table if not exists public.career_connect_links (
   check (finished_at is null or opened_at is not null));
 create index if not exists career_connect_links_user on public.career_connect_links (user_id, created_at);
 
-create or replace function public.career_connect_link_issue(p_user uuid, p_channel text, p_thread uuid, p_scopes text[], p_now timestamptz)
+create or replace function public.career_connect_link_issue(p_user uuid, p_channel text, p_thread uuid, p_scopes text[], p_now timestamptz,
+  p_connector text default 'google', p_purpose text default 'connect')
 returns text language plpgsql security definer set search_path = public, pg_temp as $$
 declare n text;
 begin
@@ -46,9 +51,9 @@ begin
     select id from public.career_connect_links where user_id = p_user and opened_at is null and expires_at > p_now
     order by created_at desc offset 2);
   n := left(translate(encode(decode(replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''), 'hex'), 'base64'), '+/=', '-_'), 32);
-  insert into public.career_connect_links (nonce_hash, user_id, channel, thread_id, scopes, created_at, expires_at)
+  insert into public.career_connect_links (nonce_hash, user_id, channel, thread_id, scopes, connector, purpose, created_at, expires_at)
   values (encode(sha256(convert_to(n, 'UTF8')), 'hex'), p_user, p_channel,
-    (select t.id from public.agent_threads t where t.id = p_thread and t.user_id = p_user), p_scopes, p_now, p_now + interval '15 minutes');
+    (select t.id from public.agent_threads t where t.id = p_thread and t.user_id = p_user), p_scopes, p_connector, p_purpose, p_now, p_now + interval '15 minutes');
   return n;
 end $$;
 
@@ -64,7 +69,7 @@ begin
   -- Whose Trainee account this joins, masked: the first letter and domain of its email. Never an id or a full address.
   select u.email into em from auth.users u where u.id = r.user_id;
   if em ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$' then hint := left(em, 1) || '•••@' || split_part(em, '@', 2); end if;
-  return jsonb_build_object('status', 'ok', 'scopes', to_jsonb(r.scopes), 'channel', r.channel, 'hint', hint);
+  return jsonb_build_object('status', 'ok', 'scopes', to_jsonb(r.scopes), 'channel', r.channel, 'connector', r.connector, 'hint', hint);
 end $$;
 
 create or replace function public.career_connect_link_open(p_nonce text, p_now timestamptz) returns jsonb
@@ -93,7 +98,7 @@ begin
     return jsonb_build_object('error', 'expired');
   end if;
   update public.career_connect_links set finished_at = p_now, outcome = p_outcome where id = r.id;
-  return jsonb_build_object('user_id', r.user_id, 'channel', r.channel, 'thread_id', r.thread_id, 'scopes', to_jsonb(r.scopes));
+  return jsonb_build_object('user_id', r.user_id, 'channel', r.channel, 'thread_id', r.thread_id, 'scopes', to_jsonb(r.scopes), 'connector', r.connector, 'purpose', r.purpose);
 end $$;
 
 create or replace function public.career_connect_links_burn(p_user uuid, p_now timestamptz) returns int
@@ -125,9 +130,9 @@ alter table public.career_connect_links enable row level security;
 alter table public.career_needs_asked enable row level security;
 revoke all on public.career_connect_links, public.career_needs_asked from public, anon, authenticated;
 grant select, insert, update, delete on public.career_connect_links, public.career_needs_asked to service_role;
-revoke all on function public.career_connect_link_issue(uuid, text, uuid, text[], timestamptz), public.career_connect_link_peek(text, timestamptz),
+revoke all on function public.career_connect_link_issue(uuid, text, uuid, text[], timestamptz, text, text), public.career_connect_link_peek(text, timestamptz),
   public.career_connect_link_open(text, timestamptz), public.career_connect_link_finish(uuid, text, timestamptz),
   public.career_connect_links_burn(uuid, timestamptz), public.career_needs_mark(uuid, text, timestamptz) from public, anon, authenticated;
-grant execute on function public.career_connect_link_issue(uuid, text, uuid, text[], timestamptz), public.career_connect_link_peek(text, timestamptz),
+grant execute on function public.career_connect_link_issue(uuid, text, uuid, text[], timestamptz, text, text), public.career_connect_link_peek(text, timestamptz),
   public.career_connect_link_open(text, timestamptz), public.career_connect_link_finish(uuid, text, timestamptz),
   public.career_connect_links_burn(uuid, timestamptz), public.career_needs_mark(uuid, text, timestamptz) to service_role;

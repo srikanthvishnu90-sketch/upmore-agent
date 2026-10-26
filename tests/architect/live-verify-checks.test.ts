@@ -1,0 +1,472 @@
+// scripts/live/verify.ts (the live production verification suite): every check run against a real Postgres with the
+// career schema (tests/flow/pg.ts), seeded pass-shaped and then fail-shaped. A check that cannot fail is caught here:
+// each one must return PASS on the first seed and FAIL (or NOT_RUN where that is its honest answer) on the second.
+// Also: the suite's two write locks (code refuses a non-read; the database refuses a write inside the read-only
+// transaction), its HTTP and chat guards, and a whole run against a product that answers nothing, which must FAIL,
+// never PASS, and must call nothing but agent-chat as the test account.
+import nodeAssert from "node:assert/strict";
+const assert = (v: unknown, msg?: string) => nodeAssert.ok(v, msg);
+const assertEquals = (a: unknown, b: unknown, msg?: string) => nodeAssert.deepStrictEqual(a, b, msg);
+const esc = (s: string) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+const assertThrows = (fn: () => unknown, _e?: unknown, inc = "", msg?: string) => nodeAssert.throws(fn, esc(inc), msg);
+const assertRejects = (fn: () => Promise<unknown>, _e?: unknown, inc = "", msg?: string) => nodeAssert.rejects(fn, esc(inc), msg);
+import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
+import * as L from "../../scripts/live/lib.ts";
+import * as C from "../../scripts/live/checks.ts";
+import { main } from "../../scripts/live/verify.ts";
+
+const CI = !!Deno.env.get("CI");
+const U = "5e1f0000-0000-4000-8000-0000000000a1"; // the flagged test account
+const V = "5e1f0000-0000-4000-8000-0000000000b2"; // a real person
+const W = "5e1f0000-0000-4000-8000-0000000000c3"; // on the test domain, not flagged
+const U_EMAIL = "trainee-live-verify@upmore.test";
+const T_U = "5e1f0000-0000-4000-8000-0000000000d1", T_V = "5e1f0000-0000-4000-8000-0000000000d2", T_U2 = "5e1f0000-0000-4000-8000-0000000000d3";
+const run: C.Run = { userId: U, startedAt: "2026-10-26T00:00:00Z" };
+const H = (c: string) => c.repeat(64);
+const prefs = (on: boolean, kw: string) => JSON.stringify({ on, keywords: [kw], locations: ["New York"], remote_ok: false, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 });
+
+let pg: Pg | null = null;
+async function world(): Promise<Pg> {
+  if (pg) return pg;
+  pg = await startPg();
+  await pg.sql(`
+    alter table auth.users add column if not exists raw_app_meta_data jsonb not null default '{}'::jsonb;
+    insert into auth.users (id, email, raw_app_meta_data) values ('${U}', '${U_EMAIL}', '{"trainee_test_account": true}'),
+      ('${V}', 'real.person@example.com', '{}'), ('${W}', 'other@upmore.test', '{}');
+    insert into public.profiles (id) values ('${U}'), ('${V}'), ('${W}');
+    insert into public.agent_threads (id, user_id) values ('${T_U}', '${U}'), ('${T_V}', '${V}'), ('${T_U2}', '${U}');
+    create schema if not exists cron;
+    create table if not exists cron.job (jobid bigint primary key, jobname text, schedule text);
+    create table if not exists cron.job_run_details (jobid bigint, status text, start_time timestamptz);`);
+  return pg;
+}
+const skip = () => {
+  if (pgBinDir()) return false;
+  if (CI) throw Error("the live-verify checks need Postgres 16 in CI");
+  console.log("NOT_RUN locally: no Postgres binaries");
+  return true;
+};
+const db = () => L.readOnlyDb((s) => pg!.sql(s));
+const seed = (s: string) => pg!.sql(s);
+const turn = (o: Partial<C.Turn> & { reply: string }): C.Turn => ({ status: 200, threadId: T_U, turnKey: crypto.randomUUID(), meta: {}, at: new Date(Date.now() - 60_000).toISOString(), ...o });
+const is = (r: L.Result | L.Result[], status: L.Status, msg = "") => {
+  for (const x of [r].flat()) assertEquals(x.status, status, `${msg} ${x.check}: ${x.reason}`);
+};
+
+// ------------------------------------------------------------------------------------------------ pure guards
+Deno.test("live verify: the read-only guard passes reads and refuses every write shape", () => {
+  for (const s of [
+    "select 1", "with a as (select 1) select * from a", "select count(*) from career_events where kind = 'insert into x'",
+    "select public.career_ingest_coverage(interval '1 hour')", "select updated_at, created_at, start_time from x",
+    "select encode(sha256(convert_to(public.career_apply_canonical(p.payload), 'UTF8')), 'hex') from career_apply_prepared p",
+  ]) L.assertReadOnlySql(s);
+  for (const s of [
+    "insert into career_events values (1)", "update career_watch_kv set value = '{}'", "delete from career_outbox",
+    "with d as (delete from career_events returning 1) select count(*) from d", "select 1; delete from career_events",
+    "select nextval('s')", "select career_apply_enqueue('{}'::jsonb, 'a', 'a', 1)", "select public.career_host_commit(null)",
+    "set role postgres", "truncate career_events", "select pg_advisory_lock(1)", "copy x to stdout", "select set_config('a','b',false)",
+    "call p()", "do $$ begin end $$",
+  ]) assertThrows(() => L.assertReadOnlySql(s), Error, "refused", s);
+});
+
+Deno.test("live verify: the HTTP guard allows only the test account's doors", async () => {
+  const calls: string[] = [];
+  const inner = (async (i: string | URL | Request) => { calls.push(String(i)); return new Response("{}"); }) as typeof fetch;
+  const f = L.guardedFetch({ base: "https://abcdefghijklmnopqrst.supabase.co", appUrl: "https://app.example.test" }, inner);
+  const B = "https://abcdefghijklmnopqrst.supabase.co";
+  await f(`${B}/functions/v1/agent-chat`, { method: "POST", body: "{}" });
+  await f(`${B}/functions/v1/trainee-telegram`, { method: "POST", body: "{}" });
+  await f(`${B}/rest/v1/career_outbox?select=user_id`);
+  await f(`${B}/auth/v1/token?grant_type=password`, { method: "POST", body: "{}" });
+  await f(`${B}/functions/v1/career-cloud-runner/dispatch`, { method: "POST", body: '{"want":0}', headers: { "x-cloud-dispatch-secret": "wrong-1" } });
+  await f("https://app.example.test/");
+  await f("https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/functions");
+  for (const [url, init] of [
+    [`${B}/rest/v1/career_outbox`, { method: "POST", body: "{}" }],
+    [`${B}/rest/v1/career_outbox?id=eq.1`, { method: "PATCH", body: "{}" }],
+    [`${B}/rest/v1/rpc/career_apply_message_card_approve_own`, { method: "POST", body: "{}" }],
+    [`${B}/functions/v1/trainee-deliver`, { method: "POST", body: "{}" }],
+    [`${B}/functions/v1/career-cloud-runner/dispatch`, { method: "POST", body: '{"want":5}', headers: { "x-cloud-dispatch-secret": "wrong-1" } }],
+    [`${B}/functions/v1/career-cloud-runner/dispatch`, { method: "POST", body: '{"want":0}', headers: { "x-cloud-dispatch-secret": "the-real-one" } }],
+    [`${B}/auth/v1/signup`, { method: "POST", body: "{}" }],
+    ["https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/secrets", { method: "GET" }],
+    ["https://boards.greenhouse.io/x/jobs/1", { method: "POST", body: "{}" }],
+  ] as [string, RequestInit][]) await assertRejects(() => f(url, init), Error, "refused", url);
+  assertEquals(calls.length, 7);
+});
+
+Deno.test("live verify: the chat guard never lets the suite approve", () => {
+  const g = new L.ChatGuard();
+  g.check(null, "find software engineer jobs in New York");
+  g.check(null, "yes, that's my resume", true);
+  for (const m of ["yes", "send 1", "approve these", "go ahead", "Submit it", "ok"]) assertThrows(() => g.check(T_U, m), Error, "refused", m);
+  g.noteReply(T_U, { reply: "Here is your card. A yes sends exactly this." });
+  assertThrows(() => g.check(T_U, "yes, that's my resume", true), Error, "card");
+  for (const m of ["send 1", "approve"]) assertThrows(() => g.check(T_U2, m, true), Error, "approval");
+});
+
+Deno.test("live verify: the JWT subject, the matrix and the F12 number match", () => {
+  const b64 = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  assertEquals(L.jwtSubject(`${b64({ alg: "HS256" })}.${b64({ sub: U, exp: 10 })}.sig`), { sub: U, exp: 10 });
+  assertThrows(() => L.jwtSubject(`${b64({})}.${b64({ sub: "x" })}.s`));
+  const md = L.markdown([L.pass("F5", "F5.a", "ok"), L.fail("F5", "F5.b", "bad | pipe"), L.notRun("F7", "F7.c", "why")], { started: "s", finished: "f", sha: null, project: null });
+  assert(md.includes("| F5 Search + judge | 1 | 1 | 0 |") && md.includes("bad \\| pipe") && md.includes("1 PASS, 1 FAIL, 1 NOT_RUN"), md);
+  const bench: C.Bench[] = [{ kind: "lca", shown: true, median: 197000, n: 49 }, { kind: "oews", shown: true, median: 166830, n: 121000 }];
+  is(C.offerNumbers(turn({ reply: "median $197,000 from 49 filings; BLS median $166,830, about 121,000 people employed" }), bench), "PASS");
+  is(C.offerNumbers(turn({ reply: "median $195,000 from 49 filings; BLS median $166,830, about 121,000 people employed" }), bench), "FAIL", "a wrong median");
+  is(C.offerNumbers(turn({ reply: "median $197,000; BLS median $166,830, about 121,000 people employed" }), bench), "FAIL", "no n");
+  is(C.offerNumbers(turn({ reply: "anything" }), [{ kind: "lca", shown: false, median: null, n: 3 }]), "NOT_RUN");
+});
+
+// ------------------------------------------------------------------------------------------------ the database checks
+Deno.test({ name: "live verify: every check passes its pass-shaped seed and fails its fail-shaped one (real Postgres)", sanitizeResources: false, sanitizeOps: false, async fn(t) {
+  if (skip()) return;
+  await world();
+  try {
+    await t.step("the database itself refuses a write inside the read-only transaction", async () => {
+      await assertRejects(() => pg!.sql(`begin transaction read only;\nwith d as (delete from career_events returning 1) select count(*) from d;\ncommit;`), Error, "read-only transaction");
+      assertEquals(await db().rows("select 1 as one"), [{ one: 1 }]);
+    });
+
+    await t.step("ACCOUNT test account", async () => {
+      await L.assertTestAccount(db(), U, U_EMAIL);
+      await assertRejects(() => L.assertTestAccount(db(), V, U_EMAIL), Error, "test domain");
+      await assertRejects(() => L.assertTestAccount(db(), W, "other@upmore.test"), Error, "not flagged");
+      await assertRejects(() => L.assertTestAccount(db(), U, "someone@upmore.test"), Error, "configured test account");
+      await assertRejects(() => L.assertTestAccount(db(), U, "a@gmail.com"), Error, "test email");
+    });
+
+    await t.step("schema", async () => {
+      for (const f of ["F1", "F6", "F7", "F8", "F9", "F14", "F15", "CLOUD"]) is(await C.schemaCheck(db(), f), "PASS", f);
+      C.NEEDS.ZZ = [{ obj: "public.career_not_a_table", kind: "table", migration: "x.sql" }];
+      is(await C.schemaCheck(db(), "ZZ"), "FAIL");
+      delete C.NEEDS.ZZ;
+    });
+
+    await t.step("turnRecorded and metered", async () => {
+      const k = crypto.randomUUID(), kv = crypto.randomUUID();
+      await seed(`insert into agent_messages (thread_id, role, content, meta) values ('${T_U}', 'assistant', 'Hello there.', '{"career_turn_key":"${k}"}'),
+        ('${T_V}', 'assistant', 'Hi.', '{"career_turn_key":"${kv}"}')`);
+      is(await C.turnRecorded(db(), "X", "X.t", turn({ reply: "Hello there.", turnKey: k }), run), "PASS");
+      is(await C.turnRecorded(db(), "X", "X.t", turn({ reply: "Something else.", turnKey: k }), run), "FAIL", "differs");
+      is(await C.turnRecorded(db(), "X", "X.t", turn({ reply: "Hello there.", turnKey: crypto.randomUUID() }), run), "FAIL", "no record");
+      is(await C.turnRecorded(db(), "X", "X.t", turn({ reply: "Hi.", turnKey: kv, threadId: T_V }), run), "FAIL", "another account");
+      is(await C.turnRecorded(db(), "X", "X.t", turn({ reply: "x", status: 503, turnKey: k }), run), "FAIL", "http");
+      const at = new Date(Date.now() - 5000).toISOString();
+      is(await C.metered(db(), "X", "X.m", turn({ reply: "", at }), run), "FAIL", "no cost row yet");
+      await seed(`insert into agent_turn_costs (user_id, thread_id, calls, usd_micros) values ('${U}', '${T_U}', 1, 120)`);
+      is(await C.metered(db(), "X", "X.m", turn({ reply: "", at }), run), "PASS");
+      await seed(`insert into agent_turn_costs (user_id, thread_id, calls, created_at) values ('${U}', '${T_U2}', 0, now())`);
+      is(await C.metered(db(), "X", "X.m", turn({ reply: "", at, threadId: T_U2 }), run), "FAIL", "zero calls");
+    });
+
+    await t.step("F5 listed postings exist and are open", async () => {
+      await seed(`insert into career_postings (job_id, provider, board, company, title, url, first_seen_at, last_seen_at, closed_at) values
+        ('greenhouse:acme:1', 'greenhouse', 'acme', 'Acme', 'Software Engineer', 'https://boards.greenhouse.io/acme/jobs/1', now(), now(), null),
+        ('greenhouse:acme:2', 'greenhouse', 'acme', 'Acme', 'Software Engineer II', 'https://boards.greenhouse.io/acme/jobs/2', now(), now(), now())`);
+      is(await C.searchListedOpen(db(), turn({ reply: "1. Software Engineer at Acme — New York (https://boards.greenhouse.io/acme/jobs/1). fit 40/100." })), "PASS");
+      is(await C.searchListedOpen(db(), turn({ reply: "1. (https://boards.greenhouse.io/acme/jobs/1). 2. (https://boards.greenhouse.io/acme/jobs/2)." })), "FAIL", "closed");
+      is(await C.searchListedOpen(db(), turn({ reply: "1. (https://boards.greenhouse.io/acme/jobs/9)." })), "FAIL", "not on file");
+      is(await C.searchListedOpen(db(), turn({ reply: "From 2 postings in the saved snapshot of job boards (https://boards.greenhouse.io/acme/jobs/1)" })), "FAIL", "snapshot");
+      is(await C.searchListedOpen(db(), turn({ reply: "No matches." })), "FAIL", "no links");
+      assertEquals(C.judgeState(turn({ reply: "not judged (the model judge is off)." })), "off");
+      assertEquals(C.judgeState(turn({ reply: "3/3 judged; 1 strong" })), "judged");
+    });
+
+    await t.step("F1/E2E queued rows match the reply and are open postings", async () => {
+      const at = new Date(Date.now() - 1000).toISOString();
+      await seed(`insert into career_apply_wanted (user_id, posting_key, url, company, title, queued_at) values ('${U}', 'greenhouse:acme:1', 'https://boards.greenhouse.io/acme/jobs/1', 'Acme', 'Software Engineer', now())`);
+      const ok = turn({ at, reply: "1/1 queued; I'll show you each application's exact answers on a card before anything is sent." });
+      is(await C.applyQueued(db(), "F1", "F1.q", ok, run, ["https://boards.greenhouse.io/acme/jobs/1"]), "PASS");
+      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "2/2 queued" }), run), "FAIL", "count");
+      is(await C.applyQueued(db(), "F1", "F1.q", ok, run, ["https://boards.greenhouse.io/acme/jobs/7"]), "FAIL", "another posting");
+      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "Done!" }), run), "FAIL", "no coverage line");
+      await seed(`insert into career_apply_wanted (user_id, posting_key, url, queued_at) values ('${U}', 'greenhouse:acme:2', 'https://boards.greenhouse.io/acme/jobs/2', now())`);
+      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "2/2 queued" }), run), "FAIL", "a closed posting queued");
+      await seed(`delete from career_apply_wanted where user_id = '${U}'`);
+      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "0/1 queued" }), run), "FAIL", "nothing queued");
+    });
+
+    await t.step("F3/E2E prepared, hash-bound and carded", async () => {
+      const urls = { urls: ["https://boards.greenhouse.io/acme/jobs/1"] };
+      is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "nothing prepared");
+      const id = (await seed(`insert into career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines)
+        select '${U}', 'greenhouse:acme:1', 'Acme', 'https://boards.greenhouse.io/acme/jobs/1', p, encode(sha256(convert_to(public.career_apply_canonical(p), 'UTF8')), 'hex'), '{"1. Acme"}'
+        from (select '{"answers":{"first_name":"Alex"}}'::jsonb as p) s returning id`)).split("\n")[0];
+      is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "no card");
+      await seed(`insert into career_apply_cards (user_id, items, shown_at) select '${U}', jsonb_build_array(jsonb_build_object('n', 1, 'prepared_id', id, 'payload_hash', payload_hash)), now() from career_apply_prepared where id = '${id}'`);
+      is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "PASS");
+      await seed(`update career_apply_cards set items = jsonb_build_array(jsonb_build_object('n', 1, 'prepared_id', '${id}', 'payload_hash', '${H("e")}')) where user_id = '${U}'`);
+      is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "card names another hash");
+      await seed(`update career_apply_prepared set payload = '{"answers":{"first_name":"Changed"}}' where id = '${id}'`);
+      is(await C.preparedBound(db(), "E2E", "E2E.p", run, urls), "FAIL", "payload no longer hashes");
+      is(await C.preparedBound(db(), "F3", "F3.p", run, { exceptUrls: urls.urls }), "FAIL", "F3 excludes the E2E posting");
+      await seed(`delete from career_apply_cards where user_id = '${U}'; delete from career_apply_prepared where user_id = '${U}'`);
+    });
+
+    await t.step("SAFETY never approved", async () => {
+      is(await C.neverApproved(db(), run), "PASS");
+      await seed(`insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`);
+      is(await C.neverApproved(db(), run), "FAIL", "an answered card");
+      await seed(`delete from career_apply_cards where user_id = '${U}'; set session_replication_role = replica;
+        insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state) values ('${U}', 'j', 'Acme', 'https://x.test/1', '{}', '${H("a")}', '${H("a")}', 'queued')`);
+      is(await C.neverApproved(db(), run), "FAIL", "a job");
+      await seed(`delete from career_apply_jobs where user_id = '${U}'`);
+    });
+
+    await t.step("F2 approval invariant and a real Greenhouse submit; F14 receipts; CLOUD", async () => {
+      is(await C.greenhouseSubmitted(db()), "FAIL", "none yet");
+      is(await C.cloudInvariant(db()), "FAIL", "no cloud job yet");
+      is(await C.receiptIntegrity(db()), "PASS", "0/0");
+      const job = (await seed(`set session_replication_role = replica;
+        insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, source, updated_at)
+        values ('${V}', 'greenhouse:acme:1', 'Acme', 'https://boards.greenhouse.io/acme/jobs/1', '{}', '${H("b")}', '${H("b")}', 'submitted_unconfirmed', 'cloud', now()) returning id`)).split("\n").filter(Boolean).at(-1)!;
+      is(await C.approvalInvariant(db(), "F2"), "PASS");
+      is(await C.greenhouseSubmitted(db()), "PASS");
+      is(await C.cloudInvariant(db()), "PASS");
+      is(await C.receiptIntegrity(db()), "FAIL", "no receipt");
+      await seed(`insert into career_apply_receipts (application_id, user_id, company, url, state, reached_employer, answers, payload_hash, approval_hash, approved_at, finished_at, pictures_keep_until)
+        values ('${job}', '${V}', 'Acme', 'https://boards.greenhouse.io/acme/jobs/1', 'submitted_unconfirmed', 'yes', '[]', '${H("b")}', '${H("b")}', now(), now(), now() + interval '30 days')`);
+      is(await C.receiptIntegrity(db()), "PASS");
+      await seed(`update career_apply_receipts set state = 'confirmed' where application_id = '${job}'`);
+      is(await C.receiptIntegrity(db()), "FAIL", "receipt state differs");
+      await seed(`alter table career_apply_jobs drop constraint if exists career_apply_jobs_check; alter table career_apply_jobs drop constraint if exists career_apply_jobs_approval_hash_check;`);
+      const cons = await pg!.sql(`select conname from pg_constraint where conrelid = 'public.career_apply_jobs'::regclass and pg_get_constraintdef(oid) like '%approval_hash = payload_hash%'`);
+      for (const c of cons.split("\n").filter(Boolean)) await seed(`alter table career_apply_jobs drop constraint ${c}`);
+      await seed(`set session_replication_role = replica; update career_apply_jobs set approval_hash = '${H("c")}' where id = '${job}'`);
+      is(await C.approvalInvariant(db(), "F2"), "FAIL", "unbound send");
+      is(await C.cloudInvariant(db()), "FAIL", "unbound cloud send");
+      await seed(`set session_replication_role = replica; update career_apply_jobs set approval_hash = payload_hash, state = 'driving', attempts = 1, lease_token = gen_random_uuid(), claimed_at = now() - interval '2 hours' where id = '${job}'`);
+      is(await C.cloudInvariant(db()), "FAIL", "stuck");
+      await seed(`set session_replication_role = replica; delete from career_apply_receipts; delete from career_apply_jobs;`);
+    });
+
+    await t.step("F3 rail", async () => {
+      is(await C.prepareAheadRail(db()), "FAIL");
+      await seed(`insert into career_watch_kv (user_id, key, value) values ('${V}', 'career:prepare-ahead:${V}', '{"day":"2026-10-26"}')`);
+      is(await C.prepareAheadRail(db()), "PASS");
+    });
+
+    await t.step("F6 ingest fresh, lanes and schedule", async () => {
+      is((await C.ingestFresh(db(), { maxAgeMin: 30, minOpen: 1 }))[0], "FAIL", "no runs");
+      const run1 = (lane: number, ago: string, fresh = 95) => `insert into career_ingest_runs (at, lane, lanes, window_min, ms, boards_due, boards_read, boards_ok, boards_failed, postings_new, directory_fresh, directory_total, report)
+        values (now() - interval '${ago}', ${lane}, 2, 60, 100, 10, 10, 10, 0, 5, ${fresh}, 100, 'lane ${lane}')`;
+      await seed(run1(0, "2 hours"));
+      const r = await C.ingestFresh(db(), { maxAgeMin: 30, minOpen: 1 });
+      is(r[0], "FAIL", "stale");
+      is(r[1], "PASS", "1 open posting first seen now");
+      is((await C.ingestFresh(db(), { maxAgeMin: 30, minOpen: 1000 }))[1], "FAIL", "too few open");
+      await seed(run1(0, "5 minutes"));
+      is(await C.ingestFresh(db(), { maxAgeMin: 30, minOpen: 1 }), "PASS");
+      is(await C.ingestLanes(db()), "FAIL", "lane 1 silent");
+      await seed(run1(1, "4 minutes", 80));
+      is(await C.ingestLanes(db()), "FAIL", "80% fresh");
+      await seed(run1(1, "3 minutes", 95));
+      is(await C.ingestLanes(db()), "PASS");
+      is(await C.cronJobs(db(), "F6", "trainee-career-ingest%", 15), "FAIL", "no job");
+      await seed(`insert into cron.job values (1, 'trainee-career-ingest', '*/5 * * * *'), (2, 'trainee-career-ingest-lane-1', '*/5 * * * *');
+        insert into cron.job_run_details values (1, 'succeeded', now() - interval '2 minutes'), (2, 'failed', now() - interval '1 minute')`);
+      is(await C.cronJobs(db(), "F6", "trainee-career-ingest%", 15), "FAIL", "a lane failed");
+      await seed(`insert into cron.job_run_details values (2, 'succeeded', now())`);
+      is(await C.cronJobs(db(), "F6", "trainee-career-ingest%", 15), "PASS");
+    });
+
+    await t.step("F7 watch, runs, alert, deliveries, containment", async () => {
+      is(await C.watchSaved(db(), run, ["software", "engineer"]), "FAIL", "no row");
+      await seed(`insert into career_alert_prefs (user_id, prefs, last_checked_at) values ('${U}', '${prefs(true, "data analyst")}', now())`);
+      is(await C.watchSaved(db(), run, ["software", "engineer"]), "FAIL", "other words");
+      await seed(`update career_alert_prefs set prefs = '${prefs(false, "software engineer")}' where user_id = '${U}'`);
+      is(await C.watchSaved(db(), run, ["software", "engineer"]), "FAIL", "off");
+      await seed(`update career_alert_prefs set prefs = '${prefs(true, "software engineer")}' where user_id = '${U}'`);
+      is(await C.watchSaved(db(), run, ["software", "engineer"]), "PASS");
+
+      is(await C.runRecordFresh(db(), "F7", "career_proactive_runs", 15), "FAIL", "none");
+      await seed(`insert into career_proactive_runs (run_at, users, alerts, held, reports, duplicates, postings, ms, error) values (now() - interval '1 minute', 1, 0, 0, 0, 0, 0, 5, 'boom')`);
+      is(await C.runRecordFresh(db(), "F7", "career_proactive_runs", 15), "FAIL", "error");
+      await seed(`insert into career_proactive_runs (run_at, users, alerts, held, reports, duplicates, postings, ms) values (now(), 1, 0, 0, 0, 0, 0, 5)`);
+      is(await C.runRecordFresh(db(), "F7", "career_proactive_runs", 15), "PASS");
+      await seed(`insert into channel_delivery_runs (run_at, delivered, failed, retried, skipped_opt_out, capped, swept, ms) values (now() - interval '1 hour', 0, 0, 0, 0, 0, 0, 1)`);
+      is(await C.runRecordFresh(db(), "F7", "channel_delivery_runs", 5), "FAIL", "old");
+
+      const r2 = { ...run, startedAt: new Date(Date.now() - 60_000).toISOString() };
+      is(await C.alertQueued(db(), r2, ["software", "engineer"]), "FAIL", "none");
+      await seed(`insert into career_outbox (user_id, key, kind, text, deliver_at) values ('${U}', 'alert:greenhouse:acme:2', 'alert', 'New match', now())`);
+      is(await C.alertQueued(db(), r2, ["software", "engineer"]), "FAIL", "closed posting");
+      await seed(`insert into career_outbox (user_id, key, kind, text, deliver_at) values ('${U}', 'alert:greenhouse:acme:1', 'alert', 'New match', now())`);
+      is(await C.alertQueued(db(), r2, ["software", "engineer"]), "PASS");
+
+      is(await C.alertsDelivered(db(), U), "FAIL", "only the test account's");
+      await seed(`insert into career_outbox (user_id, key, kind, text, deliver_at, status, delivered_at, contact) values ('${V}', 'alert:greenhouse:acme:1', 'alert', 'New match', now(), 'delivered', now(), '+15550100')`);
+      is(await C.alertsDelivered(db(), U), "PASS");
+
+      is(await C.testOutboxContained(db(), run, null), "PASS", "nothing delivered for the test account");
+      await seed(`update career_outbox set status = 'delivered', delivered_at = now(), contact = 'tg:42' where user_id = '${U}' and key = 'alert:greenhouse:acme:1'`);
+      is(await C.testOutboxContained(db(), run, "tg:42"), "PASS");
+      is(await C.testOutboxContained(db(), run, null), "FAIL", "no test chat");
+      await seed(`update career_outbox set contact = '+15550100' where user_id = '${U}' and key = 'alert:greenhouse:acme:1'`);
+      is(await C.testOutboxContained(db(), run, "tg:42"), "FAIL", "a real number");
+    });
+
+    await t.step("F8 inbox and follow-ups agree with the mail state", async () => {
+      const at = new Date(Date.now() - 1000).toISOString();
+      is(await C.inboxHonest(db(), turn({ at, reply: "Nothing was read: your Gmail is not connected." }), run), "PASS");
+      is(await C.inboxHonest(db(), turn({ at, reply: "I read your mail through Oct 25: 1 new message." }), run), "FAIL", "claims a read");
+      is(await C.inboxHonest(db(), turn({ at, reply: "Sure thing." }), run), "FAIL", "says nothing");
+      await seed(`insert into career_mail_cursors (user_id, read_through, updated_at) values ('${U}', now(), now())`);
+      is(await C.inboxHonest(db(), turn({ at, reply: "I read your mail through Oct 25: 1 new message." }), run), "PASS");
+      is(await C.inboxHonest(db(), turn({ at, reply: "Nothing was read: your Gmail is not connected." }), run), "FAIL", "cursor moved");
+      is(await C.followupsMatch(db(), turn({ reply: "No follow-ups are due." }), run), "PASS");
+      is(await C.followupsMatch(db(), turn({ reply: "Stripe: follow-up due." }), run), "FAIL", "invented");
+      await seed(`insert into career_mail_drafts (user_id, draft_key, application_ref, kind, company, text, basis) values ('${U}', 'followup:k1', 'job:a1', 'followup', 'Stripe', 'Hi', 'no reply in 16 days')`);
+      is(await C.followupsMatch(db(), turn({ reply: "No follow-ups are due." }), run), "FAIL", "one is due");
+      is(await C.followupsMatch(db(), turn({ reply: "Stripe (Data Analyst): follow-up due." }), run), "PASS");
+    });
+
+    await t.step("F9 memory across threads", async () => {
+      const at = new Date(Date.now() - 1000).toISOString();
+      const a = turn({ at, threadId: T_U, reply: "Noted." }), b = turn({ threadId: T_U2, reply: "You are a junior majoring in Economics." });
+      is((await C.memoryAcrossThreads(db(), a, b, run, ["junior", "economics"]))[1], "FAIL", "no events");
+      await seed(`insert into career_events (user_id, at, kind, subject, source) values ('${U}', now(), 'fact_confirmed', 'year: junior', 'chat'), ('${U}', now(), 'fact_confirmed', 'majors: economics', 'chat');
+        insert into career_watch_kv (user_id, key, value) values ('${U}', 'career:account', '{"epoch":0,"version":1,"paused":false,"memory":{"v":1}}')
+        on conflict (user_id, key) do update set value = excluded.value`);
+      is(await C.memoryAcrossThreads(db(), a, b, run, ["junior", "economics"]), "PASS");
+      is((await C.memoryAcrossThreads(db(), a, turn({ threadId: T_U2, reply: "Nothing is on your record yet." }), run, ["junior", "economics"]))[0], "FAIL", "forgotten");
+      is((await C.memoryAcrossThreads(db(), a, { ...b, threadId: T_U }, run, ["junior", "economics"]))[0], "FAIL", "same thread");
+    });
+
+    await t.step("F10 outreach drafts wait for approval", async () => {
+      const at = new Date(Date.now() - 1000).toISOString();
+      const t1 = turn({ at, reply: "Drafted 1/1. Say send 1 to send it." });
+      is(await C.outreachDrafted(db(), t1, run, "@example.test"), "FAIL", "no row");
+      await seed(`insert into career_outreach_drafts (user_id, batch_id, thread_id, n, recipient, recipient_email, subject, body, footer, hash)
+        values ('${U}', gen_random_uuid(), '${T_U}', 1, '{}', 'riley.verifytest@example.test', 'Hi', 'Body', 'Alex', '${H("d")}')`);
+      is(await C.outreachDrafted(db(), t1, run, "@example.test"), "PASS");
+      is(await C.outreachDrafted(db(), turn({ at, reply: "Drafted 2/2." }), run, "@example.test"), "FAIL", "count");
+      is(await C.outreachDrafted(db(), turn({ at, reply: "Drafting is not switched on; nothing is drafted." }), run, "@example.test"), "FAIL", "off");
+      await seed(`update career_outreach_drafts set status = 'sent', sent_at = now() where user_id = '${U}'`);
+      is(await C.outreachDrafted(db(), t1, run, "@example.test"), "FAIL", "sent");
+      await seed(`update career_outreach_drafts set status = 'shown', sent_at = null, recipient_email = 'someone@gmail.com' where user_id = '${U}'`);
+      is(await C.outreachDrafted(db(), t1, run, "@example.test"), "FAIL", "a real address");
+      assertEquals(C.importCount("Connections.csv: imported 3/3 rows into your contacts"), { imported: 3, of: 3 });
+    });
+
+    await t.step("F11 mock_done matches the debrief", async () => {
+      const r3 = { ...run, startedAt: new Date(Date.now() - 60_000).toISOString() };
+      const debrief = turn({ reply: "Weak spots kept for a drill: SQL.\nNext steps: ..." });
+      is(await C.mockDone(db(), r3, debrief), "FAIL", "no event");
+      await seed(`insert into career_events (user_id, at, kind, subject, detail) values ('${U}', now(), 'mock_done', 'Software Engineer at Acme', '{"answers":[{"skill":"SQL","weak":true},{"skill":"statistics","weak":false}]}')`);
+      is(await C.mockDone(db(), r3, debrief), "PASS");
+      is(await C.mockDone(db(), r3, turn({ reply: "Weak spots kept for a drill: statistics." })), "FAIL", "wrong weak spot");
+    });
+
+    await t.step("F14 the receipts reply agrees with career_apply_receipts", async () => {
+      is(await C.receiptReplyMatches(db(), turn({ reply: "No application receipts are on record yet. Each application gets one when it finishes." }), run), "PASS");
+      is(await C.receiptReplyMatches(db(), turn({ reply: "Your application receipts, newest first: Acme" }), run), "FAIL", "invented");
+    });
+
+    await t.step("TG link and turn", async () => {
+      is((await C.telegramLinked(db(), run, "42")).result, "NOT_RUN", "unlinked");
+      await seed(`insert into channel_contacts (contact, user_id, channel, address) values ('tg:42', '${V}', 'telegram', '42')`);
+      is((await C.telegramLinked(db(), run, "42")).result, "FAIL", "another account");
+      await seed(`update channel_contacts set user_id = '${U}' where contact = 'tg:42'`);
+      is((await C.telegramLinked(db(), run, "42")).result, "PASS");
+      const at = new Date(Date.now() - 1000).toISOString();
+      is(await C.telegramTurnRecorded(db(), run, at, "what do you know about me?"), "FAIL", "not recorded");
+      await seed(`insert into agent_messages (thread_id, role, content) values ('${T_U2}', 'user', 'what do you know about me?'), ('${T_U2}', 'assistant', 'You are a junior.')`);
+      is(await C.telegramTurnRecorded(db(), run, at, "what do you know about me?"), "PASS");
+    });
+
+    await t.step("ERASE erased, and SAFETY no foreign writes", async () => {
+      is(await C.eraseErased(db(), run), "FAIL", "everything is still there");
+      await seed(`delete from career_events where user_id = '${U}'; delete from career_alert_prefs where user_id = '${U}'; delete from career_outreach_drafts where user_id = '${U}';
+        delete from career_mail_drafts where user_id = '${U}'; delete from career_watch_kv where user_id = '${U}' and key <> 'career:account';
+        update career_watch_kv set value = '{"epoch":1,"version":2,"paused":true}' where user_id = '${U}' and key = 'career:account'`);
+      is(await C.eraseErased(db(), run), "PASS");
+      await seed(`update career_watch_kv set value = '{"epoch":1,"version":2,"paused":false}' where user_id = '${U}' and key = 'career:account'`);
+      is((await C.eraseErased(db(), run))[1], "FAIL", "not paused");
+      await seed(`insert into career_watch_kv (user_id, key, value) values ('${U}', 'career:turn:${T_U}:k', '{"hash":"h","response":{"reply":"kept"}}')`);
+      is((await C.eraseErased(db(), run))[0], "FAIL", "a turn receipt kept its reply");
+      is(await C.noForeignWrites(db(), run, [T_U, T_U2]), "PASS");
+      is(await C.noForeignWrites(db(), run, [T_U, T_V]), "FAIL", "another account's thread");
+      is(await C.noForeignWrites(db(), run, []), "NOT_RUN");
+    });
+
+    await t.step("the owner checks' SQL: every statement is a read and runs on the career schema", async () => {
+      // user_oauth_connections as the live project has it (read 2026-10-26), when the flow schema lacks it.
+      await seed(`create table if not exists public.user_oauth_connections (user_id uuid, provider text, vault_name text, email text, scopes text, connected_at timestamptz)`);
+      const text = (await Deno.readTextFile(new URL("../../scripts/live/owner-checks.sql", import.meta.url))).replace(/--[^\n]*/g, "");
+      const stmts = text.split(";").map((s) => s.trim()).filter(Boolean);
+      assert(stmts.length >= 9, `${stmts.length} statements`);
+      for (const s of stmts) {
+        const sql = s.replaceAll("YOUR_EMAIL", U_EMAIL);
+        L.assertReadOnlySql(sql);
+        await db().rows(sql);
+      }
+    });
+  } finally {
+    await pg?.stop();
+    pg = null;
+  }
+} });
+
+// ------------------------------------------------------------------------------------------------ a whole run
+Deno.test({ name: "live verify: a run refuses a non-test account and calls nothing; a run against a dead product FAILS and stays in its lane", sanitizeResources: false, sanitizeOps: false, async fn() {
+  if (skip()) return;
+  const p = await startPg();
+  try {
+    await p.sql(`alter table auth.users add column if not exists raw_app_meta_data jsonb not null default '{}'::jsonb;
+      insert into auth.users (id, email, raw_app_meta_data) values ('${U}', '${U_EMAIL}', '{"trainee_test_account": true}'), ('${V}', 'real.person@example.com', '{}');
+      insert into public.profiles (id) values ('${U}'), ('${V}');`);
+    const b64 = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const jwt = (sub: string) => `${b64({ alg: "HS256" })}.${b64({ sub, exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
+    const out = await Deno.makeTempDir();
+    const calls: { url: string; method: string; auth: string | null; body: string }[] = [];
+    const dead = (async (i: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(i), method: String(init?.method ?? "GET"), auth: new Headers(init?.headers).get("authorization"), body: String(init?.body ?? "") });
+      return new Response('{"error":"internal"}', { status: 500 });
+    }) as typeof fetch;
+    const env = (sub: string) => (k: string) => ({ SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst", SUPABASE_DB_URL: "postgres://x", UPMORE_TEST_JWT: jwt(sub), TRAINEE_VERIFY_EMAIL: U_EMAIL } as Record<string, string>)[k];
+    const quiet = () => {};
+
+    // Nothing given: exit 2, NOT_RUN everywhere, nothing called.
+    assertEquals(await main(["--out", out, "--wait-min", "0"], () => undefined, { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 2);
+    assertEquals(calls.length, 0);
+    const empty = JSON.parse(await Deno.readTextFile(`${out}/live-verify.json`));
+    assert(empty.results.every((r: L.Result) => r.status === "NOT_RUN"));
+
+    // A real person's JWT: refused before any call.
+    assertEquals(await main(["--out", out, "--wait-min", "0"], env(V), { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 2);
+    assertEquals(calls.length, 0, "nothing is called as a real person");
+
+    // The test account against a product that answers 500 to everything: the run completes, FAILs, never PASSes a
+    // feature, and every request went to a door the guard allows, as the test account.
+    const before = await p.sql(`select (select count(*) from career_events) || ',' || (select count(*) from career_watch_kv) || ',' || (select count(*) from agent_messages)`);
+    assertEquals(await main(["--out", out, "--wait-min", "0"], env(U), { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 1);
+    const report = JSON.parse(await Deno.readTextFile(`${out}/live-verify.json`));
+    const feat = report.results.filter((r: L.Result) => /^F\d+$|^E2E$/.test(r.feature));
+    assert(feat.length >= 30, `${feat.length} feature checks`);
+    // Only state checks may pass here (the schema is present, the empty job table breaks no invariant); no check of a
+    // reply or of what a reply caused may.
+    const stateOnly = (c: string) => /\.schema$|\.approval_invariant$|\.every_finished_job_has_matching_receipt$/.test(c);
+    assertEquals(feat.filter((r: L.Result) => r.status === "PASS" && !stateOnly(r.check)).map((r: L.Result) => r.check), [], "a dead product passes nothing");
+    assert(report.results.some((r: L.Result) => r.check === "ACCOUNT.test_account" && r.status === "PASS"));
+    for (const c of calls) {
+      const path = new URL(c.url).pathname;
+      if (c.method === "POST") {
+        assert(["/functions/v1/agent-chat", "/functions/v1/career-cloud-runner/dispatch"].includes(path), path);
+        if (path === "/functions/v1/agent-chat") {
+          assertEquals(L.jwtSubject(c.auth!.replace(/^Bearer /, "")).sub, U);
+          assert(!L.APPROVING.test(JSON.parse(c.body).message) || /that's my resume/.test(JSON.parse(c.body).message), c.body);
+        }
+      }
+    }
+    assert(calls.some((c) => c.url.endsWith("/functions/v1/agent-chat")));
+    const after = await p.sql(`select (select count(*) from career_events) || ',' || (select count(*) from career_watch_kv) || ',' || (select count(*) from agent_messages)`);
+    assertEquals(after, before, "the suite itself wrote nothing to the database");
+    const md = await Deno.readTextFile(`${out}/live-verify.md`);
+    assert(md.includes("| F12 Offer benchmark |") && !md.includes(jwt(U)), "the matrix is written and carries no secret");
+    await Deno.remove(out, { recursive: true });
+  } finally {
+    await p.stop();
+  }
+} });

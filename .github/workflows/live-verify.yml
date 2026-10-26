@@ -1,0 +1,71 @@
+# Live production verification (scripts/live/verify.ts; plan: docs/architect/LIVE-VERIFICATION-PLAN-2026-10-26.md).
+# Drives the real live channels as the dedicated test account (an @upmore.test user flagged trainee_test_account by the
+# owner's setup, scripts/live/test-account.sql), asserts each real outcome in live state with SELECTs inside a read-only
+# transaction, cleans up through the product's own erase, and writes a JSON report and a markdown matrix (the job summary
+# and the artifact). It never deploys, migrates or approves anything; no card is ever answered, so nothing reaches an
+# employer. Runs in the GitHub environment `production`: its secrets are visible only to an approved run there.
+# Owner, once: add `ci/live-verify` (and `trunk`, for the schedule) to the environment's deployment branches, or the run
+# is refused; with Required reviewers on, each run waits for "Review deployments" (the schedule too).
+name: live-verify
+on:
+  push:
+    branches: [ci/live-verify]
+  schedule:
+    - cron: "17 13,21 * * *" # 08:17 and 16:17 Chicago (CDT); not on the hour
+  workflow_dispatch:
+    inputs:
+      wait_min:
+        description: minutes to wait for scheduled outcomes (alerts, prepare-ahead)
+        default: "20"
+permissions:
+  contents: read
+concurrency:
+  group: live-verify
+  cancel-in-progress: false
+jobs:
+  verify:
+    name: live verify (production)
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: "v2.9.6" }
+      - name: Install psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql --version
+      - name: Verify production
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          UPMORE_TEST_JWT: ${{ secrets.UPMORE_TEST_JWT }}
+          # New, named in the plan (owner setup): the test account's sign-in (so the JWT never goes stale), the
+          # project's public anon key (PostgREST reads as the test account), the app's URL, and the optional test chat.
+          TRAINEE_VERIFY_EMAIL: ${{ secrets.TRAINEE_VERIFY_EMAIL }}
+          TRAINEE_VERIFY_PASSWORD: ${{ secrets.TRAINEE_VERIFY_PASSWORD }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TRAINEE_APP_URL: ${{ secrets.TRAINEE_APP_URL }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          TRAINEE_VERIFY_TELEGRAM_CHAT_ID: ${{ secrets.TRAINEE_VERIFY_TELEGRAM_CHAT_ID }}
+          WAIT_MIN: ${{ github.event.inputs.wait_min || '20' }}
+        run: |
+          set -o pipefail
+          deno run -A scripts/live/verify.ts --out "$RUNNER_TEMP/live-verify" --wait-min "$WAIT_MIN"
+      - name: Matrix to the job summary
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/live-verify/live-verify.md" && cat "$RUNNER_TEMP/live-verify/live-verify.md" >> "$GITHUB_STEP_SUMMARY" || echo "no report was written" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-verify-${{ github.run_id }}
+          path: ${{ runner.temp }}/live-verify/
+          if-no-files-found: warn
+          retention-days: 30

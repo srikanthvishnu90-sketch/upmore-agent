@@ -11,8 +11,9 @@ const iso = (t: number) => new Date(t).toISOString();
 const DAY = 86400000;
 const user = (p: Partial<PlanUser> = {}): PlanUser => ({ id: "u1", tz: "America/New_York", prefs: { ...DEFAULT_PREFS, keywords: ["data analyst"] },
   last_checked_at: iso(NOW - 15 * 60000), instant_sent_today: 0, last_report_on: "2026-10-18", ...p });
+// SERIAL-1530: open remote fixture; a country-limited remote posting is held for a person with no location on record.
 const posting = (id: string, extra: Record<string, unknown> = {}) =>
-  ({ job_id: `lever:acme:${id}`, title: "Data Analyst", company: "Acme", location: "Remote - US", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(NOW - 4 * 60000), closed_at: null, ...extra });
+  ({ job_id: `lever:acme:${id}`, title: "Data Analyst", company: "Acme", location: "Remote", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(NOW - 4 * 60000), closed_at: null, ...extra });
 
 Deno.test("WO-017/A1 a backlog posting (published 90 days before first seen) is neither an instant alert nor in the day's count", () => {
   const out = planProactive({ users: [user()], now: NOW, postings: [

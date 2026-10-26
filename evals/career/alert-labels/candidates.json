@@ -1,5 +1,5 @@
 {
- "note": "WO-037 labeled-set candidates: real postings read by the product's feed reader (boardFetchFeed) from the live directory, each paired with one persona (personas.json), stratified by near miss (label_set.ts). Descriptions clipped to 3,000 characters. 'gate' is what the alert gate (matchPosting) says; it is NOT a label.",
+ "note": "WO-037 labeled-set candidates: real postings read by the product's feed reader (boardFetchFeed) from the live directory, each paired with one persona (personas.json), stratified by near miss (label_set.ts). Descriptions clipped to 3,000 characters. 'gate' is what the alert gate (matchPosting) says; it is NOT a label. 2026-10-26 (SERIAL-1530): the gate now holds a remote posting limited to a country for a persona with no stated location (posting_region.ts), so the stored gate answers and strata were re-read from the gate and the builder (15 rows gate true -> false, now near_miss_place; 9 near misses re-classed); the postings, ids and personas are unchanged. The set was collected under the earlier gate; a fresh collection (collect-pool.ts) would re-balance the strata.",
  "collected_at": "2026-10-20T00:10:55.026Z",
  "boards_read": 2170,
  "boards_failed": 9,
@@ -7,10 +7,10 @@
  "rows": 200,
  "strata": {
   "P01": {
-   "gate_pass": 8,
-   "near_miss_floor": 3,
-   "near_miss_place": 3,
-   "near_miss_title": 3,
+   "gate_pass": 7,
+   "near_miss_floor": 1,
+   "near_miss_place": 4,
+   "near_miss_title": 5,
    "near_miss_synonym": 3
   },
   "P02": {
@@ -42,31 +42,31 @@
    "near_miss_synonym": 3
   },
   "P06": {
-   "gate_pass": 9,
+   "gate_pass": 8,
    "near_miss_floor": 2,
-   "near_miss_place": 3,
+   "near_miss_place": 4,
    "near_miss_title": 3,
    "near_miss_synonym": 3
   },
   "P07": {
-   "gate_pass": 8,
-   "near_miss_floor": 3,
-   "near_miss_place": 3,
-   "near_miss_title": 3,
+   "gate_pass": 5,
+   "near_miss_floor": 0,
+   "near_miss_place": 6,
+   "near_miss_title": 6,
    "near_miss_synonym": 3
   },
   "P08": {
-   "gate_pass": 8,
-   "near_miss_floor": 3,
-   "near_miss_place": 3,
-   "near_miss_title": 3,
+   "gate_pass": 4,
+   "near_miss_floor": 1,
+   "near_miss_place": 6,
+   "near_miss_title": 6,
    "near_miss_synonym": 3
   },
   "P09": {
-   "gate_pass": 8,
-   "near_miss_floor": 3,
-   "near_miss_place": 3,
-   "near_miss_title": 3,
+   "gate_pass": 2,
+   "near_miss_floor": 2,
+   "near_miss_place": 9,
+   "near_miss_title": 4,
    "near_miss_synonym": 3
   },
   "P10": {
@@ -135,8 +135,8 @@
   {
    "id": "P01-04",
    "persona": "P01",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:mercury:6101145004",
     "provider": "greenhouse",
@@ -225,7 +225,7 @@
   {
    "id": "P01-09",
    "persona": "P01",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:zetaglobal:5685356004",
@@ -243,7 +243,7 @@
   {
    "id": "P01-10",
    "persona": "P01",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:affirm:7749580003",
@@ -1989,8 +1989,8 @@
   {
    "id": "P06-07",
    "persona": "P06",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:anthropic:5375376008",
     "provider": "greenhouse",
@@ -2241,8 +2241,8 @@
   {
    "id": "P07-01",
    "persona": "P07",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:sharkninjaoperatingllc:4661622006",
     "provider": "greenhouse",
@@ -2331,8 +2331,8 @@
   {
    "id": "P07-06",
    "persona": "P07",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:natera:6225025004",
     "provider": "greenhouse",
@@ -2367,8 +2367,8 @@
   {
    "id": "P07-08",
    "persona": "P07",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "smartrecruiters:inbulkscorp:743999731049711",
     "provider": "smartrecruiters",
@@ -2385,7 +2385,7 @@
   {
    "id": "P07-09",
    "persona": "P07",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:swordhealth:4455380009",
@@ -2403,7 +2403,7 @@
   {
    "id": "P07-10",
    "persona": "P07",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "ashby:g2:5bf6b394-c1f4-4262-800c-296557505d93",
@@ -2421,7 +2421,7 @@
   {
    "id": "P07-11",
    "persona": "P07",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:veeamsoftware:4997693101",
@@ -2637,8 +2637,8 @@
   {
    "id": "P08-03",
    "persona": "P08",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "smartrecruiters:rrdonnelley:744000145799300",
     "provider": "smartrecruiters",
@@ -2691,8 +2691,8 @@
   {
    "id": "P08-06",
    "persona": "P08",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "smartrecruiters:rrdonnelley:744000152440861",
     "provider": "smartrecruiters",
@@ -2709,8 +2709,8 @@
   {
    "id": "P08-07",
    "persona": "P08",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "ashby:equip:a1e76e9a-e926-4aed-8591-f9900c3783e5",
     "provider": "ashby",
@@ -2727,8 +2727,8 @@
   {
    "id": "P08-08",
    "persona": "P08",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:instacart:7991564",
     "provider": "greenhouse",
@@ -2745,7 +2745,7 @@
   {
    "id": "P08-09",
    "persona": "P08",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:globalizationpartners:7985395003",
@@ -2763,7 +2763,7 @@
   {
    "id": "P08-10",
    "persona": "P08",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "ashby:golinks:ba6d0756-3d16-44e1-bf2a-8ea582b5d472",
@@ -2799,7 +2799,7 @@
   {
    "id": "P08-12",
    "persona": "P08",
-   "stratum": "near_miss_place",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "lever:toptal:bdc963ca-1705-4e55-8872-0c15d23831d8",
@@ -2979,8 +2979,8 @@
   {
    "id": "P09-02",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:samsara:8227725",
     "provider": "greenhouse",
@@ -3015,8 +3015,8 @@
   {
    "id": "P09-04",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:samsara:8195432",
     "provider": "greenhouse",
@@ -3033,8 +3033,8 @@
   {
    "id": "P09-05",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:zetaglobal:6217021004",
     "provider": "greenhouse",
@@ -3051,8 +3051,8 @@
   {
    "id": "P09-06",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:veeamsoftware:4552014101",
     "provider": "greenhouse",
@@ -3069,8 +3069,8 @@
   {
    "id": "P09-07",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:nice:4971351101",
     "provider": "greenhouse",
@@ -3087,8 +3087,8 @@
   {
    "id": "P09-08",
    "persona": "P09",
-   "stratum": "gate_pass",
-   "gate": true,
+   "stratum": "near_miss_place",
+   "gate": false,
    "posting": {
     "job_id": "greenhouse:fourkites:8278270",
     "provider": "greenhouse",
@@ -3105,7 +3105,7 @@
   {
    "id": "P09-09",
    "persona": "P09",
-   "stratum": "near_miss_floor",
+   "stratum": "near_miss_title",
    "gate": false,
    "posting": {
     "job_id": "greenhouse:heygen:5198172007",

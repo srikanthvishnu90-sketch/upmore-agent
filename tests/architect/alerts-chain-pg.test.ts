@@ -35,7 +35,7 @@ const _d = new Date(); const T0 = Date.UTC(_d.getUTCFullYear(), _d.getUTCMonth()
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const PEOPLE: Record<string, string> = {};
-for (let n = 1; n <= 7; n++) PEOPLE[`tok-${n}`] = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+for (let n = 1; n <= 9; n++) PEOPLE[`tok-${n}`] = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const contactOf = (n: number) => `+1555000${String(n).padStart(4, "0")}`;
 
 let jobs = 0;
@@ -209,6 +209,42 @@ Deno.test({
         const e = await delivery(admin, T0 + 2 * HOUR + 2000, { onSend: async (n) => { if (n === 1) await q.say("pause my job alerts", T0 + 2 * HOUR + 2500); } });
         eq(e.sent.filter((s) => s.contact === q.contact).length, 1, "the bound: the one send in flight, nothing after it");
         eq((await outbox(pg, q.id)).map((o: any) => o.status).sort(), ["delivered", "skipped_opt_out"], "one delivered, the next not sent");
+      });
+
+      await t.step("SERIAL-1530 remote: a New York watch for a person who said they are in Chicago takes a US remote posting, not one limited to Canada or the UK; with no location stated, a country-limited remote posting is held, never passed", async () => {
+        const p = await person(8);
+        // Their location is a STATED fact (a resume's header line is not read as one): said in chat, it is on the record.
+        const where = await p.say("I'm based in Chicago", T0 - 30000);
+        eq(where.intent, "profile_correction", `the stated location is recorded: ${where.reply}`);
+        const r = await p.say("Watch for operations analyst roles in New York", T0);
+        eq([r.intent, r.resultStatus], ["career_watch_create", "prepared"], r.reply);
+        assert(/Remote postings for this role are included too, as long as they are open to where you are; say "no remote" to leave them out\./.test(r.reply), r.reply);
+        assert(!/held until I know where you are/.test(r.reply), `their location is on record (stated in chat): ${r.reply}`);
+        const row = await settings(pg, p.id);
+        eq(row.prefs.interests[0].remote_ok, true, "the default choice is stored as remote in");
+        eq(/Chicago/.test(String(row.prefs.interests[0].home)), true, `the bridge carried their stated location: ${JSON.stringify(row.prefs.interests[0])}`);
+        const us = await board(pg, "Operations Analyst", "Iota", "Remote - US", T0 + HOUR);
+        const ca = await board(pg, "Operations Analyst", "Kappa", "Remote (Canada)", T0 + HOUR);
+        const uk = await board(pg, "Operations Analyst", "Lambda", "Remote", T0 + HOUR);
+        await pg.sql(`update public.career_postings set description = 'Remote role. You must be authorized to work in the United Kingdom.' where job_id = '${uk}'`);
+        const anywhere = await board(pg, "Operations Analyst", "Mu", "Remote", T0 + HOUR);
+        await scheduled(pg, admin, T0 + 2 * HOUR);
+        const keys = (await outbox(pg, p.id)).map((o: any) => o.key).sort();
+        eq(keys, [`alert:${anywhere}`, `alert:${us}`].sort(), `the US remote and the open remote, never the Canada (${ca}) or UK (${uk}) ones: ${JSON.stringify(keys)}`);
+
+        // No location stated: the reply says a country-limited remote posting is held, and the run holds it (the open
+        // remote one is still queued). Nothing about where they are is inferred from the resume or the watched city.
+        const q = await person(9);
+        const r2 = await q.say("Watch for paralegal roles in New York", T0);
+        eq([r2.intent, r2.resultStatus], ["career_watch_create", "prepared"], r2.reply);
+        assert(/A remote posting limited to a country is held until I know where you are — tell me your city and country\./.test(r2.reply), r2.reply);
+        const row2 = await settings(pg, q.id);
+        eq(row2.prefs.interests[0].home ?? "", "", `no home carried when none is stated: ${JSON.stringify(row2.prefs.interests[0])}`);
+        const us2 = await board(pg, "Paralegal", "Nu", "Remote - US", T0 + HOUR);
+        const open2 = await board(pg, "Paralegal", "Xi", "Remote", T0 + HOUR);
+        await scheduled(pg, admin, T0 + 2 * HOUR);
+        const keys2 = (await outbox(pg, q.id)).map((o: any) => o.key).sort();
+        eq(keys2, [`alert:${open2}`], `held, not passed: the US-only remote (${us2}) is not queued for a person with no location on record: ${JSON.stringify(keys2)}`);
       });
     } finally {
       Date.now = realNow;

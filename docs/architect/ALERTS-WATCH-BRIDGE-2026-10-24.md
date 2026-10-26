@@ -227,3 +227,56 @@ the same role see each other's remote postings as expected, and the test gives e
 
 Still nothing applied, deployed or switched on: delivery stays NOT_WIRED on the host, no migration, the brain off,
 no live send.
+
+## 2026-10-26: remote and region semantics grounded (F4; SERIAL-1530)
+
+The spec's section 3.1 makes locations, the remote preference and work authorization hard filters, and says never to infer
+work authorization or a sensitive attribute silently. Before this change the matcher (152 `locationOk`, `career_alerts.fits`)
+passed ANY remote posting when `remote_ok` was not false, and the router set `remote_ok` true unless the ask said "no remote":
+a New York watch for a person in Toronto admitted a "Remote - US" posting, and a person's location was never read.
+
+**The rule, one module (`supabase/functions/_shared/posting_region.ts`, mirrored word for word in 152):**
+- A remote posting's stated country or bloc ("Remote - US", "Remote (US, Canada)", "Spain (Remote)") and any restriction
+  the posting's text states about the CANDIDATE ("authorized to work in the United Kingdom", "must be US-based",
+  "Canada residents only", "open to candidates in the EU") are its scope. An employer's own descriptor ("a Chicago-based
+  company", "we are based in Chicago", "serving residents of Texas") is not a restriction; an office posting's location is
+  where it is, screened by the watched place as before. (The first cut read "Chicago-based" boilerplate as a restriction
+  and held two office postings in the labeled set; the readers now require a candidate subject.)
+- The scope is screened against the person's STATED location (`home` on each bridge interest, from the watch record's
+  `scoring_profile.location`): in scope passes, out of scope is refused with the reason, and a scope with no location on
+  record is HELD with "tell me your city and country" — never passed, never inferred from the watched city, the zone or
+  the resume. A restriction phrased as authorization is screened as a place, never as a claim about their authorization.
+- The remote choice is stored as what it is (`filters.remote_choice` "stated" or "default"): "no remote" / "onsite only"
+  leaves remote out; "include remote" / "remote too" takes it in; a place with nothing said takes remote in by default and
+  the reply says so and how to leave it out. With no location on record the reply also says a country-limited remote
+  posting is held until they say where they are.
+- Where the person's location comes from: their record (a LinkedIn export's location, a stated preference), else what
+  they STATED in chat (the geography fact, "I'm based in Chicago"; the latest statement wins, so a correction re-aims a
+  standing record). A resume's header line is not a confirmed fact (122 reads none from it) and nothing is guessed. The
+  gauntlet persona carries its location on `basics.location`; a resume-only person has none until they say it.
+
+**Proven at the real chain** (`alerts-chain-pg.test.ts`, step 8): a person who said "I'm based in Chicago" and watches
+New York gets the US remote and the open remote posting, never the Canada-only or UK-authorization one; a person who said
+nothing gets the open remote one only, with the US-only one held, and the reply says why. Unit matrix in
+`alerts-remote-region.test.ts` (both implementations on the same table), the router's replies and stored choice in
+`tests/career-watch-remote-choice.test.cjs`.
+
+**Tests whose fixtures assumed the fail-open:** `wo-007-alerts.test.ts` asserted "remote counts when remote_ok" against
+"Remote - US" for a person with no location — that line was the fail-open; it now asserts the hold, and passes the
+posting for a stated New York home and refuses it for Toronto. Four edge suites and two node suites about time, caps,
+rails and match-basis labels used "Remote - US" incidentally; their fixture posting is now open remote ("Remote"). The
+WO-037 labeled set (`evals/career/alert-labels/candidates.json`): 15 of its 200 rows were country-limited remote postings
+passed for personas with no stated location; their stored gate answers and strata were re-read from today's gate and
+builder (gate false, place near miss; 9 other near misses re-classed), ids, postings and personas unchanged; the set was
+collected under the earlier gate, so a rebuild from these 200 alone no longer fills every persona's 20 under the quotas
+— the per-row stratum check replaces that assertion, and a fresh collection (`collect-pool.ts`, network) is the owner's
+call. No human label exists yet, so nothing labeled was invalidated.
+
+**Observed, not changed (reported for an order):** a user-words watch ("watch for supply chain analyst roles in New York",
+a title the taxonomy and the occupation library both miss) is keyed to the stated phrase AND each of its content words
+("supply", "chain", "analyst", "roles", "york"; the title itself was read as "Supply chain analyst roles in York"), so it
+alerts on any posting whose title carries "analyst" or "roles" — a data analyst in New York, an operations analyst remote.
+That is the 2026-10-24 user-words rule in `watchStatedRole` ("a posting titled with any one of the user's words can
+match"), not this change; the chain test's no-location person watches "paralegal" to stay clear of it.
+
+Still nothing applied, deployed or switched on; no alert sent live.

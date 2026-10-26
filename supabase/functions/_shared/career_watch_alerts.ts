@@ -44,7 +44,9 @@ export function interestsFromWatch(wp: any): AlertInterest[] {
     const fl = validFloor(raw);
     const floor: Floor | undefined = fl.ok && Object.keys(fl.floor).length ? fl.floor : undefined;
     const companies = texts(f.firms_include);
-    out.push({ keywords, locations: texts(f.locations, 10), remote_ok: f.remote_ok !== false, ...(floor ? { floor } : {}), ...(companies.length ? { companies } : {}) });
+    // SERIAL-1530: the person's stated location rides each watch, for a posting's stated country or region restriction.
+    const home = text(wp.scoring_profile?.location).slice(0, 80);
+    out.push({ keywords, locations: texts(f.locations, 10), remote_ok: f.remote_ok !== false, ...(floor ? { floor } : {}), ...(companies.length ? { companies } : {}), ...(home ? { home } : {}) });
   }
   return out;
 }

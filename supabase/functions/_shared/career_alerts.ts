@@ -9,6 +9,7 @@
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
 //   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
 //                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
+import { regionDecision } from "./posting_region.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
 import { type Floor, relevanceFloor, sameCompany } from "./career_floor.ts";
 
@@ -22,7 +23,8 @@ export interface AlertPrefs {
   // Present, these decide the match and `keywords` only lists their words (the table's shape).
   interests?: AlertInterest[];
 }
-export interface AlertInterest { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[] }
+// home (SERIAL-1530): the person's stated location, as they said it, for a posting's stated country or region restriction.
+export interface AlertInterest { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[]; home?: string }
 export interface PlanUser {
   id: string; tz: string; prefs: AlertPrefs; last_checked_at: string; instant_sent_today: number;
   last_report_on: string | null; // YYYY-MM-DD in the person's zone
@@ -54,7 +56,7 @@ export function matchPosting(p: any, prefs: AlertPrefs): boolean {
   return fits(p, prefs);
 }
 // One watch: its role words, its places, its own floor and firms.
-function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[] }): boolean {
+function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[]; home?: string }): boolean {
   if (w.floor && !relevanceFloor(p, w.floor).pass) return false;
   // A watch for named firms is news from those firms only (the same company rule as the floor's exclusions).
   if (w.companies?.length && !w.companies.some((c) => sameCompany(p.company, c))) return false;
@@ -62,10 +64,11 @@ function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: b
   // "Analyst, Data Platform", never "Metadata Analyst" for "data"). No keywords means no alerts, never everything.
   const title = new Set(words(p.title));
   if (!w.keywords.some((k) => { const ws = words(k); return ws.length > 0 && ws.every((x) => title.has(x)); })) return false;
+  // SERIAL-1530: the remote preference, the watched places and the posting's stated country or region against the
+  // person's stated location, one rule (posting_region.ts); a restriction with no location on record is held, not passed.
   const loc = String(p.location ?? "").toLowerCase();
-  if (w.remote_ok && /\bremote\b/.test(loc)) return true;
-  if (!w.locations.length) return true;
-  return w.locations.some((l) => { const t = String(l).trim().toLowerCase(); return t.length > 0 && loc.includes(t); });
+  const placeOk = () => ({ ok: !w.locations.length || w.locations.some((l) => { const t = String(l).trim().toLowerCase(); return t.length > 0 && loc.includes(t); }) });
+  return regionDecision(p, w, placeOk).ok;
 }
 
 // The person's local date, hour and minute at an instant.

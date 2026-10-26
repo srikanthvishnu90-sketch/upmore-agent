@@ -8,7 +8,7 @@ import { matchPosting, WEEKLY_DEFAULT, type AlertPrefs } from "../../supabase/fu
 import { memoryAlertStore, validPrefs, type AlertRow } from "../../supabase/functions/_shared/career_alert_store.ts";
 import { runAlerts } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { relevanceFloor } from "../../supabase/functions/_shared/career_floor.ts";
-import { buildRows, gate, prefsOf, score, wilson, type LabelFile, type Persona, type Row } from "../../evals/career/alert-labels/label_set.ts";
+import { buildRows, stratumOf, gate, prefsOf, score, wilson, type LabelFile, type Persona, type Row } from "../../evals/career/alert-labels/label_set.ts";
 import { parseCsv, sample, score as hiddenScore, sheet } from "../../scripts/career/hidden-market.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
@@ -126,7 +126,13 @@ Deno.test("WO-037/A4 the candidate set: 200 real postings, 8+ personas, near mis
   assert(rows.every((r) => /^(greenhouse|lever|ashby|smartrecruiters):/.test(r.posting.job_id) && /^https:\/\//.test(r.posting.url)), "real postings from the product's reader, with links");
   const byId = new Map(personas.map((p) => [p.id, prefsOf(p)]));
   for (const r of rows) eq(gate(r.posting, byId.get(r.persona)!), r.gate, `${r.id}: stored gate answer`);
-  eq(buildRows(rows.map((r) => r.posting), personas).length, 200, "the build is reproducible from the pool");
+  // Every stored stratum is the builder's own answer today (SERIAL-1530 re-read the set after the region rule: a remote
+  // posting limited to a country is held for a persona with no stated location, a place near miss). The stored set was
+  // collected under the earlier gate, so a rebuild from these 200 postings alone no longer fills every persona's 20
+  // under the quotas; the per-row check is the invariant, a fresh collection (collect-pool.ts) the re-balance.
+  const byPersona = new Map(personas.map((p) => [p.id, p]));
+  for (const r of rows) eq(stratumOf(r.posting, byPersona.get(r.persona)!, byId.get(r.persona)!), r.stratum, `${r.id}: stored stratum`);
+  assert(buildRows(rows.map((r) => r.posting), personas).every((b) => rows.some((r) => r.posting.job_id === b.posting.job_id)), "the build draws only from the pool");
 });
 
 Deno.test("WO-037/A5 precision counts only rows a person labeled; none labeled is NOT_RUN; assumed labels are never human", () => {

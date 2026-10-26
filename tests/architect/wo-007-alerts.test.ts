@@ -17,7 +17,15 @@ const user = (p: Partial<PlanUser> = {}): PlanUser => ({ id: "u1", tz: "America/
 Deno.test("WO-007/1 matching: keywords in the title, location or remote, closed postings never match", () => {
   const p = prefs({ keywords: ["data analyst"], locations: ["new york"], remote_ok: true });
   assert(matchPosting(posting("1", "Senior Data Analyst", "Stripe", "New York, NY", 5), p), "keyword + city");
-  assert(matchPosting(posting("2", "Data Analyst", "Ramp", "Remote - US", 5), p), "remote counts when remote_ok");
+  assert(matchPosting(posting("2", "Data Analyst", "Ramp", "Remote", 5), p), "remote counts when remote_ok");
+  // SERIAL-1530: a remote posting limited to a country is screened against the person's STATED location; with none on
+  // record it is held, never passed (the first form of this line admitted it for everyone). The stated location rides
+  // the watch (interests[].home); nothing is inferred from the watched city or the person's zone.
+  assert(!matchPosting(posting("2b", "Data Analyst", "Ramp", "Remote - US", 5), p), "US-only remote, location not on record: held");
+  const home = (h: string) => prefs({ interests: [{ keywords: ["data analyst"], locations: ["new york"], remote_ok: true, home: h }] });
+  assert(matchPosting(posting("2c", "Data Analyst", "Ramp", "Remote - US", 5), home("Brooklyn, NY")), "US-only remote for a person in New York");
+  assert(!matchPosting(posting("2d", "Data Analyst", "Ramp", "Remote - US", 5), home("Toronto, ON")), "US-only remote for a person in Canada: no");
+  assert(!matchPosting(posting("2e", "Data Analyst", "Ramp", "Remote (Canada)", 5), home("Brooklyn, NY")), "Canada-only remote for a person in New York: no");
   assert(!matchPosting(posting("3", "Data Analyst", "Ramp", "Austin, TX", 5), p), "wrong city");
   assert(!matchPosting(posting("4", "Software Engineer", "Ramp", "New York, NY", 5), p), "wrong role");
   assert(!matchPosting(posting("5", "Data Analyst", "Ramp", "New York, NY", 5, { closed_at: iso(NOW) }), p), "closed");
@@ -25,7 +33,9 @@ Deno.test("WO-007/1 matching: keywords in the title, location or remote, closed 
 });
 
 Deno.test("WO-007/2 a new match becomes one instant alert with company, title, place, minutes since posted and the link", () => {
-  const out = (planProactive as (o: any) => any[])({ users: [user()], postings: [posting("1", "Data Analyst", "Stripe", "Remote - US", 4)], now: NOW });
+  // The person's stated location (interests[].home) is what admits a US-only remote posting (SERIAL-1530).
+  const u = user({ prefs: prefs({ interests: [{ keywords: ["data analyst"], locations: [], remote_ok: true, home: "New York, NY" }] }) });
+  const out = (planProactive as (o: any) => any[])({ users: [u], postings: [posting("1", "Data Analyst", "Stripe", "Remote - US", 4)], now: NOW });
   eq(out.length, 1);
   const a = out[0];
   eq([a.userId, a.key, a.kind], ["u1", "alert:greenhouse:stripe:1", "alert"]);

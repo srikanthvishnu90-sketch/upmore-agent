@@ -36543,6 +36543,9 @@ const CareerRouter = (() => {
       experience_text: profileFactsText(p), summary: profileFactsText(p),
       constraints: { work_authorization: (p.constraints || {}).workAuthorization || "", needs_sponsorship: !!(p.constraints || {}).needsSponsorship, clearance: (p.constraints || {}).securityClearance || null, locations: [] },
       preferences: { role_families: [], roles: (p.preferences || {}).roles || [], locations: [], starred_companies: [], excluded_companies: (p.preferences || {}).excludedCompanies || [] },
+      // SERIAL-1530: where the person said they are (their record's location, else their first stated preference), for a
+      // posting's stated country or region restriction (152 locationOk; the alerts bridge carries it as each watch's home).
+      location: s((p.basics || {}).location) || s((((p.preferences || {}).locations) || [])[0]) || "",
     };
   }
 
@@ -46328,10 +46331,15 @@ const CareerRouter = (() => {
     // read-back then named a company the user never quite said (the
     // battery's read-back check reads the name as stated).
     if (firm && s(text).includes(`${firm} (fictional)`)) firm = `${firm} (fictional)`;
+    // SERIAL-1530: the remote choice is stored as what it is. "no remote" / "onsite only" leaves remote out; "include
+    // remote" / "remote too" / "or remote" takes it in, as asked; a place with nothing said about remote takes remote in
+    // by default, and the reply says so and how to leave it out, so the stored choice is explicit either way.
+    const remoteNo = /\bno remote\b|\bon-?site only\b|\bin[- ]person only\b|\bnot remote\b|\bexclud(?:e|ing) remote\b|\bwithout remote\b/.test(t);
+    const remoteYes = /\binclud(?:e|ing) remote\b|\bremote (?:too|as well|included|ok|okay|is fine|also|welcome)\b|\b(?:or|and|plus) remote\b|\bremote or\b|\bremote-friendly\b|\bremote roles? (?:too|as well)\b/.test(t);
     const interest = {
       interest_id: `int-${lc(role.title).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
       role,
-      filters: { locations, remote_ok: !/\bno remote\b|\bonsite only\b/.test(t), bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
+      filters: { locations, remote_ok: !remoteNo, remote_choice: remoteNo || remoteYes ? "stated" : "default", bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
       created_at: new Date(nowOf(ctx)).toISOString(),
     };
     const store = watchStoreOf(ctx, true);
@@ -46339,6 +46347,12 @@ const CareerRouter = (() => {
     try { wp = store.get(A.PROFILE_KEY(watchUserId(ctx))) || null; } catch { wp = null; }
     if (!wp) wp = A.createWatchProfile(watchUserId(ctx), { scoring_profile: scoringProfile(profile) });
     if (!wp.scoring_profile) wp.scoring_profile = scoringProfile(profile);
+    // SERIAL-1530: the person's location for a posting's country or region restriction is their record's (a LinkedIn
+    // export's location or a stated preference), else what they STATED in chat (the geography fact: "I'm based in
+    // Chicago"); a resume's header line is not a confirmed fact (122 reads none from it) and nothing is guessed. The latest
+    // statement wins, so a correction re-aims a standing record and the bridge's home follows it.
+    const home = scoringProfile(profile).location || statedHomeOf(ctx);
+    if (home && wp.scoring_profile.location !== home) wp.scoring_profile.location = home;
     A.upsertInterest(wp, interest);
     if (!saveWatchProfileSync(ctx, wp)) {
       const reply = compose({ headline: "That watch did not save — the profile it built failed validation, so nothing was recorded.", facts: ["Nothing polls on a watch that is not saved; a half-saved watch would be worse than none."], nextStep: "Say the watch again with the role and city named plainly, and I will set it." });
@@ -46346,6 +46360,13 @@ const CareerRouter = (() => {
     }
     const userWords = role.derived === true && !role.soc;
     const facts = [`Watching: ${watchLineHuman(interest)}.`, "The watch is saved on your record — it is per-user, not per-thread, so it stands across conversations."];
+    // SERIAL-1530: the remote choice is said, and a country-limited remote posting is held until the person's location is
+    // on record (the spec's hard filters; nothing about where they are or what they are authorized for is inferred).
+    const homeKnown = !!(wp.scoring_profile && wp.scoring_profile.location);
+    if (interest.filters.remote_ok === false) facts.push("Remote postings are left out, as you asked.");
+    else if (interest.filters.remote_choice === "stated") facts.push("Remote postings are included, as you asked — those open to where you are.");
+    else facts.push("Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.");
+    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are — tell me your city and country.");
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
@@ -50026,6 +50047,8 @@ const CareerRouter = (() => {
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
+  // SERIAL-1530: the location the person stated in chat (single-valued; a correction replaces it), else "".
+  function statedHomeOf(ctx) { const g = statedFactsOf(ctx).find((f) => f && f.kind === "geography"); return g ? s(g.value).trim() : ""; }
   // 2026-10-23 (fix2 review): the experience kind holds every work-at frame, so its line
   // keeps the tense and verb the user stated ("I work at X" is not "you interned at X").
   function experienceLine(f) {
@@ -55864,17 +55887,89 @@ const CareerAssign = (() => {
   // (ASG-9). Canonicalize known abbreviations token-wise before comparing.
   const CITY_ALIASES = { nyc: "new york", chi: "chicago", sf: "san francisco", sea: "seattle", la: "los angeles", philly: "philadelphia", atl: "atlanta", dfw: "dallas", dc: "washington" };
   const canonLoc = (txt) => lc(txt).split(/[^a-z0-9]+/).map((t) => CITY_ALIASES[t] || t).join(" ");
-  function locationOk(posting, filters) {
-    if (posting.remote === "remote" && filters.remote_ok !== false) return { ok: true, via: "remote" };
+  // SERIAL-1530: where a posting is open, and whether the person is there (the mirror of
+  // supabase/functions/_shared/posting_region.ts: the same REGION_TABLE, the same decision; the architect's test pins the
+  // two to each other). A remote posting passed any watch whose remote preference was not "no"; now its stated country
+  // or bloc ("Remote - US", "Spain (Remote)") and any restriction in its text ("authorized to work in the United States",
+  // "UK residents only") are screened against the person's STATED location; with none on record it is held, never
+  // passed, and nothing is inferred about where they are or what they are authorized for.
+  const REGION_TABLE = [
+    ["us", ["us", "u.s.", "u.s", "usa", "u.s.a.", "united states", "united states of america", "america", "stateside"]],
+    ["canada", ["canada", "canadian"]],
+    ["uk", ["uk", "u.k.", "united kingdom", "britain", "great britain", "england", "scotland", "wales", "northern ireland"]],
+    ["ireland", ["ireland", "republic of ireland"]],
+    ["germany", ["germany", "deutschland"]], ["france", ["france"]], ["spain", ["spain"]], ["italy", ["italy"]],
+    ["netherlands", ["netherlands", "the netherlands", "holland"]], ["belgium", ["belgium"]], ["austria", ["austria"]],
+    ["switzerland", ["switzerland"]], ["sweden", ["sweden"]], ["denmark", ["denmark"]], ["finland", ["finland"]], ["norway", ["norway"]],
+    ["poland", ["poland"]], ["portugal", ["portugal"]], ["czechia", ["czechia", "czech republic"]],
+    ["india", ["india"]], ["australia", ["australia"]], ["new zealand", ["new zealand"]], ["singapore", ["singapore"]], ["japan", ["japan"]],
+    ["mexico", ["mexico"]], ["brazil", ["brazil"]], ["argentina", ["argentina"]], ["israel", ["israel"]], ["uae", ["uae", "united arab emirates", "dubai"]],
+    ["eu", ["eu", "european union", "europe", "emea", "eea"]], ["apac", ["apac", "asia pacific", "asia-pacific"]], ["latam", ["latam", "latin america"]],
+  ];
+  const EU_MEMBERS = new Set(["ireland", "germany", "france", "spain", "italy", "netherlands", "belgium", "austria", "sweden", "denmark", "finland", "poland", "portugal", "czechia"]);
+  const US_STATES = new Set("al ak az ar ca co ct de dc fl ga hi id il in ia ks ky la me md ma mi mn ms mo mt ne nv nh nj nm ny nc nd oh ok or pa ri sc sd tn tx ut vt va wa wv wi wy".split(" "));
+  const US_STATE_NAMES = /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/;
+  const CA_CODE = /,\s*(on|bc|qc|ab|ns|mb|sk|nb|pe|nl)\b/;
+  const escRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const TABLE_RE = REGION_TABLE.map(([k, words]) => [k, new RegExp(`(^|[^a-z0-9.])(${words.map(escRe).join("|")})(?=$|[^a-z0-9])`, "i")]);
+  function regionsOf(text) {
+    const t = lc(text).replace(/\s+/g, " ").trim();
+    if (!t) return [];
+    const out = new Set();
+    for (const [k, re] of TABLE_RE) if (re.test(` ${t} `)) out.add(k);
+    if (!out.has("us")) {
+      const code = /,\s*([a-z]{2})\b/.exec(t);
+      if ((code && US_STATES.has(code[1]) && !CA_CODE.test(t)) || US_STATE_NAMES.test(t)) out.add("us");
+    }
+    if (!out.size && CA_CODE.test(t)) out.add("canada");
+    return [...out];
+  }
+  const RESTRICT = /(?:(?:authori[sz]ed|eligible|legally (?:able|permitted|entitled)|permitted|entitled|right|work authori[sz]ation) to work (?:in|within)|(?:must|need to|required to|should|have to) (?:reside|be (?:located|based|living|resident)|live|work|be) (?:in|within)|(?:candidates?|applicants?|you) (?:must be|should be|are|need to be) (?:located|based|living|resident) (?:in|within)|open (?:only )?to (?:candidates|applicants|residents|those)? ?(?:in|of|within)|only (?:for|to) (?:candidates|applicants|residents) (?:in|of|within))\s+(?:the\s+)?([a-z .&'-]{2,40}?)(?=\s*(?:[.;:,)\n]|$|\s+(?:only|and|or|at|for|who|with|to|are|is)\b))/gi;
+  const ONLY_RE = /\b([a-z. ]{2,30}?)\s+(?:residents\s+)?only\b/gi;
+  // "must be US-based", "US-based candidates only": the candidate, never the employer ("a Chicago-based company").
+  const BASED_RE = /\b(?:(?:must|should|need to) be|candidates? (?:must be|should be|are)|you are|you must be)\s+([a-z.]{2,15})-based\b|\b([a-z.]{2,15})-based\s+(?:candidates?|applicants?|residents?|only)\b/gi;
+  function restrictionsOf(text) {
+    const t = lc(text).replace(/\s+/g, " ").trim();
+    if (!t) return [];
+    const out = new Set();
+    for (const re of [RESTRICT, ONLY_RE, BASED_RE]) { re.lastIndex = 0; for (const m of t.matchAll(re)) for (const k of regionsOf(m[1] || m[2])) out.add(k); }
+    return [...out];
+  }
+  const isRemotePosting = (p) => p.remote === "remote" || /\bremote\b/i.test(s(p.location));
+  function postingScope(p) {
+    const out = new Set();
+    const loc = s(p.location);
+    if (isRemotePosting(p)) for (const seg of loc.split(/[;|•·\n]/)) if (/\bremote\b/i.test(seg)) for (const k of regionsOf(seg.replace(/\bremote\b/gi, " "))) out.add(k);
+    for (const k of restrictionsOf(p.jd_text || p.description || "")) out.add(k);
+    return [...out];
+  }
+  const inScope = (home, scope) => home.some((h) => scope.includes(h) || (scope.includes("eu") && (EU_MEMBERS.has(h) || h === "eu")));
+  const sayRegions = (ks) => ks.map((k) => k === "us" ? "the US" : k === "uk" ? "the UK" : k === "eu" ? "the EU" : k === "uae" ? "the UAE" : k.replace(/\b\w/g, (c) => c.toUpperCase())).join(" or ");
+  function locationOk(posting, filters, home) {
+    const scope = postingScope(posting), mine = regionsOf(home);
+    const held = (what) => ({ ok: false, why: `${what}, and your location is not on record: tell me your city and country and I will match it` });
+    if (isRemotePosting(posting)) {
+      if (filters.remote_ok === false) return { ok: false, why: "remote postings are left out of this watch" };
+      if (!scope.length) return { ok: true, via: "remote" };
+      if (!mine.length) return held(`remote within ${sayRegions(scope)} only`);
+      if (inScope(mine, scope)) return { ok: true, via: `remote within ${sayRegions(scope)}` };
+      return { ok: false, why: `remote within ${sayRegions(scope)} only; your location is ${sayRegions(mine)}` };
+    }
     const loc = canonLoc(posting.location || "");
+    let place = null;
     for (const want of filters.locations || []) {
       const w = canonLoc(want).split(",")[0].trim();
       // MI-028: carry WHICH watched location matched (`want`) — the true
       // location basis of the match, previously discarded by matchInterest.
-      if (w && loc.includes(w)) return { ok: true, via: `location ${want}`, want };
+      if (w && loc.includes(w)) { place = { ok: true, via: `location ${want}`, want }; break; }
     }
-    if (!(filters.locations || []).length && filters.remote_ok === false) return { ok: true, via: "no location filter" };
-    return { ok: false };
+    if (!place && !(filters.locations || []).length && filters.remote_ok === false) place = { ok: true, via: "no location filter" };
+    if (!place) return { ok: false };
+    if (scope.length) {
+      if (!mine.length) return held(`open to ${sayRegions(scope)} only`);
+      if (!inScope(mine, scope)) return { ok: false, why: `open to ${sayRegions(scope)} only; your location is ${sayRegions(mine)}` };
+    }
+    return place;
   }
 
   // Deadline in the posting's own words (methodology §6: quoted, never converted).
@@ -55918,8 +56013,8 @@ const CareerAssign = (() => {
     else if (!rm.hit) reasons.push(`title matches no term for ${role.title}`);
     const band = posting.seniority_band || (Jobs ? Jobs.seniorityBand(posting.title || "", posting.jd_text || "") : "unknown");
     if ((f.bands || []).length && !f.bands.includes(band)) reasons.push(`seniority band is ${band}; this interest watches ${(f.bands || []).join(" / ")}`);
-    const loc = locationOk(posting, f);
-    if (!loc.ok) reasons.push(`location ${posting.location || "unstated"} is outside this interest's locations (${(f.locations || []).join(", ") || "none"}${f.remote_ok === false ? "" : " + remote"})`);
+    const loc = locationOk(posting, f, scoringProfile && scoringProfile.location);
+    if (!loc.ok) reasons.push(loc.why ? `location: ${loc.why}` : `location ${posting.location || "unstated"} is outside this interest's locations (${(f.locations || []).join(", ") || "none"}${f.remote_ok === false ? "" : " + remote"})`);
     const company = s(posting.company);
     if ((f.firms_include || []).length) {
       if (!company) reasons.push("interest is limited to named firms and this posting states no company (cannot verify the firm)");
@@ -56379,7 +56474,8 @@ const CareerAssign = (() => {
     speakLine, extractDeadline, createReminderQueue, runAssignCycle,
     defaultDeliveryState, loadDeliveryState, saveDeliveryState, planDeliveries,
     noteDeliveryOutcome, recordDeliveryOutcome, batchSpeakLine, digestSpeakLine,
-    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, DELIVERY_KEY, FATIGUE, TIGHTEN_NOTICE, SEAT_WINDOW_MS };
+    PROFILE_KEY, QUEUE_KEY, HISTORY_KEY, DELIVERY_KEY, FATIGUE, TIGHTEN_NOTICE, SEAT_WINDOW_MS,
+    REGION_TABLE, regionsOf, restrictionsOf, postingScope, locationOk };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerAssign;
 

@@ -269,6 +269,9 @@ const CareerRouter = (() => {
       experience_text: profileFactsText(p), summary: profileFactsText(p),
       constraints: { work_authorization: (p.constraints || {}).workAuthorization || "", needs_sponsorship: !!(p.constraints || {}).needsSponsorship, clearance: (p.constraints || {}).securityClearance || null, locations: [] },
       preferences: { role_families: [], roles: (p.preferences || {}).roles || [], locations: [], starred_companies: [], excluded_companies: (p.preferences || {}).excludedCompanies || [] },
+      // SERIAL-1530: where the person said they are (their record's location, else their first stated preference), for a
+      // posting's stated country or region restriction (152 locationOk; the alerts bridge carries it as each watch's home).
+      location: s((p.basics || {}).location) || s((((p.preferences || {}).locations) || [])[0]) || "",
     };
   }
 
@@ -10054,10 +10057,15 @@ const CareerRouter = (() => {
     // read-back then named a company the user never quite said (the
     // battery's read-back check reads the name as stated).
     if (firm && s(text).includes(`${firm} (fictional)`)) firm = `${firm} (fictional)`;
+    // SERIAL-1530: the remote choice is stored as what it is. "no remote" / "onsite only" leaves remote out; "include
+    // remote" / "remote too" / "or remote" takes it in, as asked; a place with nothing said about remote takes remote in
+    // by default, and the reply says so and how to leave it out, so the stored choice is explicit either way.
+    const remoteNo = /\bno remote\b|\bon-?site only\b|\bin[- ]person only\b|\bnot remote\b|\bexclud(?:e|ing) remote\b|\bwithout remote\b/.test(t);
+    const remoteYes = /\binclud(?:e|ing) remote\b|\bremote (?:too|as well|included|ok|okay|is fine|also|welcome)\b|\b(?:or|and|plus) remote\b|\bremote or\b|\bremote-friendly\b|\bremote roles? (?:too|as well)\b/.test(t);
     const interest = {
       interest_id: `int-${lc(role.title).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
       role,
-      filters: { locations, remote_ok: !/\bno remote\b|\bonsite only\b/.test(t), bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
+      filters: { locations, remote_ok: !remoteNo, remote_choice: remoteNo || remoteYes ? "stated" : "default", bands, firms_include: firm ? [firm] : [], firms_exclude: [] },
       created_at: new Date(nowOf(ctx)).toISOString(),
     };
     const store = watchStoreOf(ctx, true);
@@ -10065,6 +10073,12 @@ const CareerRouter = (() => {
     try { wp = store.get(A.PROFILE_KEY(watchUserId(ctx))) || null; } catch { wp = null; }
     if (!wp) wp = A.createWatchProfile(watchUserId(ctx), { scoring_profile: scoringProfile(profile) });
     if (!wp.scoring_profile) wp.scoring_profile = scoringProfile(profile);
+    // SERIAL-1530: the person's location for a posting's country or region restriction is their record's (a LinkedIn
+    // export's location or a stated preference), else what they STATED in chat (the geography fact: "I'm based in
+    // Chicago"); a resume's header line is not a confirmed fact (122 reads none from it) and nothing is guessed. The latest
+    // statement wins, so a correction re-aims a standing record and the bridge's home follows it.
+    const home = scoringProfile(profile).location || statedHomeOf(ctx);
+    if (home && wp.scoring_profile.location !== home) wp.scoring_profile.location = home;
     A.upsertInterest(wp, interest);
     if (!saveWatchProfileSync(ctx, wp)) {
       const reply = compose({ headline: "That watch did not save — the profile it built failed validation, so nothing was recorded.", facts: ["Nothing polls on a watch that is not saved; a half-saved watch would be worse than none."], nextStep: "Say the watch again with the role and city named plainly, and I will set it." });
@@ -10072,6 +10086,13 @@ const CareerRouter = (() => {
     }
     const userWords = role.derived === true && !role.soc;
     const facts = [`Watching: ${watchLineHuman(interest)}.`, "The watch is saved on your record — it is per-user, not per-thread, so it stands across conversations."];
+    // SERIAL-1530: the remote choice is said, and a country-limited remote posting is held until the person's location is
+    // on record (the spec's hard filters; nothing about where they are or what they are authorized for is inferred).
+    const homeKnown = !!(wp.scoring_profile && wp.scoring_profile.location);
+    if (interest.filters.remote_ok === false) facts.push("Remote postings are left out, as you asked.");
+    else if (interest.filters.remote_choice === "stated") facts.push("Remote postings are included, as you asked — those open to where you are.");
+    else facts.push("Remote postings for this role are included too, as long as they are open to where you are; say \"no remote\" to leave them out.");
+    if (interest.filters.remote_ok !== false && !homeKnown) facts.push("A remote posting limited to a country is held until I know where you are — tell me your city and country.");
     if (userWords) facts.push("That title is not a standard category, so the watch keys on your own words exactly as you stated them — postings whose titles carry those words are what it can match.");
     facts.push(alertDeliveryLine(ctx));
     if (wp.opt_out && wp.opt_out.global) facts.push("Your job alerts are currently paused, so this watch is recorded but will not remind until you resume alerts.");
@@ -13752,6 +13773,8 @@ const CareerRouter = (() => {
     return added;
   }
   function statedFactsOf(ctx) { return (ctx.statedFacts && Array.isArray(ctx.statedFacts.facts)) ? ctx.statedFacts.facts : []; }
+  // SERIAL-1530: the location the person stated in chat (single-valued; a correction replaces it), else "".
+  function statedHomeOf(ctx) { const g = statedFactsOf(ctx).find((f) => f && f.kind === "geography"); return g ? s(g.value).trim() : ""; }
   // 2026-10-23 (fix2 review): the experience kind holds every work-at frame, so its line
   // keeps the tense and verb the user stated ("I work at X" is not "you interned at X").
   function experienceLine(f) {

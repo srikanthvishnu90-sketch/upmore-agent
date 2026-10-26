@@ -28,7 +28,7 @@ const ON_FILE: Record<string, any> = {
   "greenhouse:d:4": { job_id: "greenhouse:d:4", company: "Delta Freight", title: "Data Analyst", url: "https://boards.greenhouse.io/d/jobs/4", closed_at: null },
 };
 const PRIOR = [{ id: "j1", company: "Charlie Data", title: "Data Analyst", state: "submitted_unconfirmed", created_at: new Date(NOW - 10 * 86400_000).toISOString(), updated_at: "" }];
-function world(o: { resume?: boolean | null; kick?: "started" | "off" | "failed"; shortlist?: ShortlistEntry[]; postings?: any[] } = {}) {
+function world(o: { resume?: boolean | null; kick?: "started" | "off" | "failed"; shortlist?: ShortlistEntry[]; postings?: any[]; prepareOn?: boolean } = {}) {
   const wants = memoryWantStore(), kicks: string[][] = [];
   const turn = (message: string) => applyTurn({
     message, userId: "u1", now: NOW, wants, apps: async () => PRIOR, facts: [], shortlist: o.shortlist ?? LIST,
@@ -36,6 +36,7 @@ function world(o: { resume?: boolean | null; kick?: "started" | "off" | "failed"
     posting: async (id) => ON_FILE[id] ?? null,
     resumeOnFile: async () => o.resume === undefined ? true : o.resume,
     prepare: async (ids) => { kicks.push(ids); return o.kick ?? "started"; },
+    ...(o.prepareOn === undefined ? {} : { prepareOn: () => o.prepareOn! }),
   });
   return { wants, kicks, turn, keys: async () => (await wants.list("u1")).map((w) => w.posting_key).sort() };
 }
@@ -113,6 +114,24 @@ Deno.test("F01 no resume on file: nothing queued, every posting named, what to d
   assert(s!.reply.startsWith("0/1 queued.") && /no resume on file/.test(s!.reply), s!.reply);
   const unknown = world({ resume: null });
   eq((await unknown.turn("apply to the first one"))?.status, "queued", "an unreadable profile is not 'no resume'");
+});
+
+Deno.test("F01 no resume on file with the server prepare off: the want is queued, nothing is asked to prepare, and the reply says a confirmed resume comes first", async () => {
+  const w = world({ resume: false, prepareOn: false, kick: "off" });
+  const r = await w.turn("apply to 1 and 4");
+  eq(r?.status, "queued", r?.reply);
+  assert(r!.reply.startsWith("2/2 queued;"), r!.reply);
+  assert(/I have no confirmed resume on file yet, so nothing can be prepared until you paste or attach your resume and confirm it\./.test(r!.reply), r!.reply);
+  assert(!/started preparing/.test(r!.reply), r!.reply);
+  eq([await w.keys(), w.kicks], [["greenhouse:a:1", "greenhouse:d:4"], []]);
+  const single = world({ resume: false, prepareOn: false, postings: [ON_FILE["greenhouse:a:1"]] });
+  const s = await single.turn("apply to the TEST Analyst role at Alpha Works");
+  eq(s?.status, "queued", s?.reply);
+  assert(/no confirmed resume on file yet/.test(s!.reply) && !/started preparing/.test(s!.reply), s!.reply);
+  eq([await single.keys(), single.kicks], [["greenhouse:a:1"], []]);
+  const on = world({ resume: false, prepareOn: true });
+  eq((await on.turn("apply to 1 and 4"))?.status, "no_resume", "with the prepare on, nothing is queued without a resume");
+  eq([await on.keys(), on.kicks], [[], []]);
 });
 
 Deno.test("F01 the single named ask: 1/1 queued, the prepare asked for it, the card promise kept", async () => {

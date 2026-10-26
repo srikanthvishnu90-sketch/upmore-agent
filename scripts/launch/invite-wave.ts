@@ -33,7 +33,7 @@ function flag(args: string[], name: string): string | null {
   const i = args.indexOf(`--${name}`);
   return i >= 0 && i + 1 < args.length ? args[i + 1] : null;
 }
-async function must(p: Promise<{ data: any; error: { message: string } | null }>) {
+async function must(p: PromiseLike<{ data: any; error: { message: string } | null }>) {
   const r = await p;
   if (r.error) { console.error(r.error.message); Deno.exit(1); }
   return r.data;

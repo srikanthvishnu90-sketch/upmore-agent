@@ -18,7 +18,7 @@ export const INVITE_REFUSED: Record<InviteRefusal, string> = {
 };
 export const INVITE_ALREADY_MEMBER = "This chat already has a Trainee account, so the invite wasn't used. Text here any time.";
 
-export interface Rpc { rpc(name: string, args?: Record<string, unknown>): Promise<{ data: any; error: { message: string } | null }> }
+export interface Rpc { rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: any; error: { message: string } | null }> }
 type Env = { get(k: string): string | undefined };
 
 export async function sha256Hex(text: string): Promise<string> {

@@ -91,7 +91,7 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
   let clock = Date.parse("2026-10-26T18:00:00Z");
   const now = () => clock;
   const iso = () => new Date(clock).toISOString();
-  const rpc = (name: string, args: Record<string, unknown>) => admin.rpc(name, args) as Promise<{ data: any; error: any }>;
+  const rpc = (name: string, args: Record<string, unknown>) => admin.rpc(name, args) as unknown as Promise<{ data: any; error: any }>;
   const one = async (q: string) => await pg.sql(q);
   const num = async (q: string) => Number(await pg.sql(q));
   let update = 9000;

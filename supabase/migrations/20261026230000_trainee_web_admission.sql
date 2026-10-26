@@ -1,26 +1,35 @@
--- Trainee sign-up in waves (launch readiness 2026-10-26, B7 and X1): who may use Trainee, recorded once per account.
+-- Trainee sign-up in waves, enforced in the database (launch readiness B7/X1; review of PR #195).
 --
--- A person is admitted by one of three ways, and the way is recorded:
---   existing   every account that exists when this runs (nobody who uses Trainee today is locked out);
---   allowlist  their phone or email is in TRAINEE_ALLOWED_CONTACTS (the edge function checks the env, never the person);
---   waitlist   their confirmed phone (or email) matches a site_waitlist row the owner invited (trainee_invite_wave).
--- The edge functions call trainee_admit with the service role only; the person can read their own admission, nothing
--- else. Nothing here sends a message: inviting a wave marks rows, and telling those people is a separate, approved step.
--- Idempotent: every statement can run again.
+-- Who may act: a person is admitted once, and the way is recorded (trainee_admissions.via):
+--   existing   every account that exists the first time this runs (nobody who uses Trainee today is locked out);
+--   allowlist  their CONFIRMED PHONE is on TRAINEE_ALLOWED_CONTACTS (the edge function checks the env; an email never
+--              counts: an email can be confirmed without its owner when Supabase Auth auto-confirms);
+--   invite     they redeemed a single-use invite (FEATURE WAVES, career_invites.redeemed_user: the one invite system);
+--   open       the owner opened sign-up (trainee_set_signup('open')).
+-- The mode lives here, not in an env: trainee_settings.web_signup, 'invite' (closed) unless the owner opens it.
+--
+-- Enforced where applications are made: a row of a person not admitted is refused (not_admitted) on insert into the
+-- prepared applications, the cards, the queue and the apply wants, whoever writes it (the person's RPCs:
+-- career_apply_prepare_own, career_apply_card_open_own, career_apply_card_answer_own via career_apply_enqueue, the
+-- extension and message-card paths; or a service path). A person who came in by invite and has not finished the
+-- sign-up steps (career_signup_gate.step not 'active') is refused the same way.
+-- Nothing here sends a message. Idempotent: every statement can run again.
 
-alter table public.site_waitlist add column if not exists email text;
-alter table public.site_waitlist add column if not exists invited_at timestamptz;
-alter table public.site_waitlist add column if not exists invite_wave integer;
-alter table public.site_waitlist add column if not exists claimed_by uuid references auth.users(id) on delete set null;
-alter table public.site_waitlist add column if not exists claimed_at timestamptz;
-create unique index if not exists site_waitlist_claimed_by_key on public.site_waitlist (claimed_by) where claimed_by is not null;
--- Phones match by their digits (the site sends +15551234567; Supabase Auth stores 15551234567).
-create index if not exists site_waitlist_phone_digits on public.site_waitlist ((regexp_replace(phone, '\D', '', 'g')));
-create index if not exists site_waitlist_uninvited on public.site_waitlist (created_at) where invited_at is null;
+create table if not exists public.trainee_settings (
+  key text primary key check (key in ('web_signup')),
+  value text not null,
+  updated_at timestamptz not null default now(),
+  check (key <> 'web_signup' or value in ('invite', 'open'))
+);
+alter table public.trainee_settings enable row level security;
+revoke all on public.trainee_settings from anon, authenticated;
+grant select, insert, update on public.trainee_settings to service_role;
+insert into public.trainee_settings (key, value) values ('web_signup', 'invite') on conflict (key) do nothing;
 
 create table if not exists public.trainee_admissions (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  via text not null check (via in ('existing', 'allowlist', 'waitlist')),
+  -- 'waitlist': an invite bound by FEATURE WAVES from a waitlist row (waitlist_id), the same as 'invite' here.
+  via text not null check (via in ('existing', 'allowlist', 'invite', 'waitlist', 'open')),
   waitlist_id uuid references public.site_waitlist(id) on delete set null,
   admitted_at timestamptz not null default now()
 );
@@ -40,66 +49,108 @@ do $$ begin
   end if;
 end $$;
 
--- The digits of a phone, or null when there are too few to be a phone number.
+-- The digits of a phone, or null when there are too few to be one (shared with FEATURE WAVES).
 create or replace function public.trainee_phone_digits(p text) returns text
 language sql immutable set search_path = public, pg_temp as $$
   select case when length(regexp_replace(coalesce(p, ''), '\D', '', 'g')) between 10 and 15 then regexp_replace(p, '\D', '', 'g') end
 $$;
 
--- Admit a person if they may use Trainee; return how they were admitted, or null (not yet). p_allowlisted is the edge
--- function's own check of TRAINEE_ALLOWED_CONTACTS against the account's phone and email.
-create or replace function public.trainee_admit(p_user uuid, p_allowlisted boolean) returns text
-language plpgsql security definer set search_path = public, pg_temp as $$
-declare a public.trainee_admissions; ph text; em text; w uuid;
-begin
-  if p_user is null then raise exception 'invalid admission'; end if;
-  perform pg_advisory_xact_lock(hashtextextended('trainee_admit:' || p_user::text, 0));
-  select * into a from public.trainee_admissions where user_id = p_user;
-  if found then return a.via; end if;
-  -- Only a confirmed phone or email counts: a contact typed at sign-up and never verified claims nothing.
-  select case when u.phone_confirmed_at is not null then public.trainee_phone_digits(u.phone) end,
-         case when u.email_confirmed_at is not null then lower(nullif(trim(u.email), '')) end
-    into ph, em from auth.users u where u.id = p_user;
-  if not found then raise exception 'invalid admission'; end if;
-  if coalesce(p_allowlisted, false) then
-    insert into public.trainee_admissions (user_id, via) values (p_user, 'allowlist');
-    return 'allowlist';
-  end if;
-  select s.id into w from public.site_waitlist s
-   where s.invited_at is not null and s.claimed_by is null and s.consent
-     and ((ph is not null and public.trainee_phone_digits(s.phone) = ph) or (em is not null and lower(trim(s.email)) = em))
-   order by s.invited_at, s.created_at limit 1 for update skip locked;
-  if w is null then return null; end if;
-  update public.site_waitlist set claimed_by = p_user, claimed_at = now() where id = w;
-  insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', w);
-  return 'waitlist';
-end $$;
-
--- Whether a phone number has an invited, unclaimed waitlist spot (the texting channels ask before they create an account).
-create or replace function public.trainee_waitlist_invited(p_phone text) returns boolean
+create or replace function public.trainee_signup_mode() returns text
 language sql stable security definer set search_path = public, pg_temp as $$
-  select public.trainee_phone_digits(p_phone) is not null and exists (
-    select 1 from public.site_waitlist s where s.invited_at is not null and s.claimed_by is null and s.consent
-      and public.trainee_phone_digits(s.phone) = public.trainee_phone_digits(p_phone))
+  select coalesce((select value from public.trainee_settings where key = 'web_signup'), 'invite')
 $$;
 
--- The owner's wave: invite the p_count oldest waitlist rows not invited yet (consented ones only), as one numbered wave.
--- Returns the wave number and how many rows it invited. Run with the service role (SQL editor or psql as the owner).
-create or replace function public.trainee_invite_wave(p_count integer)
-returns table (wave integer, invited integer)
+-- The owner's switch (SQL editor, service role): 'open' lets anyone who signs in use Trainee; 'invite' closes it again.
+-- Closing it later keeps everyone already admitted.
+create or replace function public.trainee_set_signup(p_mode text) returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare n integer; wv integer;
 begin
-  if p_count is null or p_count not between 1 and 100000 then raise exception 'invite between 1 and 100000 people at a time'; end if;
-  perform pg_advisory_xact_lock(hashtextextended('trainee_invite_wave', 0));
-  select coalesce(max(s.invite_wave), 0) + 1 into wv from public.site_waitlist s;
-  with pick as (select s.id from public.site_waitlist s where s.invited_at is null and s.consent order by s.created_at, s.id limit p_count for update)
-  update public.site_waitlist s set invited_at = now(), invite_wave = wv from pick where s.id = pick.id;
-  get diagnostics n = row_count;
-  return query select wv, n;
+  if p_mode is null or p_mode not in ('invite', 'open') then raise exception 'sign-up is invite or open'; end if;
+  insert into public.trainee_settings (key, value, updated_at) values ('web_signup', p_mode, now())
+  on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at;
+  return p_mode;
 end $$;
 
-revoke all on function public.trainee_phone_digits(text), public.trainee_admit(uuid, boolean), public.trainee_waitlist_invited(text),
-  public.trainee_invite_wave(integer) from public, anon, authenticated;
-grant execute on function public.trainee_admit(uuid, boolean), public.trainee_waitlist_invited(text), public.trainee_invite_wave(integer),
-  public.trainee_phone_digits(text) to service_role;
+-- Whether the person holds a redeemed invite (FEATURE WAVES). Read by name so this file applies with or without it.
+create or replace function public.trainee_invited(p_user uuid) returns boolean
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare ok boolean := false;
+begin
+  if to_regclass('public.career_invites') is null then return false; end if;
+  execute 'select exists (select 1 from public.career_invites where redeemed_user = $1 and state = ''redeemed'')' into ok using p_user;
+  return coalesce(ok, false);
+end $$;
+
+-- Whether an invitee is still in the sign-up steps (18+, terms): they may chat (the steps are chat) but not apply.
+create or replace function public.trainee_signup_unfinished(p_user uuid) returns boolean
+language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare st text;
+begin
+  if to_regclass('public.career_signup_gate') is null then return false; end if;
+  execute 'select step from public.career_signup_gate where user_id = $1' into st using p_user;
+  return st is not null and st <> 'active';
+end $$;
+
+-- Admit a person if they may use Trainee; return how, or null (not yet). p_allowlisted: the edge function's own check of
+-- TRAINEE_ALLOWED_CONTACTS against the account's confirmed phone (never a claim from the person).
+create or replace function public.trainee_admit(p_user uuid, p_allowlisted boolean) returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v text;
+begin
+  if p_user is null or not exists (select 1 from auth.users where id = p_user) then raise exception 'invalid admission'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('trainee_admit:' || p_user::text, 0));
+  select via into v from public.trainee_admissions where user_id = p_user;
+  if v is not null then return v; end if;
+  -- FEATURE WAVES may admit by its own rules (a sent invite matching the account's confirmed phone, taken once): its
+  -- career_invite_admit(user) answers 'invite', 'waitlist' or null, and records nothing else here. Called by name.
+  if to_regprocedure('public.career_invite_admit(uuid)') is not null then
+    execute 'select public.career_invite_admit($1)' into v using p_user;
+    if v is not null then
+      select via into v from public.trainee_admissions where user_id = p_user; -- what it recorded, if it did
+      if v is not null then return v; end if;
+      v := 'invite';
+    end if;
+  end if;
+  v := coalesce(v, case when public.trainee_invited(p_user) then 'invite'
+            when coalesce(p_allowlisted, false) then 'allowlist'
+            when public.trainee_signup_mode() = 'open' then 'open' end);
+  if v is null then return null; end if;
+  insert into public.trainee_admissions (user_id, via) values (p_user, v);
+  return v;
+end $$;
+
+-- Whether the person may make applications now (the database's own check, every writer).
+create or replace function public.trainee_may_act(p_user uuid) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+  select p_user is not null
+     and (exists (select 1 from public.trainee_admissions where user_id = p_user) or public.trainee_invited(p_user)
+          or public.trainee_signup_mode() = 'open')
+     and not public.trainee_signup_unfinished(p_user)
+$$;
+
+create or replace function public.trainee_require_admitted() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if not public.trainee_may_act(new.user_id) then
+    raise exception 'not_admitted' using hint = 'This account has not been let in to Trainee yet.';
+  end if;
+  return new;
+end $$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['career_apply_prepared', 'career_apply_cards', 'career_apply_jobs', 'career_apply_wanted',
+                           'career_apply_message_cards', 'career_apply_batch_approvals'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('drop trigger if exists trainee_admitted on public.%I', t);
+      execute format('create trigger trainee_admitted before insert on public.%I for each row execute function public.trainee_require_admitted()', t);
+    end if;
+  end loop;
+end $$;
+
+revoke all on function public.trainee_phone_digits(text), public.trainee_signup_mode(), public.trainee_set_signup(text), public.trainee_invited(uuid),
+  public.trainee_signup_unfinished(uuid), public.trainee_admit(uuid, boolean), public.trainee_may_act(uuid),
+  public.trainee_require_admitted() from public, anon, authenticated;
+grant execute on function public.trainee_phone_digits(text), public.trainee_signup_mode(), public.trainee_set_signup(text), public.trainee_invited(uuid),
+  public.trainee_signup_unfinished(uuid), public.trainee_admit(uuid, boolean), public.trainee_may_act(uuid) to service_role;

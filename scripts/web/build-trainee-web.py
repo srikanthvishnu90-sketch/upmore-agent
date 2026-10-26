@@ -15,7 +15,10 @@ the Upmore project:
   python3 scripts/web/build-trainee-web.py           write the files
   python3 scripts/web/build-trainee-web.py --check   exit 1 if the committed files differ from a fresh build
 """
+import base64
+import hashlib
 import pathlib
+import re
 import shutil
 import sys
 
@@ -49,6 +52,22 @@ def build() -> dict:
     for marker, content in parts.items():
         assert page.count(marker) == 1, f"{marker} must appear once in web/trainee/app.html"
         page = page.replace(marker, content, 1)
+    # The page's Content-Security-Policy (launch readiness B7, review of PR #195): scripts and styles only from this origin
+    # or the exact inline blocks built here (by their sha256), the Supabase project the only place it talks to, fonts from
+    # Google Fonts. Framing is refused by the HTTP headers in vercel.json (a meta policy cannot carry frame-ancestors).
+    assert not re.search(r'\son[a-z]+=|\sstyle="|javascript:', page.split("<script")[0] + "".join(p.split("</script>", 1)[-1] for p in page.split("<script")[1:])), \
+        "inline handlers, style attributes or javascript: URLs would need unsafe-inline"
+    h = lambda s: "'sha256-" + base64.b64encode(hashlib.sha256(s.encode()).digest()).decode() + "'"
+    scripts = [h(b) for b in re.findall(r"<script>(.*?)</script>", page, re.S)]
+    styles = [h(b) for b in re.findall(r"<style>(.*?)</style>", page, re.S)]
+    assert len(scripts) == 5 and len(styles) == 1, (len(scripts), len(styles))
+    csp = "; ".join([
+        "default-src 'none'", "script-src 'self' " + " ".join(scripts), "style-src 'self' https://fonts.googleapis.com " + " ".join(styles),
+        "font-src 'self' https://fonts.gstatic.com", f"connect-src {BACKEND_URL}", "img-src 'self' data:", "base-uri 'none'",
+        "form-action 'none'", "object-src 'none'", "manifest-src 'self'"])
+    marker = "<!--__CSP__-->"
+    assert page.count(marker) == 1, "the CSP marker must appear once"
+    page = page.replace(marker, f'<meta http-equiv="Content-Security-Policy" content="{csp}">', 1)
     config = ("// Built by scripts/web/build-trainee-web.py: the Supabase project and its public anon key (row-level security\n"
               "// decides what each signed-in person reads). Never a service key.\n"
               f"window.TRAINEE_CONFIG = Object.freeze({{ backendUrl: {BACKEND_URL!r}, anonKey: {ANON_KEY!r} }});\n").replace("'", '"')

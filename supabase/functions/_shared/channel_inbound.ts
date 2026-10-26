@@ -52,14 +52,7 @@ export interface InboundStore {
   issueLinkNonce?(userId: string, at: number): Promise<string>;
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
-  // FEATURE WAVES (optional): an invite taken once by its token (Telegram's Start) or by the invited number (a first text),
-  // then bound to the account made for it.
-  redeemInvite?(token: string, contact: string, via: string, at: number): Promise<InviteTaken>;
-  redeemInviteByPhone?(phone: string, contact: string, via: string, at: number): Promise<InviteTaken>;
-  bindInvite?(inviteId: string, userId: string, at: number): Promise<void>;
-  // Sign-up in waves: the admission recorded on an account made through the allow-list (TRAINEE_SIGNUP=open, or the
-  // contact on TRAINEE_ALLOWED_CONTACTS), so the web app admits the same person (20261026230000; an invite's own bind
-  // records its admission, 20261026233017).
+  // Sign-up in waves (20261026230000, optional): the admission recorded on a new account the env let in (listed).
   admit?(userId: string, listed: boolean): Promise<void>;
 }
 export type InviteTaken = { ok: true; inviteId: string } | { ok: false; why: InviteRefusal | "none" };
@@ -186,33 +179,17 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
           return ok({ link: "asked", sent: r.ok });
         }
       }
-      // FEATURE WAVES: a first text from an invited number (its invite sent, not used) makes the account; the allow-list
-      // below stays the fallback for everyone else.
-      const phone = contact.startsWith("+") ? contact : msg.phone ?? null;
-      if (phone && store.redeemInviteByPhone && store.bindInvite && (msg.channel === "imessage" || msg.channel === "whatsapp")) {
-        // An invite that can't be read is treated as none (logged): the allow-list below decides, never a guess.
-        const taken = await store.redeemInviteByPhone(phone, contact, msg.channel, now)
-          .catch((e): InviteTaken => { console.error("inbound: invite not read (treated as none):", e instanceof Error ? e.message : String(e)); return { ok: false, why: "none" }; });
-        if (taken.ok) {
-          person = await store.createPerson(contact, now, msg.phone ?? null);
-          await store.bindInvite(taken.inviteId, person.userId, now);
-          if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
-          invitedNow = true;
-        }
-      }
-      // FEATURE WAVES end
-      if (!person && !signupAllows(d.env, contact, msg.phone)) {
+      if (!signupAllows(d.env, contact, msg.phone)) {
         if (await store.refusedBefore(contact, now)) return ok({ ignored: "signup closed (already told)" });
         const r = await d.reply(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
       }
-      if (!person) {
-        person = await store.createPerson(contact, now, msg.phone ?? null);
-        // Past the check above without an invite: the allow-list let them in; recorded so the web app admits the same person.
-        if (store.admit) {
-          try { await store.admit(person.userId, true); }
-          catch (e) { console.error("inbound: admission not recorded:", e instanceof Error ? e.message : String(e)); }
-        }
+      person = await store.createPerson(contact, now, msg.phone ?? null);
+      // The env let them in: recorded on the account (trainee_admit, 20261026230000), so the database lets them apply and
+      // the web app admits the same person. A failure is logged; their applications are then refused until it is recorded.
+      if (store.admit) {
+        try { await store.admit(person.userId, true); }
+        catch (e) { console.error("inbound: admission not recorded:", e instanceof Error ? e.message : String(e)); }
       }
       if (store.sawInbound && !invitedNow) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).

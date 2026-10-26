@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!--__CSP__-->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2A1A3A">
 <meta name="robots" content="noindex">
@@ -31,6 +32,7 @@
   <section class="view signin" id="signin" hidden aria-labelledby="signin-title">
     <h1 id="signin-title">Sign in to Trainee</h1>
     <p class="lede">Use the phone number you joined the waitlist with. We text you a 6-digit code.</p>
+    <p class="status" id="invite-note" role="status" hidden>Your invite is ready. Sign in to use it.</p>
     <form id="send-form" novalidate>
       <fieldset class="method" id="method">
         <legend class="sr">Sign in with</legend>
@@ -60,7 +62,7 @@
         <button class="secondary" id="change" type="button">Use a different number</button>
       </div>
     </form>
-    <p class="note" style="margin-top:28px">Not on the waitlist yet? <a href="/#signup">Join it on the home page</a>.</p>
+    <p class="note after">Not on the waitlist yet? <a href="/#signup">Join it on the home page</a>.</p>
   </section>
 
   <section class="view" id="waiting" hidden aria-labelledby="waiting-title">

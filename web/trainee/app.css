@@ -46,6 +46,7 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
 .error { color: var(--bad); font-size: 15px; margin: 10px 0 0; }
 .error:empty, .status:empty { display: none; }
 .status { color: var(--silver); font-size: 15px; margin: 10px 0 0; }
+.note.after { margin-top: 28px; }
 
 /* Buttons and fields */
 .primary { min-height: 48px; padding: 0 18px; border: 1px solid var(--plum); border-radius: 12px; background: var(--plum); color: #fff; font-weight: 600; cursor: pointer; }

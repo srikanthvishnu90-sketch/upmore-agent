@@ -170,3 +170,43 @@ test('load reads the open card of the chat with the person\'s own session, by th
   assert.deepEqual(c.f, [['eq', 'user_id', uid], ['eq', 'state', 'open']]);
   assert.deepEqual(data.applyCards, [card]);
 });
+
+/* ---- security headers and the page's CSP (review of PR #195) ---- */
+test('vercel.json gives /app and everything under it: frame-ancestors none, X-Frame-Options DENY, nosniff, no referrer', () => {
+  const v = JSON.parse(read('vercel.json'));
+  for (const source of ['/app', '/app/(.*)']) {
+    const rule = v.headers.find((h) => h.source === source);
+    assert.ok(rule, source);
+    const h = Object.fromEntries(rule.headers.map((x) => [x.key, x.value]));
+    assert.match(h['Content-Security-Policy'], /(^|; )frame-ancestors 'none'(;|$)/);
+    assert.equal(h['X-Frame-Options'], 'DENY');
+    assert.equal(h['X-Content-Type-Options'], 'nosniff');
+    assert.equal(h['Referrer-Policy'], 'no-referrer', 'an invite token in the address never leaves as a referrer');
+  }
+  assert.equal(v.headers.filter((h) => /^\/app/.test(h.source)).length, 2, 'only the app\'s paths');
+});
+
+test('the page\'s CSP allows exactly its own inline blocks (by sha256), its own files, Google Fonts and the project; nothing inline else', () => {
+  const page = read('site/app/index.html');
+  const meta = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(page);
+  assert.ok(meta, 'the CSP meta');
+  const csp = Object.fromEntries(meta[1].split('; ').map((d) => { const [k, ...v] = d.split(' '); return [k, v]; }));
+  const sha = (s) => "'sha256-" + require('node:crypto').createHash('sha256').update(s).digest('base64') + "'";
+  const scripts = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((x) => sha(x[1]));
+  const styles = [...page.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((x) => sha(x[1]));
+  assert.deepEqual(csp['default-src'], ["'none'"]);
+  assert.deepEqual(csp['script-src'], ["'self'", ...scripts]);
+  assert.deepEqual(csp['style-src'], ["'self'", 'https://fonts.googleapis.com', ...styles]);
+  assert.deepEqual(csp['connect-src'], ['https://mrwngntwmnaqrqhupvlt.supabase.co']);
+  assert.deepEqual([csp['base-uri'], csp['object-src'], csp['form-action']], [["'none'"], ["'none'"], ["'none'"]]);
+  assert.ok(!Object.values(csp).flat().some((x) => /unsafe-(inline|eval)|\*/.test(x)), 'no unsafe-inline, unsafe-eval or wildcard');
+  assert.doesNotMatch(page.replace(/<script>[\s\S]*?<\/script>/g, ''), /\son[a-z]+="|\sstyle="|javascript:/, 'no inline handlers or style attributes outside the hashed blocks');
+});
+
+test('sign-up is closed in the migration by default, and no env can open it', () => {
+  const sql = read('supabase/migrations/20261026230000_trainee_web_admission.sql');
+  assert.match(sql, /insert into public\.trainee_settings \(key, value\) values \('web_signup', 'invite'\) on conflict \(key\) do nothing;/);
+  assert.match(sql, /coalesce\(\(select value from public\.trainee_settings where key = 'web_signup'\), 'invite'\)/, 'no row reads as closed');
+  assert.doesNotMatch(read('supabase/functions/_shared/trainee_admission.ts'), /TRAINEE_WEB_SIGNUP/);
+  assert.doesNotMatch(read('scripts/launch/trainee-go-live.sh'), /TRAINEE_WEB_SIGNUP/);
+});

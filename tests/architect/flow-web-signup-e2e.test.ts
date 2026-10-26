@@ -1,15 +1,14 @@
 // Launch readiness B7 (2026-10-26): the Trainee web app, end to end in a real Chromium, against the production agent-chat
 // career handler (handler-career.ts handleChat, unchanged) on the flow harness's real Postgres (CI's migration order,
-// Supabase-parity grants and row security), with TRAINEE_WEB_SIGNUP=invite.
+// Supabase-parity grants and row security), with sign-up closed as production has it (20261026230000, startPg gate invite).
 //
 //   1. the built app (site/app/index.html, what the Vercel project "trainee" serves at /app) opens on sign in, at phone
 //      and desktop widths: no horizontal scroll, every control labelled, text contrast at least 4.5:1, focus visible
-//   2. a person not invited signs in with a texted code and is told their spot hasn't opened: no admission, no turn
-//   3. the owner opens wave 1 on the one wave and invite system (career_wave_open, the approved text and count, the
-//      send recorded); the waitlisted person signs in by keyboard alone: their confirmed phone takes the sent invite,
-//      admitted via the waitlist
-//   4. their first chat turn (agent_messages rows, in their own thread) is the sign-up's 18+ question; then the terms,
-//      each acceptance recorded with its version
+//   2. a person not invited signs in with a texted code and is told their spot hasn't opened: no admission, no turn; their
+//      own session calling career_apply_prepare_own / career_apply_card_open_own / career_apply_card_answer_own directly
+//      makes no row (the database refuses them); an invite link they hold is redeemed only through FEATURE WAVES
+//   3. a person whose confirmed phone is on TRAINEE_ALLOWED_CONTACTS signs in by keyboard alone: admitted via the allow-list
+//   4. their first chat turn (agent_messages rows, in their own thread)
 //   5. their resume as a .txt file through "Add resume"; they say it is theirs: every entry confirmed (career_events)
 //   6. a posting link queued; the worker's prepare (prepare-ahead.ts) asks only what is unknown; answered in the web chat
 //   7. "show my applications": the card renders under the reply with every exact answer; the Applications tab shows the
@@ -52,7 +51,8 @@ const JOB_UUID = "a13ae586-f4cb-4385-8822-c42b9b54ed74";
 const LINK = `https://jobs.ashbyhq.com/ramp/${JOB_UUID}`;
 const KEY = `ashby:ramp:${JOB_UUID}`;
 const TITLE = "Frontend Engineer Intern (TEST)";
-const WAITLISTED = { cc: "+1", national: "3125550142", e164: "+13125550142", auth: "13125550142" };
+const WAITLISTED = { cc: "+1", national: "3125550142", e164: "+13125550142", auth: "13125550142" }; // on TRAINEE_ALLOWED_CONTACTS
+const INVITEE = { cc: "+1", national: "3125550177", e164: "+13125550177", auth: "13125550177" }; // holds an invite link
 const STRANGER = { cc: "+1", national: "3125550199", e164: "+13125550199", auth: "13125550199" };
 
 // Ashby's public posting API and the employer's form, on 127.0.0.1 (as in flow-e2e-chat-submit.test.ts).
@@ -148,7 +148,7 @@ Deno.test({
     const { chromium } = require(Deno.env.get("UPMORE_PLAYWRIGHT_PATH")!);
     const shots = Deno.env.get("WEB_SHOTS_DIR") || await Deno.makeTempDir({ prefix: "trainee-web-shots-" });
     await Deno.mkdir(shots, { recursive: true });
-    const pg = await startPg();
+    const pg = await startPg({ gate: "invite" });
     const site = ashby();
     const work = await Deno.makeTempDir({ prefix: "trainee-web-e2e-" });
     const outbound: string[] = [], chatBodies: any[] = [];
@@ -160,8 +160,8 @@ Deno.test({
       const auth = fakeAuth(pg, users);
       const double = postgrestDouble(pg, { url: SUPABASE_URL, serviceKey: SERVICE_KEY, users });
       Deno.env.set("SUPABASE_URL", SUPABASE_URL); Deno.env.set("SUPABASE_ANON_KEY", ANON_KEY); Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", SERVICE_KEY);
-      Deno.env.set("TRAINEE_WEB_SIGNUP", "invite"); Deno.env.delete("TRAINEE_ALLOWED_CONTACTS");
-      for (const [k, v] of Object.entries(TERMS_ENV)) Deno.env.set(k, v);
+      Deno.env.set("TRAINEE_ALLOWED_CONTACTS", `${WAITLISTED.e164}, someone@example.test`);
+      assertEquals(await pg.sql(`select public.trainee_signup_mode()`), "invite", "sign-up is closed, as production has it");
       // The handler's own calls: Supabase (Auth's user read with the confirmed phone, then the double), Ashby (local);
       // nothing else.
       globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -178,6 +178,11 @@ Deno.test({
       // The Supabase project, as the browser reaches it: its own CORS for Auth and the REST API, agent-chat's own.
       backend = Deno.serve({ hostname: "127.0.0.1", port: 0, onListen() {} }, async (req) => {
         const u = new URL(req.url);
+        // Another site trying to show the app in a frame (the framing check).
+        if (u.pathname === "/frame-test") {
+          return new Response(`<!doctype html><title>frame</title><iframe src="${APP}/app" width="400" height="400"></iframe><script>setTimeout(() => { window.frameDone = true; }, 2500)</script>`,
+            { headers: { "content-type": "text/html" } });
+        }
         const origin = req.headers.get("origin") ?? "";
         const supaCors = { "access-control-allow-origin": origin || "*", "access-control-allow-headers": req.headers.get("access-control-request-headers") ?? "*",
           "access-control-allow-methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS", "access-control-expose-headers": "content-range, x-supabase-api-version", "vary": "origin" };
@@ -197,12 +202,30 @@ Deno.test({
         "/app": ["site/app/index.html", "text/html; charset=utf-8"], "/app/": ["site/app/index.html", "text/html; charset=utf-8"],
         "/app/icon.svg": ["site/app/icon.svg", "image/svg+xml"], "/app/fonts/libre-baskerville-regular.woff2": ["site/app/fonts/libre-baskerville-regular.woff2", "font/woff2"],
       };
+      // The headers vercel.json gives these paths, applied as Vercel applies them (exact source, or "/app/(.*)").
+      const vercel = JSON.parse(Deno.readTextFileSync(`${ROOT}/vercel.json`));
+      const headersFor = (p: string) => {
+        const h: Record<string, string> = {};
+        for (const rule of vercel.headers) if (new RegExp(`^${String(rule.source).replace(/\(\.\*\)/g, ".*")}$`).test(p)) for (const x of rule.headers) h[x.key] = x.value;
+        return h;
+      };
+      const PROD_BACKEND = "https://mrwngntwmnaqrqhupvlt.supabase.co";
       const serveApp = (req: Request) => {
         const p = new URL(req.url).pathname;
-        if (p === "/app/config.js") return new Response(`window.TRAINEE_CONFIG = Object.freeze(${JSON.stringify({ backendUrl: BACKEND, anonKey: ANON_KEY })});`, { headers: { "content-type": "text/javascript" } });
+        if (p === "/app/config.js") return new Response(`window.TRAINEE_CONFIG = Object.freeze(${JSON.stringify({ backendUrl: BACKEND, anonKey: ANON_KEY })});`, { headers: { "content-type": "text/javascript", ...headersFor(p) } });
         const f = files[p];
-        return f ? new Response(Deno.readFileSync(`${ROOT}/${f[0]}`), { headers: { "content-type": f[1] } }) : new Response("not found", { status: 404 });
+        if (!f) return new Response("not found", { status: 404 });
+        let body: Uint8Array | string = Deno.readFileSync(`${ROOT}/${f[0]}`);
+        if (f[0].endsWith(".html")) {
+          // The one seam in the page: its CSP names the production project as the only place it may connect; here that is
+          // the local backend. Exactly one occurrence, inside the policy.
+          const html = new TextDecoder().decode(body), csp = /connect-src https:\/\/mrwngntwmnaqrqhupvlt\.supabase\.co;/g;
+          assertEquals(html.match(csp)?.length, 1, "the built CSP connects only to the project");
+          body = html.replace(csp, `connect-src ${BACKEND};`);
+        }
+        return new Response(body, { headers: { "content-type": f[1], ...headersFor(p) } });
       };
+      void PROD_BACKEND;
       for (const port of [8080, 8000]) { try { app = Deno.serve({ hostname: "127.0.0.1", port, onListen() {} }, serveApp); break; } catch { /* next */ } }
       assert(app, "the app server needs 127.0.0.1:8080 or :8000 (origins agent-chat allows for local development)");
       const APP = `http://127.0.0.1:${(app!.addr as Deno.NetAddr).port}`;
@@ -303,6 +326,14 @@ Deno.test({
           await page.waitForSelector("#signin:not([hidden])");
           assertEquals(await page.title(), "Trainee");
           assert(!/upmore/i.test(await page.content()), "no Upmore anywhere in the page");
+          if (name === "phone") {
+            const res = await page.goto(`${APP}/app`);
+            const h = res.headers();
+            assertEquals([h["x-frame-options"], h["content-security-policy"], h["x-content-type-options"], h["referrer-policy"]],
+              ["DENY", "frame-ancestors 'none'; base-uri 'none'; object-src 'none'", "nosniff", "no-referrer"], "the app's response headers");
+            assert(await page.locator('meta[http-equiv="Content-Security-Policy"]').count() === 1, "the page carries its CSP");
+            await page.waitForSelector("#signin:not([hidden])");
+          }
           await floor(page, `sign in ${name}`);
           await shot(page, `01-signin-${name}`);
           if (!mobile) {
@@ -315,6 +346,17 @@ Deno.test({
           }
           await context.close();
         }
+      });
+
+      await t.step("framing: another site cannot show the app in a frame", async () => {
+        const { context, page } = await open({ width: 1280, height: 800 }, false);
+        await page.goto(`${BACKEND}/frame-test`);
+        await page.waitForFunction(() => (window as any).frameDone === true, null, { timeout: 15000 });
+        const child = page.frames().find((f: any) => f !== page.mainFrame());
+        assert(child, "the frame element exists");
+        assert(child.url().startsWith("chrome-error://"), `the browser refused to show the app in the frame (${child.url()})`);
+        consoleErrors.splice(0, consoleErrors.length, ...consoleErrors.filter((e) => !/frame-ancestors|X-Frame-Options|Refused to display/.test(e)));
+        await context.close();
       });
 
       await t.step("validation: a short number and an empty code are refused on the page; nothing is sent", async () => {
@@ -331,11 +373,20 @@ Deno.test({
         await page.click("#send-code");
         assertEquals(await page.textContent("#send-error"), "Enter your email, like name@example.com.");
         await shot(page, "02-signin-error-phone");
+        // One code a minute per number: a second ask within the minute is refused on the page and nothing is sent.
+        await page.check("input[name=method][value=phone]");
+        await page.fill("#phone", "3125550166");
+        await page.click("#send-code");
+        await page.waitForSelector("#verify-form:not([hidden])");
+        assertEquals(auth.sent.filter((x) => x === "13125550166").length, 1);
+        await page.click("#change");
+        await page.click("#send-code");
+        assert(/A code was just sent to that number\. You can ask for a new one in \d+ seconds\./.test(await page.textContent("#send-error") ?? ""), await page.textContent("#send-error"));
+        assertEquals(auth.sent.filter((x) => x === "13125550166").length, 1, "no second code within the minute");
         await context.close();
       });
 
       await t.step("a person not invited signs in and is told their spot hasn't opened; no admission, no turn", async () => {
-        await pg.sql(`insert into public.site_waitlist (name, phone, consent, consent_text, created_at) values ('Waitlisted Person', '${WAITLISTED.e164}', true, 'I agree to receive automated texts from Trainee. Reply STOP to opt out.', now() - interval '2 days')`);
         const { context, page } = await open({ width: 390, height: 844 }, true);
         await page.goto(`${APP}/app`);
         await signIn(page, STRANGER, false);
@@ -349,25 +400,64 @@ Deno.test({
         assert(chatBodies.some((b) => b.check_access === true), "the app asked agent-chat for access, not for a turn");
         await floor(page, "waiting");
         await shot(page, "03-waiting-phone");
+        // Their own session, straight at the database's RPCs (what a person could do from the console): nothing is made.
+        await pg.sql(`insert into public.career_watch_kv (user_id, key, value) values ('${id}', 'career:account', '{"epoch":0,"version":0,"paused":false}') on conflict do nothing`);
+        const attack = await page.evaluate(async ({ backend, anon, uid }: { backend: string; anon: string; uid: string }) => {
+          const k = Object.keys(localStorage).find((x) => /^sb-.*-auth-token$/.test(x))!;
+          const tok = JSON.parse(localStorage.getItem(k)!).access_token;
+          const c = (window as any).supabase.createClient(backend, anon, { global: { headers: { Authorization: "Bearer " + tok } }, auth: { persistSession: false } });
+          const payload = { version: 1, user_id: uid, job_id: "TEST-ATTACK-1", company: "Attack Co", url: "https://jobs.lever.co/attack/1", fields: [], privacy_epoch: 0, account_version: 0,
+            expires_at: new Date(Date.now() + 86400000).toISOString() };
+          const prep = await c.rpc("career_apply_prepare_own", { p_payload: payload, p_card_lines: ["Attack Co: Analyst"] });
+          const open = await c.rpc("career_apply_card_open_own", { p_ids: ["00000000-0000-4000-8000-0000000000aa"] });
+          return { prep: prep.error?.message ?? null, open: open.error?.message ?? null };
+        }, { backend: BACKEND, anon: ANON_KEY, uid: id });
+        assert(/not_admitted/.test(String(attack.prep)), `prepare_own refused: ${JSON.stringify(attack)}`);
+        assert(attack.open, `card_open_own refused: ${JSON.stringify(attack)}`);
+        for (const tbl of ["career_apply_prepared", "career_apply_cards", "career_apply_jobs", "career_apply_wanted"]) {
+          assertEquals(await pg.sql(`select count(*) from public.${tbl} where user_id = '${id}'`), "0", `no ${tbl} row for a person not admitted`);
+        }
+        await context.close();
+      });
+
+      await t.step("an invite link: redeemed only through FEATURE WAVES, never treated as admission by itself", async () => {
+        const waves = await pg.sql(`select to_regclass('public.career_invites') is not null`);
+        const TOKEN = "TestInviteToken_0123456789abcdef";
+        if (waves === "t") {
+          // The one invite system: a sent invite for this number, its token stored by hash only.
+          await pg.sql(`insert into public.career_invite_waves (id, open_key, size, opened_at) values (990002, 'web_e2e', 1, now());
+            insert into public.career_invites (wave_id, phone, token_hash, state, signed_up_at, created_at, sent_at, expires_at)
+            values (990002, '${INVITEE.e164}', public.career_invite_hash('${TOKEN}'), 'sent', now(), now(), now(), now() + interval '14 days')`);
+        }
+        const { context, page } = await open({ width: 390, height: 844 }, true);
+        await page.goto(`${APP}/app/?invite=${TOKEN}`);
+        await page.waitForSelector("#signin:not([hidden])");
+        assert(!page.url().includes(TOKEN), "the token leaves the address bar at once");
+        assert(await page.isVisible("#invite-note"), "the page says the invite is ready");
+        await signIn(page, INVITEE, false);
+        const id = await (async () => { for (let i = 0; i < 50; i++) { const v = await pg.sql(`select id from auth.users where phone = '${INVITEE.auth}'`); if (v) return v; await new Promise((r) => setTimeout(r, 100)); } return ""; })();
+        assert(chatBodies.some((b) => b.check_access === true && b.invite === TOKEN), "the access check carried the invite");
+        if (waves === "t") {
+          await page.waitForSelector("#chat:not([hidden])");
+          assertEquals(await pg.sql(`select via from public.trainee_admissions where user_id = '${id}'`), "invite");
+          assertEquals(await pg.sql(`select redeemed_user from public.career_invites where phone = '${INVITEE.e164}'`), id, "the invite is bound to this account, once");
+        } else {
+          // Without FEATURE WAVES there is no invite system here, so the link admits nobody.
+          await page.waitForSelector("#waiting:not([hidden])");
+          assertEquals(await pg.sql(`select count(*) from public.trainee_admissions where user_id = '${id}'`), "0", "a token alone admits nobody");
+        }
+        assertEquals(await page.evaluate(() => sessionStorage.getItem("trainee.invite")), null, "the token is not kept after the check");
         await context.close();
       });
 
       let PERSON = "";
       const { context, page } = await open({ width: 390, height: 844 }, true);
-      await t.step("wave 1 invites the waitlisted number; they sign in by keyboard and are admitted via the waitlist", async () => {
-        // The owner's wave, on the one system: open (nothing sent), approve the exact text and count, the send recorded.
-        const at = "date_trunc('day', now()) + interval '18 hours'", tpl = "Trainee: your spot is open: {link} Reply STOP to opt out.";
-        assertEquals(await pg.sql(`select public.career_wave_open(1, 'web-wave-1', null, ${at})->>'picked'`), "1");
-        assertEquals(await pg.sql(`select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'web-wave-1'), '${tpl}', encode(sha256(convert_to('${tpl}', 'UTF8')), 'hex'), 1, ${at})->>'approved'`), "1");
-        await pg.sql(`do $$declare j jsonb; begin j := public.career_invite_claim_send((select id from public.career_invite_waves where open_key = 'web-wave-1'), ${at});
-          perform public.career_invite_mark_sent((j->>'invite_id')::uuid, true, 'lm-test', null, ${at}); end $$`);
-        assertEquals(await pg.sql(`select state from public.career_invites where phone = '${WAITLISTED.e164}'`), "sent");
+      await t.step("an allow-listed confirmed phone signs in by keyboard alone and is admitted via the allow-list", async () => {
         await page.goto(`${APP}/app`);
         await signIn(page, WAITLISTED, true);
         await page.waitForSelector("#chat:not([hidden])");
         PERSON = await pg.sql(`select id from auth.users where phone = '${WAITLISTED.auth}'`);
-        assertEquals(await pg.sql(`select via from public.trainee_admissions where user_id = '${PERSON}'`), "waitlist");
-        assertEquals(await pg.sql(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${WAITLISTED.e164}'`), `redeemed,${PERSON},web`, "the confirmed phone took the sent invite");
+        assertEquals(await pg.sql(`select via from public.trainee_admissions where user_id = '${PERSON}'`), "allowlist");
         assertEquals(await page.evaluate(() => document.activeElement!.id), "message", "the composer has focus");
         await floor(page, "chat empty");
         await shot(page, "04-chat-empty-phone");
@@ -545,8 +635,7 @@ Deno.test({
       await site.close();
       await pg.stop();
       await Deno.remove(work, { recursive: true }).catch(() => {});
-      Deno.env.delete("TRAINEE_WEB_SIGNUP");
-      for (const k of Object.keys(TERMS_ENV)) Deno.env.delete(k);
+      Deno.env.delete("TRAINEE_ALLOWED_CONTACTS");
     }
   },
 });

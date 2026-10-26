@@ -1,7 +1,15 @@
 name: ci
 on:
+  # Branches are checked through their pull request; a push runs only on trunk. Before 2026-10-26 every push to a PR
+  # branch ran the whole suite twice (push + pull_request), and runs for superseded heads held the queue: 111 queued,
+  # 52 of them for commits already replaced, with 6 running.
   push:
+    branches: [trunk]
   pull_request:
+concurrency:
+  # One run per PR (or per ref for trunk pushes); a newer head cancels the older run. Trunk runs are never cancelled.
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:

@@ -67,6 +67,9 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
+// FEATURE 8: inbox check and follow-ups that can be sent.
+import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
+import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -466,10 +469,25 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // emailed me" / "any news from X", "what follow-ups are due": one read model (the queue, the mail events, every
       // thread's tracker, the mail drafts), each record's line named, an unreadable one said. The queue-only status turn
       // below stays as the fallback when the reader itself fails.
-      const stood = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // FEATURE 8: inbox awareness and follow-ups that can be sent (career_inbox_followups.ts). "check my email now" / "I
+      // connected my Gmail": one run of the scheduled mail tracking for this person (CAREER_MAIL_TRACKING=on). "send the
+      // follow-up to X": the due or drafted follow-up as one email card (outreach store, hash-bound); "yes" while it is the
+      // last word sends exactly it once from their Gmail, only with CAREER_EMAIL_SEND=on and gmail.send.
+      const f08Stores = supabaseFollowupStores(admin), f08Grant = careerGrant(admin, Deno.env, fetch);
+      const f08 = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await followupTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
+            read: supabaseStanding(admin), outreach: outreachStore, events, lastAssistant: f08Stores.lastAssistant, addressOnRecord: f08Stores.addressOnRecord,
+            name: () => ((ctx as any).profile?.basics?.name ?? null), markSent: f08Stores.markSent,
+            mailOn: Deno.env.get("CAREER_MAIL_TRACKING") === "on",
+            readNow: (u) => mailNow({ userId: u, now: Date.now(), store: supabaseMailStore(admin), cursor: f08Stores.cursor, read: gmailReadNow(f08Grant, fetch), confirm: supabaseConfirmStore(admin) }),
+            sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on", canSend: async (u) => !!(await sendToken(u)),
+            send: (u, m) => gmailSender({ fetch, token: (uu) => sendToken(uu) }).send(u, m), connectAsk: missingIntegration("gmail"),
+          } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
+        : null;
+      const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
         : null;
-      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
       if (card) {
@@ -515,6 +533,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const asking = !!queued.ask?.length;
         out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
         if (asking) agentMeta = { employer_question: queued.ask };
+      } else if (f08) {
+        // FEATURE 8: a card or a question waiting for its answer is this thread's last word by its meta.
+        out = { reply: f08.reply, intent: f08.intent, resultStatus: f08.status, contained: false, handler: "followup" };
+        if (f08.meta) agentMeta = f08.meta;
       } else if (stood) {
         out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {

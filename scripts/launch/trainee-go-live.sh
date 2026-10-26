@@ -142,6 +142,7 @@ MIGRATIONS=(
   20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql
   20261025180000_career_outbox_card_id.sql
+  20261026080008_career_mail_drafts_sent.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -201,6 +202,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
+  "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

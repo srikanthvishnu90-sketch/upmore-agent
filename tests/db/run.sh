@@ -397,6 +397,11 @@ echo "== career_apply_card_yes_window.test.sql (an approval after 10 minutes is 
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025180000_career_outbox_card_id.sql"
 echo "== career_outbox_card_id.test.sql (the push's row and a chat reply's row carry the card id; the delivered provider id finds the card)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outbox_card_id.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# FEATURE 8 (20261026080008): a follow-up sent from chat is recorded as sent on its mail draft; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026080008_career_mail_drafts_sent.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026080008_career_mail_drafts_sent.sql"
+echo "== career_mail_drafts_sent.test.sql (a sent follow-up is dated and tied to its outreach draft; never drafted again)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_mail_drafts_sent.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then

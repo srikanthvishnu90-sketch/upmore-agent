@@ -379,9 +379,9 @@ export async function runApproved(d: {
           confirmation_id: run.result.confirmation_id ?? null,
           evidence_path: run.result.evidence_path ?? null,
           ...(bound ? { proof } : proof ? { proof_refused: "PROOF_NOT_THIS_APPLICATION" } : {}),
-          ...confirmationText(state, run.evidence),
         };
-        if (bound && d.attach) await attachProof(job, proof, run.result.evidence_path, d.attach);
+        // FEATURE 14: the pictures and the page's text go to the receipt store, never into the row's evidence (hashes only).
+        if (bound && d.attach) await attachProof(job, proof, run.result.evidence_path, d.attach, confirmationText(state, run.evidence));
       }
     } catch (e: any) {
       // Before the engine started nothing could have been sent; after it started, nothing is known.
@@ -395,23 +395,26 @@ export async function runApproved(d: {
 }
 
 // FEATURE 14 (D-024, G6): the receipt's pictures and the employer's own words.
-export type ReceiptAttach = (job: Job, kind: "before-click" | "after-submit", sha256: string, b64: string) => Promise<unknown>;
+export type ReceiptAttach = (job: Job, kind: "before-click" | "after-submit" | "page-text", sha256: string, b64: string) => Promise<unknown>;
 function toBase64(bytes: Uint8Array): string {
   let bin = "";
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(bin);
 }
 // Each picture the bound proof names, read from the run's private evidence folder and sent only if its bytes are the
-// picture the proof's hash names. A picture that cannot be read or sent is logged and left on this computer; it never
-// changes the outcome (the finish records it either way, and the receipt then shows no picture).
-export async function attachProof(job: Job, proof: any, dir: string | undefined, attach: ReceiptAttach): Promise<string[]> {
+// picture the proof's hash names, then the page's text after the click when there is one. Anything that cannot be read
+// or sent is logged and left on this computer; it never changes the outcome (the finish records it either way, and the
+// receipt then shows no picture or no page text).
+const hexOf = async (bytes: Uint8Array) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as BufferSource))].map((b) => b.toString(16).padStart(2, "0")).join("");
+export async function attachProof(job: Job, proof: any, dir: string | undefined, attach: ReceiptAttach, pageText?: string | null): Promise<string[]> {
   const sent: string[] = [];
   for (const [key, kind] of [["before_click", "before-click"], ["after_submit", "after-submit"]] as const) {
     const shot = proof?.[key];
     if (!dir || !shot?.file || !/^[a-f0-9]{64}$/.test(String(shot.sha256)) || /[\/]/.test(String(shot.file))) continue;
     try {
       const bytes = await Deno.readFile(`${dir}/${shot.file}`);
-      const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+      const hex = await hexOf(bytes);
       if (hex !== shot.sha256) throw Error("the file is not the picture the proof names");
       await attach(job, kind, hex, toBase64(bytes));
       sent.push(kind);
@@ -419,14 +422,24 @@ export async function attachProof(job: Job, proof: any, dir: string | undefined,
       console.error(`receipt picture ${kind} not attached: ${String(e?.message || e).slice(0, 200)}`);
     }
   }
+  if (pageText) {
+    try {
+      const bytes = new TextEncoder().encode(pageText);
+      await attach(job, "page-text", await hexOf(bytes), toBase64(bytes));
+      sent.push("page-text");
+    } catch (e: any) {
+      console.error(`receipt page text not attached: ${String(e?.message || e).slice(0, 200)}`);
+    }
+  }
   return sent;
 }
 // What the employer's page said after the click, as the engine read it (evidence.json observation), bounded: only for an
-// application that may have reached the employer. It is the employer's text, kept for the person's own receipt.
-export function confirmationText(state: string, ev: any): { confirmation_text?: string } {
-  if (!["confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(state)) return {};
+// application that may have reached the employer. It is the employer's text (it may echo the person's answers), kept
+// only on the person's own receipt.
+export function confirmationText(state: string, ev: any): string | null {
+  if (!["confirmed", "submitted_unconfirmed", "unknown_outcome"].includes(state)) return null;
   const t = String(ev?.observation?.page_text ?? "").replace(/\s+/g, " ").trim().slice(0, 1000);
-  return t ? { confirmation_text: t } : {};
+  return t || null;
 }
 
 // The person's own queue, signed in as them (D-017; migration 20261020010000_career_apply_own_worker.sql): it claims and

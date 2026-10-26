@@ -12,7 +12,10 @@
 --                               worker while it still holds the lease (career_apply_receipt_attach_own). Each is checked
 --                               against its own sha256 and must be a PNG. When the row finishes, a picture is kept only
 --                               if its hash is the one the bound proof names; any other is removed. Without a bound
---                               proof, no picture is kept.
+--                               proof, no picture is kept. The page's text after the click goes the same way (kind
+--                               'page-text', UTF-8, at most 4000 bytes) and becomes the receipt's confirmation_text: it
+--                               never rides the queue row's evidence, which keeps hashes only (G6: an employer's page may
+--                               echo the person's answers).
 -- Neither table is readable by a person's session or anon: the service role reads it for the person's own chat turn,
 -- scoped to that person (agent-chat, career_apply_receipt_read.ts), the same posture as channel_artifacts.
 -- Retention: the pictures are kept for career_apply_receipt_keep_days() days after the finish (PROPOSED 90, the owner sets
@@ -48,9 +51,9 @@ create index if not exists career_apply_receipts_user_idx on public.career_apply
 create table if not exists public.career_apply_receipt_files (
   application_id uuid not null references public.career_apply_jobs(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
-  kind text not null check (kind in ('before-click', 'after-submit')),
+  kind text not null check (kind in ('before-click', 'after-submit', 'page-text')),
   sha256 text not null check (sha256 ~ '^[a-f0-9]{64}$'),
-  mime text not null default 'image/png' check (mime = 'image/png'),
+  mime text not null default 'image/png' check ((kind = 'page-text' and mime = 'text/plain') or (kind <> 'page-text' and mime = 'image/png')),
   bytes_b64 text not null check (length(bytes_b64) <= 8388608),
   bound boolean not null default false,
   keep_until timestamptz,
@@ -77,18 +80,24 @@ begin
   select * into j from public.career_apply_jobs where id = p_id and lease_token = p_lease;
   if not found then raise exception 'invalid apply claim'; end if;
   if j.state <> 'driving' then raise exception 'receipt picture refused: the application is not being driven'; end if;
-  if p_kind is null or p_kind not in ('before-click', 'after-submit') then raise exception 'receipt picture refused: unknown kind'; end if;
+  if p_kind is null or p_kind not in ('before-click', 'after-submit', 'page-text') then raise exception 'receipt picture refused: unknown kind'; end if;
   if p_sha256 is null or p_sha256 !~ '^[a-f0-9]{64}$' then raise exception 'receipt picture refused: bad hash'; end if;
   if p_bytes_b64 is null or length(p_bytes_b64) > 8388608 then raise exception 'receipt picture refused: too large'; end if;
   begin
     b := decode(p_bytes_b64, 'base64');
   exception when others then raise exception 'receipt picture refused: not base64';
   end;
-  if substring(b from 1 for 8) <> '\x89504e470d0a1a0a'::bytea then raise exception 'receipt picture refused: not a PNG'; end if;
+  if p_kind = 'page-text' then
+    if octet_length(b) > 4000 then raise exception 'receipt picture refused: the page text is too long'; end if;
+    begin
+      perform convert_from(b, 'UTF8');
+    exception when others then raise exception 'receipt picture refused: the page text is not UTF-8';
+    end;
+  elsif substring(b from 1 for 8) <> '\x89504e470d0a1a0a'::bytea then raise exception 'receipt picture refused: not a PNG'; end if;
   if encode(sha256(b), 'hex') <> p_sha256 then raise exception 'receipt picture refused: the bytes are not the picture the hash names'; end if;
-  insert into public.career_apply_receipt_files (application_id, user_id, kind, sha256, bytes_b64)
-    values (j.id, j.user_id, p_kind, p_sha256, p_bytes_b64)
-    on conflict (application_id, kind) do update set sha256 = excluded.sha256, bytes_b64 = excluded.bytes_b64, bound = false,
+  insert into public.career_apply_receipt_files (application_id, user_id, kind, sha256, mime, bytes_b64)
+    values (j.id, j.user_id, p_kind, p_sha256, case when p_kind = 'page-text' then 'text/plain' else 'image/png' end, p_bytes_b64)
+    on conflict (application_id, kind) do update set sha256 = excluded.sha256, mime = excluded.mime, bytes_b64 = excluded.bytes_b64, bound = false,
       keep_until = null, created_at = now();
   return jsonb_build_object('application_id', j.id, 'kind', p_kind, 'sha256', p_sha256);
 end $$;
@@ -151,7 +160,8 @@ begin
       coalesce(new.resume_sha256, case when new.payload->>'resume_sha256' ~ '^[a-f0-9]{64}$' then new.payload->>'resume_sha256' end),
       new.payload_hash, new.approval_hash, new.payload->>'engine_approval', new.created_at,
       case when is_bound then public.career_apply_receipt_ms(pr->'click'->'at') end, fin, new.confirmation_id,
-      nullif(left(regexp_replace(coalesce(ev->>'confirmation_text', ''), '\s+', ' ', 'g'), 1000), ''),
+      case when is_bound then nullif(left(btrim(regexp_replace(coalesce((select convert_from(decode(f.bytes_b64, 'base64'), 'UTF8')
+        from public.career_apply_receipt_files f where f.application_id = new.id and f.kind = 'page-text'), ''), '\s+', ' ', 'g')), 1000), '') end,
       case when is_bound then jsonb_strip_nulls(jsonb_build_object(
           'run_id', pr->>'run_id',
           'before_click', case when jsonb_typeof(pr->'before_click') = 'object' then jsonb_build_object('sha256', pr->'before_click'->>'sha256', 'seq', pr->'before_click'->'seq', 'at', pr->'before_click'->'at') end,

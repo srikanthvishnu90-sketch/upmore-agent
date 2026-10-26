@@ -50,6 +50,9 @@ select t.must_fail($$select career_apply_receipt_attach_own(d.id,gen_random_uuid
 select t.must_fail($$select career_apply_receipt_attach_own(d.id,d.lease_token,'screen',p.a_sha,p.a_b64) from a_drive d, pic p$$,'unknown kind','only the before and after pictures are kept');
 select t.ok((select (career_apply_receipt_attach_own(d.id,d.lease_token,'before-click',p.a_sha,p.a_b64))->>'sha256'=p.a_sha from a_drive d, pic p),'the before picture is attached');
 select t.ok((select (career_apply_receipt_attach_own(d.id,d.lease_token,'after-submit',p.b_sha,p.b_b64))->>'sha256'=p.b_sha from a_drive d, pic p),'the after picture is attached');
+select t.ok((select (career_apply_receipt_attach_own(d.id,d.lease_token,'page-text',encode(sha256(convert_to('Thank you   for applying.'||chr(10)||'Confirmation TEST-RC-1','UTF8')),'hex'),
+  encode(convert_to('Thank you   for applying.'||chr(10)||'Confirmation TEST-RC-1','UTF8'),'base64')))->>'kind'='page-text' from a_drive d),'the page''s text after the click is attached');
+select t.must_fail($$select career_apply_receipt_attach_own(d.id,d.lease_token,'page-text',encode(sha256(decode('ff','hex')),'hex'),encode(decode('ff','hex'),'base64')) from a_drive d$$,'not UTF-8','page text that is not UTF-8 is refused');
 select t.must_fail($$select career_apply_receipt_attach(d.id,d.lease_token,'before-click',p.a_sha,p.a_b64) from a_drive d, pic p$$,'permission denied','the lease-only attach is service-only');
 reset role;
 select t.as_user('00000000-0000-4000-8000-000000001402');set role authenticated;
@@ -60,7 +63,7 @@ reset role;
 -- that was sent, so only the before picture is kept.
 select t.as_user('00000000-0000-4000-8000-000000001401');set role authenticated;
 select career_apply_finish_own(d.id,d.lease_token,'confirmed',jsonb_build_object(
-  'reason','employer confirmation on the page','confirmation_id','TEST-RC-1','confirmation_text',E'Thank you   for applying.\nConfirmation TEST-RC-1',
+  'reason','employer confirmation on the page','confirmation_id','TEST-RC-1',
   'proof',jsonb_build_object('run_id','run-1','application_id',d.id,'approval_hash',repeat('e',64),'final_url','https://jobs.lever.co/test/receipt/thanks',
     'before_click',jsonb_build_object('file','proof-1-before-click.png','sha256',p.a_sha,'seq',1,'at',1761400000000),
     'click',jsonb_build_object('seq',2,'at',1761400001000),
@@ -80,7 +83,8 @@ select t.ok((select answers=jsonb_build_array(
 select t.ok((select proof->'before_click'->>'sha256'=(select a_sha from pic) and proof->>'run_id'='run-1' and not (proof->'before_click' ? 'file')
   from career_apply_receipts where user_id='00000000-0000-4000-8000-000000001401'),'the proof''s hashes are kept, not the device''s file names');
 select t.ok((select array_agg(kind order by kind)=array['before-click'] and bool_and(bound) and bool_and(keep_until>now()+interval '89 days')
-  from career_apply_receipt_files where user_id='00000000-0000-4000-8000-000000001401'),'only the picture the bound proof names is kept; the other is removed');
+  from career_apply_receipt_files where user_id='00000000-0000-4000-8000-000000001401'),'only the picture the bound proof names is kept; the other and the page text (now on the receipt) are removed');
+select t.ok((select evidence::text not like '%Thank you%' from career_apply_jobs where user_id='00000000-0000-4000-8000-000000001401'),'the page text never rides the queue row''s evidence');
 
 -- The employer's email confirms it later: the receipt's state follows; what was sent does not change.
 update career_apply_jobs set state='confirmed',email_confirmed_at=now(),confirmation_mail_hash=repeat('d',64) where user_id='00000000-0000-4000-8000-000000001401';

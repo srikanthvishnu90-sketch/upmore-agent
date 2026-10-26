@@ -125,11 +125,12 @@ Deno.test({
         });
         eq(done.length, 1);
         eq(site.posts(), 1, "exactly one POST reached the employer's page");
-        eq(attached, ["before-click", "after-submit"], "both pictures of the proof were sent, under the lease, before the finish");
+        eq(attached, ["before-click", "after-submit", "page-text"], "both pictures of the proof and the page's text were sent, under the lease, before the finish");
         const row = JSON.parse(await pg.sql(`select row_to_json(j) from public.career_apply_jobs j where user_id = '${PERSON}'`));
         eq(row.state, "submitted_unconfirmed");
         jobId = row.id; evidencePath = row.evidence.evidence_path; proof = row.evidence.proof;
         assert(proof?.before_click && proof?.after_submit, `the row keeps the bound proof: ${JSON.stringify(row.evidence)}`);
+        for (const v of ["Rae", "Ceipt", "rae.ceipt@example.test", "Thank you"]) assert(!JSON.stringify(row.evidence).includes(v), `the row's evidence holds no answer and no page text (G6): ${v}`);
         const rc = JSON.parse(await pg.sql(`select row_to_json(r) from public.career_apply_receipts r where application_id = '${jobId}'`) || "null");
         assert(rc, "the finish wrote the receipt");
         eq([rc.user_id, rc.company, rc.url, rc.state, rc.reached_employer], [PERSON, COMPANY, url, "submitted_unconfirmed", "yes"]);
@@ -143,7 +144,7 @@ Deno.test({
         eq(rc.final_url, proof.final_url);
         // The pictures kept are the proof's own, byte for byte the files the engine took on this computer.
         const files = JSON.parse(await pg.sql(`select json_agg(json_build_object('kind', kind, 'sha256', sha256, 'bound', bound, 'b64', bytes_b64) order by kind desc) from public.career_apply_receipt_files where application_id = '${jobId}'`));
-        eq(files.map((f: any) => [f.kind, f.bound]), [["before-click", true], ["after-submit", true]]);
+        eq(files.map((f: any) => [f.kind, f.bound]), [["before-click", true], ["after-submit", true]], "the pictures kept; the page text moved onto the receipt");
         for (const [f, key] of [[files[0], "before_click"], [files[1], "after_submit"]] as const) {
           eq(f.sha256, proof[key].sha256);
           eq(await sha256hex(Uint8Array.from(atob(f.b64), (c) => c.charCodeAt(0))), await sha256hex(await Deno.readFile(`${evidencePath}/${proof[key].file}`)));

@@ -98,9 +98,9 @@ Deno.test("worker: only the proof's own pictures go up; a file that is not the n
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
-  eq(confirmationText("submitted_unconfirmed", { observation: { page_text: "  Thank you\n for applying " } }), { confirmation_text: "Thank you for applying" });
-  eq(confirmationText("not_submitted", { observation: { page_text: "Please fix the errors" } }), {});
-  eq(confirmationText("unknown_outcome", null), {});
+  eq(confirmationText("submitted_unconfirmed", { observation: { page_text: "  Thank you\n for applying " } }), "Thank you for applying");
+  eq(confirmationText("not_submitted", { observation: { page_text: "Please fix the errors" } }), null);
+  eq(confirmationText("unknown_outcome", null), null);
 });
 
 Deno.test("worker: runApproved sends the pictures only for a bound proof, before the finish; an unbound one sends none", async () => {
@@ -114,13 +114,13 @@ Deno.test("worker: runApproved sends the pictures only for a bound proof, before
       const job = { id: "J1", lease_token: "L", url: "https://x.test/a", payload: { user_id: "U", fields: [], engine_approval: H("e"), resume_sha256: H("c") } };
       await runApproved({
         claim: async () => [job],
-        finish: async (_id, _l, state, ev) => { order.push(`finish:${state}:${(ev as any).confirmation_text ?? (ev as any).reason ?? ""}`); },
+        finish: async (_id, _l, state, ev) => { order.push(`finish:${state}:${(ev as any).reason ?? ""}`); ok(!JSON.stringify(ev).includes("Received"), "the page text never rides the row"); },
         attach: async (_j, kind) => { order.push(`attach:${kind}`); },
         resumeFor: async () => ({ path: "/r", sha256: H("c") }),
         writeFacts: async () => "/f",
         runEngine: async () => ({ result: { state: "submitted_unconfirmed", evidence_path: dir, proof: { application_id: appId, approval_hash: H("e"), run_id: "r", before_click: { file: "proof-1-before-click.png", sha256: sha } } }, evidence: { observation: { page_text: "Received" } } }),
       });
-      eq(order, appId === "J1" ? ["attach:before-click", "finish:submitted_unconfirmed:Received"] : ["finish:submitted_unconfirmed:Received"], appId);
+      eq(order, appId === "J1" ? ["attach:before-click", "attach:page-text", "finish:submitted_unconfirmed:"] : ["finish:submitted_unconfirmed:"], appId);
     }
   } finally {
     await Deno.remove(dir, { recursive: true });

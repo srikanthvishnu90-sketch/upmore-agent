@@ -22,3 +22,13 @@ For the launch team / Claude. No secret values in this note — none were ever i
 
 - Supabase **"Confirm email" verified ALREADY ON** (dashboard toggle + GoTrue settings read agree) — the audit's "looks off" was wrong; no change made.
 - Vault cleanup done: `exec_cred_<owner>_cluely` and `exec_cred_<owner>_myclaw` secrets **deleted** from Supabase Vault (verified; `exec_credential_refs` rows were already 0).
+
+## Addendum 16:27 CDT — Option B step 1 DONE: HELDOUT_SEAL_KEY is in place
+
+The owner chose Option B (consolidate on the funded account). Step 1 is complete:
+
+- `HELDOUT_SEAL_KEY` was added to GitHub today at 4:27 PM CDT in BOTH stores, same value: **repository Actions secrets** and the **Production environment secrets** (listed as "HELDOUT_SEAL_KEY — Production" in the combined view).
+- The value is a freshly generated 64-character token (letters/numbers/symbols), generated inside the browser and pasted directly into the two secret fields. It exists ONLY in those two GitHub secret stores — not in chat, the repo, or any file.
+- `OPENAI_API_KEY` was NOT opened, edited, or deleted in either store.
+
+**Next step is yours:** move the sealed 162-question test over to `HELDOUT_SEAL_KEY` and confirm here (or in your session) when the re-seal is done. The GitHub `OPENAI_API_KEY` swap to a key from the funded sporve123 account happens ONLY after that confirmation — the interlock is deliberate so the sealed test cannot be stranded.

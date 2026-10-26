@@ -47,6 +47,8 @@ import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_
 import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
+// FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
+import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
@@ -329,7 +331,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (typeof batchRunId === "string" && batchRunId) {
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
-      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
+      const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on" /* FEATURE 9: needs migration 20261026090009 */, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
         _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
@@ -578,13 +580,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (recent.error) {
           // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
           console.error("career evidence: the thread was not read", recent.error.message);
-          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
             after: (ctx as any).profile ?? null, out, shown: null, upload: null, events });
           const held = heldReply(ev);
           if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
         } else {
           const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
-          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
             after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
@@ -592,6 +594,16 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
       }
+      // FEATURE 9: account memory. After a router turn, the facts the person stated in this message get their provenance
+      // event, and a standing need the router did not act on is kept on the account (_shared/career_account_memory.ts).
+      // The profile and the tracker themselves ride the account record through the host seam (career_host.js).
+      if (out.handler !== "agent" && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)) {
+        const mem = await accountMemoryAfterTurn({ message, userId: user.id, threadId: tid, now: Date.now(), out, ctx,
+          statedBefore: statedFactsBefore(loaded.account, loaded.snapshot), events, standing: supabaseMemoryStore(admin) })
+          .catch((e) => { console.error("career memory:", e?.message ?? e); return null; });
+        if (mem?.patch) out = { ...out, ...mem.patch };
+      }
+      // END FEATURE 9
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;

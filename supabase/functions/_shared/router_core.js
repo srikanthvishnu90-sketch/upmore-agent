@@ -20694,8 +20694,17 @@ const CareerJobs = (() => {
     });
   }
   const INTERN_BAND = /\b(intern|internship|co op)\b/;
+  // Feature 6: only the first 400 characters of the normalized JD are read below, so a long JD is normalized from its
+  // first 4,000 characters when that prefix already yields whole words past position 400 (the same 400 characters as
+  // normalizing it all); otherwise all of it. Normalizing whole JDs was 12% of ingest CPU (measured).
+  function bandHead(jd) {
+    const raw = s(jd);
+    if (raw.length <= 4000) return bandText(raw);
+    const h = bandText(raw.slice(0, 4000));
+    return h.lastIndexOf(" ") > 401 ? h : bandText(raw);
+  }
   function seniorityBand(title, jd) {
-    const t = bandText(title), j = bandText(jd);
+    const t = bandText(title), j = bandHead(jd);
     if (INTERN_BAND.test(t)) return "intern";
     // BUG-229 (MI-094): the seasonal-analyst internship convention — "Summer
     // Analyst" / "Summer Associate" / "Summer Business Analyst" (and the
@@ -20877,14 +20886,16 @@ const CareerJobs = (() => {
     for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
       const sent = lc(rawSent);
       // license / licensure
-      const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
+      // Feature 6: each pattern below scans every position of the sentence with a lazy 45-character window (41% of
+      // ingest CPU, measured); it can only match where its keyword stands, so it runs only then (same result).
+      const lic = sent.includes("licen") ? sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/) : null;
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {
         const words = lic[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-4);
         const tokens = credentialTokens(words);
         if (tokens.length) push({ type: "license", credential: `${tokens.join(" ")} license`, tokens, requirement: `a ${tokens.join(" ")} license`, evidence: rawSent.slice(0, 220) });
       }
       // named certification (e.g. "Medical Assistant Certification" under a Requirements heading)
-      const cert = sent.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/);
+      const cert = sent.includes("certific") ? sent.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/) : null;
       if (cert && /(requirements?\s*:|required|must (hold|have|possess|maintain|be)|certification\s*$|certification\s+\d)/.test(sent) && !/degree|bachelor|master/.test(sent)) {
         const words = cert[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-3);
         const tokens = credentialTokens(words);
@@ -46697,6 +46708,12 @@ const CareerRouter = (() => {
     // alone stood CB-0495 and MI-013 down; together a new phrasing has to pass both.
     if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
     if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    // F7 (2026-10-25): an ask about the person's OWN applications or tracker is the tracking family's, never a watch
+    // create — "let me know how my Stripe data analyst application is going", "text me the status of my applications for
+    // the analyst roles" were claimed by "let me know" and by the job noun after the delivery verb. It stands down only
+    // with no alert framing and no new-posting trigger, so "text me when new analyst roles open up" still creates.
+    const ownApplications = /\bmy\s+(?:[\w'-]+\s+){0,4}?(?:applications?|apps)\b|\bapplication status\b|\bstatus of (?:my|the) (?:[\w'-]+\s+){0,3}?applications?\b|\bmy (?:job )?tracker\b|\bwhere (?:i|things) stand\b/.test(t);
+    if (ownApplications && !/\b(alerts?|watch(?:es|ing)?|notify|opens? up|goes up|comes up|gets? posted|is posted|new (?:jobs?|roles?|openings?|positions?|postings?|internships?))\b/.test(t)) return null;
     const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
       && !/\btell me when\b/.test(t);

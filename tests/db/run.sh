@@ -189,9 +189,15 @@ done
 # Applied twice: idempotent. Its test, career_deploy_ledger.test.sql, runs in the loop below.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
+# WO-044 (20261026060006, feature 6): the postings and board-state provider lists widen to the seven new readers; applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060006_career_more_providers.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060006_career_more_providers.sql"
+# Feature 6 (20261026060106): the per-lane ingest run log and its coverage report; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060106_career_ingest_runs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060106_career_ingest_runs.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -397,6 +403,11 @@ echo "== career_apply_card_yes_window.test.sql (an approval after 10 minutes is 
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025180000_career_outbox_card_id.sql"
 echo "== career_outbox_card_id.test.sql (the push's row and a chat reply's row carry the card id; the delivered provider id finds the card)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outbox_card_id.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# F7 (20261026070007): the fit floor a person may set on their job alerts, held in the table; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026070007_career_alert_min_fit.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026070007_career_alert_min_fit.sql"
+echo "== career_alert_min_fit.test.sql (min_fit absent or a whole number 0 to 100; anything else refused; the person cannot write it)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_alert_min_fit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 # FEATURE 8 (20261026080008): a follow-up sent from chat is recorded as sent on its mail draft; applied twice (idempotent).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026080008_career_mail_drafts_sent.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026080008_career_mail_drafts_sent.sql"
@@ -418,6 +429,11 @@ echo "== career_account_memory.test.sql (facts and tracker set in one thread are
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100001_career_apply_want_guard.sql"
 echo "== career_apply_want_guard.test.sql (the queue write refuses an employer applied to in 30 days; already queued unchanged; no product number)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_want_guard.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# F-RUNNER (20261026100000): the cloud runner's dispatch claim, per-portal claim and check rates; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100000_career_apply_cloud_runner.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100000_career_apply_cloud_runner.sql"
+echo "== career_apply_cloud_runner.test.sql (global and per-portal limits through the one claim; a check is needs_user, counted per host; service only)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_runner.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
@@ -429,6 +445,10 @@ if [[ -f "$BRIDGE_PATH" ]]; then
   # both halves back and the run stops unless every claim guard is in place. The bridge's tests below then run on that.
   echo "== claim guards after the bridge (scripts/launch/verify-claim-guards.sql)"
   "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
+  # F-RUNNER: the bridge replaced claim_at; the per-portal claim is regenerated from it and must match it again.
+  "${PSQL[@]}" -tAc "select public.career_apply_cloud_claim_portal_install()" | grep -qx installed || { echo "FAIL runner claim re-install"; exit 1; }
+  "${PSQL[@]}" -tAc "select public.career_apply_cloud_runner_missing() = '{}'" | grep -qx t || { echo "FAIL runner claim differs from the bridge's claim_at"; exit 1; }
+  echo "  ok   the per-portal claim regenerated from the bridge's claim_at"
   for file in career_apply_card_cloud.test.sql career_apply_card_cloud_lifecycle.test.sql; do
     echo "== $file (latest card-bound cloud semantics, all earlier phases retained)"
     "${PSQL[@]}" -v card_cloud_tests_authorized=true -f "$HERE/pending/$file"

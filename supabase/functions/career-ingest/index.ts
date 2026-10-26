@@ -14,6 +14,7 @@ serve((req) => {
     env: Deno.env, boards, now: Date.now,
     db: () => supabasePostingsDb(admin),
     state: () => supabaseBoardState(admin), // WO-037: sharded, every board within 6 hours
-    fetchFeed: (userAgent) => boardFetchFeed(fetch, { userAgent }),
+    // Feature 6: a body equal to the board's last full read is not parsed again (most of a read's CPU).
+    fetchFeed: (userAgent) => boardFetchFeed(fetch, { userAgent, bodyHash: true }),
   });
 });

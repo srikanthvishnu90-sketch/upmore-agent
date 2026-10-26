@@ -17,7 +17,11 @@ const root = path.resolve(__dirname, "..");
 const dir = JSON.parse(fs.readFileSync(path.join(root, "packages/career-data/board-directory.json"), "utf8"));
 const W = require(path.join(root, "packages/domain/151-career-alert-watch.js"));
 
-const SUPPORTED = new Set(["greenhouse", "lever", "ashby", "smartrecruiters"]);
+// WO-044: ingest (supabase/functions/_shared/career_ingest.ts) reads seven more providers; the 121 bundle (and so 151's
+// feeds) still reads the first four.
+const SUPPORTED = new Set(["greenhouse", "lever", "ashby", "smartrecruiters", "workable", "recruitee", "bamboohr", "teamtailor", "breezy", "personio", "workday"]);
+const BUNDLE_READS = new Set(["greenhouse", "lever", "ashby", "smartrecruiters"]);
+const shipped = JSON.parse(fs.readFileSync(path.join(root, "supabase/functions/career-ingest/boards.json"), "utf8"));
 const boards = dir.boards || [];
 const live = boards.filter((b) => b.status === "live");
 
@@ -34,9 +38,12 @@ test("every live entry is a supported provider with a fetch-shaped record", () =
     assert.ok(Number.isFinite(b.postings_seen) && b.postings_seen >= 0, `bad postings_seen for ${b.provider}:${b.board_token}`);
     assert.match(String(b.last_verified), /^\d{4}-\d{2}-\d{2}$/, `bad last_verified for ${b.provider}:${b.board_token}`);
   }
+  // A recorded board no run has verified on a reader (a Workday tenant recorded without a site, a board found before its
+  // reader existed) stays discovered_unsupported and is never shipped to ingest.
+  const watched = new Set(shipped.map((b) => `${b.provider}:${String(b.board).toLowerCase()}`));
   for (const b of boards.filter((x) => x.status !== "live")) {
     assert.equal(b.status, "discovered_unsupported", `unexpected status ${b.status}`);
-    assert.ok(!SUPPORTED.has(b.provider), "supported provider must not sit in discovered_unsupported");
+    assert.ok(!watched.has(`${b.provider}:${String(b.board_token).toLowerCase()}`), `${b.provider}:${b.board_token} is not live but ingest watches it`);
   }
 });
 
@@ -77,9 +84,9 @@ test("hint-disproven boards stay token-labeled (no unverified employer upgrade)"
   }
 });
 
-test("feedsFromDirectory serves exactly the live set from the real directory", () => {
+test("feedsFromDirectory serves exactly the live set the 121 bundle reads from the real directory", () => {
   const feeds = W.feedsFromDirectory(boards);
-  assert.equal(feeds.length, live.length, "151 must build one feed per live board and none for unsupported");
+  assert.equal(feeds.length, live.filter((b) => BUNDLE_READS.has(b.provider)).length, "151 must build one feed per live board on a provider it reads, and none for others");
 });
 
 test("WO-006: no ATS vendor or demo board, and one board per employer where a duplicate was found", () => {

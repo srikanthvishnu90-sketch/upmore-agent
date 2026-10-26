@@ -8,18 +8,23 @@ details=()
 # Each step's output is printed in full, and a failed step's last lines are printed again at the end: the CI log API
 # returns only a log's last 5,000 lines, so an early step's own error was unreadable there (2026-10-19).
 step() {
-  local label=$1 status out
+  local label=$1 status out started elapsed
   shift
   out=$(mktemp)
+  # Each step's wall time is in its result line (and so in the CI "gate steps" annotation): the job log is not
+  # always readable through the API, and the partition balance in .github/workflows/ci.yml is set from these.
+  started=$SECONDS
   if "$@" >"$out" 2>&1; then
+    elapsed=$((SECONDS - started))
     cat "$out"
-    printf 'STEP %s OK\n' "$label"
-    results+=("OK      $label")
+    printf 'STEP %s OK (%s s)\n' "$label" "$elapsed"
+    results+=("OK      $label (${elapsed} s)")
   else
     status=$?
+    elapsed=$((SECONDS - started))
     cat "$out"
-    printf 'STEP %s FAILED (exit %s)\n' "$label" "$status" >&2
-    results+=("FAILED  $label (exit $status)")
+    printf 'STEP %s FAILED (exit %s, %s s)\n' "$label" "$status" "$elapsed" >&2
+    results+=("FAILED  $label (exit $status, ${elapsed} s)")
     # The failed tests by name, wherever they are in a long log (a CI log read from its tail may not reach them), each
     # with its whole TAP block: a multi-line error (an assertion's diff, a call log) was cut at "error: |-" (2026-10-20).
     details+=("--- $label, its failed tests:" "$(awk '/=> [^ ]+:[0-9]+:[0-9]+/ { print; next }
@@ -106,6 +111,7 @@ edge_tests=(
   tests/edge/agent-guards.test.ts
   tests/edge/conversation-hardening.test.ts
   tests/edge/career-ingest.test.ts
+  tests/edge/career-ingest-scale.test.ts
   tests/edge/career-alerts.test.ts
   tests/edge/career-proactive.test.ts
   tests/edge/channel.test.ts
@@ -152,6 +158,11 @@ PY
 # union of the partitions is the full list, and a listed suite missing from the gate's selection fails the
 # gate outright rather than silently dropping out of CI. Unset, the gate is exactly what it was — one step,
 # every suite.
+# Fourth partition (2026-10-26): architect. With the 15 feature PRs of 2026-10-25 merged, core ran 22.0-26.6 min
+# and was cancelled at the 30-minute cap on one head (b90495eba); the architect step (Deno, its handler and flow
+# tests each provisioning a throwaway Postgres and several driving Chromium) moves to its own job, gate
+# (architect), with its companion Deno check of scripts/apply.ts. Core keeps every other step. Scheduling only,
+# as above: the steps and their commands are unchanged, and the union of core and architect is the old core.
 browser_node_tests=(
   tests/career-approval-card-browser.test.cjs
   tests/career-dashboard-browser.test.cjs
@@ -178,8 +189,8 @@ coverage_node_tests=(
   tests/career-forms-ci-coverage.test.cjs
 )
 partition=${GATE_PARTITION:-all}
-if [[ $partition != all && $partition != core && $partition != browser && $partition != coverage ]]; then
-  echo "GATE_PARTITION must be all, core, browser or coverage (got: $partition)" >&2
+if [[ $partition != all && $partition != core && $partition != browser && $partition != coverage && $partition != architect ]]; then
+  echo "GATE_PARTITION must be all, core, browser, coverage or architect (got: $partition)" >&2
   exit 1
 fi
 node_all_tests=("${career_tests[@]}" "${shared_tests[@]}")
@@ -209,7 +220,7 @@ fi
 
 step test-paths portable_test_paths "${career_tests[@]}" "${shared_tests[@]}" "${edge_tests[@]}"
 step browser-runtime browser_ready
-if [[ $partition != browser && $partition != coverage ]]; then
+if [[ $partition == all || $partition == architect ]]; then
   # Pending orders stay excluded; every landed architect test runs (an empty folder is a failure).
   step architect-tests deno test -A --no-check --ignore=tests/architect/pending tests/architect/
   step apply-cli-typecheck deno check scripts/apply.ts
@@ -218,16 +229,18 @@ if [[ $partition == all ]]; then
   step career-and-shared-tests node --test --test-concurrency=2 "${node_all_tests[@]}"
 elif [[ $partition == core ]]; then
   step career-and-shared-tests-core node --test --test-concurrency=2 "${node_core_tests[@]}"
+elif [[ $partition == architect ]]; then
+  : # the architect partition runs no node suites; core, browser and coverage hold all of them
 elif [[ $partition == browser ]]; then
   step career-and-shared-tests-browser node --test --test-concurrency=2 "${node_browser_tests[@]}"
 else
   step career-and-shared-tests-coverage node --test --test-concurrency=2 "${node_coverage_tests[@]}"
 fi
-if [[ $partition != browser && $partition != coverage ]]; then
+if [[ $partition == all || $partition == core ]]; then
   step career-edge-tests deno test -A --no-check "${edge_tests[@]}"
   step pay-importers bash -c "python3 tests/pay-importers.test.py && python3 tests/aggregate-lca.test.py"
   step career-bundle python3 scripts/build-router-core.py --career-only --check
-  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts
+  step career-typecheck deno check supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/career-voice/index.ts supabase/functions/career-essay-draft/index.ts supabase/functions/career-email-code/index.ts supabase/functions/site-signup/index.ts supabase/functions/site-careers/index.ts supabase/functions/career-cloud-runner/index.ts
 fi
 
 # Every step's result again at the end: a CI log read from its tail still shows which step failed.

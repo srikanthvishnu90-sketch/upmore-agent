@@ -9,6 +9,11 @@
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
 //   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
 //                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
+//   F7 (fit)       with the person's fit to each posting (career_alert_fit.ts: 121 scoreFit over their confirmed facts,
+//                  the watch record's scoring_profile), the day's room goes to the best fits first (fit, then freshest),
+//                  and the fit floor holds: a posting their confirmed facts are knocked out of (a license, a clearance,
+//                  a degree) is never news, and one under the person's own min_fit (0-100), or with no fit to show for
+//                  it when they set one, is never news either. Without fits the order is freshest first, as before.
 import { regionDecision } from "./posting_region.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
 import { type Floor, relevanceFloor, sameCompany } from "./career_floor.ts";
@@ -18,6 +23,7 @@ export interface AlertPrefs {
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
   floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
   max_per_week?: number; // WO-037: alerts in any rolling 7 days; absent means WEEKLY_DEFAULT
+  min_fit?: number; // F7: the lowest fit score (0-100) the person wants alerted; absent means only knockouts are held back
   // The watches the person set by text (career_watch_alerts.ts), each matched on its own: a posting is news when it
   // fits one watch whole (its role, its places, its floor, its firms), never one watch's role in another's city.
   // Present, these decide the match and `keywords` only lists their words (the table's shape).
@@ -35,6 +41,26 @@ export type Planned =
   | { userId: string; kind: "alert"; key: string; at: number; job_id: string; text: string }
   | { userId: string; kind: "held"; job_id: string }
   | { userId: string; kind: "report"; key: string; at: number; text: string };
+
+// F7: a posting's fit to the person (career_alert_fit.ts), by job_id. Null score: scoreFit could not score it.
+export interface AlertFit { score: number | null; excluded: boolean; reasons: string[] }
+export type AlertFits = Map<string, Map<string, AlertFit>>; // user id -> job_id -> fit
+// The fit floor: a knockout is never news; with min_fit set, a posting is news only when its fit is known and reaches it.
+export function fitFloorOk(fit: AlertFit | null | undefined, prefs: Pick<AlertPrefs, "min_fit">): boolean {
+  if (fit?.excluded) return false;
+  if (prefs.min_fit === undefined || prefs.min_fit === null) return true;
+  return !!fit && fit.score !== null && fit.score >= prefs.min_fit;
+}
+// Best fit first (an unscored posting after every scored one), then freshest.
+function byFit(fits: Map<string, AlertFit> | undefined) {
+  return (a: any, b: any) => {
+    if (fits) {
+      const fa = fits.get(a.job_id)?.score ?? -1, fb = fits.get(b.job_id)?.score ?? -1;
+      if (fa !== fb) return fb - fa;
+    }
+    return ms(b.first_seen_at) - ms(a.first_seen_at);
+  };
+}
 
 export const DEFAULT_PREFS: AlertPrefs = { on: true, keywords: [], locations: [], remote_ok: true, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 };
 export const MAX_INSTANT_PER_DAY = 10, REPORT_LIMIT = 10;
@@ -91,17 +117,18 @@ function nextLocal(from: number, tz: string, hour: number): number {
 function ago(mins: number) { return mins < 1 ? "under a minute ago" : mins < 120 ? `${mins} min ago` : `${Math.round(mins / 60)} hours ago`; }
 const line = (p: any) => `${clean(p.title, 120)} at ${clean(p.company, 80)}${p.location ? ` (${clean(p.location, 80)})` : ""}`;
 
-export function planProactive(o: { users: PlanUser[]; postings: any[]; now: number }): Planned[] {
+export function planProactive(o: { users: PlanUser[]; postings: any[]; now: number; fits?: AlertFits }): Planned[] {
   const out: Planned[] = [];
   for (const u of o.users) {
     if (!u.prefs || !u.prefs.on) continue;
     const prefs = u.prefs, l = local(o.now, u.tz), since = ms(u.last_checked_at);
-    // Instant alerts: postings first seen at or after the last check, freshest first, up to the cap left today. "At or
-    // after": a posting first seen at the very instant of a check would otherwise be skipped forever; the outbox's
-    // once-per-key rule keeps the rare re-plan from ever sending twice.
+    const fits = o.fits?.get(u.id), floorOk = (p: any) => fitFloorOk(fits?.get(p.job_id), prefs);
+    // Instant alerts: postings first seen at or after the last check, best fit first (then freshest), up to the cap left
+    // today. "At or after": a posting first seen at the very instant of a check would otherwise be skipped forever; the
+    // outbox's once-per-key rule keeps the rare re-plan from ever sending twice.
     const fresh = o.postings
-      .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs))
-      .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
+      .filter((p) => ms(p.first_seen_at) >= since && freshWhenSeen(p) && matchPosting(p, prefs) && floorOk(p))
+      .sort(byFit(fits));
     const dayRoom = Math.min(MAX_INSTANT_PER_DAY, Math.floor(prefs.max_instant_per_day)) - Math.max(0, u.instant_sent_today | 0);
     const weekRoom = weeklyCap(prefs) - Math.max(0, Number(u.sent_this_week ?? 0));
     let room = Math.max(0, Math.min(dayRoom, Number.isFinite(weekRoom) ? weekRoom : 0));
@@ -117,8 +144,8 @@ export function planProactive(o: { users: PlanUser[]; postings: any[]; now: numb
     if (l.hour >= prefs.report_hour && u.last_report_on !== l.date) {
       const held = new Set(u.held || []);
       const day = o.postings
-        .filter((p) => matchPosting(p, prefs) && ((ms(p.first_seen_at) > o.now - DAY && freshWhenSeen(p)) || held.has(p.job_id)))
-        .sort((a, b) => ms(b.first_seen_at) - ms(a.first_seen_at));
+        .filter((p) => matchPosting(p, prefs) && floorOk(p) && ((ms(p.first_seen_at) > o.now - DAY && freshWhenSeen(p)) || held.has(p.job_id)))
+        .sort(byFit(fits));
       const text = day.length
         ? [`Your daily job report: ${day.length} match${day.length === 1 ? "" : "es"} in the last day.`,
            ...day.slice(0, REPORT_LIMIT).map((p) => `- ${line(p)}\n  ${httpsUrl(p.url)}`),

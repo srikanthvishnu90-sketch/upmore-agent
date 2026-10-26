@@ -26,7 +26,7 @@ export function allowListed(env: AdmissionEnv, account: Account): boolean {
   const mine = account.phone_confirmed_at ? phoneKey(account.phone) : null;
   if (!mine) return false;
   return (env.get("TRAINEE_ALLOWED_CONTACTS") ?? "").split(",").map((c) => c.trim())
-    .some((c) => !!c && !c.includes("@") && !/^(telegram|tg|whatsapp|wa):/i.test(c) && phoneKey(c) === mine);
+    .some((c) => phoneKey(c) === mine); // an email, "telegram:<id>" or "wa:<id>" is never a phone (phoneKey: digits only)
 }
 
 // deno-lint-ignore no-explicit-any

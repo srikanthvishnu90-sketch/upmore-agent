@@ -15,6 +15,11 @@
 import { CareerPaths, CareerPrep } from "./router_core.career.js";
 import { supabaseCardStore } from "./career_apply_cards.ts";
 import { hostEnv, supabaseVoiceLinks, type VoiceLinks } from "./career_voice_link.ts";
+// FEATURE 11: posting-bound mocks, grading against the answer key and the posting, weak spots kept and drilled.
+import {
+  type BoundPosting, debriefTail, drillQuestions, type Fit, fitLine, fitOf, isDrillAsk, isWeakListAsk, judgedFit, mockEvent, type MockPrep,
+  pastedJd, postingPlan, requirementsOf, supabaseMockPrep, weakListText, weakSpots,
+} from "./career_mock_prep.ts";
 
 export const MOCK_INTENT = "career_mock"; // the mock asked a question and waits for the answer
 export const MOCK_DONE_INTENT = "career_mock_debrief"; // the mock ended; nothing waits
@@ -27,9 +32,11 @@ const MAX_ANSWER = 2000;
 const MAX_VOICE_ANSWER = 6000; // spoken answers run longer than texted ones
 
 export type QKind = "opener" | "behavioral" | "technical" | "company" | "closer";
-export interface MockQuestion { n: number; q: string; kind: QKind; from: string }
+// FEATURE 11: a question bound to a posting carries the requirement it tests (req), the bank item's key points (keys) and
+// the skill name a weak spot is kept under (skill).
+export interface MockQuestion { n: number; q: string; kind: QKind; from: string; req?: string[]; keys?: string[]; skill?: string }
 export interface Scores { structure: number; evidence: number; specificity: number; total: number }
-export interface MockAnswer { n: number; text: string; skipped: boolean; scores: Scores | null; gaps: string[]; fix: string | null; nudge: string }
+export interface MockAnswer { n: number; text: string; skipped: boolean; scores: Scores | null; gaps: string[]; fix: string | null; nudge: string; fit?: Fit }
 export interface MockState {
   v: 1;
   role: string;
@@ -45,6 +52,8 @@ export interface MockState {
   answers: MockAnswer[];
   status: "running" | "ended";
   ended?: "done" | "time" | "asked" | "idle";
+  posting?: BoundPosting | null; // FEATURE 11: the posting on file this mock is bound to
+  drill?: boolean; // FEATURE 11: a weak-spot drill
 }
 export interface Moment { n: number; quote: string; score: number }
 export interface Debrief {
@@ -391,7 +400,7 @@ function nudgeFor(g: any): string {
 
 // One answer (or a skip, when text is null): scored, a one-line nudge, then the next question or, after the last one or
 // past the time, the debrief.
-export function next(s0: MockState, text: string | null, now: number): { state: MockState; reply: string; done: boolean } {
+export function next(s0: MockState, text: string | null, now: number): { state: MockState; reply: string; done: boolean; head: string; rest: string } {
   const s: MockState = structuredClone(s0);
   if (s.status !== "running") throw new Error("the mock is not running");
   const i = s.answers.length;
@@ -408,9 +417,10 @@ export function next(s0: MockState, text: string | null, now: number): { state: 
     head = `${g.scores.total} of 15. ${nudge}`;
   }
   s.last_at = now;
-  if (s.answers.length >= s.questions.length) { const e = end(s, now, "done"); return { state: e.state, reply: `${head}\n\n${e.reply}`, done: true }; }
-  if (now - s.started_at >= s.minutes * 60_000) { const e = end(s, now, "time"); return { state: e.state, reply: `${head}\n\n${e.reply}`, done: true }; }
-  return { state: s, reply: `${head}\n\n${ask(s, s.answers.length)}`, done: false };
+  if (s.answers.length >= s.questions.length) { const e = end(s, now, "done"); return { state: e.state, reply: `${head}\n\n${e.reply}`, done: true, head, rest: e.reply }; }
+  if (now - s.started_at >= s.minutes * 60_000) { const e = end(s, now, "time"); return { state: e.state, reply: `${head}\n\n${e.reply}`, done: true, head, rest: e.reply }; }
+  const rest = ask(s, s.answers.length);
+  return { state: s, reply: `${head}\n\n${rest}`, done: false, head, rest };
 }
 
 // The sentence of an answer that scores best (or worst) on the same rubric, in the person's own words.
@@ -587,6 +597,7 @@ export interface MockStore {
   clear(userId: string, threadId: string): Promise<void>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
   voice?: VoiceLinks; // WO-035: single-use links to the voice page; absent where no voice rail exists
+  prep?: MockPrep; // FEATURE 11: the posting on file, the mock history and the judge; absent, the mock runs as WO-025 built it
 }
 
 // ---------- The voice mock (WO-035) ----------
@@ -661,16 +672,110 @@ export function voiceDebrief(s0: MockState, turns: Turn[], now: number): { state
   return { state: e.state, reply: e.reply, debrief: e.debrief, reached };
 }
 
+// ---------- FEATURE 11: the posting, the key, the weak spots ----------
+type TurnIn = { message: string; userId: string; threadId: string; now: number; store: MockStore };
+type TurnOut = { reply: string; status: string; intent: string };
+const SOURCE_WORDS: Record<string, string> = { application: "on your applications", search: "from your last search", pasted: "you pasted" };
+// A mock bound to the posting on file for this company and role, or null when there is none (or it names no skill this
+// code can test), so the role mock runs as before.
+async function boundStart(o: TurnIn, prep: MockPrep, a: { role: string; company: string | null; minutes: number }, pasted: { title: string; company: string; text: string } | null): Promise<{ state: MockState; reply: string } | null> {
+  let found: Awaited<ReturnType<MockPrep["posting"]>> = null;
+  if (pasted) found = { ...pasted, job_id: null, url: null, source: "pasted" };
+  else if (a.role || a.company) {
+    try { found = await prep.posting(o.userId, o.threadId, { role: a.role, company: a.company }); } catch (e) { console.error("mock: posting not read", e instanceof Error ? e.message : String(e)); }
+  }
+  if (!found) return null;
+  const requirements = requirementsOf(found.text || found.title);
+  if (!requirements.length) return null;
+  const posting: BoundPosting = { title: cut(clean(found.title), 80) || a.role, company: cut(clean(found.company), 80), job_id: found.job_id, url: found.url, source: found.source, requirements };
+  const role = a.role || posting.title;
+  const base = start({ role, company: posting.company || a.company, minutes: a.minutes, now: o.now }).state;
+  const questions = postingPlan({ role, company: base.company, posting, minutes: base.minutes, seed: Math.floor(o.now / 60_000), sector: base.sector, questionCount: questionCount(base.minutes) });
+  const state: MockState = { ...base, questions, posting };
+  const tech = questions.filter((q) => q.kind === "technical").length, beh = questions.filter((q) => q.kind === "behavioral").length;
+  const asked = requirements.filter((r) => questions.some((q) => q.req?.includes(r.key))).map((r) => r.label);
+  const lines = [
+    `Mock interview: ${posting.title}${state.company ? ` at ${state.company}` : ""}, built from the posting ${SOURCE_WORDS[posting.source]}. About ${state.minutes} minutes, ${questions.length} questions, by text.`,
+    `The posting names ${requirements.map((r) => r.label).join(", ")}. ${tech} technical and ${beh} behavioral question${tech + beh === 1 ? "" : "s"} test${asked.length ? ` ${asked.join(", ")}` : " the role"}.`,
+    `Each answer gets a score out of 15 for structure, evidence and detail, and a check against the answer key and the posting. Text "end mock" any time.`,
+    "", ask(state, 0),
+  ];
+  return { state, reply: lines.join("\n") };
+}
+async function prepTurn(o: TurnIn, prep: MockPrep): Promise<TurnOut | null> {
+  if (isWeakListAsk(o.message) || isDrillAsk(o.message)) {
+    let spots;
+    try { spots = weakSpots(await prep.history(o.userId)); } catch (e) {
+      console.error("mock: history not read", e instanceof Error ? e.message : String(e));
+      return { reply: "I couldn't read your past mocks just now, so I can't say which spots were weak. Try again in a minute.", status: "history_unreadable", intent: MOCK_DONE_INTENT };
+    }
+    if (isWeakListAsk(o.message) || !spots.length) return { reply: weakListText(spots), status: spots.length ? "weak_spots" : "no_weak_spots", intent: MOCK_DONE_INTENT };
+    const prev = await o.store.get(o.userId, o.threadId).catch(() => null);
+    const questions = drillQuestions(spots, Math.floor(o.now / 60_000));
+    const minutes = Math.max(5, Math.min(30, questions.length * 4));
+    const base = start({ role: spots[0].role, company: spots[0].company, minutes, now: o.now }).state;
+    const state: MockState = { ...base, questions, drill: true, posting: null };
+    await o.store.save(o.userId, o.threadId, state);
+    const dropped = prev && prev.status === "running" && !idle(prev, o.now) ? "The earlier mock was dropped. " : "";
+    const reply = [
+      `${dropped}Weak-spot drill: ${questions.length} question${questions.length === 1 ? "" : "s"}, one for each weak spot on file: ${questions.map((q) => q.skill).join(", ")}. Same scoring as the mock, plus the answer key. Text "end mock" any time.`,
+      "", ask(state, 0),
+    ].join("\n");
+    return { reply, status: "drill_started", intent: MOCK_INTENT };
+  }
+  const pj = pastedJd(o.message);
+  const cmd = pj ? parseMockCommand(pj.ask) : null;
+  if (pj && cmd?.kind === "start") {
+    const title = cmd.role || cut(clean(pj.jd.split("\n").find((l) => l.trim()) ?? ""), 80);
+    const prev = await o.store.get(o.userId, o.threadId).catch(() => null);
+    const b = await boundStart(o, prep, { role: cmd.role, company: cmd.company, minutes: cmd.minutes }, { title, company: cmd.company ?? "", text: pj.jd });
+    const s = b ?? start({ role: cmd.role || title, company: cmd.company, minutes: cmd.minutes, now: o.now });
+    await o.store.save(o.userId, o.threadId, s.state);
+    const dropped = prev && prev.status === "running" && !idle(prev, o.now) ? "The earlier mock was dropped. " : "";
+    const none = b ? "" : "The text you pasted names no skill I can build questions from, so these are role questions. ";
+    return { reply: dropped + none + s.reply, status: "started", intent: MOCK_INTENT };
+  }
+  return null;
+}
+// The last answer checked against its key and the posting (and by the judge, when it is on); the line said after it.
+async function gradeLast(o: TurnIn, prep: MockPrep, s: MockState): Promise<string | null> {
+  const a = s.answers[s.answers.length - 1];
+  const q = a ? s.questions.find((x) => x.n === a.n) : null;
+  if (!a || !q || a.skipped) return null;
+  let f = fitOf(q, a);
+  if (prep.judge && ((q.keys ?? []).length || (q.req ?? []).length)) {
+    const v = await prep.judge({ question: q.q, requirement: q.req?.[0] ?? null, keys: q.keys ?? [], answer: a.text, userId: o.userId, threadId: o.threadId }).catch(() => null);
+    if (v) f = judgedFit(f, v, q.keys ?? []);
+  }
+  a.fit = f;
+  return fitLine(q, f);
+}
+// A mock that ended: kept as one mock_done event (each answer's skill and whether it was weak), and the debrief's tail.
+async function closed(o: TurnIn, s: MockState, reply: string): Promise<string> {
+  const prep = o.store.prep;
+  if (!prep) return reply;
+  const d = debrief(s);
+  if (d.answered) await prep.record(o.userId, mockEvent(s, d));
+  const tail = debriefTail(s);
+  return tail ? `${reply}\n${tail}` : reply;
+}
+
 // One turn, before any brain, right after the card hook. Returns null when the text is not for the mock, so the turn
 // goes on as before. An answer counts only while the mock's question is this thread's last word (the card rule): a
 // reply to anything said after it is not an answer to it.
 export async function mockTurn(
   o: { message: string; userId: string; threadId: string; now: number; store: MockStore },
 ): Promise<{ reply: string; status: string; intent: string } | null> {
+  // FEATURE 11: "drill my weak spots", "what are my weak spots", a mock asked with its job description pasted below.
+  if (o.store.prep) {
+    const p = await prepTurn(o, o.store.prep);
+    if (p) return p;
+  }
   const cmd = parseMockCommand(o.message);
   if (cmd?.kind === "start") {
     const prev = await o.store.get(o.userId, o.threadId);
-    const s = start({ role: cmd.role, company: cmd.company, minutes: cmd.minutes, now: o.now });
+    // FEATURE 11: a posting on file for this company and role binds the mock to it.
+    const s = (o.store.prep ? await boundStart(o, o.store.prep, cmd, null) : null) ?? start({ role: cmd.role, company: cmd.company, minutes: cmd.minutes, now: o.now });
     await o.store.save(o.userId, o.threadId, s.state);
     const dropped = prev && prev.status === "running" && !idle(prev, o.now) ? "The earlier mock was dropped. " : "";
     return { reply: dropped + s.reply, status: "started", intent: MOCK_INTENT };
@@ -704,7 +809,7 @@ export async function mockTurn(
     if (!running) return { reply: `No mock is running. Text "start a mock interview" to begin.`, status: "none", intent: MOCK_DONE_INTENT };
     const e = end(s!, o.now, idle(s!, o.now) ? "idle" : "asked");
     await o.store.clear(o.userId, o.threadId);
-    return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
+    return { reply: await closed(o, e.state, e.reply), status: "ended", intent: MOCK_DONE_INTENT };
   }
   if (!running) return null;
   if (cmd?.kind === "resume") {
@@ -720,7 +825,7 @@ export async function mockTurn(
   if (cmd?.kind === "done") {
     const e = end(s!, o.now, "asked");
     await o.store.clear(o.userId, o.threadId);
-    return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
+    return { reply: await closed(o, e.state, e.reply), status: "ended", intent: MOCK_DONE_INTENT };
   }
   if (LIVE.test(o.message)) return { reply: LIVE_REFUSAL, status: "live_refused", intent: MOCK_PAUSED_INTENT };
   // Live 2026-10-21: "/start", "hi" and "find jobs" were scored as interview answers. "exit the interview" ends it with its
@@ -728,13 +833,19 @@ export async function mockTurn(
   if (MOCK_EXIT.test(low)) {
     const e = end(s!, o.now, "asked");
     await o.store.clear(o.userId, o.threadId);
-    return { reply: e.reply, status: "ended", intent: MOCK_DONE_INTENT };
+    return { reply: await closed(o, e.state, e.reply), status: "ended", intent: MOCK_DONE_INTENT };
   }
   if (ownsNewCareerTarget(o.message) || notAnAnswer(low)) return null;
   const r = next(s!, cmd?.kind === "skip" ? null : o.message, o.now);
+  let reply = r.reply;
+  if (o.store.prep) {
+    const line = cmd?.kind === "skip" ? null : await gradeLast(o, o.store.prep, r.state);
+    reply = `${r.head}${line ? ` ${line}` : ""}\n\n${r.rest}`;
+    if (r.done) reply = await closed(o, r.state, reply);
+  }
   if (r.done) await o.store.clear(o.userId, o.threadId);
   else await o.store.save(o.userId, o.threadId, r.state);
-  return { reply: r.reply, status: r.done ? "ended" : (cmd?.kind === "skip" ? "skipped" : "answered"), intent: r.done ? MOCK_DONE_INTENT : MOCK_INTENT };
+  return { reply, status: r.done ? "ended" : (cmd?.kind === "skip" ? "skipped" : "answered"), intent: r.done ? MOCK_DONE_INTENT : MOCK_INTENT };
 }
 
 // The session lives in career_watch_kv (service role only) under career:mock:<thread>. An account erase deletes every
@@ -762,6 +873,8 @@ export function supabaseMockStore(admin: any): MockStore {
     },
     lastAssistantIntent: (threadId) => cards.lastAssistantIntent(threadId),
     voice: supabaseVoiceLinks(admin, hostEnv()),
+    // FEATURE 11: the posting on file, the weak spots (career_events, kind mock_done), the judge (CAREER_MOCK_JUDGE=on).
+    prep: supabaseMockPrep(admin, { get: (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined) }),
   };
 }
 

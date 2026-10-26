@@ -96,3 +96,52 @@ test("a form asking what the persona never stated stops at needs_answers, nothin
   assert.match(r.stdout, /Please provide your physical address/);
   assert.equal(r.receipts.length, 0);
 });
+
+// FEATURE 2 (script submit binding): the Greenhouse form submits from the employer's script; the cloud worker clicks the
+// employer's own Submit and the engine lets exactly one request go, to the job's own route on the LOCAL fixture server,
+// carrying exactly the approved answers.
+test("captured Greenhouse form, 3 of 3 to fixture_submitted: the cloud worker's click, one bound request, the employer's confirmation", async () => {
+  const r = await run(["--form", GH, "--apply-despite-screen", "--fixture-submit", "--repeat", "3"]);
+  assert.equal(r.code, 0, r.stdout.slice(-3000) + r.stderr.slice(-1500));
+  assert.match(r.stdout, /REPEAT 3\/3 clean, identical answers and payload across runs/);
+  assert.equal(r.receipts.length, 3);
+  for (const rc of r.receipts) {
+    assert.equal(rc.outcome, "fixture_submitted");
+    assert.equal(rc.local_employer_posts, 1, "exactly one request reached the local employer");
+    assert.equal(rc.coverage.wrong, 0);
+    assert.deepEqual(rc.steps.map((s) => s.step), ["prepare", "asked_once", "prepare_again", "card", "verify_approved_equals_page", "fixture_submit"]);
+    assert.match(rc.destination, /^http:\/\/127\.0\.0\.1:\d+\/greenhouse-prolificacademicltd-4979452101 \(one request, sent by the page's own Submit\)$/);
+    const f = rc.fixture;
+    assert.equal(f.worker_state, "confirmed");
+    assert.equal(f.confirmation_id, "FIXTURE-1");
+    assert.equal(f.submit.post.mutations, 1);
+    assert.equal(f.submit.post.bound_by, "script_submit_route");
+    assert.deepEqual(f.submit.stopped_requests, []);
+    assert.equal(f.submit.request_shape.content_type, "application/json");
+    assert.ok(!/Alex|Testcase|example\.test/.test(JSON.stringify(f.submit.request_shape)), "keys only, never values");
+    // What the local employer received is exactly the approved answers.
+    const got = Object.fromEntries(f.posts[0].fields);
+    for (const field of rc.fields.filter((x) => x.filled && x.id !== "resume")) assert.equal(got[field.id], field.value, field.id);
+    assert.equal(got.resume.file, "test-persona-resume.pdf");
+  }
+});
+
+test("captured Greenhouse form: an answer the page changed is stopped before anything leaves", async () => {
+  const r = await run(["--form", GH, "--apply-despite-screen", "--fixture-submit", "--fixture-variant", "tamper"]);
+  assert.equal(r.code, 0, r.stdout.slice(-3000) + r.stderr.slice(-1500));
+  const [rc] = r.receipts;
+  assert.equal(rc.outcome, "fixture_not_submitted:APPROVED_BODY_MISMATCH");
+  assert.equal(rc.local_employer_posts, 0, "the local employer received nothing");
+  assert.equal(rc.fixture.submit.post.mutations, 0);
+  assert.deepEqual(rc.fixture.submit.stopped_requests.map((s) => s.why), ["approved_body_mismatch"]);
+});
+
+test("captured Greenhouse form: a second request from the page is stopped; the one approved application stands", async () => {
+  const r = await run(["--form", GH, "--apply-despite-screen", "--fixture-submit", "--fixture-variant", "extra"]);
+  assert.equal(r.code, 0, r.stdout.slice(-3000) + r.stderr.slice(-1500));
+  const [rc] = r.receipts;
+  assert.equal(rc.outcome, "fixture_submitted");
+  assert.equal(rc.local_employer_posts, 1, "exactly one request reached the local employer");
+  assert.equal(rc.fixture.submit.post.mutations, 1);
+  assert.deepEqual(rc.fixture.submit.stopped_requests.map((s) => s.why), ["second_application_request"]);
+});

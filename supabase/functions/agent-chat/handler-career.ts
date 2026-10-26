@@ -44,6 +44,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
+import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
 import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
@@ -460,7 +461,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           employerAnswers: () => employerAsk.answers(tid),
         })
         : null;
-      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // WO-107 (F3): "where are my applications" / "did my application to X go through" / "where do I stand with X", "who
+      // emailed me" / "any news from X", "what follow-ups are due": one read model (the queue, the mail events, every
+      // thread's tracker, the mail drafts), each record's line named, an unreadable one said. The queue-only status turn
+      // below stays as the fallback when the reader itself fails.
+      const stood = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
+        : null;
+      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
       if (card) {
@@ -506,6 +514,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const asking = !!queued.ask?.length;
         out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
         if (asking) agentMeta = { employer_question: queued.ask };
+      } else if (stood) {
+        out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {

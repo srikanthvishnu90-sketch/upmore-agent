@@ -164,7 +164,7 @@ export async function readSituation(admin: any, userId: string, now: number): Pr
     interviews: q("career_interviews").select("id,company,role,starts_at,interview_date").eq("user_id", userId).or(`starts_at.gte.${today},interview_date.gte.${today.slice(0, 10)}`).limit(20),
     alerts: q("career_alert_prefs").select("prefs,tz").eq("user_id", userId).maybeSingle(),
     kv: q("career_watch_kv").select("key,value").eq("user_id", userId).in("key", ["career:standing", "career:account"]),
-    threads: q("agent_flow_state").select("thread_id,rows:state->career->trackStore->rows").eq("user_id", userId).limit(200),
+    threads: q("agent_flow_state").select("thread_id,rows:state->career->stores->trackStore->rows").eq("user_id", userId).limit(200),
     connections: q("user_oauth_connections").select("provider,scopes,connected_at").eq("user_id", userId).limit(20),
     cloud: q("career_apply_cloud_optin").select("enabled").eq("user_id", userId).maybeSingle(),
     channel: q("channel_contacts").select("opted_out").eq("user_id", userId).maybeSingle(),

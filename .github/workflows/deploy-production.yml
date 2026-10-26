@@ -63,6 +63,25 @@ jobs:
           WHATSAPP_TEMPLATE_UPDATES: ${{ secrets.WHATSAPP_TEMPLATE_UPDATES }}
           WHATSAPP_TEMPLATE_LANGUAGE: ${{ secrets.WHATSAPP_TEMPLATE_LANGUAGE }}
           WHATSAPP_DAILY_TEMPLATES: ${{ secrets.WHATSAPP_DAILY_TEMPLATES }}
+          # FEATURE 17: the cloud runner (docs/launch/CLOUD-RUNNER.md); each unset one keeps what the project has.
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          CLOUD_SANDBOX_SNAPSHOT_ID: ${{ secrets.CLOUD_SANDBOX_SNAPSHOT_ID }}
+          CLOUD_RUNNER_SECRET: ${{ secrets.CLOUD_RUNNER_SECRET }}
+          CLOUD_DISPATCH_SECRET: ${{ secrets.CLOUD_DISPATCH_SECRET }}
+          CAREER_PREPARE_AHEAD_TOKEN: ${{ secrets.CAREER_PREPARE_AHEAD_TOKEN }}
+          CLOUD_MAX_CONCURRENT: ${{ secrets.CLOUD_MAX_CONCURRENT }}
+          CLOUD_MAX_PER_PORTAL: ${{ secrets.CLOUD_MAX_PER_PORTAL }}
+          CLOUD_MAX_STARTS_PER_TICK: ${{ secrets.CLOUD_MAX_STARTS_PER_TICK }}
+          CLOUD_MAX_PER_PERSON_DAY: ${{ secrets.CLOUD_MAX_PER_PERSON_DAY }}
+          CLOUD_MAX_PER_SITE_MINUTE: ${{ secrets.CLOUD_MAX_PER_SITE_MINUTE }}
+          CLOUD_PREPARE_MAX_CONCURRENT: ${{ secrets.CLOUD_PREPARE_MAX_CONCURRENT }}
+          CLOUD_PREPARE_STARTS_PER_TICK: ${{ secrets.CLOUD_PREPARE_STARTS_PER_TICK }}
+          CLOUD_PREPARE_PER_PERSON_DAY: ${{ secrets.CLOUD_PREPARE_PER_PERSON_DAY }}
+          CLOUD_PREPARE_PER_SITE_MINUTE: ${{ secrets.CLOUD_PREPARE_PER_SITE_MINUTE }}
+          CLOUD_RUNNER_ENABLED: ${{ secrets.CLOUD_RUNNER_ENABLED }}
+          CLOUD_PREPARE_ENABLED: ${{ secrets.CLOUD_PREPARE_ENABLED }}
           TRAINEE_GO_LIVE_LOG: ${{ runner.temp }}/go-live/go-live.log
           TRAINEE_DEPLOY_LABEL: github-actions run ${{ github.run_id }}
         run: |
@@ -91,6 +110,10 @@ jobs:
           MASK_15: ${{ secrets.WHATSAPP_TOKEN }}
           MASK_16: ${{ secrets.WHATSAPP_APP_SECRET }}
           MASK_17: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+          MASK_18: ${{ secrets.CLOUD_RUNNER_SECRET }}
+          MASK_19: ${{ secrets.CLOUD_DISPATCH_SECRET }}
+          MASK_20: ${{ secrets.CAREER_PREPARE_AHEAD_TOKEN }}
+          MASK_21: ${{ secrets.VERCEL_TOKEN }}
         run: |
           out="$RUNNER_TEMP/deploy-artifacts"; mkdir -p "$out"
           cp "$RUNNER_TEMP/go-live/go-live.log" "$out/" 2>/dev/null || echo "no log was written"

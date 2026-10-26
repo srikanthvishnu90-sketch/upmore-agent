@@ -59,6 +59,7 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1
+import { prepareAfterAnswers } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
@@ -379,6 +380,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await questionsTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseQuestionStore(admin), situation,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) } })
         : null;
+      // FEATURE 17: hosted preparation. Their answers saved and nothing left open: their queued postings are prepared
+      // again now (the hosted door), and the reply says that instead of "on your computer" (career_hosted_prepare.ts).
+      if (asked) await prepareAfterAnswers(asked, { admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init) })
+        .catch((e) => console.error("feature 17 prepare after answers:", (e as Error)?.message ?? e));
+      // END FEATURE 17
       // WO-032: the number that says which application an employer's email confirmed (only while that ask is the thread's
       // last word), and applying by email: "apply by email to Acme" shows the whole email drafted from confirmed facts,
       // and "yes" while it is the last word sends exactly that email once from the person's Gmail, only with

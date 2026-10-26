@@ -293,6 +293,18 @@ form, the business-scoped id fields (`user_id`, `from_user_id`, sending with `re
 the send or only in a status (both are handled), and Graph API `v21.0` (set `WHATSAPP_GRAPH_VERSION` to the version your
 app shows). Steps 7 and 10 check them live.
 
+## The cloud runner (FEATURE 17: preparation and sending without anyone's computer)
+
+Go-live deploys `career-cloud-runner` every time (without its secrets it answers 503 "not configured"). It wires it, on
+the same run, only when `VERCEL_TOKEN` is given: then it asks for `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` and
+`CLOUD_SANDBOX_SNAPSHOT_ID` (or builds the snapshot at `--sha` with `--build-snapshot`: one Vercel sandbox for about 25
+minutes, which is spend), generates `CLOUD_RUNNER_SECRET`, `CLOUD_DISPATCH_SECRET` and `CAREER_PREPARE_AHEAD_TOKEN` when not
+given, derives `CLOUD_BRIDGE_URL` and `CAREER_PREPARE_AHEAD_URL` from the project ref, sets each number that is given
+(`CLOUD_MAX_*`, `CLOUD_PREPARE_*`), and schedules the two minute ticks (`scripts/launch/schedule-career-cloud.sql`). It never
+turns anything on by itself: `CLOUD_RUNNER_ENABLED=on` / `CLOUD_PREPARE_ENABLED=on` only when given, and the database's
+`CAREER_CLOUD_APPLY` / `CAREER_CLOUD_TEXT_CARDS` only by the owner's SQL. Everything else (the route, the limits, the
+recommended first-wave numbers, the gate): docs/launch/CLOUD-RUNNER.md. The owner's first run: docs/launch/RAMP-FIRST-RUN.md.
+
 ## Rollback
 
 Nothing below drops data. The tables stay (the migrations are additive and nothing old reads them); deleting a table or

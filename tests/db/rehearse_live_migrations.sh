@@ -44,7 +44,8 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261025110000_career_apply_bridge_reconcile.sql 20261025120000_career_apply_prepare_ahead.sql
   20261025130000_career_apply_wanted_candidates.sql 20261025140000_career_apply_no_volume_ceiling.sql
   20261025150000_career_apply_pace_parse.sql 20261025160000_career_apply_pace_state.sql
-  20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql"
+  20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql
+  20261026230017_career_cloud_hosted_apply.sql"
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

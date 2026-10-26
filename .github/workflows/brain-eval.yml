@@ -47,7 +47,10 @@ jobs:
       # so it is set to (recorded spend before tonight, $1.535) + $15 = $16.535, and written lower ($15.95) because five
       # passes run in parallel and each sees only the spend recorded before it started: four others (about $0.12 each)
       # can land beside the one that reaches the limit. Builder's arithmetic, not an owner figure. Ledger: evals/career/ROOT-CAUSES.md, "EVAL SPEND LEDGER".
-      EVAL_BUDGET_USD: "15.95"
+      # OWNER'S RULING (2026-10-25 23:17 CDT, in writing): "$20 more" for this round (brain eval, job judging, resume
+      # rewrite). Recorded all-time spend before it: $15.51 (SCORE-LOG close line). Ceiling = 15.51 + 20 = 35.51, written
+      # 35.50 for the same parallel-pass margin as above.
+      EVAL_BUDGET_USD: "35.50"
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 2 }

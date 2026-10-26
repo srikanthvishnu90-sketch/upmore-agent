@@ -25,6 +25,7 @@ import { eligibilityDraft } from "./eligibility_draft.ts";
 import { hasConfirmedResume, NO_RESUME_WAIT, prepareConfigured } from "./career_apply_from_chat.ts";
 import { applyAsk, applyManyAsk, APPLY_QUEUE_INTENT } from "./career_apply_chat.ts";
 import { linkAsk, possessiveAsk } from "./career_apply_link.ts";
+import { EMAIL_INTENT } from "./career_apply_email.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { type Goal, type Known, type Need, needSentence, type NeedsState, nextNeed, READ_SCOPE, SEND_SCOPE, type Target } from "./career_needs.ts";
 import { type Capability, type Connector, connectorOf } from "./connectors/index.ts";
@@ -273,6 +274,17 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
       return { reply: `${text}\n${scopeLines([scope]).join("\n")}${(await chan()) === "telegram" ? `\n${TELEGRAM_BROWSER}` : ""}`,
         intent: turn.intent, resultStatus: turn.status, handler, meta: withMeta(turn.meta, linkMeta(url, await chan())), ...(turn.parts ? { parts: turn.parts } : {}) };
     }
+  }
+
+  // The email card's send (WO-032) with no grant that may send: "Connect Gmail in the Trainee app" named a page that carries
+  // no person; it becomes the signed link for sending. The card stays this thread's last word, by its id, as before.
+  if (a.emailed && a.emailed.status === "NOT_WIRED" && typeof a.emailed.reply === "string") {
+    const url = await link([SEND_SCOPE], "send_email");
+    if (!url) return null;
+    const text = a.emailed.reply.replace(/Connect Gmail in the Trainee app[^,]*/, "Connect Gmail for sending with the link below");
+    const card = a.emailed.waiting && a.emailed.card_id ? { email_card: a.emailed.card_id } : null;
+    return { reply: `${text}\n${scopeLines([SEND_SCOPE]).join("\n")}${(await chan()) === "telegram" ? `\n${TELEGRAM_BROWSER}` : ""}\n${url}`,
+      intent: a.emailed.waiting ? EMAIL_INTENT : "career_apply_email_answer", resultStatus: a.emailed.status, handler: "email", meta: withMeta(card, linkMeta(url, await chan())) };
   }
 
   // The apply reply: exactly the one next need, when there is one.

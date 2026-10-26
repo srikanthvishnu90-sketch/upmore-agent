@@ -212,3 +212,32 @@ Deno.test("needs state: a resume confirmed in another thread counts, even with u
   eq((await readNeedsState(fakeAdmin({}, { career_apply_profile_for: null }).admin, { userId: "u", profile: drafts, situation: null })).resume, "drafts");
   eq((await readNeedsState(fakeAdmin({}, { career_apply_profile_for: null }).admin, { userId: "u", profile: null, situation: null })).resume, "none");
 });
+
+Deno.test("the email card's 'connect Gmail in the Trainee app' becomes the signed link for sending, and the card stays the last word", async () => {
+  const { needsTurn } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  const { EMAIL_INTENT } = await import("../../supabase/functions/_shared/career_apply_email.ts");
+  const f = fakeAdmin({ channel_contacts: [{ channel: "telegram" }] }, { career_connect_link_issue: "s".repeat(32) });
+  const issued: unknown[] = [];
+  const admin = { ...f.admin, rpc: (n: string, a: unknown) => { if (n === "career_connect_link_issue") issued.push(a); return f.admin.rpc(n); } };
+  const out = await needsTurn({ admin, message: "yes", userId: "u", threadId: "th", bridge: true, now: 0, profile: null, situation: null,
+    env: { get: (k: string) => (k === "SUPABASE_URL" ? "https://p.test" : undefined) }, fetch: (() => { throw new Error("no network"); }) as unknown as typeof fetch,
+    answered: { emailed: { reply: "NOT_WIRED: not sent. Trainee can't send from your Gmail yet. Connect Gmail in the Trainee app (it asks to send on your behalf), then say yes again.", status: "NOT_WIRED", waiting: true, card_id: "card-1" } } });
+  eq([out?.intent, out?.resultStatus, out?.handler], [EMAIL_INTENT, "NOT_WIRED", "email"]);
+  assert(/Connect Gmail for sending with the link below, then say yes again\./.test(out!.reply) && !/Trainee app/.test(out!.reply), out!.reply);
+  assert(/send: only a message you approve/.test(out!.reply) && !/read: Google/.test(out!.reply) && out!.reply.endsWith("https://p.test/functions/v1/career-connect?t=" + "s".repeat(32)), out!.reply);
+  eq((out!.meta as any).email_card, "card-1", "the card stays this thread's last word by its id");
+  eq((issued[0] as any).p_scopes, ["https://www.googleapis.com/auth/gmail.send", "openid", "email"]);
+  eq((issued[0] as any).p_purpose, "send_email");
+});
+
+Deno.test("an email card that was shown, or sent, is left exactly as its turn wrote it", async () => {
+  const { needsTurn } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  for (const emailed of [{ reply: "Here is the email to Acme. Say yes to send it.", status: "shown", waiting: true, card_id: "c" },
+    { reply: "Sent. NOT_WIRED words in a quote: Connect Gmail in the Trainee app", status: "sent", waiting: false }]) {
+    const f = fakeAdmin({}, {});
+    const out = await needsTurn({ admin: f.admin, message: "yes", userId: "u", threadId: "th", bridge: false, now: 0, profile: null, situation: null,
+      env: { get: () => "https://p.test" }, fetch: (() => { throw new Error("no network"); }) as unknown as typeof fetch, answered: { emailed } });
+    eq(out, null, emailed.status);
+    assert(!f.calls.includes("rpc:career_connect_link_issue"), "no link minted");
+  }
+});

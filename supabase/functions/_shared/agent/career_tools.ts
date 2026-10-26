@@ -227,7 +227,7 @@ export function careerTools(deps: {
     },
     {
       name: "add_profile_fact", effect: "write_own",
-      description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words. It is not usable until they confirm it.",
+      description: "Save one thing the person said about themselves (experience, education, skill, goal, location, preference) as a draft fact, in their words from THIS message (what earlier messages said was handled on those turns; a refused save is not retried). It is not usable until they confirm it.",
       input_schema: obj({ kind: str("experience | education | skill | goal | location | preference | other"), text: str("The fact in the person's own words") }, ["kind", "text"]),
       run: async (i, c) => {
         const refused = factRefusal(String(i.text ?? ""), c.turn?.message);

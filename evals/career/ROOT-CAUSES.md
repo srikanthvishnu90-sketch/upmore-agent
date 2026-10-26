@@ -1016,3 +1016,8 @@ of private content.
 - Round B, root cause (dev H038, H026, H001 replies): the playback line "Saved: X. Is that right?" is written when nothing
   was saved ("Saved: none yet. Is that right?"), on a greeting ("Saved the intro"), and about the model's own task
   assumptions ("I assumed ... Is that right?"). Fix: the line only after a save succeeded this turn, only about it.
+- Round C, root cause (dev H011, H010, H002 traces): follow-through on the turn before. "How did I do?" after an answer
+  was met with "You haven't posted your revised answer yet"; "ok thanks" after a stated goal made the model retry
+  add_profile_fact for the earlier message five times (each refused: not in this message) until the step limit. Fix:
+  the prompt scores the latest answer above and answers a bare thanks in a line; add_profile_fact says it takes only
+  this message's words and a refused save is not retried.

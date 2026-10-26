@@ -149,13 +149,19 @@ function parseAnswer(msg: any): Map<string, string> | null {
 
 // ------------------------------------------------------------------------------------------------ the whole rewrite
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v ?? null));
+// Sets one cited bullet's words in both the flat line list and the section the PDF renders from; putting the original
+// words back (a whole-document refusal) clears the rewrite mark.
 function withText(resume: any, t: Target, text: string) {
   const old = resume.lines[t.index];
-  resume.lines[t.index] = { ...old, text, rewrittenFrom: old.text };
+  const original = old.rewrittenFrom ?? old.text;
+  const mark = (l: any) => { l.text = text; if (text === original) delete l.rewrittenFrom; else l.rewrittenFrom = original; };
+  const line = { ...old };
+  mark(line);
+  resume.lines[t.index] = line;
   for (const s of resume.sections || []) {
     if (t.section && s.heading !== t.section) continue;
-    const l = (s.lines || []).find((x: any) => x && x.type === "bullet" && x.text === old.text && (x.factIds || [])[0] === t.factId && !x.rewrittenFrom);
-    if (l) { l.text = text; l.rewrittenFrom = old.text; return; }
+    const l = (s.lines || []).find((x: any) => x && x.type === "bullet" && x.text === old.text && (x.factIds || [])[0] === t.factId);
+    if (l) { mark(l); return; }
   }
 }
 export async function rewriteResume(o: { resume: any; profile: any; jd: any; posting: { title?: string | null; company?: string | null }; model: ModelFn; voice?: any }): Promise<RewriteResult> {
@@ -187,8 +193,7 @@ export async function rewriteResume(o: { resume: any; profile: any; jd: any; pos
       const i = accepted.findIndex((x) => x.after === v.line);
       if (i < 0) continue;
       const [x] = accepted.splice(i, 1);
-      const t = targets.find((y) => y.id === x.id)!;
-      withText(resume, { ...t, text: x.after }, x.before);
+      withText(resume, targets.find((y) => y.id === x.id)!, x.before);
       rejected.push({ id: x.id, factId: x.factId, before: x.before, proposed: x.after, reasons: [`truth audit: ${v.reason}`] });
     }
   }

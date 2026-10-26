@@ -100,6 +100,7 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 | `LOOPMESSAGE_API_KEY`, `OPENAI_API_KEY` | Enter keeps the one already set | function secrets (`MODEL_PROVIDER=openai` with the OpenAI key) |
 | `INGEST_CONTACT_EMAIL` | the contact job boards see in the User-Agent; career-ingest answers 503 without it | function secret |
 | `TRAINEE_ALLOWED_CONTACTS` | comma-separated numbers allowed to sign up (sign-up is closed by default: `TRAINEE_SIGNUP` is not touched) | function secret |
+| `TRAINEE_WEB_SIGNUP` | `open` lets anyone who signs in on the web app chat. Anything else, or unset, sets `invite` on this run: a signed-in person chats once admitted (an account from before the gate, a confirmed phone or email on `TRAINEE_ALLOWED_CONTACTS`, or a waitlist spot you invited) | function secret |
 | `LOOPMESSAGE_DAILY_CONTACTS` | your plan's contacts a day (unset means 300) | function secret |
 | `PDL_API_KEY` | optional: People Data Labs key for hired-candidate aggregates (WO-036, D-018); without it Trainee says it has no data | function secret, hidden prompt |
 | `UPMORE_TEST_JWT` (optional) | a test user's JWT for the agent-chat "hi" check | nowhere |
@@ -112,6 +113,24 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 | `WHATSAPP_DAILY_TEMPLATES` | your WhatsApp messaging limit, templates a day (unset means 250, a new account's tier) | function secret |
 
 Function secrets are project-wide in Supabase: every function sees every one.
+
+## The web app and sign-up in waves
+
+The Vercel project `trainee` serves the repository's `site/` folder: the home page and waitlist form at `/`, and the
+web app (sign in with a texted code, the chat, the approval card, the applications view) at `/app`, built into
+`site/app/` by `python3 scripts/web/build-trainee-web.py`. Its production branch is `main`.
+
+- **Who can use it.** With `TRAINEE_WEB_SIGNUP=invite`, accounts that existed before migration
+  `20261026230000_trainee_web_admission.sql` keep working; anyone else needs a confirmed phone or email on
+  `TRAINEE_ALLOWED_CONTACTS`, or an invited waitlist spot. A person still waiting sees "Your spot hasn't opened yet" and
+  no turn runs.
+- **Opening a wave.** In the SQL editor (service role): `select * from public.trainee_invite_wave(1000);` invites the
+  1,000 oldest waitlist rows that consented and are not invited yet, as the next numbered wave, and returns
+  `(wave, invited)`. Nothing is sent: telling those people their spot opened is a separate, approved message.
+- **The waitlist.** The home page's form writes `public.site_waitlist` through `site-signup`. A list kept anywhere
+  else has to be loaded into that table (name, phone in E.164, consent true) before a wave can invite it.
+- **Sign-in by text** needs Supabase Auth's phone provider with an SMS provider (Authentication > Sign In / Providers >
+  Phone). Email codes need the Magic Link email template to include `{{ .Token }}`.
 
 ## The steps and what each changes
 

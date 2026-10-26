@@ -7,6 +7,9 @@
 # The live snapshot (2026-10-26, read-only queries of project mrwngntwmnaqrqhupvlt): every MIGRATION_MARK read true but
 # the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live). Override with
 # LIVE_MISSING="<file> <file> ..." when the live project moves on.
+#   The 2026-10-26 files are not live either: each of their marks read false on the project (read-only query of the
+#   go-live MIGRATION_MARK expressions, 2026-10-26 ~14:30 CDT), so they are listed missing too. Treating them as live
+#   applied the cloud runner's generated per-portal claim before the 2026-10-25 files that change the claim it copies.
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox
 #   constraints are what the migrations before it left). LIVE_SAFE_BRIEF_DIGEST=0 applies the full file instead.
@@ -44,7 +47,11 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261025110000_career_apply_bridge_reconcile.sql 20261025120000_career_apply_prepare_ahead.sql
   20261025130000_career_apply_wanted_candidates.sql 20261025140000_career_apply_no_volume_ceiling.sql
   20261025150000_career_apply_pace_parse.sql 20261025160000_career_apply_pace_state.sql
-  20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql"
+  20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql
+  20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
+  20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
+  20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
+  20261026140000_career_apply_receipt_store.sql 20261026230000_trainee_web_admission.sql"
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

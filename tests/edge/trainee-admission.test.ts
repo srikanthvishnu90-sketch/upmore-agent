@@ -114,3 +114,15 @@ Deno.test("channels: a waitlist read that fails refuses; an admission write that
   const r = await flaky.text("+1 (312) 555-0142");
   eq([r.refused, flaky.st.people.size, flaky.chats.length], [undefined, 1, 1], "the account exists, the turn runs; the error is logged");
 });
+
+Deno.test("the web entry points gate on admission: agent-chat before its rate limit, essay drafting before any model call", async () => {
+  const read = (p: string) => Deno.readTextFile(new URL(`../../supabase/functions/${p}`, import.meta.url));
+  const chat = await read("agent-chat/handler-career.ts");
+  const gate = chat.indexOf("const adm = await admitWebUser("), limit = chat.indexOf('const rlFn = bridgeUserId ? "agent_rl_bump_as" : "agent_rl_bump";');
+  assert(gate > 0 && limit > gate, "agent-chat asks for admission before the rate limit is spent");
+  assert(/if \(!bridgeUserId\) \{\s*const adm = await admitWebUser/.test(chat), "only web sign-ins are gated here (the texting channels decide their own sign-up)");
+  assert(/if \(!adm\.admitted\) \{\s*return json\(cors, \{ error: adm\.reason/.test(chat), "a person not admitted gets the refusal, no turn");
+  const essay = await read("career-essay-draft/index.ts");
+  assert(/const adm = await admitWebUser\(\{ env: Deno\.env, user: data\.user, rpc: \(n, a\) => admin\.rpc\(n, a\) \}\);\s*return adm\.admitted \? \{ id: data\.user\.id \} : null;/.test(essay),
+    "the essay draft has no user (401, no model call) unless admitted");
+});

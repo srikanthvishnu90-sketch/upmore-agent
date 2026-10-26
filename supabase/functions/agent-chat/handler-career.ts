@@ -319,7 +319,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // the signed-in person; a person who came in by invite answers the sign-up steps (18+, then the terms and privacy
       // policy, each recorded with its version) before any other turn. Accounts with no sign-up record are untouched.
       {
-        const signup = await signupTurn({ admin, person: isBridgeCall ? null : supabase, userId: user.id, message, invite: body.invite, bridge: isBridgeCall, env: Deno.env, now: Date.now() });
+        // Like every code-first turn here, a sign-up record that can't be read sends the turn on (logged), never a 503 for
+        // the many accounts that never had one; the read follows a load that just succeeded on the same database.
+        const signup = await signupTurn({ admin, person: isBridgeCall ? null : supabase, userId: user.id, message, invite: body.invite, bridge: isBridgeCall, env: Deno.env, now: Date.now() })
+          .catch((e) => { console.error("signup turn:", e?.message ?? e); return null; });
         if (signup) {
           const sctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on", snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord: null });
           const response = { thread_id: tid, reply: flowCtx.note ? `${flowCtx.note} ${signup.reply}` : signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };

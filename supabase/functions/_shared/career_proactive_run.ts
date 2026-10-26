@@ -7,7 +7,8 @@
 // own gate again at the moment of queuing (matchPosting: their keywords, place and relevance floor; and news, not
 // backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
 // that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
-import { DEFAULT_PREFS, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { DEFAULT_PREFS, fitFloorOk, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
+import { alertFits } from "./career_alert_fit.ts";
 import { freshWhenSeen } from "./career_fresh.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
 import { interestsFromWatch } from "./career_watch_alerts.ts";
@@ -26,7 +27,7 @@ import { extractInvite, type InterviewRow, interviewDrafts, interviewRow, invite
 import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number; below_fit?: number; fit_scored?: number }
 // WO-091c: a rail that failed for some people still reports what it did for the rest. The error carries that result as
 // `partial`, so the scheduled run records true counts beside the failure, and the message is unchanged.
 export function partialError<T>(message: string, partial: T): Error & { partial: T } {
@@ -41,7 +42,9 @@ const localDate = (at: number, tz: string) =>
 // copy whose write failed must never keep alerting after the person paused, stopped or erased. Record gone (erased): the
 // row sends nothing and is removed. Paused, or no watch left: nothing. The watches matched are the record's. No reader,
 // or a read that fails: no watch row sends anything this run. Rows set otherwise (no interests) are not touched.
-async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches?: (userIds: string[]) => Promise<Map<string, unknown>> }, stats: RunStats): Promise<AlertRow[]> {
+// F7: with each verified row, the scoring profile its watch record carries (the person's confirmed facts in 121's shape),
+// for the fit the alerts are ranked and floored by.
+async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches?: (userIds: string[]) => Promise<Map<string, unknown>> }, stats: RunStats, profiles: Map<string, unknown>): Promise<AlertRow[]> {
   const theirs = rows.filter((r) => r.prefs?.interests?.length);
   if (!theirs.length) return rows;
   let record: Map<string, unknown> | null = null;
@@ -63,6 +66,7 @@ async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches
       if (!wp && o.store.remove) await o.store.remove(r.id).catch((e) => console.error("alerts: remove an erased watch's settings:", errText(e)));
       continue;
     }
+    if (wp?.scoring_profile && typeof wp.scoring_profile === "object") profiles.set(r.id, wp.scoring_profile);
     out.push({ ...r, prefs: { ...r.prefs, interests } });
   }
   return out;
@@ -74,7 +78,8 @@ export async function runAlerts(o: {
   watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
 }): Promise<RunStats> {
   const stats: RunStats = { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 };
-  const rows = await verifiedWatches(await o.store.active(), o, stats);
+  const profiles = new Map<string, unknown>();
+  const rows = await verifiedWatches(await o.store.active(), o, stats, profiles);
   stats.users = rows.length;
   if (!rows.length) return stats;
   const recent = await o.recentPostings(new Date(o.now - 26 * 3600000).toISOString());
@@ -88,7 +93,11 @@ export async function runAlerts(o: {
   const users: AlertRow[] = rows.map((r) => ({ ...r, instant_sent_today: r.sent_on === localDate(o.now, r.tz) ? r.instant_sent_today : 0,
     sent_this_week: week ? week.get(r.id) ?? 0 : Infinity }));
   const byId = new Map(postings.map((p) => [p.job_id, p]));
-  const plan = planProactive({ users, postings, now: o.now });
+  // F7: the fit to each matching posting, for people whose watch record carries their confirmed facts; ranked and floored
+  // by the planner, and the floor checked again below at the moment of queuing.
+  const fits = await alertFits({ users, postings, profiles, full: o.postingsById });
+  stats.fit_scored = [...fits.values()].reduce((n, m) => n + m.size, 0);
+  const plan = planProactive({ users, postings, now: o.now, fits });
   // WO-091c: one person's failure (a queue or save error) is recorded and never stops the next person's alerts.
   const failed: string[] = [];
   for (const u of users) {
@@ -103,6 +112,7 @@ export async function runAlerts(o: {
         if (p.kind === "alert") {
           const posting = byId.get(p.job_id);
           if (!posting || !freshWhenSeen(posting) || !matchPosting(posting, u.prefs)) { stats.below_threshold = (stats.below_threshold ?? 0) + 1; continue; }
+          if (!fitFloorOk(fits.get(u.id)?.get(p.job_id), u.prefs)) { stats.below_fit = (stats.below_fit ?? 0) + 1; continue; }
           const seen = Date.parse(String(posting.first_seen_at ?? ""));
           if (Number.isFinite(seen)) firstSeen = new Date(seen).toISOString();
         }

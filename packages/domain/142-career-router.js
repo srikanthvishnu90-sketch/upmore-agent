@@ -10419,6 +10419,12 @@ const CareerRouter = (() => {
     // alone stood CB-0495 and MI-013 down; together a new phrasing has to pass both.
     if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
     if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    // F7 (2026-10-25): an ask about the person's OWN applications or tracker is the tracking family's, never a watch
+    // create — "let me know how my Stripe data analyst application is going", "text me the status of my applications for
+    // the analyst roles" were claimed by "let me know" and by the job noun after the delivery verb. It stands down only
+    // with no alert framing and no new-posting trigger, so "text me when new analyst roles open up" still creates.
+    const ownApplications = /\bmy\s+(?:[\w'-]+\s+){0,4}?(?:applications?|apps)\b|\bapplication status\b|\bstatus of (?:my|the) (?:[\w'-]+\s+){0,3}?applications?\b|\bmy (?:job )?tracker\b|\bwhere (?:i|things) stand\b/.test(t);
+    if (ownApplications && !/\b(alerts?|watch(?:es|ing)?|notify|opens? up|goes up|comes up|gets? posted|is posted|new (?:jobs?|roles?|openings?|positions?|postings?|internships?))\b/.test(t)) return null;
     const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
       && !/\btell me when\b/.test(t);

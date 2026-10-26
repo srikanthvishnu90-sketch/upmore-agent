@@ -20119,6 +20119,8 @@ const CareerRouter = (() => {
     if (!classicCreate && !/\b(opens? up|goes up|comes up|gets? posted|is posted|when|whenever|as soon as|the moment|the minute)\b/.test(t) && !/\b(watch|alerts?|notify)\b/.test(t) && interrogativeTurn(raw)) return null;
     if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
     if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    const ownApplications = /\bmy\s+(?:[\w'-]+\s+){0,4}?(?:applications?|apps)\b|\bapplication status\b|\bstatus of (?:my|the) (?:[\w'-]+\s+){0,3}?applications?\b|\bmy (?:job )?tracker\b|\bwhere (?:i|things) stand\b/.test(t);
+    if (ownApplications && !/\b(alerts?|watch(?:es|ing)?|notify|opens? up|goes up|comes up|gets? posted|is posted|new (?:jobs?|roles?|openings?|positions?|postings?|internships?))\b/.test(t)) return null;
     const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
       && !/\btell me when\b/.test(t);

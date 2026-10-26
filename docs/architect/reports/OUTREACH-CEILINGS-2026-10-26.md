@@ -28,3 +28,67 @@ Summary: keep 1, 3, 6 (rule), 10; reconcile the words for 2, 4, 5, 6 (window), 1
 Every reconciliation of words is in 124/142 (Muse's modules; coordination needed as for the cap texts in SERIAL-1480).
 Every "enforce" is a change to `career_outreach_claim` plus its code twin, with a SQL test, and needs the owner's yes
 since each limits volume. No application cap is touched by any of this.
+
+## SERIAL-1500 / SERIAL-1501 follow-up (2026-10-26)
+
+### (1) Words reconciled to what is enforced today
+Modules 124 and 142 (text only; no number changed, no limit added, nothing newly enforced): every text that stated a
+cap now states the enforced rule once ("sends go from your own Gmail at 10 a day in your first week of sending, then 20
+a day unless you set your own number (up to 30, never more), at least 90 seconds apart; at most 3 emails reach one
+address in 30 days, and anyone who says stop is never written to again") and names the planner's ramp, per-firm cap,
+per-domain cap, breakers and risky share as "planned, not enforced today". The safety-plan card and the day arithmetic
+(`sendDays`) count at the enforced pace. Both bundles rebuilt; the two node pins on the old wording repointed
+(`career-complexity-battery` c40; `career-wording-backlog-guard` SC-043, a test that reads a machine path the gate skips
+by design, so that repin is unproven on every machine but one).
+
+### (2) Each ceiling, by what it is
+Provider rules are cited by URL and were NOT fetched from this container (support.google.com does not resolve here);
+the owner should read them at the source. They are ceilings, not safe volumes and not permission: account type
+(personal, Workspace, trial) and the account's current use decide what is safe.
+
+| Ceiling | Bucket | Evidence |
+|---|---|---|
+| Gmail: about 500 messages a day on a personal account; about 2,000 on Google Workspace; bulk-sender rules (authentication, one-click unsubscribe, spam rate under 0.3%) for senders of about 5,000 a day to Gmail addresses | **Hard provider rule** (not ours) | support.google.com/mail/answer/22839; support.google.com/a/answer/166852; support.google.com/a/answer/81126. Unverified here. Our 30 a day is about 6% of the personal ceiling; the ceiling says nothing about what a personal account can send cold without harm. |
+| 30 a day (`MAX_DAILY`, SQL check 1..30) | **Deliverability judgment (ours)** | No provider rule names 30; chosen for a personal mailbox sending cold mail. Owner to confirm it stays unraisable. |
+| 10 a day in the first 7 days (`WARMUP_DAILY`, `WARMUP_DAYS`, SQL `least(cap, 10)`) | Deliverability judgment (ours) | A new sending pattern on an old account; no provider rule. |
+| 90 seconds between sends (`GAP_MS`, SQL `'spacing'`) | Deliverability judgment (ours) | Burst avoidance; the planner's 2 to 8 minutes was the same judgment with a different number (planned, not enforced). |
+| 20 a day when the person set none (`DEFAULT_DAILY`) | Deliverability judgment (ours) | A default inside the 30; the person's own number replaces it. |
+| 3 emails to one address in 30 days, across every Trainee user (`RECIPIENT_CAP`, SQL `'recipient_cap'`) | **Recipient restriction** (protects the person written to; also deliverability) | Not a volume setting: it bounds how often one human is written to by anyone using the product. |
+| Do-not-contact and opt-outs (a "stop" to anyone stops everyone's drafts to that address; `career_outreach_dnc`) | **Recipient / user-intent restriction** | Not a volume setting at all; it is the recipient's stated wish. Commercial-mail law (CAN-SPAM in the US; PECR and GDPR for UK and EU recipients, which module 124 flags by country) requires an honored opt-out; the product honors it at once. Law, not ours; citations unverified here. |
+| Exact per-message approval (`approved_hash` = the message shown; a changed draft is refused; 3-day batch window) | **Approval contract** (D-007, D-024) | Not a volume setting; proven in `tests/architect/outreach-pages.test.ts` and `wo-033-outreach.test.ts`. |
+| 10 drafts per page (`BATCH_MAX`) | **Arbitrary product choice: a display page** | `tests/architect/outreach-pages.test.ts`: five pages approved as shown give fifty approvals; the run reads approvals, not the page; nothing about paging cuts the approved list. It settles no wider policy. |
+| Approval valid 7 days (`APPROVAL_TTL_MS`, SQL anchor) | **Arbitrary product choice** (freshness of consent) | Same test: a hundred approved at once on a first-week account send 60 in six days and a few on the seventh, then the remaining approvals are dropped as expired and must be approved again. This, not the page, is what bounds a long approved list. |
+| Drafts approvable for 72 hours (`BATCH_TTL_MS`) | Arbitrary product choice | Drafts older than 3 days are not approvable; ask for them again. |
+| Ramp 12 → 30, per-firm 15 in 30 days, per-domain 4 a day, breakers, 10% risky share, first wave of 40 (module 124 `CAPS`) | Deliverability judgment, **planned, not enforced** | Planner model only; the texts now say so. Nothing enforced without the owner's yes. |
+
+### (3) The page is not a cap
+`tests/architect/outreach-pages.test.ts`, in memory with a fake sender: 50 drafts over 5 pages, each page approved
+with one "send all"; 50 approvals stand, each bound to its exact message; the page shows the newest 10 and the send
+run reads all 50; the first-week warm-up paces them at 10 a day, 90 seconds apart, and all 50 go, none lost to paging.
+It proves display paging does not cut the approved list, and nothing wider.
+
+### (4) Tradeoffs for a long list (the owner's 12 Oct example: 500 bankers), no change made
+Days to send 500 first emails, under the rules that run today (10 a day for the first 7 days of sending, then the
+person's number, never over 30):
+
+| Pace after the first week | Account past its first week | New sending account (warm-up first) |
+|---|---|---|
+| 30 a day (the ceiling, set by the person) | about 17 days (500 / 30) | about 22 days (70 in week one, then 430 / 30) |
+| 20 a day (the default) | 25 days | about 29 days |
+| 10 a day | 50 days | 50 days |
+
+The approval window binds before the pace does: one approval covers at most 7 days of sending, so at 30 a day one
+round of "send all" over the pages can send at most 210 (70 on a first-week account); a 500 list needs three or four
+approval rounds, each within 72 hours of its drafts being written, and the rest of a round's approvals expire.
+
+| Option | Effect on the 500 list | Cost | Whose call |
+|---|---|---|---|
+| A. Keep everything as it is | 22 to 29 days; 3 to 4 approval rounds of up to 10 pages each; expired approvals re-approved | Effort for the person; the most conservative for a personal mailbox | nobody's; this is today |
+| B. Longer approval window (e.g. 30 days) | One approval round covers the list at 30 a day | A message approved four weeks ago still goes; the change-refusal and stop rules still hold, but consent ages | owner |
+| C. Higher daily ceiling (50, 100) | 10 days at 50; 5 days at 100 | Cold mail at that rate from a personal account risks Gmail's reputation controls; the 500 ceiling is not a safe volume | owner, against the deliverability judgment |
+| D. No first-week warm-up | Saves about 5 days on a new sending account | A new pattern at full rate on day one | owner |
+| E. Enforce the planner's ramp (12, then +5 every 3 days) instead of flat 10 for 7 days | Week one sends 12, 12, 12, 17, 17, 17, 22 = 109 instead of 70; about 2 days saved | Replaces one judgment with another; SQL change | owner |
+| F. Per-firm cap of 15 in 30 days (planned) | Spreads 500 across firms; with 7 firms, 105 per 30-day window, so the list takes about 5 months | Protects each firm from a wave; much slower | owner |
+
+Nothing here is a recommendation to send; no send path is on. The only change in this follow-up is words (124/142),
+a test (3), and this table.

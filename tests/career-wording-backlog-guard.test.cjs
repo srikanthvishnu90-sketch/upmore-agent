@@ -347,8 +347,10 @@ test("BUG-190: SC-050 asks the Tier C question it was told to ask; SC-043's cap 
   assert.ok(!/exactly as you set it/.test(t50), `SC-050: question credited as a decision: ${t50.slice(0, 160)}`);
   assert.ok(/Hold Tier C back, or release it/.test(t50) && /372 Tier A and B/.test(t50), `SC-050: ${t50.slice(0, 260)}`);
   const t43 = text(turn("SC-043"));
-  assert.ok(/rises \+5 every 3 days, never above 30/.test(t43) && !/\+5\/day/.test(t43), `SC-043 ramp: ${t43.slice(0, 200)}`);
-  assert.ok(/Finish date, from the ramp itself, counting from tomorrow \([^)]+\): the first 87 first-emails clear by/.test(t43), `SC-043 finish: ${t43.slice(0, 300)}`);
+  // SERIAL-1500: the card states what runs today once, and names the planner's ramp as planned, not enforced.
+  assert.ok(/what runs today: 10 a day in your first week of sending, then 20 a day unless you set your own number \(up to 30, never more\)/.test(t43), `SC-043 enforced rule: ${t43.slice(0, 300)}`);
+  assert.ok(/Planned, not enforced today \(the planner's caps\): a start at 12 a day that rises \+5 every 3 days, never above 30/.test(t43) && !/\+5\/day/.test(t43), `SC-043 ramp: ${t43.slice(0, 400)}`);
+  assert.ok(/Finish date, from the pace that runs today, counting from tomorrow \([^)]+\): the first 87 first-emails clear by/.test(t43), `SC-043 finish: ${t43.slice(0, 300)}`);
 });
 
 // ---- BUG-191: waves, surgery counts, and the bounce check are computed in the reply ----

@@ -3720,14 +3720,14 @@ const CareerOutreach = (() => {
       approval: "one approval covers this whole plan; nothing outside it sends" };
   }
   function safetyPlanText(p) {
-    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. Daily cap starts at ${p.daily_cap_start}/day, ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
+    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. What runs today: 10 a day in your first week of sending, then your own number (20 unless set, never above 30), 90 seconds apart, at most 3 emails to one address in 30 days, never to anyone who said stop. Planned, not enforced today: a daily cap starting at ${p.daily_cap_start}/day that ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
   }
   function honestYield(records, query, opts) {
     opts = opts || {}; const pool = buildList(records, query, opts); const kept = (pool.selected || []).concat(pool.reserve || []);
     const verified = kept.filter((c) => c.email_verification === "verified").length;
     const patternedOut = kept.filter((c) => c.email_verification !== "verified" && (c.email_source === "pattern" || !c.email_verification)).length;
     const out = { found: pool.yield.found, resolved: pool.yield.resolved, verified, patterned_out: patternedOut, trusted_emails: pool.yield.trusted_emails, risky_emails: pool.yield.risky_emails, sendable: pool.yield.sendable, selected: pool.yield.selected, reserve: pool.yield.reserve, exclusions: pool.yield.exclusions, pool };
-    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (they ride under the ${Math.round(CAPS.riskyMaxFraction * 100)}% risky cap, never padded into the trustworthy number).`;
+    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (a ${Math.round(CAPS.riskyMaxFraction * 100)}% risky share is planned, not enforced today; they are never padded into the trustworthy number).`;
     return out;
   }
   function suppressionReport(pool, opts) {
@@ -13894,11 +13894,14 @@ const CareerRouter = (() => {
   }
   function campaignOf(c) { return (c && (c.campaign || c.outreachCampaign)) || null; }
   function poolOf(c) { return (c && (c.candidateRecords || c.records || c.pool)) || null; }
-  function sendDays(n) {
+  function sendDays(n, own) {
+    const cap = Math.min(30, Math.max(1, Math.floor(own) || 20));
     let sent = 0, day = 0;
-    while (sent < n && day < 3650) { day++; sent += Math.min(30, 12 + 5 * Math.floor((day - 1) / 3)); }
+    while (sent < n && day < 3650) { day++; sent += day <= 7 ? Math.min(cap, 10) : cap; }
     return day;
   }
+  const SEND_RULE = "sends go from your own Gmail at 10 a day in your first week of sending, then 20 a day unless you set your own number (up to 30, never more), at least 90 seconds apart; at most 3 emails reach one address in 30 days, and anyone who says stop is never written to again.";
+  const PLANNED_CAPS = "A per-firm cap (15 first emails to one firm in 30 days), a per-domain cap, a daily ramp and bounce breakers are planned, not enforced today.";
 
   function handlePauseGate(text, ctx) {
     if (!pausedOf(ctx)) return null;
@@ -13994,12 +13997,9 @@ const CareerRouter = (() => {
     const sourcesFact = "Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.";
     const population = !!(q && q.count_source === "default");
     const firmCount = q && ((q.firms_named && q.firms.length >= 2) || (q.firms_source === "set" && q.firms.length >= 2) || (q.firms_source === "default" && !isCategoryProposal && Array.isArray(q.firms) && q.firms.length >= 2)) ? q.firms.length : null;
-    const windowCap = firmCount ? firmCount * 15 : null;
-    const capsFact = population
-      ? "The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield."
-      : windowCap && count > windowCap
-        ? `The caps shape the calendar: at most 15 to one firm in 30 days, and across the ${firmCount} firms ${q.firms_named ? "named" : "in the set"} that caps one 30-day window at ${windowCap} first emails — so ${count} run across ${Math.ceil(count / windowCap)} monthly windows, paced inside each window by the ramp (12 a day, rising by 5 every 3 days to a 30 ceiling).`
-        : `The caps shape the calendar: sending starts at 12 a day for three days, then 17, then 22, then 27, up to a 30 ceiling, at most 15 to one firm in 30 days — so the running total passes ${count} on day ${sendDays(count)}, and the true reachable count is whatever the sources actually yield.`;
+    const capsFact = `The caps shape the calendar: ${SEND_RULE}`;
+    const capsFacts = [capsFact, ...(population ? [] : [`So the running total passes ${count} on day ${sendDays(count)} at the default pace${firmCount ? ` across the ${firmCount} firms ${q.firms_named ? "named" : "in the set"}` : ""}.`]),
+      PLANNED_CAPS, "The true reachable count is whatever the sources actually yield."];
     const filterFacts = [];
     if (q && q.firms_source === "default") {
       filterFacts.push(isCategoryProposal
@@ -14049,10 +14049,9 @@ const CareerRouter = (() => {
     if (q && q.tone === "peer") filterFacts.push("The tone is peer to peer: you write as a VP moving into PE, so every draft speaks as a peer — a lateral move between equals, never student to banker.");
     if (q && q.warm_paths_ranked) filterFacts.push(`Warm paths rank the list: the ${count} are ordered by the strength of the path in, strongest first.`);
     if (q && q.firms_named && q.firms.length === 1) {
-      const waves = Math.max(1, Math.ceil(count / 15));
-      filterFacts.push(population || waves === 1
-        ? `One firm, so the per-firm cap shapes the waves: at most 15 first emails to ${q.firms[0]} in any 30 days — the rest run in later monthly waves, planned that way from the start.`
-        : `One firm, so the per-firm cap binds before the daily ramp does: at most 15 first emails to ${q.firms[0]} in any 30 days, so ${count} people run as ${waves} monthly waves — planned that way from the start, not discovered mid-send.`);
+      filterFacts.push(population
+        ? `One firm: a per-firm cap (at most 15 first emails to ${q.firms[0]} in any 30 days) is planned, not enforced today; what paces this is your daily number (10 a day in your first week, then 20 unless you set up to 30).`
+        : `One firm: a per-firm cap (at most 15 first emails to ${q.firms[0]} in any 30 days) is planned, not enforced today; what paces this is your daily number, so ${count} people run over about ${sendDays(count)} days at the default pace.`);
     }
     if (q && q.geography && !filterFacts.length) filterFacts.push(`Geography is a hard filter on the plan: only ${q.geography} names count toward the ${count} — out-of-area names are excluded, not ranked lower.`);
     const singleFirm = !!(q && q.firms_named && q.firms.length === 1);
@@ -14075,7 +14074,7 @@ const CareerRouter = (() => {
     const universeSpoken = universeFact && isCategoryProposal ? universeFact.replace(/\.$/, "") + " — it stands as the plan's starting proposal, with the build running on it now." : universeFact;
     const facts = singleFirm
       ? [...factsBase.slice(0, 5), sourcesFact]
-      : [...factsBase.slice(0, universeSpoken ? 3 : 4), ...(universeSpoken ? [universeSpoken] : []), sourcesFact, capsFact];
+      : [...factsBase.slice(0, universeSpoken ? 3 : 4), ...(universeSpoken ? [universeSpoken] : []), sourcesFact, ...capsFacts];
     let nextStep;
     if (q && q.firms_source === "default") {
       nextStep = isCategoryProposal
@@ -15151,7 +15150,7 @@ const CareerRouter = (() => {
     const res = handleCampaignPlan(newAsk, ctx);
     if (!res) return null;
     const facts = [`The correction is recorded against the plan itself: ${oldFirm ? `${oldFirm} is out, ` : ""}${newFirm} is the target now — no list, draft, or wave is built against the old target after a correction.`];
-    facts.push("The caps shape the calendar: sending starts at 12 a day, rises by 5 every 3 days to a 30 ceiling, at most 15 to one firm in 30 days — and the true reachable count is whatever the sources actually yield.");
+    facts.push(`The caps shape the calendar: ${SEND_RULE}`, PLANNED_CAPS, "The true reachable count is whatever the sources actually yield.");
     facts.push("Sources, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages — every name carries its source, and nobody is emailed on a guessed address.");
     const reply = compose({ headline: `Plan corrected: ${newFirm}${oldFirm ? `, not ${oldFirm}` : ""}.`, facts, nextStep: "Approve the corrected plan and the list builds against the new target — counts first, drafts after." });
     return Object.assign({}, res, { reply });
@@ -15278,10 +15277,10 @@ const CareerRouter = (() => {
     const anchorD = new Date(startD.getTime() + 86400000);
     const finishFor = (n) => fmtDay(new Date(anchorD.getTime() + (sendDays(n) - 1) * 86400000));
     const facts = [
-      `Channel: your own Gmail only — the daily cap starts at ${sp.daily_cap_start} a day, rises ${sp.ramp}.`,
-      `At most ${sp.per_domain_per_day} a day to one domain and ${sp.per_firm_per_30_days} to one firm in 30 days; per person, ${sp.per_person}.`,
-      `Stop rules: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
-      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the ramp itself, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
+      `Channel: your own Gmail only — what runs today: 10 a day in your first week of sending, then 20 a day unless you set your own number (up to 30, never more), at least 90 seconds apart; at most 3 emails reach one address in 30 days; anyone who says stop is never written to again.`,
+      `Planned, not enforced today (the planner's caps): a start at ${sp.daily_cap_start} a day that rises ${sp.ramp}; at most ${sp.per_domain_per_day} a day to one domain and ${sp.per_firm_per_30_days} to one firm in 30 days; per person, ${sp.per_person}.`,
+      `Stop rules planned, not enforced today: ${sp.stop_rules.slice(0, 3).join("; ")}.`,
+      sp.scheduled ? `${sp.scheduled} emails sit in the plan across ${sp.days} days, finishing ${sp.finish_date}.` : `Finish date, from the pace that runs today, counting from tomorrow (${fmtDay(anchorD)}): the first 87 first-emails clear by ${finishFor(87)}, the first 153 by ${finishFor(153)} — and the built list's own finish date is that same arithmetic on its size, printed on this card before you approve it.`,
     ];
     const reply = compose({ headline: "Here is the safety plan card for this campaign.", facts, nextStep: "Approve this plan once, and every send stays inside it — nothing outside it goes out." });
     const spRec = { kind: "safety_plan", safety_plan_card: sp, committed: false, sends: 0 };
@@ -15517,7 +15516,7 @@ const CareerRouter = (() => {
     const dismissalFabricate = dismissal && /\b(add|put|write|include)\b/.test(t);
     if (!falseClaim && !blast && !fabricate && !unverifiedClaim && !massApply && !dismissalFabricate) return null;
     const facts = [];
-    if (blast) facts.push("The blast is outside every locked cap: sending starts at 12 a day and never passes 30, so the honest version of this campaign runs across weeks, not hours.");
+    if (blast) facts.push("The blast is outside every cap that runs today: sends go 10 a day in your first week of sending, then your own number and never past 30 a day, so the honest version of this campaign runs across weeks, not hours.");
     if (massApply) facts.push("Applying in bulk, unseen, is not a mode this product has: there is no daily cap on applications beyond the pace you set yourself, but each one is built from your confirmed facts and stopped at its doorstep for your approval. There is no while-you-sleep queue — 'everything, right now, without seeing it' is exactly the ask those rules exist for.");
     if (unverifiedClaim) facts.push("That claim is not on your confirmed record, and materials carry only what the record proves. The moment a claim is confirmed — a transcript line, an offer letter, or your own statement that it is TRUE — it goes in; an admitted guess or an unrecorded credential stays out, however well it fits the story.");
     if (falseClaim) facts.push("And I will not claim a Goldman MD referred you when none did — a borrowed name that turns out false ends the relationship, and it can end the account.");
@@ -22915,7 +22914,7 @@ const CareerRouter = (() => {
       const pitfall = C.thread
         ? "Letting the deadline decide by silence. An exploding or tight deadline that lapses with no extension ask and no answer reads as a no — the extension request costs one polite email and keeps every option alive; silence spends the offer itself."
         : C.plan
-          ? "Blasting the list before it is verified. One wave to guessed or unverified addresses burns your name at those firms and trips the bounce breaker — the shortlist gets verified first, counts come back, and only sendable names ever see a draft."
+          ? "Blasting the list before it is verified. One wave to guessed or unverified addresses burns your name at those firms (a bounce breaker is planned, not enforced today) — the shortlist gets verified first, counts come back, and only sendable names ever see a draft."
           : "Applying everywhere with one generic packet and no record. Untracked, untailored volume produces silence you cannot learn from — a short sourced list, a tailored packet per firm, and every stage logged is what turns applications into a pattern you can fix.";
       const reply = compose({ headline: "The one mistake that costs the most here:", facts: [pitfall], nextStep: "Want the plan re-checked against that pitfall before anything moves?" });
       return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
@@ -23127,7 +23126,7 @@ const CareerRouter = (() => {
     const asksWhen = /\bwhen do sends (actually )?start\b|\bwhen does sending start\b/.test(t);
     if ([asksCaps, asksSources, asksWhy, asksWhen].filter(Boolean).length < 2) return null;
     const facts = [];
-    if (asksCaps) facts.push("Send caps: outreach starts at 12 emails a day, rises by 5 every 3 days, and never passes 30 a day; at most 15 first emails go to one firm in any 30 days, and applications have no daily cap beyond the pace you set yourself (say \"set my daily pace to N\").");
+    if (asksCaps) facts.push(`Send caps: ${SEND_RULE}`, PLANNED_CAPS, `Applications have no daily cap beyond the pace you set yourself (say "set my daily pace to N").`);
     if (asksSources) facts.push("Where names come from, in order: your own LinkedIn export, names you paste, your school's alumni directory, and firm team pages. Every name carries its source, and nobody is emailed on a guessed address — inferred emails are labeled and held.");
     if (asksWhy) facts.push("Why shortlist first: a blast burns the only asset that compounds — your name at those firms. The shortlist is verified before anything is drafted, so the first email a banker sees from you is accurate, sourced, and written for them; the caps then keep the wave inside what inboxes tolerate.");
     if (asksWhen) facts.push("When sends start: after you approve the plan. The list is built, the found/trustworthy/sendable counts come back to you, drafts are written from the sendable names — and the first send waits for your one approval of the whole plan.");

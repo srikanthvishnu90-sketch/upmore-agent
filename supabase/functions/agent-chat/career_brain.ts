@@ -20,6 +20,9 @@ import { type CareerEvent, type EventStore, SUMMARY_UNREADABLE, threadSummary } 
 // Release pin (2026-10-22 candidate, the parent's gate): the deployed agent-chat cannot select the agent brain, whatever
 // CAREER_BRAIN holds. The brain stays off until it meets the 95% two-judge held-out bar; turning this on is a separate,
 // reviewed change, never a secret flip. chooseBrain still states the rule the switch would follow.
+// FEATURE 13 (owner, 2026-10-25): the staged release is the reviewed path past this pin. CAREER_BRAIN=staged sends only
+// question, advice and conversation turns to the brain, with the tool policy in career_staged.ts; every action stays
+// code's. The full brain (CAREER_BRAIN=agent, every turn) stays pinned off here.
 export const AGENT_BRAIN_RELEASED = false;
 
 export function chooseBrain(env: { get(k: string): string | undefined }): "agent" | "router" {
@@ -97,6 +100,8 @@ export async function agentTurn(o: {
   posting?: ((jobId: string) => Promise<any | null>) | null;
   // WO-106 (F4): every job link checked just before it is shown.
   linkCheck?: LinkCheck | null;
+  // FEATURE 13: the staged release's tool policy: tools withheld by name, and a note on what code does instead.
+  toolPolicy?: { withhold: readonly string[]; note: string } | null;
 }): Promise<TurnResult> {
   const block = o.known ? personBlock({ profile: o.stores.profile, ...o.known }) : null;
   const notes: string[] = [];
@@ -105,11 +110,16 @@ export async function agentTurn(o: {
     notes.push(csv ? `[Attached file: ${(await importContactsFile(o.stores, f, o.mx ?? MX_NOT_WIRED)).note}]` : f.text !== null ? `[Attached file: ${f.name}]\n${f.text}` : `[Attached file: ${f.name} (${f.mime}): this file type can't be read yet]`);
   }
   return runAgentTurn({
-    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : ""),
+    system: careerSystemPrompt(localDay(o.now, o.tz)) + "\n\n" + styleBlock(o.message) + (block ? "\n\n" + block : "") + (o.summary ? "\n\n" + o.summary : "") + (o.toolPolicy ? "\n\n" + o.toolPolicy.note : ""),
     history: o.history.slice(-HISTORY_WINDOW).map((m) => ({ role: m.role, content: String(m.content ?? "") })),
     message: [o.message, ...notes].filter(Boolean).join("\n\n"),
-    tools: careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null }),
+    tools: withheld(o.toolPolicy?.withhold, careerTools({ postings: o.postings ?? (async () => []), alerts: o.alerts ?? null, memory: o.memory ?? null, events: o.events ?? null, tz: o.tz, mail: o.mail ?? null, interviews: o.interviews ?? null, digest: o.digest ?? null, outreach: o.outreach ?? null, verifier: o.verifier ?? null, tailor: o.tailor ?? null, hired: o.hired ?? null, wants: o.wants ?? null, limits: o.limits, posting: o.posting ?? null, situation: o.known?.situation ?? null, linkCheck: o.linkCheck ?? null })),
     model: o.model,
     ctx: { userId: o.userId, threadId: o.threadId, now: o.now, state: o.stores },
   });
+}
+
+// FEATURE 13: the tools left after a policy withholds some by name (none withheld: every tool).
+export function withheld<T extends { name: string }>(names: readonly string[] | undefined, tools: T[]): T[] {
+  return names && names.length ? tools.filter((t) => !names.includes(t.name)) : tools;
 }

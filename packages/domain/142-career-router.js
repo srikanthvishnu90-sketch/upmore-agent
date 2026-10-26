@@ -854,7 +854,11 @@ const CareerRouter = (() => {
     // back (the battery's follow-up died on the generic fallback).
     try { const tm = threadMirrorForWrite(ctx); if (tm) tm.tailor = { company: company || null, title: titleLine, jobId: jobId || null, diff: tailored.diff || null, gaps, at: new Date(nowOf(ctx)).toISOString() }; } catch { /* the artifact itself stands */ }
     const reply = compose({ headline: headlineOverride || `Your resume is tailored for ${titleLine}.`, facts, nextStep });
-    return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
+    // FEATURE 4 (DIAGNOSIS 2.2): the assembled document, the posting text it was cut against and the posting's name ride
+    // the result (never the reply, never the snapshot), so the host can reword its bullets under the truth audit
+    // (_shared/career_tailor_rewrite.ts) and re-render the same document.
+    return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version },
+      tailorDoc: tailored.resume || null, tailorJd: jdText, tailorPosting: posting ? { title: posting.title || null, company: posting.company || null } : null };
   }
 
   // ---------- essay tailoring (133 medEssayPacket) ----------
@@ -10419,6 +10423,12 @@ const CareerRouter = (() => {
     // alone stood CB-0495 and MI-013 down; together a new phrasing has to pass both.
     if (/\btailor(ing|ed|s)?\b/.test(t)) return null;
     if (/\bpdf\b/.test(t) && deliveryVerb) return null;
+    // F7 (2026-10-25): an ask about the person's OWN applications or tracker is the tracking family's, never a watch
+    // create — "let me know how my Stripe data analyst application is going", "text me the status of my applications for
+    // the analyst roles" were claimed by "let me know" and by the job noun after the delivery verb. It stands down only
+    // with no alert framing and no new-posting trigger, so "text me when new analyst roles open up" still creates.
+    const ownApplications = /\bmy\s+(?:[\w'-]+\s+){0,4}?(?:applications?|apps)\b|\bapplication status\b|\bstatus of (?:my|the) (?:[\w'-]+\s+){0,3}?applications?\b|\bmy (?:job )?tracker\b|\bwhere (?:i|things) stand\b/.test(t);
+    if (ownApplications && !/\b(alerts?|watch(?:es|ing)?|notify|opens? up|goes up|comes up|gets? posted|is posted|new (?:jobs?|roles?|openings?|positions?|postings?|internships?))\b/.test(t)) return null;
     const tellQuestionOnly = /\btell me (what|how|whether|if|why|which|who|whose)\b/.test(t)
       && !/\b(text|message|ping|notify|send|dm)\s+me\b/.test(t)
       && !/\btell me when\b/.test(t);
@@ -12260,7 +12270,11 @@ const CareerRouter = (() => {
         const bt = handleBatchTailor(text, c);
         if (bt) return bt;
       }
-      if (c.posting || c.jdText || c.jd) return handleTailor(text, c);
+      // FEATURE 4: a posting staged from a bare link (no title, no text: the GitHub or portfolio link inside a pasted
+      // resume stages one) is not a posting to tailor against; tailoring against it printed "tailored for null at null"
+      // and cut the resume against no posting at all. A named company resolves its own posting below.
+      const stagedUsable = c.posting && (c.posting.jd_text || c.posting.title || (Array.isArray(c.posting.requirements) && c.posting.requirements.length));
+      if (stagedUsable || c.jdText || c.jd) return handleTailor(text, c);
       // A company-targeted tailor: resolve that company's posting first.
       // BUG-111: companyFromText needs "at X" phrasing or a full-name
       // substring, so "Tailor for Goldman IBD / McKinsey / Palantir

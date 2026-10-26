@@ -129,6 +129,12 @@ Function secrets are project-wide in Supabase: every function sees every one.
    Re-run it any time: `SUPABASE_URL=https://<ref>.supabase.co … node scripts/launch/trainee-smoke.cjs` (exit 0 pass,
    1 a FAIL, 2 NOT RUN).
 
+Networking emails from chat (FEATURE 10): a contacts CSV pasted or attached in chat is imported, and "who do I know at
+X" answers from it, with no switch. Drafting ("email Maya at Stripe about ...") makes one model call per recipient, so it
+runs only once you set `CAREER_NETWORKING_DRAFT=on` on agent-chat (off: the reply names who would be written to and
+nothing is drafted). Drafts land on the outreach batch and need "send N" on the exact message; they go out only through
+career-proactive with `CAREER_OUTREACH_SEND=on` and a Gmail grant with send scope. No migration.
+
 ## LoopMessage
 
 Webhook URL (inbound messages), in LoopMessage's dashboard:

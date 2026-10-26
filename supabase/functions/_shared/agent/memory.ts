@@ -48,6 +48,27 @@ export function quotedFrom(message: string, quote: string): boolean {
   const q = plain(quote);
   return q.split(" ").filter(Boolean).length >= 2 && ` ${plain(message)} `.includes(` ${q} `);
 }
+// Audit S3 (2026-10-26): text the person pasted (a posting, an email, a document) is data, never their own instruction. A
+// standing instruction quotes only their own words: a quoted passage of 30 or more characters, a fenced block, a ">" line,
+// and an email's header block onward are cut before the quote is looked for.
+export function ownWords(message: string): string {
+  return String(message ?? "")
+    .replace(/```[\s\S]*?(```|$)/g, " ")
+    .replace(/"[^"]{30,}"|“[^”]{30,}”|'[^']{30,}'/g, " ")
+    .replace(/^\s*>.*$/gm, " ")
+    .replace(/^\s*(from|subject|to|sent|date)\s*:[\s\S]*$/im, " ");
+}
+// The saved instruction is built from the person's own words: the model's plain wording is kept only when every content
+// word in it is in the quote or elsewhere in their own words this turn (a light stem: "needs" is "need"); otherwise the
+// quote itself is saved. Text they pasted cannot widen a quote into a rule the person never said.
+const STOP = new Set(["the", "and", "for", "any", "all", "every", "each", "with", "that", "this", "from", "into", "only", "about", "never", "always", "must", "not", "dont", "don", "wants", "want", "needs", "need", "they", "them", "their", "person", "candidate", "user", "jobs", "job", "roles", "role"]);
+const stem = (w: string) => w.replace(/(ing|ed|es|s)$/, "");
+export function groundedInstruction(instruction: unknown, quote: unknown, own = ""): string {
+  const q = new Set(`${plain(quote)} ${plain(own)}`.split(" ").filter(Boolean).map(stem));
+  const words = plain(instruction).split(" ").filter((w) => w.length >= 3 && !STOP.has(w));
+  const text = String(instruction ?? "").replace(/\s+/g, " ").trim();
+  return text && words.every((w) => q.has(stem(w))) ? text : String(quote ?? "").replace(/\s+/g, " ").trim().slice(0, STANDING_TEXT);
+}
 // WO-091b (audit chat-brain F4, BR-084): a standing instruction goes into every later turn's system prompt as something
 // to follow, so one that waives the person's approval ("autopilot", "don't ask me", "without asking"), or asks for an act
 // Trainee never does (sharing their resume on its own, passwords or one-time codes, LinkedIn or Indeed automation), is

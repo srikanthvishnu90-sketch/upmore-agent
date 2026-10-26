@@ -144,7 +144,7 @@ export function runReport(o) {
   const parts = [];
   if (o.lanes) parts.push(`lane ${o.lane} of ${o.lanes}`);
   parts.push(`boards read ${fraction(s.attempted ?? 0, o.due ?? s.attempted ?? 0)} due`);
-  parts.push(`ok ${n(s.boards_ok)}${s.boards_not_modified ? ` (${n(s.boards_not_modified)} unchanged, 304)` : ""}${s.boards_partial ? `, partial ${n(s.boards_partial)}` : ""}`);
+  parts.push(`ok ${n(s.boards_ok)}${s.boards_not_modified ? ` (${n(s.boards_not_modified)} unchanged since the last read)` : ""}${s.boards_partial ? `, partial ${n(s.boards_partial)}` : ""}`);
   parts.push(`failed ${n(s.boards_failed)}${why ? ` (${why})` : ""}`);
   parts.push(`postings new ${n(s.new)}, seen ${n(s.seen)}, reopened ${n(s.reopened)}, closed ${n(s.closed)}`);
   if (s.url_rejected) parts.push(`not job links, refused ${n(s.url_rejected)}`);

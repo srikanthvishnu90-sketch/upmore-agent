@@ -39,7 +39,7 @@ The owner asked for this on 2026-10-26: "not 100 people, as many people as much,
    ```
    Duplicate numbers can stay. A wave takes the earliest signup for each number.
 
-## 2. Wave mechanics (migration `20261026220017_career_invite_waves.sql`)
+## 2. Wave mechanics (migration `20261026233017_career_invite_waves.sql`)
 - **Open** (`career_wave_open(size, key, override_reason, now)`): takes the next N eligible people in signup order and makes them invites (`ready`), each with its own 32-character token. Nothing is sent.
   - Eligible means:
     - consent is given and its words are on record;
@@ -110,7 +110,7 @@ Starting at 100, ten doublings reach 102,400, which is more than 98k.
 
 ## 4. Owner steps and decisions
 1. **Find the 98k and import them** (section 1). Until then, a wave opens with 0 people.
-2. Apply the migration `20261026220017_career_invite_waves.sql`. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
+2. Apply the migration `20261026233017_career_invite_waves.sql`. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
 3. Set these environment variables:
    - `TRAINEE_TERMS_URL`, `TRAINEE_TERMS_VERSION`, `TRAINEE_PRIVACY_URL` and `TRAINEE_PRIVACY_VERSION`. Until they're set, sign-up stops at the terms step and says so.
    - `TRAINEE_APP_URL` and/or `TELEGRAM_BOT_USERNAME` for the links.

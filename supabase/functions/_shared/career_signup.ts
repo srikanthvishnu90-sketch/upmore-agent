@@ -1,4 +1,4 @@
-// GB-01 / ON-01: the sign-up steps of a person who came in by invite (migration 20261026220017). Code's, before every
+// GB-01 / ON-01: the sign-up steps of a person who came in by invite (migration 20261026233017). Code's, before every
 // other turn, only for an account with a career_signup_gate row that is not active yet; everyone else is untouched.
 //   1. "Are you 18 or older?" An answer under 18 is blocked while TRAINEE_UNDER18_POLICY is unset or "block" (the
 //      owner's decision; "allow" records the answer and goes on).
@@ -138,7 +138,7 @@ function promptFor(step: string, env: Env): SignupAnswer | null {
 async function readGate(admin: any, userId: string): Promise<{ step: string; asked_at: string | null } | null> {
   const r = await admin.from("career_signup_gate").select("step,asked_at").eq("user_id", userId).limit(1);
   if (r.error) {
-    // Migration 20261026220017 not applied yet: there is no gate to keep, and no invite could have made one.
+    // Migration 20261026233017 not applied yet: there is no gate to keep, and no invite could have made one.
     if (/career_signup_gate|PGRST205|42P01/.test(`${r.error.code ?? ""} ${r.error.message ?? ""}`) && /does not exist|not find|schema cache/i.test(r.error.message ?? "")) return null;
     throw new Error(`read the sign-up record: ${r.error.message}`);
   }

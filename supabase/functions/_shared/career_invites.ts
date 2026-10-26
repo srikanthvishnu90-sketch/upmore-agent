@@ -1,4 +1,4 @@
-// GB-01 invite waves (migration 20261026220017_career_invite_waves.sql). Two halves:
+// GB-01 invite waves (migration 20261026233017_career_invite_waves.sql). Two halves:
 //  - sendWave: the owner's approved send. It claims one invite at a time (career_invite_claim_send: approved by the owner,
 //    not opted out, inside quiet hours), puts the person's own link into the template the owner approved by its sha256,
 //    sends it through the given Send (LoopMessage), and records each result (career_invite_mark_sent). It checks the

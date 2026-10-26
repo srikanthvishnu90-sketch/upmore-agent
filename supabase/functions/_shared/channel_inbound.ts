@@ -57,6 +57,10 @@ export interface InboundStore {
   redeemInvite?(token: string, contact: string, via: string, at: number): Promise<InviteTaken>;
   redeemInviteByPhone?(phone: string, contact: string, via: string, at: number): Promise<InviteTaken>;
   bindInvite?(inviteId: string, userId: string, at: number): Promise<void>;
+  // Sign-up in waves: the admission recorded on an account made through the allow-list (TRAINEE_SIGNUP=open, or the
+  // contact on TRAINEE_ALLOWED_CONTACTS), so the web app admits the same person (20261026230000; an invite's own bind
+  // records its admission, 20261026233017).
+  admit?(userId: string, listed: boolean): Promise<void>;
 }
 export type InviteTaken = { ok: true; inviteId: string } | { ok: false; why: InviteRefusal | "none" };
 export interface CoreDeps {
@@ -186,7 +190,9 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // below stays the fallback for everyone else.
       const phone = contact.startsWith("+") ? contact : msg.phone ?? null;
       if (phone && store.redeemInviteByPhone && store.bindInvite && (msg.channel === "imessage" || msg.channel === "whatsapp")) {
-        const taken = await store.redeemInviteByPhone(phone, contact, msg.channel, now);
+        // An invite that can't be read is treated as none (logged): the allow-list below decides, never a guess.
+        const taken = await store.redeemInviteByPhone(phone, contact, msg.channel, now)
+          .catch((e): InviteTaken => { console.error("inbound: invite not read (treated as none):", e instanceof Error ? e.message : String(e)); return { ok: false, why: "none" }; });
         if (taken.ok) {
           person = await store.createPerson(contact, now, msg.phone ?? null);
           await store.bindInvite(taken.inviteId, person.userId, now);
@@ -200,7 +206,14 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         const r = await d.reply(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
       }
-      if (!person) person = await store.createPerson(contact, now, msg.phone ?? null);
+      if (!person) {
+        person = await store.createPerson(contact, now, msg.phone ?? null);
+        // Past the check above without an invite: the allow-list let them in; recorded so the web app admits the same person.
+        if (store.admit) {
+          try { await store.admit(person.userId, true); }
+          catch (e) { console.error("inbound: admission not recorded:", e instanceof Error ? e.message : String(e)); }
+        }
+      }
       if (store.sawInbound && !invitedNow) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       // A first Start is the person's first message: the brain welcomes them with what to send first (WO-106).
     }

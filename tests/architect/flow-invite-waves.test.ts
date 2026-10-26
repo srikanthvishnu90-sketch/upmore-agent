@@ -18,6 +18,8 @@
 //   7. The web: the first message with the invite token redeems it as the signed-in person; under 18 is blocked.
 //   8. An expired invite is refused and makes no account; a first text from an invited number makes the account.
 //   9. STOP stops everything for that person: opted out, the account quiet, every unredeemed invite to them stopped.
+//  10. The web gate (TRAINEE_WEB_SIGNUP=invite, 20261026230000) on the same invites: not admitted without one; the
+//      invite link's token admits (redeemed as the person, the admission recorded) and the sign-up steps begin.
 //
 // Run: the gate runs it with CI=true (a missing Postgres throws). Locally add --import-map=tests/flow/supabase-npm.json.
 import assertNode from "node:assert/strict";
@@ -30,13 +32,14 @@ import { telegramAdapter } from "../../supabase/functions/_shared/telegram.ts";
 import { runInbound } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { CHANNEL_REPLIES } from "../../supabase/functions/_shared/channel.ts";
 import { INVITE_ALREADY_MEMBER, INVITE_REFUSED, sendWave, sha256Hex } from "../../supabase/functions/_shared/career_invites.ts";
-import { SIGNUP_AGE_ASK, SIGNUP_DONE, SIGNUP_UNDER18, termsAsk, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
+import { SIGNUP_AGE_AGAIN, SIGNUP_AGE_ASK, SIGNUP_DONE, SIGNUP_UNDER18, termsAsk, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
+import { NOT_INVITED_REPLY } from "../../supabase/functions/_shared/trainee_admission.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const CI = Deno.env.get("CI") === "true";
-const WEB = "7b0f8f8e-6a43-4a49-9d2c-0000000017a1";
-const PEOPLE: Record<string, string> = { "tok-wave-web": WEB };
+const WEB = "7b0f8f8e-6a43-4a49-9d2c-0000000017a1", WEB2 = "7b0f8f8e-6a43-4a49-9d2c-0000000017a2";
+const PEOPLE: Record<string, string> = { "tok-wave-web": WEB, "tok-wave-web2": WEB2 };
 const TG_TOKEN = "123456:wave-test-token", TG_SECRET = "wave_test_secret_0123456789abcdef_ok";
 const ENV: Record<string, string> = {
   TRAINEE_APP_URL: "https://app.trainee.test", TELEGRAM_BOT_USERNAME: "trainee_wave_bot",
@@ -58,7 +61,7 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
   if (skip()) return;
   const pg: Pg = await startPg();
   await supabaseParity(pg);
-  await pg.sql(`insert into auth.users (id, email) values ('${WEB}', 'wave-web@example.test'); insert into public.profiles (id) values ('${WEB}');`);
+  await pg.sql(`insert into auth.users (id, email) values ('${WEB}', 'wave-web@example.test'), ('${WEB2}', 'wave-web2@example.test'); insert into public.profiles (id) values ('${WEB}'), ('${WEB2}');`);
   for (const [k, v] of Object.entries(ENV)) Deno.env.set(k, v);
   Deno.env.delete("TRAINEE_SIGNUP"); Deno.env.delete("TRAINEE_ALLOWED_CONTACTS"); Deno.env.delete("TRAINEE_UNDER18_POLICY");
   const handler = await careerHandler(pg, PEOPLE);
@@ -199,6 +202,7 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     assert(/^[0-9a-f-]{36}$/.test(tgUser), "the chat is linked to the new account");
     eq(await one(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${phone(1)}'`), `redeemed,${tgUser},telegram`);
     eq(await one(`select step from public.career_signup_gate where user_id = '${tgUser}'`), "age");
+    eq(await one(`select via || ',' || (waitlist_id is not null) from public.trainee_admissions where user_id = '${tgUser}'`), "waitlist,true", "the account made on Telegram is admitted on the web too");
     eq(await lastReply(tgUser), SIGNUP_AGE_ASK, "the first reply is the 18+ question, through the outbox to this chat");
     eq(await one(`select channel from public.career_outbox where user_id = '${tgUser}' order by id desc limit 1`), "telegram");
     eq(await one(`select string_agg(m.content, '|') from public.agent_messages m join public.agent_threads th on th.id = m.thread_id where th.user_id = '${tgUser}' and m.role = 'user'`), "/start", "the token never reaches the conversation");
@@ -293,12 +297,50 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     const sha = await sha256Hex(TEMPLATE);
     const ap = await rpc("career_wave_approve_send", { p_wave: w3.data.wave_id, p_text: TEMPLATE, p_text_sha256: sha, p_count: 0, p_now: iso() });
     eq([ap.error, ap.data?.approved], [null, 0], "nothing left to approve");
+    eq(await one(`select status from public.career_invite_waves where id = ${w3.data.wave_id}`), "sent", "a wave with nothing left to send is done");
     // The Telegram person: STOP opts them out and quiets the account for every rail.
     const r = await telegram(1001, "/stop");
     eq(r.direct, [CHANNEL_REPLIES.stop]);
     eq(await one(`select public.channel_opted_out('tg:1001')::text || ',' || public.career_user_quiet('${tgUser}')::text`), "true,true");
     const elig = await one(`select count(*) from public.career_wave_eligible() where phone in ('${phone(1)}', '${phone(2)}', '${phone(7)}')`);
     eq(elig, "0", "no stopped or redeemed number is ever picked again");
+  });
+
+  await t.step("10. the web gate on the same invites: not admitted without one; the invite link's token admits and the sign-up begins", async () => {
+    Deno.env.set("TRAINEE_WEB_SIGNUP", "invite");
+    try {
+      const w2 = () => handler.chat("tok-wave-web2");
+      const no = await w2().say("hi");
+      eq([no.status, no.reply], [403, NOT_INVITED_REPLY]);
+      eq(await num(`select count(*) from public.trainee_admissions where user_id = '${WEB2}'`) + await num(`select count(*) from public.agent_threads where user_id = '${WEB2}'`), 0, "no admission, no turn");
+      const forged = await w2().say("hi", { invite: "C".repeat(32) });
+      eq([forged.status, forged.reply], [403, INVITE_REFUSED.invalid]);
+      const used = await w2().say("hi", { invite: tok4() });
+      eq([used.status, used.reply], [403, INVITE_REFUSED.used], "someone else's invite admits nobody");
+      // The owner's next wave: 08 joins the waitlist and is invited and sent, as above.
+      await pg.sql(`insert into public.site_waitlist (name, phone, consent, consent_text, consent_at, source, created_at) values
+        ('Wave Eight', '${phone(8)}', true, 'I agree to receive automated texts from Trainee. Reply STOP to opt out.', '2026-10-01T10:07:00Z', 'test', '2026-10-01T10:07:00Z')`);
+      // The sender closes a wave while a gate fails; here sign-up completion fails (wave 2: 0 of 2 finished), so the
+      // invited people finish it first, as a healthy cohort would.
+      eq((await rpc("career_wave_recommendation", { p_now: iso() })).data.status, "fail");
+      await pg.sql(`update public.career_signup_gate set step = 'active' where step in ('age', 'terms')`);
+      eq((await rpc("career_wave_recommendation", { p_now: iso() })).data.status === "fail", false);
+      const w4 = await rpc("career_wave_open", { p_size: 1, p_key: "wave-4", p_override_reason: "test: the web gate", p_now: iso() });
+      eq([w4.error, w4.data?.picked], [null, 1], JSON.stringify(w4));
+      eq((await rpc("career_wave_approve_send", { p_wave: w4.data.wave_id, p_text: TEMPLATE, p_text_sha256: await sha256Hex(TEMPLATE), p_count: 1, p_now: iso() })).error, null);
+      const before = sent.length;
+      eq((await sendWave({ db: admin, wave: w4.data.wave_id, send: fakeSend, env: Deno.env, now })).sent, 1);
+      const tok8 = tokenIn(sent[before].text);
+      const ok = await w2().say("hi", { invite: tok8 });
+      eq([ok.status, ok.reply], [200, SIGNUP_AGE_ASK], JSON.stringify(ok.body));
+      eq(await one(`select via || ',' || (waitlist_id is not null) from public.trainee_admissions where user_id = '${WEB2}'`), "waitlist,true", "admitted via the waitlist, by the invite");
+      eq(await one(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${phone(8)}'`), `redeemed,${WEB2},web`);
+      const next = await w2().say("hi");
+      eq([next.status, next.reply], [200, SIGNUP_AGE_AGAIN], "admitted now, without the token; the sign-up step is asked again");
+      const first = await handler.chat("tok-wave-web").say("hi");
+      eq(first.status, 200, "an account that came in by an invite earlier is admitted by it");
+      eq(await one(`select via from public.trainee_admissions where user_id = '${WEB}'`), "waitlist");
+    } finally { Deno.env.delete("TRAINEE_WEB_SIGNUP"); }
   });
 
   handler.restore();

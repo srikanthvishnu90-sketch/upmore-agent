@@ -10,6 +10,9 @@
 # MIGRATION_MARK read false, and public.career_board_state does not exist), so they are listed too; without them the
 # mimic applied 20261026060006 onto a schema with no career_board_state and failed identically on trunk fe8405586. Override with
 # LIVE_MISSING="<file> <file> ..." when the live project moves on.
+#   The 2026-10-26 files are not live either: each of their marks read false on the project (read-only query of the
+#   go-live MIGRATION_MARK expressions, 2026-10-26 ~14:30 CDT), so they are listed missing too. Treating them as live
+#   applied the cloud runner's generated per-portal claim before the 2026-10-25 files that change the claim it copies.
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox
 #   constraints are what the migrations before it left). LIVE_SAFE_BRIEF_DIGEST=0 applies the full file instead.
@@ -51,7 +54,8 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
-  20261026140000_career_apply_receipt_store.sql 20261026220017_career_invite_waves.sql"
+  20261026140000_career_apply_receipt_store.sql 20261026230000_trainee_web_admission.sql
+  20261026233017_career_invite_waves.sql"
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

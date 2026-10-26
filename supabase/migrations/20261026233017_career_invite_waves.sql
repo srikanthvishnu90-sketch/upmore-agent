@@ -21,6 +21,13 @@
 -- Opening a wave sends nothing. Sending is a separate step the owner approves with the exact template and the exact
 -- count; the sender (supabase/functions/_shared/career_invite_send.ts) claims one invite at a time and records each send.
 -- STOP on any channel, or the invite's own unsubscribe link, stops every invite to that number at once (trigger).
+--
+-- ONE wave and invite system (coordinator, 2026-10-26). 20261026230000_trainee_web_admission.sql (the web gate,
+-- TRAINEE_WEB_SIGNUP=invite) first shipped its own waves: trainee_invite_wave(n) marked site_waitlist rows invited and a
+-- confirmed phone claimed them (invited_at, invite_wave, claimed_by, claimed_at). This file, applied after it, replaces
+-- that with the invites below: trainee_admit keeps its existing and allow-list admissions and admits by waitlist only
+-- through an invite (redeemed, or a sent one matching the account's confirmed phone, taken here); trainee_invite_wave,
+-- trainee_waitlist_invited and the claim columns are dropped. Every invite bound to an account records its admission.
 
 create table if not exists public.career_wave_policy (
   id int primary key default 1 check (id = 1),
@@ -349,7 +356,8 @@ begin
   select count(*) into n from public.career_invites where wave_id = p_wave and state = 'ready';
   if p_count is distinct from n then raise exception 'count_mismatch: % ready, % approved', n, p_count; end if;
   update public.career_invites set state = 'approved', approved_at = p_now where wave_id = p_wave and state = 'ready';
-  update public.career_invite_waves set status = 'approved', message_text = p_text, message_sha256 = p_text_sha256,
+  -- A wave with nothing left to send (every invite stopped before the approval) is done, so the next one can open.
+  update public.career_invite_waves set status = case when n = 0 then 'sent' else 'approved' end, message_text = p_text, message_sha256 = p_text_sha256,
     approved_count = n, approved_at = p_now where id = p_wave;
   return jsonb_build_object('wave_id', p_wave, 'approved', n, 'replayed', false);
 end $$;
@@ -481,6 +489,8 @@ begin
   end if;
   insert into public.career_signup_gate (user_id, invite_id, step, created_at, updated_at)
   values (p_user, i.id, 'age', p_now, p_now) on conflict (user_id) do nothing;
+  -- The web gate (trainee_admit) admits the same person on every channel.
+  insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', i.waitlist_id) on conflict (user_id) do nothing;
   if i.sms_consent_text is not null then
     insert into public.career_consents (user_id, kind, version, text_sha256, source, channel, accepted_at)
     values (p_user, 'sms', 'site_waitlist', encode(sha256(convert_to(i.sms_consent_text, 'UTF8')), 'hex'), 'site_waitlist', 'site', coalesce(i.sms_consent_at, i.created_at))
@@ -556,6 +566,49 @@ end $$;
 drop trigger if exists career_invites_on_opt_out on public.channel_contacts;
 create trigger career_invites_on_opt_out after insert or update of opted_out on public.channel_contacts
   for each row execute function public.career_invites_on_opt_out();
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- The web gate's admission, on the invites (replaces 20261026230000's waitlist claim). existing and allowlist are as
+-- before. waitlist: the account holds a redeemed invite, or its confirmed phone matches an invite that was sent and is
+-- still unused and unexpired, which is then taken for this account (redeemed via the web, bound, the sign-up steps begin).
+create or replace function public.trainee_admit(p_user uuid, p_allowlisted boolean) returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare a public.trainee_admissions; ph text; inv uuid; wl uuid; r jsonb;
+begin
+  if p_user is null then raise exception 'invalid admission'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('trainee_admit:' || p_user::text, 0));
+  select * into a from public.trainee_admissions where user_id = p_user;
+  if found then return a.via; end if;
+  -- Only a confirmed phone counts: a number typed at sign-up and never verified takes nothing.
+  select case when u.phone_confirmed_at is not null then public.trainee_phone_digits(u.phone) end into ph from auth.users u where u.id = p_user;
+  if not found then raise exception 'invalid admission'; end if;
+  if coalesce(p_allowlisted, false) then
+    insert into public.trainee_admissions (user_id, via) values (p_user, 'allowlist');
+    return 'allowlist';
+  end if;
+  select i.id, i.waitlist_id into inv, wl from public.career_invites i where i.redeemed_user = p_user;
+  if inv is not null then
+    insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', wl) on conflict (user_id) do nothing;
+    return 'waitlist';
+  end if;
+  if ph is null then return null; end if;
+  select i.id into inv from public.career_invites i
+   where i.state = 'sent' and public.trainee_phone_digits(i.phone) = ph -- expiry, STOP and single use: career_invite_take_core
+   order by i.sent_at, i.id limit 1 for update skip locked;
+  if inv is null then return null; end if;
+  r := public.career_invite_take_core(inv, 'web:' || p_user::text, 'web', clock_timestamp());
+  if r ? 'error' then return null; end if;
+  perform public.career_invite_bind(inv, p_user, clock_timestamp());
+  return 'waitlist';
+end $$;
+revoke all on function public.trainee_admit(uuid, boolean) from public, anon, authenticated;
+grant execute on function public.trainee_admit(uuid, boolean) to service_role;
+drop function if exists public.trainee_invite_wave(integer);
+drop function if exists public.trainee_waitlist_invited(text);
+drop index if exists public.site_waitlist_claimed_by_key;
+drop index if exists public.site_waitlist_uninvited;
+alter table public.site_waitlist drop column if exists invited_at, drop column if exists invite_wave,
+  drop column if exists claimed_by, drop column if exists claimed_at;
 
 revoke all on function public.career_wave_hours(interval), public.career_invite_hash(text), public.career_wave_gate_rows(timestamptz), public.career_wave_eligible(),
   public.career_wave_recommendation(timestamptz), public.career_wave_open(int, text, text, timestamptz), public.career_wave_invite_list(bigint),

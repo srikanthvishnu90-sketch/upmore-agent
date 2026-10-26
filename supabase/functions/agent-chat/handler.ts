@@ -82,7 +82,7 @@ const MAX_TOKENS = 400; // tight budget: short, basic replies
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size — output already capped at MAX_TOKENS
 
-import { corsFor } from "./_shared/chat_cors.ts";
+import { financeCorsFor as corsFor } from "./_shared/chat_cors.ts";
 
 // Generic provider words that must never trigger provider matching on their
 // own — they hijack unrelated questions ("this site ..." matched provider "Site").

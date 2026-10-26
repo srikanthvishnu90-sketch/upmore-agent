@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { corsFor } from "../agent-chat/_shared/chat_cors.ts";
+import { admitWebUser } from "../_shared/trainee_admission.ts";
 import { callModel, newMeter } from "../_shared/model_gateway.ts";
 import { essayModelConfig, handleEssayDraft, supabaseDraftCounter, supabaseFacts } from "../_shared/career_essay_card.ts";
 
@@ -26,7 +27,10 @@ serve((req) => {
     user: async (token) => {
       const client = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
       const { data } = await client.auth.getUser(token);
-      return data?.user ? { id: data.user.id } : null;
+      if (!data?.user) return null;
+      // A person still on the waitlist (TRAINEE_WEB_SIGNUP=invite, not admitted) drafts nothing: no model spend.
+      const adm = await admitWebUser({ env: Deno.env, user: data.user, rpc: (n, a) => admin.rpc(n, a) });
+      return adm.admitted ? { id: data.user.id } : null;
     },
     card: () => ({
       facts: supabaseFacts(admin),

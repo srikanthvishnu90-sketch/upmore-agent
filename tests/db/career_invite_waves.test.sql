@@ -1,4 +1,4 @@
--- FEATURE WAVES (20261026220017_career_invite_waves.sql): invite waves from the waitlist, the approved send, redeeming
+-- FEATURE WAVES (20261026233017_career_invite_waves.sql): invite waves from the waitlist, the approved send, redeeming
 -- once, STOP, and the gates computed from live rows (pass-shaped, warn-shaped and fail-shaped). Synthetic people only.
 begin;
 reset role;

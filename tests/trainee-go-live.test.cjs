@@ -103,7 +103,7 @@ test('dry run: no secret value is ever printed, only names and ***', () => {
     assert.doesNotMatch(out, /fake-dbpass|QZ81|NNNNNNNN|IIIIIIII/);
   }
   const { out } = dry();
-  assert.match(out, /supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: CAREER_INGEST_SECRET=\*\*\* CAREER_PROACTIVE_SECRET=\*\*\* TRAINEE_DELIVER_SECRET=\*\*\* TRAINEE_INBOUND_SECRET=\*\*\* INGEST_CONTACT_EMAIL=\*\*\* LOOPMESSAGE_API_KEY=\*\*\* LOOPMESSAGE_DAILY_CONTACTS=\*\*\* TRAINEE_ALLOWED_CONTACTS=\*\*\* OPENAI_API_KEY=\*\*\* MODEL_PROVIDER=openai>/);
+  assert.match(out, /supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: CAREER_INGEST_SECRET=\*\*\* CAREER_PROACTIVE_SECRET=\*\*\* TRAINEE_DELIVER_SECRET=\*\*\* TRAINEE_INBOUND_SECRET=\*\*\* INGEST_CONTACT_EMAIL=\*\*\* LOOPMESSAGE_API_KEY=\*\*\* LOOPMESSAGE_DAILY_CONTACTS=\*\*\* TRAINEE_ALLOWED_CONTACTS=\*\*\* TRAINEE_WEB_SIGNUP=invite OPENAI_API_KEY=\*\*\* MODEL_PROVIDER=openai>/);
 });
 
 test('CAREER_BRAIN=agent is set only with --brain agent; --brain router unsets it; otherwise it is not touched', () => {
@@ -489,4 +489,12 @@ test('the migration rehearsal reads go-live\'s own lists and checks every mark a
   // Each mark names an object its own file creates and no later file redefines away (a full apply read every mark true).
   const src = fs.readFileSync(SCRIPT, 'utf8');
   assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
+});
+
+// Launch readiness B7/X1 (2026-10-26): the web sign-up gate is set on every run: invite unless this run says open.
+test('TRAINEE_WEB_SIGNUP: invite on every run unless the run passes open; nothing else opens it', () => {
+  const line = (env) => (dry([], env).out.match(/--env-file <0600 temp file: ([^>]*)>/) || [])[1] || '';
+  assert.match(line({ ...FAKE }), /(^| )TRAINEE_WEB_SIGNUP=invite( |$)/);
+  assert.match(line({ ...FAKE, TRAINEE_WEB_SIGNUP: 'open' }), /(^| )TRAINEE_WEB_SIGNUP=open( |$)/);
+  for (const v of ['OPEN', 'yes', 'true', '1']) assert.match(line({ ...FAKE, TRAINEE_WEB_SIGNUP: v }), /(^| )TRAINEE_WEB_SIGNUP=invite( |$)/, v);
 });

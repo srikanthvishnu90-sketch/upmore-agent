@@ -93,3 +93,21 @@ Deno.test("the terms answer, and terms read only when every link and version is 
   eq(termsFrom(env({ TRAINEE_TERMS_URL: "https://t.test/terms", TRAINEE_TERMS_VERSION: "1", TRAINEE_PRIVACY_URL: "https://t.test/privacy" })), null, "a missing version: not published");
   eq(termsFrom(env({ TRAINEE_TERMS_URL: "http://t.test/terms", TRAINEE_TERMS_VERSION: "1", TRAINEE_PRIVACY_URL: "https://t.test/privacy", TRAINEE_PRIVACY_VERSION: "1" })), null, "https only");
 });
+
+Deno.test("the web gate on the invites: a token is tried only when not admitted; a refused token admits nobody and says why", async () => {
+  const { admitWebUser } = await import("../../supabase/functions/_shared/trainee_admission.ts");
+  const invite = env({ TRAINEE_WEB_SIGNUP: "invite" }), user = { id: "u-1" };
+  let state: string | null = null, redeemed: string[] = [];
+  const rpc = async () => ({ data: state, error: null });
+  const redeem = (answer: Record<string, unknown>) => async (tok: string) => { redeemed.push(tok); if (!answer.error) state = "waitlist"; return { data: answer, error: null }; };
+  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ step: "age" }) }), { admitted: true, via: "waitlist" });
+  eq(redeemed, [TOK]);
+  redeemed = [];
+  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ step: "age" }) }), { admitted: true, via: "waitlist" });
+  eq(redeemed, [], "already admitted: the token is never used again");
+  state = null;
+  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ error: "used" }) }), { admitted: false, reason: "not_invited", invite: "used" });
+  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ error: "anything" }) }), { admitted: false, reason: "not_invited", invite: "invalid" });
+  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: async () => ({ data: null, error: { message: "down" } }) }), { admitted: false, reason: "unavailable" }, "a failed redemption admits nobody");
+  eq(await admitWebUser({ env: invite, rpc, user }), { admitted: false, reason: "not_invited" }, "no token: not invited");
+});

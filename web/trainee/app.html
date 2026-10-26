@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2A1A3A">
+<meta name="robots" content="noindex">
+<title>Trainee</title>
+<link rel="icon" href="/app/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+/*__APP_CSS__*/
+/*__DASHBOARD_CSS__*/
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar">
+  <a class="mark" href="/">Trainee</a>
+  <nav class="tabs" role="tablist" aria-label="Trainee" id="tabs" hidden>
+    <button class="tab" role="tab" id="tab-chat" aria-controls="chat" aria-selected="true" type="button">Chat</button>
+    <button class="tab" role="tab" id="tab-apps" aria-controls="apps" aria-selected="false" type="button" tabindex="-1">Applications<span class="count" id="apps-count" hidden></span></button>
+  </nav>
+  <button class="quiet" id="sign-out" type="button" hidden>Sign out</button>
+</header>
+<main id="main" tabindex="-1">
+  <section class="view" id="boot" aria-live="polite"><p class="loading">Opening Trainee</p></section>
+
+  <section class="view signin" id="signin" hidden aria-labelledby="signin-title">
+    <h1 id="signin-title">Sign in to Trainee</h1>
+    <p class="lede">Use the phone number you joined the waitlist with. We text you a 6-digit code.</p>
+    <form id="send-form" novalidate>
+      <fieldset class="method" id="method">
+        <legend class="sr">Sign in with</legend>
+        <label><input type="radio" name="method" value="phone" checked><span>Phone</span></label>
+        <label><input type="radio" name="method" value="email"><span>Email</span></label>
+      </fieldset>
+      <div id="phone-field">
+        <label class="field" for="phone"><span>Mobile number</span></label>
+        <div class="phone">
+          <label class="sr" for="cc">Country code</label>
+          <input class="input cc" id="cc" name="cc" value="+1" inputmode="tel" autocomplete="tel-country-code" maxlength="4">
+          <input class="input" id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(312) 555-0142" aria-describedby="send-error">
+        </div>
+      </div>
+      <label class="field" id="email-field" hidden for="email"><span>Email</span>
+        <input class="input" id="email" name="email" type="email" inputmode="email" autocomplete="email" aria-describedby="send-error"></label>
+      <p class="error" id="send-error" role="alert"></p>
+      <div class="row"><button class="primary" id="send-code" type="submit">Text me a code</button></div>
+    </form>
+    <form id="verify-form" novalidate hidden>
+      <p class="status" id="sent-to" role="status"></p>
+      <label class="field" for="code"><span>6-digit code</span>
+        <input class="input" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" aria-describedby="verify-error"></label>
+      <p class="error" id="verify-error" role="alert"></p>
+      <div class="row">
+        <button class="primary" id="verify" type="submit">Sign in</button>
+        <button class="secondary" id="change" type="button">Use a different number</button>
+      </div>
+    </form>
+    <p class="note" style="margin-top:28px">Not on the waitlist yet? <a href="/#signup">Join it on the home page</a>.</p>
+  </section>
+
+  <section class="view" id="waiting" hidden aria-labelledby="waiting-title">
+    <h1 id="waiting-title" tabindex="-1">Your spot hasn't opened yet</h1>
+    <p class="lede" id="waiting-text"></p>
+    <div class="row"><button class="secondary" id="waiting-retry" type="button">Check again</button><button class="quiet" id="waiting-out" type="button">Sign in with a different number</button></div>
+    <p class="error" id="waiting-error" role="alert"></p>
+  </section>
+
+  <section class="view chat" id="chat" role="tabpanel" aria-labelledby="tab-chat" hidden>
+    <div class="empty" id="chat-empty">
+      <h1>What can Trainee do for you?</h1>
+      <p class="lede">Send your resume to start. Trainee asks before it sends anything to an employer, and shows you the exact answers first.</p>
+      <div class="starts" id="starts">
+        <button type="button" data-say="What can you do?">What can you do?</button>
+        <button type="button" data-say="Find jobs for me">Find jobs for me</button>
+        <button type="button" data-say="show my applications">Show my applications</button>
+      </div>
+    </div>
+    <ol class="log" id="log" aria-live="polite" aria-label="Conversation"></ol>
+    <form class="composer" id="composer" novalidate>
+      <p class="attached" id="attached" hidden><span id="attached-name"></span><button type="button" id="attached-remove">Remove</button></p>
+      <p class="error" id="composer-error" role="alert"></p>
+      <div class="box">
+        <label class="attach" title="Add your resume (a .txt file)"><input type="file" id="file" accept=".txt,.md,text/plain,text/markdown,.pdf,.docx"><span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.1l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"/></svg><span class="sr">Add resume</span></span></label>
+        <label class="sr" for="message">Message Trainee</label>
+        <textarea class="input" id="message" rows="1" placeholder="Message Trainee" enterkeyhint="send"></textarea>
+        <button class="primary" id="send" type="submit">Send</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="view apps" id="apps" role="tabpanel" aria-labelledby="tab-apps" hidden>
+    <div id="dashboard" aria-live="polite"></div>
+  </section>
+</main>
+<script src="/app/config.js"></script>
+<script>
+/*__SUPABASE_JS__*/
+</script>
+<script>
+/*__APPLY_CARD__*/
+</script>
+<script>
+/*__APPROVAL_CARDS__*/
+</script>
+<script>
+/*__DASHBOARD__*/
+</script>
+<script>
+/*__APP_JS__*/
+</script>
+</body>
+</html>

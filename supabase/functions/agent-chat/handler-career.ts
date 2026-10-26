@@ -322,7 +322,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const signup = await signupTurn({ admin, person: isBridgeCall ? null : supabase, userId: user.id, message, invite: body.invite, bridge: isBridgeCall, env: Deno.env, now: Date.now() });
         if (signup) {
           const sctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on", snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord: null });
-          const response = { thread_id: tid, reply: signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };
+          const response = { thread_id: tid, reply: flowCtx.note ? `${flowCtx.note} ${signup.reply}` : signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };
           const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(sctx), patch: undefined, input: userContent, response, taskIntent: null, batchIntent: null });
           flowCtx.note = null;
           return json(cors, saved.response, 200);

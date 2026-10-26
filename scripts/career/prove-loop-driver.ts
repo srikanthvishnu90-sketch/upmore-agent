@@ -126,6 +126,10 @@ if (fixtureSubmit) {
     { queue: cloudQueue, tmpRoot: `${workDir}/tmp`, log: () => {}, runEngine: (args, env, c) => engine([...args, "--state-dir", `${workDir}/state-submit`], env, c) });
   cloudRun = { ...r, finished: finished[0] ?? null };
   outcome = r.outcome === "submitted" ? "fixture_submitted" : `fixture_not_submitted:${r.reason}`;
+  // The engine's own record of that submit run: where its one request went (keys only), what the route stopped.
+  const ev = runs.at(-1)?.evidence || {};
+  out.submit_run = { result: runs.at(-1)?.result ?? null, post: ev.post ?? null, request_shape: ev.request_shape ?? null,
+    stopped_requests: ev.stopped_requests ?? [], transport_rejection: ev.transport_rejection ?? null };
   step("fixture_submit", { state: r.state, outcome: r.outcome, reason: r.reason });
 }
 done({ outcome, payload: job.payload, payload_sha256: payloadHash, approval: { card_id: card.id, payload_hash: payloadHash, engine_approval: job.payload.engine_approval, by: "tap" },

@@ -59,6 +59,8 @@ select t.must_fail($$select public.career_wave_approve_send((select id from publ
 select t.must_fail($$select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), 'Your spot is open: {link} Reply STOP to opt out.', encode(sha256(convert_to('Your spot is open: {link} Reply STOP to opt out.', 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')$$, 'text_must_name_trainee', 'the text names Trainee');
 select t.must_fail($$select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), 'Trainee: open {link} {name}. Reply STOP to opt out.', encode(sha256(convert_to('Trainee: open {link} {name}. Reply STOP to opt out.', 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')$$, 'text_unknown_placeholder', 'no placeholder but the links');
 select t.must_fail($$select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), 'Trainee: your spot is open. Reply STOP to opt out.', encode(sha256(convert_to('Trainee: your spot is open. Reply STOP to opt out.', 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')$$, 'text_needs_link', 'the text carries the link');
+select t.must_fail($$select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), (select body from tpl), encode(sha256(convert_to((select body from tpl) || ' ', 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')$$, 'text_hash_mismatch', 'the hash of exactly this text');
+select t.must_fail($$select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), 'Trainee: your spot is open: {link}', encode(sha256(convert_to('Trainee: your spot is open: {link}', 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')$$, 'text_must_say_stop', 'the text says how to stop');
 select t.ok(public.career_invite_claim_send((select id from public.career_invite_waves where open_key = 'wave-a'), '2026-10-26 18:02Z')->>'stop' = 'not_approved', 'nothing is claimed before the approval');
 select t.ok((public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), (select body from tpl), encode(sha256(convert_to((select body from tpl), 'UTF8')), 'hex'), 25, '2026-10-26 18:02Z')->>'approved')::int = 25, 'approved: 25');
 select t.ok((public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-a'), (select body from tpl), encode(sha256(convert_to((select body from tpl), 'UTF8')), 'hex'), 25, '2026-10-26 18:03Z')->>'replayed')::boolean, 'the same approval again is a no-op');
@@ -66,20 +68,25 @@ select t.ok((public.career_wave_approve_send((select id from public.career_invit
 -- ---------------------------------------------------------------- sending
 select t.ok(public.career_invite_claim_send((select id from public.career_invite_waves where open_key = 'wave-a'), '2026-10-26 15:59Z')->>'stop' = 'quiet_hours' and public.career_invite_claim_send((select id from public.career_invite_waves where open_key = 'wave-a'), '2026-10-27 01:00Z')->>'stop' = 'quiet_hours',
   'quiet hours: nothing before 16:00 UTC or from 01:00 UTC');
--- 0003 says STOP before the send; 0004's STOP comes while its send is in flight.
+-- 0003 says STOP before the send; 0004's STOP comes while its send is in flight. 0011's STOP was recorded by a path
+-- that does not stop invites (the trigger off): the claim still checks the number at send time.
 select public.channel_set_opt_out('+13125550003', true, '2026-10-26 18:04Z');
+alter table public.channel_contacts disable trigger career_invites_on_opt_out;
+select public.channel_set_opt_out('+13125550011', true, '2026-10-26 18:04Z');
+alter table public.channel_contacts enable trigger career_invites_on_opt_out;
 create temp table claimed (n int, j jsonb);
 do $$declare j jsonb; i int := 0; begin
   loop j := public.career_invite_claim_send((select id from public.career_invite_waves where open_key = 'wave-a'), '2026-10-26 18:05Z'); exit when j ? 'done' or j ? 'stop'; i := i + 1; insert into claimed values (i, j);
     if j->>'phone' = '+13125550004' then perform public.channel_set_opt_out('+13125550004', true, '2026-10-26 18:05Z'); end if;
     perform public.career_invite_mark_sent((j->>'invite_id')::uuid, j->>'phone' <> '+13125550007', 'lm-' || i, case when j->>'phone' = '+13125550007' then 'LoopMessage 500' end, '2026-10-26 18:05Z');
   end loop; end $$;
-select t.ok((select count(*) = 24 from claimed) and not exists (select from claimed where j->>'phone' = '+13125550003'), 'a number that said STOP before the send is never claimed');
+select t.ok((select count(*) = 23 from claimed) and not exists (select from claimed where j->>'phone' in ('+13125550003', '+13125550011')), 'a number that said STOP before the send is never claimed');
+select t.ok((select state from public.career_invites where phone = '+13125550011') = 'skipped_opt_out', 'an opted-out number found at send time is skipped, not sent');
 select t.ok((select state from public.career_invites where phone = '+13125550003') = 'stopped', 'its invite is stopped');
 select t.ok((select state || ',' || (token is null) from public.career_invites where phone = '+13125550004') = 'stopped,true', 'a STOP during the send wins over the send result');
 select t.ok((select state || ',' || send_error from public.career_invites where phone = '+13125550007') = 'failed,LoopMessage 500', 'a failed send is recorded as failed, with the error');
-select t.ok((select count(*) = 22 from public.career_invites where state = 'sent' and token is null and provider_id like 'lm-%' and expires_at = sent_at + interval '14 days'),
-  '22 sent: each with the provider id, no token kept, 14 days to use it');
+select t.ok((select count(*) = 21 from public.career_invites where state = 'sent' and token is null and provider_id like 'lm-%' and expires_at = sent_at + interval '14 days'),
+  '21 sent: each with the provider id, no token kept, 14 days to use it');
 select t.ok((select j->>'text' = (select body from tpl) and j->>'text_sha256' = encode(sha256(convert_to((select body from tpl), 'UTF8')), 'hex') from claimed limit 1), 'each claim carries the approved text and its hash');
 select t.ok((select status from public.career_invite_waves where open_key = 'wave-a') = 'sent', 'the wave is sent');
 
@@ -143,8 +150,8 @@ do $$declare r record; u uuid; i int := 0; begin
 insert into public.career_reply_truth_samples (run_at, checked, passed, source) values ('2026-10-27 17:00Z', 100, 98, 'live-verify (test)');
 create temp table g_pass as select * from public.career_wave_gate_rows('2026-10-27 19:00Z');
 select t.ok((select bool_and(status = 'pass') from g_pass), 'pass-shaped: every gate passes' || coalesce(': ' || (select string_agg(gate || '=' || status || ' (' || detail || ')', '; ') from g_pass where status <> 'pass'), ''));
-select t.ok((select value = 0.7727 and n = 22 from g_pass where gate = 'signup_completion'), 'completion 17/22 of the invites sent 24 hours or more ago (a STOP before the send and a failed send were never sent)');
-select t.ok((select value = 0.1 and n = 17 from g_pass where gate = 'cost_per_active_usd'), '$0.10 a person over 17 people');
+select t.ok((select value = 0.7619 and n = 21 from g_pass where gate = 'signup_completion'), 'completion 16/21 of the invites sent 24 hours or more ago (STOPs before the send and a failed send were never sent)');
+select t.ok((select value = 0.1 and n = 16 from g_pass where gate = 'cost_per_active_usd'), '$0.10 a person over 16 people');
 select t.ok((select (r->>'action') = 'double' and (r->>'recommended_size')::int = 50 and (r->>'last_wave_size')::int = 25 from public.career_wave_recommendation('2026-10-27 19:00Z') r), 'every gate passes: double, 25 -> 50');
 
 -- ---------------------------------------------------------------- warn-shaped: hold
@@ -219,8 +226,9 @@ select t.ok((public.career_wave_open(10, 'wave-c', 'owner: test override', '2026
 select t.ok((select override_reason from public.career_invite_waves where open_key = 'wave-c') = 'owner: test override', 'the reason is kept on the wave');
 select t.ok(public.career_wave_close((select id from public.career_invite_waves where open_key = 'wave-c'), 'test', '2026-10-27 19:01Z') = 10, 'closing wave C holds its 10');
 select t.ok((select count(*) = 10 from public.career_invites i join public.career_invite_waves w on w.id = i.wave_id where w.open_key = 'wave-c' and i.state = 'held'), 'closing holds the unsent invites');
--- Numbers whose local time Trainee can't know are held, never sent.
+-- Numbers whose local time Trainee can't know are held, never sent. 0099 said STOP before ever being invited.
 reset role;
+select public.channel_set_opt_out('+13125550099', true, '2026-10-27 19:02Z');
 update public.career_invite_waves set status = 'closed' where status <> 'closed';
 select public.career_wave_open(102, 'wave-d', 'owner: test the rest', '2026-10-27 19:02Z');
 select public.career_wave_approve_send((select id from public.career_invite_waves where open_key = 'wave-d'), (select body from tpl), encode(sha256(convert_to((select body from tpl), 'UTF8')), 'hex'),
@@ -233,4 +241,5 @@ select t.ok((select string_agg(phone || ':' || state, ',' order by phone) from p
 select t.ok(not exists (select from public.career_invites where phone = '+13125550950') and not exists (select from public.career_invites where phone = '+13125550900'),
   'the number with an account and the one without consent are never invited');
 select t.ok((select count(*) = 1 from public.career_invites where phone = '+13125550001'), 'the duplicate signup is one invite');
+select t.ok(not exists (select from public.career_invites where phone = '+13125550099'), 'a number that said STOP is never invited');
 rollback;

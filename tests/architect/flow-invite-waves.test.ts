@@ -246,6 +246,11 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     eq(await num(`select count(*) from public.career_consents where user_id = '${WEB}' and kind in ('age_18_plus', 'terms', 'privacy')`), 0, "no adult or terms consent recorded");
     const reuse = await handler.chat("tok-wave-web").say("hi", { invite: tok4() });
     eq(reuse.reply, SIGNUP_UNDER18, "the same person again stays blocked");
+    // STOP is never held behind the sign-up steps: "stop everything" reaches the account controls and quiets the account.
+    eq(await one(`select public.career_user_quiet('${WEB}')::text`), "false");
+    const stop = await handler.chat("tok-wave-web").say("stop everything");
+    assert(stop.status === 200 && stop.reply !== SIGNUP_UNDER18, stop.reply);
+    eq(await one(`select public.career_user_quiet('${WEB}')::text`), "true", `the account is quiet after "stop everything": ${stop.reply}`);
   });
 
   await t.step("8. an expired invite is refused and makes no account; a first text from an invited number makes the account", async () => {
@@ -278,8 +283,8 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
   });
 
   await t.step("9. STOP stops everything for that person: opted out on every channel, the account quiet, unredeemed invites stopped", async () => {
-    // 07 is still on the waitlist and uninvited; their number is invited next, then they text STOP on Telegram after
-    // linking... they have no account, so STOP comes on iMessage from their number before any send.
+    // 07 is invited in a third wave (opened past the failing completion gate with a reason, as the owner can), then
+    // texts STOP from their number before anything is sent: the invite is stopped and there is nothing left to approve.
     const w3 = await rpc("career_wave_open", { p_size: 1, p_key: "wave-3", p_override_reason: "test: after the 15-day jump the gates are recomputed", p_now: iso() });
     eq([w3.error, w3.data?.picked], [null, 1], JSON.stringify(w3));
     eq(await one(`select phone || ',' || state from public.career_invites where wave_id = ${w3.data.wave_id}`), `${phone(7)},ready`);

@@ -19,7 +19,7 @@ import { linkAsk, possessiveAsk, postingForLink, postingsForRole } from "./caree
 import { sameCompany, type TrackedApp } from "./career_mail.ts";
 // FEATURE 1 (2026-10-25): positions in the list, the listed postings checked on file, no resume on file, the server
 // prepare asked for the rows queued, and the coverage line (career_apply_from_chat.ts).
-import { checkListed, coverageLine, NO_RESUME_NEXT, NO_RESUME_REASON, positionsOf, type PrepareKick, prepareSentence } from "./career_apply_from_chat.ts";
+import { checkListed, coverageLine, NO_RESUME_NEXT, NO_RESUME_REASON, NO_RESUME_WAIT, positionsOf, type PrepareKick, prepareSentence } from "./career_apply_from_chat.ts";
 
 export const APPLY_QUEUE_INTENT = "career_apply_queue";
 const CO = "([A-Z][A-Za-z0-9&.'’-]*(?:\\s+(?:[A-Z][A-Za-z0-9&.'’-]*|\\d+|of|and|&))*)";
@@ -97,6 +97,11 @@ export interface ApplyChatDeps {
   // FEATURE E2E: the posting a link names, read on demand from the ATS's public API and stored as the ingest stores it
   // (career_apply_link.ts); absent, a link is not this turn's.
   link?: { db: PostingsDb; fetchFeed: FetchFeed } | null;
+  // FEATURE 1: whether a row queued here is prepared at once (the server prepare is configured: CAREER_PREPARE_AHEAD_URL
+  // and its token). Only then does "no resume on file" keep a posting out of the queue: an immediate try could only end
+  // in no_resume, which the worker records and holds for a week (prepare-ahead.ts). With it off, queueing only records
+  // the person's want, so the posting is queued and the reply says a confirmed resume is needed first. Absent, taken as on.
+  prepareOn?: () => boolean;
 }
 // A posting held back by the possible-match question (SERIAL-1490): queued only when the person answers no.
 export interface EmployerQuestion { job_id: string | null; url: string; company: string; title: string }
@@ -235,7 +240,8 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
     return { reply: `${coverageLine(0, 1)} Not queued: ${why}. (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)`, status: "refused", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
-  if (await noResume(o)) {
+  const resumeMissing = await noResume(o);
+  if (resumeMissing && prepareRunsNow(o)) {
     return { reply: `${coverageLine(0, 1)} Not queued: ${p.title} at ${p.company}: ${NO_RESUME_REASON}. ${NO_RESUME_NEXT}`, status: "no_resume", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
@@ -244,8 +250,9 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
   if (pace.limits?.unreadable !== undefined) return { reply: PACE_UNREADABLE(pace.limits.unreadable), status: "pace_unreadable", intent, posting: { job_id: p.job_id, company: p.company, title: p.title } };
   const r = await queueWants(o.wants, o.userId, screened.ok, o.now, { limits: pace.limits, tz: o.tz });
   const posting = { job_id: p.job_id, company: p.company, title: p.title };
-  const kick = r.queued ? await prepareFor(o, r.items.map((w) => w.posting_key)) : null;
-  const ahead = prepareSentence(kick, r.queued);
+  // With no confirmed resume on file nothing is asked to prepare: it could only end in no_resume.
+  const kick = r.queued && !resumeMissing ? await prepareFor(o, r.items.map((w) => w.posting_key)) : null;
+  const ahead = [prepareSentence(kick, r.queued), resumeMissing && r.queued ? NO_RESUME_WAIT : ""].filter(Boolean).join(" ");
   if (r.queued) {
     return { reply: `${coverageLine(1, 1)} Queued: ${p.title} at ${p.company} is on your apply list.${ahead ? ` ${ahead}` : ""} ${NOTHING_SENT(p.company)}`, status: "queued", intent, posting,
       coverage: { queued: 1, total: 1 }, ...(kick ? { prepare: kick } : {}) };
@@ -260,6 +267,10 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
 async function noResume(o: { resumeOnFile?: () => Promise<boolean | null> }): Promise<boolean> {
   if (!o.resumeOnFile) return false;
   try { return (await o.resumeOnFile()) === false; } catch { return false; }
+}
+function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
+  if (!o.prepareOn) return true;
+  try { return o.prepareOn() !== false; } catch { return true; }
 }
 async function prepareFor(o: { prepare?: (jobIds: string[]) => Promise<PrepareKick> }, ids: string[]): Promise<PrepareKick | null> {
   if (!o.prepare || !ids.length) return null;
@@ -312,7 +323,8 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   const asking = screened.refused.filter((r) => r.ask === "employer");
   const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }))];
   // FEATURE 1: with no confirmed resume on file nothing can be prepared, so nothing is queued; each posting is named.
-  if (screened.ok.length && await noResume(o)) {
+  const resumeMissing = screened.ok.length ? await noResume(o) : false;
+  if (resumeMissing && prepareRunsNow(o)) {
     for (const p of screened.ok) refused.push({ job_id: p.job_id ?? null, company: String(p.company ?? ""), title: String(p.title ?? ""), reason: NO_RESUME_REASON });
     return { reply: `${coverageLine(0, total)} Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}. ${NO_RESUME_NEXT}`, status: "no_resume", intent, queued: [], refused, coverage: { queued: 0, total } };
   }
@@ -326,11 +338,12 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
     already = r.already;
     for (const x of r.refused) refused.push({ job_id: x.posting.job_id, company: x.posting.company, title: x.posting.title, reason: x.reason });
   }
-  const kick = queued.length ? await prepareFor(o, queued.map((q) => q.job_id)) : null;
+  const kick = queued.length && !resumeMissing ? await prepareFor(o, queued.map((q) => q.job_id)) : null;
   const parts: string[] = [coverageLine(queued.length, total, already)];
   if (queued.length) parts.push(`Queued ${queued.length}${total > queued.length ? ` of the ${total}` : ""}${ask.kind === "all" && !note ? " I listed" : ""}: ${listed(queued.map(nameOf))}.`);
   const ahead = prepareSentence(kick, queued.length);
   if (ahead) parts.push(ahead);
+  if (resumeMissing && queued.length) parts.push(NO_RESUME_WAIT);
   if (already) parts.push(queued.length ? `${already} already in your queue, unchanged.` : `${already === slice.length ? (slice.length === 1 ? "That one is" : "Those are") : `${already} of them are`} already in your queue, so nothing changed.`);
   if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}.`);
   if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));

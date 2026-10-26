@@ -70,25 +70,37 @@ export async function seal(plain: Bytes, to: { secret_env: string; pub: string }
 }
 export async function open(s: Sealed, env: { get(k: string): string | undefined }): Promise<Bytes> {
   if (s.format !== FORMAT) throw new Error(`unknown format ${s.format}`);
+  let changedSecret: string | undefined;
   for (const r of s.recipients) {
     const secret = env.get(r.secret_env);
     if (!secret) continue;
     const me = await recipientFromSecret(secret);
-    if (me.pub !== r.pub) throw new Error(`the ${r.secret_env} here is not the one this set was sealed to (the secret was changed: rewrap it with the old one first)`);
+    if (me.pub !== r.pub) {
+      changedSecret ??= r.secret_env;
+      continue; // A rotated former recipient must not block a valid newer recipient.
+    }
     const dataKey = await unwrapKey(r, me.priv);
     const key = await crypto.subtle.importKey("raw", dataKey, "AES-GCM", false, ["decrypt"]);
     const plain = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(s.iv) }, key, unb64(s.ciphertext)));
     if (await sha256Hex(plain) !== s.sha256) throw new Error("the opened set does not match its recorded SHA-256");
     return plain;
   }
+  if (changedSecret) throw new Error(`the ${changedSecret} here is not the one this set was sealed to (the secret was changed: rewrap it with the old one first)`);
   throw new Error(`no recipient secret is set here (needs one of: ${s.recipients.map((r) => r.secret_env).join(", ")})`);
 }
 export async function rewrap(s: Sealed, env: { get(k: string): string | undefined }, secretEnv: string): Promise<Sealed> {
   const plain = await open(s, env); // proves an existing recipient opens it and the plaintext matches its hash
   // The data key is recovered from an existing recipient, then wrapped to the new one; the ciphertext is unchanged.
-  const r0 = s.recipients.find((r) => env.get(r.secret_env));
-  const me = await recipientFromSecret(env.get(r0!.secret_env)!);
-  const dataKey = await unwrapKey(r0!, me.priv);
+  let r0: Sealed["recipients"][number] | undefined;
+  let me: Awaited<ReturnType<typeof recipientFromSecret>> | undefined;
+  for (const r of s.recipients) {
+    const secret = env.get(r.secret_env);
+    if (!secret) continue;
+    const candidate = await recipientFromSecret(secret);
+    if (candidate.pub === r.pub) { r0 = r; me = candidate; break; }
+  }
+  if (!r0 || !me) throw new Error("no matching recipient secret for rewrap");
+  const dataKey = await unwrapKey(r0, me.priv);
   const next = await recipientFromSecret(env.get(secretEnv) ?? "");
   const added = { secret_env: secretEnv, ...(await wrapKey(dataKey, next.pub)) };
   dataKey.fill(0); plain.fill(0);

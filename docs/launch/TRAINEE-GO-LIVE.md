@@ -12,6 +12,52 @@ bash scripts/launch/trainee-go-live.sh --sha <sha>             # the real run (a
 bash scripts/launch/trainee-go-live.sh --verify <sha>          # afterwards, any time: does the live project match <sha>?
 ```
 
+## From GitHub (the production workflow)
+
+`.github/workflows/deploy-production.yml` runs this same script, `--sha $GITHUB_SHA --non-interactive`, on every push to
+`release/production`, inside the GitHub environment `production`. Shipping is a push; nothing runs until you approve it.
+
+**Once, before the first push** (if `production` does not exist when the first run starts, GitHub creates it with no
+protection):
+
+1. Settings > Environments > New environment `production`. Required reviewers: yourself. Leave "Prevent self-review"
+   off (you push and you approve). Deployment branches and tags: Selected branches, `release/production`.
+2. In that environment, add these **environment secrets** (not repository secrets, so only an approved run sees them):
+
+| Secret | Where the value comes from |
+|---|---|
+| `SUPABASE_ACCESS_TOKEN` | supabase.com > your avatar > Account preferences > Access Tokens > Generate new token |
+| `SUPABASE_PROJECT_REF` | Supabase > Project Settings > General > Project ID (20 letters) |
+| `SUPABASE_DB_URL` | Supabase > Connect (top bar) > Connection string > **Session pooler** URI (port 5432; GitHub's runners have no IPv6, so not the direct `db.<ref>.supabase.co` one), password filled in. A forgotten password: Project Settings > Database > Reset database password |
+| `TRAINEE_INBOUND_SECRET` | the `?secret=` value in LoopMessage's webhook URL. Required unless it is already set on the project (it is never generated here: a new one would break LoopMessage's URL unseen) |
+| `CAREER_INGEST_SECRET`, `CAREER_PROACTIVE_SECRET`, `TRAINEE_DELIVER_SECRET` | the values already live, readable only by you in Supabase > SQL Editor: `select name, decrypted_secret from vault.decrypted_secrets where name like 'trainee_%_secret'`. Leave unset to keep them: a secret already on the project is kept, its pg_cron job and Vault copy untouched, and the smoke skips its gate |
+| `OPENAI_API_KEY` | platform.openai.com > the project > API keys > Create new secret key. Unset keeps the one on the project |
+| `LOOPMESSAGE_API_KEY` | LoopMessage dashboard. Unset keeps the one on the project |
+| optional: `INGEST_CONTACT_EMAIL`, `TRAINEE_ALLOWED_CONTACTS`, `LOOPMESSAGE_DAILY_CONTACTS`, `PDL_API_KEY`, `UPMORE_TEST_JWT`, the `WHATSAPP_*` ones | as in "What you are asked for" below; unset keeps what the project has |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` | **leave unset** for now (Telegram, below) |
+
+3. Ship: `git push origin <40-character sha>:refs/heads/release/production`. The run waits on "Review deployments":
+   approve it there. It uploads one artifact, `deploy-production-<sha>`: the full log, the provenance manifest and the
+   rollback copy of the live agent-chat, every secret value replaced by `***` (`scripts/launch/mask-artifacts.py`).
+
+Every PR that touches `supabase/`, `scripts/launch/` or `tests/db/` runs `deploy-preflight.yml`: this script's
+`--dry-run --non-interactive` at the PR head, and `tests/db/rehearse_live_migrations.sh` (go-live's migration step on a
+throwaway Postgres shaped like the live project, then compared object by object with a file-order build).
+
+**Telegram.** The live webhook points at `telegram-inbound` (the test bridge, `_shared/telegram_bridge.ts`); this script
+deploys `trainee-telegram`, a separate function, and never deploys, deletes or repoints `telegram-inbound`. Both read the
+project-wide `TELEGRAM_BOT_TOKEN` and `TELEGRAM_WEBHOOK_SECRET`, so: leave the three Telegram secrets unset and the live
+values stay (a different value would make `telegram-inbound` refuse every update). With `TELEGRAM_BOT_TOKEN` given, the
+smoke fails until the webhook points at `trainee-telegram`. Moving Telegram to `trainee-telegram` is your step, by hand,
+after a deploy: run `setWebhook` (section Telegram, step 3) with the URL `.../functions/v1/trainee-telegram` and the
+**same** secret token; `getWebhookInfo` then shows the new URL; only after that add the Telegram secrets here. Going back
+is the same `setWebhook` with `.../functions/v1/telegram-inbound`.
+
+**Rollback from GitHub** (commits that have this workflow): `git push --force origin <earlier sha>:refs/heads/release/production`
+and approve. Migrations are additive and every mark is already true, so none runs; every function is redeployed from that
+commit and the ledger names it. For agent-chat alone, or a commit before this workflow, use the artifact's `rollback/`
+copy: `cd rollback/agent-chat-<UTC> && supabase functions deploy agent-chat --project-ref <ref>` (section Rollback).
+
 **Provenance (WO-093).** The run ships exactly `<sha>` and nothing else. It refuses to start when the tree has any change
 or untracked file, when `--sha` is missing, short or not `HEAD`, or when the commit's router bundle is stale
 (`python3 scripts/build-router-core.py --check` and `--career-only --check`, run in the staged commit). It then stages

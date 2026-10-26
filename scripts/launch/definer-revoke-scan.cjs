@@ -1,81 +1,183 @@
-// Static check (launch readiness B1, 2026-10-26): every migration that creates a SECURITY DEFINER function must, in the
-// same file, revoke EXECUTE on it from both PUBLIC and anon. Supabase grants EXECUTE on every new public function to anon,
-// authenticated and service_role through default privileges, so "revoke ... from public" alone leaves anon able to call
-// it over /rest/v1/rpc; the grant must be taken from anon by name. Used by tests/career-definer-revoke.test.cjs.
+// Static check (launch readiness B1, 2026-10-26): every migration that makes a SECURITY DEFINER function must, in the
+// same file, revoke EXECUTE on that exact function (name and argument types) from both PUBLIC and anon, and must not
+// grant it back to either afterwards. Supabase grants EXECUTE on every new public function to anon, authenticated and
+// service_role through default privileges, so "revoke ... from public" alone leaves anon able to call it over
+// /rest/v1/rpc; the grant must be taken from anon by name.
+//
+// THE AUTHORITATIVE GUARD IS tests/db/definer_lockdown.test.sql, run by tests/db/run.sh against the schema every
+// migration actually builds: it fails on any SECURITY DEFINER function in public that anon can execute, however it got
+// there. This scan is an early, file-level warning and reads SQL with regular expressions, not a parser. What it covers:
+//   - CREATE [OR REPLACE] FUNCTION ... SECURITY DEFINER (before or after the body) and ALTER FUNCTION ... SECURITY DEFINER;
+//   - names quoted or not, schema-qualified or not, quoted names with spaces;
+//   - the revoke must name the same overload (argument types compared after normalizing names, defaults, modes and the
+//     common type aliases); a revoke with no argument list covers every overload of the name, as in Postgres;
+//   - a GRANT of EXECUTE (or ALL) to PUBLIC or anon after the last revoke undoes it;
+//   - dynamic SQL that creates or alters a function (EXECUTE of a string that holds CREATE/ALTER FUNCTION, as in a DO
+//     block or a generator function) cannot be read here, so the file is refused unless it carries the marker
+//     "-- definer-scan: dynamic function DDL reviewed" stating someone checked what it builds.
+// Used by tests/career-definer-revoke.test.cjs.
 "use strict";
 const fs = require("fs");
 const path = require("path");
 
-const strip = (sql) => sql.replace(/--[^\n]*/g, " ");
-const bare = (name) => name.replace(/"/g, "").replace(/^public\./i, "").toLowerCase();
-
-// The functions a file creates as SECURITY DEFINER: the header between "create function" and its body's opening quote.
-function definersIn(sql) {
-  const out = [];
-  const re = /create\s+(?:or\s+replace\s+)?function\s+((?:"?\w+"?\.)?"?\w+"?)\s*\(/gi;
-  let m;
-  while ((m = re.exec(sql))) {
-    const rest = sql.slice(m.index);
-    const body = rest.search(/\bas\s+(\$[a-z_]*\$|')/i);
-    const header = body < 0 ? rest.slice(0, 2000) : rest.slice(0, body);
-    // "security definer" may also follow the body (plain SQL style: ... $$ language sql security definer;).
-    const after = body < 0 ? "" : (() => {
-      const tag = rest.slice(body).match(/\bas\s+(\$[a-z_]*\$|')/i)[1];
-      const start = body + rest.slice(body).indexOf(tag) + tag.length;
-      const end = rest.indexOf(tag, start);
-      return end < 0 ? "" : rest.slice(end + tag.length, end + tag.length + 300).split(";")[0];
-    })();
-    if (/\bsecurity\s+definer\b/i.test(header) || /\bsecurity\s+definer\b/i.test(after)) out.push(bare(m[1]));
-  }
-  return [...new Set(out)];
+const REVIEWED_MARKER = /--\s*definer-scan:\s*dynamic function DDL reviewed\b/i;
+const stripComments = (sql) => sql.replace(/--[^\n]*/g, " ");
+// A function name: optional schema, each part an identifier or a "quoted identifier" (which may hold spaces).
+const IDENT = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`;
+const QNAME = String.raw`(${IDENT}(?:\s*\.\s*${IDENT})?)`;
+const unquote = (part) => part.startsWith('"') ? part.slice(1, -1).replace(/""/g, '"') : part.toLowerCase();
+function bare(qname) {
+  const parts = qname.match(new RegExp(IDENT, "g")) || [];
+  const last = parts[parts.length - 1] || "";
+  const schema = parts.length > 1 ? unquote(parts[0]) : "public";
+  return schema === "public" ? unquote(last) : `${schema}.${unquote(last)}`;
 }
 
-// The functions a file revokes EXECUTE on from both PUBLIC and anon (one statement or two).
-function revokedIn(sql) {
-  const from = new Map();
-  const re = /revoke\s+[^;]*?\bon\s+(?:function|functions|routine|routines)\s+([^;]*?)\s+from\s+([^;]+);/gi;
+const ALIASES = {
+  int: "integer", int4: "integer", int2: "smallint", int8: "bigint", bool: "boolean", float8: "double precision",
+  float4: "real", varchar: "character varying", "char": "character", timestamptz: "timestamp with time zone",
+  timestamp: "timestamp without time zone", timetz: "time with time zone", decimal: "numeric",
+};
+// The argument list between the outer parentheses, starting at an index that holds "(".
+function parenBody(s, open) {
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    if (s[i] === "(") depth++;
+    else if (s[i] === ")") { depth--; if (depth === 0) return { body: s.slice(open + 1, i), end: i + 1 }; }
+  }
+  return { body: s.slice(open + 1), end: s.length };
+}
+function splitTop(s) {
+  const out = []; let depth = 0, cur = "";
+  for (const ch of s) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) { out.push(cur); cur = ""; } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur);
+  return out;
+}
+// Argument types of a signature, as Postgres identifies an overload: OUT parameters dropped, names and defaults dropped.
+// fromDefinition: the list carries parameter names ("p_user uuid default null"); a revoke's list may or may not.
+function argTypes(list) {
+  return splitTop(list).map((a) => {
+    let t = a.replace(/\s+(default\b|=)[\s\S]*$/i, "").trim().toLowerCase().replace(/\s+/g, " ");
+    const mode = /^(in|out|inout|variadic)\s+/.exec(t);
+    if (mode) { if (mode[1] === "out") return null; t = t.slice(mode[0].length); }
+    const words = t.split(" ");
+    // "p_user uuid" -> "uuid"; a lone type stays; "double precision" / "character varying" / "timestamp with time zone" stay.
+    const known = /^(double|character|timestamp|time|bit|interval)$/;
+    if (words.length > 1 && !known.test(words[0]) && !/[\[(]/.test(words[0])) words.shift();
+    t = words.join(" ").replace(/^public\./, "").replace(/\(\s*\d+(\s*,\s*\d+)?\s*\)/g, "");
+    return ALIASES[t] || t;
+  }).filter((t) => t !== null && t !== "").join(",");
+}
+
+// Every SECURITY DEFINER function the file makes: { key: "name(types)", name, at }.
+function definersIn(sql) {
+  const out = [];
+  const create = new RegExp(String.raw`create\s+(?:or\s+replace\s+)?function\s+${QNAME}\s*\(`, "gi");
+  let m;
+  while ((m = create.exec(sql))) {
+    const open = m.index + m[0].length - 1;
+    const { body: args, end } = parenBody(sql, open);
+    const rest = sql.slice(end);
+    const bodyAt = rest.search(/\bas\s+(\$[a-z_0-9]*\$|')/i);
+    const header = bodyAt < 0 ? rest.slice(0, 2000) : rest.slice(0, bodyAt);
+    let after = "";
+    if (bodyAt >= 0) {
+      const tag = rest.slice(bodyAt).match(/\bas\s+(\$[a-z_0-9]*\$|')/i)[1];
+      const start = bodyAt + rest.slice(bodyAt).indexOf(tag) + tag.length;
+      const close = rest.indexOf(tag, start);
+      after = close < 0 ? "" : rest.slice(close + tag.length, close + tag.length + 400).split(";")[0];
+    }
+    if (/\bsecurity\s+definer\b/i.test(header) || /\bsecurity\s+definer\b/i.test(after)) {
+      out.push({ name: bare(m[1]), key: `${bare(m[1])}(${argTypes(args)})`, at: m.index });
+    }
+  }
+  const alter = new RegExp(String.raw`alter\s+function\s+${QNAME}\s*(\()?`, "gi");
+  while ((m = alter.exec(sql))) {
+    let args = null, end = m.index + m[0].length;
+    if (m[2]) { const p = parenBody(sql, end - 1); args = p.body; end = p.end; }
+    const stmt = sql.slice(end).split(";")[0];
+    if (/\bsecurity\s+definer\b/i.test(stmt)) out.push({ name: bare(m[1]), key: args === null ? `${bare(m[1])}(*)` : `${bare(m[1])}(${argTypes(args)})`, at: m.index });
+  }
+  const seen = new Set();
+  return out.filter((d) => !seen.has(d.key) && seen.add(d.key));
+}
+
+// Each REVOKE / GRANT on functions, in file order: { kind, name, key (null: every overload), roles, at }.
+function privilegeStatements(sql) {
+  const out = [];
+  const re = /\b(revoke|grant)\s+([^;]*?)\bon\s+(?:function|functions|routine|routines)\s+([\s\S]*?)\s+(from|to)\s+([^;]+);/gi;
   let m;
   while ((m = re.exec(sql))) {
-    const roles = m[2].toLowerCase().split(",").map((r) => r.trim().replace(/\s+(cascade|restrict)$/, ""));
-    // Each name in the list: name(...) separated by commas outside parentheses.
-    let depth = 0, cur = "";
-    const names = [];
-    for (const ch of m[1]) {
-      if (ch === "(") depth++;
-      if (ch === ")") depth--;
-      if (ch === "," && depth === 0) { names.push(cur); cur = ""; } else cur += ch;
+    const kind = m[1].toLowerCase();
+    const what = m[2].toLowerCase();
+    if (kind === "grant" && !/\b(execute|all)\b/.test(what)) continue;
+    const roles = m[5].toLowerCase().split(",").map((r) => r.trim().replace(/\s+(cascade|restrict|with grant option)$/, "").replace(/^group\s+/, ""));
+    for (const item of splitTop(m[3])) {
+      const nm = new RegExp(String.raw`^\s*${QNAME}\s*(\()?`).exec(item);
+      if (!nm) continue;
+      let key = null;
+      if (nm[2]) { const p = parenBody(item, nm[0].length - 1); key = `${bare(nm[1])}(${argTypes(p.body)})`; }
+      out.push({ kind, name: bare(nm[1]), key, roles, at: m.index });
     }
-    names.push(cur);
-    for (const n of names) {
-      const fn = bare(n.trim().split("(")[0].trim());
-      if (!fn) continue;
-      const set = from.get(fn) || new Set();
-      for (const r of roles) set.add(r);
-      from.set(fn, set);
-    }
+  }
+  return out;
+}
+const covers = (stmt, d) => stmt.name === d.name && (stmt.key === null || stmt.key === d.key || d.key.endsWith("(*)"));
+
+// Back-compat for callers: name -> roles revoked (any overload).
+function revokedIn(sql) {
+  const from = new Map();
+  for (const s of privilegeStatements(sql)) {
+    if (s.kind !== "revoke") continue;
+    const set = from.get(s.name) || new Set();
+    for (const r of s.roles) set.add(r);
+    from.set(s.name, set);
   }
   return from;
 }
 
-function scan(dir) {
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-  const missing = [];
-  for (const f of files) {
-    const sql = strip(fs.readFileSync(path.join(dir, f), "utf8"));
-    const definers = definersIn(sql);
-    if (!definers.length) continue;
-    const revoked = revokedIn(sql);
-    for (const fn of definers) {
-      const roles = revoked.get(fn) || new Set();
-      if (!roles.has("public") || !roles.has("anon")) missing.push({ file: f, fn, has: [...roles].sort() });
-    }
+// Dynamic function DDL: an EXECUTE in the file, and a string literal that holds CREATE/ALTER FUNCTION.
+function dynamicFunctionDdl(raw) {
+  const sql = stripComments(raw);
+  const literal = /'(?:[^']|'')*'|\$([a-z_0-9]*)\$[\s\S]*?\$\1\$/gi;
+  let hasDdlString = false, m;
+  while ((m = literal.exec(sql))) {
+    const s = m[0];
+    // The function's own body ($$ ... $$) is a literal too: look inside it for a quoted string of DDL.
+    const inner = s.startsWith("$") ? (s.match(/'(?:[^']|'')*'/g) || []) : [s];
+    if (inner.some((x) => /\b(create\s+(or\s+replace\s+)?|alter\s+)function\b/i.test(x))) { hasDdlString = true; break; }
   }
-  return missing;
+  return hasDdlString && /\bexecute\b/i.test(sql);
 }
 
-module.exports = { scan, definersIn, revokedIn };
+function scanText(file, raw) {
+  const findings = [];
+  const sql = stripComments(raw);
+  const stmts = privilegeStatements(sql);
+  for (const d of definersIn(sql)) {
+    const revokes = stmts.filter((s) => s.kind === "revoke" && covers(s, d));
+    const roles = new Set(revokes.flatMap((s) => s.roles));
+    const lastRevoke = revokes.reduce((a, s) => Math.max(a, s.at), -1);
+    const regrant = stmts.find((s) => s.kind === "grant" && covers(s, d) && s.at > lastRevoke && s.roles.some((r) => r === "public" || r === "anon"));
+    if (!roles.has("public") || !roles.has("anon")) findings.push({ file, fn: d.name, key: d.key, why: "no revoke from public and anon", has: [...roles].sort() });
+    else if (regrant) findings.push({ file, fn: d.name, key: d.key, why: "granted back to public or anon after the revoke", has: [...roles].sort() });
+  }
+  if (dynamicFunctionDdl(raw) && !REVIEWED_MARKER.test(raw)) findings.push({ file, fn: "(dynamic)", key: "(dynamic)", why: "dynamic SQL creates or alters a function", has: [] });
+  return findings;
+}
+
+function scan(dir) {
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  return files.flatMap((f) => scanText(f, fs.readFileSync(path.join(dir, f), "utf8")));
+}
+
+module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, REVIEWED_MARKER };
 if (require.main === module) {
   const miss = scan(process.argv[2] || path.join(__dirname, "../../supabase/migrations"));
-  for (const x of miss) console.log(`${x.file}\t${x.fn}\t${x.has.join(",") || "-"}`);
-  console.log(`${miss.length} definer functions without a revoke from both public and anon`);
+  for (const x of miss) console.log(`${x.file}\t${x.key}\t${x.why}\t${x.has.join(",") || "-"}`);
+  console.log(`${miss.length} findings`);
 }

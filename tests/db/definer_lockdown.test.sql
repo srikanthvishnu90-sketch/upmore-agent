@@ -10,7 +10,12 @@ reset role;
 do $$
 declare n text;
 begin
-  foreach n in array array['exec_vault_read','plaid_month_spend','simplefin_secret_exists','simplefin_store_access_url',
+  -- plaid_month_spend takes the person's id, as live (20260927_000006_plaid_spend_governor.sql:95); the others text.
+  if to_regprocedure('public.plaid_month_spend(uuid)') is null then
+    create function public.plaid_month_spend(p uuid) returns bigint language sql security definer set search_path = public, pg_temp as $f$ select 0::bigint $f$;
+    grant execute on function public.plaid_month_spend(uuid) to public, anon, authenticated, service_role;
+  end if;
+  foreach n in array array['exec_vault_read','simplefin_secret_exists','simplefin_store_access_url',
     'generate_referral_code','is_eligible_referrer','qualify_referral','get_referral_stats','credit_pending_referral',
     'report_ai_anomaly'] loop
     if to_regprocedure('public.'||n||'(text)') is null then
@@ -42,9 +47,9 @@ select t.ok(has_function_privilege('anon','public.exec_vault_read(text)','EXECUT
 select t.ok(not has_function_privilege('anon','public.exec_vault_read(text)','EXECUTE')
   and not has_function_privilege('authenticated','public.exec_vault_read(text)','EXECUTE')
   and has_function_privilege('service_role','public.exec_vault_read(text)','EXECUTE')
-  and not has_function_privilege('anon','public.plaid_month_spend(text)','EXECUTE')
-  and not has_function_privilege('authenticated','public.plaid_month_spend(text)','EXECUTE')
-  and has_function_privilege('service_role','public.plaid_month_spend(text)','EXECUTE'),
+  and not has_function_privilege('anon','public.plaid_month_spend(uuid)','EXECUTE')
+  and not has_function_privilege('authenticated','public.plaid_month_spend(uuid)','EXECUTE')
+  and has_function_privilege('service_role','public.plaid_month_spend(uuid)','EXECUTE'),
   'exec_vault_read and plaid_month_spend: service role only');
 select t.ok((select bool_and(not has_function_privilege('anon',('public.'||n||'(text)')::regprocedure,'EXECUTE')
     and has_function_privilege('authenticated',('public.'||n||'(text)')::regprocedure,'EXECUTE')
@@ -81,3 +86,28 @@ begin
   if no_path is not null then raise exception 'FAIL SECURITY DEFINER functions without a fixed search_path: %', no_path; end if;
   raise notice 'ok   every SECURITY DEFINER function in public sets its search_path';
 end $$;
+
+-- 5. Go-live's own MIGRATION_MARK for this file, read from scripts/launch/trainee-go-live.sh (not a copy): it reads true
+--    only when anon can run no definer function AND signed-in people cannot run exec_vault_read or plaid_month_spend.
+\set lockdown_mark `grep -o "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef.*" "$UPMORE_ROOT/scripts/launch/trainee-go-live.sh" | sed 's/"$//'`
+begin;
+select t.ok((select :lockdown_mark), 'go-live''s mark reads true on the locked-down schema');
+do $$ begin
+  if to_regprocedure('public.exec_vault_read(text)') is null then
+    create function public.exec_vault_read(p text) returns text language sql security definer set search_path = public, pg_temp as $f$ select p $f$;
+  end if;
+  if to_regprocedure('public.plaid_month_spend(uuid)') is null then
+    create function public.plaid_month_spend(p uuid) returns bigint language sql security definer set search_path = public, pg_temp as $f$ select 0::bigint $f$;
+  end if;
+end $$;
+revoke all on function public.exec_vault_read(text), public.plaid_month_spend(uuid) from public, anon, authenticated;
+select t.ok((select :lockdown_mark), 'the mark reads true with both service-role only');
+grant execute on function public.exec_vault_read(text) to authenticated;
+select t.ok(not (select :lockdown_mark), 'the mark reads false while signed-in people can run exec_vault_read');
+revoke execute on function public.exec_vault_read(text) from authenticated;
+grant execute on function public.plaid_month_spend(uuid) to authenticated;
+select t.ok(not (select :lockdown_mark), 'the mark reads false while signed-in people can run plaid_month_spend');
+revoke execute on function public.plaid_month_spend(uuid) from authenticated;
+grant execute on function public.exec_vault_read(text) to anon;
+select t.ok(not (select :lockdown_mark), 'the mark reads false while anon can run a definer function');
+rollback;

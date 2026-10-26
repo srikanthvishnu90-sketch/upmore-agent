@@ -59,7 +59,7 @@ Deno.test("connector asks: connect, disconnect and what can you see; past tense 
 
 Deno.test("connect reply: each scope in plain words, the link alone, never a password or a code", () => {
   const r = connectReply({ scopes: [READ_SCOPE], url: "https://x.test/functions/v1/career-connect?t=abc" });
-  assert(/read: Google's permission is to read your mail/.test(r) && !/send:/.test(r), r);
+  assert(/read: Google's permission covers all of your mail/.test(r) && !/send:/.test(r), r);
   assert(/expires in 15 minutes/.test(r) && /never ask for your password or a code/.test(r), r);
   eq(r.split("\n").at(-1), "https://x.test/functions/v1/career-connect?t=abc");
 });
@@ -82,7 +82,7 @@ Deno.test("connect flow: the state is signed, bound to one link and expires; a f
 });
 
 Deno.test("connect flow: the message says only what Google granted", () => {
-  eq(connectedMessage("a@g.test", [READ_SCOPE]), `Gmail connected: a@g.test. I can now read the confirmation, reply and code emails employers send you. You didn't allow sending, so I won't do that. Say "disconnect gmail" any time to remove it.`);
+  eq(connectedMessage("a@g.test", [READ_SCOPE]), `Gmail connected: a@g.test. You allowed me to read your mail, for employers' replies and application codes. You didn't allow sending, so I won't do that. Say "disconnect gmail" any time to remove it.`);
   assert(/You didn't allow reading mail, so I won't do that/.test(connectedMessage(null, [SEND_SCOPE])));
 });
 
@@ -98,4 +98,28 @@ Deno.test("connect flow: unconfigured, a tap uses nothing and goes nowhere; a ba
   eq(back.status, 400);
   eq(calls, []);
   assert((back.headers.get("content-security-policy") ?? "").includes("frame-ancestors 'none'"));
+});
+
+Deno.test("connect flow pages: text from the records is escaped (no markup or script gets in)", async () => {
+  const { page } = await import("../../supabase/functions/_shared/career_connect_flow.ts");
+  const html = await page(`<img src=x onerror=alert(1)>`, [`"><script>alert(1)</script>`, "a & b"], 200, { action: "https://p.test/x\"><b>", token: `t"><script>`, label: "Go" }).text();
+  assert(!/<script>|<img|<b>/.test(html), html);
+  assert(html.includes("&lt;script&gt;") && html.includes("&amp;") && html.includes("&quot;&gt;&lt;b&gt;"), html);
+});
+
+Deno.test("connector asks: oversized or empty input is never a connector ask", () => {
+  eq(connectorAsk(`connect gmail ${"x".repeat(400)}`), null);
+  eq(connectorAsk("   "), null);
+});
+
+Deno.test("apply gate: only with CAREER_NEEDS_RESUME_FIRST=on, only for an apply ask, and never when the server prepare refuses it itself", async () => {
+  const { applyGate } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  const admin = new Proxy({}, { get() { throw new Error("no record is read"); } });
+  const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
+  const link = "apply me to https://jobs.ashbyhq.com/ramp/a13ae586-f4cb-4385-8822-c42b9b54ed74";
+  const base = { admin, userId: "u", profile: null, situation: null };
+  eq(await applyGate({ ...base, message: link, env: env({}) }), null, "off by default: FEATURE 1 decides");
+  eq(await applyGate({ ...base, message: link, env: env({ CAREER_NEEDS_RESUME_FIRST: "on", CAREER_PREPARE_AHEAD_URL: "https://w.test", CAREER_PREPARE_AHEAD_TOKEN: "k" }) }), null,
+    "the server prepare is configured: its own no_resume reply asks for the resume");
+  eq(await applyGate({ ...base, message: "what can you see?", env: env({ CAREER_NEEDS_RESUME_FIRST: "on" }) }), null, "not an apply ask");
 });

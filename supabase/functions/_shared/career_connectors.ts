@@ -48,7 +48,7 @@ export function connectorAsk(message: string): ConnectorAsk | null {
 
 // ------------------------------------------------------------------------------------------------ plain words
 const SCOPE_WORDS: Record<string, string> = {
-  [READ_SCOPE]: "read: Google's permission is to read your mail; I only look at mail from employers and application systems (confirmations, replies, and the code an application form emails you), never anything else",
+  [READ_SCOPE]: "read: Google's permission covers all of your mail. I use it for two things: the sender, subject and short preview of new mail, to spot employers' replies, and, during an application you approved, the code email from that application system",
   [SEND_SCOPE]: "send: only a message you approve word for word in this chat, from your own Gmail",
 };
 export function scopeLines(scopes: string[]): string[] {
@@ -331,7 +331,7 @@ async function seeReply(d: NeedsTurnDeps): Promise<string> {
   if (grant && grant.scopes.length) {
     const can = [grant.scopes.includes(READ_SCOPE) ? "read" : null, grant.scopes.includes(SEND_SCOPE) ? "send" : null].filter(Boolean).join(" and ");
     lines.push(`Gmail: connected${grant.email ? ` as ${grant.email}` : ""}${can ? ` (${can})` : ""}.`);
-    if (grant.scopes.includes(READ_SCOPE)) lines.push("- With it I read only the sender, subject, date and Google's short preview of new mail, to spot employers' replies, and, during an application you approved, the code email the application system sends.");
+    if (grant.scopes.includes(READ_SCOPE)) lines.push("- When I check your mail for employers' replies, I read the sender, subject, date and Google's short preview of new mail, not the full messages. During an application you approved, I read only the code email from that application system.");
     if (grant.scopes.includes(SEND_SCOPE)) lines.push("- I send only a message you approved word for word here.");
   } else lines.push(`Gmail: not connected, so I can't see any of your email. Say "connect gmail" if you want me to read employers' replies and codes.`);
   lines.push(state.resume === "confirmed" ? "Your resume: on file, confirmed by you." : state.resume === "drafts" ? "Your resume: read, but you haven't told me it's yours yet." : state.resume === "none" ? "Your resume: not on file." : "Your resume: I couldn't read that record just now.");

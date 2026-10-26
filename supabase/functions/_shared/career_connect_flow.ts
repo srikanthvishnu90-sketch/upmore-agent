@@ -79,10 +79,10 @@ const plain = (lines: string[]) => lines.map((l) => l.replace(/^- /, ""));
 
 // What the person is told in the chat once Google answered: what was granted, in plain words, and how to undo it.
 export function connectedMessage(email: string | null, granted: string[]): string {
-  const can = [granted.includes(READ_SCOPE) ? "read the confirmation, reply and code emails employers send you" : null,
-    granted.includes(SEND_SCOPE) ? "send only messages you approve word for word" : null].filter(Boolean);
+  const can = [granted.includes(READ_SCOPE) ? "read your mail, for employers' replies and application codes" : null,
+    granted.includes(SEND_SCOPE) ? "send from your Gmail, only messages you approve word for word" : null].filter(Boolean);
   const not = [!granted.includes(READ_SCOPE) ? "reading mail" : null, !granted.includes(SEND_SCOPE) ? "sending" : null].filter(Boolean);
-  return `Gmail connected: ${email ?? "your Google account"}.${can.length ? ` I can now ${can.join(", and ")}.` : ""}` +
+  return `Gmail connected: ${email ?? "your Google account"}.${can.length ? ` You allowed me to ${can.join(", and to ")}.` : ""}` +
     `${not.length ? ` You didn't allow ${not.join(" or ")}, so I won't do that.` : ""} Say "disconnect gmail" any time to remove it.`;
 }
 

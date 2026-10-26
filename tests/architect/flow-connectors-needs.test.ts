@@ -54,11 +54,14 @@ function fakes() {
       const form = new URLSearchParams(body);
       if (u.pathname === "/token") {
         if (form.get("client_secret") !== "test-client-secret" || form.get("redirect_uri") !== CONNECT) return Response.json({ error: "invalid_client" }, { status: 401 });
-        const who = form.get("code") === "CODE-SAM" ? "sam@gmail.test" : "pat@gmail.test";
-        return Response.json({ access_token: `AT-${who}`, refresh_token: `RT-${who}`, expires_in: 3599, token_type: "Bearer",
-          scope: form.get("code") === "CODE-SAM" ? `openid ${READ} email` : `openid ${READ} ${SEND} email`, id_token: idToken(who) });
+        const code = form.get("code");
+        if (code === "CODE-NETFAIL") throw new TypeError("network down"); // the exchange never answers
+        const who = code?.startsWith("CODE-SAM") ? "sam@gmail.test" : "pat@gmail.test";
+        // A second consent often comes back with no refresh token (Google sends one only on the first grant).
+        return Response.json({ access_token: `AT-${who}${code === "CODE-SAM2" ? "-2" : ""}`, ...(code === "CODE-SAM2" ? {} : { refresh_token: `RT-${who}` }), expires_in: 3599, token_type: "Bearer",
+          scope: code === "CODE-SAM" ? `openid ${READ} email` : `openid ${READ} ${SEND} email`, id_token: idToken(who) });
       }
-      if (u.pathname === "/revoke") return new Response("", { status: 200 });
+      if (u.pathname === "/revoke") return new Response("", { status: new URLSearchParams(body).get("token") === "RT-sam@gmail.test" ? 503 : 200 });
       return Response.json({ error: "not faked" }, { status: 404 });
     }
     if (u.hostname === "gmail.googleapis.com") {
@@ -79,7 +82,7 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
   const pg: Pg = await startPg();
   const f = fakes();
   const realFetch = globalThis.fetch;
-  const keys = ["CAREER_NEEDS_RESUME_FIRST", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "OAUTH_STATE_SECRET", "CAREER_CONNECT_URL", "CAREER_PREPARE_AHEAD_URL", "CAREER_APPLY_LINK"];
+  const keys = ["CAREER_MAIL_TRACKING", "CAREER_NEEDS_RESUME_FIRST", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "OAUTH_STATE_SECRET", "CAREER_CONNECT_URL", "CAREER_PREPARE_AHEAD_URL", "CAREER_APPLY_LINK"];
   const before = Object.fromEntries(keys.map((k) => [k, Deno.env.get(k)]));
   let handler: Awaited<ReturnType<typeof careerHandler>> | null = null;
   try {
@@ -143,15 +146,29 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
         set session_replication_role = origin;`);
       const r = await pat("where are my applications?");
       assert(/Ramp/.test(r.reply), r.reply);
-      assert(/emailed you a code to finish your application: connect Gmail and I'll read that code email for you, or type the code on the application page in your browser yourself/.test(r.reply), r.reply);
+      assert(/emailed you a code to finish your application: type the code from that email on the application page in your browser; never send it here\. If you connect Gmail, I can read a code like that myself on your next applications/.test(r.reply), r.reply);
       assert(LINK_RX.test(r.reply), `the offer carries a one-time link: ${r.reply}`);
-      assert(/read: Google's permission is to read your mail/.test(r.reply) && !/send: only a message/.test(r.reply), `read only: ${r.reply}`);
+      assert(/read: Google's permission covers all of your mail/.test(r.reply) && !/send: only a message/.test(r.reply), `read only: ${r.reply}`);
       eq(await q(`select channel || '|' || array_to_string(scopes, ' ') from public.career_connect_links where user_id = '${PAT}'`), `telegram|${READ} openid email`);
       const again = await pat("where are my applications?");
       assert(!LINK_RX.test(again.reply) && !/connect Gmail/.test(again.reply), `offered once: ${again.reply}`);
       eq(await q(`select string_agg(need, ',') from public.career_needs_asked where user_id = '${PAT}'`), "gmail_read:email_code", "one offer recorded, no duplicate");
       eq(await q(`select count(*) from public.career_connect_links where user_id = '${PAT}'`), "1", "the second status ask minted no link");
       eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${PAT}'`), "0", "an offer connects nothing");
+    });
+
+    await t.step("(3b) a Gmail feature with no grant (F8 'check my email now'): a signed one-time link for reading only, never the unsigned app link", async () => {
+      Deno.env.set("CAREER_MAIL_TRACKING", "on");
+      try {
+        const r = await pat("check my email now");
+        eq(r.intent, "career_inbox_check", r.reply);
+        assert(LINK_RX.test(r.reply) && !/\/connect\/gmail/.test(r.reply), `the signed link, not the app's: ${r.reply}`);
+        assert(new RegExp(`connect it with the link below`).test(r.reply) && /read: Google's permission covers all of your mail/.test(r.reply) && !/send: only/.test(r.reply), r.reply);
+        const token = r.reply.match(LINK_RX)![1];
+        eq(await q(`select channel || '|' || array_to_string(scopes, ' ') from public.career_connect_links where nonce_hash = encode(sha256(convert_to('${token}', 'UTF8')), 'hex')`), `telegram|${READ} openid email`);
+        eq(f.gmail.length, 0, "nothing read: there is no grant");
+        eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${PAT}'`), "0");
+      } finally { Deno.env.delete("CAREER_MAIL_TRACKING"); }
     });
 
     await t.step("(4-) before connecting, the reply and the records agree: not connected", async () => {
@@ -164,7 +181,7 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
     await t.step("(4a) 'connect gmail': a one-time link for read and send, in plain words; the page only peeks", async () => {
       const r = await pat("connect gmail");
       eq([r.intent, r.resultStatus], ["career_connect", "link"], r.reply);
-      assert(/read: Google's permission is to read your mail; I only look at mail from employers/.test(r.reply), r.reply);
+      assert(/read: Google's permission covers all of your mail\. I use it for two things/.test(r.reply), r.reply);
       assert(/send: only a message you approve word for word/.test(r.reply), r.reply);
       assert(/works once, for you, and expires in 15 minutes/.test(r.reply) && /never ask for your password or a code/.test(r.reply), r.reply);
       assert(!/calendar|test email|self-test/i.test(r.reply), `claims only what is true: ${r.reply}`);
@@ -215,7 +232,7 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       const vault = JSON.parse(await q(`select public.oauth_vault_read('oauth_google_career_${PAT}')`));
       eq([vault.access_token, vault.refresh_token, vault.email], ["AT-pat@gmail.test", "RT-pat@gmail.test", "pat@gmail.test"]);
       eq(await q(`select channel || '|' || kind || '|' || status || '|' || text from public.career_outbox where user_id = '${PAT}' and key like 'status:connect:%'`),
-        `telegram|status|queued|Gmail connected: pat@gmail.test. I can now read the confirmation, reply and code emails employers send you, and send only messages you approve word for word. Say "disconnect gmail" any time to remove it.`);
+        `telegram|status|queued|Gmail connected: pat@gmail.test. You allowed me to read your mail, for employers' replies and application codes, and to send from your Gmail, only messages you approve word for word. Say "disconnect gmail" any time to remove it.`);
       const replay = await connect(new Request(`${CONNECT}?state=${encodeURIComponent(state)}&code=CODE-PAT`));
       eq(replay.status, 400, "the callback lands once");
       eq(f.calls("/token").length, 1);
@@ -242,11 +259,50 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       eq(none.status, "no_google_connection", "Sam has no grant, so nothing is read for Sam");
     });
 
+    // A link minted for Pat outside the chat (as the chat mints it), opened by the tap, its state returned.
+    const openLink = async (scopes: string[], at = "now()") => {
+      const token = await q(`select public.career_connect_link_issue('${PAT}', 'telegram', '${tg.thread()}', array[${scopes.map((x) => `'${x}'`).join(",")}], ${at})`);
+      const go = await connect(new Request(CONNECT, { method: "POST", body: new URLSearchParams({ t: token }) }));
+      return { token, go, state: go.status === 303 ? new URL(go.headers.get("location")!).searchParams.get("state")! : null };
+    };
+    const patGrant = () => q(`select scopes || '|' || public.oauth_vault_read('oauth_google_career_${PAT}') from public.user_oauth_connections where user_id = '${PAT}'`);
+    await t.step("(4e) adversarial: declined on Google's page, a token exchange that fails, an expired link, an empty or unknown token", async () => {
+      const before = await patGrant();
+      const exchanges = f.calls("/token").length;
+      const declined = await openLink([READ, "openid", "email"]);
+      const no = await connect(new Request(`${CONNECT}?state=${encodeURIComponent(declined.state!)}&error=access_denied`));
+      eq(no.status, 200);
+      assert(/Gmail wasn&#39;t connected/.test(await no.text()));
+      eq(await patGrant(), before, "a decline changes no grant");
+      eq(f.calls("/token").length, exchanges, "and exchanges no code");
+      eq(await q(`select outcome from public.career_connect_links where nonce_hash = encode(sha256(convert_to('${declined.token}', 'UTF8')), 'hex')`), "declined");
+      const down = await openLink([READ, "openid", "email"]);
+      const fail = await connect(new Request(`${CONNECT}?state=${encodeURIComponent(down.state!)}&code=CODE-NETFAIL`));
+      eq(fail.status, 502);
+      eq(await patGrant(), before, "a failed exchange changes no grant");
+      eq(await q(`select outcome from public.career_connect_links where nonce_hash = encode(sha256(convert_to('${down.token}', 'UTF8')), 'hex')`), "error");
+      eq(await q(`select string_agg(text, ' / ' order by id) from public.career_outbox where user_id = '${PAT}' and key like 'status:connect:%' and text not like 'Gmail connected:%'`),
+        `Gmail wasn't connected: Google's page was closed or declined, so nothing changed. Text "connect gmail" if you want a new link. / Gmail wasn't connected: something went wrong on the way back from Google, so nothing was saved. Text "connect gmail" for a new link.`,
+        "each outcome told in the same channel, and only as it happened");
+      const late = await openLink([READ, "openid", "email"], "now() - interval '20 minutes'");
+      eq(late.go.status, 400, "an expired link never reaches Google");
+      const peek = await connect(new Request(`${CONNECT}?t=${late.token}`));
+      eq(peek.status, 410);
+      assert(/This link expired/.test(await peek.text()));
+      for (const t of ["", "x".repeat(5000), "'; drop table public.career_connect_links; --"]) {
+        const r = await connect(new Request(CONNECT, { method: "POST", body: new URLSearchParams({ t }) }));
+        eq(r.status, 400, `refused: ${t.slice(0, 20)}`);
+        eq((await connect(new Request(`${CONNECT}?t=${encodeURIComponent(t)}`))).status, 410);
+      }
+      eq(await q(`select to_regclass('public.career_connect_links') is not null`), "t");
+      eq(await patGrant(), before);
+    });
+
     await t.step("(5) 'what can you see?' answers from the records", async () => {
       const r = await pat("what can you see?");
       eq(r.intent, "career_connect", r.reply);
       assert(/Gmail: connected as pat@gmail\.test \(read and send\)\./.test(r.reply), r.reply);
-      assert(/only the sender, subject, date and Google's short preview/.test(r.reply) && /Your resume: on file, confirmed by you\./.test(r.reply), r.reply);
+      assert(/I read the sender, subject, date and Google's short preview of new mail, not the full messages/.test(r.reply) && /Your resume: on file, confirmed by you\./.test(r.reply), r.reply);
       assert(/can't see your LinkedIn, Indeed, passwords/.test(r.reply), r.reply);
     });
 
@@ -267,9 +323,23 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       eq(back.status, 200);
       eq(await q(`select email || '|' || scopes from public.user_oauth_connections where user_id = '${SAM}'`), `sam@gmail.test|openid ${READ} email`);
       eq(await q(`select content from public.agent_messages where thread_id = '${web.thread()}' and meta->>'intent' = 'career_connect_done'`),
-        `Gmail connected: sam@gmail.test. I can now read the confirmation, reply and code emails employers send you. You didn't allow sending, so I won't do that. Say "disconnect gmail" any time to remove it.`);
+        `Gmail connected: sam@gmail.test. You allowed me to read your mail, for employers' replies and application codes. You didn't allow sending, so I won't do that. Say "disconnect gmail" any time to remove it.`);
       eq(await q(`select count(*) from public.career_outbox where user_id = '${SAM}'`), "0", "the web answer is the thread's, not a text");
       eq(await q(`select email from public.user_oauth_connections where user_id = '${PAT}'`), "pat@gmail.test", "Pat's grant untouched");
+    });
+
+    await t.step("(7b) Sam adds sending: the link asks for send only; Google's answer without a refresh token keeps the one stored", async () => {
+      const r = await sam("connect gmail to send");
+      eq(r.resultStatus, "link", r.reply);
+      assert(/send: only a message you approve/.test(r.reply) && !/read: Google's permission/.test(r.reply), r.reply);
+      const token = r.reply.match(LINK_RX)![1];
+      const go = await connect(new Request(CONNECT, { method: "POST", body: new URLSearchParams({ t: token }) }));
+      eq(new URL(go.headers.get("location")!).searchParams.get("scope"), `${SEND} openid email`);
+      const st = new URL(go.headers.get("location")!).searchParams.get("state")!;
+      eq((await connect(new Request(`${CONNECT}?state=${encodeURIComponent(st)}&code=CODE-SAM2`))).status, 200);
+      const v = JSON.parse(await q(`select public.oauth_vault_read('oauth_google_career_${SAM}')`));
+      eq([v.access_token, v.refresh_token], ["AT-sam@gmail.test-2", "RT-sam@gmail.test"], "the refresh token Google sent the first time is kept");
+      eq(await q(`select scopes from public.user_oauth_connections where user_id = '${SAM}'`), `openid ${READ} ${SEND} email`);
     });
 
     await t.step("(6) 'disconnect gmail': revoked at Google, tokens and row deleted, live links burned", async () => {
@@ -290,6 +360,15 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       const closed = await fetchVerificationCode({ userId: PAT, ats: "ashby", sinceMs: Date.now() - 60_000, maxWaitMs: 0 }, { mailbox: reader(), now: Date.now });
       eq(closed.status, "no_google_connection", "a later Gmail use fails closed");
       eq(f.gmail.length, calls, "and makes no Gmail request");
+    });
+
+    await t.step("(6b) a revoke Google doesn't confirm: the tokens are still deleted here, and the reply says Google didn't confirm", async () => {
+      const r = await sam("disconnect gmail");
+      eq(r.resultStatus, "disconnected", r.reply);
+      assert(/Google didn't confirm the revoke, so you can also remove Trainee at myaccount\.google\.com\/permissions/.test(r.reply) && !/Google confirmed/.test(r.reply), r.reply);
+      eq(f.calls("/revoke").map((c) => new URLSearchParams(c.body).get("token")).at(-1), "RT-sam@gmail.test");
+      eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${SAM}'`), "0");
+      eq(await q(`select coalesce(public.oauth_vault_read('oauth_google_career_${SAM}'), 'gone')`), "gone");
     });
     await t.step("(8) with CAREER_NEEDS_RESUME_FIRST off (FEATURE 1's design): the want is queued, and the reply says so and names one need", async () => {
       Deno.env.delete("CAREER_NEEDS_RESUME_FIRST");

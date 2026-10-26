@@ -100,9 +100,11 @@ function codeNeed(s: NeedsState): Need | null {
   const target = { company: waiting.company, title: waiting.title };
   const key = `gmail_read:email_code`;
   if (!s.scopes.includes(READ_SCOPE) && !s.offered.includes(key)) {
+    // Connecting now does not finish this application (it stopped for the person); it lets the code reader (WO-096) read
+    // the next one, during an application they approved.
     return { id: "gmail_read", blocking: false, target, scopes: [READ_SCOPE], offer_once: key,
       why: `${of(waiting)} emailed you a code to finish your application`,
-      how: "connect Gmail and I'll read that code email for you, or type the code on the application page in your browser yourself" };
+      how: "type the code from that email on the application page in your browser; never send it here. If you connect Gmail, I can read a code like that myself on your next applications" };
   }
   if (s.scopes.includes(READ_SCOPE)) return null; // the reader takes it during the approved application
   return { id: "code_by_hand", blocking: false, target, why: `${of(waiting)} emailed you a code to finish your application`,
@@ -126,7 +128,7 @@ export function nextNeed(s: NeedsState, goal: Goal, target: Target | null = null
 // The need as one sentence for the chat: what, why, how. Never a list.
 export function needSentence(n: Need): string {
   switch (n.id) {
-    case "resume": return `Next I need one thing: your resume, because ${n.why}. Please ${n.how}. I'll take your contact details from it rather than ask you for them.`;
+    case "resume": return `Next I need one thing: your resume, because ${n.why}. Please ${n.how}.`;
     case "resume_confirm": return `Next I need one thing: ${n.why}. Please ${n.how}.`;
     case "gmail_read": case "gmail_send": return `${cap(n.why)}: ${n.how}.`;
     case "code_by_hand": return `${cap(n.why)}: ${n.how}.`;

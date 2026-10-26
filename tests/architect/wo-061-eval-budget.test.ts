@@ -45,7 +45,7 @@ Deno.test("WO-061/4 a run already at the cap runs nothing", async () => {
 // from the official set (D-027) to the held-out set, both judges must pass an item, and every run is logged.
 Deno.test("WO-061/5 the workflow passes the cap, never reads a stopped run as a score, judges twice and logs every run", async () => {
   const wf = await Deno.readTextFile(".github/workflows/brain-eval.yml");
-  { const m = wf.match(/EVAL_BUDGET_USD: "([0-9.]+)"/); if (!m || !(Number(m[1]) > 0 && Number(m[1]) <= 16.535)) throw new Error("no spend limit at or under the owner's ceiling ($15 tonight on top of $1.535 recorded before tonight) is set"); }
+  { const m = wf.match(/EVAL_BUDGET_USD: "([0-9.]+)"/); if (!m || !(Number(m[1]) > 0 && Number(m[1]) <= 35.51)) throw new Error("no spend limit at or under the owner's ceiling is set (2026-10-25 23:17 CDT, in writing: \"$20 more\" on top of the $15.51 recorded, so 35.51; before it, $15 on top of $1.535)"); }
   if (!/a\.stopped/.test(wf) || !/judge error/.test(wf)) throw new Error("the verdict reads a stopped run or a run whose judge errored");
   if (!/>= 0\.95/.test(wf) || !/--set heldout/.test(wf)) throw new Error("the owner's bar (95% on the held-out set) is not the verdict");
   if (!/for p in 1 2 3 4 5;/.test(wf)) throw new Error("fewer than five passes decide whether a fix helped (second judge, 2026-10-21: three passes cannot resolve a change under about 5 points)");

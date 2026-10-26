@@ -7,8 +7,16 @@ import { boardFetchFeed } from "../../supabase/functions/_shared/career_ingest.t
 import { lanesNeeded, sizeIngest } from "../../supabase/functions/_shared/career_shards.ts";
 
 const root = new URL("../../", import.meta.url);
-const dir = JSON.parse(await Deno.readTextFile(new URL("packages/career-data/board-directory.json", root)));
+// WO-044: --directory <path> sizes another directory (a discovery/ branch's), and the requests one read costs come from
+// its provider mix: one per board, but a Workday board pages 20 postings a request (up to 50) and SmartRecruiters 100.
+const di = Deno.args.indexOf("--directory");
+const dir = JSON.parse(await Deno.readTextFile(di >= 0 ? Deno.args[di + 1] : new URL("packages/career-data/board-directory.json", root)));
 const live = dir.boards.filter((b: any) => b.status === "live");
+const reqOf = (b: any) => { const n = Math.min(1000, Number(b.postings_seen) || 0); return b.provider === "workday" ? Math.max(1, Math.ceil(n / 20)) : b.provider === "smartrecruiters" ? Math.max(1, Math.ceil(n / 100)) : 1; };
+const requestsPerBoard = live.reduce((a: number, b: any) => a + reqOf(b), 0) / Math.max(1, live.length);
+const mix: Record<string, number> = {};
+for (const b of live) mix[b.provider] = (mix[b.provider] ?? 0) + 1;
+console.log(`MEASURED provider mix of the live boards: ${JSON.stringify(mix)}; requests per board read (mean): ${requestsPerBoard.toFixed(2)}`);
 const counts = live.map((b: any) => Number(b.postings_seen) || 0).sort((a: number, b: number) => a - b);
 const mean = counts.reduce((a: number, b: number) => a + b, 0) / counts.length, median = counts[Math.floor(counts.length / 2)];
 // Real descriptions (the labeled set's, up to 3,000 characters) padded to a Greenhouse-sized body (~6,000 characters
@@ -33,7 +41,7 @@ console.log(`MEASURED cpu ms per board (parse + normalize + serialize), by posti
 const cpuMean = at[Math.round(mean)];
 for (const boards of [live.length, 50000]) {
   for (const share of [0, 0.7]) {
-    const base = { boards, intervalMs: 5 * 60000, concurrency: 8, avgLatencyMs: 600, cpuMsPerBoard: cpuMean, notModifiedShare: share, cpuMsNotModified: 0.3, wallLimitS: 150, cpuLimitMs: 2000, deadlineS: 100 };
+    const base = { boards, intervalMs: 5 * 60000, concurrency: 8, avgLatencyMs: 600, cpuMsPerBoard: cpuMean, notModifiedShare: share, cpuMsNotModified: 0.3, wallLimitS: 150, cpuLimitMs: 2000, deadlineS: 100, requestsPerBoard };
     const lanes = lanesNeeded(base);
     console.log(`SIZE ${boards} boards, ${share * 100}% answered 304: lanes needed ${lanes}; at that many: ${JSON.stringify(sizeIngest({ ...base, lanes: lanes ?? 64 }))}`);
   }

@@ -5,12 +5,15 @@
 //   memoryPostingsDb    the same semantics in memory (tests, the local runner, the simulator)
 //   supabasePostingsDb  the same semantics over career_postings / career_ingest_state, written in batches
 //   boardFetchFeed      the CareerJobs (121) feed URLs and normalizers, one request per board (SmartRecruiters paged),
-//                       a timeout per board, and a job id the apply worker can use (provider:board:<the ATS's own id>)
+//                       a timeout per board, and a job id the apply worker can use (provider:board:<the ATS's own id>);
+//                       WO-044: Workable, Recruitee, BambooHR, Teamtailor, Breezy, Personio and Workday through
+//                       career_ingest_feeds.ts, each job rewritten to the Greenhouse shape and run through the same normalizer
 //   directoryBoards     packages/career-data/board-directory.json -> the live boards
 // Network and storage are injected; nothing here deploys, schedules or spends.
 import { CareerJobs } from "./router_core.career.js";
 import { applyEmailOf } from "./apply_email.ts";
 import { BACKLOG_MS, freshWhenSeen } from "./career_fresh.ts";
+import { FEEDS, isMoreProvider, MORE_PROVIDERS } from "./career_ingest_feeds.ts";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
@@ -274,7 +277,10 @@ export function decodeEntities(t: string): string {
   return out.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 const clip = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
-const RAW_ID: Record<string, (j: any) => string> = { greenhouse: (j) => j.id, lever: (j) => j.id, ashby: (j) => j.id, smartrecruiters: (j) => j.id };
+const RAW_ID: Record<string, (j: any) => string> = { greenhouse: (j) => j.id, lever: (j) => j.id, ashby: (j) => j.id, smartrecruiters: (j) => j.id,
+  ...Object.fromEntries(MORE_PROVIDERS.map((p) => [p, FEEDS[p].id])) };
+// Every provider ingest reads: the 121 bundle's four and WO-044's seven.
+export const INGEST_PROVIDERS = Object.keys(RAW_ID);
 const rawJobs: Record<string, (json: any) => any[]> = {
   greenhouse: (j) => (j && j.jobs) || [], lever: (j) => (Array.isArray(j) ? j : []), ashby: (j) => (j && j.jobs) || [], smartrecruiters: (j) => (j && j.content) || [],
 };
@@ -359,7 +365,50 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
     return await res.json();
   }
+  // WO-044: a provider of career_ingest_feeds.ts. GET, or Workday's read-only search POST; paged where the provider
+  // pages (past maxPages the read is partial and closes nothing); the conditional request applies to one-request GETs.
+  async function readMore(b: Board, deadline: number) {
+    const spec = FEEDS[b.provider as keyof typeof FEEDS];
+    let raw: any[] = [], complete = true, first: unknown = null, total: number | null = null;
+    let validators: { etag: string | null; last_modified: string | null } | null = null;
+    for (let page = 0; page < spec.maxPages; page++) {
+      const rq = spec.request(b.board, page);
+      const left = deadline - Date.now();
+      // Out of time after the first page of a paged board: what was read is a partial read (it closes nothing).
+      if (left <= 0 && page > 0) { complete = false; break; }
+      if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
+      const h: Record<string, string> = { ...headers, accept: rq.accept };
+      const cond = spec.maxPages === 1 && rq.method === "GET";
+      if (cond && b.etag) h["if-none-match"] = b.etag;
+      if (cond && b.last_modified) h["if-modified-since"] = b.last_modified;
+      if (rq.body) h["content-type"] = "application/json";
+      let res: Response;
+      try { res = await fetchFn(rq.url, { method: rq.method, headers: h, body: rq.body, signal: AbortSignal.timeout(left) }); }
+      catch (e) {
+        if (page > 0) { complete = false; break; }
+        throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+      if (res.status === 304 && cond && (b.etag || b.last_modified)) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
+      if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
+      if (cond) validators = { etag: res.headers.get("etag"), last_modified: res.headers.get("last-modified") };
+      const data = spec.parse(await res.text());
+      if (!spec.shape(data)) throw new Error(`not a ${b.provider} board (unexpected body)`);
+      const got = spec.jobs(data);
+      if (page === 0) { first = data; total = spec.total(data, 0); }
+      raw.push(...got);
+      if (spec.maxPages === 1 || got.length < spec.pageSize || (total !== null && raw.length >= total)) break;
+      if (page + 1 >= spec.maxPages) complete = false;
+    }
+    raw = raw.filter((j) => j && typeof j === "object");
+    return { json: { name: spec.company(first), jobs: raw.map((j) => spec.toGreenhouse(j, b.board)) }, raw, complete, validators };
+  }
   return async (b: Board) => {
+    if (isMoreProvider(b.provider)) {
+      const r = await readMore(b, Date.now() + timeoutMs);
+      if (r === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? null, last_modified: b.last_modified ?? null };
+      const postings = toPostings(b, CareerJobs.normalizeGreenhouse(r.json, b.board, b.company), r.raw);
+      if (r.validators && (r.validators.etag || r.validators.last_modified)) return { postings, complete: r.complete, ...r.validators };
+      return r.complete ? postings : { postings, complete: false };
+    }
     const feed = (CareerJobs.feeds as any)[b.provider];
     const normalize = ({ greenhouse: CareerJobs.normalizeGreenhouse, lever: CareerJobs.normalizeLever, ashby: CareerJobs.normalizeAshby, smartrecruiters: CareerJobs.normalizeSmartRecruiters } as any)[b.provider];
     if (!feed || !normalize) throw new Error(`provider ${b.provider} is not supported`);
@@ -384,11 +433,17 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
       raw = rawJobs[b.provider](json);
       validators = { etag: seen.etag ?? null, last_modified: seen.last_modified ?? null };
     }
-    const normalized: any[] = normalize(json, b.board, b.company);
+    const postings = toPostings(b, normalize(json, b.board, b.company), raw);
+    if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
+    return complete ? postings : { postings, complete };
+  };
+}
+// One read's normalized jobs -> the rows the table takes. Every row must fit the table's constraints
+// (20261019000000_career_postings.sql): one bad row would otherwise fail its board's write on every run. A posting
+// without an https link or a title is not a job anyone can apply to.
+function toPostings(b: Board, normalized: any[], raw: any[]): FeedPosting[] {
     const token = b.board.toLowerCase();
     const postings: FeedPosting[] = [];
-    // Every row must fit the table's constraints (20261019000001_career_postings.sql): one bad row would otherwise fail
-    // its board's write on every run. A posting without an https link or a title is not a job anyone can apply to.
     normalized.forEach((p, i) => {
       const atsId = String(RAW_ID[b.provider](raw[i]) ?? "");
       const title = clip(p.title, 500), url = String(p.url || "");
@@ -401,9 +456,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         apply_email: applyEmailOf({ description, url }), pay: boardPay(b.provider, raw[i]),
       });
     });
-    if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
-    return complete ? postings : { postings, complete };
-  };
+    return postings;
 }
 
 // ------------------------------------------------------------------------------------------------ the directory

@@ -191,7 +191,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -397,6 +397,11 @@ echo "== career_apply_card_yes_window.test.sql (an approval after 10 minutes is 
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025180000_career_outbox_card_id.sql"
 echo "== career_outbox_card_id.test.sql (the push's row and a chat reply's row carry the card id; the delivered provider id finds the card)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outbox_card_id.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# F-RUNNER (20261026100000): the cloud runner's dispatch claim, per-portal claim and check rates; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100000_career_apply_cloud_runner.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100000_career_apply_cloud_runner.sql"
+echo "== career_apply_cloud_runner.test.sql (global and per-portal limits through the one claim; a check is needs_user, counted per host; service only)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_runner.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
@@ -408,6 +413,10 @@ if [[ -f "$BRIDGE_PATH" ]]; then
   # both halves back and the run stops unless every claim guard is in place. The bridge's tests below then run on that.
   echo "== claim guards after the bridge (scripts/launch/verify-claim-guards.sql)"
   "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
+  # F-RUNNER: the bridge replaced claim_at; the per-portal claim is regenerated from it and must match it again.
+  "${PSQL[@]}" -tAc "select public.career_apply_cloud_claim_portal_install()" | grep -qx installed || { echo "FAIL runner claim re-install"; exit 1; }
+  "${PSQL[@]}" -tAc "select public.career_apply_cloud_runner_missing() = '{}'" | grep -qx t || { echo "FAIL runner claim differs from the bridge's claim_at"; exit 1; }
+  echo "  ok   the per-portal claim regenerated from the bridge's claim_at"
   for file in career_apply_card_cloud.test.sql career_apply_card_cloud_lifecycle.test.sql; do
     echo "== $file (latest card-bound cloud semantics, all earlier phases retained)"
     "${PSQL[@]}" -v card_cloud_tests_authorized=true -f "$HERE/pending/$file"

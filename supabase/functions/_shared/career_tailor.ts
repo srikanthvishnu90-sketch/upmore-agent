@@ -162,8 +162,39 @@ const wantedOf = (jd: any) => [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSk
 const corpusOf = (f: any) => `${f?.title || ""} ${f?.text || ""} ${(f?.bullets || []).join(" ")} ${(f?.skills || []).join(" ")}`;
 const skillsOfLine = (t: string) => String(t || "").replace(/^technical skills:\s*/i, "").split(/,\s*/).map((x) => x.trim()).filter(Boolean);
 const list = (xs: string[], max = 3) => xs.length <= max ? xs.join(", ") : `${xs.slice(0, max).join(", ")} and ${xs.length - max} more`;
-export interface ChangeItem { kind: "lead" | "drop" | "skills"; text: string; diff: "added" | "moved" | "removed"; line: string; name?: string; why?: string }
-export function changelog(o: { diff: any; base: any; tailored: any; profile: any; jd: any; hidden: string[]; persona: string | null }): { line: string; items: ChangeItem[] } {
+export interface ChangeItem { kind: "lead" | "drop" | "skills" | "reword" | "kept"; text: string; diff: "added" | "moved" | "removed"; line: string; name?: string; why?: string }
+// FEATURE 4: the bullet rewording (career_tailor_rewrite.ts), said after the selection changes: how many bullets were
+// reworded, and each rewrite that was refused with the words it added that are not on the record.
+export interface RewriteLog { status: string; accepted: { before: string; after: string }[]; rejected: { before: string; proposed: string; reasons: string[] }[] }
+const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1).trimEnd()}…`);
+function whyKept(reasons: string[]): string {
+  const added = reasons.map((x) => { const m = x.match(/^(?:number|name|tool or skill) "([^"]+)"|^"([^"]+)" is not/); return m ? (m[1] ?? m[2]) : null; }).filter(Boolean) as string[];
+  const uniq = [...new Set(added)];
+  if (uniq.length) return `it added ${uniq.slice(0, 3).join(", ")}, which ${uniq.length === 1 ? "is" : "are"} not on your record`;
+  const dropped = reasons.map((x) => (x.match(/drops the number "([^"]+)"/) || [])[1]).filter(Boolean);
+  if (dropped.length) return `it dropped ${dropped.join(", ")}`;
+  return reasons[0] || "it did not pass the truth check";
+}
+export function rewriteItems(r: RewriteLog): { sentence: string; items: ChangeItem[] } {
+  if (r.status === "model_unavailable" || r.status === "unreadable") return { sentence: "No bullet was reworded this time (the writing model did not answer usably), so every bullet is in your own confirmed words.", items: [] };
+  if (r.status === "no_bullets") return { sentence: "", items: [] };
+  const items: ChangeItem[] = [
+    ...r.accepted.map((a) => ({ kind: "reword" as const, text: `reworded "${clip(a.before, 60)}"`, diff: "added" as const, line: a.after })),
+    ...r.rejected.map((x) => ({ kind: "kept" as const, text: `kept "${clip(x.before, 60)}"`, diff: "moved" as const, line: x.before, why: whyKept(x.reasons) })),
+  ];
+  const n = r.accepted.length, parts: string[] = [];
+  parts.push(n ? `Reworded ${n} bullet${n === 1 ? "" : "s"} toward the posting's wording, using only what your record says (for example: "${clip(r.accepted[0].after, 90)}")`
+    : "No bullet was reworded: none could be improved without adding something your record does not say");
+  if (r.rejected.length) parts.push(`kept ${r.rejected.length} as you wrote ${r.rejected.length === 1 ? "it" : "them"}: ${r.rejected.slice(0, 3).map((x) => `"${clip(x.before, 50)}", because ${whyKept(x.reasons)}`).join("; ")}`);
+  return { sentence: `${parts.join("; ")}.`, items };
+}
+export function changelog(o: { diff: any; base: any; tailored: any; profile: any; jd: any; hidden: string[]; persona: string | null; rewrites?: RewriteLog | null }): { line: string; items: ChangeItem[] } {
+  const sel = selectionChangelog(o);
+  if (!o.rewrites) return sel;
+  const rw = rewriteItems(o.rewrites);
+  return { line: rw.sentence ? `${sel.line} ${rw.sentence}` : sel.line, items: [...sel.items, ...rw.items] };
+}
+function selectionChangelog(o: { diff: any; base: any; tailored: any; profile: any; jd: any; hidden: string[]; persona: string | null }): { line: string; items: ChangeItem[] } {
   const items: ChangeItem[] = [];
   const inDiff = (kind: "added" | "moved" | "removed", text: string) => (o.diff[kind] || []).some((d: any) => d.text === text);
   const entries = (r: any) => (r.lines || []).filter((l: any) => l.type === "entry");

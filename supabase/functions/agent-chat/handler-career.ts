@@ -38,6 +38,7 @@ import { createCareerPersistence, careerRequestHash } from "../_shared/career_pe
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
+import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
@@ -67,6 +68,11 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
+import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
+import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 // FEATURE 8: inbox check and follow-ups that can be sent.
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
@@ -490,6 +496,41 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 10: networking from chat. A contacts CSV pasted or attached (`attachments`: [{ name, mime, text }]) is
+      // imported into the thread's contacts; "who do I know at X" answers from them; "email Maya at X about ..." drafts
+      // from confirmed facts (draftFor) onto the outreach batch that outreachTurn answers, one approval per exact message.
+      // Only addresses in the person's own contacts; the model writes only with CAREER_NETWORKING_DRAFT=on (metered).
+      // Nothing is sent here: sending stays career-proactive's, behind CAREER_OUTREACH_SEND.
+      const netMeter = newMeter();
+      const networking = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await networkingTurn({ message, userId: user.id, threadId: tid, now: Date.now(), state: ctx as unknown as Record<string, unknown>, store: outreachStore, events,
+            attachments: Array.isArray(body.attachments) ? (body.attachments as any[]).filter((a) => a && typeof a === "object").map((a) => ({ name: String(a.name ?? "contacts.csv"), mime: typeof a.mime === "string" ? a.mime : "", text: typeof a.text === "string" ? a.text : null })) : [],
+            model: Deno.env.get("CAREER_NETWORKING_DRAFT") === "on" ? (payload: any) => callModel({ ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" }, payload, { meter: netMeter, role: "chat" }) : null,
+            previousAsk: async () => {
+              const r = await admin.from("agent_messages").select("content").eq("thread_id", tid).eq("role", "user").order("id", { ascending: false }).limit(1);
+              return r.error ? null : (r.data?.[0]?.content ?? null);
+            } })
+          .catch((e) => { console.error("networking turn:", e?.message ?? e); return null; })
+        : null;
+      if (netMeter.calls) await recordTurnCost(admin, user.id, tid, netMeter);
+      // END FEATURE 10
+      // FEATURE 12: offers and negotiation backed by market numbers (career_offer_chat.ts). "I got an offer from X for $Y
+      // as a Z in City", "is $95k good for a data analyst in Chicago", "compare my two offers", "help me negotiate": the
+      // offer placed against DOL LCA, BLS OEWS and the pay open postings on file state (a median only from 5 or more), and
+      // the counter drafted on a card that cites it. Code's, before the router; nothing is sent. The thread keeps its
+      // offers in the offerBenchmark store, which the snapshot carries and an erase clears.
+      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !f08 && !stood && !status && !networking && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await offerChatTurn({ message, now: Date.now(), state: (ctx as any).offerBenchmark ?? null, postings: supabasePostingsDb(admin) })
+          .catch((e) => { console.error("offer turn:", e?.message ?? e); return null; })
+        : null;
+      if (offered?.state) (ctx as any).offerBenchmark = offered.state;
+      const offerAns = offered?.answer ?? null;
+      // END FEATURE 12
+      // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
+      // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
+      // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
+      // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
+      const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -541,7 +582,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
-      } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+      } else if (networking) {
+        // FEATURE 10: a batch shown is the thread's last word (OUTREACH_INTENT), so "send 1" answers it.
+        out = { reply: networking.reply, intent: networking.intent, resultStatus: networking.status, contained: false, handler: "networking", ...(networking.parts ? { parts: networking.parts } : {}) };
+      } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
+        out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
+        if (offerAns.card) agentMeta = { offer_card: offerAns.card };
+      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
@@ -575,6 +622,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           // WO-106 (F4): each job link is checked against its board just before it is shown.
           linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
+          // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
+          toolPolicy: staged.chosen ? STAGED_TOOL_POLICY : null,
           known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
@@ -586,10 +635,38 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
-          agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
+          agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
       } else {
-        out = host.runTurn(message, ctx);
+        // FEATURE 5: job search ranked by fit and judged (_shared/career_search_judge.ts). "judge prompt: ..." keeps the
+        // person's own judging instructions (a standing instruction). After the router decides a turn is a role search
+        // (its own parse, discovery.lastParams), the list comes from searchPostings over the live board (career_postings)
+        // when it has a match, else the saved snapshot, ranked by fit; with CAREER_JUDGE=on the top N are judged by the
+        // model on the fixed scale (metered, cached per posting and profile hash), else the fit order stands. The listed
+        // postings become the thread's shortlist, so "apply to these" means them.
+        const f5Free = !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+        const f5JudgeOn = Deno.env.get("CAREER_JUDGE") === "on";
+        const f5Prompt = f5Free ? await judgePromptTurn({ message, userId: user.id, now: Date.now(), memory: supabaseMemoryStore(admin), judgeOn: f5JudgeOn }) : null;
+        out = f5Prompt
+          ? { reply: f5Prompt.reply, intent: f5Prompt.intent, resultStatus: f5Prompt.status, contained: false, handler: "judge_prompt" }
+          : host.runTurn(message, ctx);
+        const f5Ask = f5Free && !f5Prompt ? askFromRouter(message, out, (ctx as any).discovery) : null;
+        if (f5Ask) {
+          const f5Meter = newMeter();
+          const f5Cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+          try {
+            const found = await searchJudgeTurn({ message, ask: f5Ask, userId: user.id, now: Date.now(), profile: (ctx as any).profile ?? null,
+              sources: supabaseSearchSources(admin, { window: postings, jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml } }),
+              judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
+                n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
+            if (found) {
+              out = { ...out, reply: found.reply, resultStatus: found.status, handler: "search_judge" };
+              (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
+            }
+          } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
+          if (f5Meter.calls) await recordTurnCost(admin, user.id, tid, f5Meter);
+        }
+        // FEATURE 5 (end)
       }
       // SUBMIT-STEER-1130: the router's confirm of a pasted resume carries no confirmation event, so no application could
       // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,
@@ -614,6 +691,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
       }
+      // FEATURE 4: tailored resume rewrite. The router's tailored resume (select and reorder) gets its bullets reworded
+      // toward the posting by the model, each one kept only if the truth audit traces every word, number and name to the
+      // fact it cites; the PDF is re-rendered and the reply says what changed and why. CAREER_TAILOR_REWRITE=on only;
+      // off, or a model failure, leaves today's resume. One metered call.
+      if (out.handler !== "agent" && out.intent === "career_tailor" && (out as any).result?.tailorDoc) {
+        const rwMeter = newMeter();
+        const rwCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const voiceSamples = (ctx as any).outreach?.voiceSamples ?? null;
+        const rw = await tailorRewriteTurn({ out: out as any, profile: (ctx as any).profile ?? null, on: rewriteOn(Deno.env),
+          model: (payload) => callModel(rwCfg, payload, { meter: rwMeter, role: "chat" }),
+          voice: Array.isArray(voiceSamples) && voiceSamples.length ? CareerWriting.extractVoiceProfile(voiceSamples) : null })
+          .catch((e) => { console.error("tailor rewrite:", e?.message ?? e); return null; });
+        if (rw?.summary) { out = rw.out as typeof out; agentMeta = { ...(agentMeta || {}), tailor_rewrite: rw.summary }; }
+        if (rwMeter.calls) await recordTurnCost(admin, user.id, tid, rwMeter);
+      }
+      // END FEATURE 4
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;

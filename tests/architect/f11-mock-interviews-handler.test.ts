@@ -47,7 +47,10 @@ Deno.test({ name: "FEATURE 11: posting-bound mock, weak spot recorded, drilled i
     const me = PEOPLE["tok-m"];
     const payload = JSON.stringify({ version: "1", user_id: me, job_id: "greenhouse:acme:1", company: "Acme Analytics", url: "https://acme.example.test/apply", fields: [], title: "Data Analyst, Growth" });
     await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at)
-        values ('greenhouse:acme:1', 'greenhouse', 'acme', 'Acme Analytics', 'Data Analyst, Growth', 'Chicago, IL', 'https://acme.example.test/jobs/1', '${ACME_JD}', now(), now());
+        values ('greenhouse:acme:1', 'greenhouse', 'acme', 'Acme Analytics', 'Data Analyst, Growth', 'Chicago, IL', 'https://acme.example.test/jobs/1', '${ACME_JD}', now(), now()),
+        -- F5 (#183): a role search reads the live board (career_postings) first, so the posting the last search finds is
+        -- on the live board as ingest writes it, and in the knowledge base as before.
+        ('greenhouse:globex:2', 'greenhouse', 'globex', 'Globex', 'Data Analyst', 'Chicago, IL', 'https://globex.example.test/jobs/2', '${GLOBEX_JD}', now(), now());
       insert into public.career_kb_postings (posting_key, source, board, company, title, location, url, posted_at, text_excerpt, content_hash) values
         ('greenhouse:globex:2', 'greenhouse', 'globex', 'Globex', 'Data Analyst', 'Chicago, IL', 'https://globex.example.test/jobs/2', now(), '${GLOBEX_JD}', 'g1');
       set session_replication_role = replica;

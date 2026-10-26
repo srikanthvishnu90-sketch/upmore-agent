@@ -67,6 +67,8 @@ import { hunterVerifier, supabaseCheckCache } from "../_shared/career_contacts.t
 import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
+import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -472,6 +474,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 12: offers and negotiation backed by market numbers (career_offer_chat.ts). "I got an offer from X for $Y
+      // as a Z in City", "is $95k good for a data analyst in Chicago", "compare my two offers", "help me negotiate": the
+      // offer placed against DOL LCA, BLS OEWS and the pay open postings on file state (a median only from 5 or more), and
+      // the counter drafted on a card that cites it. Code's, before the router; nothing is sent. The thread keeps its
+      // offers in the offerBenchmark store, which the snapshot carries and an erase clears.
+      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !stood && !status && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await offerChatTurn({ message, now: Date.now(), state: (ctx as any).offerBenchmark ?? null, postings: supabasePostingsDb(admin) })
+          .catch((e) => { console.error("offer turn:", e?.message ?? e); return null; })
+        : null;
+      if (offered?.state) (ctx as any).offerBenchmark = offered.state;
+      const offerAns = offered?.answer ?? null;
+      // END FEATURE 12
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -519,6 +533,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
+      } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
+        out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
+        if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -567,7 +584,35 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
       } else {
-        out = host.runTurn(message, ctx);
+        // FEATURE 5: job search ranked by fit and judged (_shared/career_search_judge.ts). "judge prompt: ..." keeps the
+        // person's own judging instructions (a standing instruction). After the router decides a turn is a role search
+        // (its own parse, discovery.lastParams), the list comes from searchPostings over the live board (career_postings)
+        // when it has a match, else the saved snapshot, ranked by fit; with CAREER_JUDGE=on the top N are judged by the
+        // model on the fixed scale (metered, cached per posting and profile hash), else the fit order stands. The listed
+        // postings become the thread's shortlist, so "apply to these" means them.
+        const f5Free = !careerTask && !careerBatch && !host.isHostControlled(message, ctx);
+        const f5JudgeOn = Deno.env.get("CAREER_JUDGE") === "on";
+        const f5Prompt = f5Free ? await judgePromptTurn({ message, userId: user.id, now: Date.now(), memory: supabaseMemoryStore(admin), judgeOn: f5JudgeOn }) : null;
+        out = f5Prompt
+          ? { reply: f5Prompt.reply, intent: f5Prompt.intent, resultStatus: f5Prompt.status, contained: false, handler: "judge_prompt" }
+          : host.runTurn(message, ctx);
+        const f5Ask = f5Free && !f5Prompt ? askFromRouter(message, out, (ctx as any).discovery) : null;
+        if (f5Ask) {
+          const f5Meter = newMeter();
+          const f5Cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+          try {
+            const found = await searchJudgeTurn({ message, ask: f5Ask, userId: user.id, now: Date.now(), profile: (ctx as any).profile ?? null,
+              sources: supabaseSearchSources(admin, { window: postings, jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml } }),
+              judge: { on: f5JudgeOn, model: (payload) => callModel(f5Cfg, payload, { meter: f5Meter, role: "chat" }), cache: supabaseJudgeCache(admin),
+                n: Number(Deno.env.get("CAREER_JUDGE_N")) || undefined, standing: () => supabaseMemoryStore(admin).standing(user.id) } });
+            if (found) {
+              out = { ...out, reply: found.reply, resultStatus: found.status, handler: "search_judge" };
+              (ctx as any).discovery = { ...((ctx as any).discovery ?? {}), lastShortlist: found.shortlist, lastSource: found.source };
+            }
+          } catch (e) { console.error("career search judge: the router's reply stands:", (e as Error)?.message ?? e); }
+          if (f5Meter.calls) await recordTurnCost(admin, user.id, tid, f5Meter);
+        }
+        // FEATURE 5 (end)
       }
       // SUBMIT-STEER-1130: the router's confirm of a pasted resume carries no confirmation event, so no application could
       // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,

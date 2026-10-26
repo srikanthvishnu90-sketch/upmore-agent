@@ -175,3 +175,9 @@ export function fileUploadFor<U extends { kind: "message" | "file"; ref: string;
   if (!seen || !u || seen.kind !== "message" || seen.sha256 !== u.message_sha256) return seen;
   return { kind: "file" as const, ref: u.ref, sha256: u.sha256, text: seen.text };
 }
+
+// An intake answer is saved like any turn: the stored message, the reply and the thread's state, in the host's one commit.
+// deno-lint-ignore no-explicit-any
+export function commitIntakeAnswer(persistence: { commit(a: any): Promise<any> }, a: Record<string, unknown>) {
+  return persistence.commit({ ...a, taskIntent: null, batchIntent: null });
+}

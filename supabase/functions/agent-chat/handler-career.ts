@@ -75,7 +75,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
-import { afterRouter, fileUploadFor, INPUT_MAX, intakeRawMessage, INTAKE_STATE_KEY, resumeFileIntake, resumeIntakeTurn } from "../_shared/career_resume_intake.ts"; // FEATURE 16
+import { afterRouter, commitIntakeAnswer, fileUploadFor, INPUT_MAX, intakeRawMessage, INTAKE_STATE_KEY, resumeFileIntake, resumeIntakeTurn } from "../_shared/career_resume_intake.ts"; // FEATURE 16
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -200,7 +200,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       );
     }
 
-    const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    const { thread_id, message: sentMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     // WO-100: the person's situation (every task in flight, the next steps, what Trainee can do), read once per turn,
     // before anything answers; a source that fails is named in it, never guessed. A code an employer emailed them, while
@@ -214,9 +214,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // 4,096 characters a message). The channel itself is never sent to the turn (WO-038), so every bridge turn counts.
     const f16Channel = isBridgeCall ? "channel" : null;
     const f16File = await resumeFileIntake(body as Record<string, unknown>, f16Channel ?? "web");
-    const f16Raw = intakeRawMessage(rawMessage, f16File);
+    const f16Raw = intakeRawMessage(sentMessage, f16File);
+    // The turn's text: what was sent, or the file's text under its "[resume file: name]" line (the request hash below is
+    // over it too, so a retried upload replays and a different file under the same turn key conflicts).
+    const rawMessage = f16Raw.raw;
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
-    const input = chatInput(f16Raw.raw, images, INPUT_MAX, { codePending: codePending(situation) });
+    const input = chatInput(rawMessage, images, INPUT_MAX, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
     // END FEATURE 16 (input)
     let { message, userContent } = input;
@@ -374,7 +377,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const f16Reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
         const f16Lines = f16Reminders.map((r: any) => typeof r.speak_line === "string" ? r.speak_line.slice(0, 2000) : "").filter(Boolean);
         const f16Response = { thread_id: tid, reply: [f16Reply, ...f16Lines].join("\n"), action: null, turn_key: turnKey, reminders: f16Reminders, meta: { career: true, intent: f16.intent, result_status: f16.status, contained: false } };
-        const f16Saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response: f16Response, taskIntent: null, batchIntent: null });
+        const f16Saved = await commitIntakeAnswer(persistence, { userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response: f16Response });
         flowCtx.note = null;
         return json(cors, f16Saved.response, 200);
       }

@@ -219,6 +219,13 @@ Deno.test({
             assert(!/on your computer/.test(r.reply), `no promise the phone can't keep: ${r.reply}`);
             if (/I'm preparing your application again now with these answers/.test(r.reply)) break;
             assert(/Once the rest are answered, I'll prepare your application again here\./.test(r.reply), r.reply);
+            // A new user checks in midway (messy phrasing): where it stands, plainly; nothing claimed sent.
+            if (!OWNER_RUN && page === 0) {
+              const st = await say("where's my application to ramp?");
+              eq(st.intent, "career_apply_status", st.reply);
+              assert(/Ramp \(Software Engineering Intern, Frontend\): waiting on your answer to \d+ questions?; say "what do you need from me"\. Nothing was sent\./.test(st.reply), st.reply);
+              assert(!/I have no application to ramp on record/i.test(st.reply), `not "no application" while it is being prepared: ${st.reply}`);
+            }
             // More are waiting: they ask for them, as the reply says.
             const shown = await say("what do you need from me");
             eq(shown.resultStatus, "shown", shown.reply);
@@ -238,7 +245,7 @@ Deno.test({
       });
 
       if (waitingOnThem) { console.log("DRY RUN: stopped where the person must answer; nothing was prepared past it, nothing approved or sent."); return; }
-      const prepared = card ? JSON.parse(await q1(`select row_to_json(p) from public.career_apply_prepared p where user_id = '${PERSON}'`)) : null;
+      let prepared = card ? JSON.parse(await q1(`select row_to_json(p) from public.career_apply_prepared p where user_id = '${PERSON}'`)) : null;
       if (!ok) return;
       ok = await t.step("the exact payload, field by field, and the card shows every one; the resume is their file, as is", async () => {
         assert(prepared, "prepared");
@@ -267,6 +274,35 @@ Deno.test({
       if (OWNER_RUN) { console.log("DRY RUN: the owner's persona stops at the card; nothing is approved, queued or sent."); return; }
 
       let job: any = null;
+      if (!ok) return;
+      ok = await t.step("4b. they change their mind, then change it back: cancelled (the card approves nothing), asked again, a new card at once", async () => {
+        const before = JSON.parse(await q1(`select row_to_json(p) from public.career_apply_prepared p where user_id = '${PERSON}'`));
+        const st = await say("where is my application to Ramp");
+        assert(/ready on the card I sent you; nothing is sent until you approve it there/.test(st.reply), st.reply);
+        const c = await say("Actually, don't apply me to Ramp after all.");
+        eq([c.intent, c.resultStatus], ["career_apply_cancel", "cancelled"], c.reply);
+        assert(/^Cancelled Ramp: I removed it from your queue, deleted what I had prepared, closed its card, so a tap on it approves nothing\. Nothing was sent to Ramp\.$/.test(c.reply), c.reply);
+        eq(await q1(`select count(*) from public.career_apply_wanted where user_id = '${PERSON}'`), "0");
+        eq(await q1(`select count(*) from public.career_apply_prepared where user_id = '${PERSON}'`), "0");
+        const tap = await q1(`select public.career_apply_card_answer_as('${PERSON}', '${card.card_id}', '{1}')::text`).catch((e) => String(e));
+        assert(/card_answered/.test(tap), `a tap on the cancelled card approves nothing: ${tap}`);
+        eq(await q1(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}'`), "0", "no job");
+        const again = await say("Cancel my application to Ramp");
+        eq(again.resultStatus, "none", again.reply);
+        assert(/nothing to cancel\. Nothing was sent to Ramp through Trainee\./.test(again.reply), again.reply);
+        // Back on: asked again, prepared at once from their saved answers (nothing asked twice), a new card.
+        lastAt = Date.now();
+        const r = await say(`ok actually apply me to this: ${RAMP_LINK}`);
+        eq([r.intent, r.resultStatus], ["career_apply_queue", "queued"], r.reply);
+        await settle();
+        const cards = await outbox("card");
+        eq(cards.length, 2, "a second card for the second ask");
+        card = cards[1];
+        console.log(`MEASURED: second card queued ${Date.parse(card.created_at) - lastAt} ms after asking again (answers already saved)`);
+        prepared = JSON.parse(await q1(`select row_to_json(p) from public.career_apply_prepared p where user_id = '${PERSON}'`));
+        eq(prepared.payload.fields.map((f: any) => [f.name, f.value]), before.payload.fields.map((f: any) => [f.name, f.value]), "the same answers, from what they already said");
+        eq((await outbox("questions")).length, 1, "nothing asked twice");
+      });
       if (!ok) return;
       ok = await t.step("5. their tap (the service door the Telegram button calls): one job, bound to the card's hash", async () => {
         const res = JSON.parse(await q1(`select public.career_apply_card_answer_as('${PERSON}', '${card.card_id}', '{1}')::text`));

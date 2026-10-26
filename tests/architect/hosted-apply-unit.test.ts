@@ -240,3 +240,43 @@ Deno.test("F17 the send bridge's authorization asks the database for either rout
     { secret: SECRET, readJob: async () => row, rpc: async (name: string) => { calls.push(name); return { authorized: true }; } });
   eq(calls, ["career_apply_cloud_authorize_any"]);
 });
+
+import { cancelAsk, cancelTurn, pendingLine, withPending } from "../../supabase/functions/_shared/career_hosted_prepare.ts";
+import { statusAsk } from "../../supabase/functions/_shared/career_apply_status.ts";
+
+Deno.test("F17 cancel: only an explicit cancel of an application to a named employer; every outcome said plainly", async () => {
+  for (const [m, co] of [["cancel my application to Ramp", "Ramp"], ["Actually, don't apply me to Ramp after all.", "Ramp"], ["withdraw my Ramp application", "Ramp"],
+    ["stop applying to Ramp", "Ramp"], ["never mind the Ramp application", "Ramp"], ["please don't submit my application to Stripe", "Stripe"]] as const) eq(cancelAsk(m), co, m);
+  for (const m of ["stop sending me alerts", "cancel my subscription", "stop", "cancel", "don't apply to it", "apply me to Ramp", "stop the job alerts", "cancel everything", "stop sending updates to my email", "cancel my application to " + "x".repeat(150)]) eq(cancelAsk(m), null, m);
+  const turn = (data: any, error: any = null) => cancelTurn({ message: "cancel my application to Ramp", userId: "u", admin: { rpc: async (n: string, a: any) => { eq([n, a], ["career_apply_cancel_for", { p_user: "u", p_company: "Ramp" }]); return { data, error }; } } });
+  eq((await turn({ queued_removed: 1, prepared_removed: 1, cards_closed: 1, approved_cancelled: 0, being_sent: 0, already_sent: [] }))!.reply,
+    "Cancelled Ramp: I removed it from your queue, deleted what I had prepared, closed its card, so a tap on it approves nothing. Nothing was sent to Ramp.");
+  eq((await turn({ queued_removed: 0, prepared_removed: 0, cards_closed: 0, approved_cancelled: 1, being_sent: 0, already_sent: [] }))!.reply,
+    "Cancelled Ramp: I stopped the approved application before it was sent. Nothing was sent to Ramp.");
+  const late = await turn({ queued_removed: 0, prepared_removed: 0, cards_closed: 0, approved_cancelled: 0, being_sent: 1, already_sent: [{ state: "submitted_unconfirmed" }] });
+  eq([late!.status, late!.reply], ["too_late", "One application to Ramp is being sent right now and can't be stopped midway; I'll tell you how it ended. An application to Ramp was already sent; a sent application can't be taken back."]);
+  eq((await turn({ queued_removed: 0, prepared_removed: 0, cards_closed: 0, approved_cancelled: 0, being_sent: 0, already_sent: [] }))!.reply,
+    "I have nothing for Ramp in your queue, so there is nothing to cancel. Nothing was sent to Ramp through Trainee.");
+  eq((await turn(null, { message: "boom" }))!.reply, "I couldn't cancel anything for Ramp just now; nothing was changed. Ask me again in a minute.");
+});
+
+Deno.test("F17 status: a posting still with Trainee is said where it stands; an unreadable record is said; other replies are untouched", async () => {
+  const row = (stage: string, n = 0) => ({ posting_key: "ashby:ramp:1", company: "Ramp", title: "Software Engineering Intern, Frontend", url: "https://x", stage, detail: null, open_questions: n, at: new Date().toISOString() });
+  eq(pendingLine(row("waiting_on_you", 2)), "Ramp (Software Engineering Intern, Frontend): waiting on your answer to 2 questions; say \"what do you need from me\". Nothing was sent.");
+  for (const st of ["on_card", "ready", "preparing", "no_resume", "refused", "error", "in_queue"]) assert(/nothing (was|is) sent/i.test(pendingLine(row(st))), `${st}: ${pendingLine(row(st))}`);
+  const admin = (rows: any[] | null) => ({ rpc: async () => (rows ? { data: rows, error: null } : { data: null, error: { message: "x" } }) });
+  let ans: any = { reply: "I have no application to Ramp on record, so I can't say it went through. Nothing was sent to Ramp through Trainee.", intent: "career_apply_status" };
+  eq(await withPending(ans, "did my application to Ramp go through?", { admin: admin([row("on_card")]), userId: "u", statusAsk }), 1);
+  eq(ans.reply, "Ramp (Software Engineering Intern, Frontend): ready on the card I sent you; nothing is sent until you approve it there.");
+  ans = { reply: "Your applications, newest first:\n- Acme: submitted.", intent: "career_apply_status" };
+  await withPending(ans, "where are my applications", { admin: admin([row("preparing")]), userId: "u", statusAsk });
+  assert(/Acme: submitted\.\nNot sent yet, still with me:\n- Ramp .*being prepared now/.test(ans.reply), ans.reply);
+  ans = { reply: "x", intent: "career_apply_status" };
+  await withPending(ans, "where are my applications", { admin: admin(null), userId: "u", statusAsk });
+  eq(ans.reply, "x\nI couldn't read the applications still being prepared just now.");
+  ans = { reply: "hello", intent: "career_inbox" };
+  eq(await withPending(ans, "where are my applications", { admin: admin([row("preparing")]), userId: "u", statusAsk }), 0);
+  eq(ans.reply, "hello");
+  ans = { reply: "I have no application to Stripe on record, so I can't say it went through. Nothing was sent to Stripe through Trainee.", intent: "career_apply_status" };
+  eq(await withPending(ans, "did my application to Stripe go through?", { admin: admin([row("preparing")]), userId: "u", statusAsk }), 0, "another employer's posting is not said");
+});

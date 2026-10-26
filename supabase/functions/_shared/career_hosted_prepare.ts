@@ -29,3 +29,87 @@ export async function prepareAfterAnswers(asked: { reply: string; status?: strin
     : "Preparing it again hasn't started yet; it waits in your queue.");
   return k;
 }
+
+// ------------------------------------------------------------------------------------------------ follow-through
+// Where a posting they asked for stands before it is on the queue (career_apply_pending_for), in their words.
+export interface PendingRow { posting_key: string; company: string; title: string; url: string; stage: string; detail: string | null; open_questions: number; at: string }
+export function pendingLine(p: PendingRow): string {
+  const name = `${p.company || "An employer"}${p.title ? ` (${p.title})` : ""}`;
+  switch (p.stage) {
+    case "on_card": return `${name}: ready on the card I sent you; nothing is sent until you approve it there.`;
+    case "ready": return `${name}: prepared; the card with every answer is on its way. Nothing is sent until you approve it.`;
+    case "preparing": return `${name}: being prepared now; nothing is sent until you approve its card.`;
+    case "waiting_on_you": return `${name}: waiting on your answer to ${p.open_questions === 1 ? "1 question" : `${p.open_questions} questions`}; say "what do you need from me". Nothing was sent.`;
+    case "no_resume": return `${name}: not prepared: I don't have your resume file to attach. Send it here as a PDF or Word file. Nothing was sent.`;
+    case "refused": return `${name}: not prepared: the employer's form could not be filled ahead of time. Nothing was sent.`;
+    case "error": return `${name}: not prepared: preparing it failed on my side. Nothing was sent.`;
+    default: return `${name}: in your queue, not prepared yet. Nothing was sent.`;
+  }
+}
+// deno-lint-ignore no-explicit-any
+export async function pendingRows(admin: any, userId: string): Promise<PendingRow[] | null> {
+  const r = await admin.rpc("career_apply_pending_for", { p_user: userId });
+  return r.error ? null : (r.data ?? []) as PendingRow[];
+}
+const norm = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+// A status reply (career_apply_status / career_standing) for an employer with no application on record says no more than
+// that; when that employer's posting is in their queue, its stage is said too. A reply about every application gets the
+// postings not yet on the queue added below it. Mutates `ans.reply`; nothing else.
+// deno-lint-ignore no-explicit-any
+export async function withPending(ans: { reply: string; intent?: string | null } | null, message: string, o: { admin: any; userId: string; statusAsk: (m: string) => { company: string | null } | null }): Promise<number> {
+  if (!ans || ans.intent !== "career_apply_status") return 0;
+  const ask = o.statusAsk(message);
+  if (!ask) return 0;
+  const rows = await pendingRows(o.admin, o.userId);
+  if (!rows) { ans.reply = `${ans.reply}\nI couldn't read the applications still being prepared just now.`; return 0; }
+  const mine = ask.company ? rows.filter((p) => norm(p.company) && (norm(p.company) === norm(ask.company!) || norm(p.company).startsWith(norm(ask.company!) + " "))) : rows;
+  if (!mine.length) return 0;
+  const lines = mine.slice(0, 8).map((p) => (ask.company ? pendingLine(p) : `- ${pendingLine(p)}`));
+  ans.reply = ask.company && /I have no application to .* on record/.test(ans.reply)
+    ? lines.join("\n")
+    : `${ans.reply}\n${ask.company ? "" : "Not sent yet, still with me:\n"}${lines.join("\n")}`;
+  return mine.length;
+}
+
+// "cancel my application to X", "don't apply to X", "stop applying to X", "withdraw my X application", "never mind X".
+// Only an explicit cancel of an application to a named employer ("stop sending me alerts" is not one).
+const CANCEL = [
+  /^(?:please )?(?:cancel|withdraw)(?: (?:my|the))? application (?:to|for|at|with) (.+?)(?: please)?$/i,
+  /^(?:please )?(?:cancel|withdraw|stop) (?:applying|my application|the application|sending my application) (?:to|for|at|with) (.+?)(?: please)?$/i,
+  /^(?:please )?(?:cancel|withdraw) (?:my|the) (.+?) application(?: please)?$/i,
+  /^(?:please )?(?:actually,? )?(?:don'?t|do not) (?:apply(?: me)?|send(?: it| my application)?|submit(?: it| my application)?) (?:to|for|at) (.+?)(?: after all)?(?: please)?$/i,
+  /^(?:actually,? )?never ?mind(?: the| my)? (.+?) application$/i,
+];
+export function cancelAsk(message: string): string | null {
+  const t = String(message ?? "").replace(/[.!?]+\s*$/, "").replace(/\s+/g, " ").trim();
+  if (t.length > 160) return null;
+  for (const re of CANCEL) {
+    const m = re.exec(t);
+    if (!m) continue;
+    const co = m[1].replace(/^(?:the|my) /i, "").replace(/ (?:application|job|role|one)$/i, "").trim();
+    if (!co || /^(?:it|that|this|everything|all|applying|application|applications)$/i.test(co) || co.split(" ").length > 6) return null;
+    return co;
+  }
+  return null;
+}
+export const CANCEL_INTENT = "career_apply_cancel";
+// deno-lint-ignore no-explicit-any
+export async function cancelTurn(o: { message: string; userId: string; admin: any }): Promise<{ reply: string; status: string; intent: string } | null> {
+  const co = cancelAsk(o.message);
+  if (!co) return null;
+  const r = await o.admin.rpc("career_apply_cancel_for", { p_user: o.userId, p_company: co });
+  if (r.error) return { reply: `I couldn't cancel anything for ${co} just now; nothing was changed. Ask me again in a minute.`, status: "unreadable", intent: CANCEL_INTENT };
+  const d = r.data ?? {};
+  const did = (d.queued_removed ?? 0) + (d.prepared_removed ?? 0) + (d.approved_cancelled ?? 0);
+  const parts: string[] = [];
+  if (did) {
+    const what = [d.queued_removed ? "removed it from your queue" : "", d.prepared_removed ? "deleted what I had prepared" : "",
+      d.cards_closed ? "closed its card, so a tap on it approves nothing" : "", d.approved_cancelled ? "stopped the approved application before it was sent" : ""].filter(Boolean);
+    parts.push(`Cancelled ${co}: I ${what.join(", ")}. Nothing was sent to ${co}.`);
+  }
+  if (d.being_sent) parts.push(`${d.being_sent === 1 ? "One application" : `${d.being_sent} applications`} to ${co} ${d.being_sent === 1 ? "is" : "are"} being sent right now and can't be stopped midway; I'll tell you how it ended.`);
+  const sent = Array.isArray(d.already_sent) ? d.already_sent : [];
+  if (sent.length) parts.push(`${sent.length === 1 ? "An application" : `${sent.length} applications`} to ${co} ${sent.length === 1 ? "was" : "were"} already sent; a sent application can't be taken back.`);
+  if (!parts.length) parts.push(`I have nothing for ${co} in your queue, so there is nothing to cancel. Nothing was sent to ${co} through Trainee.`);
+  return { reply: parts.join(" "), status: did ? "cancelled" : d.being_sent || sent.length ? "too_late" : "none", intent: CANCEL_INTENT };
+}

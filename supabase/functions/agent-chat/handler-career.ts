@@ -59,7 +59,8 @@ import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
 import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { feature1Deps } from "../_shared/career_apply_from_chat.ts"; // FEATURE 1
-import { prepareAfterAnswers } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
+import { cancelTurn, prepareAfterAnswers, withPending } from "../_shared/career_hosted_prepare.ts"; // FEATURE 17
+import { statusAsk } from "../_shared/career_apply_status.ts"; // FEATURE 17
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
 import { statusRecordsFrom } from "../_shared/career_capabilities.ts";
@@ -479,7 +480,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // (career_apply_answers_for reads it). Nothing is approved or sent here: only the card's tap does that.
       const feature1 = feature1Deps({ admin, userId: user.id, env: Deno.env, fetch: (i, init) => fetch(i, init), posting: (id) => supabasePostingsDb(admin).get(id) });
       // FEATURE 1 end
-      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+      // FEATURE 17: "cancel my application to X" / "don't apply to X": withdrawn before it is sent (career_hosted_prepare.ts).
+      const cancelled = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await cancelTurn({ message, userId: user.id, admin }).catch((e) => { console.error("feature 17 cancel:", (e as Error)?.message ?? e); return null; })
+        : null;
+      // END FEATURE 17
+      const queued = !cancelled && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applyTurn({
           ...feature1.apply,
           // FEATURE E2E: a pasted posting link (or a role at a registered board) read from the ATS's public API on demand
@@ -528,6 +534,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 17: a status answer also says where each posting they asked for stands before it is on the queue.
+      await withPending(stood ?? status, message, { admin, userId: user.id, statusAsk }).catch((e) => console.error("feature 17 pending:", (e as Error)?.message ?? e));
+      // END FEATURE 17
       // FEATURE 10: networking from chat. A contacts CSV pasted or attached (`attachments`: [{ name, mime, text }]) is
       // imported into the thread's contacts; "who do I know at X" answers from them; "email Maya at X about ..." drafts
       // from confirmed facts (draftFor) onto the outreach batch that outreachTurn answers, one approval per exact message.
@@ -600,6 +609,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
         agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
         if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
+      } else if (cancelled) { // FEATURE 17
+        out = { reply: cancelled.reply, intent: cancelled.intent, resultStatus: cancelled.status, contained: false, handler: "apply_cancel" };
       } else if (queued) {
         // SERIAL-1490: a posting held back by "is X where you work now?" makes the question this thread's last word, with
         // the postings it is about on the reply, so the next yes or no answers exactly them.

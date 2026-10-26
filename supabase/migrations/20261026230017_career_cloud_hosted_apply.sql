@@ -271,6 +271,28 @@ language sql stable security definer set search_path = public, pg_temp as $$
 $$;
 
 -- ---------------------------------------------------------------------------------------------- 2. preparation requests
+-- One status text to the person about their preparation, on their channel: the outbox when they text (never after STOP),
+-- else a message in the thread they last talked in (the web chat). Once per key. True when it was said.
+create or replace function public.career_apply_prepare_tell(p_user uuid, p_key text, p_text text) returns boolean
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare thread uuid; n int;
+begin
+ if p_user is null or p_key !~ '^status:prepare:' or p_text is null or length(p_text) not between 1 and 1500 then raise exception 'invalid notice'; end if;
+ if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
+ if exists (select from public.channel_contacts where user_id = p_user and thread_id is not null) then
+  insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, p_key, 'status', p_text, clock_timestamp()) on conflict do nothing;
+  get diagnostics n = row_count;
+  return n > 0;
+ end if;
+ select m.thread_id into thread from public.agent_messages m join public.agent_threads t on t.id = m.thread_id
+  where t.user_id = p_user order by m.id desc limit 1;
+ if thread is null or exists (select from public.agent_messages where thread_id = thread and meta->>'notice_key' = p_key) then return false; end if;
+ insert into public.agent_messages (thread_id, role, content, meta)
+ values (thread, 'assistant', p_text, jsonb_build_object('career', true, 'intent', 'career_apply_prepare_notice', 'notice_key', p_key));
+ return true;
+end $$;
+
+
 create table if not exists public.career_apply_prepare_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -330,12 +352,17 @@ begin
   or p_per_person_day is null or p_per_person_day not between 1 and 200 or p_per_site_minute is null or p_per_site_minute not between 1 and 600 then
   raise exception 'invalid prepare limits'; end if;
  perform pg_advisory_xact_lock(hashtextextended('career-prepare-dispatch-v1', 0));
- update public.career_apply_prepare_requests set state = 'expired', finished_at = n,
+ -- Each expiry is told to the person once (unless they said STOP): what happened, that nothing was sent, what to do.
+ for r in update public.career_apply_prepare_requests set state = 'expired', finished_at = n,
   outcome = outcome || jsonb_build_object('reason', 'the preparation did not finish inside its lease; not run again')
-  where state = 'running' and claimed_at < n - interval '15 minutes';
- update public.career_apply_prepare_requests set state = 'expired', finished_at = n,
+  where state = 'running' and claimed_at < n - interval '15 minutes' returning * loop
+  perform public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, 'Preparing the application you asked for stopped before it finished, so there is no card for it. Nothing was sent. Say "apply me to" with the link to try again.');
+ end loop;
+ for r in update public.career_apply_prepare_requests set state = 'expired', finished_at = n,
   outcome = outcome || jsonb_build_object('reason', 'not started within 24 hours')
-  where state = 'queued' and created_at < n - interval '24 hours';
+  where state = 'queued' and created_at < n - interval '24 hours' returning * loop
+  perform public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, 'I couldn''t start preparing the application you asked for within a day: today''s preparations were used up. Nothing was sent, and it is still in your queue. Say "apply me to" with the link to try again.');
+ end loop;
  select count(*) into running from public.career_apply_prepare_requests where state = 'running';
  for r in select * from public.career_apply_prepare_requests where state = 'queued' order by created_at, id for update skip locked loop
   exit when got >= p_want or running + got >= p_global;
@@ -391,7 +418,7 @@ $$;
 -- posting was in a preparation request of this person made in the last 2 hours.
 create or replace function public.career_apply_card_push_requested_for(p_user uuid, p_request uuid, p_ids uuid[], p_text text, p_now timestamptz)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
-declare thread uuid; c public.career_apply_cards; home_contact text; seen timestamptz; req public.career_apply_prepare_requests;
+declare thread uuid; c public.career_apply_cards; home_contact text; seen timestamptz; req public.career_apply_prepare_requests; web_only boolean := false;
 begin
  if p_user is null or p_request is null or p_ids is null or cardinality(p_ids) not between 1 and 8 or p_now is null
   or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid card push'; end if;
@@ -403,6 +430,12 @@ begin
   raise exception 'not a requested preparation'; end if;
  if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return null; end if;
  select thread_id into thread from public.channel_contacts where user_id = p_user and thread_id is not null order by last_inbound_at desc nulls last, created_at limit 1;
+ -- A person on the web chat only (no texting contact): the card goes into the thread they last talked in, with no text.
+ if thread is null then
+  select m.thread_id into thread from public.agent_messages m join public.agent_threads t on t.id = m.thread_id
+   where t.user_id = p_user order by m.id desc limit 1;
+  web_only := thread is not null;
+ end if;
  if thread is null then return null; end if;
  home_contact := public.channel_target(p_user, null);
  if home_contact like 'wa:%' then
@@ -421,7 +454,9 @@ begin
  insert into public.agent_messages (thread_id, role, content, meta)
  values (thread, 'assistant', p_text, jsonb_build_object('career', true, 'intent', 'career_apply_card', 'card_id', c.id, 'requested', true,
   'prepare_request', p_request));
- insert into public.career_outbox (user_id, key, kind, text, deliver_at, card_id) values (p_user, 'card:' || c.id, 'card', p_text, p_now, c.id);
+ if not web_only then
+  insert into public.career_outbox (user_id, key, kind, text, deliver_at, card_id) values (p_user, 'card:' || c.id, 'card', p_text, p_now, c.id);
+ end if;
  return c.id;
 end $$;
 
@@ -439,7 +474,7 @@ $$;
 -- push (career_apply_questions_push_for) but its one-a-day and "thread busy" holds, and only questions this request asked.
 create or replace function public.career_apply_questions_push_requested_for(p_user uuid, p_request uuid, p_ids uuid[], p_text text, p_now timestamptz)
 returns boolean language plpgsql security definer set search_path = public, pg_temp as $$
-declare thread uuid; req public.career_apply_prepare_requests; asked text[];
+declare thread uuid; req public.career_apply_prepare_requests; asked text[]; web_only boolean := false;
 begin
  if p_user is null or p_request is null or p_ids is null or cardinality(p_ids) not between 1 and 5 or p_now is null
   or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid questions push'; end if;
@@ -453,6 +488,11 @@ begin
  if exists (select from public.channel_contacts where user_id = p_user and opted_out) then return false; end if;
  select thread_id into thread from public.channel_contacts where user_id = p_user and thread_id is not null
   order by last_inbound_at desc nulls last, created_at limit 1;
+ if thread is null then
+  select m.thread_id into thread from public.agent_messages m join public.agent_threads t on t.id = m.thread_id
+   where t.user_id = p_user order by m.id desc limit 1;
+  web_only := thread is not null;
+ end if;
  if thread is null then return false; end if;
  if (select count(*) from public.career_apply_questions where user_id = p_user and id = any(p_ids) and state = 'open' and pushed_at is null)
      <> (select count(distinct x) from unnest(p_ids) x) or (select count(distinct x) from unnest(p_ids) x) <> cardinality(p_ids)
@@ -465,7 +505,9 @@ begin
  insert into public.career_watch_kv (user_id, key, value, updated_at)
  values (p_user, 'career:questions-shown', jsonb_build_object('thread', thread, 'ids', to_jsonb(p_ids::text[]), 'at', p_now), p_now)
  on conflict (user_id, key) do update set value = excluded.value, updated_at = excluded.updated_at;
- insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, 'questions:' || p_ids[1], 'questions', p_text, p_now);
+ if not web_only then
+  insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (p_user, 'questions:' || p_ids[1], 'questions', p_text, p_now);
+ end if;
  return true;
 end $$;
 
@@ -478,10 +520,70 @@ begin
  if p_text is null or length(p_text) not between 1 and 1500 then raise exception 'invalid notice'; end if;
  select * into r from public.career_apply_prepare_requests where id = p_id and state = 'running' and p_lease is not null and lease_token = p_lease;
  if r.id is null then raise exception 'invalid prepare lease'; end if;
- if exists (select from public.channel_contacts where user_id = r.user_id and opted_out) then return false; end if;
- insert into public.career_outbox (user_id, key, kind, text, deliver_at) values (r.user_id, 'status:prepare:' || r.id, 'status', p_text, clock_timestamp())
- on conflict do nothing;
- return found;
+ return public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, p_text);
+end $$;
+
+-- ---------------------------------------------------------------------------------------------- follow-through
+-- Where each posting the person asked for stands before it is an application on the queue, from the records: on a card
+-- waiting for their tap, waiting on their answers, being prepared, could not be prepared (and why), or only in the queue.
+create or replace function public.career_apply_pending_for(p_user uuid)
+returns table (posting_key text, company text, title text, url text, stage text, detail text, open_questions integer, at timestamptz)
+language sql stable security definer set search_path = public, pg_temp as $$
+ select w.posting_key, w.company, w.title, w.url,
+  case
+   when exists (select from public.career_apply_prepared p join public.career_apply_cards c on c.user_id = p.user_id and c.state = 'open'
+     and c.items @> jsonb_build_array(jsonb_build_object('prepared_id', p.id::text)) where p.id = t.prepared_id and p.state = 'shown') then 'on_card'
+   when exists (select from public.career_apply_prepared p where p.id = t.prepared_id and p.state = 'ready') then 'ready'
+   when exists (select from public.career_apply_prepare_requests r where r.user_id = w.user_id and r.state in ('queued', 'running') and w.posting_key = any(r.job_ids)) then 'preparing'
+   when t.outcome = 'asked' and q.n > 0 then 'waiting_on_you'
+   when t.outcome in ('refused', 'no_resume', 'error') then t.outcome
+   else 'in_queue' end,
+  t.detail, coalesce(q.n, 0)::integer, coalesce(t.at, w.queued_at)
+ from public.career_apply_wanted w
+ left join public.career_apply_prepare_attempts t on t.user_id = w.user_id and t.posting_job_id = w.posting_key
+ left join lateral (select count(*) n from public.career_apply_questions x where x.user_id = w.user_id and x.state = 'open'
+   and t.engine_job_id is not null and t.engine_job_id = any(x.job_ids)) q on true
+ where w.user_id = p_user and w.state = 'waiting'
+  and not exists (select from public.career_apply_jobs j where j.user_id = w.user_id and j.job_id in (w.posting_key, coalesce(t.engine_job_id, '')))
+ order by coalesce(t.at, w.queued_at) desc
+$$;
+
+-- "Cancel my application to X": everything for that employer not yet sent is withdrawn, under the person's lock (the claim
+-- takes the same lock, so a job cannot be claimed halfway through): their queued postings leave the queue, their prepared
+-- applications not yet approved are removed with their tries (so asking again prepares afresh), an open card that shows
+-- one is closed (a tap on it approves nothing), an approved application not yet claimed is closed not_submitted. One
+-- being sent now, or already sent, is left as it is and named. Returns what was done.
+create or replace function public.career_apply_cancel_for(p_user uuid, p_company text) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare co text := public.career_apply_company_key(p_company); wanted int := 0; prepared int := 0; cards int := 0; jobs int := 0;
+ ids uuid[]; driving int; sent jsonb; keys text[];
+begin
+ if p_user is null or co = '' then raise exception 'invalid cancel'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text, 0));
+ perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
+ keys := array(select posting_key from public.career_apply_wanted where user_id = p_user and state = 'waiting' and public.career_apply_company_key(company) = co);
+ ids := array(select id from public.career_apply_prepared where user_id = p_user and state in ('ready', 'shown') and public.career_apply_company_key(company) = co);
+ update public.career_apply_cards c set state = 'answered', answered_at = clock_timestamp(), answer = '{"closed":"cancelled by the person"}'
+  where c.user_id = p_user and c.state = 'open' and exists (select from jsonb_array_elements(c.items) it where (it->>'prepared_id')::uuid = any(ids));
+ get diagnostics cards = row_count;
+ delete from public.career_apply_prepare_attempts where user_id = p_user and (prepared_id = any(ids) or posting_job_id = any(keys));
+ delete from public.career_apply_prepared where id = any(ids);
+ get diagnostics prepared = row_count;
+ delete from public.career_apply_wanted where user_id = p_user and posting_key = any(keys);
+ get diagnostics wanted = row_count;
+ update public.career_apply_prepare_requests set job_ids = array(select x from unnest(job_ids) x where not x = any(keys))
+  where user_id = p_user and state in ('queued', 'running') and job_ids && keys and cardinality(array(select x from unnest(job_ids) x where not x = any(keys))) > 0;
+ update public.career_apply_prepare_requests set state = 'expired', finished_at = clock_timestamp(),
+  outcome = outcome || '{"reason":"cancelled by the person"}' where user_id = p_user and state in ('queued', 'running') and job_ids <@ keys;
+ update public.career_apply_jobs set state = 'not_submitted', reason = 'not sent: you cancelled it before it was sent',
+  evidence = evidence || jsonb_build_object('reason', 'cancelled by the person', 'cancelled_at', clock_timestamp()), updated_at = clock_timestamp()
+  where user_id = p_user and state = 'queued' and attempts = 0 and source is null and public.career_apply_company_key(company) = co;
+ get diagnostics jobs = row_count;
+ select count(*) into driving from public.career_apply_jobs where user_id = p_user and state = 'driving' and public.career_apply_company_key(company) = co;
+ select jsonb_agg(jsonb_build_object('state', state, 'at', coalesce(claimed_at, created_at)) order by created_at desc) into sent
+  from public.career_apply_jobs where user_id = p_user and state in ('confirmed', 'submitted_unconfirmed', 'unknown_outcome') and public.career_apply_company_key(company) = co;
+ return jsonb_build_object('queued_removed', wanted, 'prepared_removed', prepared, 'cards_closed', cards, 'approved_cancelled', jobs,
+  'being_sent', driving, 'already_sent', coalesce(sent, '[]'::jsonb));
 end $$;
 
 -- ---------------------------------------------------------------------------------------------- grants
@@ -496,7 +598,7 @@ revoke all on function public.career_apply_cloud_text_cards_enabled(), public.ca
  public.career_apply_prepare_request_scope(uuid, uuid), public.career_apply_prepare_request_sandbox(uuid, uuid, text),
  public.career_apply_prepare_request_finish(uuid, uuid, text, jsonb, uuid), public.career_apply_prepare_request_ready(uuid, uuid),
  public.career_apply_card_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_questions(uuid, uuid),
- public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text)
+ public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text), public.career_apply_prepare_tell(uuid, text, text)
  from public, anon, authenticated, service_role;
 grant execute on function public.career_apply_cloud_text_cards_enabled(), public.career_apply_url_host(text),
  public.career_apply_cloud_authorize_any(uuid, uuid, text, text), public.career_apply_cloud_dispatch_claim2(integer, integer, integer, integer, integer),
@@ -505,4 +607,4 @@ grant execute on function public.career_apply_cloud_text_cards_enabled(), public
  public.career_apply_prepare_request_scope(uuid, uuid), public.career_apply_prepare_request_sandbox(uuid, uuid, text),
  public.career_apply_prepare_request_finish(uuid, uuid, text, jsonb, uuid), public.career_apply_prepare_request_ready(uuid, uuid),
  public.career_apply_card_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_questions(uuid, uuid),
- public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text) to service_role;
+ public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text) to service_role;

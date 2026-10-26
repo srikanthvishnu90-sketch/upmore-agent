@@ -238,4 +238,95 @@ update channel_contacts set opted_out=true where contact='tg:417001';
 update career_apply_prepared set state='ready' where id=(select id from pp);
 select t.ok(career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f171',(select (v->>'id')::uuid from r1),array[(select id from pp)],'P1 Co: Email: a@example.test',now()) is null,
  'after STOP, nothing is pushed');
+-- ------------------------------------------------------------------------------------------ follow-through
+update channel_contacts set opted_out=false where contact='tg:417001';
+update career_apply_prepared set state='shown' where id=(select id from pp);
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:1')='on_card',
+ 'a posting on an open card reads on_card');
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:2') in ('preparing','in_queue'),
+ 'a posting not prepared yet reads preparing or in_queue');
+-- Changing their mind: cancel P1 Co. The queue row, the prepared application and its try go; the open card closes; a tap
+-- on it then approves nothing; asking again prepares afresh.
+create temp table cx as select career_apply_cancel_for('00000000-0000-4000-8000-00000000f171','P1 Co') v;
+select t.ok((select (v->>'queued_removed')::int=1 and (v->>'prepared_removed')::int=1 and (v->>'cards_closed')::int=1 from cx),'cancel: queue row, prepared application and its card');
+select t.ok(not exists(select from career_apply_wanted where user_id='00000000-0000-4000-8000-00000000f171' and posting_key='ashby:hostedp:1'),'out of the queue');
+select t.ok((select state='answered' and answer->>'closed'='cancelled by the person' from career_apply_cards where id=(select card from pushed)),'the card is closed');
+select t.must_fail(format($$select career_apply_card_answer_for('00000000-0000-4000-8000-00000000f171',%L,'{1}',clock_timestamp())$$,(select card from pushed)),'card_answered','a tap on the cancelled card approves nothing');
+select t.ok(not exists(select from career_apply_prepare_attempts where user_id='00000000-0000-4000-8000-00000000f171' and posting_job_id='ashby:hostedp:1'),'its try is gone, so asking again prepares afresh');
+-- An approved application not yet claimed is closed not_submitted; one being sent is left and named; a sent one is named.
+create temp table c12 as select pg_temp.tap('00000000-0000-4000-8000-00000000f171',array[pg_temp.prep('00000000-0000-4000-8000-00000000f171',13,'https://jobs.ashbyhq.com/hostedc/13','Cancel Co')],'{1}') card;
+create temp table cy as select career_apply_cancel_for('00000000-0000-4000-8000-00000000f171','Cancel Co') v;
+select t.ok((select (v->>'approved_cancelled')::int=1 from cy) and (select state='not_submitted' and reason like 'not sent: you cancelled it%' from career_apply_jobs where job_id='TEST-HOSTED-13'),
+ 'an approved, unclaimed application is not sent');
+select t.ok((select (v->>'being_sent')::int=1 from (select career_apply_cancel_for('00000000-0000-4000-8000-00000000f171','Hosted Employer 3') v) x),'one being sent is left as it is and named');
+select t.ok((select jsonb_array_length(v->'already_sent')=1 from (select career_apply_cancel_for('00000000-0000-4000-8000-00000000f171','Hosted Employer 1') v) x),'a sent one is named, never undone');
+select t.ok((select state='submitted_unconfirmed' from career_apply_jobs where job_id='TEST-HOSTED-1'),'and it is unchanged');
+select t.ok((select (v->>'queued_removed')::int=0 and (v->>'prepared_removed')::int=0 from (select career_apply_cancel_for('00000000-0000-4000-8000-00000000f172','P1 Co') v) x),'another person''s cancel touches nothing of theirs');
+-- A person on the web chat only: the card goes into their last thread, with no text queued.
+insert into auth.users(id,email) values('00000000-0000-4000-8000-00000000f174','hosted-web@example.test');
+insert into profiles(id) values('00000000-0000-4000-8000-00000000f174');
+insert into career_watch_kv(user_id,key,value) values('00000000-0000-4000-8000-00000000f174','career:account','{"epoch":1,"version":1,"paused":false}');
+insert into agent_threads(id,user_id) values('00000000-0000-4000-8000-0000000f17bb','00000000-0000-4000-8000-00000000f174');
+insert into agent_messages(thread_id,role,content) values('00000000-0000-4000-8000-0000000f17bb','user','apply me to this');
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f174','ashby:hostedw:1','https://jobs.ashbyhq.com/hostedw/1','W1 Co','Intern');
+create temp table rw as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f174','{ashby:hostedw:1}',5) v;
+create temp table pw as select pg_temp.prep('00000000-0000-4000-8000-00000000f174',14,'https://jobs.ashbyhq.com/hostedw/1','W1 Co') id;
+select career_apply_prepare_attempt_for('00000000-0000-4000-8000-00000000f174','ashby:hostedw:1','ready',null,(select id from pw),'TEST-HOSTED-14');
+create temp table pushedw as select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f174',(select (v->>'id')::uuid from rw),array[(select id from pw)],'W1 Co: Email: a@example.test',now()) card;
+select t.ok((select card is not null from pushedw),'web only: the card is shown');
+select t.ok((select meta->>'card_id'=(select card::text from pushedw) from agent_messages where thread_id='00000000-0000-4000-8000-0000000f17bb' order by id desc limit 1),'in the thread they last talked in');
+select t.ok(not exists(select from career_outbox where user_id='00000000-0000-4000-8000-00000000f174'),'no text is queued for a person with no texting contact');
+-- An expired request is told, once: queued for more than a day.
+update career_apply_prepare_requests set created_at=now()-interval '25 hours' where id=(select (v->>'id')::uuid from rw);
+select count(*) from career_apply_prepare_request_claim(0,10,5,10);
+select t.ok((select state='expired' from career_apply_prepare_requests where id=(select (v->>'id')::uuid from rw)),'a request not started in a day is expired');
+select t.ok((select content like 'I couldn''t start preparing the application you asked for within a day%Nothing was sent%' from agent_messages where meta->>'notice_key'='status:prepare:'||(select v->>'id' from rw)),'and the person (web only) is told in their thread what happened and what to do');
+select count(*) from career_apply_prepare_request_claim(0,10,5,10);
+select t.ok((select count(*)=1 from agent_messages where meta->>'notice_key'='status:prepare:'||(select v->>'id' from rw)),'told once');
+select t.ok(not exists(select from career_outbox where user_id='00000000-0000-4000-8000-00000000f174'),'and no text is queued for them');
+-- A texting person whose request ran past its lease is told on their channel.
+create temp table rl as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f171','{ashby:hostedp:2}',50) v;
+select count(*) from career_apply_prepare_request_claim(5,50,50,50);
+update career_apply_prepare_requests set claimed_at=now()-interval '16 minutes' where id=(select (v->>'id')::uuid from rl);
+select count(*) from career_apply_prepare_request_claim(0,50,50,50);
+select t.ok((select text like 'Preparing the application you asked for stopped before it finished%' from career_outbox where key='status:prepare:'||(select v->>'id' from rl)),'a request past its lease is told on their channel');
+-- A person who texts by SMS: the same card, queued for their phone number.
+insert into agent_threads(id,user_id) values('00000000-0000-4000-8000-0000000f17cc','00000000-0000-4000-8000-00000000f173');
+insert into channel_contacts(contact,user_id,thread_id,last_inbound_at,created_at) values('+15550171730','00000000-0000-4000-8000-00000000f173','00000000-0000-4000-8000-0000000f17cc',now(),now());
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f173','ashby:hosteds:1','https://jobs.ashbyhq.com/hosteds/1','S1 Co','Intern');
+create temp table rs as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f173','{ashby:hosteds:1}',5) v;
+create temp table ps as select pg_temp.prep('00000000-0000-4000-8000-00000000f173',15,'https://jobs.ashbyhq.com/hosteds/1','S1 Co') id;
+update career_apply_prepared set payload=jsonb_set(payload,'{privacy_epoch}','2') where id=(select id from ps);
+select career_apply_prepare_attempt_for('00000000-0000-4000-8000-00000000f173','ashby:hosteds:1','ready',null,(select id from ps),'TEST-HOSTED-15');
+create temp table pusheds as select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f173',(select (v->>'id')::uuid from rs),array[(select id from ps)],'S1 Co: Email: a@example.test',now()) card;
+select t.ok((select card is not null from pusheds) and exists(select from career_outbox where user_id='00000000-0000-4000-8000-00000000f173' and card_id=(select card from pusheds)),'SMS: the card is queued for their texts');
+select t.ok(public.channel_target('00000000-0000-4000-8000-00000000f173',null)='+15550171730','to their phone number');
+-- They change their mind on the SMS one: its only posting leaves, so the request that was to prepare it ends.
+create temp table cs as select career_apply_cancel_for('00000000-0000-4000-8000-00000000f173','s1 co') v;
+select t.ok((select (v->>'queued_removed')::int=1 from cs)
+ and (select state='expired' and outcome->>'reason'='cancelled by the person' from career_apply_prepare_requests where id=(select (v->>'id')::uuid from rs)),
+ 'cancelling the only posting of a waiting preparation ends it (any case of the name)');
+-- Another person's same-named employer is never touched.
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f172','ashby:hosteds:9','https://jobs.ashbyhq.com/hosteds/9','S1 Co','Intern');
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f173','ashby:hosteds:8','https://jobs.ashbyhq.com/hosteds/8','S1 Co','Intern');
+select career_apply_cancel_for('00000000-0000-4000-8000-00000000f173','S1 Co');
+select t.ok(exists(select from career_apply_wanted where user_id='00000000-0000-4000-8000-00000000f172' and posting_key='ashby:hosteds:9')
+ and not exists(select from career_apply_wanted where user_id='00000000-0000-4000-8000-00000000f173' and posting_key='ashby:hosteds:8'),'a cancel leaves another person''s queue as it was');
+-- Status before a card: waiting on their answers, with the count; a posting already an application is said by the
+-- applications list, not twice.
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f173','ashby:hostedq:1','https://jobs.ashbyhq.com/hostedq/1','Q1 Co','Intern');
+select career_apply_prepare_attempt_for('00000000-0000-4000-8000-00000000f173','ashby:hostedq:1','asked','2 questions',null,'TEST-HOSTED-Q');
+insert into career_apply_questions(user_id,key,kind,label,type,job_ids) values('00000000-0000-4000-8000-00000000f173','label:00000000000f17a1','screen','What is your graduation date?','date','{TEST-HOSTED-Q}'),
+ ('00000000-0000-4000-8000-00000000f173','label:00000000000f17a2','consent','WhatsApp consent','radio','{TEST-HOSTED-Q}');
+select t.ok((select stage='waiting_on_you' and open_questions=2 from career_apply_pending_for('00000000-0000-4000-8000-00000000f173') where posting_key='ashby:hostedq:1'),'a posting waiting on their answers reads waiting_on_you, 2');
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values('00000000-0000-4000-8000-00000000f171','ashby:hostedr:1','https://jobs.ashbyhq.com/hostedr/1','Hosted Employer 1','Intern');
+select career_apply_prepare_attempt_for('00000000-0000-4000-8000-00000000f171','ashby:hostedr:1','error','x',null,'TEST-HOSTED-1');
+select t.ok(not exists(select from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedr:1'),'a posting that is already an application is not listed again');
+-- A notice is never sent after STOP, and a thread notice is written once per key.
+update channel_contacts set opted_out=true where contact='+15550171730';
+select t.ok(not career_apply_prepare_tell('00000000-0000-4000-8000-00000000f173','status:prepare:stop-test','x')
+ and not exists(select from career_outbox where key='status:prepare:stop-test'),'after STOP, no notice');
+select t.ok(career_apply_prepare_tell('00000000-0000-4000-8000-00000000f174','status:prepare:once-test','x'),'a thread notice is written');
+select t.ok(not career_apply_prepare_tell('00000000-0000-4000-8000-00000000f174','status:prepare:once-test','x'),'the same notice again is refused');
+select t.ok((select count(*)=1 from agent_messages where meta->>'notice_key'='status:prepare:once-test'),'a thread notice is written once');
 rollback;

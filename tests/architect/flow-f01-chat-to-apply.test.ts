@@ -49,7 +49,6 @@ Deno.test({
       const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000000f1", OTHER = "7b0f8f8e-6a43-4a49-9d2c-0000000000f2";
       await pg.sql(`insert into public.career_postings (job_id, provider, board, company, title, location, url, description, first_seen_at, last_seen_at) values
         ${[...rows, [E, "echo", "Echo Systems", "Data Engineer"]].map((r) => `('${r[0]}', 'greenhouse', '${r[1]}', '${r[2]}', '${r[3]}', 'Chicago, IL', 'https://boards.greenhouse.io/${r[1]}/jobs/${r[0].split(":")[2]}', '${desc}', now(), now())`).join(",")};
-        update public.career_postings set closed_at = now() where job_id = '${B}';
         insert into public.career_kb_postings (posting_key, source, board, company, title, location, url, posted_at, text_excerpt, content_hash) values
         ${rows.map((r, i) => `('${r[0]}', 'greenhouse', '${r[1]}', '${r[2]}', '${r[3]}', 'Chicago, IL', 'https://boards.greenhouse.io/${r[1]}/jobs/${r[0].split(":")[2]}', now() - interval '${i} hours', '${desc}', 'f${i}')`).join(",")};
         insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test'), ('${OTHER}', '${OTHER}@example.test');
@@ -90,6 +89,10 @@ Deno.test({
         pos = Object.fromEntries(list.map((e, i) => [String(e.id), i + 1]));
         for (const id of [A, B, C, D]) assert(pos[id], `${id} is on the list: ${JSON.stringify(list)}`);
         assertEquals(await wanted(), []);
+        // Bravo closes after it was listed: the next ingest sweep no longer finds it on its board and closes it the way
+        // career_ingest's close() does (closed_at set on career_postings). The search lists only open postings (FEATURE 5's
+        // live board), so a closed posting reaches the apply turn only like this: listed while open, closed before the ask.
+        await pg.sql(`update public.career_postings set closed_at = now() where job_id = '${B}'`);
       });
 
       await t.step("chat: 'apply to <A> and <B>' by position: A queued, B named as closed; 1/2 queued; the prepare is off and said so", async () => {

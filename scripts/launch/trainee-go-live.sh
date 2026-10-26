@@ -683,7 +683,7 @@ else
   if [[ -n "$DRY" ]]; then
     echo "DRY: supabase functions download agent-chat --project-ref $REF (into $HOME/trainee-rollback/agent-chat-<UTC>; best effort, the rollback copy)"
     echo "DRY: node scripts/career/stage-career.cjs <stage>/supabase/functions (index-career.ts staged as agent-chat/index.ts)"
-    echo "DRY: (cd <stage> && supabase functions deploy agent-chat --project-ref $REF) (verify_jwt = true)"
+    echo "DRY: (cd <stage> && supabase functions deploy agent-chat --project-ref $REF --use-docker) (verify_jwt = true; bundled locally: the 20 MB limit, not the 5 MB server-side one)"
     echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, agent-chat, its bundle sha256 from the manifest, the platform version, --label)"
   else
     db_init
@@ -693,13 +693,13 @@ else
     STAGE="$(mktemp -d "${TMPDIR:-/tmp}/trainee-agent-chat.XXXXXX")"
     run "node scripts/career/stage-career.cjs $STAGE/supabase/functions" node scripts/career/stage-career.cjs "$STAGE/supabase/functions"
     printf '[functions.agent-chat]\nverify_jwt = true\n' >"$STAGE/supabase/config.toml"
-    echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF)"
-    (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF") 2>&1 | mask
+    echo "  > (cd $STAGE && supabase functions deploy agent-chat --project-ref $REF --use-docker)"
+    (cd "$STAGE" && supabase functions deploy agent-chat --project-ref "$REF" --use-docker) 2>&1 | mask
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
-    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt
+    run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

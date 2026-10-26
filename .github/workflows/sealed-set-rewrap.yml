@@ -10,6 +10,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   rewrap:
+    # Only the repository owner may start this operation from the reviewed default branch.
+    if: github.actor == 'srikanthvishnu90-sketch' && github.ref == 'refs/heads/trunk'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

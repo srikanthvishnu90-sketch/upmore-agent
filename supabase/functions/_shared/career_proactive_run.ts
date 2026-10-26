@@ -155,7 +155,7 @@ export async function runPrepareAhead(o: {
   ahead: AheadStore; prepare: (c: AheadCandidate) => Promise<AheadOutcome>;
 }): Promise<AheadStats> {
   const stats: AheadStats = { people: 0, picked: 0, ready: 0, cards: 0, no_resume: 0, pace_unreadable: 0 };
-  const rows = (await verifiedWatches(await o.store.active(), o, { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 }))
+  const rows = (await verifiedWatches(await o.store.active(), o, { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 }, new Map()))
     .filter((r) => r.prefs?.on);
   if (!rows.length) return stats;
   const accounts = await o.ahead.accounts(rows.map((r) => r.id));

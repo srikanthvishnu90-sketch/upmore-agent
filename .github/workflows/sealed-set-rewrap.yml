@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: srikanthvishnu90-sketch/upmore-agent
-          ref: bb381496c25e6ce39309d99c606d29dfd58e0a58
+          ref: 1b4818338a557609984e34c2487e3037d314e7dd
           persist-credentials: true
       - name: Install Deno
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           head_sha="$(git ls-remote origin refs/heads/fix/seal-multi-recipient-20261026 | cut -f1)"
-          test "$head_sha" = "bb381496c25e6ce39309d99c606d29dfd58e0a58"
+          test "$head_sha" = "1b4818338a557609984e34c2487e3037d314e7dd"
       - name: Rewrap and prove recovery without model calls
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -192,9 +192,11 @@ async function checkRuns({ sql }) {
 const psqlRunner = (dbUrl) => async (q) => execFileSync('psql', [dbUrl, '-X', '-q', '-tA', '-v', 'ON_ERROR_STOP=1', '-c', q], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 function parseArgs(argv) {
-  const o = { allowSend: false, waitRuns: 0 };
+  const o = { allowSend: false, waitRuns: 0, kept: [] };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--allow-send') o.allowSend = true;
+    // --kept A,B: function secrets the project keeps that this run was not given (trainee-go-live.sh --non-interactive).
+    else if (argv[i] === '--kept') { o.kept = String(argv[++i] || '').split(',').filter(Boolean); if (!o.kept.length || o.kept.some((k) => !/^[A-Z][A-Z0-9_]*$/.test(k))) throw new Error('--kept takes secret names, comma-separated'); }
     else if (argv[i] === '--wait-runs') { o.waitRuns = Number(argv[++i]); if (!Number.isFinite(o.waitRuns) || o.waitRuns < 0) throw new Error('--wait-runs takes seconds'); }
     else throw new Error(`unknown option: ${argv[i]}`);
   }
@@ -212,7 +214,7 @@ async function main(argv, env, deps = {}) {
   const line = (x) => log(scrub(`${x.status.padEnd(7)} ${x.check}${x.detail ? `: ${x.detail}` : ''}`));
   let opts;
   try { opts = parseArgs(argv); } catch (e) { log(`NOT RUN trainee smoke: ${e.message}`); return 2; }
-  const missing = ['SUPABASE_URL', ...GATED.map((g) => g.env)].filter((k) => !env[k]);
+  const missing = ['SUPABASE_URL', ...GATED.map((g) => g.env)].filter((k) => !env[k] && !opts.kept.includes(k));
   if (missing.length) {
     log(`NOT RUN trainee smoke: missing ${missing.join(', ')} (set them in the environment; trainee-go-live.sh passes them). Nothing was called.`);
     return 2;
@@ -223,7 +225,10 @@ async function main(argv, env, deps = {}) {
   const results = [];
   const add = (x) => { for (const y of [].concat(x)) { results.push(y); line(y); } };
   add(await checkChatNoJwt({ base, fetchFn }));
-  for (const g of GATED) add(await checkGate(g, { base, secret: env[g.env], fetchFn }));
+  for (const g of GATED) {
+    if (!env[g.env] && opts.kept.includes(g.env)) add(r('NOT RUN', `${g.fn} gate`, `${g.env} is kept on the project and was not given to this run`));
+    else add(await checkGate(g, { base, secret: env[g.env], fetchFn }));
+  }
   if (!opts.allowSend) add(r('NOT RUN', 'trainee-inbound answers HELP', 'skipped: it texts the help reply through LoopMessage; pass --allow-send with TRAINEE_SMOKE_CONTACT (your own number)'));
   else if (!env.TRAINEE_SMOKE_CONTACT) add(r('NOT RUN', 'trainee-inbound answers HELP', 'missing TRAINEE_SMOKE_CONTACT'));
   else add(await checkInboundHelp({ base, secret: env.TRAINEE_INBOUND_SECRET, contact: env.TRAINEE_SMOKE_CONTACT, fetchFn, now: now() }));

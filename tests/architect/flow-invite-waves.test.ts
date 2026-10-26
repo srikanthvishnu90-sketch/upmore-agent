@@ -21,6 +21,8 @@
 //  10. The web gate (20261026230000's admission core, closed) on the same invites, the whole path: wave -> invite -> web
 //      redeem -> the trainee_admissions row -> the sign-up steps -> trainee_may_act true -> the first product reply; and
 //      not admitted without one, a forged or someone else's token refused, a person not admitted refused at the triggers.
+//  11. Sign-up opened by the owner (trainee_set_signup('open')): the gate admits everyone, so an invite link's token is
+//      redeemed by the sign-up turn instead, and its steps begin.
 //
 // Run: the gate runs it with CI=true (a missing Postgres throws). Locally add --import-map=tests/flow/supabase-npm.json.
 import assertNode from "node:assert/strict";
@@ -39,8 +41,8 @@ import { NOT_INVITED_REPLY } from "../../supabase/functions/_shared/trainee_admi
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const CI = Deno.env.get("CI") === "true";
-const WEB = "7b0f8f8e-6a43-4a49-9d2c-0000000017a1", WEB2 = "7b0f8f8e-6a43-4a49-9d2c-0000000017a2";
-const PEOPLE: Record<string, string> = { "tok-wave-web": WEB, "tok-wave-web2": WEB2 };
+const WEB = "7b0f8f8e-6a43-4a49-9d2c-0000000017a1", WEB2 = "7b0f8f8e-6a43-4a49-9d2c-0000000017a2", WEB3 = "7b0f8f8e-6a43-4a49-9d2c-0000000017a3";
+const PEOPLE: Record<string, string> = { "tok-wave-web": WEB, "tok-wave-web2": WEB2, "tok-wave-web3": WEB3 };
 const TG_TOKEN = "123456:wave-test-token", TG_SECRET = "wave_test_secret_0123456789abcdef_ok";
 const ENV: Record<string, string> = {
   TRAINEE_APP_URL: "https://app.trainee.test", TELEGRAM_BOT_USERNAME: "trainee_wave_bot",
@@ -63,7 +65,7 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
   // Sign-up closed, as production has it (20261026230000's default): the web admits only by an invite here.
   const pg: Pg = await startPg({ gate: "invite" });
   await supabaseParity(pg);
-  await pg.sql(`insert into auth.users (id, email) values ('${WEB}', 'wave-web@example.test'), ('${WEB2}', 'wave-web2@example.test'); insert into public.profiles (id) values ('${WEB}'), ('${WEB2}');`);
+  await pg.sql(`insert into auth.users (id, email) values ('${WEB}', 'wave-web@example.test'), ('${WEB2}', 'wave-web2@example.test'), ('${WEB3}', 'wave-web3@example.test'); insert into public.profiles (id) values ('${WEB}'), ('${WEB2}'), ('${WEB3}');`);
   for (const [k, v] of Object.entries(ENV)) Deno.env.set(k, v);
   Deno.env.delete("TRAINEE_SIGNUP"); Deno.env.delete("TRAINEE_ALLOWED_CONTACTS"); Deno.env.delete("TRAINEE_UNDER18_POLICY");
   const handler = await careerHandler(pg, PEOPLE);
@@ -354,6 +356,25 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     const earlier = await handler.chat("tok-wave-web").say("hi");
     eq(earlier.status, 200, "an account that came in by an invite earlier is admitted by it");
     eq(await one(`select via from public.trainee_admissions where user_id = '${WEB}'`), "waitlist");
+  });
+
+  await t.step("11. sign-up opened by the owner: the invite link's token is redeemed by the sign-up turn, and its steps begin", async () => {
+    await pg.sql(`select public.trainee_set_signup('open')`);
+    try {
+      await pg.sql(`insert into public.site_waitlist (name, phone, consent, consent_text, consent_at, source, created_at) values
+        ('Wave Nine', '${phone(9)}', true, 'I agree to receive automated texts from Trainee. Reply STOP to opt out.', '2026-10-01T10:08:00Z', 'test', '2026-10-01T10:08:00Z')`);
+      const w5 = await rpc("career_wave_open", { p_size: 1, p_key: "wave-5", p_override_reason: "test: open sign-up", p_now: iso() });
+      eq([w5.error, w5.data?.picked], [null, 1], JSON.stringify(w5));
+      eq((await rpc("career_wave_approve_send", { p_wave: w5.data.wave_id, p_text: TEMPLATE, p_text_sha256: await sha256Hex(TEMPLATE), p_count: 1, p_now: iso() })).error, null);
+      const before = sent.length;
+      eq((await sendWave({ db: admin, wave: w5.data.wave_id, send: fakeSend, env: Deno.env, now })).sent, 1);
+      const tok9 = tokenIn(sent[before].text);
+      const r = await handler.chat("tok-wave-web3").say("hi", { invite: tok9 });
+      eq([r.status, r.reply], [200, SIGNUP_AGE_ASK], JSON.stringify(r.body));
+      eq(await one(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${phone(9)}'`), `redeemed,${WEB3},web`);
+      eq(await one(`select via from public.trainee_admissions where user_id = '${WEB3}'`), "open", "admitted by the open setting first; the invite still starts the steps");
+      eq(await one(`select public.trainee_may_act('${WEB3}')::text`), "false", "an invitee applies only after the steps, even with sign-up open");
+    } finally { await pg.sql(`select public.trainee_set_signup('invite')`); }
   });
 
   handler.restore();

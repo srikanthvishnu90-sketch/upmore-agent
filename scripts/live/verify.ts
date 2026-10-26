@@ -4,7 +4,7 @@
 // then asserts the real outcome in live state with SELECTs only, and that each reply agrees with that state. Also one
 // live check per BLOCKER and MAJOR of the launch-readiness audit (audit.ts). Writes JSON and a markdown matrix.
 //
-//   SUPABASE_PROJECT_REF=<ref> SUPABASE_DB_URL=<session pooler URI> TRAINEE_VERIFY_EMAIL=trainee-live-verify@upmore.test \
+//   SUPABASE_PROJECT_REF=<ref> LIVE_VERIFY_DB_URL=<the SELECT-only role's URI> TRAINEE_VERIFY_EMAIL=trainee-live-verify@upmore.test \
 //   (TRAINEE_VERIFY_PASSWORD=<pw> SUPABASE_ANON_KEY=<anon> | UPMORE_TEST_JWT=<jwt>) \
 //   [TRAINEE_APP_URL] [TELEGRAM_WEBHOOK_SECRET TRAINEE_VERIFY_TELEGRAM_CHAT_ID] [SUPABASE_ACCESS_TOKEN] \
 //   deno run -A scripts/live/verify.ts [--out <dir>] [--wait-min <n>] [--role "software engineer"] [--place "New York"]
@@ -18,7 +18,8 @@
 // Exit: 0 only when every check PASSes; 1 on any FAIL or NOT_RUN (`--allow-not-run`: FAIL only); 2 the run could not
 // start. No secret is ever printed.
 import {
-  assertTestAccount, ChatGuard, type Db, fail, FEATURES, guardedFetch, jwtSubject, markdown, notRun, pass, psqlExec, q,
+  APPLY_PROBES, assertReadOnlyRole, assertTestAccount, ChatGuard, type Db, type Exec, fail, FEATURES, guardedFetch, jwtSubject, markdown, notRun, pass, pgExec, q,
+  RESUME_CONFIRMATION,
   readOnlyDb, type Result, scrubber, summary,
 } from "./lib.ts";
 import * as C from "./checks.ts";
@@ -61,9 +62,9 @@ interface Ctx {
 }
 
 // One chat turn on the live agent-chat endpoint, as the test account. `thread` names a conversation of this run.
-async function say(ctx: Ctx, thread: string, message: string, extra: Record<string, unknown> = {}, allowYes = false): Promise<Turn> {
+async function say(ctx: Ctx, thread: string, message: string, extra: Record<string, unknown> = {}): Promise<Turn> {
   const tid = ctx.threads.get(thread) ?? null;
-  ctx.guard.check(tid, message, allowYes);
+  ctx.guard.check(tid, message);
   const turnKey = crypto.randomUUID();
   const at = new Date(Date.now() - 2000).toISOString(); // clock skew margin; every check also filters by the account
   const headers: Record<string, string> = { "content-type": "application/json", authorization: `Bearer ${ctx.jwt}` };
@@ -200,10 +201,6 @@ async function postingsByUrl(db: Db, urls: string[]): Promise<Target[]> {
   const r = await db.rows<Target>(`select url, title, company from career_postings where url in (${urls.map(q).join(",")}) and closed_at is null`);
   return urls.map((u) => r.find((x) => x.url === u)).filter((x): x is Target => !!x);
 }
-async function wantedUrls(db: Db, userId: string): Promise<Set<string>> {
-  const r = await db.rows<{ url: string }>(`select url from career_apply_wanted where user_id = ${q(userId)}`);
-  return new Set(r.map((x) => x.url));
-}
 const NO_TARGET = "no open posting was listed (F5), so there was nothing to name";
 
 async function scenario(ctx: Ctx, env: Env) {
@@ -215,7 +212,7 @@ async function scenario(ctx: Ctx, env: Env) {
   const fixture = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
   const pasted = await say(ctx, "setup", `here is my resume:\n${fixture}`);
   let confirmed: Turn | null = null;
-  try { if (ok(pasted)) confirmed = await say(ctx, "setup", "yes, that's my resume", {}, true); }
+  try { if (ok(pasted)) confirmed = await say(ctx, "setup", RESUME_CONFIRMATION); }
   catch (e) { add(ctx, fail("ACCOUNT", "ACCOUNT.resume_confirmed", (e as Error).message)); } // the chat guard refused: the reply looked like a card
   if (confirmed) await guarded(ctx, "ACCOUNT", "ACCOUNT.resume_confirmed", () => C.resumeConfirmed(db, confirmed!, run));
   else if (!ok(pasted)) add(ctx, fail("ACCOUNT", "ACCOUNT.resume_confirmed", `the resume paste answered HTTP ${pasted.status}`));
@@ -240,7 +237,7 @@ async function scenario(ctx: Ctx, env: Env) {
     return C.offerNumbers(offer, m.benchmarks(m.parseOfferWords(offerMsg)) as C.Bench[]);
   });
 
-  // F5: search; F1: apply by position; F4: tailor; F11: mock, all on the search thread.
+  // F5: search; F4: tailor; F11: mock, all on the search thread. F1 never queues (below).
   const search = await say(ctx, "search", `find ${role} jobs in ${place}`);
   await guarded(ctx, "F5", "F5.turn", () => C.turnRecorded(db, "F5", "F5.turn", search, run));
   const listedRes = await guarded(ctx, "F5", "F5.listed_postings_open", () => C.searchListedOpen(db, search));
@@ -249,16 +246,9 @@ async function scenario(ctx: Ctx, env: Env) {
   else add(ctx, fail("F5", "F5.judged_and_metered", judge === "off" ? "the model judge is off in production (CAREER_JUDGE)" : judge === "failed" ? "the judge did not answer" : "the reply says nothing about judging"));
   const urls = C.urlsIn(search.reply);
   const listed = listedRes[0]?.status === "PASS" ? await postingsByUrl(db, urls) : [];
-  const wanted = await wantedUrls(db, run.userId);
-  const pickIdx = urls.findIndex((u) => !wanted.has(u) && listed.some((l) => l.url === u));
-  if (pickIdx < 0) {
-    add(ctx, notRun("F1", "F1.turn", "no open listed posting that is not already queued (F5)"));
-    add(ctx, notRun("F1", "F1.queued_matches_state", "no open listed posting that is not already queued (F5)"));
-  } else {
-    const apply = await say(ctx, "search", `apply to ${pickIdx + 1}`);
-    await guarded(ctx, "F1", "F1.turn", () => C.turnRecorded(db, "F1", "F1.turn", apply, run));
-    await guarded(ctx, "F1", "F1.queued_matches_state", () => C.applyQueued(db, "F1", "F1.queued_matches_state", apply, run, [urls[pickIdx]]));
-  }
+  // F1 and E2E: the suite never sends an apply ask for a real posting (owner rule; the chat guard refuses one), so no
+  // queue row can exist for one. Queueing and the card are proven by the owner's own run (O-1).
+  for (const c of ["F1.turn", "F1.queued_matches_state"]) add(ctx, notRun("F1", c, "the suite never queues an application to a real posting (owner rule); owner check O-1 proves it"));
   const target = listed[0] ?? null;
   if (!target) {
     for (const c of ["F4.turn", "F4.tailored_for_posting", "F4.rewrite_on", "F4.metered"]) add(ctx, notRun("F4", c, NO_TARGET));
@@ -286,22 +276,9 @@ async function scenario(ctx: Ctx, env: Env) {
   await guarded(ctx, "F7", "F7.watch_turn", () => C.turnRecorded(db, "F7", "F7.watch_turn", watch, run));
   await guarded(ctx, "F7", "F7.watch_saved", () => C.watchSaved(db, run, words(role), watch));
 
-  // E2E: "apply me to this: <link>" for an open posting on a supported ATS, not already queued.
-  let e2eUrl: string | null = null, linkTurn: Turn | null = null;
-  const pick = await db.rows<{ url: string }>(
-    `select url from career_postings where closed_at is null and provider in ('ashby', 'greenhouse', 'lever') and first_seen_at > now() - interval '7 days'
-       and url not in (select url from career_apply_wanted where user_id = ${q(run.userId)}) order by first_seen_at desc limit 1`).catch(() => []);
-  if (!pick.length) {
-    add(ctx, fail("E2E", "E2E.link_queued", "no open Ashby, Greenhouse or Lever posting seen in 7 days to apply to (F6)"));
-    add(ctx, notRun("E2E", "E2E.turn", "nothing to apply to"));
-  } else {
-    e2eUrl = pick[0].url;
-    linkTurn = await say(ctx, "link", `apply me to this: ${e2eUrl}`);
-    await guarded(ctx, "E2E", "E2E.turn", () => C.turnRecorded(db, "E2E", "E2E.turn", linkTurn!, run));
-    await guarded(ctx, "E2E", "E2E.link_queued", () => C.applyQueued(db, "E2E", "E2E.link_queued", linkTurn!, run, [e2eUrl!]));
-  }
-  // Audit Q3: a LinkedIn link is refused plainly and never queued.
-  const li = await say(ctx, "link", "apply me to this: https://www.linkedin.com/jobs/view/4012345678");
+  for (const c of ["E2E.turn", "E2E.link_queued", "E2E.prepared_card_hash_bound", "E2E.final_submit"]) add(ctx, notRun("E2E", c, "the suite never applies to a real posting (owner rule); owner check O-1, his Ramp application, proves the path"));
+  // Audit Q3: a LinkedIn link (not a posting) is refused plainly and never queued.
+  const li = await say(ctx, "link", [...APPLY_PROBES].find((x) => x.includes("linkedin.com"))!);
   await guarded(ctx, "AUDIT", "AUDIT.Q3.linkedin_link_refused_plainly", () => AU.linkedinRefused(li, db, run));
 
   // F10: contacts import, who-do-I-know, a draft (never sent).
@@ -368,13 +345,10 @@ async function scenario(ctx: Ctx, env: Env) {
   // Outcomes that run on schedules: wait for them together.
   await waitFor(ctx, [
     { feature: "F7", check: "F7.alert_for_new_posting", fn: () => C.alertQueued(db, run, words(role)) },
-    { feature: "F3", check: "F3.test_account_prepared_and_carded", fn: () => C.preparedBound(db, "F3", "F3.test_account_prepared_and_carded", run, { exceptUrls: e2eUrl ? [e2eUrl] : [] }) },
-    ...(e2eUrl ? [{ feature: "E2E", check: "E2E.prepared_card_hash_bound", fn: () => C.preparedBound(db, "E2E", "E2E.prepared_card_hash_bound", run, { urls: [e2eUrl!] }) }] : []),
+    { feature: "F3", check: "F3.test_account_prepared_and_carded", fn: () => C.preparedBound(db, "F3", "F3.test_account_prepared_and_carded", run, {}) },
   ]);
-  if (!e2eUrl) add(ctx, notRun("E2E", "E2E.prepared_card_hash_bound", "nothing was queued"));
-  add(ctx, notRun("E2E", "E2E.final_submit", "the final send is the owner's real run (owner check O-1, his Ramp application); this suite never approves a card"));
-  await guarded(ctx, "AUDIT", "AUDIT.B2.phone_only_person_gets_card", () => AU.phoneOnlyCard(db, run, find(ctx, "E2E.prepared_card_hash_bound")));
-  await guarded(ctx, "AUDIT", "AUDIT.Q2.apply_reply_promises_only_what_happens", () => AU.applyPromiseKept(db, run, linkTurn, e2eUrl));
+  add(ctx, notRun("AUDIT", "AUDIT.B2.phone_only_person_gets_card", "needs an apply-by-link turn, which the suite never sends for a real posting; owner check O-1 proves it"));
+  add(ctx, notRun("AUDIT", "AUDIT.Q2.apply_reply_promises_only_what_happens", "needs an apply turn, which the suite never sends for a real posting; owner check O-1 reads the reply"));
 
   // Cleanup through the product's own erase, then check that it erased everything.
   const erase = await say(ctx, "setup", "forget my career profile");
@@ -446,7 +420,7 @@ export function readEnv(get: (k: string) => string | undefined): Env {
   const base = v("SUPABASE_URL") ?? (ref ? `https://${ref}.supabase.co` : null);
   const sha = v("GITHUB_SHA");
   return {
-    ref, base: base ? base.replace(/\/+$/, "") : null, dbUrl: v("SUPABASE_DB_URL"), jwt: v("UPMORE_TEST_JWT"),
+    ref, base: base ? base.replace(/\/+$/, "") : null, dbUrl: v("LIVE_VERIFY_DB_URL"), jwt: v("UPMORE_TEST_JWT"),
     email: (v("TRAINEE_VERIFY_EMAIL") ?? "trainee-live-verify@upmore.test").toLowerCase(), password: v("TRAINEE_VERIFY_PASSWORD"),
     anonKey: v("SUPABASE_ANON_KEY"), appUrl: v("TRAINEE_APP_URL"), tgSecret: v("TELEGRAM_WEBHOOK_SECRET"),
     tgChat: v("TRAINEE_VERIFY_TELEGRAM_CHAT_ID"), accessToken: v("SUPABASE_ACCESS_TOKEN"), sha: sha && /^[0-9a-f]{40}$/.test(sha) ? sha : null,
@@ -470,7 +444,7 @@ export function exitCode(s: { pass: number; fail: number; not_run: number; total
   return 0;
 }
 
-export async function main(argv: string[], get: (k: string) => string | undefined, deps: { exec?: (sql: string) => Promise<string>; fetch?: typeof fetch; log?: (s: string) => void } = {}): Promise<number> {
+export async function main(argv: string[], get: (k: string) => string | undefined, deps: { exec?: Exec; fetch?: typeof fetch; log?: (s: string) => void } = {}): Promise<number> {
   const env = readEnv(get);
   const scrub = scrubber([env.dbUrl, env.jwt, env.password, env.anonKey, env.tgSecret, env.tgChat, env.accessToken]);
   const log = (s: string) => (deps.log ?? console.log)(scrub(s));
@@ -488,7 +462,7 @@ export async function main(argv: string[], get: (k: string) => string | undefine
     log(`summary: ${s.pass}/${s.total} passed; not passed: ${s.fail} FAIL, ${s.not_run} NOT_RUN (${opts.out}/live-verify.md)`);
     return code;
   };
-  const missing = [["SUPABASE_PROJECT_REF or SUPABASE_URL", env.base], ["SUPABASE_DB_URL", env.dbUrl]].filter(([, x]) => !x).map(([k]) => k);
+  const missing = [["SUPABASE_PROJECT_REF or SUPABASE_URL", env.base], ["LIVE_VERIFY_DB_URL", env.dbUrl]].filter(([, x]) => !x).map(([k]) => k);
   if (!env.jwt && !(env.password && env.anonKey)) missing.push("UPMORE_TEST_JWT (or TRAINEE_VERIFY_PASSWORD with SUPABASE_ANON_KEY)");
   if (missing.length) {
     results.push(notRun("ACCOUNT", "ACCOUNT.preflight", `missing ${missing.join(", ")}; nothing was called`));
@@ -496,14 +470,20 @@ export async function main(argv: string[], get: (k: string) => string | undefine
     return await finish(2);
   }
   const httpFetch = guardedFetch({ base: env.base!, appUrl: env.appUrl, ref: env.ref }, deps.fetch ?? fetch);
-  const db = readOnlyDb(deps.exec ?? psqlExec(env.dbUrl!));
+  let conn: { exec: Exec; end: () => Promise<void> } | null = null;
+  try { if (!deps.exec) conn = await pgExec(env.dbUrl!); } catch (e) { results.push(fail("ACCOUNT", "ACCOUNT.test_account", `the database connection failed: ${(e as Error).message}`)); return await finish(2); }
+  const db = readOnlyDb(deps.exec ?? conn!.exec);
   let jwt = env.jwt;
   try {
+    await assertReadOnlyRole(db);
+    results.push(pass("ACCOUNT", "ACCOUNT.read_only_role", "the database role is SELECT-only, not a superuser, with default_transaction_read_only on"));
     if (env.password && env.anonKey) jwt = await signIn(httpFetch, env);
     const { sub, exp } = jwtSubject(jwt!);
     if (exp != null && exp * 1000 < Date.now() + 10 * 60_000) throw new Error("UPMORE_TEST_JWT expires within 10 minutes; give TRAINEE_VERIFY_PASSWORD so the run signs in");
     await assertTestAccount(db, sub, env.email);
     results.push(pass("ACCOUNT", "ACCOUNT.test_account", "the run acts as the flagged test account on the reserved test domain"));
+    await C.assertNoApplyAuthority(db, sub);
+    results.push(pass("ACCOUNT", "ACCOUNT.no_apply_authority", "the test account has no cloud opt-in, batch approval, extension record, application job, waiting queue row or approved card"));
     const ctx: Ctx = { db, base: env.base!, jwt: jwt!, anonKey: env.anonKey, run: { userId: sub, startedAt: started }, opts, fetch: httpFetch, guard: new ChatGuard(), threads: new Map(), results, log, turns: [] };
     log(`live verify: ${env.ref ?? env.base}, waiting up to ${opts.waitMin} min for scheduled outcomes`);
     let fnList: { status: number; list: any[] | null } | null = null;
@@ -516,10 +496,13 @@ export async function main(argv: string[], get: (k: string) => string | undefine
     await guarded(ctx, "SAFETY", "SAFETY.never_approved", () => C.neverApproved(db, ctx.run));
     await guarded(ctx, "SAFETY", "SAFETY.test_outbox_contained", () => C.testOutboxContained(db, ctx.run, env.tgChat ? `tg:${env.tgChat}` : null));
     await guarded(ctx, "SAFETY", "SAFETY.no_foreign_writes", () => C.noForeignWrites(db, ctx.run, [...ctx.threads.values()]));
+    await guarded(ctx, "SAFETY", "SAFETY.no_queue_row", () => C.noQueueRow(db, ctx.run));
   } catch (e) {
     results.push(fail("ACCOUNT", "ACCOUNT.test_account", `refused to start: ${(e as Error).message}`));
+    await conn?.end().catch(() => {});
     return await finish(2);
   }
+  await conn?.end().catch(() => {});
   return await finish(exitCode(summary(results), opts.allowNotRun));
 }
 

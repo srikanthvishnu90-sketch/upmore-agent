@@ -10,8 +10,9 @@ and seven checks only the owner can run, each with the SQL that proves it.
 
 - Suite: `scripts/live/verify.ts` (Deno), the feature checks in `scripts/live/checks.ts`, the audit checks in
   `scripts/live/audit.ts`, the guards in `scripts/live/lib.ts`.
-- Workflow: `.github/workflows/live-verify.yml`, environment `production`, only on the owner's push to `ci/live-verify`
-  or a run he starts by hand. It has no schedule.
+- Workflow: `.github/workflows/live-verify.yml`, environment `production`. It is started by hand only
+  (`workflow_dispatch`: no push, schedule or other trigger) and its job refuses any ref but `trunk`, so only reviewed
+  code ever holds the production secrets. Every action is pinned to a commit SHA.
 - **On hold (owner, 2026-10-26 14:14 CDT):** the launch is on hold. There are no deploys, no pushes to
   `release/production`, no Vercel sandbox use without his approval, and no run of this workflow against production.
   This PR builds and unit-tests the suite only, and nothing here has run against production. The day plan in section 5
@@ -27,16 +28,24 @@ and seven checks only the owner can run, each with the SQL that proves it.
 
 ## 1. How a run works
 
-1. **Preflight.** The run signs in as the test account, or uses `UPMORE_TEST_JWT` while that token still has more than
-   10 minutes left. It starts only if three things hold: the JWT's user is on `@upmore.test`, that user is flagged
-   `trainee_test_account` in `auth.users.raw_app_meta_data`, and the email matches `TRAINEE_VERIFY_EMAIL`. With any
-   other account it stops (exit 2) before it sends a single request.
+1. **Preflight.** First the database role: the run connects with `LIVE_VERIFY_DB_URL`, a SELECT-only role, and stops
+   (exit 2) if that role is a superuser, can write any table in `public`, `auth`, `cron`, `storage` or `vault`, can
+   read `vault.decrypted_secrets`, or runs without `default_transaction_read_only`. Then the account: the run signs in
+   as the test account, or uses `UPMORE_TEST_JWT` while that token still has more than 10 minutes left. It starts only
+   if three things hold: the JWT's user is on `@upmore.test`, that user is flagged `trainee_test_account` in
+   `auth.users.raw_app_meta_data`, and the email matches `TRAINEE_VERIFY_EMAIL`. Last, the account must hold no apply
+   authority: no cloud opt-in, batch approval or intent, cloud gate waiver, place in `career_cloud_settings`,
+   extension submission record, application job, queued application or answered card. If any check fails, the run
+   stops (exit 2) before it sends a single request.
 2. **State checks, read only.** Schema presence for each feature, the ingest and its lanes, the schedules, the run
    records, and the production-wide invariants: nothing reached an employer without `approval_hash = payload_hash`,
    and every finished application has a receipt that matches it.
 3. **The chat scenario, as the test account.** Every turn goes to the live `agent-chat` endpoint. After each turn
    the suite asserts two things: the reply is the reply the database recorded for that `turn_key`, and the reply
-   agrees with the rows the turn wrote.
+   agrees with the rows the turn wrote. No turn asks to apply to a real posting: the chat guard refuses any apply ask
+   except two fixed probes, and neither names a real employer's posting (a question in a fresh thread with nothing
+   listed, and a LinkedIn link that is not a posting). At the end, `SAFETY.no_queue_row` checks that the test account
+   has no queued application and no job.
 4. **Waiting on scheduled outcomes.** Alerts and prepare-ahead run on a schedule, so the suite polls for them for up
    to `--wait-min` minutes (20 by default).
 5. **Cleanup.** The product's own erase runs ("forget my career profile"), and the suite then checks that it
@@ -55,10 +64,11 @@ yet) is NOT_RUN, not PASS: 0/0 proves nothing.
 
 | Lock | Where |
 |---|---|
-| Every SQL statement must be a single read. `assertReadOnlySql` refuses DML, DDL, `set`, `copy`, `call`, `do`, side-effect functions (`nextval`, `set_config`, `pg_advisory_*`, `dblink`, ...) and any `career_`/`channel_`/`agent_` function not on the read list | `lib.ts` |
-| Then each statement runs inside `begin transaction read only`, so Postgres itself refuses a write | `lib.ts readOnlyText` (test: `nextval` sent through it is refused by Postgres) |
-| HTTP allows only these: POST to `agent-chat` and `trainee-telegram`, the password sign-in, a CORS preflight to `agent-chat`, GET table reads through PostgREST (never `/rest/v1/rpc/`), the app page, and for this project only the Management API's function list and one count-only edge-log query; and the cloud runner's dispatch with a *wrong* secret and `{"want":0}`. Anything else throws, including PostgREST writes, the card-approve RPC, other functions, other projects and other hosts | `lib.ts guardedFetch` |
-| The chat guard: the suite never says "yes" except to confirm its own resume, and never in a thread that has shown a card. It never says "send N" or "approve". As a result no card is ever answered, so no application job is ever created, and nothing reaches an employer | `lib.ts ChatGuard`; checked every run by `SAFETY.never_approved` |
+| Code: each statement is lexed once, left to right, so a quote inside a comment, or a comment marker inside a quote, cannot hide text. It must be one SELECT or WITH with no `;`, no backslash outside a string, and no write keyword. Every function call must be on a fixed allow-list (aggregates, pure computations, catalog reads, `career_apply_canonical`, `career_ingest_coverage`). Every schema-qualified name must be on a fixed allow-list (`public`, `pg_catalog`, `auth.users`, `cron.job`, `cron.job_run_details`, `storage.objects`, `information_schema.columns` and `.tables`), and no alias may take a schema's name. Unterminated strings and comments are refused | `lib.ts assertReadOnlySql` |
+| Protocol: each statement goes as one extended-protocol query (postgres.js, `simple: false`), never psql's simple protocol. Postgres refuses a second command in it ("cannot insert multiple commands into a prepared statement"), and it runs inside `begin read only` | `lib.ts pgExec` (test: `select 1; delete …` refused by Postgres; `nextval` and `delete` refused as a superuser inside the transaction) |
+| Role: a SELECT-only role (BYPASSRLS to read, no write grant anywhere) with `default_transaction_read_only = on`, which the connection also asks for at startup. The run refuses any other role | `lib.ts assertReadOnlyRole`, `scripts/live/test-account.sql` step 2b |
+| HTTP allows only these: POST to `agent-chat` and `trainee-telegram`, the password sign-in, a CORS preflight to `agent-chat`, GET of exactly `/rest/v1/<table>` for 4 named tables, the app page itself, and for this project only the Management API's function list and one count-only edge-log query; and the cloud runner's dispatch with a *wrong* secret and `{"want":0}`. A path with `%`, `//`, a backslash or a dot segment is refused before it is compared, and so is any path the URL parser rewrote. Anything else throws, including `/rest/v1//rpc/x`, `/rest/v1/%72pc/x`, PostgREST writes, the card-approve RPC, other functions, other projects and other hosts | `lib.ts guardedFetch` |
+| The chat guard: a word that could approve or send (yes, ok, sure, approve…, send…, submit…, confirm…, go ahead, do it) is refused anywhere in a message, not only at its start ("please send it" is refused). The one exception is the resume confirmation, said once, word for word, in a thread that has shown no card. An apply ask is refused unless it is one of the two fixed probes. So no card is ever answered, no application is ever queued for a real posting, and nothing reaches an employer | `lib.ts ChatGuard`; checked every run by `SAFETY.never_approved` and `SAFETY.no_queue_row` |
 | Telegram is posted only after the test chat is proven linked to the test account | `checks.ts telegramLinked` |
 | Outreach contacts are `@example.test`. A draft addressed to anyone else FAILs | `checks.ts outreachDrafted` |
 
@@ -68,7 +78,7 @@ yet) is NOT_RUN, not PASS: 0/0 proves nothing.
 
 | Feature | Live channel driven | Check (id) | What must be true | Run by |
 |---|---|---|---|---|
-| F1 chat-to-apply | agent-chat: "find X jobs in Y", then "apply to N" | `F1.schema`, `F1.turn`, `F1.queued_matches_state` | The `k/m queued` line equals the new `career_apply_wanted` rows, each row is the asked posting, and each is open in `career_postings` | Auto |
+| F1 chat-to-apply | none: the suite never asks to apply to a real posting (owner rule) | `F1.schema` (auto); `F1.turn`, `F1.queued_matches_state` (NOT_RUN every run, so F1 is never reported passed by the suite) | The queue rows, the coverage line and the card come from the owner's own application | Owner O-1 |
 | F2 Greenhouse submit binding | the cloud worker (no chat path) | `F2.approval_invariant`, `F2.real_greenhouse_submit` | No application in production reached an employer without its approval hash, and a real Greenhouse submit happened within 14 days | Auto + Owner O-6 |
 | F3 prepare-ahead | the worker's daily rail, for the test account's watch | `F3.schema`, `F3.rail_ran`, `F3.test_account_prepared_and_carded` | A prepare-ahead day record exists in the last 26 h. The test account's prepared payload hashes to its `payload_hash`, and the card item carries the same hash | Auto (waits) |
 | F4 resume rewrite | agent-chat: "tailor my resume for the T role at C" | `F4.turn`, `F4.tailored_for_posting`, `F4.rewrite_on`, `F4.metered` | Tailored for the named posting (never "null at null") with a document attached. "Reworded N" in the reply equals `meta.tailor_rewrite`. A cost row exists | Auto |
@@ -83,10 +93,10 @@ yet) is NOT_RUN, not PASS: 0/0 proves nothing.
 | F13 staged brain | agent-chat: an advice question | `F13.turn`, `F13.answered_by_staged_brain`, `F13.metered` | `meta.brain = staged`, and a cost row with at least 1 call for that turn | Auto |
 | F14 receipts | agent-chat: "show me my receipts" | `F14.schema`, `F14.receipt_reply_matches_state`, `F14.every_finished_job_has_matching_receipt` | The reply matches `career_apply_receipts`. Across production, every finished job has a receipt with the same state, payload hash and approval hash | Auto + Owner O-1(d) |
 | F15 dashboard/approval card | the served app, and PostgREST as the test account | `F15.schema`, `F15.app_is_current_build`, `F15.dashboard_reads_own_rows` | The served `index.html` is this commit's build and carries `careerDash`. The dashboard's tables read through RLS show only the test account's rows. Card hash binding is checked by F3/E2E | Auto + Owner O-1(b) (the tap) |
-| E2E chat-submit path | agent-chat: "apply me to this: <ATS link>" | `E2E.turn`, `E2E.link_queued`, `E2E.prepared_card_hash_bound`, `E2E.final_submit` | 1/1 queued for exactly that link. Prepared, hash-bound and on a card. The final send is left to the owner | Auto up to "queued + card hash bound"; Owner O-1 |
+| E2E chat-submit path | none: no apply turn to a real posting | `E2E.turn`, `E2E.link_queued`, `E2E.prepared_card_hash_bound`, `E2E.final_submit` (all NOT_RUN every run) | 1/1 queued for exactly the link, prepared and hash-bound on a card, sent on the tap: proven by the owner's Ramp run | Owner O-1 |
 | Cloud sender (cloud runner) | `career-cloud-runner/dispatch` (wrong secret only) | `CLOUD.schema`, `CLOUD.door_refuses_wrong_secret`, `CLOUD.sent_only_approved` | Deployed, and its own handler refuses a wrong secret. Every cloud job that reached an employer in 7 days carries its approval hash, and none is stuck | Auto + Owner O-1 |
 | Telegram channel | `trainee-telegram` webhook from the linked test chat | `TG.test_chat_linked`, `TG.webhook_answered`, `TG.turn_recorded` | The chat maps to the test account, HTTP 200, and the turn and its reply are recorded | Auto with the optional TG secrets; Owner O-1 (his own chat) |
-| Preflight, erase, safety | — | `ACCOUNT.*` (4), `ERASE.*` (3), `SAFETY.*` (4, with `SAFETY.every_reply_recorded`: every reply of the run is the reply recorded for its turn) | Described in section 1 | Auto |
+| Preflight, erase, safety | — | `ACCOUNT.*` (6, with `ACCOUNT.read_only_role` and `ACCOUNT.no_apply_authority`), `ERASE.*` (3), `SAFETY.*` (5, with `SAFETY.every_reply_recorded` and `SAFETY.no_queue_row`) | Described in section 1 | Auto |
 
 ### 2b. The launch-readiness audit (PR #192): one live check per BLOCKER and MAJOR
 
@@ -97,7 +107,7 @@ sets (not the audit's) are marked "bar", for the owner to confirm.
 |---|---|---|---|
 | B1/SEC1 anon decrypts Vault | `AUDIT.B1.vault_read_not_public` | `exec_vault_read(text)` not executable by anon or authenticated (or gone) | anon cannot execute it: revoked after the audit's 17:45–18:40 read |
 | SEC2 anon-callable definers | `AUDIT.SEC2.no_definer_callable_by_anon` | No SECURITY DEFINER function in `public` executable by anon | 0 |
-| B2 no card for a phone-only person | `AUDIT.B2.phone_only_person_gets_card` | The test account (no extension, no computer) gets a prepared, hash-bound card from a chat link | — (needs a run) |
+| B2 no card for a phone-only person | `AUDIT.B2.phone_only_person_gets_card` | NOT_RUN every run: it needs an apply-by-link turn, which the suite never sends for a real posting. Owner check O-1, from his phone, proves it | NOT_RUN |
 | B3/R3 Telegram sign-up | `AUDIT.B3.telegram_signup_creates_account` | At least one `tg:` contact with a real account, none pointing at a missing one | 0 `tg:` contacts |
 | B4 no resume rule | `AUDIT.B4.no_application_without_resume` | No application without a resume hash, and a resume-required trigger on `career_apply_jobs` | no trigger |
 | B5/O1 production is unknown | `AUDIT.B5.production_is_one_recorded_commit`, `AUDIT.O1.live_versions_match_ledger` | Every live function has a ledger row, all from one commit (the run's when it runs on trunk), and each platform version equals the ledger's | no ledger table |
@@ -108,8 +118,8 @@ sets (not the audit's) are marked "bar", for the owner to confirm.
 | S4 extension approvals client-attested | `AUDIT.S4.extension_approval_recorded_server_side` | Each extension application has a server-side `extension_approval` event for its payload hash (the fix's contract: that kind does not exist yet) | 0 extension jobs: NOT_RUN |
 | R1 burst loses a text | `AUDIT.R1.two_quick_texts_both_answered` | Two turns sent at once on one thread both answer 200 and both are recorded | — |
 | R2 crashed turns dropped | `AUDIT.R2.no_message_left_unanswered` | Every user message from 24 h to 5 min ago has a later reply in its thread | — |
-| Q2 apply promises | `AUDIT.Q2.apply_reply_promises_only_what_happens` | If the apply reply promises preparation, a prepared row appears; otherwise it says plainly nothing will be prepared | — |
-| Q3 jargon and catch-alls | `AUDIT.Q3.apply_for_me`, `.what_it_costs`, `.are_you_human`, `.rejection_answered_plainly`, `.linkedin_link_refused_plainly`, `.stated_name_remembered` | Plain answers; a LinkedIn link is refused by name and never queued; a name said in chat is known in a new thread | — |
+| Q2 apply promises | `AUDIT.Q2.apply_reply_promises_only_what_happens` | NOT_RUN every run, for the same reason. In O-1 the owner reads whether the apply reply promised only what then happened | NOT_RUN |
+| Q3 jargon and catch-alls | `AUDIT.Q3.apply_for_me`, `.what_it_costs`, `.are_you_human`, `.rejection_answered_plainly`, `.linkedin_link_refused_plainly`, `.stated_name_remembered` | Plain answers. A LinkedIn link that is not a posting is refused by name and never queued. A name said in chat is known in a new thread | — |
 | Q4 slow | `AUDIT.Q4.code_turn_latency` | Turns with no model call: p90 at most 3,000 ms (bar), from the run's own timings | — |
 | X1 no invitations | `AUDIT.X1.waitlist_in_project` | The waitlist is in this project (`site_waitlist` > 0 rows) | 0 rows |
 | X2 texting capacity | `AUDIT.X2.no_message_held_by_a_daily_cap` | No message held by a daily cap in 24 h (`channel_delivery_runs.capped`) | no delivery runs |
@@ -126,14 +136,21 @@ sets (not the audit's) are marked "bar", for the owner to confirm.
 
 ### Counts
 
-113 checks a run: 52 across F1–F15 (F1 3, F2 2, F3 3, F4 4, F5 3, F6 5, F7 7, F8 3, F9 4, F10 5, F11 2, F12 2, F13 3,
-F14 3, F15 3), E2E 4, the cloud sender 3, Telegram 3, the audit 40, preflight 4, erase 3, safety 4. Counted from the
+116 checks a run: 52 across F1–F15 (F1 3, F2 2, F3 3, F4 4, F5 3, F6 5, F7 7, F8 3, F9 4, F10 5, F11 2, F12 2, F13 3,
+F14 3, F15 3), E2E 4, the cloud sender 3, Telegram 3, the audit 40, preflight 6, erase 3, safety 5. Eight of them are
+NOT_RUN on every run by design, because they need an apply turn the suite never sends (F1 2, E2E 4, B2, Q2). Owner
+check O-1 proves them, and the matrix shows them as not passed. Counted from the
 JSON of a whole run against a dead product (`tests/architect/live-verify-checks.test.ts`), one row per check id.
 
-**Why no apply check uses a controlled form host.** No form host the owner controls is reachable from the production
-cloud runner today. The engine's real-host submit is also off (`UPMORE_SCRIPT_SUBMIT_LIVE`). So the suite stops at
-"queued + card hash bound", and the final send is the owner's real Ramp run (O-1). A run in the suite never creates an
-application job.
+**Why the suite sends no apply turn.** The owner's rule: nothing is submitted without his approval. A queue row for a
+real posting is one step from a card and a send, and no form host the owner controls is reachable from production
+(the suite cannot create a test posting: its database role cannot write). So the suite applies to nothing, and the
+apply path (F1, E2E, B2, Q2) is proven by his own Ramp run (O-1). The independent review of 2026-10-26 found the first
+version did queue real postings; that version never ran against production.
+
+One scheduled outcome still touches employers' pages. Prepare-ahead (F3) may dry-run the form of a posting that
+matches the test account's watch. A dry run fills the form and never submits it, and its card is never answered (the
+chat guard), so nothing is sent.
 
 **Not verifiable automatically, and why.** Each of these is a real effect a test account must not cause, or one only
 the owner can grant:
@@ -231,9 +248,9 @@ the first full coverage), then the flags, then the suite, then the owner checks.
 | Day | Who | What | The suite's checks it turns green |
 |---|---|---|---|
 | Day 0 | Agent | This PR: the suite, the workflow, the tests, this plan | — |
-| Day 0 | Owner | Create the test account (`scripts/live/test-account.sql` steps 1–3), add the 4 new environment secrets, and add `ci/live-verify` and `trunk` to the environment's deployment branches | `ACCOUNT.test_account` |
+| Day 0 | Owner | Create the test account and the SELECT-only role (`scripts/live/test-account.sql` steps 1–3), add the 5 new environment secrets (`LIVE_VERIFY_DB_URL`, `TRAINEE_VERIFY_EMAIL`, `TRAINEE_VERIFY_PASSWORD`, `SUPABASE_ANON_KEY`, `TRAINEE_APP_URL`), and add `trunk` to the environment's deployment branches | `ACCOUNT.read_only_role`, `ACCOUNT.test_account`, `ACCOUNT.no_apply_authority` |
 | Day 1 | Owner | Merge, then `trainee-go-live.sh --sha <trunk sha> --dry-run`, then the real run. This applies every migration in its list (receipts, account memory, ingest runs, board state, min_fit, mail sent, want guard, cloud runner, message cards ...), deploys its seven functions, runs the three schedules plus the ingest lanes, and runs the smoke | all `*.schema`, `F6.*` after about 2.3 h, `F7.*_runs_fresh` |
-| Day 1 | Owner | Turn the flags on for agent-chat: `CAREER_BRAIN=staged` (`--brain staged`), `CAREER_JUDGE=on`, `CAREER_TAILOR_REWRITE=on`, `CAREER_ACCOUNT_MEMORY=on` (only after its migration), `CAREER_NETWORKING_DRAFT=on`, `CAREER_MAIL_TRACKING=on`. Deploy the rebuilt web app (`index.html`). Push `ci/live-verify` | F4, F5, F9, F10, F12, F13, F14, F15; F1 and E2E up to "queued" |
+| Day 1 | Owner | Turn the flags on for agent-chat: `CAREER_BRAIN=staged` (`--brain staged`), `CAREER_JUDGE=on`, `CAREER_TAILOR_REWRITE=on`, `CAREER_ACCOUNT_MEMORY=on` (only after its migration), `CAREER_NETWORKING_DRAFT=on`, `CAREER_MAIL_TRACKING=on`. Deploy the rebuilt web app (`index.html`). Start the workflow by hand from trunk | F4, F5, F9, F10, F12, F13, F14, F15; F1 and E2E up to "queued" |
 | Day 2 | Owner | Worker host: `prepare-ahead.ts serve` with `CAREER_PREPARE_AHEAD_URL` and token on agent-chat, plus `prepare-ahead.ts daily` every 15 min with `CAREER_PREPARE_AHEAD=on`. Cloud runner (go-live does not deploy it): Vercel token, snapshot, deploy `career-cloud-runner` with `--no-verify-jwt`, its edge secrets and its pg_cron dispatch (`docs/launch/CLOUD-RUNNER.md`). Telegram `setWebhook` to `trainee-telegram`. Re-run the suite | `F3.*`, `E2E.prepared_card_hash_bound`, `F7.alert_for_new_posting`, `TG.*`, `CLOUD.door_refuses_wrong_secret`, `ACCOUNT.functions_deployed` |
 | Day 2 | Agent | Read the matrix. Every FAIL becomes a fix order (file:line) or a flag the owner missed. Re-run until auto checks are all PASS | — |
 | Day 3 | Owner | O-1 (Ramp through Telegram), O-2 (Gmail), O-4 (an alert) | `CLOUD.sent_only_approved`, `F7.alerts_delivered`, `F14.every_finished_job_has_matching_receipt` with n ≥ 1 |
@@ -255,40 +272,53 @@ the first full coverage), then the flags, then the suite, then the owner checks.
 ## 6. Running it by hand
 
 ```bash
-SUPABASE_PROJECT_REF=<ref> SUPABASE_DB_URL='<session pooler URI>' \
+SUPABASE_PROJECT_REF=<ref> LIVE_VERIFY_DB_URL='<the SELECT-only role's session pooler URI>' \
 TRAINEE_VERIFY_EMAIL=trainee-live-verify@upmore.test TRAINEE_VERIFY_PASSWORD=... SUPABASE_ANON_KEY=... \
 TRAINEE_APP_URL=https://<app> deno run -A scripts/live/verify.ts --out live-verify-out --wait-min 20
 ```
 
-Options: `--role "software engineer"` and `--place "New York"` set the search, watch and apply targets, and must be
-a role that posts often. `--allow-not-run` exits 0 with NOT_RUNs left (they stay "not passed" in the matrix).
+Options: `--role "software engineer"` and `--place "New York"` set the search and watch targets, and must be a role
+that posts often. `--allow-not-run` exits 0 with NOT_RUNs left (they stay "not passed" in the matrix).
 
 ## 7. Evidence for this PR
 
-- Tests: `live-verify-checks.test.ts` 8 tests (20 steps) and `live-verify-audit.test.ts` 3 tests (14 steps), run
-  locally on Postgres 16 with the career schema: 11/11 pass. On the base (trunk `fe8405586`) both fail to load:
-  `scripts/live/*` does not exist there.
-- Mutation check, each guard broken once, then the named test run (`--filter`). 14/14 went red:
-  - M1, code read-only guard (write words allowed);
-  - M2, read-only transaction dropped;
-  - M3, GET `/rest/v1/rpc/` allowed;
-  - M4, cloud door with any secret;
-  - M5, yes in a carded thread;
-  - M6, test flag not required;
-  - M7, erase checks run without an erase;
-  - M8, a 0/0 invariant passes;
-  - M9, a closed posting accepted in F5;
-  - M10, catch-all detector off;
-  - M11, B1 grant ignored;
-  - M12, S2 residue ignored;
-  - M13, NOT_RUN folded into exit 0;
-  - M14, a schedule added back to the workflow.
+- Tests: `live-verify-checks.test.ts` and `live-verify-audit.test.ts` (with `live-verify-pg.ts`, the SELECT-only
+  connection the tests read through) run locally on Postgres 16 with the career schema: 11/11 tests, 33 steps, pass.
+  On the base (trunk `fe8405586`) both fail to load: `scripts/live/*` does not exist there.
+- **Independent review of 2026-10-26 (REQUEST CHANGES): 8/8 items fixed on this branch.** Fail-first is the same
+  probe script (scratchpad `failfirst.ts`) run against the reviewed head `e6282673` and against the fix:
 
-  The first M13 attempt was not caught: the exit logic checked the same thing twice. It was simplified so each rule
-  is one line, and then caught.
+| # | Probe | Reviewed head `e6282673` | Fix |
+|---|---|---|---|
+| 1 | `select '--' as a) lv_row; commit; delete from career_postings; select (1` | `assertReadOnlySql` accepted it, and psql ran it: the seeded `career_postings` row was **deleted** (0/1 left) | refused by the code check; sent anyway, Postgres refuses it ("cannot insert multiple commands into a prepared statement"): 1/1 left |
+| 2 | the scenario's apply turns; the authority preflight | `verify.ts` sent `apply to ${pickIdx + 1}` and `apply me to this: ${e2eUrl}` to real postings; no preflight | no apply turn but the two fixed probes; refuses to start on any apply authority; `SAFETY.no_queue_row` |
+| 3 | `exec_vault_read(...)`, `vault.decrypted_secrets`, `cron.schedule(...)` | all three accepted | all three refused |
+| 4 | GET `/rest/v1//rpc/x`, `/rest/v1/%72pc/x`, `/rest/v1/career_out<TAB>box` | all three let through | all three refused |
+| 5 | triggers | a push to `ci/live-verify` started it | `workflow_dispatch` only, and only from trunk |
+| 6 | action pins | `@v4`, `@v2`, `@v4` | 3/3 pinned by commit SHA |
+| 7 | the two surviving mutants (the drafts term in `noForeignWrites`; the one-statement rule) | reproduced: each mutant left the reviewed head's tests green | each now turns a test red (R7a, R1b) |
+| 8 | "please send it", "looks good, send them" | let through | refused (a word that could approve or send, anywhere in the message) |
+
+- Mutation check against this head, each guard broken once and the named test run (`--filter`): **29/29 went red.**
+  - Review round, 21: R1a (the old lexer order), R1b (`;` allowed), R1c (simple protocol), R1d (plain `begin`), R1e
+    (no startup read-only), R1f (superuser allowed), R1g (a writable role allowed), R3a (function allow-list off),
+    R3b (schema allow-list off), R3c (an alias may shadow a schema), R4a and R4a2 (path normalisation off, partly and
+    wholly), R4b (table allow-list off), R2a (apply guard off), R2b (authority preflight off), R2c (no-queue-row check
+    flipped), R5 (a push trigger added), R5b (the trunk-only condition dropped), R6 (an action pinned by tag), R7a
+    (the drafts term dropped), R8 (approving words matched only at the start).
+  - Earlier round, still standing, 8: the test flag, the erase gating, 0/0 invariants, F5 closed postings, the
+    catch-all detector, B1, S2, NOT_RUN in the exit code.
+  - Three review-round mutants survived their first run, and each was fixed:
+    - R1a: the first mutation was written wrong and changed nothing.
+    - R1d: the startup read-only setting also held, so the transaction lock was never tested on its own. The test now
+      uses a superuser connection without it.
+    - R4a: two path rules overlapped. They are now one rule, and a tab in a path (dropped by the URL parser) is tested.
 - Found by the fail-shaped seeds while building, and fixed:
-  - `jsonb_agg(t)` over a subquery aliased `t` aggregated the column named `t`, not the row, which broke three audit
-    checks. The alias is now `lv_row`.
+  - `jsonb_agg(t)` over a subquery aliased `t` aggregated the column named `t`, not the row. The alias is now
+    `lv_row`.
+  - The alias detector consumed the keyword the next pattern needed. Its patterns now only look ahead.
+  - The relation check read `is distinct from j.x` as a FROM clause. With aliases barred from schema names, that check
+    was redundant and is gone.
   - `career_events` has no `extension_approval` kind. S4's fix must add it, so the test drops the kind check to stand
     in for that migration.
   - An empty erase PASSed on a dead product. The erase checks now NOT_RUN unless the erase turn ran.

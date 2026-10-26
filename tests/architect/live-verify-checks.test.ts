@@ -14,6 +14,7 @@ import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import * as L from "../../scripts/live/lib.ts";
 import * as C from "../../scripts/live/checks.ts";
 import { exitCode, main } from "../../scripts/live/verify.ts";
+import { readOnlyConnection } from "./live-verify-pg.ts";
 
 const CI = !!Deno.env.get("CI");
 const U = "5e1f0000-0000-4000-8000-0000000000a1"; // the flagged test account
@@ -25,7 +26,7 @@ const run: C.Run = { userId: U, startedAt: "2026-10-26T00:00:00Z" };
 const H = (c: string) => c.repeat(64);
 const prefs = (on: boolean, kw: string) => JSON.stringify({ on, keywords: [kw], locations: ["New York"], remote_ok: false, report_hour: 8, quiet_start: 22, quiet_end: 7, max_instant_per_day: 3 });
 
-let pg: Pg | null = null;
+let pg: Pg | null = null, conn: { exec: L.Exec; end: () => Promise<void> } | null = null;
 async function world(): Promise<Pg> {
   if (pg) return pg;
   pg = await startPg();
@@ -38,6 +39,7 @@ async function world(): Promise<Pg> {
     create schema if not exists cron;
     create table if not exists cron.job (jobid bigint primary key, jobname text, schedule text);
     create table if not exists cron.job_run_details (jobid bigint, status text, start_time timestamptz);`);
+  conn = await readOnlyConnection(pg);
   return pg;
 }
 const skip = () => {
@@ -46,7 +48,7 @@ const skip = () => {
   console.log("NOT_RUN locally: no Postgres binaries");
   return true;
 };
-const db = () => L.readOnlyDb((s) => pg!.sql(s));
+const db = () => L.readOnlyDb(conn!.exec); // every read goes as the SELECT-only role, one extended-protocol query
 const seed = (s: string) => pg!.sql(s);
 const turn = (o: Partial<C.Turn> & { reply: string }): C.Turn => ({ status: 200, threadId: T_U, turnKey: crypto.randomUUID(), meta: {}, at: new Date(Date.now() - 60_000).toISOString(), ...o });
 const is = (r: L.Result | L.Result[], status: L.Status, msg = "") => {
@@ -57,15 +59,31 @@ const is = (r: L.Result | L.Result[], status: L.Status, msg = "") => {
 Deno.test("live verify: the read-only guard passes reads and refuses every write shape", () => {
   for (const s of [
     "select 1", "with a as (select 1) select * from a", "select count(*) from career_events where kind = 'insert into x'",
-    "select public.career_ingest_coverage(interval '1 hour')", "select updated_at, created_at, start_time from x",
+    "select * from public.career_ingest_coverage(interval '1 hour')", "select updated_at, created_at, start_time from x",
     "select encode(sha256(convert_to(public.career_apply_canonical(p.payload), 'UTF8')), 'hex') from career_apply_prepared p",
+    "select case when 1 = 1 then 'a' else 'b' end as x", "select 'a -- not a comment' as x", "select $$ ; delete $$ as x",
+    "select u.email from auth.users u", "select j.jobname from cron.job j", "with me as (select 1 as id) select me.id from me",
+    "select c.table_name from information_schema.columns c", "select e'it\\'s' as x", "select 'it''s' as x",
   ]) L.assertReadOnlySql(s);
   for (const s of [
     "insert into career_events values (1)", "update career_watch_kv set value = '{}'", "delete from career_outbox",
     "with d as (delete from career_events returning 1) select count(*) from d", "select 1; delete from career_events",
-    "select nextval('s')", "select career_apply_enqueue('{}'::jsonb, 'a', 'a', 1)", "select public.career_host_commit(null)",
-    "set role postgres", "truncate career_events", "select pg_advisory_lock(1)", "copy x to stdout", "select set_config('a','b',false)",
-    "call p()", "do $$ begin end $$",
+    "select 1; select 2", "select 1;", "select nextval('s')", "select career_apply_enqueue('{}'::jsonb, 'a', 'a', 1)",
+    "select public.career_host_commit(null)", "set role postgres", "truncate career_events", "select pg_advisory_lock(1)",
+    "copy x to stdout", "select set_config('a','b',false)", "call p()", "do $$ begin end $$", "values (1)",
+    // the review's bypass: a comment marker inside a string, then a second statement
+    "select '--' as a) lv_row; commit; delete from career_postings; select (1",
+    "select '/*' as a, 1 as b; delete from career_postings --*/",
+    "select 'it''s' as a; commit", "select e'\\'' ; commit; delete from x --' as a",
+    "select $tag$ x $tag$ as a; commit", "select 'unterminated", "select /* unterminated", "select $q$ unterminated",
+    // functions and schemas off the allow-list
+    "select exec_vault_read('exec_cred_x')", "select public.exec_vault_read('x')", "select \"exec_vault_read\"('x')",
+    "select * from vault.decrypted_secrets", "select cron.schedule('x', '* * * * *', 'select 1')", "select dblink('x')",
+    "select pg_read_file('/etc/passwd')", "select current_setting('x') as a, pg_sleep(1) as b", "select * from auth.refresh_tokens",
+    "select * from storage.buckets", "select lo_import('/x')", "select * from extensions.pg_stat_statements",
+    "select q.x from pg_temp.q", "select a.b from vault.secrets a", "select vault.id from career_events vault",
+    "select 1 from career_events vault, vault.decrypted_secrets", "select 1 from career_events auth, auth.sessions",
+    "select e'it\\\\'s; commit; delete from x' as a; commit",
   ]) assertThrows(() => L.assertReadOnlySql(s), Error, "refused", s);
 });
 
@@ -95,6 +113,20 @@ Deno.test("live verify: the HTTP guard allows only the test account's doors", as
     ["https://api.supabase.com/v1/projects/zzzzzzzzzzzzzzzzzzzz/functions", { method: "GET" }],
     [`https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/analytics/endpoints/logs.all?sql=${encodeURIComponent("select event_message from function_edge_logs")}`, { method: "GET" }],
     [`${B}/rest/v1/rpc/exec_vault_read?name=x`, { method: "GET" }],
+    [`${B}/rest/v1//rpc/exec_vault_read`, { method: "GET" }],
+    [`${B}/rest/v1/%72pc/exec_vault_read`, { method: "GET" }],
+    [`${B}/rest/v1/career_outbox/../rpc/exec_vault_read`, { method: "GET" }],
+    [`${B}/rest/v1/career_outbox/%2e%2e/rpc/x`, { method: "GET" }],
+    [`${B}/rest/v1/rpc/../career_outbox`, { method: "GET" }],
+    [`${B}/rest/v1/rpc\t/../career_outbox`, { method: "GET" }],
+    [`${B}/rest/v1/career_out\tbox`, { method: "GET" }], // the URL parser drops the tab: what is sent is not what was read
+    [`${B}/functions/v1/x/../agent-chat`, { method: "POST", body: "{}" }],
+    [`${B}/rest/v1/profiles?select=*`, { method: "GET" }],
+    [`${B}/rest/v1/career_outbox/x`, { method: "GET" }],
+    [`${B}/rest/v1/Career_Outbox`, { method: "GET" }],
+    [`${B}\\rest\\v1\\career_outbox`, { method: "GET" }],
+    [`${B}/auth/v1/admin/users`, { method: "GET" }],
+    ["https://app.example.test/other-page", { method: "GET" }],
     [`${B}/functions/v1/trainee-deliver`, { method: "GET" }],
     [`${B}/functions/v1/trainee-deliver`, { method: "OPTIONS" }],
     ["https://boards.greenhouse.io/x/jobs/1", { method: "POST", body: "{}" }],
@@ -102,24 +134,36 @@ Deno.test("live verify: the HTTP guard allows only the test account's doors", as
   assertEquals(calls.length, 9);
 });
 
-Deno.test("live verify: the chat guard never lets the suite approve", () => {
+Deno.test("live verify: the chat guard never lets the suite approve, send or apply", () => {
   const g = new L.ChatGuard();
   g.check(null, "find software engineer jobs in New York");
-  g.check(null, "yes, that's my resume", true);
-  for (const m of ["yes", "send 1", "approve these", "go ahead", "Submit it", "ok"]) assertThrows(() => g.check(T_U, m), Error, "refused", m);
+  for (const m of ["yes", "send 1", "approve these", "go ahead", "Submit it", "ok", "please send it", "can you send it now?",
+    "looks good, send them", "I confirm", "sure, do it", "that is fine, approve"]) assertThrows(() => g.check(T_U, m), Error, "refused", m);
+  for (const m of ["apply to 1", "apply to all of them", "apply me to this: https://jobs.ashbyhq.com/ramp/1", "please apply for me to Stripe",
+    "I applied to Acme", "submit my application"]) assertThrows(() => g.check(T_U, m), Error, "refused", m);
+  for (const m of L.APPLY_PROBES) g.check(T_U, m);
   g.noteReply(T_U, { reply: "Here is your card. A yes sends exactly this." });
-  assertThrows(() => g.check(T_U, "yes, that's my resume", true), Error, "card");
-  for (const m of ["send 1", "approve"]) assertThrows(() => g.check(T_U2, m, true), Error, "approval");
+  assertThrows(() => g.check(T_U, L.RESUME_CONFIRMATION), Error, "card");
+  const g2 = new L.ChatGuard();
+  g2.check(T_U2, L.RESUME_CONFIRMATION);
+  assertThrows(() => g2.check(T_U2, L.RESUME_CONFIRMATION), Error, "already");
+  assertThrows(() => new L.ChatGuard().check(null, "yes, that's my resume and send it"), Error, "refused");
 });
 
-Deno.test("live verify: the workflow runs only when the owner starts it (no schedule, one push branch, the production environment)", async () => {
+Deno.test("live verify: the workflow runs only when the owner starts it, only from trunk, with every action pinned to a commit", async () => {
   const y = await Deno.readTextFile(new URL("../../.github/workflows/live-verify.yml", import.meta.url));
-  const on = y.slice(y.indexOf("\non:"), y.indexOf("\npermissions:"));
-  assert(!/^\s*schedule:/m.test(y), "no schedule: the owner's hold of 2026-10-26 allows no run he does not start");
-  assert(/push:\s*\n\s*branches: \[ci\/live-verify\]/.test(on) && /workflow_dispatch:/.test(on), on);
-  assert(!/pull_request|release\/production|workflow_run/.test(on), on);
-  assert(/environment: production/.test(y));
-  assert(!/deploy|supabase functions|db push|vercel/i.test(y.replace(/^\s*#.*$/gm, "")), "the workflow deploys nothing");
+  const code = y.replace(/^\s*#.*$/gm, "");
+  const on = code.slice(code.indexOf("\non:"), code.indexOf("\npermissions:"));
+  assert(/^\s*workflow_dispatch:/m.test(on), on);
+  assert(!/^\s*(?:push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch|release|issue_comment):/m.test(on), `only workflow_dispatch may start it: ${on}`);
+  assert(/^\s*if: github\.ref == 'refs\/heads\/trunk'\s*$/m.test(code), "the job runs only from trunk");
+  assert(/environment: production/.test(code));
+  const uses = [...code.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)].map((m) => m[1]);
+  assert(uses.length >= 3, uses.join(","));
+  for (const u of uses) assert(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/.test(u), `${u} is not pinned to a commit SHA`);
+  assert(!/SUPABASE_DB_URL/.test(code), "the owner's database URL is never handed to the suite");
+  assert(/LIVE_VERIFY_DB_URL/.test(code));
+  assert(!/deploy|supabase functions|db push|vercel/i.test(code), "the workflow deploys nothing");
 });
 
 Deno.test("live verify: the exit code passes only when every check passed (a NOT_RUN is not passed)", () => {
@@ -148,11 +192,27 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
   if (skip()) return;
   await world();
   try {
-    await t.step("the database itself refuses a write inside the read-only transaction", async () => {
-      // A write the code check would refuse, sent straight through the wrapper: Postgres refuses it as well (nextval
-      // writes the sequence; a data-modifying CTE cannot even be wrapped).
-      await assertRejects(() => pg!.sql(L.readOnlyText("with d as (delete from career_events returning 1) select count(*) as n from d")), Error, "data-modifying");
-      await assertRejects(() => pg!.sql(L.readOnlyText("select count(*) from (select pg_catalog.nextval(pg_get_serial_sequence('public.career_events', 'id'))) s")), Error, "read-only transaction");
+    await t.step("the three locks, each alone: protocol, transaction, role", async () => {
+      // Lock 2, protocol: one extended-protocol query; Postgres refuses a second command in it, whatever the role.
+      // A superuser connection that does not ask for read-only at startup: only `begin read only` stands in the way.
+      const su = await L.pgExec({ path: `${pg!.host}/.s.PGSQL.${pg!.port}`, user: "postgres", database: "postgres" }, { startupReadOnly: false });
+      try {
+        await assertRejects(() => su.exec("select 1; delete from career_postings"), Error, "multiple commands");
+        // Lock 2, transaction: a write inside `begin read only` is refused even for a superuser.
+        await assertRejects(() => su.exec("select nextval(pg_get_serial_sequence('public.career_events', 'id'))"), Error, "read-only transaction");
+        await assertRejects(() => su.exec("delete from career_events"), Error, "read-only transaction");
+        // Lock 3, role: a superuser, or a role that can write a table, is refused before anything runs.
+        await assertRejects(() => L.assertReadOnlyRole(L.readOnlyDb(su.exec)), Error, "superuser");
+      } finally { await su.end(); }
+      await seed(`do $$ begin if not exists (select from pg_roles where rolname = 'lv_rw') then create role lv_rw login; end if; end $$;
+        grant usage on schema public to lv_rw; grant select on all tables in schema public to lv_rw; grant insert on public.career_events to lv_rw;
+        alter role lv_rw set default_transaction_read_only = on`);
+      const rw = await L.pgExec({ path: `${pg!.host}/.s.PGSQL.${pg!.port}`, user: "lv_rw", database: "postgres" });
+      try { await assertRejects(() => L.assertReadOnlyRole(L.readOnlyDb(rw.exec)), Error, "can write"); } finally { await rw.end(); }
+      await seed(`alter role lv_rw reset default_transaction_read_only; revoke insert on public.career_events from lv_rw`);
+      const off = await L.pgExec({ path: `${pg!.host}/.s.PGSQL.${pg!.port}`, user: "lv_rw", database: "postgres" });
+      try { assertEquals((await L.readOnlyDb(off.exec).rows<{ ro: string }>("select current_setting('default_transaction_read_only') as ro"))[0].ro, "on", "the connection asks for read-only at startup"); } finally { await off.end(); }
+      await L.assertReadOnlyRole(db());
       assertEquals(await db().rows("select 1 as one"), [{ one: 1 }]);
     });
 
@@ -199,20 +259,6 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
       is(await C.searchListedOpen(db(), turn({ reply: "No matches." })), "FAIL", "no links");
       assertEquals(C.judgeState(turn({ reply: "not judged (the model judge is off)." })), "off");
       assertEquals(C.judgeState(turn({ reply: "3/3 judged; 1 strong" })), "judged");
-    });
-
-    await t.step("F1/E2E queued rows match the reply and are open postings", async () => {
-      const at = new Date(Date.now() - 1000).toISOString();
-      await seed(`insert into career_apply_wanted (user_id, posting_key, url, company, title, queued_at) values ('${U}', 'greenhouse:acme:1', 'https://boards.greenhouse.io/acme/jobs/1', 'Acme', 'Software Engineer', now())`);
-      const ok = turn({ at, reply: "1/1 queued; I'll show you each application's exact answers on a card before anything is sent." });
-      is(await C.applyQueued(db(), "F1", "F1.q", ok, run, ["https://boards.greenhouse.io/acme/jobs/1"]), "PASS");
-      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "2/2 queued" }), run), "FAIL", "count");
-      is(await C.applyQueued(db(), "F1", "F1.q", ok, run, ["https://boards.greenhouse.io/acme/jobs/7"]), "FAIL", "another posting");
-      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "Done!" }), run), "FAIL", "no coverage line");
-      await seed(`insert into career_apply_wanted (user_id, posting_key, url, queued_at) values ('${U}', 'greenhouse:acme:2', 'https://boards.greenhouse.io/acme/jobs/2', now())`);
-      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "2/2 queued" }), run), "FAIL", "a closed posting queued");
-      await seed(`delete from career_apply_wanted where user_id = '${U}'`);
-      is(await C.applyQueued(db(), "F1", "F1.q", turn({ at, reply: "0/1 queued" }), run), "FAIL", "nothing queued");
     });
 
     await t.step("F3/E2E prepared, hash-bound and carded", async () => {
@@ -417,7 +463,41 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
       is((await C.eraseErased(db(), run))[0], "FAIL", "a turn receipt kept its reply");
       is(await C.noForeignWrites(db(), run, [T_U, T_U2]), "PASS");
       is(await C.noForeignWrites(db(), run, [T_U, T_V]), "FAIL", "another account's thread");
+      await seed(`insert into career_outreach_drafts (user_id, batch_id, thread_id, n, recipient, recipient_email, subject, body, footer, hash)
+        values ('${V}', gen_random_uuid(), '${T_U}', 1, '{}', 'x@example.test', 'Hi', 'Body', 'X', '${H("9")}')`);
+      is(await C.noForeignWrites(db(), run, [T_U, T_U2]), "FAIL", "another account's draft in the test account's thread");
+      await seed(`delete from career_outreach_drafts where user_id = '${V}'`);
       is(await C.noForeignWrites(db(), run, []), "NOT_RUN");
+    });
+
+    await t.step("SAFETY no queue row, and ACCOUNT no apply authority (each kind refused)", async () => {
+      is(await C.noQueueRow(db(), run), "PASS");
+      await seed(`insert into career_apply_wanted (user_id, posting_key, url) values ('${U}', 'greenhouse:acme:1', 'https://boards.greenhouse.io/acme/jobs/1')`);
+      is(await C.noQueueRow(db(), run), "FAIL", "a queue row");
+      await assertRejects(() => C.assertNoApplyAuthority(db(), U), Error, "queued applications");
+      await seed(`delete from career_apply_wanted where user_id = '${U}'`);
+      await C.assertNoApplyAuthority(db(), U);
+      const kinds: [string, string, string][] = [
+        ["career_apply_cloud_optin", `insert into career_apply_cloud_optin (user_id) values ('${U}')`, "a cloud opt-in"],
+        ["career_apply_batch_approvals", "", "a batch approval"],
+        ["extension_submission_reports", "", "an extension submission record"],
+        ["career_apply_jobs", `set session_replication_role = replica; insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state) values ('${U}', 'j', 'Acme', 'https://x.test/1', '{}', '${H("a")}', '${H("a")}', 'queued'); set session_replication_role = origin;`, "an application job"],
+        ["career_apply_cards", `insert into career_apply_cards (user_id, items, state, shown_at, answered_at) values ('${U}', '[{"n":1}]', 'answered', now(), now())`, "an answered card"],
+        ["career_cloud_settings", `insert into career_cloud_settings (key, value) values ('gate_user_ids', '${U}') on conflict (key) do update set value = excluded.value`, "career_cloud_settings"],
+      ];
+      for (const [table, insert, what] of kinds) {
+        let sql = insert;
+        if (!sql) {
+          // Fill every required column with a value of its type, so the row exists for this account.
+          const cols = (await pg!.sql(`select string_agg(column_name || ':' || udt_name, ',') from information_schema.columns where table_schema = 'public' and table_name = '${table}' and is_nullable = 'NO' and column_default is null and column_name <> 'user_id'`)).split(",").filter(Boolean);
+          const val = (t: string) => t === "uuid" ? "gen_random_uuid()" : t === "jsonb" || t === "json" ? "'{}'" : /^int|^float|^numeric/.test(t) ? "1" : t === "bool" ? "true" : t === "timestamptz" ? "now()" : t === "_text" ? "'{}'" : `'${H("b")}'`;
+          sql = `set session_replication_role = replica; insert into public.${table} (user_id${cols.map((c) => `, ${c.split(":")[0]}`).join("")}) values ('${U}'${cols.map((c) => `, ${val(c.split(":")[1])}`).join("")}); set session_replication_role = origin;`;
+        }
+        await seed(sql);
+        await assertRejects(() => C.assertNoApplyAuthority(db(), U), Error, what, table);
+        await seed(table === "career_cloud_settings" ? `delete from career_cloud_settings where key = 'gate_user_ids'` : `set session_replication_role = replica; delete from public.${table} where user_id = '${U}'; set session_replication_role = origin;`);
+      }
+      await C.assertNoApplyAuthority(db(), U);
     });
 
     await t.step("the owner checks' SQL: every statement is a read and runs on the career schema", async () => {
@@ -433,8 +513,9 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
       }
     });
   } finally {
+    await conn?.end();
     await pg?.stop();
-    pg = null;
+    pg = null; conn = null;
   }
 } });
 
@@ -446,6 +527,7 @@ Deno.test({ name: "live verify: a run refuses a non-test account and calls nothi
     await p.sql(`alter table auth.users add column if not exists raw_app_meta_data jsonb not null default '{}'::jsonb;
       insert into auth.users (id, email, raw_app_meta_data) values ('${U}', '${U_EMAIL}', '{"trainee_test_account": true}'), ('${V}', 'real.person@example.com', '{}');
       insert into public.profiles (id) values ('${U}'), ('${V}');`);
+    const ro = await readOnlyConnection(p);
     const b64 = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
     const jwt = (sub: string) => `${b64({ alg: "HS256" })}.${b64({ sub, exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
     const out = await Deno.makeTempDir();
@@ -454,23 +536,23 @@ Deno.test({ name: "live verify: a run refuses a non-test account and calls nothi
       calls.push({ url: String(i), method: String(init?.method ?? "GET"), auth: new Headers(init?.headers).get("authorization"), body: String(init?.body ?? "") });
       return new Response('{"error":"internal"}', { status: 500 });
     }) as typeof fetch;
-    const env = (sub: string) => (k: string) => ({ SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst", SUPABASE_DB_URL: "postgres://x", UPMORE_TEST_JWT: jwt(sub), TRAINEE_VERIFY_EMAIL: U_EMAIL } as Record<string, string>)[k];
+    const env = (sub: string) => (k: string) => ({ SUPABASE_PROJECT_REF: "abcdefghijklmnopqrst", LIVE_VERIFY_DB_URL: "postgres://x", UPMORE_TEST_JWT: jwt(sub), TRAINEE_VERIFY_EMAIL: U_EMAIL } as Record<string, string>)[k];
     const quiet = () => {};
 
     // Nothing given: exit 2, NOT_RUN everywhere, nothing called.
-    assertEquals(await main(["--out", out, "--wait-min", "0"], () => undefined, { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 2);
+    assertEquals(await main(["--out", out, "--wait-min", "0"], () => undefined, { exec: ro.exec, fetch: dead, log: quiet }), 2);
     assertEquals(calls.length, 0);
     const empty = JSON.parse(await Deno.readTextFile(`${out}/live-verify.json`));
     assert(empty.results.every((r: L.Result) => r.status === "NOT_RUN"));
 
     // A real person's JWT: refused before any call.
-    assertEquals(await main(["--out", out, "--wait-min", "0"], env(V), { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 2);
+    assertEquals(await main(["--out", out, "--wait-min", "0"], env(V), { exec: ro.exec, fetch: dead, log: quiet }), 2);
     assertEquals(calls.length, 0, "nothing is called as a real person");
 
     // The test account against a product that answers 500 to everything: the run completes, FAILs, never PASSes a
     // feature, and every request went to a door the guard allows, as the test account.
     const before = await p.sql(`select (select count(*) from career_events) || ',' || (select count(*) from career_watch_kv) || ',' || (select count(*) from agent_messages)`);
-    assertEquals(await main(["--out", out, "--wait-min", "0"], env(U), { exec: (s) => p.sql(s), fetch: dead, log: quiet }), 1);
+    assertEquals(await main(["--out", out, "--wait-min", "0"], env(U), { exec: ro.exec, fetch: dead, log: quiet }), 1);
     const report = JSON.parse(await Deno.readTextFile(`${out}/live-verify.json`));
     const feat = report.results.filter((r: L.Result) => /^F\d+$|^E2E$/.test(r.feature));
     assert(feat.length >= 30, `${feat.length} feature checks`);
@@ -492,16 +574,33 @@ Deno.test({ name: "live verify: a run refuses a non-test account and calls nothi
         assert(["/functions/v1/agent-chat", "/functions/v1/career-cloud-runner/dispatch"].includes(path), path);
         if (path === "/functions/v1/agent-chat") {
           assertEquals(L.jwtSubject(c.auth!.replace(/^Bearer /, "")).sub, U);
-          assert(!L.APPROVING.test(JSON.parse(c.body).message) || /that's my resume/.test(JSON.parse(c.body).message), c.body);
+          const m = JSON.parse(c.body).message;
+          assert(!L.APPROVING.test(m) || m === L.RESUME_CONFIRMATION, c.body);
+          assert(!L.APPLYING.test(m) || L.APPLY_PROBES.has(m), `an apply ask was sent: ${m}`);
         }
       }
     }
     assert(calls.some((c) => c.url.endsWith("/functions/v1/agent-chat")));
+    assert(report.results.some((r: L.Result) => r.check === "ACCOUNT.read_only_role" && r.status === "PASS"));
+    assert(report.results.some((r: L.Result) => r.check === "SAFETY.no_queue_row" && r.status === "PASS"));
+
     const after = await p.sql(`select (select count(*) from career_events) || ',' || (select count(*) from career_watch_kv) || ',' || (select count(*) from agent_messages)`);
     assertEquals(after, before, "the suite itself wrote nothing to the database");
     const md = await Deno.readTextFile(`${out}/live-verify.md`);
     assert(md.includes("| F12 Offer benchmark |") && !md.includes(jwt(U)), "the matrix is written and carries no secret");
+    // A test account holding apply authority (here: a cloud opt-in) is refused before any call.
+    const n0 = calls.length;
+    await p.sql(`alter table career_apply_cloud_optin disable trigger user; insert into career_apply_cloud_optin (user_id) values ('${U}')`).catch(async () => {
+      const cols = await p.sql(`select string_agg(column_name || ':' || data_type, ',') from information_schema.columns where table_name = 'career_apply_cloud_optin' and is_nullable = 'NO' and column_default is null`);
+      throw new Error(`seed the opt-in: ${cols}`);
+    });
+    assertEquals(await main(["--out", out, "--wait-min", "0"], env(U), { exec: ro.exec, fetch: dead, log: quiet }), 2);
+    assertEquals(calls.length, n0, "nothing is called while the test account holds apply authority");
+    const refused = JSON.parse(await Deno.readTextFile(`${out}/live-verify.json`));
+    assert(refused.results.some((r: L.Result) => r.check === "ACCOUNT.test_account" && /apply authority: a cloud opt-in/.test(r.reason)), JSON.stringify(refused.results.slice(0, 4)));
+
     await Deno.remove(out, { recursive: true });
+    await ro.end();
   } finally {
     await p.stop();
   }

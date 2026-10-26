@@ -107,26 +107,6 @@ export function judgeState(t: Turn): "judged" | "off" | "failed" | "unknown" {
   return "unknown";
 }
 
-// ------------------------------------------------------------------------------------------------ F1 chat-to-apply
-// "k/m queued" in the reply equals the waiting rows written for the person at this turn, and each queued row is an open
-// posting in career_postings.
-export async function applyQueued(db: Db, feature: string, check: string, t: Turn, run: Run, wantUrls: string[] = []): Promise<Result> {
-  const m = /(\d+)\/(\d+) queued/.exec(t.reply);
-  if (!m) return fail(feature, check, "the reply has no coverage line (k/m queued)", { reply: t.reply.slice(0, 200) });
-  const said = Number(m[1]);
-  const rows = await db.rows<{ posting_key: string; url: string; open: boolean | null; on_file: boolean }>(
-    `select w.posting_key, w.url, (p.job_id is not null) as on_file, p.closed_at is null as open
-       from career_apply_wanted w left join career_postings p on p.job_id = w.posting_key or p.url = w.url
-      where w.user_id = ${uid(run.userId)} and w.queued_at >= ${q(t.at)}::timestamptz`);
-  const already = /already in your queue/i.test(t.reply) ? Number((/\((\d+) already in your queue/.exec(t.reply) ?? [])[1] ?? 0) : 0;
-  if (rows.length !== said - already) return fail(feature, check, `the reply says ${said} queued (${already} already) but ${rows.length} rows were written to career_apply_wanted`);
-  const bad = rows.filter((r) => !r.on_file || r.open === false);
-  if (bad.length) return fail(feature, check, `${bad.length}/${rows.length} queued rows are not an open posting in career_postings`, { bad: bad.map((b) => b.url).slice(0, 5) });
-  if (wantUrls.length && rows.length && !rows.some((r) => wantUrls.includes(r.url))) return fail(feature, check, "the queued row is not the posting that was asked for", { asked: wantUrls, queued: rows.map((r) => r.url) });
-  if (said === 0) return fail(feature, check, "nothing was queued", { reply: t.reply.slice(0, 200) });
-  return pass(feature, check, `${m[0]}; ${rows.length} new row(s) in career_apply_wanted, each an open posting`, { queued: rows.map((r) => r.posting_key) });
-}
-
 // ------------------------------------------------------------------------------------------------ hash binding
 // A prepared application's payload_hash is the sha256 of its canonical payload, and any card item names that same hash.
 export async function preparedBound(db: Db, feature: string, check: string, run: Run, match: { urls?: string[]; exceptUrls?: string[] } = {}): Promise<Result> {
@@ -607,4 +587,52 @@ export async function everyReplyRecorded(db: Db, turns: Turn[], run: Run): Promi
   }
   return bad.length ? fail("SAFETY", C, `${turns.length - bad.length}/${turns.length} replies match their recorded turn; e.g. ${bad[0]}`)
     : pass("SAFETY", C, `${turns.length}/${turns.length} replies are exactly the replies recorded for their turns`);
+}
+
+// ------------------------------------------------------------------------------------------------ apply authority
+// The run refuses to start while the test account holds anything that could let an application leave: a cloud opt-in,
+// a batch approval or intent, a cloud gate waiver, a place in the cloud settings, an extension submission record, any
+// application job, a waiting queue row, or an approved card. Tables missing from the schema hold nothing.
+const AUTHORITY: [string, string, string][] = [
+  ["career_apply_cloud_optin", "user_id", "a cloud opt-in"],
+  ["career_apply_batch_approvals", "user_id", "a batch approval"],
+  ["career_batch_intents_v1", "user_id", "a batch intent"],
+  ["career_apply_cloud_gate_waivers", "user_id", "a cloud gate waiver"],
+  ["extension_submission_reports", "user_id", "an extension submission record"],
+  ["career_apply_jobs", "user_id", "an application job"],
+];
+export async function assertNoApplyAuthority(db: Db, userId: string): Promise<void> {
+  const u = uid(userId);
+  const have: string[] = [];
+  const present = new Set((await db.rows<{ t: string }>(
+    `select table_name as t from information_schema.columns where table_schema = 'public' and column_name = 'user_id' and table_name in (${[...AUTHORITY.map((a) => a[0]), "career_apply_wanted", "career_apply_message_cards"].map(q).join(",")})`)).map((r) => r.t));
+  for (const [t, col, what] of AUTHORITY) {
+    if (!present.has(t)) continue;
+    const r = await db.rows<{ n: number }>(`select count(*)::int as n from public.${t} where ${col} = ${u}`);
+    if (n(r[0]?.n)) have.push(`${what} (${t}: ${r[0].n})`);
+  }
+  if (present.has("career_apply_wanted")) {
+    const r = await db.rows<{ n: number }>(`select count(*)::int as n from career_apply_wanted where user_id = ${u}`);
+    if (n(r[0]?.n)) have.push(`queued applications (career_apply_wanted: ${r[0].n})`);
+  }
+  if (present.has("career_apply_message_cards")) {
+    const r = await db.rows<{ n: number }>(`select count(*)::int as n from career_apply_message_cards where user_id = ${u} and approved_at is not null`);
+    if (n(r[0]?.n)) have.push(`an approved card (${r[0].n})`);
+  }
+  const s = await db.rows<{ n: number }>(`select count(*)::int as n from career_apply_cards where user_id = ${u} and state <> 'open'`);
+  if (n(s[0]?.n)) have.push(`an answered card (${s[0].n})`);
+  const hasSettings = (await db.rows<{ ok: boolean }>(`select to_regclass('public.career_cloud_settings') is not null as ok`))[0]?.ok;
+  const cs = hasSettings ? await db.rows<{ n: number }>(`select count(*)::int as n from career_cloud_settings where value like ${q(`%${userId}%`)}`) : [{ n: 0 }];
+  if (n(cs[0]?.n)) have.push("a place in career_cloud_settings (owner or gate tester)");
+  if (have.length) throw new Error(`the test account holds apply authority: ${have.join("; ")}. Clear it before a run (scripts/live/test-account.sql)`);
+}
+// End of run: no application was queued or created for the test account, ever.
+export async function noQueueRow(db: Db, run: Run): Promise<Result> {
+  const r = await db.rows<{ wanted: number; jobs: number }>(
+    `select (select count(*) from career_apply_wanted where user_id = ${uid(run.userId)})::int as wanted,
+            (select count(*) from career_apply_jobs where user_id = ${uid(run.userId)})::int as jobs`);
+  const x = r[0];
+  return n(x.wanted) || n(x.jobs)
+    ? fail("SAFETY", "SAFETY.no_queue_row", `the test account has ${x.wanted} queued application(s) and ${x.jobs} job(s): the suite must queue none`)
+    : pass("SAFETY", "SAFETY.no_queue_row", "the test account has no queued application and no job: nothing was queued for any posting");
 }

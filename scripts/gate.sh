@@ -154,6 +154,7 @@ PY
 # every suite.
 browser_node_tests=(
   tests/career-approval-card-browser.test.cjs
+  tests/career-dashboard-browser.test.cjs
   tests/career-extension-agent-submits.test.cjs
   tests/career-extension-browser.test.cjs
   tests/career-extension-person-submits.test.cjs

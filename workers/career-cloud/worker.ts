@@ -57,7 +57,7 @@ const BY_DESIGN = new Set([
   "APPROVED_APPLICATION_CHANGED", "APPROVED_BODY_MISMATCH", "needs_answers", "IDENTITY_NUMBER_REQUESTED", "ACCOUNT_LOGIN_REQUIRED",
   "RESUME_CHANGED", "RESUME_NOT_IN_CLOUD", "NO_ENGINE_APPROVAL", "CONFLICTING_APPROVED_ANSWERS", "FACTS_EXPIRED", "ACCOUNT_PAUSED",
   "FACTS_ERASED", "duplicate_job", "daily_cap", "company_cooldown", "UNCONFIRMED_HIDDEN_FIELD", "UNSUPPORTED_FILE_ARTIFACT",
-  "SUBMIT_DESTINATION_NOT_BOUND", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
+  "SUBMIT_DESTINATION_NOT_BOUND", "SUBMIT_DESTINATION_UNEXPECTED", "SCRIPT_SUBMIT_FAMILY_MISMATCH", "PERSON_SUBMITS_NEEDS_HEADED", "HANDOFF_NEEDS_HEADED",
   "APPROVED_MANIFEST_CHANGED", "INVALID_APPROVED_SCHEMA", "CONTRACT_REFUSED", "FACT_OWNER_MISMATCH",
   "CARD_CLOUD_PERMISSION_REVOKED", "CARD_CLOUD_AUTH_REQUIRED", "CARD_CLOUD_AUTH_REFUSED", "CARD_CLOUD_AUTH_PROTOCOL", "CARD_CLOUD_AUTH_TIMEOUT",
   "APPROVED_SOURCE_WITHDRAWN", "CARD_CLOUD_SOURCE_READ_FAILED", "CARD_CLOUD_AUTHORIZATION_REFUSED",
@@ -265,7 +265,11 @@ export async function cloudLoop(o: {
 
 // What the engine's process may see of the worker's environment: where its tools are, nothing else. The service key and
 // every other secret stay in the worker (clearEnv), so neither the engine nor Chromium nor a page can read them.
-export const ENGINE_ENV_KEYS = ["PATH", "HOME", "TMPDIR", "DENO_DIR", "PLAYWRIGHT_BROWSERS_PATH", "UPMORE_PLAYWRIGHT_PATH", "UPMORE_CHROMIUM_PATH"];
+// UPMORE_SCRIPT_SUBMIT_LIVE=1 (the owner's switch, off unless set on the worker's host): a real Greenhouse, Ashby or Lever
+// form that submits from its own script is clicked by Trainee, with its one request bound at the network layer
+// (scripts/apply.ts script submit binding). Unset, those forms stop at SUBMIT_DESTINATION_NOT_BOUND as before.
+export const ENGINE_ENV_KEYS = ["PATH", "HOME", "TMPDIR", "DENO_DIR", "PLAYWRIGHT_BROWSERS_PATH", "UPMORE_PLAYWRIGHT_PATH", "UPMORE_CHROMIUM_PATH",
+  "UPMORE_SCRIPT_SUBMIT_LIVE"];
 export function engineEnv(from: (k: string) => string | undefined = (k) => Deno.env.get(k)) {
   const env: Record<string, string> = { UPMORE_MASK_SCREENSHOTS: "1", UPMORE_BROWSER_HEADED: "0" };
   for (const k of ENGINE_ENV_KEYS) {

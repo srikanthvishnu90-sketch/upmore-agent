@@ -144,3 +144,13 @@ async function readGate(admin: any, userId: string): Promise<{ step: string; ask
   }
   return r.data?.[0] ?? null;
 }
+
+// The sign-up reply is saved like every turn (the thread's messages, the turn key's replay): the same commit, with the
+// snapshot unchanged and no patch, task or batch.
+// deno-lint-ignore no-explicit-any
+export async function commitSignupTurn(persistence: { commit(a: any): Promise<any> }, a: {
+  userId: string; threadId: string; turnKey: string; requestHash: unknown; revision: unknown; accountVersion: unknown; snapshot: unknown; input: unknown; response: Record<string, unknown>;
+}): Promise<unknown> {
+  const done = await persistence.commit({ ...a, patch: undefined, taskIntent: null, batchIntent: null });
+  return done.response;
+}

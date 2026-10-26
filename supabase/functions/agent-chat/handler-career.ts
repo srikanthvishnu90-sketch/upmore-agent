@@ -75,7 +75,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
-import { signupTurn } from "../_shared/career_signup.ts"; // FEATURE WAVES
+import { commitSignupTurn, signupTurn } from "../_shared/career_signup.ts"; // FEATURE WAVES
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -326,9 +326,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (signup) {
           const sctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on", snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord: null });
           const response = { thread_id: tid, reply: flowCtx.note ? `${flowCtx.note} ${signup.reply}` : signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };
-          const saved = await persistence.commit({ userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(sctx), patch: undefined, input: userContent, response, taskIntent: null, batchIntent: null });
+          const kept = await commitSignupTurn(persistence, { userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(sctx), input: userContent, response });
           flowCtx.note = null;
-          return json(cors, saved.response, 200);
+          return json(cors, kept, 200);
         }
       }
       // FEATURE WAVES end

@@ -44,9 +44,6 @@ export function supabaseInboundStore(admin: any): InboundStore {
       must(await admin.from("channel_contacts").upsert({ contact, user_id: userId, updated_at: iso(at), ...(phone && contact.startsWith("wa:") ? { phone } : {}) }, { onConflict: "contact" }), "link the contact");
       return { userId, threadId: null, contact };
     },
-    async waitlistInvited(phone) {
-      return must<boolean>(await admin.rpc("trainee_waitlist_invited", { p_phone: phone }), "read the waitlist") === true;
-    },
     async admit(userId, listed) {
       must(await admin.rpc("trainee_admit", { p_user: userId, p_allowlisted: listed }), "record the admission");
     },

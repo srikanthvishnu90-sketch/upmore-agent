@@ -51,9 +51,7 @@ export interface InboundStore {
   issueLinkNonce?(userId: string, at: number): Promise<string>;
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
-  // Sign-up in waves (20261026230000, optional): an invited, unclaimed waitlist spot for this phone; and the admission
-  // recorded on a new account (listed: the env allowed it; otherwise the invited spot is claimed).
-  waitlistInvited?(phone: string): Promise<boolean>;
+  // Sign-up in waves (20261026230000, optional): the admission recorded on a new account the env let in (listed).
   admit?(userId: string, listed: boolean): Promise<void>;
 }
 export interface CoreDeps {
@@ -164,22 +162,16 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
           return ok({ link: "asked", sent: r.ok });
         }
       }
-      // Sign-up: the env (TRAINEE_SIGNUP=open, or the contact on TRAINEE_ALLOWED_CONTACTS), or a waitlist spot the owner
-      // invited for this phone number (trainee_invite_wave; 20261026230000). Telegram gives no phone, so there only the
-      // env decides.
-      const listed = signupAllows(d.env, contact, msg.phone);
-      const tel = contact.startsWith("+") ? contact : msg.phone ?? null;
-      const invited = !listed && !!tel && !!store.waitlistInvited && await store.waitlistInvited(tel)
-        .catch((e) => { console.error("inbound: waitlist not read (treated as not invited):", e instanceof Error ? e.message : String(e)); return false; });
-      if (!listed && !invited) {
+      if (!signupAllows(d.env, contact, msg.phone)) {
         if (await store.refusedBefore(contact, now)) return ok({ ignored: "signup closed (already told)" });
         const r = await d.reply(contact, d.render(SIGNUP_CLOSED_REPLY));
         return ok({ refused: "signup closed", sent: r.ok });
       }
       person = await store.createPerson(contact, now, msg.phone ?? null);
-      // The admission is recorded on the account (and an invited spot claimed), so the web app admits the same person.
+      // The env let them in: recorded on the account (trainee_admit, 20261026230000), so the database lets them apply and
+      // the web app admits the same person. A failure is logged; their applications are then refused until it is recorded.
       if (store.admit) {
-        try { await store.admit(person.userId, listed); }
+        try { await store.admit(person.userId, true); }
         catch (e) { console.error("inbound: admission not recorded:", e instanceof Error ? e.message : String(e)); }
       }
       if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });

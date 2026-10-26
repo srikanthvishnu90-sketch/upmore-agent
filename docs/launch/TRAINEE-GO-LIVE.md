@@ -100,7 +100,6 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 | `LOOPMESSAGE_API_KEY`, `OPENAI_API_KEY` | Enter keeps the one already set | function secrets (`MODEL_PROVIDER=openai` with the OpenAI key) |
 | `INGEST_CONTACT_EMAIL` | the contact job boards see in the User-Agent; career-ingest answers 503 without it | function secret |
 | `TRAINEE_ALLOWED_CONTACTS` | comma-separated numbers allowed to sign up (sign-up is closed by default: `TRAINEE_SIGNUP` is not touched) | function secret |
-| `TRAINEE_WEB_SIGNUP` | `open` lets anyone who signs in on the web app chat. Anything else, or unset, sets `invite` on this run: a signed-in person chats once admitted (an account from before the gate, a confirmed phone or email on `TRAINEE_ALLOWED_CONTACTS`, or a waitlist spot you invited) | function secret |
 | `LOOPMESSAGE_DAILY_CONTACTS` | your plan's contacts a day (unset means 300) | function secret |
 | `PDL_API_KEY` | optional: People Data Labs key for hired-candidate aggregates (WO-036, D-018); without it Trainee says it has no data | function secret, hidden prompt |
 | `UPMORE_TEST_JWT` (optional) | a test user's JWT for the agent-chat "hi" check | nowhere |
@@ -118,19 +117,25 @@ Function secrets are project-wide in Supabase: every function sees every one.
 
 The Vercel project `trainee` serves the repository's `site/` folder: the home page and waitlist form at `/`, and the
 web app (sign in with a texted code, the chat, the approval card, the applications view) at `/app`, built into
-`site/app/` by `python3 scripts/web/build-trainee-web.py`. Its production branch is `main`.
+`site/app/` by `python3 scripts/web/build-trainee-web.py`. Its production branch is `main`. `vercel.json` sends
+`frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff` and `no-referrer` on `/app`; the page carries its own
+Content-Security-Policy (its inline blocks by hash, the project as the only place it connects).
 
-- **Who can use it.** With `TRAINEE_WEB_SIGNUP=invite`, accounts that existed before migration
-  `20261026230000_trainee_web_admission.sql` keep working; anyone else needs a confirmed phone or email on
-  `TRAINEE_ALLOWED_CONTACTS`, or an invited waitlist spot. A person still waiting sees "Your spot hasn't opened yet" and
-  no turn runs.
-- **Opening a wave.** In the SQL editor (service role): `select * from public.trainee_invite_wave(1000);` invites the
-  1,000 oldest waitlist rows that consented and are not invited yet, as the next numbered wave, and returns
-  `(wave, invited)`. Nothing is sent: telling those people their spot opened is a separate, approved message.
-- **The waitlist.** The home page's form writes `public.site_waitlist` through `site-signup`. A list kept anywhere
-  else has to be loaded into that table (name, phone in E.164, consent true) before a wave can invite it.
-- **Sign-in by text** needs Supabase Auth's phone provider with an SMS provider (Authentication > Sign In / Providers >
-  Phone). Email codes need the Magic Link email template to include `{{ .Token }}`.
+- **Who can use it** (migration `20261026230000_trainee_web_admission.sql`, enforced in the database): sign-up is
+  closed. Accounts that existed when the migration ran keep working; a new account gets in by a confirmed phone on
+  `TRAINEE_ALLOWED_CONTACTS`, or by redeeming its invite link (FEATURE WAVES, the one invite system). An email never
+  admits anyone. A person not admitted gets no chat turn, no essay draft, no voice mock and no email code, and the
+  database refuses every prepared application, card, queue row and apply want of theirs, whoever writes it.
+- **Opening it.** `select public.trainee_set_signup('open');` lets anyone who signs in use Trainee;
+  `select public.trainee_set_signup('invite');` closes it again (everyone admitted meanwhile stays admitted).
+- **Waves** are FEATURE WAVES' (`scripts/launch/invite-wave.ts`, `docs/architect/INVITE-WAVES-2026-10-26.md`). The
+  invite link is `<TRAINEE_APP_URL>/?invite=<token>`; set `TRAINEE_APP_URL=https://trainee-six.vercel.app/app`.
+- **Supabase Auth settings** (Dashboard > Authentication):
+  - Sign In / Providers > Email: **Confirm email ON** (with it off, any address is "confirmed" at sign-up);
+  - Sign In / Providers > Phone: on, with an SMS provider, so codes can be texted;
+  - Email Templates > Magic Link: include `{{ .Token }}` for email codes;
+  - Rate Limits: SMS and email sends per hour, and token verifications per IP; Attack Protection: CAPTCHA on;
+  - URL Configuration: add `https://trainee-six.vercel.app/app`.
 
 ## The steps and what each changes
 

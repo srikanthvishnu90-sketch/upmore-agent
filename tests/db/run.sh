@@ -226,6 +226,9 @@ AGAIN="$(cd "$PENDING_ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?
 [[ "$AGAIN" == "== no pending migrations" ]] || { echo "$AGAIN"; echo "FAIL a re-run applied something"; exit 1; }
 "${PSQL[@]}" -tAc "select count(*) from public.upmore_migration_ledger where filename='20261011040000_model_health_and_turn_costs.sql'" | grep -qx 1 || { echo "FAIL ledger row"; exit 1; }
 echo "  ok   ledger backfilled, only new files applied, a re-run applies nothing"
+# Sign-up (20261026230000, applied by the ledger above) is closed by default. The suites below test other features as an
+# open beta would run them, so it is opened here; trainee_web_admission.test.sql tests the closed gate itself.
+"${PSQL[@]}" -tAc "select public.trainee_set_signup('open')" | grep -qx open || { echo "FAIL could not open sign-up for the other suites"; exit 1; }
 # Interviews and the weekly digest (WO-034): it redefines career_host_commit, which 20261015020000 creates with a plain
 # create, so the ledger above applies it first, in production order; here it is applied twice more: idempotent.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261021050000_career_brief_digest.sql"
@@ -437,7 +440,7 @@ echo "== career_apply_cloud_runner.test.sql (global and per-portal limits throug
 # Launch readiness B7/X1 (20261026230000): sign-up in waves; the web admission and the waitlist invites; applied twice.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230000_trainee_web_admission.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230000_trainee_web_admission.sql"
-echo "== trainee_web_admission.test.sql (existing accounts admitted once; a wave invites by age and consent; a confirmed phone claims its spot once; service only)"
+echo "== trainee_web_admission.test.sql (closed by default; a person not admitted makes no prepared row, card or queue row by any path; existing, allow-listed and invited people may; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/trainee_web_admission.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"

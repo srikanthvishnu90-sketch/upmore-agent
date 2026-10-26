@@ -176,14 +176,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const profileWrite = await supabase.from("profiles").upsert({ id: user.id }, { onConflict: "id" });
     if (profileWrite.error) throw new Error("Account profile unavailable.");
 
-    // FEATURE WEB-ADMISSION (launch readiness B7/X1, 2026-10-26): with TRAINEE_WEB_SIGNUP=invite, a person signed in on
-    // the web chats only once admitted (an account from before the gate, a confirmed phone or email on
-    // TRAINEE_ALLOWED_CONTACTS, or an invited waitlist spot); the texting channels decide their own sign-up before they
-    // call here (bridge path). `check_access: true` asks only this, before the app shows the chat. Checked before the
-    // rate limit, so a person still on the waitlist spends nothing. _shared/trainee_admission.ts.
+    // FEATURE WEB-ADMISSION (launch readiness B7/X1, 2026-10-26): a person signed in on the web chats only once
+    // admitted (_shared/trainee_admission.ts; the database decides, closed unless the owner opened sign-up): an account
+    // from before the gate, a confirmed phone on TRAINEE_ALLOWED_CONTACTS, or a redeemed invite (`invite`: the token from
+    // their invite link, redeemed as them through FEATURE WAVES' career_invite_redeem_own). The texting channels decide
+    // their own sign-up before they call here (bridge path). `check_access: true` asks only this. Checked before the
+    // rate limit, so a person still on the waitlist spends nothing. The database refuses their applications too.
     if (!bridgeUserId) {
-      const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, rpc: (n, a) =>
-        createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a) });
+      const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, invite: body.invite,
+        rpc: (n, a) => createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a), personRpc: (n, a) => supabase.rpc(n, a) });
       if (!adm.admitted) {
         return json(cors, { error: adm.reason, reply: adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
           adm.reason === "not_invited" ? 403 : 503);

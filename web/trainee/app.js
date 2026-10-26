@@ -20,6 +20,17 @@
   }
   const supa = window.supabase.createClient(C.backendUrl, C.anonKey, { auth: { persistSession: true, autoRefreshToken: true } });
   let session = null, thread = null, view = 'boot', generation = 0;
+  // The invite link (FEATURE WAVES: <app>/?invite=<token>): kept for this tab through sign-in, sent with the access check
+  // (agent-chat redeems it as the signed-in person), then dropped from the address bar and from storage.
+  const INVITE_KEY = 'trainee.invite';
+  const ss = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* kept in memory */ } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* nothing kept */ } } };
+  let invite = null;
+  try {
+    const u = new URL(location.href), t = u.searchParams.get('invite');
+    if (t && /^[A-Za-z0-9_-]{32}$/.test(t)) { invite = t; ss.set(INVITE_KEY, t); }
+    if (u.searchParams.has('invite')) { u.searchParams.delete('invite'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); }
+  } catch (e) { /* no URL API: no invite */ }
+  if (!invite) { const t = ss.get(INVITE_KEY); if (t && /^[A-Za-z0-9_-]{32}$/.test(t)) invite = t; }
 
   /* ---------------- views ---------------- */
   const VIEWS = ['boot', 'signin', 'waiting', 'chat', 'apps'];
@@ -40,6 +51,11 @@
   /* ---------------- sign in ---------------- */
   const method = () => (document.querySelector('input[name=method]:checked') || {}).value || 'phone';
   let pending = null; // { phone } or { email }, the contact a code was sent to
+  // One code a minute per number or address, in this browser (Supabase Auth limits sends per number and per address on the
+  // server too; this keeps a person from tripping it by tapping twice).
+  const COOLDOWN_MS = 60 * 1000, SENT_KEY = 'trainee.codeSent';
+  const sentAt = (k) => { try { return Number((JSON.parse(store.get(SENT_KEY) || '{}'))[k]) || 0; } catch (e) { return 0; } };
+  const markSent = (k) => { let all = {}; try { all = JSON.parse(store.get(SENT_KEY) || '{}') || {}; } catch (e) { all = {}; } all[k] = Date.now(); store.set(SENT_KEY, JSON.stringify(all)); };
   function phoneE164() {
     const cc = $('cc').value.trim().replace(/[^\d+]/g, '');
     let d = $('phone').value.replace(/\D/g, '');
@@ -84,10 +100,14 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { err.textContent = 'Enter your email, like name@example.com.'; $('email').setAttribute('aria-invalid', 'true'); $('email').focus(); return; }
       target = { email: e };
     }
+    const key = target.phone || target.email.toLowerCase();
+    const wait = sentAt(key) + COOLDOWN_MS - Date.now();
+    if (wait > 0) { err.textContent = 'A code was just sent to that ' + (target.phone ? 'number' : 'address') + '. You can ask for a new one in ' + Math.ceil(wait / 1000) + ' seconds.'; return; }
     const btn = $('send-code'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Sending…';
     try {
       const { error } = await supa.auth.signInWithOtp(target.phone ? { phone: target.phone } : { email: target.email, options: { shouldCreateUser: true } });
       if (error) throw error;
+      markSent(key);
       pending = target;
       $('send-form').hidden = true; $('verify-form').hidden = false;
       $('sent-to').textContent = target.phone ? 'We texted a code to ' + target.phone + '.' : 'We emailed a code to ' + target.email + '.';
@@ -141,11 +161,16 @@
     show('boot');
     $('boot').replaceChildren(); const p = document.createElement('p'); p.className = 'loading'; p.textContent = 'Checking your access'; $('boot').appendChild(p);
     try {
-      await chatFetch({ check_access: true });
+      await chatFetch(invite ? { check_access: true, invite } : { check_access: true });
+      if (invite) { invite = null; ss.del(INVITE_KEY); $('invite-note').hidden = true; }
     } catch (e) {
       if (g !== generation) return;
       if (e.status === 401) return signedOut('Your session ended. Sign in again.');
-      if (e.status === 403) { $('waiting-text').textContent = e.message; $('waiting-error').textContent = ''; show('waiting', 'waiting-title'); return; }
+      if (e.status === 403) {
+        // The check answered: an invite it could not redeem (used, expired, not ours) is not kept or sent again.
+        if (invite) { invite = null; ss.del(INVITE_KEY); $('invite-note').hidden = true; }
+        $('waiting-text').textContent = e.message; $('waiting-error').textContent = ''; show('waiting', 'waiting-title'); return;
+      }
       $('waiting-text').textContent = '';
       $('waiting-error').textContent = e.status === 0 ? 'Trainee couldn\'t be reached. Check your connection, then choose Check again.' : (e.message || 'We couldn\'t check your access just now.') ;
       show('waiting', 'waiting-title'); $('waiting-title').textContent = 'We couldn\'t open Trainee';
@@ -443,6 +468,7 @@
       const { data } = await supa.auth.getSession();
       session = data && data.session ? data.session : null;
     } catch (e) { session = null; }
+    $('invite-note').hidden = !invite;
     if (session) await enter(); else show('signin');
   })();
 })();

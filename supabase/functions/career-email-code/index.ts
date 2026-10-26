@@ -45,7 +45,10 @@ serve((req) => {
     user: async (token) => {
       const client = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
       const { data } = await client.auth.getUser(token);
-      return data?.user ? { id: data.user.id } : null;
+      if (!data?.user) return null;
+      // Launch readiness B7: a person who may not use Trainee yet reads no mail (no user: 401). An error refuses too.
+      const may = await admin.rpc("trainee_may_act", { p_user: data.user.id });
+      return !may.error && may.data === true ? { id: data.user.id } : null;
     },
     job: async (userId, id) => {
       const { data, error } = await admin.from("career_apply_jobs").select("user_id,state,lease_token,url,claimed_at").eq("id", id)

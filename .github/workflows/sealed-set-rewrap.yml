@@ -19,10 +19,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: srikanthvishnu90-sketch/upmore-agent
-          ref: 834d1785d03e6d2266ebf49507da39840b5af733
+          ref: bb381496c25e6ce39309d99c606d29dfd58e0a58
           persist-credentials: true
       - name: Install Deno
-        uses: denoland/setup-deno@v2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
         with:
           deno-version: v2.9.6
       - name: Validate branch has not advanced
@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           head_sha="$(git ls-remote origin refs/heads/fix/seal-multi-recipient-20261026 | cut -f1)"
-          test "$head_sha" = "834d1785d03e6d2266ebf49507da39840b5af733"
+          test "$head_sha" = "bb381496c25e6ce39309d99c606d29dfd58e0a58"
       - name: Rewrap and prove recovery without model calls
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -43,6 +43,24 @@ jobs:
           test -n "$OPENAI_API_KEY"
           test -n "$HELDOUT_SEAL_KEY"
           f=evals/career/sealed/heldout-sealed.v1.json
+          # Value-blind preflight: the configured original secret must still match
+          # the recipient public key committed in the ciphertext metadata.
+          # Never print either derived public key or secret.
+          deno eval '
+            const { recipientFromSecret } = await import("./evals/career/sealed/seal.ts");
+            const data = JSON.parse(Deno.readTextFileSync("evals/career/sealed/heldout-sealed.v1.json"));
+            const old = data.recipients.find((r) => r.secret_env === "OPENAI_API_KEY");
+            if (!old || !Deno.env.get("OPENAI_API_KEY") || !Deno.env.get("HELDOUT_SEAL_KEY")) {
+              console.error("NOT RUN: required recipient or secret is missing");
+              Deno.exit(2);
+            }
+            const derived = await recipientFromSecret(Deno.env.get("OPENAI_API_KEY"));
+            if (derived.pub !== old.pub) {
+              console.error("NOT RUN: original OPENAI_API_KEY no longer matches the sealed recipient; no changes made");
+              Deno.exit(2);
+            }
+            console.log("Value-blind original recipient compatibility verified");
+          '
           cp "$f" "$RUNNER_TEMP/sealed-before.json"
           trap 'rm -f "$RUNNER_TEMP/sealed-before.json" "$RUNNER_TEMP/verify-plain.json"' EXIT
           deno run -A evals/career/sealed/seal.ts rewrap "$f" --secret-env HELDOUT_SEAL_KEY >/dev/null

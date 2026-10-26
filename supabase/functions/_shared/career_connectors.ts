@@ -29,6 +29,7 @@ import { EMAIL_INTENT } from "./career_apply_email.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { type Goal, type Known, type Need, needSentence, type NeedsState, nextNeed, READ_SCOPE, SEND_SCOPE, type Target } from "./career_needs.ts";
 import { type Capability, type Connector, connectorOf } from "./connectors/index.ts";
+import { needsText } from "./career_situation.ts";
 import { deleteGrant, type Grant, readGrant as readConnectorGrant } from "./connectors/grant_store.ts";
 
 export const CONNECT_INTENT = "career_connect";
@@ -37,11 +38,14 @@ const GOOGLE = connectorOf("google")!;
 export type Purpose = "connect" | "email_code" | "track_replies" | "outreach" | "send_email";
 
 // ------------------------------------------------------------------------------------------------ the asks
-export type ConnectorAsk = "connect" | "disconnect" | "see";
+export type ConnectorAsk = "connect" | "disconnect" | "see" | "can" | "need";
 const SOURCE = "(?:my\\s+)?(?:gmail|google(?:\\s+account)?|e-?mail|inbox|mail)(?:\\s+account)?";
 // "connect" never matches "connected" or "linked" (the inbox check's "I connected my Gmail"): a space must follow it.
 const CONNECT = new RegExp(`\\b(?:connect|link|hook\\s+up|set\\s+up)\\s+(?:to\\s+|with\\s+)?${SOURCE}\\b`, "i");
 const DISCONNECT = new RegExp(`\\b(?:disconnect|unlink|revoke|remove)\\s+(?:access\\s+to\\s+)?${SOURCE}\\b|\\b(?:turn\\s+off|stop)\\s+(?:reading\\s+)?${SOURCE}\\b`, "i");
+const CAN = /\bwhat\s+(?:else\s+)?(?:can|could)\s+you\s+(?:do|help\s+(?:me\s+)?with)\b|\bwhat\s+(?:do|does)\s+(?:you|trainee)\s+do\b|\bwhat\s+are\s+you\s+able\s+to\s+do\b|\bhow\s+(?:can|do)\s+you\s+(?:help|work)\b/i;
+// "what do you need from me" in the words a new person uses (questionsTurn takes its own exact forms first).
+const NEED = /\bwhat\s+(?:else\s+)?(?:do|would|will)\s+you\s+need\b|\bwhat\s+(?:should|do)\s+i\s+(?:need\s+to\s+)?(?:send|give|tell|provide)\s+you\b|\bwhat\s+(?:info|information|details)\s+do\s+you\s+need\b|\bwhat(?:'?s|\s+is)\s+(?:missing|needed)\b/i;
 const SEE = /\bwhat\s+(?:can|do)\s+you\s+(?:see|access|read|have\s+access\s+to)\b|\bwhat(?:'s|\s+is)\s+connected\b|\bwhat\s+(?:have\s+i|did\s+i)\s+connected\b/i;
 export function connectorAsk(message: string): ConnectorAsk | null {
   const t = String(message ?? "").trim();
@@ -49,6 +53,8 @@ export function connectorAsk(message: string): ConnectorAsk | null {
   if (DISCONNECT.test(t)) return "disconnect";
   if (CONNECT.test(t)) return "connect";
   if (SEE.test(t)) return "see";
+  if (CAN.test(t)) return "can";
+  if (NEED.test(t)) return "need";
   return null;
 }
 
@@ -216,6 +222,8 @@ export interface NeedsTurnOut { reply: string; intent: string; resultStatus: str
 export interface Answered {
   // deno-lint-ignore no-explicit-any
   queued?: any; stood?: any; status?: any; f08?: any; outreach?: any; emailed?: any; other?: boolean;
+  // "what do you need from me" (career_apply_questions.ts): its answer when no form question is open is completed here.
+  asked?: any;
   // The apply gate's answer (applyGate), when it held an apply ask for the resume.
   gate?: NeedsTurnOut | null;
 }
@@ -233,7 +241,16 @@ const withMeta = (a: Record<string, unknown> | null | undefined, b: Record<strin
 export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> {
   const a = d.answered;
   if (a.gate) return a.gate;
-  const anyAnswer = !!(a.other || a.queued || a.stood || a.status || a.f08 || a.outreach || a.emailed);
+  const anyAnswer = !!(a.other || a.asked || a.queued || a.stood || a.status || a.f08 || a.outreach || a.emailed);
+  // A password, key, token or code the chat input removed (identity_redact.ts) before anything stored it: the safe path,
+  // never a request to send it again; what the person must do is recorded once.
+  if (!anyAnswer) {
+    const secret = secretTurn(d.message);
+    if (secret) {
+      await d.admin.rpc("career_needs_mark", { p_user: d.userId, p_need: `secret_refused:${secret.about}`, p_now: new Date(d.now).toISOString() });
+      return { reply: secret.reply, intent: CONNECT_INTENT, resultStatus: "secret_refused", handler: "connectors" };
+    }
+  }
   const ask = anyAnswer ? null : connectorAsk(d.message);
   const base = linkBase(d.env);
   let channel: string | null = null;
@@ -263,6 +280,22 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
     return { reply: `Gmail disconnected. The stored tokens are deleted and ${google}. I can't read or send anything from your Gmail now, and any connect link I sent you no longer works.`, intent: CONNECT_INTENT, resultStatus: "disconnected", handler: "connectors" };
   }
   if (ask === "see") return { reply: await seeReply(d), intent: CONNECT_INTENT, resultStatus: "shown", handler: "connectors" };
+  if (ask === "can") return { reply: await canReply(d), intent: CONNECT_INTENT, resultStatus: "capabilities", handler: "connectors" };
+
+  // "what do you need from me" with no form question open: the truth from the needs model, not "nothing is waiting".
+  if ((a.asked && a.asked.status === "none" && typeof a.asked.reply === "string") || ask === "need") {
+    const state = await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation });
+    const need = nextNeed(state, "apply", null);
+    const lead = need && need.blocking ? `To apply for you, ${needSentence(need).replace(/^Next I need one thing: /, "I need one thing first: ")}` : null;
+    const waiting = a.asked ? (/^Nothing is waiting on you\./.test(a.asked.reply) ? null : a.asked.reply) : (d.situation ? needsText(d.situation) : null);
+    const rest = waiting;
+    // questionsTurn's own "nothing is waiting" is true when the resume is on file; a looser ask it did not take is answered here.
+    if (!lead && !rest && a.asked) return null;
+    if (!lead && !rest && state.resume === "unknown") return { reply: "I couldn't read your records just now, so I can't say what's missing. Ask me again in a minute.", intent: "career_apply_questions_answer", resultStatus: "unreadable", handler: "questions" };
+    return { reply: [lead ?? (state.resume === "confirmed" ? "Your resume is on file, so nothing is needed to start applying." : null), rest,
+      "I'll ask for Gmail only if you want me to track employers' replies or send an email you approve."].filter(Boolean).join("\n"),
+      intent: "career_apply_questions_answer", resultStatus: "none", handler: "questions" };
+  }
 
   // A Gmail feature that found no grant: its unsigned app link becomes a signed one for exactly that feature's scope.
   const reading = a.f08?.intent === "career_inbox_check";
@@ -339,6 +372,59 @@ async function needReply(d: NeedsTurnDeps, need: Need, link: (scopes: string[], 
   if (!url) return { text: `${text} Say "connect gmail" when you want the link.`, meta: null };
   const ch = await chan();
   return { text: `${text}\n${scopeLines(need.scopes).join("\n")}\nThe link works once and expires in ${LINK_MINUTES} minutes.${ch === "telegram" ? ` ${TELEGRAM_BROWSER}` : ""}\n${url}`, meta: linkMeta(url, ch) };
+}
+
+// "what can you do?": each capability with what it needs from this person right now, from their records and the switches
+// this deployment runs with (situation.capabilities: career_capabilities.ts), never from a static list.
+async function canReply(d: NeedsTurnDeps): Promise<string> {
+  const state = await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation });
+  const caps: any[] = Array.isArray(d.situation?.capabilities) ? d.situation.capabilities : [];
+  const cap = (id: string) => caps.find((c) => c?.id === id) ?? null;
+  const on = (k: string) => d.env.get(k) === "on";
+  const apply = nextNeed(state, "apply", null);
+  const resumeLine = state.resume === "confirmed" ? "ready" : state.resume === "drafts" ? "first tell me the resume I read is yours" : state.resume === "none" ? "needs your resume first (paste it or attach the file)" : "I couldn't read your resume record just now";
+  const read = state.scopes.includes(READ_SCOPE), send = state.scopes.includes(SEND_SCOPE);
+  const lines = [
+    "Here's what I can do for you, and what each needs from you right now:",
+    `1. Find jobs: ready. Tell me a role and a city.`,
+    `2. Apply for you: ${apply?.blocking ? resumeLine : "ready"}. Each application goes only after you approve its exact answers.${extensionWords(cap("extension"))}`,
+    `3. Tailor your resume to a posting: ${resumeLine}.`,
+    `4. Mock interviews: ready. Say "mock me for <role> at <company>".`,
+    `5. Offers: ready. Tell me the offer, and I'll compare it with what employers pay for that role.`,
+    `6. Job alerts: ${cap("alerts")?.status === "on" ? cap("alerts").line.replace(/^Job alerts: /, "") : cap("alerts")?.status === "unknown" ? "I couldn't read your alert settings just now." : "off; tell me what jobs to watch."}`,
+    `7. Track employers' replies: ${!on("CAREER_MAIL_TRACKING") ? "not switched on yet, so I can't read any mail for you." : read ? "ready (Gmail connected)." : 'needs Gmail; say "connect gmail".'}`,
+    `8. Send follow-ups and application emails you approve: ${!on("CAREER_EMAIL_SEND") ? "not switched on yet, so nothing is sent from your Gmail." : send ? "ready (Gmail connected for sending)." : 'needs Gmail for sending; say "connect gmail".'}`,
+    "Never: applying, messaging or scraping on LinkedIn or Indeed; solving a captcha; taking a password, key or code in chat.",
+  ];
+  return lines.join("\n");
+}
+
+// Who prepares an application, in the person's words, from the extension's record (career_capabilities.ts).
+function extensionWords(c: any): string {
+  if (c?.status === "on") return " The Trainee extension in Chrome on your computer prepares each one.";
+  if (c?.status === "unknown" && /never seen/.test(String(c?.line ?? ""))) return " The Trainee extension in Chrome on your computer prepares each one; I haven't seen it run for you yet.";
+  return "";
+}
+
+// A secret the chat input removed, and what it was about: the safe path for each.
+export function secretTurn(message: string): { about: string; reply: string } | null {
+  const t = String(message ?? "");
+  const kind = /\[key removed\]/.test(t) ? "key" : /\[password removed\]/.test(t) ? "password" : /\[code removed\]/.test(t) ? "code" : null;
+  if (!kind) return null;
+  const about = /\b(?:gmail|google|e-?mail|inbox)\b/i.test(t) ? "google" : /\b(?:linkedin|indeed)\b/i.test(t) ? "linkedin"
+    : /\b(?:workday|greenhouse|lever|ashby|icims|taleo|smartrecruiters|employer|application|portal|career site)\b/i.test(t) ? "employer" : kind;
+  const reply = about === "google"
+    ? `I don't need your Google password or any Google key. To let me read employers' replies or send what you approve, connect Gmail on Google's own page: say "connect gmail" and I'll send a one-time link.${kind === "password" ? " If you shared that password anywhere else, change it." : ""}`
+    : about === "linkedin"
+    ? "I never sign in to LinkedIn or Indeed for you, so there's nothing to give me for them. If you shared that password anywhere else, change it."
+    : about === "employer"
+    ? "Sign in to the employer's site yourself, on its own page in your browser; I never take an employer account password or code. If an application stopped at a sign-in, open it there and sign in."
+    : kind === "code"
+    ? "Type a code on the page that asked for it; I never take a code in chat. If you connect Gmail, I can read an application system's code email myself, during an application you approved."
+    : kind === "key"
+    ? "I don't use any key or token from you: your accounts connect only on their own sign-in pages (for Gmail, say \"connect gmail\"). If that was a real key, revoke it where you made it and make a new one."
+    : "I never take a password in chat. Sign in yourself on the site's own page; for Gmail, say \"connect gmail\" and I'll send a one-time link to Google's own page.";
+  return { about, reply };
 }
 
 async function seeReply(d: NeedsTurnDeps): Promise<string> {

@@ -573,7 +573,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const needsAns = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await needsTurn({ admin, message, userId: user.id, threadId: tid, bridge: isBridgeCall, now: Date.now(), env: Deno.env, fetch: (i, init) => fetch(i, init),
             profile: (ctx as any).profile ?? null, stated: (ctx as any).statedFacts?.facts ?? [], situation,
-            answered: { gate: needsGate, queued, stood, status, f08, outreach: outreachAns, emailed, other: !!(card || mock || asked || which || cloud || cardYes || paced || employerAns || receiptAns || networking || offerAns) } })
+            answered: { gate: needsGate, asked, queued, stood, status, f08, outreach: outreachAns, emailed, other: !!(card || mock || which || cloud || cardYes || paced || employerAns || receiptAns || networking || offerAns) } })
           .catch((e) => { console.error("needs turn:", e?.message ?? e); return null; })
         : null;
       if (needsAns) {

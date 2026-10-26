@@ -241,3 +241,49 @@ Deno.test("an email card that was shown, or sent, is left exactly as its turn wr
     assert(!f.calls.includes("rpc:career_connect_link_issue"), "no link minted");
   }
 });
+
+Deno.test("keys and tokens are removed from the chat before anything stores them; ordinary words are not", async () => {
+  const { redactIdentity, redactionNote } = await import("../../supabase/functions/_shared/identity_redact.ts");
+  const gone = (m: string) => { const r = redactIdentity(m); return { text: r.text, key: r.removed.includes("key") }; };
+  for (const [m, secret] of [
+    ["here's my openai api key sk-proj-AbCdEfGhIjKlMnOpQrStUvWx0123456789", "sk-proj-AbCdEfGhIjKlMnOpQrStUvWx0123456789"],
+    ["token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB", "ghp_abcdefghijklmnopqrstuvwxyz0123456789AB"],
+    ["stripe sk_live_51HabcdefGHIJKLmnop0123", "sk_live_51HabcdefGHIJKLmnop0123"],
+    ["aws AKIAIOSFODNN7EXAMPLE", "AKIAIOSFODNN7EXAMPLE"],
+    ["access token = ya29.a0AfH6SMBx1234567890abcdefghij", "ya29.a0AfH6SMBx1234567890abcdefghij"],
+    ["jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abcdefghijklmnop", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abcdefghijklmnop"],
+  ] as const) {
+    const r = gone(m);
+    assert(r.key && !r.text.includes(secret) && r.text.includes("[key removed]"), `${m} -> ${r.text}`);
+  }
+  const app = redactIdentity("my app password is abcd1234efgh5678");
+  assert(!app.text.includes("abcd1234efgh5678") && app.removed.length === 1, app.text);
+  for (const m of ["my token expired yesterday", "what is an api key?", "the access token is broken", "skip-this-one please", "I applied to Stripe", "my access token is notarealtokenatall"]) {
+    const r = gone(m);
+    eq([r.key, r.text], [false, m], m);
+  }
+  assert(/key or token/.test(redactionNote(["key"])!) && /Never send passwords or codes/.test(redactionNote(["key"])!));
+});
+
+Deno.test("a removed secret gets the safe path for what it was about; nothing asks for it again", async () => {
+  const { secretTurn } = await import("../../supabase/functions/_shared/career_connectors.ts");
+  eq(secretTurn("hello"), null);
+  eq(secretTurn("my gmail password is [password removed]")?.about, "google");
+  assert(/say "connect gmail"/.test(secretTurn("my gmail password is [password removed]")!.reply));
+  eq(secretTurn("linkedin password is [password removed]")?.about, "linkedin");
+  assert(/never sign in to LinkedIn or Indeed/.test(secretTurn("linkedin password is [password removed]")!.reply));
+  eq(secretTurn("my workday password is [password removed]")?.about, "employer");
+  eq(secretTurn("the code is [code removed]")?.about, "code");
+  assert(/Type a code on the page that asked for it/.test(secretTurn("the code is [code removed]")!.reply));
+  eq(secretTurn("api key [key removed]")?.about, "key");
+  assert(/revoke it where you made it/.test(secretTurn("api key [key removed]")!.reply));
+  eq(secretTurn("password: [password removed]")?.about, "password");
+  for (const s of ["google", "linkedin", "employer", "code", "key", "password"]) void s;
+  for (const m of ["my gmail password is [password removed]", "api key [key removed]", "the code is [code removed]"]) assert(!/send (?:it|me)|paste it|tell me (?:it|your)/i.test(secretTurn(m)!.reply), m);
+});
+
+Deno.test("connector asks: 'what can you do' and 'what do you need' in a new person's words", () => {
+  for (const m of ["hey, what can you do??", "what else can you help me with", "what do you do", "how can you help"]) eq(connectorAsk(m), "can", m);
+  for (const m of ["what do you need from me now", "what else do you need", "what should i send you", "what info do you need", "whats missing?"]) eq(connectorAsk(m), "need", m);
+  for (const m of ["what can you see", "what's connected"]) eq(connectorAsk(m), "see", m);
+});

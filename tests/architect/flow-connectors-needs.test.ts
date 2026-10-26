@@ -239,6 +239,7 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
         `telegram|status|queued|Gmail connected: pat@gmail.test. You allowed me to read your mail, for employers' replies and application codes, and to send from your Gmail, only messages you approve word for word. Say "disconnect gmail" any time to remove it.`);
       const replay = await connect(new Request(`${CONNECT}?state=${encodeURIComponent(state)}&code=CODE-PAT`));
       eq(replay.status, 400, "the callback lands once");
+      assert(/This link was already used\. Links work once/.test(await replay.text()), "and says why");
       eq(f.calls("/token").length, 1);
       eq(await q(`select count(*) from public.user_oauth_connections where user_id = '${SAM}'`), "0", "nothing for anyone else");
       const again = await pat("connect gmail");

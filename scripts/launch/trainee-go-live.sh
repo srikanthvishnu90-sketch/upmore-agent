@@ -627,7 +627,8 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts
+    supabase/functions/career-connect/index.ts supabase/functions/career-email-code/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok

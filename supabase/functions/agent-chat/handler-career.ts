@@ -559,9 +559,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           // WO-106 (F4): each job link is checked against its board just before it is shown.
           linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
-          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory,
           // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
-          ...(staged.chosen ? { toolPolicy: STAGED_TOOL_POLICY } : {}) });
+          toolPolicy: staged.chosen ? STAGED_TOOL_POLICY : null,
+          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
           if (costErr) console.error("agent turn cost not recorded:", costErr.message);

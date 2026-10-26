@@ -45,18 +45,12 @@ export function checkExpect(expect: Expect | undefined, o: Outcome): { ok: boole
 }
 
 const arr = (x: unknown): any[] => Array.isArray(x) ? x : [];
-// A watch the router set by text: module 152's profile record for this person, live unless stopped or paused.
-function routerWatches(box: any): number {
+// A watch the router set by text: module 152's profile record (career:watch-profile:<user>), live by the host's own rule
+// (career_host.js watchProfileActive: at least one interest and no global opt-out).
+export function routerWatches(box: any): number {
   if (!box || typeof box !== "object") return 0;
-  let n = 0;
-  for (const [k, v] of Object.entries(box)) {
-    if (!/^career:watch-profile:/.test(k)) continue;
-    const p: any = (v as any)?.profile ?? v;
-    const stopped = p && (p.stopped === true || p.active === false || p.paused === true || p.status === "stopped" || p.status === "paused");
-    const watches = arr(p?.watches ?? p?.interests);
-    if (p && !stopped && (watches.length ? watches.some((w: any) => w && w.active !== false && w.status !== "stopped") : true)) n++;
-  }
-  return n;
+  return Object.entries(box).filter(([k, wp]: [string, any]) => /^career:watch-profile:/.test(k) &&
+    !!(wp && Array.isArray(wp.interests) && wp.interests.length && !(wp.opt_out && wp.opt_out.global))).length;
 }
 // The outcome of one conversation, counted by code from the end state (never by a judge).
 export function outcomeOf(state: any): Outcome {

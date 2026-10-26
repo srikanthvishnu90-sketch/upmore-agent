@@ -51,10 +51,12 @@ export interface AheadDeps {
   urlFor?: (c: Candidate) => string;
   // The model the chat's drafter writes with; absent (or no profile), no cover letter is drafted ahead.
   draftModel?: ModelFn;
+  // FEATURE 3: the model a cover note for each ready application is drafted with (the same drafter); absent, none.
+  coverNoteModel?: ModelFn;
   now?: () => number;
   tmpRoot?: string;
 }
-export interface AheadOutcome { user_id: string; job_id: string; outcome: "ready" | "asked" | "refused" | "no_resume" | "error"; detail: string; prepared_id?: string }
+export interface AheadOutcome { user_id: string; job_id: string; outcome: "ready" | "asked" | "refused" | "no_resume" | "error"; detail: string; prepared_id?: string; cover_note?: boolean }
 
 const must = (r: { data: any; error: { message: string } | null }, what: string) => {
   if (r.error) throw Error(`${what}: ${r.error.message}`);
@@ -67,78 +69,109 @@ export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?
     p_now: new Date(now()).toISOString(), p_per_person: o.perPerson ?? 5, p_limit: o.limit ?? 50,
   }), "read the postings to prepare") ?? [];
   const out: AheadOutcome[] = [];
-  for (const c of candidates) {
-    const record = async (outcome: AheadOutcome["outcome"], detail: string, prepared?: string, engineJob?: string) => {
-      const r = await d.db.rpc("career_apply_prepare_attempt_for", {
-        p_user: c.user_id, p_posting_job_id: c.job_id, p_outcome: outcome, p_detail: detail.slice(0, 500), p_prepared: prepared ?? null,
-        p_engine_job_id: engineJob ?? null,
-      });
-      if (r.error) console.error(`prepare-ahead: the try on ${c.job_id} was not recorded (${r.error.message})`);
-      out.push({ user_id: c.user_id, job_id: c.job_id, outcome, detail, ...(prepared ? { prepared_id: prepared } : {}) });
-    };
-    const dir = await Deno.makeTempDir({ prefix: "trainee-ahead-", ...(d.tmpRoot ? { dir: d.tmpRoot } : {}) });
-    try {
-      // Their own answers to questions they were asked, and their profile's confirmed facts: the trust contract decides.
-      const rows: TextAnswer[] = must(await d.db.rpc("career_apply_answers_for", { p_user: c.user_id }), "read their answers") ?? [];
-      const profile = d.profileFor ? trustedProfile(await d.profileFor(c.user_id), c.user_id, rows) : null;
-      // The posting's own company (career_postings), which the engine names the application by (else the board's tenant):
-      // the 30-day one-company rule and the person's card then count employers, not job boards.
-      const file = {
-        user_id: c.user_id, answers: {}, saved: {}, posting: { company: c.company },
-        ...(profile && Array.isArray(profile.facts) ? { facts: profile.facts } : {}),
-      };
-      const merged = engineFacts(file, rows);
-      const trusted = trustedManifest({ owner: c.user_id, file: merged, rows, resume: null }).answers;
-      const factsPath = `${dir}/facts.json`;
-      await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
-      const resume = await d.resumeFor(c, dir, profile);
-      if (!resume) {
-        // SUBMIT-STEER-1130: confirmed facts but no name or email on file, so no resume can carry them. Ask for those, once
-        // (bound to this posting, so their answers make it a candidate again), instead of stopping here for good.
-        const missing = profile && Array.isArray(profile.facts) && profile.facts.length ? contactAsk(profile, rows, c.company) : [];
-        if (missing.length) {
-          const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
-            p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: c.job_id, p_questions: missing,
-          }), "store the questions");
-          out.push({ user_id: c.user_id, job_id: c.job_id, outcome: "asked", detail: `${n} question(s) asked: their name and email, for the resume` });
-          continue;
-        }
-        await record("no_resume", "no resume could be tailored to this posting from their confirmed facts");
-        continue;
-      }
-      const r = await prepare({
-        url: d.urlFor ? d.urlFor(c) : c.url, factsPath, resumePath: resume.path, account: { epoch: Number(c.epoch), version: Number(c.version) },
-        now: now(), runEngine: d.runEngine, resumeTag: resume.tag,
-      });
-      if (!r.ready) {
-        const result: any = r.result;
-        // The questions name the posting's own company too (the engine's stop names the board's tenant or the page's host).
-        const ask = result.reason === "needs_answers"
-          ? questionsToStore({ ...result, company: c.company || result.company }, { facts: trusted, answered: new Set(rows.map((x) => x.key)) })
-          : null;
-        if (ask?.questions.length) {
-          const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
-            p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: ask.posting, p_questions: ask.questions,
-          }), "store the questions");
-          const letters = d.draftModel && profile ? await coverLettersAhead(d.db, d.draftModel, c, ask, profile) : 0;
-          out.push({
-            user_id: c.user_id, job_id: c.job_id, outcome: "asked",
-            detail: `${n} question(s) asked${letters ? `; ${letters} cover letter${letters === 1 ? "" : "s"} drafted for them to read` : ""}`,
-          });
-        } else await record("refused", String(result.reason ?? result.state ?? "not ready"), undefined, result.posting);
-        continue;
-      }
-      if (r.payload.resume_sha256 !== resume.sha256) { await record("error", "the engine sent another resume than the tailored one"); continue; }
-      const saved = await d.db.rpc("career_apply_prepare_for", { p_user: c.user_id, p_posting_job_id: c.job_id, p_payload: r.payload, p_card_lines: r.card });
-      if (saved.error) await record("refused", `not stored: ${saved.error.message}`, undefined, r.payload.job_id);
-      else out.push({ user_id: c.user_id, job_id: c.job_id, outcome: "ready", detail: "prepared for their card", prepared_id: saved.data.id });
-    } catch (e) {
-      await record("error", e instanceof Error ? e.message : String(e));
-    } finally {
-      await Deno.remove(dir, { recursive: true }).catch(() => {});
-    }
-  }
+  for (const c of candidates) out.push(await prepareOne(d, c));
   return out;
+}
+
+// One posting prepared for one person: the queue path's own preparation, the same for the CLI's candidates above and for
+// the scheduled run (career_proactive_run.ts runPrepareAhead, FEATURE 3). Every try is recorded
+// (career_apply_prepare_attempt_for); a ready one is stored for their card (career_apply_prepare_for), its payload
+// carrying the hash of the resume tailored to this posting and, when one was drafted (`coverNoteModel`), the cover note,
+// so the card's tap approves exactly those.
+export async function prepareOne(d: AheadDeps, c: Candidate): Promise<AheadOutcome> {
+  const now = d.now ?? Date.now;
+  let done: AheadOutcome | null = null;
+  const record = async (outcome: AheadOutcome["outcome"], detail: string, prepared?: string, engineJob?: string) => {
+    const r = await d.db.rpc("career_apply_prepare_attempt_for", {
+      p_user: c.user_id, p_posting_job_id: c.job_id, p_outcome: outcome, p_detail: detail.slice(0, 500), p_prepared: prepared ?? null,
+      p_engine_job_id: engineJob ?? null,
+    });
+    if (r.error) console.error(`prepare-ahead: the try on ${c.job_id} was not recorded (${r.error.message})`);
+    done = { user_id: c.user_id, job_id: c.job_id, outcome, detail, ...(prepared ? { prepared_id: prepared } : {}) };
+    return done;
+  };
+  const dir = await Deno.makeTempDir({ prefix: "trainee-ahead-", ...(d.tmpRoot ? { dir: d.tmpRoot } : {}) });
+  try {
+    // Their own answers to questions they were asked, and their profile's confirmed facts: the trust contract decides.
+    const rows: TextAnswer[] = must(await d.db.rpc("career_apply_answers_for", { p_user: c.user_id }), "read their answers") ?? [];
+    const profile = d.profileFor ? trustedProfile(await d.profileFor(c.user_id), c.user_id, rows) : null;
+    // The posting's own company (career_postings), which the engine names the application by (else the board's tenant):
+    // the 30-day one-company rule and the person's card then count employers, not job boards.
+    const file = {
+      user_id: c.user_id, answers: {}, saved: {}, posting: { company: c.company },
+      ...(profile && Array.isArray(profile.facts) ? { facts: profile.facts } : {}),
+    };
+    const merged = engineFacts(file, rows);
+    const trusted = trustedManifest({ owner: c.user_id, file: merged, rows, resume: null }).answers;
+    const factsPath = `${dir}/facts.json`;
+    await Deno.writeTextFile(factsPath, JSON.stringify(merged), { mode: 0o600 });
+    const resume = await d.resumeFor(c, dir, profile);
+    if (!resume) {
+      // SUBMIT-STEER-1130: confirmed facts but no name or email on file, so no resume can carry them. Ask for those, once
+      // (bound to this posting, so their answers make it a candidate again), instead of stopping here for good.
+      const missing = profile && Array.isArray(profile.facts) && profile.facts.length ? contactAsk(profile, rows, c.company) : [];
+      if (missing.length) {
+        const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
+          p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: c.job_id, p_questions: missing,
+        }), "store the questions");
+        return { user_id: c.user_id, job_id: c.job_id, outcome: "asked", detail: `${n} question(s) asked: their name and email, for the resume` };
+      }
+      return await record("no_resume", "no resume could be tailored to this posting from their confirmed facts");
+    }
+    const r = await prepare({
+      url: d.urlFor ? d.urlFor(c) : c.url, factsPath, resumePath: resume.path, account: { epoch: Number(c.epoch), version: Number(c.version) },
+      now: now(), runEngine: d.runEngine, resumeTag: resume.tag,
+    });
+    if (!r.ready) {
+      const result: any = r.result;
+      // The questions name the posting's own company too (the engine's stop names the board's tenant or the page's host).
+      const ask = result.reason === "needs_answers"
+        ? questionsToStore({ ...result, company: c.company || result.company }, { facts: trusted, answered: new Set(rows.map((x) => x.key)) })
+        : null;
+      if (ask?.questions.length) {
+        const n = must(await d.db.rpc("career_apply_prepare_ask_for", {
+          p_user: c.user_id, p_posting_job_id: c.job_id, p_engine_job_id: ask.posting, p_questions: ask.questions,
+        }), "store the questions");
+        const letters = d.draftModel && profile ? await coverLettersAhead(d.db, d.draftModel, c, ask, profile) : 0;
+        return {
+          user_id: c.user_id, job_id: c.job_id, outcome: "asked",
+          detail: `${n} question(s) asked${letters ? `; ${letters} cover letter${letters === 1 ? "" : "s"} drafted for them to read` : ""}`,
+        };
+      }
+      return await record("refused", String(result.reason ?? result.state ?? "not ready"), undefined, result.posting);
+    }
+    if (r.payload.resume_sha256 !== resume.sha256) return await record("error", "the engine sent another resume than the tailored one");
+    // FEATURE 3: a cover note drafted for this posting from their confirmed facts only (the chat's drafter, with its fact
+    // lock and the employer's AI policy), bound into the payload and shown whole on the card, so the tap approves it as
+    // read. A note that fails any check is left out and the application is prepared without one.
+    // deno-lint-ignore no-explicit-any
+    let payload: any = r.payload, card: string[] = r.card;
+    const note = d.coverNoteModel && profile ? await coverNote(d.coverNoteModel, c, profile) : null;
+    if (note) {
+      payload = { ...payload, cover_note: { text: note.text, fact_ids: note.factIds.slice(0, 20) } };
+      card = [...card, `Cover note: ${note.text}`];
+    }
+    const saved = await d.db.rpc("career_apply_prepare_for", { p_user: c.user_id, p_posting_job_id: c.job_id, p_payload: payload, p_card_lines: card });
+    if (saved.error) return await record("refused", `not stored: ${saved.error.message}`, undefined, r.payload.job_id);
+    return { user_id: c.user_id, job_id: c.job_id, outcome: "ready", detail: "prepared for their card", prepared_id: saved.data.id, ...(note ? { cover_note: true } : {}) };
+  } catch (e) {
+    return done ?? await record("error", e instanceof Error ? e.message : String(e));
+  } finally {
+    await Deno.remove(dir, { recursive: true }).catch(() => {});
+  }
+}
+
+// The cover note for one posting (FEATURE 3), drafted by essay_draft.ts draftEssay: only the person's confirmed facts,
+// every name and number traced to one of them, short enough to be one line of the card. Null when it is not drafted.
+export const COVER_NOTE_LABEL = (c: Pick<Candidate, "title" | "company">) => `Cover letter for the ${c.title} role at ${c.company} (max 500 characters)`;
+// deno-lint-ignore no-explicit-any
+async function coverNote(model: ModelFn, c: Candidate, profile: any): Promise<{ text: string; factIds: string[] } | null> {
+  const r = await draftEssay({
+    q: { id: "", label: COVER_NOTE_LABEL(c), type: "textarea", kind: "essay", company: c.company || null, job_ids: [c.job_id], ai_policy: null },
+    siblingLabels: [], deps: { model, facts: () => (Array.isArray(profile.facts) ? profile.facts : []) },
+  }).catch((e) => ({ ok: false as const, why: "model" as const, detail: [e instanceof Error ? e.message : String(e)] }));
+  if (!r.ok) { console.error(`prepare-ahead: no cover note for ${c.job_id} (${r.why}: ${r.detail.join("; ").slice(0, 200)})`); return null; }
+  return { text: r.text.replace(/\s+/g, " ").trim(), factIds: r.factIds };
 }
 
 // The name and email a tailored resume prints, asked as the shared facts the forms ask (fact:first_name, fact:last_name,
@@ -249,10 +282,71 @@ export function storedProfile(admin: ServiceRpc) {
   };
 }
 
+// FEATURE 3: the scheduled run's `prepareAhead` dependency (career-proactive handler.ts), one posting at a time through
+// prepareOne. coverNotes: the model call behind CAREER_PREPARE_AHEAD_COVER=on (off by default), metered per person into
+// agent_turn_costs; off, no cover note is drafted and the application is prepared without one.
+// deno-lint-ignore no-explicit-any
+export function aheadPrepare(o: { admin: any; base: Omit<AheadDeps, "coverNoteModel">; cover?: { call: (payload: any, meter: any) => Promise<any>; newMeter: () => any } }) {
+  return async (c: Candidate): Promise<AheadOutcome> => {
+    const meter = o.cover ? o.cover.newMeter() : null;
+    const out = await prepareOne({ ...o.base, ...(o.cover && meter ? { coverNoteModel: (payload: unknown) => o.cover!.call(payload, meter) } : {}) }, c);
+    if (meter?.calls) {
+      const { error } = await o.admin.from("agent_turn_costs").insert({ user_id: c.user_id, thread_id: null, provider: meter.provider, models: meter.models, calls: meter.calls,
+        failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
+      if (error) console.error(`prepare-ahead: the cover note's cost was not recorded (${error.message})`);
+    }
+    return out;
+  };
+}
+
 if (import.meta.main) {
   const [cmd, ...rest] = Deno.args;
+  if (cmd === "daily") {
+    // FEATURE 3: the day's preparation and its one card, as the scheduled career-proactive run does it, on the host that
+    // has the engine (an edge function cannot run a browser). Run it on a schedule (every 15 minutes is enough: once a
+    // local day per person, the card retried until it is shown). CAREER_PREPARE_AHEAD=on is required.
+    if (Deno.env.get("CAREER_PREPARE_AHEAD") !== "on") { console.error("CAREER_PREPARE_AHEAD is not on; nothing was prepared."); Deno.exit(2); }
+    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) { console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required; nothing was prepared."); Deno.exit(2); }
+    const { createClient } = await import("npm:@supabase/supabase-js@2.117.1");
+    const { edgeRenderer, supabaseResumeStore } = await import("../../supabase/functions/_shared/career_tailor.ts");
+    const { supabaseAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
+    const { supabasePostingsDb } = await import("../../supabase/functions/_shared/career_ingest.ts");
+    const { supabaseAheadStore } = await import("../../supabase/functions/_shared/career_prepare_ahead.ts");
+    const { runPrepareAhead } = await import("../../supabase/functions/_shared/career_proactive_run.ts");
+    const { callModel, modelConfig, newMeter } = await import("../../supabase/functions/_shared/model_gateway.ts");
+    const admin = createClient(url, key, { auth: { persistSession: false } });
+    const root = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
+    const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+    const alerts = supabaseAlertStore(admin), postings = supabasePostingsDb(admin);
+    const stats = await runPrepareAhead({
+      now: Date.now(), recentPostings: (since) => postings.newSince(since), ahead: supabaseAheadStore(admin),
+      // Paused, opted out or erased: nothing is prepared for them (career_quiet_users, as the scheduled run filters).
+      store: { ...alerts, active: async () => {
+        const rows = await alerts.active();
+        const q = await admin.rpc("career_quiet_users", { p_users: rows.map((r) => r.id) });
+        if (q.error) throw new Error(`read who is paused: ${q.error.message}`);
+        const quiet = new Set((q.data ?? []).map((r: any) => String(r.user_id)));
+        return rows.filter((r) => !quiet.has(r.id));
+      } },
+      watches: async (ids) => {
+        const out = new Map<string, unknown>();
+        const { data, error } = await admin.from("career_watch_kv").select("user_id,value").in("user_id", ids).in("key", ids.map((u) => `career:watch-profile:${u}`));
+        if (error) throw new Error(`read watch records: ${error.message}`);
+        for (const r of data ?? []) out.set(String(r.user_id), r.value);
+        return out;
+      },
+      prepare: aheadPrepare({
+        admin,
+        base: { db: admin, runEngine: engineRunner({ root }), profileFor: storedProfile(admin), resumeFor: tailoredResume({ render: edgeRenderer(), resumes: supabaseResumeStore(admin) }) },
+        cover: Deno.env.get("CAREER_PREPARE_AHEAD_COVER") === "on" ? { newMeter, call: (payload, meter) => callModel(cfg, payload, { meter, role: "chat" }) } : undefined,
+      }),
+    });
+    console.log(`${stats.ready}/${stats.picked} applications ready for ${stats.people} people; ${stats.cards} card(s) pushed; nothing was sent.`);
+    Deno.exit(0);
+  }
   if (cmd !== "once") {
-    console.error("usage: prepare-ahead.ts once [--limit N] [--draft-cover-letters]   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)");
+    console.error("usage: prepare-ahead.ts once [--limit N] [--draft-cover-letters] | daily   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)");
     Deno.exit(2);
   }
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

@@ -55,6 +55,7 @@ Add the official file and a row in brands.json to bring one in.
 | google.svg | Google | google | Iconify `logos:google-icon`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
 | googleone.svg | Google One | google one | Iconify `logos:google-one`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
 | grammarly.svg | Grammarly | grammarly | Iconify `logos:grammarly`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
+| greenhouse.svg | Greenhouse | greenhouse | simple-icons 16.35.0, `greenhouse`, the brand's own colour #24A47F (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | hbo.svg | HBO | hbo | simple-icons 16.35.0, `hbo`, the brand's own colour #000000 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | hbomax.svg | HBO Max | hbo max | simple-icons 16.35.0, `hbomax`, the brand's own colour #000000 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | headspace.svg | Headspace | headspace | simple-icons 16.35.0, `headspace`, the brand's own colour #F47D31 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
@@ -108,6 +109,7 @@ Add the official file and a row in brands.json to bring one in.
 | verizon.svg | Verizon | verizon | simple-icons 16.35.0, `verizon`, the brand's own colour #CD040B (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
 | walmart.svg | Walmart | walmart | Iconify `thesvg-color:walmart`, @iconify/json 2.2.541 (theSVG, github.com/glincker/thesvg) | MIT |
 | wellsfargo.svg | Wells Fargo | wells fargo | simple-icons 16.35.0, `wellsfargo`, the brand's own colour #D71E28 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |
+| workday.svg | Workday | workday | Iconify `thesvg-color:workday`, @iconify/json 2.2.541 (the symbol shorthand: the 'W' with the horizon arc, not the full wordmark lockup) (theSVG, github.com/glincker/thesvg) | MIT |
 | xbox.svg | Xbox | xbox | Iconify `thesvg-color:xbox`, @iconify/json 2.2.541 (theSVG, github.com/glincker/thesvg) | MIT |
 | youtube.svg | YouTube | youtube | Iconify `logos:youtube-icon`, @iconify/json 2.2.541 (SVG Logos, github.com/gilbarbara/logos) | CC0 |
 | zelle.svg | Zelle | zelle | simple-icons 16.35.0, `zelle`, the brand's own colour #6D1ED4 (Simple Icons, github.com/simple-icons/simple-icons) | CC0 |

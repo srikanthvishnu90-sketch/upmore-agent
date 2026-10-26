@@ -3,7 +3,7 @@
 // P0: ONE proven apply loop with a receipt, on the cloud worker's path, everything up to the submit click.
 //
 //   node scripts/career/prove-loop.cjs [--form <captured form id>] [--repeat 3] [--fixture-submit]
-//        [--apply-despite-screen] [--out <dir>] [--live <greenhouse|lever|ashby url>]
+//        [--fixture-variant tamper|extra] [--apply-despite-screen] [--out <dir>] [--live <greenhouse|lever|ashby url>]
 //
 // Match found, form filled, approval given through the chat card, receipt stored and shown:
 //  1. the synthetic TEST persona (packages/career-data/fixtures/test-persona.json) becomes confirmed facts, each with the
@@ -131,9 +131,41 @@ function selectStandIn(formId) {
   } })();
 </script>`;
 }
-function fixtureServer(form) {
+// FIXTURE STAND-IN, labeled as such: Greenhouse's job-boards form is method="get" and its application leaves from the
+// employer's script, which the capture removes. This stand-in does what that script does at the person's Submit: it
+// reads the form's own values (a react-select by the option it shows) and the chosen resume, and sends them as one JSON
+// POST to the job's own route on this loopback server. The real script's exact body is not captured; the engine never
+// relies on its shape, only on every approved answer being in it unchanged (scripts/career/request-verifier.ts).
+// --fixture-variant tamper: the page changes the email before it sends (must be stopped before it leaves);
+// --fixture-variant extra: the page sends the application twice (the second must be stopped).
+function submitStandIn(variant) {
+  return `<script data-fixture-stand-in="greenhouse submit script, the form's own values as one JSON POST">
+(() => { const VARIANT = ${JSON.stringify(variant || "")};
+  const form = document.getElementById("application-form"); if (!form) return;
+  form.addEventListener("submit", async (e) => { e.preventDefault();
+    const body = {};
+    for (const el of form.querySelectorAll("input, textarea, select")) {
+      const id = el.id; if (!id || ["search", "submit", "button"].includes(el.type)) continue;
+      if (el.type === "file") { const f = el.files[0]; if (!f) continue; const b = new Uint8Array(await f.arrayBuffer());
+        let s = ""; for (const x of b) s += String.fromCharCode(x); body[id] = { filename: f.name, content: btoa(s) }; continue; }
+      if (el.classList.contains("select__input")) { const sv = el.closest(".select__control")?.querySelector(".select__single-value");
+        if (sv) body[id] = sv.textContent; continue; }
+      if (el.type === "checkbox" || el.type === "radio") { if (el.checked) body[id] = el.value; continue; }
+      if (el.value) body[id] = el.value;
+    }
+    if (VARIANT === "tamper") body.email = "changed-by-page@example.test";
+    const send = () => fetch(location.pathname, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then((r) => r.ok ? r.json() : null).catch(() => null);
+    const r = await send();
+    if (VARIANT === "extra") await send();
+    if (r && r.status === "success") document.body.innerHTML = "<h1>Thank you for applying</h1><p>Application received (LOCAL FIXTURE). Confirmation number: " + r.confirmation + ".</p>";
+  });
+})();
+</script>`;
+}
+function fixtureServer(form, variant) {
   let html = strip(fs.readFileSync(path.join(FORMS, form.html), "utf8"));
-  if (form.family === "greenhouse") html = html.replace(/<\/body>/i, selectStandIn(form.id) + "</body>");
+  if (form.family === "greenhouse") html = html.replace(/<\/body>/i, selectStandIn(form.id) + submitStandIn(variant) + "</body>");
   const posts = [], gets = [];
   const server = http.createServer(async (req, res) => {
     const parts = [];
@@ -141,12 +173,19 @@ function fixtureServer(form) {
     if (req.method !== "GET") {
       // The LOCAL fixture employer: what a --fixture-submit run posts here is recorded, never forwarded.
       let fields = null;
+      const json = /json/.test(req.headers["content-type"] || "");
       try {
-        const data = await new Response(Buffer.concat(parts), { headers: { "content-type": req.headers["content-type"] || "" } }).formData();
-        fields = [...data.entries()].map(([k, v]) => [k, typeof v === "string" ? v : { file: v.name, size: v.size }]);
+        if (json) {
+          fields = Object.entries(JSON.parse(Buffer.concat(parts).toString("utf8"))).map(([k, v]) => [k, v && typeof v === "object" ? { file: v.filename, size: Buffer.from(String(v.content || ""), "base64").length } : v]);
+        } else {
+          const data = await new Response(Buffer.concat(parts), { headers: { "content-type": req.headers["content-type"] || "" } }).formData();
+          fields = [...data.entries()].map(([k, v]) => [k, typeof v === "string" ? v : { file: v.name, size: v.size }]);
+        }
       } catch { /* not a form body */ }
       posts.push({ method: req.method, path: req.url, fields });
-      return res.writeHead(200, { "Content-Type": "text/html" }).end("<h1>Thank you for applying</h1><p>Application received (LOCAL FIXTURE). Confirmation FIXTURE-1.</p>");
+      const confirmation = "FIXTURE-" + posts.length;
+      if (json) return res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ status: "success", confirmation }));
+      return res.writeHead(200, { "Content-Type": "text/html" }).end(`<h1>Thank you for applying</h1><p>Application received (LOCAL FIXTURE). Confirmation ${confirmation}.</p>`);
     }
     gets.push(req.url);
     if (req.url.split("?")[0] !== "/" + form.id) return res.writeHead(404).end("not found");
@@ -255,7 +294,10 @@ function receiptOf(o) {
     approval: d.approval || null,
     card: d.card ? { id: d.card.id, reply: d.card.reply } : null,
     outcome: d.outcome,
-    fixture: d.cloud ? { worker_state: d.cloud.state, worker_outcome: d.cloud.outcome, reason: d.cloud.reason, posts: o.posts } : null,
+    fixture: d.cloud ? { worker_state: d.cloud.state, worker_outcome: d.cloud.outcome, reason: d.cloud.reason, posts: o.posts,
+      confirmation_id: d.submit_run?.result?.confirmation_id ?? null,
+      // The engine's own record of the submit: the one request (where, its keys), what it stopped, the employer's answer.
+      submit: d.submit_run || null } : null,
     steps: d.steps,
   };
 }
@@ -284,14 +326,15 @@ async function once(o, i) {
   const resume = path.join(workDir, "test-persona-resume.pdf");
   fs.writeFileSync(resume, "%PDF-1.4\n% TEST resume for the P0 proven loop, not a real person\n");
   fs.writeFileSync(path.join(workDir, "base-facts.json"), JSON.stringify(o.facts));
-  const fx = await fixtureServer(o.form);
+  const fx = await fixtureServer(o.form, o.variant);
   try {
     const d = await runDriver({ url: fx.url, factsPath: path.join(workDir, "base-facts.json"), resumePath: resume, workDir,
       answers: o.answers, fixtureSubmit: o.fixtureSubmit, extraArgs: o.extraArgs });
     if (!d.payload) return { ok: false, outcome: d.outcome, detail: d };
     const r = receiptOf({ form: o.form, url: fx.url, persona: o.persona, facts: o.facts, screened: o.screened, d, resumeName: path.basename(resume), posts: fx.posts });
-    // The local employer received nothing unless this was a fixture submit, and then exactly one POST.
-    const expectPosts = o.fixtureSubmit ? 1 : 0;
+    // The local employer received nothing unless this was a fixture submit, and then exactly one POST (none when the page
+    // changed an approved answer: that request is stopped before it leaves).
+    const expectPosts = o.fixtureSubmit && o.variant !== "tamper" ? 1 : 0;
     r.local_employer_posts = fx.posts.length;
     if (fx.posts.length !== expectPosts) r.outcome = `UNEXPECTED_POSTS:${fx.posts.length}`;
     return { ok: true, receipt: r };
@@ -327,12 +370,18 @@ async function main() {
   screened.overridden = screened.excluded ? "--apply-despite-screen: the screen excluded this posting for this persona; the apply steps are proven on it anyway" : false;
   console.log("SCREEN " + JSON.stringify(screened));
   // Greenhouse job-boards forms are method="get" and submit from the employer's script, so no form post can be bound as
-  // the destination (scripts/apply.ts SUBMIT_DESTINATION_NOT_BOUND). The engine's mode for them is --person-submits: it
-  // fills and reads back, and the person presses Submit. The cloud worker refuses that mode with --submit
-  // (CARD_CLOUD_AUTH_REQUIRED), so a Greenhouse run always stops before the submit click.
-  const personSubmits = form.family === "greenhouse" || flag("person-submits");
-  if (personSubmits && flag("fixture-submit")) throw Error("--fixture-submit needs a form with a bound form post (Lever); the cloud worker refuses --person-submits with --submit");
-  const o = { persona, facts, answers, form, screened, tmp, fixtureSubmit: flag("fixture-submit"), extraArgs: personSubmits ? ["--person-submits"] : [] };
+  // the destination. The engine binds that script's one request at the network layer instead (--script-submit greenhouse:
+  // the employer's own application endpoint, exactly the approved answers, every other write stopped), so the cloud
+  // worker can click the employer's own Submit. --person-submits keeps the person's own Submit (never with --submit in
+  // the cloud: CARD_CLOUD_AUTH_REQUIRED).
+  const personSubmits = flag("person-submits");
+  if (personSubmits && flag("fixture-submit")) throw Error("--fixture-submit cannot run --person-submits: the cloud worker refuses it with --submit");
+  const variant = arg("fixture-variant", "");
+  if (variant && (!["tamper", "extra"].includes(variant) || !flag("fixture-submit") || form.family !== "greenhouse")) {
+    throw Error("--fixture-variant tamper|extra goes with --fixture-submit on a Greenhouse capture");
+  }
+  const extraArgs = personSubmits ? ["--person-submits"] : form.family === "greenhouse" ? ["--script-submit", "greenhouse"] : [];
+  const o = { persona, facts, answers, form, screened, tmp, fixtureSubmit: flag("fixture-submit"), variant, extraArgs };
   const receipts = [];
   for (let i = 1; i <= repeat; i++) {
     const r = await once(o, i);
@@ -349,7 +398,7 @@ async function main() {
     console.log(`  receipt ${file}`);
   }
   // 6. Every run: 0 wrong, the expected outcome, and the same answers and payload as the first.
-  const expected = o.fixtureSubmit ? "fixture_submitted" : "stopped_before_submit";
+  const expected = !o.fixtureSubmit ? "stopped_before_submit" : variant === "tamper" ? "fixture_not_submitted:APPROVED_BODY_MISMATCH" : "fixture_submitted";
   // The same answers, read back the same, from the same sources, under the same engine approval, and the same payload in
   // everything but its own expiry (expires_at = prepared time + 24 h, so the payload sha256 itself differs per run).
   const sig = (r) => sha256(JSON.stringify([r.fields.map((f) => [f.id, f.value, f.read_back, f.source_fact_id]), r.approval?.engine_approval, r.payload_sha256_without_expiry]));

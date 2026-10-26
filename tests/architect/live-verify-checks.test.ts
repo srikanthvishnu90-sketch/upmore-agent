@@ -13,7 +13,7 @@ const assertRejects = (fn: () => Promise<unknown>, _e?: unknown, inc = "", msg?:
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
 import * as L from "../../scripts/live/lib.ts";
 import * as C from "../../scripts/live/checks.ts";
-import { main } from "../../scripts/live/verify.ts";
+import { exitCode, main } from "../../scripts/live/verify.ts";
 
 const CI = !!Deno.env.get("CI");
 const U = "5e1f0000-0000-4000-8000-0000000000a1"; // the flagged test account
@@ -72,7 +72,7 @@ Deno.test("live verify: the read-only guard passes reads and refuses every write
 Deno.test("live verify: the HTTP guard allows only the test account's doors", async () => {
   const calls: string[] = [];
   const inner = (async (i: string | URL | Request) => { calls.push(String(i)); return new Response("{}"); }) as typeof fetch;
-  const f = L.guardedFetch({ base: "https://abcdefghijklmnopqrst.supabase.co", appUrl: "https://app.example.test" }, inner);
+  const f = L.guardedFetch({ base: "https://abcdefghijklmnopqrst.supabase.co", appUrl: "https://app.example.test", ref: "abcdefghijklmnopqrst" }, inner);
   const B = "https://abcdefghijklmnopqrst.supabase.co";
   await f(`${B}/functions/v1/agent-chat`, { method: "POST", body: "{}" });
   await f(`${B}/functions/v1/trainee-telegram`, { method: "POST", body: "{}" });
@@ -81,6 +81,8 @@ Deno.test("live verify: the HTTP guard allows only the test account's doors", as
   await f(`${B}/functions/v1/career-cloud-runner/dispatch`, { method: "POST", body: '{"want":0}', headers: { "x-cloud-dispatch-secret": "wrong-1" } });
   await f("https://app.example.test/");
   await f("https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/functions");
+  await f(`https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/analytics/endpoints/logs.all?sql=${encodeURIComponent("select count(*) as inbound, countif(x) as in_url from function_edge_logs")}`);
+  await f(`${B}/functions/v1/agent-chat`, { method: "OPTIONS" });
   for (const [url, init] of [
     [`${B}/rest/v1/career_outbox`, { method: "POST", body: "{}" }],
     [`${B}/rest/v1/career_outbox?id=eq.1`, { method: "PATCH", body: "{}" }],
@@ -90,9 +92,14 @@ Deno.test("live verify: the HTTP guard allows only the test account's doors", as
     [`${B}/functions/v1/career-cloud-runner/dispatch`, { method: "POST", body: '{"want":0}', headers: { "x-cloud-dispatch-secret": "the-real-one" } }],
     [`${B}/auth/v1/signup`, { method: "POST", body: "{}" }],
     ["https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/secrets", { method: "GET" }],
+    ["https://api.supabase.com/v1/projects/zzzzzzzzzzzzzzzzzzzz/functions", { method: "GET" }],
+    [`https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/analytics/endpoints/logs.all?sql=${encodeURIComponent("select event_message from function_edge_logs")}`, { method: "GET" }],
+    [`${B}/rest/v1/rpc/exec_vault_read?name=x`, { method: "GET" }],
+    [`${B}/functions/v1/trainee-deliver`, { method: "GET" }],
+    [`${B}/functions/v1/trainee-deliver`, { method: "OPTIONS" }],
     ["https://boards.greenhouse.io/x/jobs/1", { method: "POST", body: "{}" }],
   ] as [string, RequestInit][]) await assertRejects(() => f(url, init), Error, "refused", url);
-  assertEquals(calls.length, 7);
+  assertEquals(calls.length, 9);
 });
 
 Deno.test("live verify: the chat guard never lets the suite approve", () => {
@@ -105,12 +112,30 @@ Deno.test("live verify: the chat guard never lets the suite approve", () => {
   for (const m of ["send 1", "approve"]) assertThrows(() => g.check(T_U2, m, true), Error, "approval");
 });
 
+Deno.test("live verify: the workflow runs only when the owner starts it (no schedule, one push branch, the production environment)", async () => {
+  const y = await Deno.readTextFile(new URL("../../.github/workflows/live-verify.yml", import.meta.url));
+  const on = y.slice(y.indexOf("\non:"), y.indexOf("\npermissions:"));
+  assert(!/^\s*schedule:/m.test(y), "no schedule: the owner's hold of 2026-10-26 allows no run he does not start");
+  assert(/push:\s*\n\s*branches: \[ci\/live-verify\]/.test(on) && /workflow_dispatch:/.test(on), on);
+  assert(!/pull_request|release\/production|workflow_run/.test(on), on);
+  assert(/environment: production/.test(y));
+  assert(!/deploy|supabase functions|db push|vercel/i.test(y.replace(/^\s*#.*$/gm, "")), "the workflow deploys nothing");
+});
+
+Deno.test("live verify: the exit code passes only when every check passed (a NOT_RUN is not passed)", () => {
+  assertEquals(exitCode({ pass: 3, fail: 0, not_run: 0, total: 3 }, false), 0);
+  assertEquals(exitCode({ pass: 2, fail: 0, not_run: 1, total: 3 }, false), 1, "a NOT_RUN fails the run");
+  assertEquals(exitCode({ pass: 2, fail: 0, not_run: 1, total: 3 }, true), 0, "--allow-not-run");
+  assertEquals(exitCode({ pass: 2, fail: 1, not_run: 0, total: 3 }, true), 1);
+  assertEquals(exitCode({ pass: 0, fail: 0, not_run: 0, total: 0 }, false), 1, "nothing checked is not a pass");
+});
+
 Deno.test("live verify: the JWT subject, the matrix and the F12 number match", () => {
   const b64 = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
   assertEquals(L.jwtSubject(`${b64({ alg: "HS256" })}.${b64({ sub: U, exp: 10 })}.sig`), { sub: U, exp: 10 });
   assertThrows(() => L.jwtSubject(`${b64({})}.${b64({ sub: "x" })}.s`));
   const md = L.markdown([L.pass("F5", "F5.a", "ok"), L.fail("F5", "F5.b", "bad | pipe"), L.notRun("F7", "F7.c", "why")], { started: "s", finished: "f", sha: null, project: null });
-  assert(md.includes("| F5 Search + judge | 1 | 1 | 0 |") && md.includes("bad \\| pipe") && md.includes("1 PASS, 1 FAIL, 1 NOT_RUN"), md);
+  assert(md.includes("| F5 Search + judge | 1 | 1 | 0 |") && md.includes("bad \\| pipe") && md.includes("**1/3 passed.** Not passed: 1 FAIL and 1 NOT_RUN"), md);
   const bench: C.Bench[] = [{ kind: "lca", shown: true, median: 197000, n: 49 }, { kind: "oews", shown: true, median: 166830, n: 121000 }];
   is(C.offerNumbers(turn({ reply: "median $197,000 from 49 filings; BLS median $166,830, about 121,000 people employed" }), bench), "PASS");
   is(C.offerNumbers(turn({ reply: "median $195,000 from 49 filings; BLS median $166,830, about 121,000 people employed" }), bench), "FAIL", "a wrong median");
@@ -124,7 +149,10 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
   await world();
   try {
     await t.step("the database itself refuses a write inside the read-only transaction", async () => {
-      await assertRejects(() => pg!.sql(`begin transaction read only;\nwith d as (delete from career_events returning 1) select count(*) from d;\ncommit;`), Error, "read-only transaction");
+      // A write the code check would refuse, sent straight through the wrapper: Postgres refuses it as well (nextval
+      // writes the sequence; a data-modifying CTE cannot even be wrapped).
+      await assertRejects(() => pg!.sql(L.readOnlyText("with d as (delete from career_events returning 1) select count(*) as n from d")), Error, "data-modifying");
+      await assertRejects(() => pg!.sql(L.readOnlyText("select count(*) from (select pg_catalog.nextval(pg_get_serial_sequence('public.career_events', 'id'))) s")), Error, "read-only transaction");
       assertEquals(await db().rows("select 1 as one"), [{ one: 1 }]);
     });
 
@@ -217,7 +245,8 @@ Deno.test({ name: "live verify: every check passes its pass-shaped seed and fail
     await t.step("F2 approval invariant and a real Greenhouse submit; F14 receipts; CLOUD", async () => {
       is(await C.greenhouseSubmitted(db()), "FAIL", "none yet");
       is(await C.cloudInvariant(db()), "FAIL", "no cloud job yet");
-      is(await C.receiptIntegrity(db()), "PASS", "0/0");
+      is(await C.receiptIntegrity(db()), "NOT_RUN", "0/0 proves nothing");
+      is(await C.approvalInvariant(db(), "F2"), "NOT_RUN", "0/0 proves nothing");
       const job = (await seed(`set session_replication_role = replica;
         insert into career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, source, updated_at)
         values ('${V}', 'greenhouse:acme:1', 'Acme', 'https://boards.greenhouse.io/acme/jobs/1', '{}', '${H("b")}', '${H("b")}', 'submitted_unconfirmed', 'cloud', now()) returning id`)).split("\n").filter(Boolean).at(-1)!;
@@ -447,8 +476,15 @@ Deno.test({ name: "live verify: a run refuses a non-test account and calls nothi
     assert(feat.length >= 30, `${feat.length} feature checks`);
     // Only state checks may pass here (the schema is present, the empty job table breaks no invariant); no check of a
     // reply or of what a reply caused may.
-    const stateOnly = (c: string) => /\.schema$|\.approval_invariant$|\.every_finished_job_has_matching_receipt$/.test(c);
+    const stateOnly = (c: string) => /\.schema$/.test(c);
     assertEquals(feat.filter((r: L.Result) => r.status === "PASS" && !stateOnly(r.check)).map((r: L.Result) => r.check), [], "a dead product passes nothing");
+    // The audit checks a reply decides, and the erase checks, pass nothing either (an erase that did not run is NOT_RUN,
+    // never an empty-and-therefore-PASS).
+    const replyDriven = report.results.filter((r: L.Result) => /^AUDIT\.(?:B2|B6|Q2|Q3|S2|S3|R1|Q4)\.|^ERASE\./.test(r.check));
+    assert(replyDriven.length >= 14, `${replyDriven.length} reply-driven audit and erase checks`);
+    assertEquals(replyDriven.filter((r: L.Result) => r.status === "PASS").map((r: L.Result) => r.check), [], "no reply-driven audit or erase check passes on a dead product");
+    assertEquals(report.results.filter((r: L.Result) => r.check === "ERASE.erased" || r.check === "AUDIT.S2.erase_covers_every_table").map((r: L.Result) => r.status), ["NOT_RUN", "NOT_RUN"]);
+    assert(report.summary.not_run > 0 && report.summary.pass < report.summary.total, "NOT_RUN counted as not passed");
     assert(report.results.some((r: L.Result) => r.check === "ACCOUNT.test_account" && r.status === "PASS"));
     for (const c of calls) {
       const path = new URL(c.url).pathname;

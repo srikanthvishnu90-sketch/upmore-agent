@@ -166,6 +166,7 @@ export async function approvalInvariant(db: Db, feature: string): Promise<Result
        from career_apply_jobs where state in (${SENT_STATES.map(q).join(",")})`);
   const x = r[0];
   if (n(x.unbound)) return fail(feature, `${feature}.approval_invariant`, `${x.unbound}/${x.sent} applications that reached an employer were not bound to their approval hash`);
+  if (!n(x.sent)) return notRun(feature, `${feature}.approval_invariant`, "no application has reached an employer in production yet: 0/0 proves nothing");
   return pass(feature, `${feature}.approval_invariant`, `${x.sent}/${x.sent} applications that reached an employer carry approval_hash = payload_hash`);
 }
 // F2: a real Greenhouse application reached an employer through the script-submit binding in the window.
@@ -231,7 +232,9 @@ export async function cronJobs(db: Db, feature: string, pattern: string, maxAgeM
 }
 
 // ------------------------------------------------------------------------------------------------ F7 alerts
-export async function watchSaved(db: Db, run: Run, words: string[]): Promise<Result> {
+export async function watchSaved(db: Db, run: Run, words: string[], t?: Turn): Promise<Result> {
+  if (t && t.status !== 200) return fail("F7", "F7.watch_saved", `agent-chat answered HTTP ${t.status}`);
+  if (t && !words.every((w) => norm(t.reply).includes(w.toLowerCase()))) return fail("F7", "F7.watch_saved", `the watch reply does not name "${words.join(" ")}": ${t.reply.slice(0, 160)}`);
   const r = await db.rows<{ on: boolean; keywords: string }>(
     `select coalesce((prefs->>'on')::boolean, false) as on, coalesce(prefs->'keywords', '[]'::jsonb)::text as keywords from career_alert_prefs where user_id = ${uid(run.userId)}`);
   if (!r.length) return fail("F7", "F7.watch_saved", "after the watch turn no career_alert_prefs row exists for the test account");
@@ -394,6 +397,7 @@ export async function receiptIntegrity(db: Db): Promise<Result> {
        from career_apply_jobs j left join career_apply_receipts r on r.application_id = j.id
       where j.state in (${FINISHED_STATES.map(q).join(",")})`);
   const x = r[0];
+  if (!n(x.finished)) return notRun("F14", "F14.every_finished_job_has_matching_receipt", "no application has finished in production yet: 0/0 proves nothing");
   if (n(x.missing) || n(x.mismatched)) return fail("F14", "F14.every_finished_job_has_matching_receipt", `${x.finished - x.missing - x.mismatched}/${x.finished} finished applications have a receipt matching the job (missing ${x.missing}, mismatched ${x.mismatched})`);
   return pass("F14", "F14.every_finished_job_has_matching_receipt", `${x.finished}/${x.finished} finished applications have a receipt with the job's state, payload hash and approval hash`);
 }
@@ -479,4 +483,128 @@ export async function noForeignWrites(db: Db, run: Run, threadIds: string[]): Pr
   return bad
     ? fail("SAFETY", "SAFETY.no_foreign_writes", `rows in this run's ${ids.length} thread(s) belong to another account (threads ${x.foreign_threads}, costs ${x.foreign_costs}, drafts ${x.foreign_cards})`)
     : pass("SAFETY", "SAFETY.no_foreign_writes", `every row in this run's ${ids.length} thread(s) belongs to the test account`);
+}
+
+// ------------------------------------------------------------------------------------------------ reply checks that
+// verify.ts used to make inline: each is a pure decision (or one read), so each is tested pass- and fail-shaped.
+export async function resumeConfirmed(db: Db, t: Turn, run: Run): Promise<Result> {
+  const C = "ACCOUNT.resume_confirmed";
+  if (t.status !== 200) return fail("ACCOUNT", C, `agent-chat answered HTTP ${t.status}`);
+  const r = await db.rows<{ n: number }>(`select count(*)::int as n from career_events where user_id = ${uid(run.userId)} and kind = 'fact_confirmed' and at >= ${q(t.at)}::timestamptz`);
+  const says = /confirm/i.test(t.reply);
+  if (!says) return fail("ACCOUNT", C, `the reply does not confirm the resume: ${t.reply.slice(0, 160)}`);
+  if (!n(r[0]?.n)) return fail("ACCOUNT", C, "the reply says confirmed but no fact_confirmed event was written");
+  return pass("ACCOUNT", C, `the resume is confirmed: ${r[0].n} fact_confirmed event(s)`);
+}
+export function stagedBrain(t: Turn): Result {
+  const C = "F13.answered_by_staged_brain";
+  if (t.status !== 200) return fail("F13", C, `agent-chat answered HTTP ${t.status}`);
+  if (t.meta?.brain !== "staged") return fail("F13", C, `the router answered (meta.brain ${t.meta?.brain ?? "absent"}): CAREER_BRAIN=staged is not on in production`);
+  return pass("F13", C, `meta.brain staged, router_intent ${t.meta.router_intent ?? "n/a"}`);
+}
+export interface Target { url: string; title: string; company: string }
+export function tailored(t: Turn, target: Target): Result {
+  const C = "F4.tailored_for_posting";
+  if (t.status !== 200) return fail("F4", C, `agent-chat answered HTTP ${t.status}`);
+  if (/null at null/i.test(t.reply) || !/tailored for/i.test(t.reply)) return fail("F4", C, `the reply is not a tailoring: ${t.reply.slice(0, 160)}`);
+  if (!norm(t.reply).includes(norm(target.company))) return fail("F4", C, `tailored, but not for ${target.company}: ${t.reply.slice(0, 160)}`);
+  const docs = Array.isArray(t.body?.artifacts) ? t.body.artifacts.length : 0;
+  if (!docs) return fail("F4", C, "tailored, but no document was attached");
+  return pass("F4", C, `tailored for ${target.title} at ${target.company}, ${docs} document(s) attached`);
+}
+export function rewrite(t: Turn): Result {
+  const C = "F4.rewrite_on";
+  const rw = t.meta?.tailor_rewrite;
+  if (!rw) return fail("F4", C, "no rewrite on the turn (meta.tailor_rewrite absent): CAREER_TAILOR_REWRITE is not on in production");
+  const accepted = Array.isArray(rw.accepted) ? rw.accepted.length : Number(rw.accepted);
+  if (!Number.isFinite(accepted)) return fail("F4", C, "the turn's rewrite record has no accepted count");
+  const said = Number((/Reworded (\d+) bullet/.exec(t.reply) ?? [])[1] ?? 0);
+  if (accepted !== said) return fail("F4", C, `the reply says ${said} bullet(s) reworded, the turn's record says ${accepted}`);
+  return pass("F4", C, `${said} bullet(s) reworded, as recorded; ${Array.isArray(rw.rejected) ? rw.rejected.length : 0} kept with a reason`);
+}
+export function mockBound(t: Turn, target: Target): Result {
+  const C = "F11.bound_to_posting";
+  if (t.status !== 200) return fail("F11", C, `agent-chat answered HTTP ${t.status}`);
+  if (!/Mock interview/i.test(t.reply) || !norm(t.reply).includes(norm(target.company))) return fail("F11", C, `the mock is not bound to ${target.company}: ${t.reply.slice(0, 160)}`);
+  return pass("F11", C, `the mock is built from ${target.title} at ${target.company}`);
+}
+// The import reply's count, and the thread's stored contacts, both hold the rows sent.
+export async function contactsImported(db: Db, t: Turn, run: Run, emails: string[], rows: number): Promise<Result> {
+  const C = "F10.contacts_imported";
+  const ic = importCount(t.reply);
+  if (!ic || ic.imported !== rows || ic.of !== rows) return fail("F10", C, `expected "imported ${rows}/${rows} rows": ${t.reply.slice(0, 160)}`);
+  if (!t.threadId) return fail("F10", C, "no thread");
+  const r = await db.rows<{ s: string }>(`select coalesce(state::text, '') as s from agent_flow_state where thread_id = ${uid(t.threadId)} and user_id = ${uid(run.userId)}`);
+  const s = (r[0]?.s ?? "").toLowerCase();
+  const missing = emails.filter((e) => !s.includes(e.toLowerCase()));
+  if (missing.length) return fail("F10", C, `the reply says imported, but ${missing.length}/${emails.length} contacts are not in the thread's state`);
+  return pass("F10", C, `imported ${rows}/${rows} rows; ${emails.length}/${emails.length} addresses in the thread's state`);
+}
+export async function whoKnows(db: Db, t: Turn, run: Run, names: string[]): Promise<Result> {
+  const C = "F10.who_do_i_know";
+  const listed = names.filter((x) => t.reply.includes(x));
+  if (listed.length !== names.length) return fail("F10", C, `${listed.length}/${names.length} imported contacts listed: ${t.reply.slice(0, 160)}`);
+  if (!t.threadId) return fail("F10", C, "no thread");
+  const r = await db.rows<{ s: string }>(`select coalesce(state::text, '') as s from agent_flow_state where thread_id = ${uid(t.threadId)} and user_id = ${uid(run.userId)}`);
+  const stray = names.filter((x) => !(r[0]?.s ?? "").includes(x));
+  if (stray.length) return fail("F10", C, `the reply names ${stray.join(", ")}, who are not in the thread's contacts`);
+  return pass("F10", C, `${names.length}/${names.length} contacts listed, each from the thread's stored contacts`);
+}
+export function eraseTurn(t: Turn): Result {
+  return t.status === 200 && t.meta?.intent === "career_profile_erased"
+    ? pass("ERASE", "ERASE.turn", "the erase ran (career_profile_erased)")
+    : fail("ERASE", "ERASE.turn", `the erase did not run: HTTP ${t.status}, ${t.reply.slice(0, 160)}`);
+}
+// The cloud runner's own refusal is 401 {"error":"unauthorized"}; the gateway's 401 means a JWT is required.
+export function cloudDoor(status: number, body: any): Result {
+  const C = "CLOUD.door_refuses_wrong_secret";
+  if (status === 404) return fail("CLOUD", C, "HTTP 404: career-cloud-runner is not deployed");
+  if (status === 401 && body?.error === "unauthorized") return pass("CLOUD", C, "HTTP 401 from the handler: deployed, refuses a wrong secret");
+  if (status === 401) return fail("CLOUD", C, "HTTP 401 from the gateway: deploy it with --no-verify-jwt (pg_cron carries no JWT)");
+  if (status === 503) return fail("CLOUD", C, `HTTP 503: deployed but not configured (${String(body?.error ?? "").slice(0, 80)})`);
+  return fail("CLOUD", C, `HTTP ${status}: the door did not refuse a wrong secret`);
+}
+export function appCurrent(status: number, html: string, local: string | null): Result {
+  const C = "F15.app_is_current_build";
+  if (status !== 200) return fail("F15", C, `the app answered HTTP ${status}`);
+  if (!html.includes("careerDash")) return fail("F15", C, "the served app has no Applications dashboard (careerDash): the F15 build is not deployed");
+  if (local == null) return fail("F15", C, "this commit's index.html could not be read to compare");
+  if (local !== html) return fail("F15", C, "the served index.html is not this commit's build (deploy the rebuilt app)");
+  return pass("F15", C, "the served app is this commit's index.html and carries the dashboard");
+}
+export function functionsDeployed(status: number, list: { slug: string; status: string }[] | null, need: string[]): Result {
+  const C = "ACCOUNT.functions_deployed";
+  if (status !== 200 || !list) return fail("ACCOUNT", C, `the function list answered HTTP ${status}`);
+  const active = new Set(list.filter((f) => f.status === "ACTIVE").map((f) => f.slug));
+  const missing = need.filter((f) => !active.has(f));
+  return missing.length ? fail("ACCOUNT", C, `${need.length - missing.length}/${need.length} functions active; not deployed: ${missing.join(", ")}`)
+    : pass("ACCOUNT", C, `${need.length}/${need.length} functions active`);
+}
+export function dashboardReads(reads: { table: string; status: number; rows: { user_id: string }[] }[], userId: string): Result {
+  const C = "F15.dashboard_reads_own_rows";
+  if (!reads.length) return fail("F15", C, "nothing was read");
+  const bad: string[] = [];
+  for (const r of reads) {
+    if (r.status !== 200) bad.push(`${r.table}: HTTP ${r.status}`);
+    else if (r.rows.some((x) => x.user_id !== userId)) bad.push(`${r.table}: another account's row is visible`);
+  }
+  const rows = reads.reduce((s, r) => s + r.rows.length, 0);
+  return bad.length ? fail("F15", C, bad.join("; ")) : pass("F15", C, `${reads.length}/${reads.length} dashboard tables readable through RLS, ${rows} row(s), all the test account's`);
+}
+export function telegramWebhook(status: number, body: any): Result {
+  return status === 200 && body?.ok === true && !body?.ignored
+    ? pass("TG", "TG.webhook_answered", "HTTP 200 ok, the message was read")
+    : fail("TG", "TG.webhook_answered", `HTTP ${status}: ${JSON.stringify(body ?? null).slice(0, 160)}`);
+}
+// Every reply of the run is the reply the database recorded for its turn.
+export async function everyReplyRecorded(db: Db, turns: Turn[], run: Run): Promise<Result> {
+  const C = "SAFETY.every_reply_recorded";
+  if (!turns.length) return notRun("SAFETY", C, "no turn ran");
+  const bad: string[] = [];
+  for (const t of turns) {
+    const r = await turnRecorded(db, "SAFETY", C, t, run);
+    if (r.status !== "PASS") bad.push(`"${t.reply.slice(0, 30)}…": ${r.reason}`);
+  }
+  return bad.length ? fail("SAFETY", C, `${turns.length - bad.length}/${turns.length} replies match their recorded turn; e.g. ${bad[0]}`)
+    : pass("SAFETY", C, `${turns.length}/${turns.length} replies are exactly the replies recorded for their turns`);
 }

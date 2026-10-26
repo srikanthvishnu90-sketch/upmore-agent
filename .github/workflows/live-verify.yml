@@ -4,14 +4,14 @@
 # transaction, cleans up through the product's own erase, and writes a JSON report and a markdown matrix (the job summary
 # and the artifact). It never deploys, migrates or approves anything; no card is ever answered, so nothing reaches an
 # employer. Runs in the GitHub environment `production`: its secrets are visible only to an approved run there.
-# Owner, once: add `ci/live-verify` (and `trunk`, for the schedule) to the environment's deployment branches, or the run
-# is refused; with Required reviewers on, each run waits for "Review deployments" (the schedule too).
+# Owner, once: add `ci/live-verify` (and `trunk`, for a hand run from trunk) to the environment's deployment branches, or
+# the run is refused; with Required reviewers on, each run also waits for "Review deployments".
 name: live-verify
+# No schedule: the owner's rule of 2026-10-26 14:14 CDT puts the launch on hold and allows no run against production he
+# does not start himself. It runs only when he pushes `ci/live-verify` or starts it by hand.
 on:
   push:
     branches: [ci/live-verify]
-  schedule:
-    - cron: "17 13,21 * * *" # 08:17 and 16:17 Chicago (CDT); not on the hour
   workflow_dispatch:
     inputs:
       wait_min:

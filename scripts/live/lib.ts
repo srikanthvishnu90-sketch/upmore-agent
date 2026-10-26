@@ -32,6 +32,7 @@ export const FEATURES: Record<string, string> = {
   F13: "Staged brain",
   F14: "Receipts",
   F15: "Dashboard / approval card",
+  AUDIT: "Launch-readiness audit (PR #192) BLOCKERs and MAJORs",
   E2E: "E2E chat-submit path",
   CLOUD: "Cloud sender (cloud runner)",
   TG: "Telegram channel",
@@ -70,14 +71,20 @@ export interface Db { rows<T = Record<string, unknown>>(sql: string): Promise<T[
 export const q = (v: string) => `'${String(v).replace(/'/g, "''")}'`; // a literal; ids are also shape-checked by callers
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// The text sent for one read: inside a read-only transaction, so Postgres itself refuses a write even if the code check
+// above were wrong. Exported so the test can send a write through it and see Postgres refuse it.
+export function readOnlyText(sql: string): string {
+  const body = sql.trim().replace(/;\s*$/, "");
+  return `begin transaction read only;\nselect coalesce(jsonb_agg(lv_row), '[]'::jsonb) from (${body}) lv_row;\ncommit;`;
+}
+
 // A Db over any runner that executes one SQL text and returns its single-column output (psql -tA). The query is wrapped
 // so it returns one JSON array, inside a read-only transaction.
 export function readOnlyDb(exec: (sqlText: string) => Promise<string>): Db {
   return {
     async rows<T>(sql: string): Promise<T[]> {
       assertReadOnlySql(sql);
-      const body = sql.trim().replace(/;\s*$/, "");
-      const out = await exec(`begin transaction read only;\nselect coalesce(jsonb_agg(t), '[]'::jsonb) from (${body}) t;\ncommit;`);
+      const out = await exec(readOnlyText(sql));
       const line = out.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("[")).at(-1);
       if (!line) throw new Error("no rows read");
       return JSON.parse(line) as T[];
@@ -125,9 +132,10 @@ export async function assertTestAccount(db: Db, userId: string, expectEmail: str
 
 // ------------------------------------------------------------------------------------------------ the HTTP guard
 // Every request a run makes goes through this. It allows exactly: agent-chat and trainee-telegram as the test account
-// (POST), the password sign-in for the test account, GETs (PostgREST reads, the app page, the Management API's function list),
-// and the cloud runner's dispatch door with a wrong secret and an empty want (a refusal check). Anything else throws.
-export interface FetchPolicy { base: string; appUrl?: string | null }
+// (POST), the password sign-in for the test account, GETs (PostgREST reads, the app page, and for this project only the
+// Management API's function list and a count-only edge-log query), a CORS preflight to agent-chat, and the cloud runner's
+// dispatch door with a wrong secret and an empty want (a refusal check). Anything else throws.
+export interface FetchPolicy { base: string; appUrl?: string | null; ref?: string | null }
 export function guardedFetch(policy: FetchPolicy, inner: typeof fetch = fetch): typeof fetch {
   return (async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
@@ -137,8 +145,14 @@ export function guardedFetch(policy: FetchPolicy, inner: typeof fetch = fetch): 
     const app = policy.appUrl ? new URL(policy.appUrl).origin === url.origin : false;
     let ok = false;
     if (method === "GET" || method === "HEAD") {
-      ok = own || app || (url.origin === "https://api.supabase.com" && /^\/v1\/projects\/[a-z0-9]{20}\/functions$/.test(url.pathname));
+      const mgmt = url.origin === "https://api.supabase.com" && !!policy.ref &&
+        (url.pathname === `/v1/projects/${policy.ref}/functions` ||
+          (url.pathname === `/v1/projects/${policy.ref}/analytics/endpoints/logs.all` && /^select count\(\*\) as inbound, countif\(/.test(url.searchParams.get("sql") ?? "")));
+      // PostgREST table reads only: GET /rest/v1/rpc/* would run a database function, so it is refused.
+      const read = own && url.pathname.startsWith("/rest/v1/") && !url.pathname.startsWith("/rest/v1/rpc/");
+      ok = read || app || mgmt;
     }
+    else if (method === "OPTIONS") ok = own && url.pathname === "/functions/v1/agent-chat";
     else if (method === "POST" && own) {
       ok = url.pathname === "/functions/v1/agent-chat" || url.pathname === "/functions/v1/trainee-telegram" ||
         (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") ||
@@ -184,7 +198,7 @@ export function markdown(results: Result[], meta: { started: string; finished: s
     `# Trainee live verification`,
     ``,
     `Run ${meta.started} to ${meta.finished}${meta.sha ? ` at ${meta.sha.slice(0, 12)}` : ""}${meta.project ? ` against ${meta.project}` : ""}.`,
-    `**${s.pass} PASS, ${s.fail} FAIL, ${s.not_run} NOT_RUN** of ${s.total} checks. NOT_RUN is never a pass.`,
+    `**${s.pass}/${s.total} passed.** Not passed: ${s.fail} FAIL and ${s.not_run} NOT_RUN. A NOT_RUN is not passed: it is a check that did not get to look.`,
     ``,
     `| Feature | PASS | FAIL | NOT_RUN |`,
     `|---|---|---|---|`,

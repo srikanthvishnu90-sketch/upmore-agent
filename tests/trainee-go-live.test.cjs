@@ -63,11 +63,11 @@ test('dry run: six steps in order, every Trainee migration in order, agent-chat 
     assert.match(out, new RegExp(`check ${f} is on the live project.*never applied here`), `${f} is only checked`);
     assert.doesNotMatch(out, new RegExp(`-f supabase/migrations/${f}`), `${f} is never applied`);
   }
-  inOrder(out, ['node scripts/career/stage-career.cjs', '(index-career.ts staged as agent-chat/index.ts)', 'supabase functions deploy agent-chat --project-ref abcdefghijklmnopqrst)',
-    'supabase functions deploy career-ingest --project-ref abcdefghijklmnopqrst --no-verify-jwt',
-    'supabase functions deploy career-proactive --project-ref abcdefghijklmnopqrst --no-verify-jwt',
-    'supabase functions deploy trainee-deliver --project-ref abcdefghijklmnopqrst --no-verify-jwt',
-    'supabase functions deploy trainee-inbound --project-ref abcdefghijklmnopqrst --no-verify-jwt']);
+  inOrder(out, ['node scripts/career/stage-career.cjs', '(index-career.ts staged as agent-chat/index.ts)', 'supabase functions deploy agent-chat --project-ref abcdefghijklmnopqrst --use-docker)',
+    'supabase functions deploy career-ingest --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker',
+    'supabase functions deploy career-proactive --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker',
+    'supabase functions deploy trainee-deliver --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker',
+    'supabase functions deploy trainee-inbound --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker']);
   assert.doesNotMatch(out, /deploy agent-chat[^\n]*--no-verify-jwt/, 'agent-chat keeps the JWT check');
   const base = 'https://abcdefghijklmnopqrst.supabase.co/functions/v1';
   inOrder(out, [`CAREER_INGEST_SECRET=*** psql *** -X -q -v ON_ERROR_STOP=1 -v url=${base}/career-ingest -f scripts/launch/schedule-career-ingest.sql`,

@@ -87,7 +87,7 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
 .chat { display: flex; flex-direction: column; min-height: calc(100dvh - 65px); padding-bottom: 0; }
 .log { list-style: none; margin: 0; padding: 0 0 16px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
 .empty { color: var(--silver); padding: 24px 0 8px; }
-.empty h1 { margin-bottom: 8px; }
+.empty h1 { margin-bottom: 8px; color: var(--text); }
 .starts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .starts button { min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 22px; background: transparent; color: var(--text); cursor: pointer; text-align: left; }
 .starts button:hover { border-color: var(--plum-accent); }
@@ -104,8 +104,9 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
 .composer textarea { flex: 1; min-height: 48px; max-height: 40vh; resize: none; }
 .attach { position: relative; flex: 0 0 auto; }
 .attach input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
-.attach span { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--silver); cursor: pointer; white-space: nowrap; }
+.attach > span { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; min-width: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--silver); cursor: pointer; white-space: nowrap; }
 .attach input:focus-visible + span { outline: 2px solid var(--plum-accent); outline-offset: 2px; }
+.attach:hover > span { border-color: var(--plum-accent); color: var(--text); }
 .attached { margin: 0 0 8px; font-size: 14px; color: var(--silver); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .attached button { min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--silver); cursor: pointer; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -139,10 +140,14 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
   h1 { font-size: 32px; }
   .msg { max-width: 80%; }
 }
-@media (max-width: 380px) {
-  .tab { padding: 0 10px; }
-  .mark { font-size: 18px; }
+/* Phones: the name and Sign out on one row, the two tabs full width under them. */
+@media (max-width: 559px) {
+  .bar { flex-wrap: wrap; row-gap: 6px; padding-bottom: 8px; }
+  .tabs { order: 3; flex: 1 0 100%; }
+  .tab { flex: 1; }
+  .chat { min-height: calc(100dvh - 115px); }
 }
+.tab, .quiet { white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .loading::after { animation: none; content: "..."; } * { scroll-behavior: auto !important; } }
 
   /* Trainee dashboard (FEATURE 15). Owner direction 2026-10-25: graphite/silver base, deep plum only on active states,
@@ -286,7 +291,7 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
       <p class="lede">Send your resume to start. Trainee asks before it sends anything to an employer, and shows you the exact answers first.</p>
       <div class="starts" id="starts">
         <button type="button" data-say="What can you do?">What can you do?</button>
-        <button type="button" data-say="Find me internships in Chicago">Find me internships in Chicago</button>
+        <button type="button" data-say="Find jobs for me">Find jobs for me</button>
         <button type="button" data-say="show my applications">Show my applications</button>
       </div>
     </div>
@@ -295,7 +300,7 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
       <p class="attached" id="attached" hidden><span id="attached-name"></span><button type="button" id="attached-remove">Remove</button></p>
       <p class="error" id="composer-error" role="alert"></p>
       <div class="box">
-        <label class="attach"><input type="file" id="file" accept=".txt,.md,text/plain,text/markdown,.pdf,.docx"><span>Add resume</span></label>
+        <label class="attach" title="Add your resume (a .txt file)"><input type="file" id="file" accept=".txt,.md,text/plain,text/markdown,.pdf,.docx"><span><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.1l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"/></svg><span class="sr">Add resume</span></span></label>
         <label class="sr" for="message">Message Trainee</label>
         <textarea class="input" id="message" rows="1" placeholder="Message Trainee" enterkeyhint="send"></textarea>
         <button class="primary" id="send" type="submit">Send</button>
@@ -304,10 +309,7 @@ h2 { font-size: 20px; line-height: 1.3; margin: 28px 0 10px; }
   </section>
 
   <section class="view apps" id="apps" role="tabpanel" aria-labelledby="tab-apps" hidden>
-    <h1>Applications</h1>
-    <h2>Waiting for your approval</h2>
-    <div class="approvals" id="approvals" aria-live="polite"></div>
-    <div id="dashboard"></div>
+    <div id="dashboard" aria-live="polite"></div>
   </section>
 </main>
 <script src="/app/config.js"></script>
@@ -848,6 +850,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      career_apply_message_cards       -> approval cards (awaiting / approved)
      career_apply_prepared            -> applications Trainee prepared and checked (reviewed)
      career_apply_jobs                -> the tracker: every application with its recorded state and receipt
+     career_apply_cards (open)        -> the chat's card of prepared applications, mounted by the host (deps.mountApplyCard)
    What it writes: nothing directly. Approving a card goes through TraineeApprovalCards (src/career-approval-card.js),
    the same controller and the same hash-bound RPC (career_apply_message_card_approve_own) the chat card uses. Changing an
    answer, leaving an application off or declining a batch opens the chat with a draft the person sends themselves.
@@ -977,8 +980,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   // Queue: awaiting your approval (open cards), approved (approved cards and applications waiting to send), reviewed
   // (applications Trainee prepared and checked that are not on an open card).
-  function queueView(cards, prepared, jobs, now) {
+  // applyCards (launch readiness B7, 2026-10-26): the chat's open card of prepared applications (career_apply_cards, the
+  // card "show my applications" shows), answered with career_apply_card_answer_own through src/career-apply-card.js.
+  // Its applications wait on it, so they are counted as awaiting and are not listed again as reviewed.
+  function queueView(cards, prepared, jobs, now, applyCards) {
     const awaiting = [], approved = [], expired = [];
+    const openApply = (applyCards || []).filter(c => isRecord(c) && c.state === 'open' && UUID.test(str(c.id)) && Array.isArray(c.items) && c.items.length)
+      .slice().sort(byNewest('shown_at'));
+    const onApply = new Set(openApply.flatMap(c => c.items.map(i => str(i && i.prepared_id))));
     for (const c of (cards || []).slice().sort(byNewest('shown_at'))) {
       const s = cardState(c, now);
       const items = cardItems(c);
@@ -987,9 +996,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       (s === 'open' ? awaiting : s === 'approved' ? approved : expired).push(row);
     }
     const onCard = new Set(awaiting.flatMap(r => r.items.map(i => i.job_id)));
-    const reviewed = (prepared || []).filter(p => ['ready', 'shown'].includes(p.state) && !onCard.has(p.job_id)).sort(byNewest('updated_at'));
+    const reviewed = (prepared || []).filter(p => ['ready', 'shown'].includes(p.state) && !onCard.has(p.job_id) && !onApply.has(p.id)).sort(byNewest('updated_at'));
     const sending = (jobs || []).filter(j => j.state === 'queued' || j.state === 'driving').sort(byNewest('updated_at'));
-    return Object.freeze({ awaiting, approved, expired, reviewed, sending });
+    const applyAwaiting = openApply.map(c => Object.freeze({ card: c, count: c.items.length }));
+    return Object.freeze({ awaiting, approved, expired, reviewed, sending, applyAwaiting, awaitingCount: awaiting.length + applyAwaiting.reduce((n, r) => n + r.count, 0) });
   }
 
   /* ---------------- tracker ---------------- */
@@ -1021,12 +1031,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   async function load(client, uid) {
     if (!client || !UUID.test(str(uid))) throw Error('sign in first');
     const must = r => { if (r.error) throw r.error; return r.data || []; };
-    const [alerts, prefs, cards, prepared, jobs] = await Promise.all([
+    const [alerts, prefs, cards, prepared, jobs, applyCards] = await Promise.all([
       client.from('career_outbox').select('key,created_at,delivered_at').eq('user_id', uid).eq('kind', 'alert').order('created_at', { ascending: false }).limit(100),
       client.from('career_alert_prefs').select('prefs').eq('user_id', uid).limit(1),
       client.from('career_apply_message_cards').select('id,thread_id,payload,payload_hash,shown_at,expires_at,approved_at,approval_expires_at').eq('user_id', uid).order('shown_at', { ascending: false }).limit(50),
       client.from('career_apply_prepared').select('id,job_id,company,url,payload_hash,card_lines,state,created_at,updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
       client.from('career_apply_jobs').select('id,job_id,company,url,payload_hash,state,reason,confirmation_id,claimed_at,created_at,updated_at,email_confirmed_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(200),
+      client.from('career_apply_cards').select('id,items,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(5),
     ]);
     const alertRows = must(alerts), cardRows = must(cards);
     const ids = new Set(alertRows.map(a => str(a.key)).filter(k => k.startsWith('alert:')).map(k => k.slice(6)));
@@ -1035,7 +1046,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       ? must(await client.from('career_postings').select('job_id,company,title,location,url,remote,closed_at').in('job_id', [...ids]))
       : [];
     const prefRows = must(prefs);
-    return { alerts: alertRows, prefs: prefRows.length && isRecord(prefRows[0].prefs) ? prefRows[0].prefs : null, cards: cardRows, prepared: must(prepared), jobs: must(jobs), postings };
+    return { alerts: alertRows, prefs: prefRows.length && isRecord(prefRows[0].prefs) ? prefRows[0].prefs : null, cards: cardRows, prepared: must(prepared), jobs: must(jobs), postings, applyCards: must(applyCards) };
   }
 
   /* ---------------- approval: the chat card's controller and RPCs ---------------- */
@@ -1213,11 +1224,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const sec = h(doc, 'section', 'tr-surface');
     sec.setAttribute('data-tr-surface', 'queue');
     const cov = h(doc, 'p', 'tr-coverage');
-    cov.textContent = 'Awaiting your approval ' + view.awaiting.length + ' · Approved ' + (view.approved.length + view.sending.length) + ' · Reviewed ' + view.reviewed.length;
+    cov.textContent = 'Awaiting your approval ' + (view.awaitingCount ?? view.awaiting.length) + ' · Approved ' + (view.approved.length + view.sending.length) + ' · Reviewed ' + view.reviewed.length;
     sec.appendChild(cov);
     const group = (title, key) => { const g = h(doc, 'div', 'tr-group'); g.setAttribute('data-tr-queue', key); g.appendChild(h(doc, 'h2', 'tr-h2', title)); sec.appendChild(g); return g; };
     const aw = group('Awaiting your approval', 'awaiting');
-    if (!view.awaiting.length) aw.appendChild(h(doc, 'p', 'tr-empty', 'Nothing is waiting for you.'));
+    if (!view.awaiting.length && !(view.applyAwaiting || []).length) aw.appendChild(h(doc, 'p', 'tr-empty', 'Nothing is waiting for you.'));
+    for (const row of view.applyAwaiting || []) {
+      const slot = h(doc, 'div', 'tr-apply-slot');
+      slot.setAttribute('data-tr-apply-card', row.card.id);
+      aw.appendChild(slot);
+      mounts.push({ slot, applyCard: row.card });
+    }
     for (const row of view.awaiting) {
       const { node, slot } = renderApprovalCard(doc, row, data, deps);
       aw.appendChild(node);
@@ -1386,9 +1403,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function mount(rootEl, data, deps = {}) {
     const doc = rootEl.ownerDocument;
     const now = (deps.now || Date.now)();
-    const d = Object.assign({ alerts: [], prefs: null, cards: [], prepared: [], jobs: [], postings: [] }, data || {});
+    const d = Object.assign({ alerts: [], prefs: null, cards: [], prepared: [], jobs: [], postings: [], applyCards: [] }, data || {});
     const matches = matchesView(d.alerts, d.postings, d.prefs, d.jobs);
-    const queue = queueView(d.cards, d.prepared, d.jobs, now);
+    const queue = queueView(d.cards, d.prepared, d.jobs, now, d.applyCards);
     const tracker = trackerView(d.jobs);
     rootEl.replaceChildren();
     rootEl.classList.add('tr-dash');
@@ -1396,7 +1413,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     head.appendChild(h(doc, 'h1', 'tr-h1', 'Your applications'));
     const sum = h(doc, 'p', 'tr-coverage');
     sum.setAttribute('data-tr-summary', '');
-    sum.textContent = matches.rows.length + ' matches · ' + queue.awaiting.length + ' awaiting approval · Confirmed ' + tracker.coverage.confirmed;
+    sum.textContent = matches.rows.length + ' matches · ' + queue.awaitingCount + ' awaiting approval · Confirmed ' + tracker.coverage.confirmed;
     head.appendChild(sum);
     rootEl.appendChild(head);
     if (!d.prefs && typeof deps.send === 'function') rootEl.appendChild(renderSetup(doc, deps));
@@ -1408,13 +1425,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     ];
     const tabs = h(doc, 'div', 'tr-tabs');
     tabs.setAttribute('role', 'tablist');
-    const start = queue.awaiting.length ? 1 : 0;
+    const start = queue.awaitingCount ? 1 : 0;
     const buttons = surfaces.map(([name, surface], i) => {
       const b = h(doc, 'button', 'tr-tab', name);
       b.type = 'button';
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(i === start));
-      if (name === 'Queue' && queue.awaiting.length) b.appendChild(h(doc, 'span', 'tr-badge', String(queue.awaiting.length)));
+      if (name === 'Queue' && queue.awaitingCount) b.appendChild(h(doc, 'span', 'tr-badge', String(queue.awaitingCount)));
       surface.hidden = i !== start;
       b.addEventListener('click', () => {
         surfaces.forEach(([, s], j) => { s.hidden = j !== i; });
@@ -1430,12 +1447,21 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     for (const p of Object.keys(PROVIDERS)) foot.appendChild(providerMark(doc, p, deps.brandIcons, ''));
     rootEl.appendChild(foot);
     const pending = [];
+    // The chat's card of prepared applications: mounted by the host (src/career-apply-card.js), or said to be elsewhere.
+    for (const m of mounts.filter(x => x.applyCard)) {
+      if (typeof deps.mountApplyCard === 'function') pending.push(Promise.resolve().then(() => deps.mountApplyCard(m.slot, m.applyCard)).catch(() => {
+        m.slot.textContent = 'This card could not be shown. Nothing was approved.';
+        m.slot.setAttribute('role', 'alert');
+      }));
+      else m.slot.textContent = 'These applications wait on the card in your chat. Nothing was approved.';
+    }
+    const cardMounts = mounts.filter(x => !x.applyCard);
     if (typeof deps.mountCard === 'function') {
-      for (const m of mounts) pending.push(Promise.resolve().then(() => deps.mountCard(m.slot, m.card)).catch(() => {
+      for (const m of cardMounts) pending.push(Promise.resolve().then(() => deps.mountCard(m.slot, m.card)).catch(() => {
         m.slot.textContent = 'This approval could not be verified. Nothing was approved.';
         m.slot.setAttribute('role', 'alert');
       }));
-    } else for (const m of mounts) m.slot.textContent = 'The approval card is not available here. Nothing was approved.';
+    } else for (const m of cardMounts) m.slot.textContent = 'The approval card is not available here. Nothing was approved.';
     return { root: rootEl, ready: Promise.all(pending), matches, queue, tracker };
   }
 
@@ -1585,7 +1611,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   async function enter() {
     const g = ++generation;
     show('boot');
-    $('boot').innerHTML = ''; const p = document.createElement('p'); p.className = 'loading'; p.textContent = 'Checking your access'; $('boot').appendChild(p);
+    $('boot').replaceChildren(); const p = document.createElement('p'); p.className = 'loading'; p.textContent = 'Checking your access'; $('boot').appendChild(p);
     try {
       await chatFetch({ check_access: true });
     } catch (e) {
@@ -1641,11 +1667,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     $('chat-empty').hidden = true;
     return li;
   }
+  // The card under the reply that carries it. Once the card shows its own lines (read from the database and checked
+  // against their hashes), the reply's text keeps only its first paragraph, so the answers are not listed twice.
   function mountCard(li, meta) {
     if (!window.TraineeApplyCard || !TraineeApplyCard.cardIdOf(meta)) return;
     const g = generation;
     TraineeApplyCard.mount(li, meta, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation })
-      .then(() => refreshCount()).catch(() => { if (g === generation) { const p = document.createElement('p'); p.textContent = 'This card could not be shown. Nothing was approved.'; p.setAttribute('role', 'alert'); li.appendChild(p); } });
+      .then((v) => {
+        if (v && Array.isArray(v.items) && v.items.length && g === generation) {
+          const body = li.querySelector(':scope > span:nth-child(2)');
+          const head = body ? body.textContent.split(/\n\s*\n/)[0].trim() : '';
+          if (body && head) body.textContent = head;
+        }
+        refreshCount();
+      }).catch(() => { if (g === generation) { const p = document.createElement('p'); p.textContent = 'This card could not be shown. Nothing was approved.'; p.setAttribute('role', 'alert'); li.appendChild(p); } });
   }
   function scrollEnd() { const l = $('log').lastElementChild; if (l && l.scrollIntoView) l.scrollIntoView({ block: 'end' }); }
 
@@ -1718,7 +1753,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       if (e.status === 403) { $('waiting-text').textContent = e.message; show('waiting', 'waiting-title'); return; }
       mine.classList.add('failed');
       const why = document.createElement('span'); why.className = 'why';
-      why.textContent = e.status === 0 ? 'Not sent: Trainee couldn\'t be reached. Check your connection.'
+      // A network failure can lose the answer after the turn ran, so it never says the message was not sent; the retry
+      // carries the same turn key, so it is the same turn either way.
+      why.textContent = e.status === 0 ? 'No answer arrived: Trainee couldn\'t be reached. Check your connection, then try again.'
         : e.status === 429 ? 'Not sent: ' + e.message
         : e.status === 400 ? 'Not sent: ' + (e.body && e.body.error === 'message too long' ? 'this message is too long.' : 'Trainee couldn\'t read this message.')
         : 'Not sent: Trainee couldn\'t answer just now.';
@@ -1790,7 +1827,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   /* ---------------- applications ---------------- */
   async function openCard(uid) {
-    const r = await supa.from('career_apply_cards').select('id,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(1);
+    const r = await supa.from('career_apply_cards').select('id,items,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(1);
     if (r.error) throw r.error;
     return r.data && r.data[0] ? r.data[0] : null;
   }
@@ -1806,63 +1843,61 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const card = await openCard(uid);
       const n = card ? null : await readyCount(uid);
       const badge = $('apps-count');
-      const label = card ? '1' : n ? String(n) : '';
+      const waiting = card && Array.isArray(card.items) ? card.items.length : 0;
+      const label = waiting ? String(waiting) : n ? String(n) : '';
       badge.textContent = label; badge.hidden = !label;
-      $('tab-apps').setAttribute('aria-label', label ? 'Applications, ' + (card ? 'a card waits for your approval' : n + ' ready for review') : 'Applications');
+      $('tab-apps').setAttribute('aria-label', label ? 'Applications, ' + label + (waiting ? ' waiting for your approval' : ' ready for review') : 'Applications');
     } catch (e) { /* the count is a hint; the view itself says what could not be read */ }
+  }
+  // The chat's card answers only within 10 minutes of being shown (career_apply_card_answer_for, card_stale), so an
+  // older open card is not offered for a tap here: the person asks for a fresh one.
+  const CARD_FRESH_MS = 10 * 60 * 1000;
+  function mountApplyCard(g) {
+    return async (slot, card) => {
+      const shown = Date.parse(card.shown_at);
+      if (!(Date.now() - shown < CARD_FRESH_MS)) {
+        const p = document.createElement('div'); p.className = 'empty-card';
+        const t = document.createElement('p'); t.style.margin = '0';
+        t.textContent = card.items.length + (card.items.length === 1 ? ' application waits' : ' applications wait') + ' for your approval. Its card was shown more than 10 minutes ago, so ask for a fresh one to approve.';
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.style.marginTop = '12px'; b.textContent = 'Show a fresh card';
+        b.addEventListener('click', () => { tabTo('chat'); send('show my applications', newKey()); });
+        p.append(t, b); slot.appendChild(p);
+        return;
+      }
+      await TraineeApplyCard.mount(slot, { intent: TraineeApplyCard.INTENT, card_id: card.id }, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation && view === 'apps' });
+    };
   }
   async function renderApps() {
     const uid = session && session.user && session.user.id;
-    if (!uid) return;
+    if (!uid || !window.TraineeDashboard) return;
     const g = generation;
-    const box = $('approvals'), dash = $('dashboard');
-    box.replaceChildren(); dash.replaceChildren();
-    const loading = document.createElement('p'); loading.className = 'loading'; loading.textContent = 'Loading your applications'; box.appendChild(loading);
-    try {
-      const card = await openCard(uid);
-      if (g !== generation || view !== 'apps') return;
-      box.replaceChildren();
-      if (card) {
-        const host = document.createElement('div'); box.appendChild(host);
-        await TraineeApplyCard.mount(host, { intent: TraineeApplyCard.INTENT, card_id: card.id }, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation && view === 'apps' });
-      } else {
-        const n = await readyCount(uid);
-        if (g !== generation || view !== 'apps') return;
-        const p = document.createElement('div'); p.className = 'empty-card';
-        const t = document.createElement('p'); t.style.margin = '0';
-        t.textContent = n ? n + (n === 1 ? ' application is' : ' applications are') + ' ready for you to review.' : 'Nothing is waiting for you. When Trainee prepares an application, its exact answers show up here first.';
-        p.appendChild(t);
-        if (n) {
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.style.marginTop = '12px'; b.textContent = 'Review them';
-          b.addEventListener('click', () => { tabTo('chat'); send('show my applications', newKey()); });
-          p.appendChild(b);
-        }
-        box.appendChild(p);
-      }
-    } catch (e) {
-      if (g !== generation) return;
-      box.replaceChildren(errorBlock('Your approvals could not be loaded. Nothing was approved.', renderApps));
-    }
-    refreshCount();
-    if (!window.TraineeDashboard) return;
+    const dash = $('dashboard');
+    dash.replaceChildren();
+    const dl = document.createElement('p'); dl.className = 'loading'; dl.textContent = 'Loading your applications'; dash.appendChild(dl);
+    dash.setAttribute('aria-busy', 'true');
     let data;
-    const dl = document.createElement('p'); dl.className = 'loading'; dl.textContent = 'Loading matches and the tracker'; dash.appendChild(dl);
     try { data = await TraineeDashboard.load(supa, uid); }
-    catch (e) { if (g === generation && view === 'apps') dash.replaceChildren(errorBlock('Matches and the tracker could not be loaded.', renderApps)); return; }
+    catch (e) {
+      if (g === generation && view === 'apps') { dash.removeAttribute('aria-busy'); dash.replaceChildren(errorBlock('Your applications could not be loaded. Nothing was approved or sent.', renderApps)); }
+      return;
+    }
     if (g !== generation || view !== 'apps') return;
+    dash.removeAttribute('aria-busy');
     dash.replaceChildren();
     TraineeDashboard.mount(dash, data, {
       now: () => Date.now(),
       draft: (text) => { tabTo('chat'); $('message').value = text; autosize(); $('message').focus(); },
+      mountApplyCard: mountApplyCard(g),
       mountCard: window.TraineeApprovalCards ? TraineeDashboard.cardMounter({
         testUserId: '', identity: () => (session && session.user ? session.user.id : null), current: () => g === generation,
         authenticate: async () => { const { data: d, error } = await supa.auth.getUser(); if (error || !d || !d.user) throw Error('Sign in again to review this approval.'); return d.user.id; },
         rpc: (n, a) => supa.rpc(n, a), now: () => Date.now(), crypto: window.crypto,
       }) : null,
-      send: async (text, threadId) => chatFetch({ message: text, thread_id: threadId || thread, turn_key: newKey() }),
-      saveName: async (name) => { const { error } = await supa.from('profiles').update({ display_name: name }).eq('id', uid); if (error) throw error; },
+      // No send: in this app the chat is where a person sets up (resume, target roles), so the dashboard's own setup
+      // form is not shown here.
       onDone: () => { if (view === 'apps') renderApps(); },
     });
+    refreshCount();
   }
   function errorBlock(text, retry) {
     const d = document.createElement('div'); d.setAttribute('role', 'alert');

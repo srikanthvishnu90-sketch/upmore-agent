@@ -103,6 +103,7 @@ edge_tests=(
   tests/edge/chat-input.test.ts
   tests/edge/gmail-code-window.test.ts
   tests/edge/chat-cors.test.ts
+  tests/edge/trainee-admission.test.ts
   tests/edge/chat-session.test.ts
   tests/edge/identity-redact.test.ts
   tests/edge/model-gateway.test.ts

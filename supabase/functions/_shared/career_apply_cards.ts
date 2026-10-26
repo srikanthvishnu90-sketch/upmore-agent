@@ -85,28 +85,35 @@ const one = (p: Prepared, n: number) => {
 };
 const HEAD = (count: number) =>
   `${count === 1 ? "1 application is" : `${count} applications are`} ready. Every answer below goes exactly as shown.`;
-const FOOT = (count: number) =>
-  count === 1
+// Where the card is read: in a texting channel the answer is a reply; in the web app (launch readiness B7, 2026-10-26)
+// the card carries the buttons, and a typed yes there approves nothing (it carries no reply id), so it says to tap.
+export type CardSurface = "text" | "web";
+const FOOT = (count: number, surface: CardSurface = "text") =>
+  surface === "web"
+    ? count === 1
+      ? `Tap Approve on the card to send it exactly as shown, or Decline.`
+      : `Tap Approve all ${count} to send them exactly as shown, Approve only this one to send just one, or Decline.`
+    : count === 1
     ? `Reply "yes" to send it, or "no".`
     : `Reply "yes" to send all ${count}, "yes but not 2" to leave some out, or "no".`;
 
 // How many of the pending applications fit one card: at most 8, under 1,600 characters with two or more, and the first
 // always (alone up to 4,000; an answer is never cut).
-export function cardFor(pending: Prepared[]): { take: Prepared[]; text: string } | { tooLong: Prepared } | null {
+export function cardFor(pending: Prepared[], surface: CardSurface = "text"): { take: Prepared[]; text: string } | { tooLong: Prepared } | null {
   if (!pending.length) return null;
   const take: Prepared[] = [];
   for (const p of pending.slice(0, MAX_PER_CARD)) {
     const next = [...take, p];
-    const text = render(next);
+    const text = render(next, surface);
     if (take.length && text.length > CARD_CHAR_BUDGET) break;
     take.push(p);
   }
-  const text = render(take);
+  const text = render(take, surface);
   if (text.length > CARD_HARD_LIMIT) return { tooLong: take[0] };
   return { take, text };
 }
-function render(list: Prepared[]) {
-  return [HEAD(list.length), ...list.map((p, i) => one(p, i + 1)), FOOT(list.length)].join("\n\n");
+function render(list: Prepared[], surface: CardSurface = "text") {
+  return [HEAD(list.length), ...list.map((p, i) => one(p, i + 1)), FOOT(list.length, surface)].join("\n\n");
 }
 
 const RESULT: Record<string, string> = {
@@ -145,12 +152,12 @@ export function needsReplyTextFor(channel: string | null | undefined): string {
   return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_TAP_IMESSAGE : NEEDS_REPLY;
 }
 export async function cardTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null },
+  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null; surface?: CardSurface },
 ): Promise<{ reply: string; status: string; card_id?: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
   if (r.kind === "show") {
-    const c = cardFor(await o.store.pending(o.userId));
+    const c = cardFor(await o.store.pending(o.userId), o.surface ?? "text");
     if (!c) {
       return {
         reply: "Nothing is prepared yet. Prepare applications on your computer first; they show up here.",

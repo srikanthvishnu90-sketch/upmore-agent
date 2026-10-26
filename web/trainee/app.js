@@ -139,7 +139,7 @@
   async function enter() {
     const g = ++generation;
     show('boot');
-    $('boot').innerHTML = ''; const p = document.createElement('p'); p.className = 'loading'; p.textContent = 'Checking your access'; $('boot').appendChild(p);
+    $('boot').replaceChildren(); const p = document.createElement('p'); p.className = 'loading'; p.textContent = 'Checking your access'; $('boot').appendChild(p);
     try {
       await chatFetch({ check_access: true });
     } catch (e) {
@@ -195,11 +195,20 @@
     $('chat-empty').hidden = true;
     return li;
   }
+  // The card under the reply that carries it. Once the card shows its own lines (read from the database and checked
+  // against their hashes), the reply's text keeps only its first paragraph, so the answers are not listed twice.
   function mountCard(li, meta) {
     if (!window.TraineeApplyCard || !TraineeApplyCard.cardIdOf(meta)) return;
     const g = generation;
     TraineeApplyCard.mount(li, meta, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation })
-      .then(() => refreshCount()).catch(() => { if (g === generation) { const p = document.createElement('p'); p.textContent = 'This card could not be shown. Nothing was approved.'; p.setAttribute('role', 'alert'); li.appendChild(p); } });
+      .then((v) => {
+        if (v && Array.isArray(v.items) && v.items.length && g === generation) {
+          const body = li.querySelector(':scope > span:nth-child(2)');
+          const head = body ? body.textContent.split(/\n\s*\n/)[0].trim() : '';
+          if (body && head) body.textContent = head;
+        }
+        refreshCount();
+      }).catch(() => { if (g === generation) { const p = document.createElement('p'); p.textContent = 'This card could not be shown. Nothing was approved.'; p.setAttribute('role', 'alert'); li.appendChild(p); } });
   }
   function scrollEnd() { const l = $('log').lastElementChild; if (l && l.scrollIntoView) l.scrollIntoView({ block: 'end' }); }
 
@@ -272,7 +281,9 @@
       if (e.status === 403) { $('waiting-text').textContent = e.message; show('waiting', 'waiting-title'); return; }
       mine.classList.add('failed');
       const why = document.createElement('span'); why.className = 'why';
-      why.textContent = e.status === 0 ? 'Not sent: Trainee couldn\'t be reached. Check your connection.'
+      // A network failure can lose the answer after the turn ran, so it never says the message was not sent; the retry
+      // carries the same turn key, so it is the same turn either way.
+      why.textContent = e.status === 0 ? 'No answer arrived: Trainee couldn\'t be reached. Check your connection, then try again.'
         : e.status === 429 ? 'Not sent: ' + e.message
         : e.status === 400 ? 'Not sent: ' + (e.body && e.body.error === 'message too long' ? 'this message is too long.' : 'Trainee couldn\'t read this message.')
         : 'Not sent: Trainee couldn\'t answer just now.';
@@ -344,7 +355,7 @@
 
   /* ---------------- applications ---------------- */
   async function openCard(uid) {
-    const r = await supa.from('career_apply_cards').select('id,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(1);
+    const r = await supa.from('career_apply_cards').select('id,items,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(1);
     if (r.error) throw r.error;
     return r.data && r.data[0] ? r.data[0] : null;
   }
@@ -360,63 +371,61 @@
       const card = await openCard(uid);
       const n = card ? null : await readyCount(uid);
       const badge = $('apps-count');
-      const label = card ? '1' : n ? String(n) : '';
+      const waiting = card && Array.isArray(card.items) ? card.items.length : 0;
+      const label = waiting ? String(waiting) : n ? String(n) : '';
       badge.textContent = label; badge.hidden = !label;
-      $('tab-apps').setAttribute('aria-label', label ? 'Applications, ' + (card ? 'a card waits for your approval' : n + ' ready for review') : 'Applications');
+      $('tab-apps').setAttribute('aria-label', label ? 'Applications, ' + label + (waiting ? ' waiting for your approval' : ' ready for review') : 'Applications');
     } catch (e) { /* the count is a hint; the view itself says what could not be read */ }
+  }
+  // The chat's card answers only within 10 minutes of being shown (career_apply_card_answer_for, card_stale), so an
+  // older open card is not offered for a tap here: the person asks for a fresh one.
+  const CARD_FRESH_MS = 10 * 60 * 1000;
+  function mountApplyCard(g) {
+    return async (slot, card) => {
+      const shown = Date.parse(card.shown_at);
+      if (!(Date.now() - shown < CARD_FRESH_MS)) {
+        const p = document.createElement('div'); p.className = 'empty-card';
+        const t = document.createElement('p'); t.style.margin = '0';
+        t.textContent = card.items.length + (card.items.length === 1 ? ' application waits' : ' applications wait') + ' for your approval. Its card was shown more than 10 minutes ago, so ask for a fresh one to approve.';
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.style.marginTop = '12px'; b.textContent = 'Show a fresh card';
+        b.addEventListener('click', () => { tabTo('chat'); send('show my applications', newKey()); });
+        p.append(t, b); slot.appendChild(p);
+        return;
+      }
+      await TraineeApplyCard.mount(slot, { intent: TraineeApplyCard.INTENT, card_id: card.id }, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation && view === 'apps' });
+    };
   }
   async function renderApps() {
     const uid = session && session.user && session.user.id;
-    if (!uid) return;
+    if (!uid || !window.TraineeDashboard) return;
     const g = generation;
-    const box = $('approvals'), dash = $('dashboard');
-    box.replaceChildren(); dash.replaceChildren();
-    const loading = document.createElement('p'); loading.className = 'loading'; loading.textContent = 'Loading your applications'; box.appendChild(loading);
-    try {
-      const card = await openCard(uid);
-      if (g !== generation || view !== 'apps') return;
-      box.replaceChildren();
-      if (card) {
-        const host = document.createElement('div'); box.appendChild(host);
-        await TraineeApplyCard.mount(host, { intent: TraineeApplyCard.INTENT, card_id: card.id }, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation && view === 'apps' });
-      } else {
-        const n = await readyCount(uid);
-        if (g !== generation || view !== 'apps') return;
-        const p = document.createElement('div'); p.className = 'empty-card';
-        const t = document.createElement('p'); t.style.margin = '0';
-        t.textContent = n ? n + (n === 1 ? ' application is' : ' applications are') + ' ready for you to review.' : 'Nothing is waiting for you. When Trainee prepares an application, its exact answers show up here first.';
-        p.appendChild(t);
-        if (n) {
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'primary'; b.style.marginTop = '12px'; b.textContent = 'Review them';
-          b.addEventListener('click', () => { tabTo('chat'); send('show my applications', newKey()); });
-          p.appendChild(b);
-        }
-        box.appendChild(p);
-      }
-    } catch (e) {
-      if (g !== generation) return;
-      box.replaceChildren(errorBlock('Your approvals could not be loaded. Nothing was approved.', renderApps));
-    }
-    refreshCount();
-    if (!window.TraineeDashboard) return;
+    const dash = $('dashboard');
+    dash.replaceChildren();
+    const dl = document.createElement('p'); dl.className = 'loading'; dl.textContent = 'Loading your applications'; dash.appendChild(dl);
+    dash.setAttribute('aria-busy', 'true');
     let data;
-    const dl = document.createElement('p'); dl.className = 'loading'; dl.textContent = 'Loading matches and the tracker'; dash.appendChild(dl);
     try { data = await TraineeDashboard.load(supa, uid); }
-    catch (e) { if (g === generation && view === 'apps') dash.replaceChildren(errorBlock('Matches and the tracker could not be loaded.', renderApps)); return; }
+    catch (e) {
+      if (g === generation && view === 'apps') { dash.removeAttribute('aria-busy'); dash.replaceChildren(errorBlock('Your applications could not be loaded. Nothing was approved or sent.', renderApps)); }
+      return;
+    }
     if (g !== generation || view !== 'apps') return;
+    dash.removeAttribute('aria-busy');
     dash.replaceChildren();
     TraineeDashboard.mount(dash, data, {
       now: () => Date.now(),
       draft: (text) => { tabTo('chat'); $('message').value = text; autosize(); $('message').focus(); },
+      mountApplyCard: mountApplyCard(g),
       mountCard: window.TraineeApprovalCards ? TraineeDashboard.cardMounter({
         testUserId: '', identity: () => (session && session.user ? session.user.id : null), current: () => g === generation,
         authenticate: async () => { const { data: d, error } = await supa.auth.getUser(); if (error || !d || !d.user) throw Error('Sign in again to review this approval.'); return d.user.id; },
         rpc: (n, a) => supa.rpc(n, a), now: () => Date.now(), crypto: window.crypto,
       }) : null,
-      send: async (text, threadId) => chatFetch({ message: text, thread_id: threadId || thread, turn_key: newKey() }),
-      saveName: async (name) => { const { error } = await supa.from('profiles').update({ display_name: name }).eq('id', uid); if (error) throw error; },
+      // No send: in this app the chat is where a person sets up (resume, target roles), so the dashboard's own setup
+      // form is not shown here.
       onDone: () => { if (view === 'apps') renderApps(); },
     });
+    refreshCount();
   }
   function errorBlock(text, retry) {
     const d = document.createElement('div'); d.setAttribute('role', 'alert');

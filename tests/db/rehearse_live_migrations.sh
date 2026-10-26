@@ -45,7 +45,12 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261025130000_career_apply_wanted_candidates.sql 20261025140000_career_apply_no_volume_ceiling.sql
   20261025150000_career_apply_pace_parse.sql 20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql
+  20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026100000_career_apply_cloud_runner.sql
   20261026230017_career_cloud_hosted_apply.sql"
+# The last four are not live: 20261026060006 and 20261026060106 alter career_board_state, created by 20261021110000
+# (missing above); 20261026100000 says NOT APPLIED in its header, and applied to the live mimic before the one ledger it
+# would generate its portal claim from the older claim_at; 20261026230017 (FEATURE 17) is NOT APPLIED and reads
+# career_apply_prepare_attempts, created by 20261025120000 (missing above). The same entries as PR #194's, plus 230017.
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

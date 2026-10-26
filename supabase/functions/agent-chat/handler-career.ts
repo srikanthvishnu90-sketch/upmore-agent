@@ -70,6 +70,8 @@ import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
+import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
+import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -659,6 +661,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
       }
+      // FEATURE 4: tailored resume rewrite. The router's tailored resume (select and reorder) gets its bullets reworded
+      // toward the posting by the model, each one kept only if the truth audit traces every word, number and name to the
+      // fact it cites; the PDF is re-rendered and the reply says what changed and why. CAREER_TAILOR_REWRITE=on only;
+      // off, or a model failure, leaves today's resume. One metered call.
+      if (out.handler !== "agent" && out.intent === "career_tailor" && (out as any).result?.tailorDoc) {
+        const rwMeter = newMeter();
+        const rwCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const voiceSamples = (ctx as any).outreach?.voiceSamples ?? null;
+        const rw = await tailorRewriteTurn({ out: out as any, profile: (ctx as any).profile ?? null, on: rewriteOn(Deno.env),
+          model: (payload) => callModel(rwCfg, payload, { meter: rwMeter, role: "chat" }),
+          voice: Array.isArray(voiceSamples) && voiceSamples.length ? CareerWriting.extractVoiceProfile(voiceSamples) : null })
+          .catch((e) => { console.error("tailor rewrite:", e?.message ?? e); return null; });
+        if (rw?.summary) { out = rw.out as typeof out; agentMeta = { ...(agentMeta || {}), tailor_rewrite: rw.summary }; }
+        if (rwMeter.calls) await recordTurnCost(admin, user.id, tid, rwMeter);
+      }
+      // END FEATURE 4
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;

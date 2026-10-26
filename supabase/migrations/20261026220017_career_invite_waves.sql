@@ -251,14 +251,15 @@ create or replace view public.career_wave_gates as select * from public.career_w
 revoke all on public.career_wave_gates from public, anon, authenticated;
 grant select on public.career_wave_gates to service_role;
 
--- Who could still be invited: consent given, a valid number, the earliest signup per number, no invite yet, not opted
+-- Who could still be invited: consent given with the exact words they agreed to on record (TCPA: a text invite needs
+-- the person's prior written consent, so a row without its consent text is never texted), a valid number, the earliest signup per number, no invite yet, not opted
 -- out, not already an account on that number.
 create or replace function public.career_wave_eligible() returns table (waitlist_id uuid, phone text, consent_text text, consent_at timestamptz, created_at timestamptz)
 language sql stable security definer set search_path = public, pg_temp as $$
   select c.id, c.phone, c.consent_text, c.consent_at, c.created_at from (
     select distinct on (w.phone) w.id, w.phone, w.consent_text, w.consent_at, w.created_at
     from public.site_waitlist w
-    where w.consent and w.phone ~ '^\+[1-9][0-9]{7,14}$'
+    where w.consent and length(trim(coalesce(w.consent_text, ''))) > 0 and w.phone ~ '^\+[1-9][0-9]{7,14}$'
     order by w.phone, w.created_at, w.id) c
   where not exists (select from public.career_invites i where i.phone = c.phone)
     and not public.channel_opted_out(c.phone)

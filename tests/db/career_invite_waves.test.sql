@@ -11,6 +11,7 @@ select 'Synthetic ' || g, '+1312555' || lpad(g::text, 4, '0'), true, 'I agree to
 from generate_series(1, 100) g;
 insert into public.site_waitlist (name, phone, consent, consent_text, consent_at, created_at) values
   ('No consent', '+13125550900', false, null, null, '2026-09-30 00:00Z'),
+  ('Consent without its words', '+13125550901', true, null, '2026-09-30 00:00Z', '2026-09-30 00:01Z'),
   ('Duplicate of 1', '+13125550001', true, 'I agree.', '2026-10-05 00:00Z', '2026-10-05 00:00Z'),
   ('Hawaii', '+18085550001', true, 'I agree.', '2026-10-10 00:00Z', '2026-10-10 00:00Z'),
   ('Abroad', '+447700900001', true, 'I agree.', '2026-10-10 00:01Z', '2026-10-10 00:01Z'),
@@ -238,8 +239,8 @@ do $$declare j jsonb; w bigint := (select id from public.career_invite_waves whe
     perform public.career_invite_mark_sent((j->>'invite_id')::uuid, true, 'lm', null, '2026-10-27 19:04Z'); end loop; end $$;
 select t.ok((select string_agg(phone || ':' || state, ',' order by phone) from public.career_invites where phone in ('+18085550001', '+447700900001')) = '+18085550001:held,+447700900001:held',
   'Hawaii and a number outside +1 are held for the owner (quiet hours unknown)');
-select t.ok(not exists (select from public.career_invites where phone = '+13125550950') and not exists (select from public.career_invites where phone = '+13125550900'),
-  'the number with an account and the one without consent are never invited');
+select t.ok(not exists (select from public.career_invites where phone in ('+13125550950', '+13125550900', '+13125550901')),
+  'the number with an account, the one without consent and the one whose consent words are not on record are never invited');
 select t.ok((select count(*) = 1 from public.career_invites where phone = '+13125550001'), 'the duplicate signup is one invite');
 select t.ok(not exists (select from public.career_invites where phone = '+13125550099'), 'a number that said STOP is never invited');
 rollback;

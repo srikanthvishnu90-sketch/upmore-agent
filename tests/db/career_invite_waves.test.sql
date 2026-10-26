@@ -134,8 +134,33 @@ select t.ok(public.career_signup_step('00000000-0000-4000-8000-0000000017c1', 'a
 select t.ok(public.career_signup_step('00000000-0000-4000-8000-0000000017c1', 'age', 'terms', 'yes', '[]', '2026-10-26 19:04Z') = 'terms', 'a stale step changes nothing and says where it stands');
 select t.ok(public.career_signup_step('00000000-0000-4000-8000-0000000017c1', 'terms', 'active', null, '[]', '2026-10-26 19:05Z') = 'terms', 'the terms are not taken before they were shown');
 
+-- ---------------------------------------------------------------- the admission (20261026230000's core, closed)
+select public.trainee_set_signup('invite');
+select t.ok((select via || ',' || waitlist_id from public.trainee_admissions where user_id = '00000000-0000-4000-8000-0000000017c1')
+  = 'waitlist,' || (select waitlist_id from public.career_invites where phone = '+13125550001'), 'a bound invite records its admission, naming the waitlist row');
+select t.ok(public.trainee_admit('00000000-0000-4000-8000-0000000017c1', false) = 'waitlist', 'the core reads it back');
+select t.ok(not public.trainee_may_act('00000000-0000-4000-8000-0000000017c1'), 'admitted, but no applications until the sign-up steps are done');
+select t.must_fail($$insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash) values ('00000000-0000-4000-8000-0000000017c1', 'TEST-WAVE-ADM-1', 'Wave Employer', 'https://jobs.example.test/a', '{}', repeat('a', 64), repeat('a', 64))$$,
+  'not_admitted', 'the database refuses an application while the steps are unfinished');
+-- A confirmed phone matching a sent invite: the core's hook takes it for that account.
+insert into auth.users (id, phone, phone_confirmed_at) values ('00000000-0000-4000-8000-0000000017d8', '13125550008', now()),
+  ('00000000-0000-4000-8000-0000000017d2', '13125550002', now()), ('00000000-0000-4000-8000-0000000017d0', '13125550010', null),
+  ('00000000-0000-4000-8000-0000000017dd', null, null);
+insert into public.profiles (id) values ('00000000-0000-4000-8000-0000000017d8'), ('00000000-0000-4000-8000-0000000017dd');
+select t.ok(public.trainee_admit('00000000-0000-4000-8000-0000000017d8', false) = 'waitlist', 'a confirmed phone with a sent invite: admitted by the invite');
+select t.ok((select state || ',' || redeemed_via || ',' || redeemed_user from public.career_invites where phone = '+13125550008') = 'redeemed,web,00000000-0000-4000-8000-0000000017d8', 'the invite is taken by that account, once');
+select t.ok((select step from public.career_signup_gate where user_id = '00000000-0000-4000-8000-0000000017d8') = 'age', 'and its sign-up steps begin');
+select t.ok(public.trainee_admit('00000000-0000-4000-8000-0000000017d2', false) is null, 'an expired invite admits nobody');
+select t.ok(public.trainee_admit('00000000-0000-4000-8000-0000000017d0', false) is null and (select state from public.career_invites where phone = '+13125550010') = 'sent', 'an unconfirmed phone takes nothing');
+select t.ok(public.trainee_admit('00000000-0000-4000-8000-0000000017dd', false) is null and not public.trainee_may_act('00000000-0000-4000-8000-0000000017dd'), 'no invite, not listed, closed: not admitted');
+select t.must_fail($$insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash) values ('00000000-0000-4000-8000-0000000017dd', 'TEST-WAVE-ADM-2', 'Wave Employer', 'https://jobs.example.test/b', '{}', repeat('b', 64), repeat('b', 64))$$,
+  'not_admitted', 'a person not admitted is refused at the database');
+update public.career_signup_gate set step = 'active' where user_id = '00000000-0000-4000-8000-0000000017d8';
+select t.ok(public.trainee_may_act('00000000-0000-4000-8000-0000000017d8'), 'the steps done: they may apply');
+select public.trainee_set_signup('open');
+
 -- ---------------------------------------------------------------- the gates, pass-shaped
--- The 17 still unused of the 22 sent finish sign-up (17/22); 34 messages to them delivered, none failed; a 98/100 truth
+-- The invites still unused finish sign-up (with the one taken by phone above, 16 of the 21 sent); their messages delivered, none failed; a 98/100 truth
 -- sample; $0.10 a person; nothing refused with 429; no site paused; no application silent.
 do $$declare r record; u uuid; i int := 0; begin
   for r in select id, phone from public.career_invites where state = 'sent' order by phone loop
@@ -152,7 +177,7 @@ insert into public.career_reply_truth_samples (run_at, checked, passed, source) 
 create temp table g_pass as select * from public.career_wave_gate_rows('2026-10-27 19:00Z');
 select t.ok((select bool_and(status = 'pass') from g_pass), 'pass-shaped: every gate passes' || coalesce(': ' || (select string_agg(gate || '=' || status || ' (' || detail || ')', '; ') from g_pass where status <> 'pass'), ''));
 select t.ok((select value = 0.7619 and n = 21 from g_pass where gate = 'signup_completion'), 'completion 16/21 of the invites sent 24 hours or more ago (STOPs before the send and a failed send were never sent)');
-select t.ok((select value = 0.1 and n = 16 from g_pass where gate = 'cost_per_active_usd'), '$0.10 a person over 16 people');
+select t.ok((select value = 0.1 and n = 15 from g_pass where gate = 'cost_per_active_usd'), '$0.10 a person over the 15 with metered turns');
 select t.ok((select (r->>'action') = 'double' and (r->>'recommended_size')::int = 50 and (r->>'last_wave_size')::int = 25 from public.career_wave_recommendation('2026-10-27 19:00Z') r), 'every gate passes: double, 25 -> 50');
 
 -- ---------------------------------------------------------------- warn-shaped: hold

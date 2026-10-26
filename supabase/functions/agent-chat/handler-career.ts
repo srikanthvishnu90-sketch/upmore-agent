@@ -77,7 +77,6 @@ import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 import { commitSignupTurn, signupTurn } from "../_shared/career_signup.ts"; // FEATURE WAVES
-import { INVITE_REFUSED } from "../_shared/career_invites.ts"; // FEATURE WAVES
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -188,7 +187,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, invite: body.invite,
         rpc: (n, a) => createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a), personRpc: (n, a) => supabase.rpc(n, a) });
       if (!adm.admitted) {
-        return json(cors, { error: adm.reason, reply: adm.invite ? INVITE_REFUSED[adm.invite] : adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
+        return json(cors, { error: adm.reason, reply: adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
           adm.reason === "not_invited" ? 403 : 503);
       }
       if (body.check_access === true) return json(cors, { access: "admitted" }, 200);

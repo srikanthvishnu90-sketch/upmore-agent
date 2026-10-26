@@ -11,8 +11,9 @@
 //       approves exactly that template (it must name Trainee, say STOP, and hold {link} and/or {telegram}) for exactly
 //       that many invites. Run once without --sha256 to print the hash of the file.
 //   deno run -A scripts/launch/invite-wave.ts send --wave 1 [--max 50]
-//       sends the approved wave through LoopMessage (LOOPMESSAGE_API_KEY), with TRAINEE_APP_URL and/or
-//       TELEGRAM_BOT_USERNAME for the links; stops on a failing gate, outside quiet hours, or at --max.
+//       sends the approved wave through LoopMessage (LOOPMESSAGE_API_KEY), with TRAINEE_APP_URL (the web app, e.g.
+//       https://trainee-six.vercel.app/app: {link} is <TRAINEE_APP_URL>/?invite=<token>, which the app sends to the admission
+//       gate) and/or TELEGRAM_BOT_USERNAME for the links; stops on a failing gate, outside quiet hours, or at --max.
 import { loopSend } from "../../supabase/functions/_shared/loopmessage.ts";
 import { type Rpc, sendWave, sha256Hex } from "../../supabase/functions/_shared/career_invites.ts";
 

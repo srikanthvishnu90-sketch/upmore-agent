@@ -39,19 +39,17 @@ The owner asked for this on 2026-10-26: "not 100 people, as many people as much,
    ```
    Duplicate numbers can stay. A wave takes the earliest signup for each number.
 
-## 2. One wave and invite system
-PR #195, the web app, first shipped its own waves. `trainee_invite_wave(n)` marked waitlist rows invited, and a confirmed phone claimed them through `site_waitlist.invited_at` and `claimed_by`. This PR builds on #195: its branch is merged in, and the two are now one system.
-- **The web gate** (`TRAINEE_WEB_SIGNUP=invite`, `trainee_admit`, `admitWebUser`) keeps two admissions:
-  - **existing**: the account existed before the gate;
-  - **allow-list**: the env names the account.
-
-  It admits by waitlist only through an invite:
-  - the account's redeemed invite;
-  - the invite link's `invite` token, redeemed as the person inside the gate;
-  - a confirmed phone that matches an invite that was sent. That invite is taken once.
-- **What was dropped**: `trainee_invite_wave`, `trainee_waitlist_invited` and the four claim columns.
-- **Admission on every channel**: every bound invite records its admission, so a person who came in on Telegram or iMessage is admitted on the web too.
-- **Migration order**: the migration is `20261026233017` so it runs after #195's `20261026230000`.
+## 2. One invite and admission system
+This was the architect's decision on 2026-10-26.
+- **#195 owns the admission core** (`20261026230000_trainee_web_admission.sql`). This PR builds on #195's branch head `d07235e51`.
+  - **Who decides**: `trainee_admit` decides existing, then this PR's hook, then a redeemed invite, then the allow-list, then open.
+  - **The setting**: `trainee_settings.web_signup` is `invite` by default. The owner opens it with `trainee_set_signup('open')`. There is no env mode.
+  - **The database check**: `trainee_may_act`. Triggers on the prepared applications, cards, queue, wants, message cards and batch approvals refuse a person who isn't admitted. They also refuse an invitee whose sign-up steps aren't finished.
+- **This PR owns the invites and the waves, and plugs in two ways:**
+  - **`career_invite_admit(user)`**, which `trainee_admit` calls by name. It admits via `waitlist` when the account holds a redeemed invite, or when its **confirmed** phone matches a sent invite. That invite is then taken once for the account, via the web.
+  - **`career_invite_bind`** records the admission (`via 'waitlist'`, `waitlist_id`) for every invite bound on any channel.
+- **The web gate**: #195's `admitWebUser` redeems the link's `invite` token as the person through `career_invite_redeem_own`. The web app sends that token with `check_access`, from `/app/?invite=<token>`.
+- **Where the links point**: `TRAINEE_APP_URL`, for example `https://trainee-six.vercel.app/app`. It's configurable because the domain will change. The web link is `<TRAINEE_APP_URL>/?invite=<token>`.
 
 ## 3. Wave mechanics (migration `20261026233017_career_invite_waves.sql`)
 - **Open** (`career_wave_open(size, key, override_reason, now)`): takes the next N eligible people in signup order and makes them invites (`ready`), each with its own 32-character token. Nothing is sent.
@@ -124,14 +122,14 @@ Starting at 100, ten doublings reach 102,400, which is more than 98k.
 
 ## 5. Owner steps and decisions
 1. **Find the 98k and import them** (section 1). Until then, a wave opens with 0 people.
-2. Apply `20261026230000_trainee_web_admission.sql`, then `20261026233017_career_invite_waves.sql`, in that order. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
+2. Apply `20261026230000_trainee_web_admission.sql` (#195), then `20261026233017_career_invite_waves.sql`, in that order. It's listed in go-live with its mark. Then redeploy `agent-chat`, `trainee-telegram` and `trainee-inbound`. All of this waits on the owner's hold on launch.
 3. Set these environment variables:
    - `TRAINEE_TERMS_URL`, `TRAINEE_TERMS_VERSION`, `TRAINEE_PRIVACY_URL` and `TRAINEE_PRIVACY_VERSION`. Until they're set, sign-up stops at the terms step and says so.
-   - `TRAINEE_APP_URL` and/or `TELEGRAM_BOT_USERNAME` for the links.
+   - `TRAINEE_APP_URL` (for example `https://trainee-six.vercel.app/app`) and/or `TELEGRAM_BOT_USERNAME` for the links.
 4. **Decision: people under 18.** The default is to block them (`TRAINEE_UNDER18_POLICY` unset). `allow` records the answer and goes on.
 5. **Decision: the thresholds and the first wave size** in `career_wave_policy`.
 6. **Decision: non-iPhone numbers.** LoopMessage sends iMessage. An SMS provider needs its own A2P 10DLC registration, and none is wired.
-7. **Decision: web sign-up.** Go-live sets `TRAINEE_WEB_SIGNUP=invite` (from #195), so the web admits only existing, allow-listed and invited accounts. `open` admits anyone who signs in. Either way, only invited accounts go through the sign-up steps.
+7. **Decision: open sign-up.** It's closed by default (`trainee_settings`). `select public.trainee_set_signup('open')` lets anyone who signs in use Trainee. Either way, only invited accounts go through the sign-up steps.
 8. For each wave, run `invite-wave.ts` in this order: `gates`, `open`, `list` (review the list), `approve` (the exact text and count), `send`.
 
 ## 6. Not done

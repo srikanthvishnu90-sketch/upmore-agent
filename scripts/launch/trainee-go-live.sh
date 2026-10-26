@@ -234,6 +234,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
   "to_regclass('public.trainee_admissions') is not null and exists (select 1 from pg_proc where proname = 'trainee_may_act')"
+  "to_regclass('public.career_invites') is not null and exists (select 1 from pg_proc where proname = 'career_wave_gate_rows') and exists (select 1 from pg_proc where proname = 'career_invite_admit')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

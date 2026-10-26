@@ -5,13 +5,11 @@
 #   PGBIN=/usr/lib/postgresql/16/bin bash tests/db/rehearse_live_migrations.sh
 #
 # The live snapshot (2026-10-26, read-only queries of project mrwngntwmnaqrqhupvlt): every MIGRATION_MARK read true but
-# the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live).
-# FEATURE WAVES (2026-10-26, 19:50 UTC, the same read-only marks): none of the 2026-10-26 files is live either (each
-# MIGRATION_MARK read false, and public.career_board_state does not exist), so they are listed too; without them the
-# mimic applied 20261026060006 onto a schema with no career_board_state and failed identically on trunk fe8405586. Override with
+# the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live). Override with
 # LIVE_MISSING="<file> <file> ..." when the live project moves on.
 #   The 2026-10-26 files are not live either: each of their marks read false on the project (read-only query of the
-#   go-live MIGRATION_MARK expressions, 2026-10-26 ~14:30 CDT), so they are listed missing too. Treating them as live
+#   go-live MIGRATION_MARK expressions, 2026-10-26 ~14:30 CDT), so they are listed missing too. FEATURE WAVES re-read them at 19:50 UTC
+#   (still all false; public.career_board_state does not exist) and adds its own file, 20261026233017. Treating them as live
 #   applied the cloud runner's generated per-portal claim before the 2026-10-25 files that change the claim it copies.
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox

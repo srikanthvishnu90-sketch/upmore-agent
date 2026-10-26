@@ -442,6 +442,11 @@ echo "== career_apply_cloud_runner.test.sql (global and per-portal limits throug
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230000_trainee_web_admission.sql"
 echo "== trainee_web_admission.test.sql (closed by default; a person not admitted makes no prepared row, card or queue row by any path; existing, allow-listed and invited people may; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/trainee_web_admission.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# FEATURE WAVES (20261026233017, after 230000: the invites and the waves; they plug into its admission core); applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026233017_career_invite_waves.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026233017_career_invite_waves.sql"
+echo "== career_invite_waves.test.sql (signup order, nothing sent on open, the exact text and count, once per invite, STOP, the gates pass/warn/fail, the admission)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_invite_waves.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then

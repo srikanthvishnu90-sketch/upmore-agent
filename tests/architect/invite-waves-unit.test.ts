@@ -94,20 +94,21 @@ Deno.test("the terms answer, and terms read only when every link and version is 
   eq(termsFrom(env({ TRAINEE_TERMS_URL: "http://t.test/terms", TRAINEE_TERMS_VERSION: "1", TRAINEE_PRIVACY_URL: "https://t.test/privacy", TRAINEE_PRIVACY_VERSION: "1" })), null, "https only");
 });
 
-Deno.test("the web gate on the invites: a token is tried only when not admitted; a refused token admits nobody and says why", async () => {
+Deno.test("the web gate (20261026230000's admitWebUser) on the invites: the token is redeemed as the person only when not admitted; a refused one admits nobody", async () => {
   const { admitWebUser } = await import("../../supabase/functions/_shared/trainee_admission.ts");
-  const invite = env({ TRAINEE_WEB_SIGNUP: "invite" }), user = { id: "u-1" };
+  const user = { id: "u-1" };
   let state: string | null = null, redeemed: string[] = [];
   const rpc = async () => ({ data: state, error: null });
-  const redeem = (answer: Record<string, unknown>) => async (tok: string) => { redeemed.push(tok); if (!answer.error) state = "waitlist"; return { data: answer, error: null }; };
-  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ step: "age" }) }), { admitted: true, via: "waitlist" });
+  const personRpc = (answer: Record<string, unknown>) => async (name: string, a: Record<string, unknown>) => {
+    eq(name, "career_invite_redeem_own"); redeemed.push(String(a.p_token)); if (!answer.error) state = "waitlist"; return { data: answer, error: null }; };
+  eq(await admitWebUser({ env: env({}), rpc, user, invite: TOK, personRpc: personRpc({ step: "age" }) }), { admitted: true, via: "waitlist" });
   eq(redeemed, [TOK]);
   redeemed = [];
-  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ step: "age" }) }), { admitted: true, via: "waitlist" });
+  eq(await admitWebUser({ env: env({}), rpc, user, invite: TOK, personRpc: personRpc({ step: "age" }) }), { admitted: true, via: "waitlist" });
   eq(redeemed, [], "already admitted: the token is never used again");
   state = null;
-  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ error: "used" }) }), { admitted: false, reason: "not_invited", invite: "used" });
-  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: redeem({ error: "anything" }) }), { admitted: false, reason: "not_invited", invite: "invalid" });
-  eq(await admitWebUser({ env: invite, rpc, user, invite: TOK, redeem: async () => ({ data: null, error: { message: "down" } }) }), { admitted: false, reason: "unavailable" }, "a failed redemption admits nobody");
-  eq(await admitWebUser({ env: invite, rpc, user }), { admitted: false, reason: "not_invited" }, "no token: not invited");
+  eq(await admitWebUser({ env: env({}), rpc, user, invite: TOK, personRpc: personRpc({ error: "used" }) }), { admitted: false, reason: "not_invited" });
+  eq(await admitWebUser({ env: env({}), rpc, user, invite: "short", personRpc: personRpc({ step: "age" }) }), { admitted: false, reason: "not_invited" }, "a malformed token is never sent");
+  eq(redeemed, [TOK], "only the well-formed token reached the database");
+  eq(await admitWebUser({ env: env({}), rpc, user }), { admitted: false, reason: "not_invited" }, "no token: not invited");
 });

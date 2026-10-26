@@ -22,12 +22,10 @@
 -- count; the sender (supabase/functions/_shared/career_invite_send.ts) claims one invite at a time and records each send.
 -- STOP on any channel, or the invite's own unsubscribe link, stops every invite to that number at once (trigger).
 --
--- ONE wave and invite system (coordinator, 2026-10-26). 20261026230000_trainee_web_admission.sql (the web gate,
--- TRAINEE_WEB_SIGNUP=invite) first shipped its own waves: trainee_invite_wave(n) marked site_waitlist rows invited and a
--- confirmed phone claimed them (invited_at, invite_wave, claimed_by, claimed_at). This file, applied after it, replaces
--- that with the invites below: trainee_admit keeps its existing and allow-list admissions and admits by waitlist only
--- through an invite (redeemed, or a sent one matching the account's confirmed phone, taken here); trainee_invite_wave,
--- trainee_waitlist_invited and the claim columns are dropped. Every invite bound to an account records its admission.
+-- ONE invite and admission system (architect, 2026-10-26): 20261026230000 (PR #195) owns the admission core
+-- (trainee_admit, trainee_may_act, the triggers that refuse applications of a person not admitted, or of an invitee who
+-- has not finished the sign-up steps). This file owns the invites and the waves and plugs in: career_invite_admit (called
+-- by trainee_admit by name), and every invite bound to an account records its admission (via 'waitlist').
 
 create table if not exists public.career_wave_policy (
   id int primary key default 1 check (id = 1),
@@ -568,32 +566,26 @@ create trigger career_invites_on_opt_out after insert or update of opted_out on 
   for each row execute function public.career_invites_on_opt_out();
 
 -- ---------------------------------------------------------------------------------------------------------------------
--- The web gate's admission, on the invites (replaces 20261026230000's waitlist claim). existing and allowlist are as
--- before. waitlist: the account holds a redeemed invite, or its confirmed phone matches an invite that was sent and is
--- still unused and unexpired, which is then taken for this account (redeemed via the web, bound, the sign-up steps begin).
-create or replace function public.trainee_admit(p_user uuid, p_allowlisted boolean) returns text
+-- The admission core is 20261026230000's (trainee_admit decides: existing, then this hook, then a redeemed invite, then
+-- the allow-list, then open). This file plugs into it by name: career_invite_admit(user) admits by an invite only:
+--   the account already holds a redeemed invite (bound by career_invite_bind, which recorded the admission), or
+--   its CONFIRMED phone matches an invite that was sent and is still unused, which is then taken for this account
+--   (redeemed via the web, bound, its admission recorded, the sign-up steps begun).
+-- Answers 'waitlist' or null. Expiry, STOP and single use are career_invite_take_core's.
+create or replace function public.career_invite_admit(p_user uuid) returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare a public.trainee_admissions; ph text; inv uuid; wl uuid; r jsonb;
+declare ph text; inv uuid; wl uuid; r jsonb;
 begin
-  if p_user is null then raise exception 'invalid admission'; end if;
-  perform pg_advisory_xact_lock(hashtextextended('trainee_admit:' || p_user::text, 0));
-  select * into a from public.trainee_admissions where user_id = p_user;
-  if found then return a.via; end if;
-  -- Only a confirmed phone counts: a number typed at sign-up and never verified takes nothing.
-  select case when u.phone_confirmed_at is not null then public.trainee_phone_digits(u.phone) end into ph from auth.users u where u.id = p_user;
-  if not found then raise exception 'invalid admission'; end if;
-  if coalesce(p_allowlisted, false) then
-    insert into public.trainee_admissions (user_id, via) values (p_user, 'allowlist');
-    return 'allowlist';
-  end if;
+  if p_user is null then return null; end if;
   select i.id, i.waitlist_id into inv, wl from public.career_invites i where i.redeemed_user = p_user;
   if inv is not null then
     insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', wl) on conflict (user_id) do nothing;
     return 'waitlist';
   end if;
+  select case when u.phone_confirmed_at is not null then public.trainee_phone_digits(u.phone) end into ph from auth.users u where u.id = p_user;
   if ph is null then return null; end if;
   select i.id into inv from public.career_invites i
-   where i.state = 'sent' and public.trainee_phone_digits(i.phone) = ph -- expiry, STOP and single use: career_invite_take_core
+   where i.state = 'sent' and public.trainee_phone_digits(i.phone) = ph
    order by i.sent_at, i.id limit 1 for update skip locked;
   if inv is null then return null; end if;
   r := public.career_invite_take_core(inv, 'web:' || p_user::text, 'web', clock_timestamp());
@@ -601,14 +593,8 @@ begin
   perform public.career_invite_bind(inv, p_user, clock_timestamp());
   return 'waitlist';
 end $$;
-revoke all on function public.trainee_admit(uuid, boolean) from public, anon, authenticated;
-grant execute on function public.trainee_admit(uuid, boolean) to service_role;
-drop function if exists public.trainee_invite_wave(integer);
-drop function if exists public.trainee_waitlist_invited(text);
-drop index if exists public.site_waitlist_claimed_by_key;
-drop index if exists public.site_waitlist_uninvited;
-alter table public.site_waitlist drop column if exists invited_at, drop column if exists invite_wave,
-  drop column if exists claimed_by, drop column if exists claimed_at;
+revoke all on function public.career_invite_admit(uuid) from public, anon, authenticated;
+grant execute on function public.career_invite_admit(uuid) to service_role;
 
 revoke all on function public.career_wave_hours(interval), public.career_invite_hash(text), public.career_wave_gate_rows(timestamptz), public.career_wave_eligible(),
   public.career_wave_recommendation(timestamptz), public.career_wave_open(int, text, text, timestamptz), public.career_wave_invite_list(bigint),

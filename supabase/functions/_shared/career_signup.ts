@@ -6,8 +6,9 @@
 //      TRAINEE_PRIVACY_URL/_VERSION); "I agree" accepts both. Unset, sign-up can't finish and the reply says so.
 // Each acceptance is a career_consents row: its version, the sha256 of the exact text the person was shown, the sha256
 // of their answer and the channel. STOP (and "stop everything") always passes through to the existing handling.
-// On the web, the first message after an invite link carries `invite` (the token): it is redeemed as the signed-in
-// person (career_invite_redeem_own), which starts step 1.
+// On the web the admission gate (20261026230000's admitWebUser) redeems the invite link's token before this runs; with
+// sign-up opened by the owner it admits everyone first, so the token (`invite`) is redeemed here instead, as the
+// signed-in person (career_invite_redeem_own). Either way the redemption starts step 1.
 import { channelCommand } from "./channel.ts";
 import { INVITE_REFUSED, type InviteRefusal, sha256Hex } from "./career_invites.ts";
 

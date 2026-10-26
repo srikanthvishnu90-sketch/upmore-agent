@@ -50,7 +50,12 @@ jobs:
     # apply-cli-typecheck; core keeps the node core suites, the edge tests, pay importers, bundle check and
     # typechecks. Every step still runs and gates; nothing is advisory. Each step's seconds are now printed in
     # the gate's SUMMARY lines (the "gate steps" annotation), so the next imbalance is measured, not inferred.
-    # MEASURED_AFTER
+    # Measured on this split's own first run (PR #189, head 878ab5a7, run of 2026-10-26): gate (core) 11.9 min
+    # job (career-and-shared-tests-core 668 s, every other core step 20 s together); gate (architect) 16.3 min
+    # job (architect-tests 934 s, apply-cli-typecheck 2 s); gate (browser) 7.4 min. 668 + 934 s is the ~27 min
+    # the single core step had been taking. The architect job is now the longer of the two: at 934 s its Deno
+    # suite is the next step to watch; if it nears the cap, split tests/architect along its handler/flow files,
+    # not by raising the cap.
     timeout-minutes: 30
     env:
       GATE_PARTITION: core

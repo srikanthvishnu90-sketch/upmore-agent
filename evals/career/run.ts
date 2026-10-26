@@ -2,7 +2,7 @@
 // evals/career/messages.json. Each item runs in a fresh thread through the same conversation interface the product uses;
 // a model judge grades the last reply (and the end state, where the item names one) against must / must_not.
 //
-//   deno run -A evals/career/run.ts --brain router|agent --label <label> [--set official|heldout] [--only E001,E002]
+//   deno run -A evals/career/run.ts --brain router|agent|staged --label <label> [--set official|heldout] [--only E001,E002]
 //                                   [--budget-usd 15]
 //
 // --budget-usd (or EVAL_BUDGET_USD) is a total across runs: the spend already recorded in evals/career/results/*.json
@@ -13,7 +13,9 @@
 export interface EvalItem { id: string; persona: string; turns: string[]; must: string[]; must_not?: string[]; state?: string }
 // `trace` (WO-061): per turn, how the agent loop ended and every tool it called (name, ok, error). Never shown to a judge;
 // it is there so a failure reply (the step-limit text) can be traced to its cause instead of guessed.
-export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[]; errors?: string[] }[];
+// FEATURE 13: under --brain staged each turn also says where it went (brain, router, or router_fallback after a model
+// failure) and the router class that decided it.
+export type Trace = { stopped: string; steps: number; tools: { name: string; ok: boolean; error?: string }[]; errors?: string[]; route?: string; intent?: string | null; reason?: string }[];
 export type Brain = (turns: string[]) => Promise<{ replies: string[]; state: unknown; trace?: Trace }>;
 export type Judge = (item: EvalItem, lastReply: string, state: unknown) => Promise<{ pass: boolean; failed: string[]; score: number; note: string }>;
 export interface EvalItemResult { id: string; pass: boolean; failed: string[]; score: number; replies: string[]; note: string; state?: unknown; trace?: Trace; judges?: { model: string; pass: boolean; failed: string[]; note: string }[] }
@@ -97,11 +99,15 @@ export function parseJudge(text: string): { pass: boolean; failed: string[]; sco
 if (import.meta.main) {
   const args = Deno.args, opt = (n: string) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] ?? null : null; };
   const brainName = opt("--brain") || "router", label = opt("--label") || `${brainName}-${new Date().toISOString().slice(0, 10)}`;
+  if (!["router", "agent", "staged"].includes(brainName)) { console.log(`NOT RUN: --brain must be router, agent or staged (got ${brainName}).`); Deno.exit(2); }
+  // The agent and the staged release both call the brain's model (staged only on question and advice turns).
+  const usesModel = brainName === "agent" || brainName === "staged";
   if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY (the judge needs it)."); Deno.exit(2); }
   const { handleInbound, memoryStore } = await import("../../supabase/functions/_shared/conversation.ts");
   const core = await import("../../supabase/functions/_shared/router_core.career.js");
   const { CareerHost } = await import("../../supabase/functions/_shared/career_host.js");
   const { agentTurn } = await import("../../supabase/functions/agent-chat/career_brain.ts");
+  const { stagedDecision, STAGED_TOOL_POLICY } = await import("../../supabase/functions/agent-chat/career_staged.ts");
   const { callModel, modelConfig, newMeter, PRICES } = await import("../../supabase/functions/_shared/model_gateway.ts");
   const { memoryAlertStore } = await import("../../supabase/functions/_shared/career_alert_store.ts");
   const { situationFrom } = await import("../../supabase/functions/_shared/career_situation.ts");
@@ -128,7 +134,13 @@ if (import.meta.main) {
     const turnFn = async (a: any) => {
       const ctx: any = host.createTurnCtx({ userId: a.userId, threadId: a.userId, now, snapshot: a.stores.snapshot ?? null });
       let reply: string;
-      if (brainName === "agent") {
+      // FEATURE 13: --brain staged measures the staged release as agent-chat runs it (career_staged.ts): the router class
+      // of each turn decides; question and advice turns go to the brain with the staged tool policy, every other turn to
+      // the router, and a model failure falls back to the router (production behavior), recorded in the trace.
+      const stagedPick = brainName === "staged"
+        ? stagedDecision({ env: { get: (k: string) => k === "CAREER_BRAIN" ? "staged" : Deno.env.get(k) }, message: a.message, ctx, host, structured: false })
+        : null;
+      if (brainName === "agent" || stagedPick?.brain) {
         // WO-061 fix 2 (production parity): agent-chat reads the person's situation from their account every turn
         // (readSituation) and passes it; the harness passed none, so every records question met "could not be read this
         // turn". An eval persona's account holds nothing but the alerts it set in this chat: that is its situation.
@@ -150,12 +162,18 @@ if (import.meta.main) {
         const errors: string[] = [];
         const model = async (p: any) => { try { return await callModel(brainCfg, p, { meter, role: "chat" }); } catch (e) { errors.push(String((e as any)?.summary?.() ?? e).slice(0, 300)); throw e; } };
         const t = await agentTurn({ message: a.message, history: a.history, stores: ctx, userId: a.userId, threadId: a.userId, now, alerts, interviews, model,
-          known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation } });
-        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })), ...(errors.length ? { errors } : {}) });
-        if (t.stopped === "model_error") throw new Error("agent model unavailable");
-        reply = t.reply;
+          known: { standing: [], alerts: row ? { prefs: row.prefs, tz: row.tz } : null, pipeline: null, situation },
+          ...(stagedPick ? { toolPolicy: STAGED_TOOL_POLICY } : {}) });
+        trace.push({ stopped: String(t.stopped), steps: Number(t.steps ?? 0), tools: (t.tool_calls ?? []).map((c: any) => ({ name: c.name, ok: !!c.ok, ...(c.error ? { error: String(c.error).slice(0, 200) } : {}) })), ...(errors.length ? { errors } : {}),
+          ...(stagedPick ? { route: "brain", intent: stagedPick.intent } : {}) });
+        if (t.stopped === "model_error" && stagedPick && !(t.tool_calls ?? []).some((c: any) => c.ok && c.effect === "write_own")) {
+          reply = host.runTurn(a.message, ctx).reply;
+          trace[trace.length - 1].route = "router_fallback";
+        } else if (t.stopped === "model_error") throw new Error("agent model unavailable");
+        else reply = t.reply;
       } else {
         reply = host.runTurn(a.message, ctx).reply;
+        if (stagedPick) trace.push({ stopped: "router", steps: 0, tools: [], route: "router", intent: stagedPick.intent, reason: stagedPick.reason });
       }
       return { reply, stores: { snapshot: host.extractSnapshot(ctx) } };
     };
@@ -166,7 +184,7 @@ if (import.meta.main) {
     }
     const p = await store.userFor("+15550001000");
     const snap: any = p ? (await store.stores(p.id)).snapshot : null;
-    return { replies, state: snap ? snap.stores : null, ...(brainName === "agent" ? { trace } : {}) };
+    return { replies, state: snap ? snap.stores : null, ...(usesModel ? { trace } : {}) };
   };
   const oneJudge = async (cfg: any, item: EvalItem, reply: string, state: unknown) => {
     const res = await callModel(cfg, { system: "You are a strict grader. Output JSON only.", messages: [{ role: "user", content: judgePrompt(item, reply, state) }], max_tokens: 400 }, { meter: judgeMeter, role: "chat" });
@@ -185,7 +203,7 @@ if (import.meta.main) {
   const items: EvalItem[] = set.items.filter((i: EvalItem) => !only || only.split(",").includes(i.id));
   const budgetArg = opt("--budget-usd") ?? Deno.env.get("EVAL_BUDGET_USD") ?? null;
   const budget = budgetArg === null ? null : Number(budgetArg);
-  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (judge2Cfg && !PRICES[judge2Cfg.model]) || (brainName === "agent" && !PRICES[brainCfg.model]))) {
+  if (budget !== null && (!(budget > 0) || !PRICES[judgeCfg.model] || (judge2Cfg && !PRICES[judge2Cfg.model]) || (usesModel && !PRICES[brainCfg.model]))) {
     console.log(`NOT RUN: a budget needs a positive number and a priced model (judge ${judgeCfg.model}, brain ${brainCfg.model}); an unpriced call cannot be capped.`);
     Deno.exit(2);
   }
@@ -206,7 +224,7 @@ if (import.meta.main) {
   try { commit = new TextDecoder().decode((await new Deno.Command("git", { args: ["rev-parse", "--short", "HEAD"] }).output()).stdout).trim(); } catch { /* not a git checkout */ }
   // WO-061 (owner, 2026-10-21): every score from fix (b) on carries this label, so the harness gain is never read as a brain gain.
   const harness = "situation parity since f265092a (production parity, not brain improvement)";
-  const result = { label, harness, set: setName, brain: brainName, model: brainName === "agent" ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
+  const result = { label, harness, set: setName, brain: brainName, model: usesModel ? brainCfg.model : null, judge_model: judgeCfg.model, judge_model_2: judge2Cfg?.model ?? null, commit, source_commit: source === "unknown" ? commit : source, run_at: new Date().toISOString(),
     cost_usd: { brain: meter.usd_micros / 1e6, judge: judgeMeter.usd_micros / 1e6 }, unpriced_calls: meter.unpriced + judgeMeter.unpriced,
     budget_usd: budget, spent_before_usd: before, ...r };
   await Deno.mkdir(new URL("./results/", import.meta.url), { recursive: true });

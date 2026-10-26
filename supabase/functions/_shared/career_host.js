@@ -185,6 +185,55 @@ const CareerHost = (() => {
     return record;
   }
 
+  // FEATURE 9 (account memory, DIAGNOSIS 2.6/2.7 fix F5): the person's
+  // profile (resume facts with their confirmations) and their tracker
+  // belong to the PERSON, not to one thread. They ride the account
+  // record (career_watch_kv 'career:account', patch key `memory`,
+  // migration 20261026090009) inside the same transactional commit as
+  // everything else — advisory lock, account-version fence, privacy
+  // epoch, erase — so a resume confirmed or an application logged in one
+  // thread is on the record in every other thread and on every later day.
+  // What stays per thread is the conversation: the router's frames
+  // (profile keys starting with "_", e.g. _careerRouterPrep, _onboarding,
+  // and the tracker's _careerThread mirror). The thread snapshot still
+  // carries a copy of the profile and tracker as of its last turn,
+  // because the executor, the extension sync and the cloud engine read
+  // it there; on load the account copy wins.
+  const MEMORY_MAX_BYTES = 500000;
+  const canon = (v) => Array.isArray(v) ? v.map(canon) : (v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  const sameJson = (a, b) => JSON.stringify(canon(a === undefined ? null : a)) === JSON.stringify(canon(b === undefined ? null : b));
+  const plainObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  // The person's profile without the thread's frames. A profile derived
+  // for one turn from stated facts (_fromStatedFacts) is not a profile.
+  function accountProfileOf(p) {
+    if (!plainObject(p) || p._fromStatedFacts) return null;
+    const out = {};
+    for (const k of Object.keys(p)) if (!k.startsWith("_")) out[k] = cloneJson(p[k]);
+    return out;
+  }
+  function profileFramesOf(p) {
+    const out = {};
+    if (!plainObject(p)) return out;
+    for (const k of Object.keys(p)) if (k.startsWith("_") && k !== "_careerTrackStore" && k !== "_fromStatedFacts") out[k] = p[k];
+    return out;
+  }
+  function accountTrackerOf(t) {
+    if (!plainObject(t)) return null;
+    const out = {};
+    for (const k of Object.keys(t)) if (k !== "_careerThread") out[k] = cloneJson(t[k]);
+    return out;
+  }
+  // The record this turn would leave on the account: the profile and the
+  // tracker, each kept as the account held it when this turn has none of
+  // its own (a thread never deletes the person's record by not loading it).
+  function memoryOf(ctx) {
+    const before = plainObject(ctx._accountMemory) ? ctx._accountMemory : {};
+    const trackerSrc = ctx.trackStore || (plainObject(ctx.profile) ? ctx.profile._careerTrackStore : null);
+    const profile = accountProfileOf(ctx.profile) || (plainObject(before.profile) ? before.profile : null);
+    const tracker = accountTrackerOf(trackerSrc) || (plainObject(before.tracker) ? before.tracker : null);
+    return { profile, tracker };
+  }
+
   // §1b ensure-ending — copied verbatim from pilot-lib.cjs (the harness
   // seam that guarantees H-12's last-sentence requirement for 120/130/141
   // results; 142 guarantees its own endings and is NOT passed through here).
@@ -338,6 +387,12 @@ const CareerHost = (() => {
         // reads could never be turned on by anyone.
         workerCapabilities: Object.assign({}, workerCapabilities),
         accountPersistence: o.accountPersistence === true,
+        // FEATURE 9: the composition root turns account memory on (the
+        // handler does with CAREER_ACCOUNT_MEMORY=on, once migration
+        // 20261026090009 is applied: a database without it refuses the
+        // `memory` patch key); off, the profile and tracker stay per
+        // thread exactly as before.
+        accountMemory: o.accountPersistence === true && o.accountMemory === true,
       };
       if (o.snapshot && o.snapshot.scope && o.snapshot.scope.userId !== ctx.userId) throw new Error("career_snapshot_owner_mismatch");
       const stores = o.snapshot && typeof o.snapshot === "object" ? o.snapshot.stores : null;
@@ -349,6 +404,38 @@ const CareerHost = (() => {
         }
       }
       if (o.profile !== undefined) ctx.profile = o.profile;
+      // FEATURE 9: the account's profile and tracker are the person's;
+      // the thread keeps only its frames. A thread written before the
+      // account held a memory (no account_memory stamp on its snapshot)
+      // still contributes the tracker rows the account lacks (by app_id)
+      // and its profile when the account holds none, so nothing logged
+      // before this change is lost.
+      const acctMemory = o.account && plainObject(o.account.memory) ? o.account.memory : null;
+      if (acctMemory && ctx.accountMemory && o.profile === undefined) {
+        try {
+          const legacy = !(o.snapshot && o.snapshot.account_memory === 1);
+          ctx._accountMemory = { profile: plainObject(acctMemory.profile) ? cloneJson(acctMemory.profile) : null, tracker: plainObject(acctMemory.tracker) ? cloneJson(acctMemory.tracker) : null };
+          if (ctx._accountMemory.profile) {
+            const threadProfile = plainObject(ctx.profile) ? ctx.profile : null;
+            if (!ctx.trackStore && threadProfile && plainObject(threadProfile._careerTrackStore)) ctx.trackStore = threadProfile._careerTrackStore;
+            const acctFacts = Array.isArray(ctx._accountMemory.profile.facts) ? ctx._accountMemory.profile.facts : [];
+            if (!(legacy && threadProfile && !threadProfile._fromStatedFacts && !acctFacts.length && Array.isArray(threadProfile.facts) && threadProfile.facts.length)) {
+              ctx.profile = Object.assign(cloneJson(ctx._accountMemory.profile), profileFramesOf(threadProfile));
+            }
+          }
+          if (ctx._accountMemory.tracker) {
+            const threadStore = plainObject(ctx.trackStore) ? ctx.trackStore : null;
+            const next = cloneJson(ctx._accountMemory.tracker);
+            if (legacy && threadStore && Array.isArray(threadStore.rows)) {
+              const have = new Set((Array.isArray(next.rows) ? next.rows : []).map((r) => r && r.app_id));
+              const extra = threadStore.rows.filter((r) => r && r.app_id && !have.has(r.app_id));
+              if (extra.length) next.rows = [...(Array.isArray(next.rows) ? next.rows : []), ...cloneJson(extra)];
+            }
+            if (threadStore && plainObject(threadStore._careerThread)) next._careerThread = threadStore._careerThread;
+            ctx.trackStore = next;
+          }
+        } catch { /* a malformed account memory never breaks a turn; the thread's copy stands */ }
+      }
       if (o.account) {
         if (o.account.preferred_locations && ctx.profile) {
           ctx.profile.preferences = Object.assign({}, ctx.profile.preferences || {}, { locations: o.account.preferred_locations.slice() });
@@ -598,6 +685,28 @@ const CareerHost = (() => {
           }
         } catch { /* a failed write-back loses one turn's carry, never the turn */ }
       }
+      // FEATURE 9: the profile and the tracker go back to the ACCOUNT,
+      // only when they changed against what the account held at turn
+      // start (compared without key order: jsonb reorders keys), never on
+      // an erase turn. A record over the size bound stays with the thread
+      // as before, and the thread is not stamped as account-backed.
+      let accountBacked = false;
+      if (ctx && ctx.accountMemory && !(ctx._hostPatch && ctx._hostPatch.erase === true)) {
+        try {
+          const rec = memoryOf(ctx);
+          if (rec.profile || rec.tracker) {
+            const before = plainObject(ctx._accountMemory) ? ctx._accountMemory : null;
+            if (before && sameJson(rec.profile, before.profile) && sameJson(rec.tracker, before.tracker)) accountBacked = true;
+            else {
+              const memory = { v: 1, profile: rec.profile, tracker: rec.tracker, updated_at: new Date(ctx.now || Date.now()).toISOString() };
+              if (JSON.stringify(memory).length <= MEMORY_MAX_BYTES) {
+                ctx._hostPatch = Object.assign({}, ctx._hostPatch || {}, { memory });
+                accountBacked = true;
+              }
+            }
+          }
+        } catch { /* a failed write-back leaves the thread's copy as the record, never breaks the turn */ }
+      }
       // The snapshot carries the account's privacy epoch, stamped
       // the way the SQL commit stamps it (an erase turn's snapshot
       // is stamped with the NEW epoch): the resurrection guard in
@@ -605,7 +714,7 @@ const CareerHost = (() => {
       // from a current one.
       const epoch = (ctx && Number.isSafeInteger(ctx._accountEpoch) ? ctx._accountEpoch : 0)
         + (ctx && ctx._hostPatch && ctx._hostPatch.erase === true ? 1 : 0);
-      return { v: 1, scope: { userId: ctx.userId }, stores, privacy_epoch: epoch };
+      return { v: 1, scope: { userId: ctx.userId }, stores, privacy_epoch: epoch, ...(accountBacked ? { account_memory: 1 } : {}) };
     }
 
     return { createTurnCtx, runTurn, extractSnapshot, isHostControlled, STATE_KEYS: STATE_KEYS.slice() };

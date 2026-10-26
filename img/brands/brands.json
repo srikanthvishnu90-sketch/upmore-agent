@@ -508,6 +508,18 @@
   "from": "Iconify `logos:grammarly`, @iconify/json 2.2.541"
  },
  {
+  "slug": "greenhouse",
+  "name": "Greenhouse",
+  "match": [
+   "greenhouse"
+  ],
+  "file": "img/brands/greenhouse.svg",
+  "collection": "Simple Icons",
+  "url": "github.com/simple-icons/simple-icons",
+  "license": "CC0",
+  "from": "simple-icons 16.35.0, `greenhouse`, the brand's own colour #24A47F"
+ },
+ {
   "slug": "hbo",
   "name": "HBO",
   "match": [
@@ -1148,6 +1160,18 @@
   "url": "github.com/simple-icons/simple-icons",
   "license": "CC0",
   "from": "simple-icons 16.35.0, `wellsfargo`, the brand's own colour #D71E28"
+ },
+ {
+  "slug": "workday",
+  "name": "Workday",
+  "match": [
+   "workday"
+  ],
+  "file": "img/brands/workday.svg",
+  "collection": "theSVG",
+  "url": "github.com/glincker/thesvg",
+  "license": "MIT",
+  "from": "Iconify `thesvg-color:workday`, @iconify/json 2.2.541 (the symbol shorthand: the 'W' with the horizon arc, not the full wordmark lockup)"
  },
  {
   "slug": "xbox",

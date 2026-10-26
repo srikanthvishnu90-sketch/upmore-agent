@@ -13480,7 +13480,8 @@ const CareerRouter = (() => {
       ];
     try { const tm = threadMirrorForWrite(ctx); if (tm) tm.tailor = { company: company || null, title: titleLine, jobId: jobId || null, diff: tailored.diff || null, gaps, at: new Date(nowOf(ctx)).toISOString() }; } catch {   }
     const reply = compose({ headline: headlineOverride || `Your resume is tailored for ${titleLine}.`, facts, nextStep });
-    return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version } };
+    return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps, tailored: { ok: true, mode: tailored.mode, version: tailored.version },
+      tailorDoc: tailored.resume || null, tailorJd: jdText, tailorPosting: posting ? { title: posting.title || null, company: posting.company || null } : null };
   }
 
   function handleEssayTailor(text, ctx) {
@@ -21359,7 +21360,8 @@ const CareerRouter = (() => {
         const bt = handleBatchTailor(text, c);
         if (bt) return bt;
       }
-      if (c.posting || c.jdText || c.jd) return handleTailor(text, c);
+      const stagedUsable = c.posting && (c.posting.jd_text || c.posting.title || (Array.isArray(c.posting.requirements) && c.posting.requirements.length));
+      if (stagedUsable || c.jdText || c.jd) return handleTailor(text, c);
       let comp = companyFromText(text, c);
       let compCir = null;
       if (!comp) {

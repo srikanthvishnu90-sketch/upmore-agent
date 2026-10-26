@@ -4,7 +4,7 @@
 // not the brain's end state, so their judge sees "state: null": disclosed in the output. Writes results/<label>-rejudge-<model>.json
 // once; a file already there is never rewritten. Spend is recorded like any run's and counts against EVAL_BUDGET_USD.
 //   deno run -A evals/career/rejudge.ts <label> <judge model>
-import { judgePrompt, parseJudge, spentUsd, type EvalItem } from "./run.ts";
+import { judgePrompt, type Ledger, parseJudge, spentUsd, type EvalItem } from "./run.ts";
 import { callModel, modelConfig, newMeter, PRICES } from "../../supabase/functions/_shared/model_gateway.ts";
 
 const [label, model] = Deno.args;
@@ -13,12 +13,18 @@ if (!Deno.env.get("OPENAI_API_KEY")) { console.log("NOT RUN: no OPENAI_API_KEY."
 const out = new URL(`./results/${label}-rejudge-${model}.json`, import.meta.url);
 try { await Deno.stat(out); console.log(`already re-scored: ${out.pathname}`); Deno.exit(0); } catch { /* not yet */ }
 if (!PRICES[model]) { console.log(`NOT RUN: ${model} is unpriced, so its spend cannot be capped.`); Deno.exit(2); }
-const src = JSON.parse(await Deno.readTextFile(new URL(`./results/${label}.json`, import.meta.url)));
+let srcText: string;
+// 2026-10-26: a queued label whose result file is not in this checkout is an error, said in one line (run 40371458562 failed
+// here with a bare NotFound stack for runs whose files were never on trunk).
+try { srcText = await Deno.readTextFile(new URL(`./results/${label}.json`, import.meta.url)); }
+catch { console.log(`NOT RUN: ${label} has no result file in evals/career/results/ here; remove it from rejudge.txt or restore the file.`); Deno.exit(1); }
+const src = JSON.parse(srcText);
+if (src.set === "sealed") { console.log("NOT RUN: a sealed run keeps no replies to re-score."); Deno.exit(2); }
 const set = JSON.parse(await Deno.readTextFile(new URL(src.set === "heldout" ? "./heldout-live.json" : "./messages.json", import.meta.url)));
 const byId = new Map<string, EvalItem>(set.items.map((i: EvalItem) => [i.id, i]));
 const prior: any[] = [];
 for await (const e of Deno.readDir(new URL("./results/", import.meta.url))) if (e.name.endsWith(".json")) prior.push(JSON.parse(await Deno.readTextFile(new URL(`./results/${e.name}`, import.meta.url))));
-const budget = Number(Deno.env.get("EVAL_BUDGET_USD") ?? "0"), before = spentUsd(prior, `${label}-rejudge-${model}`);
+const budget = Number(Deno.env.get("EVAL_BUDGET_USD") ?? "0"), before = spentUsd(prior, `${label}-rejudge-${model}`, JSON.parse(await Deno.readTextFile(new URL("./spend-ledger.json", import.meta.url))) as Ledger);
 const meter = newMeter(), cfg = { ...modelConfig(Deno.env, "chat"), model };
 const items: any[] = [];
 for (const x of src.items) {

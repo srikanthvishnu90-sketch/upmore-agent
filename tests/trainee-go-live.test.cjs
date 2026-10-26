@@ -324,3 +324,169 @@ test('an inbound secret already on the project is never replaced by an Enter; TR
   assert.match(rotated.out, /STEP 1\/6 preflight: OK/, rotated.out);
   for (const v of SECRET_VALUES) assert.ok(!rotated.out.includes(v) && !kept.out.includes(v), 'no secret printed');
 });
+
+// --non-interactive (the production workflow, .github/workflows/deploy-production.yml): no terminal is ever opened and
+// nothing is asked. The same stub tools as above; `secrets list` answers with the names in `live` (never values).
+function nonint(args, env, { live = ['TRAINEE_INBOUND_SECRET'], listFails = false } = {}) {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-nonint-'));
+  const calls = path.join(bin, 'calls.log');
+  const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
+  const rows = live.map((n) => `${n} | 0f0f`).join('\\n');
+  stub('supabase', `if [[ "$1 $2" == "secrets list" ]]; then ${listFails ? 'echo "Access token not provided" >&2; exit 1' : `printf "NAME | DIGEST\\n${rows}\\n"`}; fi; exit 0`);
+  stub('psql', 'exit 0'); stub('deno', 'exit 0');
+  stub('node', `if [[ "$1" == *trainee-smoke.cjs ]]; then exit 0; fi\nexec "${process.execPath}" "$@"`);
+  stub('git', `if [[ "$1" == status ]]; then exit 0; fi\nexec "${REAL_GIT}" "$@"`);
+  const res = spawnSync('bash', [SCRIPT, '--non-interactive', ...args], { cwd: root, encoding: 'utf8', detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { PATH: `${bin}:${process.env.PATH}`, HOME: home, TRAINEE_GO_LIVE_LOG: path.join(bin, 'run.log'), ...env } });
+  const log = fs.existsSync(path.join(bin, 'run.log')) ? fs.readFileSync(path.join(bin, 'run.log'), 'utf8') : '';
+  return { code: res.status, out: res.stdout + res.stderr, log, calls: fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8') : '' };
+}
+const CI_ENV = { ...FAKE, SUPABASE_ACCESS_TOKEN: 'sbp_fake-access-token-0000-AAAAAAAAAAAAAAAA' };
+
+test('--non-interactive: every missing required value fails preflight at once, each named; nothing is asked or changed', () => {
+  const { SUPABASE_DB_URL, SUPABASE_ACCESS_TOKEN, ...rest } = CI_ENV;
+  const r = nonint([], rest);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /STEP 1\/6 preflight: FAILED: --non-interactive: required and not set: SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL --sha$/m);
+  assert.doesNotMatch(r.calls, /secrets (list|set)|functions deploy|psql/, 'stops before any tool touches the project');
+  const noRef = nonint(['--sha', HEAD_SHA], { ...CI_ENV, SUPABASE_PROJECT_REF: '' });
+  assert.match(noRef.out, /FAILED: --non-interactive: required and not set: SUPABASE_PROJECT_REF$/m);
+  // The interactive path is unchanged: the same script without the flag still prompts on a hidden read.
+  assert.match(fs.readFileSync(SCRIPT, 'utf8'), /\[\[ -n "\$NONINT" \]\] && nonint_absent/);
+  const envFlag = nonint([], { ...rest, TRAINEE_NON_INTERACTIVE: '1' });
+  assert.match(envFlag.out, /required and not set: SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL --sha/, 'TRAINEE_NON_INTERACTIVE=1 is the same mode');
+});
+
+test('--non-interactive: a function secret set on the project is kept (never generated or rotated), one not set is generated, optional values keep what is set', () => {
+  const { CAREER_INGEST_SECRET, CAREER_PROACTIVE_SECRET, TRAINEE_DELIVER_SECRET, TRAINEE_INBOUND_SECRET, OPENAI_API_KEY, LOOPMESSAGE_API_KEY, PDL_API_KEY, ...rest } = CI_ENV;
+  const r = nonint(['--sha', HEAD_SHA, '--skip-migrations', '--skip-deploy'], rest, { live: ['CAREER_INGEST_SECRET', 'TRAINEE_INBOUND_SECRET', 'OPENAI_API_KEY'] });
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /kept: CAREER_INGEST_SECRET \(not given; set on the project, so it is neither generated nor rotated\)/);
+  assert.match(r.out, /kept: TRAINEE_INBOUND_SECRET \(not given; set on the project/);
+  assert.match(r.out, /generated: CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET \(48 characters each; kept only in this process; --non-interactive never shows them/);
+  assert.match(r.out, /not given: OPENAI_API_KEY \(--non-interactive: what the project has stays\)/);
+  assert.match(r.out, /kept: OPENAI_API_KEY \(not given; an already-set key stays as it is\)/);
+  // The env file names only what this run sets: the two generated secrets and the values given, never a kept one.
+  const set = r.out.match(/supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: ([^>]*)>/);
+  assert.ok(set, r.out);
+  assert.deepEqual(set[1].split(' ').map((x) => x.split('=')[0]).filter((n) => /SECRET|OPENAI|LOOPMESSAGE_API/.test(n)), ['CAREER_PROACTIVE_SECRET', 'TRAINEE_DELIVER_SECRET']);
+  // A kept secret's schedule and Vault copy are left alone; the generated ones are scheduled with their new value.
+  assert.match(r.out, /kept: the career-ingest schedule and its Vault secret \(CAREER_INGEST_SECRET not given\)/);
+  assert.doesNotMatch(r.calls, /schedule-career-ingest\.sql/);
+  assert.match(r.calls, /schedule-career-proactive\.sql/); assert.match(r.calls, /schedule-trainee-deliver\.sql/);
+  assert.match(r.calls, /trainee-smoke\.cjs --kept CAREER_INGEST_SECRET,TRAINEE_INBOUND_SECRET --wait-runs 420/);
+  assert.equal((r.calls.match(/secrets list/g) || []).length, 1, 'the names are read once');
+  for (const v of [...SECRET_VALUES, CI_ENV.SUPABASE_ACCESS_TOKEN]) assert.ok(!r.out.includes(v) && !r.log.includes(v), `${v.slice(0, 12)}… is not printed or logged`);
+  assert.doesNotMatch(r.out + r.log, /0f0f/, 'the secrets list itself is never printed');
+});
+
+test('--non-interactive: a secret that also lives outside the project is never generated; an unreadable secrets list stops the run', () => {
+  const { TRAINEE_INBOUND_SECRET, ...rest } = CI_ENV;
+  const r = nonint(['--sha', HEAD_SHA], rest, { live: [] });
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /STEP 1\/6 preflight: FAILED: TRAINEE_INBOUND_SECRET is not given and not set on the project; --non-interactive never generates it/);
+  assert.doesNotMatch(r.calls, /secrets set|functions deploy/);
+  const tg = nonint(['--sha', HEAD_SHA], { ...CI_ENV, TELEGRAM_BOT_TOKEN: '123456:fake-telegram-token-0000-TTTTTTTT' }, { live: [] });
+  assert.match(tg.out, /FAILED: TELEGRAM_WEBHOOK_SECRET is not given and not set on the project/);
+  const tgKept = nonint(['--sha', HEAD_SHA, '--skip-migrations', '--skip-deploy'], { ...CI_ENV, TELEGRAM_BOT_TOKEN: '123456:fake-telegram-token-0000-TTTTTTTT' }, { live: ['TELEGRAM_WEBHOOK_SECRET'] });
+  assert.match(tgKept.out, /kept: TELEGRAM_WEBHOOK_SECRET \(not given; set on the project/, 'the live webhook secret (telegram-inbound reads it too) is never replaced');
+  assert.doesNotMatch(tgKept.out, /TELEGRAM_WEBHOOK_SECRET=\*\*\*/);
+  const { CAREER_INGEST_SECRET, ...noIngest } = CI_ENV;
+  const blind = nonint(['--sha', HEAD_SHA], noIngest, { listFails: true });
+  assert.equal(blind.code, 1);
+  assert.match(blind.out, /FAILED: could not read the project's secret names/);
+  assert.doesNotMatch(blind.out, /generated:/);
+  assert.doesNotMatch(blind.calls, /secrets set/);
+});
+
+test('--non-interactive --dry-run (the PR preflight): runs without any secret, says what a real run would need', () => {
+  const r = spawnSync('bash', [SCRIPT, '--dry-run', '--non-interactive'], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home } });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /--non-interactive: a real run stops here; not set: SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL --sha/);
+  assert.match(r.stdout, /STEP 6\/6 smoke: OK/);
+});
+
+test('trainee-smoke --kept: a gate whose secret the project keeps is NOT RUN, not a refusal to run; anything else still needs its secret', async () => {
+  const { CAREER_INGEST_SECRET, TRAINEE_INBOUND_SECRET, ...given } = FAKE;
+  const lines = [];
+  const f = fakeFetch((c) => c.fn === 'agent-chat' ? [401, {}] : handlerLike(c));
+  const code = await smoke.main(['--kept', 'CAREER_INGEST_SECRET,TRAINEE_INBOUND_SECRET'], { SUPABASE_URL: BASE, CAREER_PROACTIVE_SECRET: given.CAREER_PROACTIVE_SECRET, TRAINEE_DELIVER_SECRET: given.TRAINEE_DELIVER_SECRET }, { fetch: f, log: (s) => lines.push(s) });
+  const out = lines.join('\n');
+  assert.equal(code, 0, out);
+  assert.match(out, /^NOT RUN career-ingest gate: CAREER_INGEST_SECRET is kept on the project and was not given to this run$/m);
+  assert.match(out, /^NOT RUN trainee-inbound gate: TRAINEE_INBOUND_SECRET is kept/m);
+  assert.match(out, /^PASS    trainee-deliver answers the right secret/m);
+  assert.ok(!f.calls.some((c) => c.fn === 'career-ingest' || c.fn === 'trainee-inbound'), 'a kept gate is not called');
+  assert.equal(await smoke.main(['--kept', 'CAREER_INGEST_SECRET'], { SUPABASE_URL: BASE }, { log: () => {} }), 2, 'the others are still required');
+  assert.equal(await smoke.main(['--kept', 'bad name'], { SUPABASE_URL: BASE }, { log: () => {} }), 2);
+});
+
+// The production workflow: a push to release/production only, in the `production` environment (the owner's approval),
+// the exact pushed commit, non-interactive, every value the script reads from the environment's secrets.
+test('deploy-production.yml: push to release/production only, environment production, the go-live script at $GITHUB_SHA, every input from a secret', () => {
+  const wf = fs.readFileSync(path.join(root, '.github/workflows/deploy-production.yml'), 'utf8');
+  const on = wf.slice(wf.indexOf('\non:'), wf.indexOf('\npermissions:'));
+  assert.equal(on, '\non:\n  push:\n    branches: [release/production]', 'no pull_request, schedule, workflow_dispatch or other branch');
+  assert.match(wf, /^ {4}environment: production$/m);
+  assert.match(wf, /^ {2}contents: read$/m);
+  assert.match(wf, /cancel-in-progress: false/, 'a deploy is never cut off halfway by the next push');
+  assert.match(wf, /bash scripts\/launch\/trainee-go-live\.sh --sha "\$GITHUB_SHA" --non-interactive/);
+  assert.doesNotMatch(wf, /--allow-send|--brain|TRAINEE_ROTATE|--force/, 'no text is sent, the brain and the webhook secrets are not touched');
+  assert.match(wf, /supabase\/setup-cli@v1\n\s+with: \{ version: "\d+\.\d+\.\d+" \}/, 'a pinned supabase CLI');
+  assert.match(wf, /deno-version: "v2\.9\.6"/, 'the pinned deno');
+  assert.match(wf, /postgresql-client/);
+  const src = fs.readFileSync(SCRIPT, 'utf8');
+  const read = ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_PROJECT_REF', 'SUPABASE_DB_URL', 'CAREER_INGEST_SECRET', 'CAREER_PROACTIVE_SECRET', 'TRAINEE_DELIVER_SECRET',
+    'TRAINEE_INBOUND_SECRET', 'OPENAI_API_KEY', 'LOOPMESSAGE_API_KEY', 'INGEST_CONTACT_EMAIL', 'TRAINEE_ALLOWED_CONTACTS', 'LOOPMESSAGE_DAILY_CONTACTS',
+    'PDL_API_KEY', 'UPMORE_TEST_JWT', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET', 'TELEGRAM_BOT_USERNAME', 'WHATSAPP_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID',
+    'WHATSAPP_APP_SECRET', 'WHATSAPP_VERIFY_TOKEN', 'WHATSAPP_TEMPLATE_UPDATES', 'WHATSAPP_TEMPLATE_LANGUAGE', 'WHATSAPP_DAILY_TEMPLATES'];
+  for (const v of read) {
+    assert.ok(src.includes(v), `the script reads ${v}`);
+    assert.match(wf, new RegExp(`^ {10}${v}: \\$\\{\\{ secrets\\.${v} \\}\\}$`, 'm'), `${v} comes from the secret of the same name`);
+  }
+  // Every hidden value the script masks is masked again in the collected artifacts.
+  const hidden = [...src.match(/for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL[^;]*;/)[0].matchAll(/[A-Z][A-Z0-9_]{3,}/g)].map((m) => m[0])
+    .filter((v) => !['TRAINEE_SMOKE_CONTACT'].includes(v));
+  for (const v of hidden) assert.match(wf, new RegExp(`MASK_\\d+: \\$\\{\\{ secrets\\.${v} \\}\\}`), `${v} is masked in the artifacts`);
+  assert.match(wf, /actions\/upload-artifact@v4/);
+  assert.match(wf, /python3 scripts\/launch\/mask-artifacts\.py "\$out"\n[\s\S]*upload-artifact/, 'masked before upload');
+  assert.ok(!/\$\{\{ (github\.event|inputs)\./.test(wf.split('\n').filter((l) => /run:|^\s{10}[a-z]/.test(l)).join('\n')), 'no untrusted event text in a command');
+});
+
+test('deploy-preflight.yml: on PRs touching supabase/ or scripts/launch, the dry run at the PR head and the live-shaped migration rehearsal', () => {
+  const wf = fs.readFileSync(path.join(root, '.github/workflows/deploy-preflight.yml'), 'utf8');
+  assert.match(wf, /^on:\n {2}pull_request:\n {4}paths:\n(?: {6}- ".+"\n)+/m);
+  assert.match(wf, /- "supabase\/\*\*"/); assert.match(wf, /- "scripts\/launch\/\*\*"/);
+  assert.doesNotMatch(wf, /secrets\.|environment:/, 'the preflight has no secret and no environment');
+  assert.match(wf, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(wf, /trainee-go-live\.sh --dry-run --non-interactive --sha "\$HEAD_SHA"/);
+  assert.match(wf, /bash tests\/db\/rehearse_live_migrations\.sh/);
+});
+
+test('mask-artifacts.py replaces every given secret (and a database URL\'s password alone) with ***, and prints only counts', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-mask-'));
+  fs.mkdirSync(path.join(dir, 'rollback'));
+  fs.writeFileSync(path.join(dir, 'go-live.log'), `x ${FAKE.OPENAI_API_KEY} y\npassword fake-dbpass-QZ81x and url ${FAKE.SUPABASE_DB_URL}\nplain line\n`);
+  fs.writeFileSync(path.join(dir, 'rollback', 'index.ts'), `const k = "${FAKE.TRAINEE_INBOUND_SECRET}";\n`);
+  fs.writeFileSync(path.join(dir, 'manifest.json'), '{"sha":"abc"}\n');
+  const res = spawnSync('python3', [path.join(root, 'scripts/launch/mask-artifacts.py'), dir], { encoding: 'utf8',
+    env: { PATH: process.env.PATH, MASK_1: FAKE.OPENAI_API_KEY, MASK_2: FAKE.SUPABASE_DB_URL, MASK_3: FAKE.TRAINEE_INBOUND_SECRET, MASK_4: '', MASK_5: 'abc' } });
+  assert.equal(res.status, 0, res.stderr);
+  assert.equal(res.stdout.trim(), 'masked: 3 files checked, 2 had a secret value replaced by ***');
+  const log = fs.readFileSync(path.join(dir, 'go-live.log'), 'utf8');
+  assert.equal(log, 'x *** y\npassword *** and url ***\nplain line\n');
+  assert.equal(fs.readFileSync(path.join(dir, 'rollback', 'index.ts'), 'utf8'), 'const k = "***";\n');
+  assert.equal(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'), '{"sha":"abc"}\n', 'a value under 4 characters is never matched');
+  for (const v of SECRET_VALUES) assert.ok(!res.stdout.includes(v));
+});
+
+test('the migration rehearsal reads go-live\'s own lists and checks every mark after a full apply', () => {
+  const sh = fs.readFileSync(path.join(root, 'tests/db/rehearse_live_migrations.sh'), 'utf8');
+  assert.match(sh, /eval "\$\(sed -n '\/\^MIGRATIONS=\(\/,\/\^\)\/p; \/\^MIGRATION_MARK=\(\/,\/\^\)\/p' "\$GO_LIVE"\)"/);
+  assert.match(sh, /--single-transaction -f "\$src"/);
+  assert.match(sh, /verify-claim-guards\.sql/);
+  execFileSync('bash', ['-n', path.join(root, 'tests/db/rehearse_live_migrations.sh')]);
+  // Each mark names an object its own file creates and no later file redefines away (a full apply read every mark true).
+  const src = fs.readFileSync(SCRIPT, 'utf8');
+  assert.doesNotMatch(src, /proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%'/, '20261025160000 redefines it without that text');
+});

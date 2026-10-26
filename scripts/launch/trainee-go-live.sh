@@ -4,6 +4,7 @@
 #   bash scripts/launch/trainee-go-live.sh --sha <40-character commit> [--label <who>] [--dry-run] [--skip-migrations]
 #                                          [--skip-deploy] [--only-smoke] [--brain agent|staged|router] [--allow-send] [--no-wait]
 #   bash scripts/launch/trainee-go-live.sh --verify <40-character commit>     (reads only; exit 1 on any mismatch)
+#   bash scripts/launch/trainee-go-live.sh --sha <sha> --non-interactive      (CI: .github/workflows/deploy-production.yml)
 # WO-093 provenance: a run that changes anything ships exactly the commit named by --sha. It refuses a dirty tree, a HEAD
 # that is not that sha, and a stale router bundle (build-router-core.py --check and --career-only --check), then stages
 # only `git archive <sha>` into a fresh temp dir, works from there (never from this checkout), prints the provenance
@@ -44,12 +45,20 @@
 #                 unless --no-wait; --allow-send also texts HELP's reply to TRAINEE_SMOKE_CONTACT through LoopMessage)
 # --skip-migrations / --skip-deploy skip step 2 / 4; --only-smoke runs only 1 and 6.
 # --dry-run prints every command with each secret as *** and runs nothing (tests/trainee-go-live.test.cjs).
+# --non-interactive (or TRAINEE_NON_INTERACTIVE=1; the production workflow passes it): nothing is ever asked and no terminal
+#   is opened. Every required value missing (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_URL, --sha) fails
+#   preflight at once, each named. An optional value not given keeps what the project has. The project's secret names are
+#   read once (`supabase secrets list`, never printed): a function secret not given that is already set is KEPT, never
+#   generated or rotated (its pg_cron job and Vault copy stay as they are, and the smoke skips its gate); one not set is
+#   generated, except TRAINEE_INBOUND_SECRET, TELEGRAM_WEBHOOK_SECRET and WHATSAPP_VERIFY_TOKEN, which live outside the
+#   project too (LoopMessage's URL, setWebhook, Meta) and so must be given: a generated one could never be shown.
 # What each step changes, the rollback and the LoopMessage setup: docs/launch/TRAINEE-GO-LIVE.md.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 REPO="$(pwd)"
 DRY=""; SKIP_MIG=""; SKIP_DEPLOY=""; ONLY_SMOKE=""; BRAIN=""; ALLOW_SEND=""; NOWAIT=""; WANT_SHA=""; VERIFY=""; VERIFY_MODE=""
+NONINT=""; [[ "${TRAINEE_NON_INTERACTIVE:-}" == 1 ]] && NONINT=1
 DEPLOY_LABEL="${TRAINEE_DEPLOY_LABEL:-owner}"
 while (( $# )); do
   case "$1" in
@@ -61,6 +70,7 @@ while (( $# )); do
     --brain=*) BRAIN="${1#--brain=}" ;;
     --allow-send) ALLOW_SEND=1 ;;
     --no-wait) NOWAIT=1 ;;
+    --non-interactive) NONINT=1 ;;
     --sha) shift; WANT_SHA="${1:-}" ;;
     --sha=*) WANT_SHA="${1#--sha=}" ;;
     --verify) shift; VERIFY="${1:-}"; VERIFY_MODE=1 ;;
@@ -83,6 +93,9 @@ fi
 # Every migration from the Trainee set on, in order, each with its proof on the live schema: one object it creates (a
 # file runs in one transaction, so one is enough). tests/trainee-go-live.test.cjs fails when a migration file from
 # 20261019 on is not listed here, so a new one cannot ship without go-live applying it.
+# A mark must survive every later migration: 20261025160000 redefines career_apply_daily_limit and
+# career_apply_ledger_refusal, so 20261025140000's mark reads its enqueue (no later file redefines it) and 20261025150000's
+# reads PACE_RE in either function (tests/db/rehearse_live_migrations.sh reads every mark after a full apply).
 # 20261019020000_site_capture.sql is main's landing-page capture, already live (WO-081): its mark skips it there. Trunk's
 # channel delivery moved to 20261019020001 so the two never share a version.
 MIGRATIONS=(
@@ -148,6 +161,7 @@ MIGRATIONS=(
   20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql
   20261026090009_career_account_memory.sql
+  20261026100000_career_apply_cloud_runner.sql
   20261026100001_career_apply_want_guard.sql
   20261026140000_career_apply_receipt_store.sql
 )
@@ -204,8 +218,8 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_reconcile_bridge')"
   "to_regclass('public.career_apply_prepare_attempts') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_prepare_candidates' and prosrc like '%career_apply_wanted%')"
-  "exists (select 1 from pg_proc where proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%')"
-  "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit' and prosrc like '%PACE_RE%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_enqueue' and prosrc like '%ledger_refusal(u, p_payload->>%, null, now(), null)%')"
+  "exists (select 1 from pg_proc where proname in ('career_apply_daily_limit', 'career_apply_pace_state') and prosrc like '%PACE_RE%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
@@ -214,6 +228,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_constraint where conname = 'career_alert_prefs_min_fit')"
   "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim')"
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
 )
@@ -255,7 +270,7 @@ fail() { echo "STEP $CUR: FAILED: $1"; REPORTED=1; exit 1; }
 # prints the failing statement, with the secret the schedule script interpolated) never reaches the terminal or the log.
 mask_values() {
   local v
-  for v in SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
+  for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET \
     LOOPMESSAGE_API_KEY OPENAI_API_KEY UPMORE_TEST_JWT TRAINEE_ALLOWED_CONTACTS TRAINEE_SMOKE_CONTACT INGEST_CONTACT_EMAIL PDL_API_KEY \
     TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN; do
     [[ -n "${!v:-}" ]] && printf '%s\n' "${!v}"
@@ -277,12 +292,17 @@ run() {
   "$@" 2>&1 | mask
 }
 
-have_tty() { [[ -z "$DRY" ]] && { : </dev/tty; } 2>/dev/null; }
+have_tty() { [[ -z "$DRY" && -z "$NONINT" ]] && { : </dev/tty; } 2>/dev/null; }
 # ask VAR "prompt" hidden|plain [required]: only when VAR is empty and this is a real run; the value stays in this
 # process. With no terminal to ask on, an optional one is taken as Enter and a required one stops the run.
+# --non-interactive never asks: a required one stops the run by name, an optional one keeps what the project has.
 ask() {
   local v="$1" p="$2" how="$3" req="${4:-}"
   [[ -n "${!v:-}" || -n "$DRY" ]] && return 0
+  if [[ -n "$NONINT" ]]; then
+    [[ -z "$req" ]] || fail "$v is required and not set (--non-interactive asks nothing: set it in the environment)"
+    echo "  not given: $v (--non-interactive: what the project has stays)"; return 0
+  fi
   if ! have_tty; then
     [[ -z "$req" ]] || fail "$v is not set and there is no terminal to ask on"
     echo "  no terminal: $v taken as Enter"; return 0
@@ -290,6 +310,27 @@ ask() {
   printf '%s: ' "$p" >/dev/tty
   if [[ "$how" == hidden ]]; then IFS= read -rs "$v" </dev/tty; printf '\n' >/dev/tty; else IFS= read -r "$v" </dev/tty; fi
   return 0
+}
+# --non-interactive: the project's secret names, read once (names and digests only; never printed).
+LIVE_SECRETS=""; LIVE_READ=""
+live_has() {
+  if [[ -z "$LIVE_READ" ]]; then
+    LIVE_SECRETS="$(supabase secrets list --project-ref "$REF" 2>/dev/null)" \
+      || fail "could not read the project's secret names (supabase secrets list --project-ref $REF; check SUPABASE_ACCESS_TOKEN): nothing is generated without knowing what is set"
+    LIVE_READ=1
+  fi
+  grep -qw -- "$1" <<<"$LIVE_SECRETS"
+}
+# Generated in --non-interactive mode only when the project has none, and never for one that lives outside the project.
+OUTSIDE=(TRAINEE_INBOUND_SECRET TELEGRAM_WEBHOOK_SECRET WHATSAPP_VERIFY_TOKEN)
+KEEP_LIVE=()
+nonint_absent() { # nonint_absent VAR: kept (0) when the project has it; generate (1) when not; fails for an OUTSIDE one
+  local v="$1" o
+  if live_has "$v"; then KEEP_LIVE+=("$v"); echo "  kept: $v (not given; set on the project, so it is neither generated nor rotated)"; return 0; fi
+  for o in "${OUTSIDE[@]}"; do
+    [[ "$o" == "$v" ]] && fail "$v is not given and not set on the project; --non-interactive never generates it (it also goes into a webhook outside the project, and a generated one could not be shown): set it and re-run"
+  done
+  return 1
 }
 gen_secret() { if command -v openssl >/dev/null; then openssl rand -hex 24; else head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'; fi; }
 sha256() { if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
@@ -440,6 +481,17 @@ fi
 
 step "1/6 preflight"
 HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo unknown)"; SHA="${HEAD_SHA:0:8}"; echo "commit $HEAD_SHA"
+if [[ -n "$NONINT" ]]; then
+  # Every required value at once, each named, before anything else runs.
+  NEED=(SUPABASE_PROJECT_REF); [[ -z "$ONLY_SMOKE" ]] && NEED+=(SUPABASE_ACCESS_TOKEN SUPABASE_DB_URL)
+  ABSENT=(); for v in "${NEED[@]}"; do [[ -n "${!v:-}" ]] || ABSENT+=("$v"); done
+  [[ -z "$ONLY_SMOKE" && -z "$WANT_SHA" ]] && ABSENT+=(--sha)
+  [[ -n "$ALLOW_SEND" && -z "${TRAINEE_SMOKE_CONTACT:-}" ]] && ABSENT+=(TRAINEE_SMOKE_CONTACT)
+  if (( ${#ABSENT[@]} )); then
+    if [[ -n "$DRY" ]]; then echo "  --non-interactive: a real run stops here; not set: ${ABSENT[*]}"
+    else fail "--non-interactive: required and not set: ${ABSENT[*]}"; fi
+  else echo "  --non-interactive: every required value is set; nothing will be asked"; fi
+fi
 if [[ -n "$ONLY_SMOKE" ]]; then TOOLS=(node); else TOOLS=(supabase psql node deno git python3 tar); fi
 for t in "${TOOLS[@]}"; do
   command -v "$t" >/dev/null && continue
@@ -474,7 +526,10 @@ GENERATED=()
 for v in "${SCHED_VARS[@]}"; do
   if [[ -n "$ONLY_SMOKE" ]]; then ask "$v" "$v (Enter to skip the checks that need it)" hidden
   else ask "$v" "$v (Enter to generate a new 48-character one)" hidden; fi
-  if [[ -z "${!v:-}" && -z "$DRY" && -z "$ONLY_SMOKE" ]]; then printf -v "$v" '%s' "$(gen_secret)"; GENERATED+=("$v"); fi
+  if [[ -z "${!v:-}" && -z "$DRY" && -z "$ONLY_SMOKE" ]]; then
+    if [[ -n "$NONINT" ]] && nonint_absent "$v"; then continue; fi
+    printf -v "$v" '%s' "$(gen_secret)"; GENERATED+=("$v")
+  fi
   if [[ -n "${!v:-}" && ! "${!v}" =~ $SECRET_RE ]]; then fail "$v must be 32 or more of A-Z a-z 0-9 . _ ~ - (the value is not shown)"; fi
 done
 # The inbound secret lives outside this project too: it is in the webhook URL pasted into LoopMessage. Enter on a re-run
@@ -512,6 +567,7 @@ if [[ -z "$ONLY_SMOKE" ]]; then
     tok="${pair%%:*}"; v="${pair##*:}"
     [[ -n "${!tok:-}" ]] && ask "$v" "$v (Enter to generate a new 48-character one)" hidden
     if [[ -n "${!tok:-}" && -z "${!v:-}" && -z "$DRY" ]]; then
+      if [[ -n "$NONINT" ]] && nonint_absent "$v"; then continue; fi
       if [[ "${TRAINEE_ROTATE_CHANNELS:-}" != 1 ]] && supabase secrets list --project-ref "$REF" 2>/dev/null | grep -qw "$v"; then
         fail "$v is already set on the project and the platform's webhook carries it: give the same value, or set TRAINEE_ROTATE_CHANNELS=1 to replace it and then update the webhook"
       fi
@@ -633,7 +689,11 @@ else
   step "3/6 secrets"
   NAMES=(); LINES=()
   add() { NAMES+=("$1=$3"); LINES+=("$1=$2"); }
-  for v in "${SCHED_VARS[@]}"; do if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"; else add "$v" "" "<generated>"; fi; done
+  for v in "${SCHED_VARS[@]}"; do
+    if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "***"
+    elif [[ " ${KEEP_LIVE[*]} " == *" $v "* ]]; then echo "  kept: $v (set on the project; not given, so not touched)"
+    else add "$v" "" "<generated>"; fi
+  done
   if [[ -n "${INGEST_CONTACT_EMAIL:-}" ]]; then add INGEST_CONTACT_EMAIL "$INGEST_CONTACT_EMAIL" "***"; else echo "  kept: INGEST_CONTACT_EMAIL (not given; career-ingest answers 503 until it is set)"; fi
   if [[ -n "${LOOPMESSAGE_API_KEY:-}" ]]; then add LOOPMESSAGE_API_KEY "$LOOPMESSAGE_API_KEY" "***"; else echo "  kept: LOOPMESSAGE_API_KEY (not given; without one, delivery and inbound answer 503 NOT_WIRED)"; fi
   if [[ -n "${LOOPMESSAGE_DAILY_CONTACTS:-}" ]]; then add LOOPMESSAGE_DAILY_CONTACTS "$LOOPMESSAGE_DAILY_CONTACTS" "***"; else echo "  kept: LOOPMESSAGE_DAILY_CONTACTS (unset means 300 a day)"; fi
@@ -665,7 +725,7 @@ else
     *) echo "  CAREER_BRAIN not touched (the router answers unless it was set to agent before; --brain agent|router changes it)" ;;
   esac
   if (( ${#GENERATED[@]} )); then
-    echo "  generated: ${GENERATED[*]} (48 characters each; kept only in this process)"
+    echo "  generated: ${GENERATED[*]} (48 characters each; kept only in this process$([[ -n "$NONINT" ]] && echo '; --non-interactive never shows them: the function and its Vault schedule hold each'))"
     # Shown once, on the terminal only (never the log), and only when asked: TRAINEE_INBOUND_SECRET goes into
     # LoopMessage's webhook URL, and a lost one is replaced by re-running with a new value.
     if have_tty; then
@@ -725,6 +785,8 @@ else
   # Each script's header: SECRET=... psql "$SUPABASE_DB_URL" -v url=https://<ref>.supabase.co/functions/v1/<fn> -f <file>.
   sched() {
     local var="$1" fn="$2" file="$3"
+    # A kept secret is not known to this run: its job and Vault copy stay (re-scheduling with an empty one would break it).
+    if [[ " ${KEEP_LIVE[*]} " == *" $var "* ]]; then echo "  kept: the $fn schedule and its Vault secret ($var not given)"; return 0; fi
     run "$var=*** psql *** -X -q -v ON_ERROR_STOP=1 -v url=$BASE/functions/v1/$fn -f $file" \
       env "$var=${!var:-}" psql "${SUPABASE_DB_URL:-}" -X -q -v ON_ERROR_STOP=1 -v url="$BASE/functions/v1/$fn" -f "$file"
   }
@@ -742,6 +804,8 @@ for v in "${SCHED_VARS[@]}" TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_
 done
 SMOKE_ARGS=()
 [[ -n "$ALLOW_SEND" ]] && SMOKE_ARGS+=(--allow-send)
+# A function secret kept on the project is not known here: the smoke reports its gate NOT RUN instead of refusing to run.
+(( ${#KEEP_LIVE[@]} )) && SMOKE_ARGS+=(--kept "$(IFS=,; echo "${KEEP_LIVE[*]}")")
 # Right after scheduling, the jobs have not fired yet: wait for each to fire once (ingest and alerts run every 5 minutes).
 [[ -z "$NOWAIT" && -z "$ONLY_SMOKE" ]] && SMOKE_ARGS+=(--wait-runs 420)
 SMOKE_SHOWN+=" node scripts/launch/trainee-smoke.cjs${SMOKE_ARGS[*]+ ${SMOKE_ARGS[*]}}"

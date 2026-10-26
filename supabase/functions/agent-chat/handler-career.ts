@@ -68,6 +68,7 @@ import { GMAIL_SEND_SCOPE } from "../_shared/career_outreach_gmail.ts";
 import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
+import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -473,6 +474,18 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 12: offers and negotiation backed by market numbers (career_offer_chat.ts). "I got an offer from X for $Y
+      // as a Z in City", "is $95k good for a data analyst in Chicago", "compare my two offers", "help me negotiate": the
+      // offer placed against DOL LCA, BLS OEWS and the pay open postings on file state (a median only from 5 or more), and
+      // the counter drafted on a card that cites it. Code's, before the router; nothing is sent. The thread keeps its
+      // offers in the offerBenchmark store, which the snapshot carries and an erase clears.
+      const offered = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !stood && !status && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await offerChatTurn({ message, now: Date.now(), state: (ctx as any).offerBenchmark ?? null, postings: supabasePostingsDb(admin) })
+          .catch((e) => { console.error("offer turn:", e?.message ?? e); return null; })
+        : null;
+      if (offered?.state) (ctx as any).offerBenchmark = offered.state;
+      const offerAns = offered?.answer ?? null;
+      // END FEATURE 12
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -520,6 +533,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
+      } else if (offerAns) { // FEATURE 12: the offer turn's answer; the counter's card rides the reply's meta.
+        out = { reply: offerAns.reply, intent: offerAns.intent, resultStatus: offerAns.status, contained: false, handler: "offer", parts: offerAns.parts };
+        if (offerAns.card) agentMeta = { offer_card: offerAns.card };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };

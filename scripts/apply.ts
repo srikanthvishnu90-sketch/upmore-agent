@@ -34,6 +34,16 @@ import { CODE_MAX_WAIT_MS, pollForCode } from "../supabase/functions/_shared/car
 // (trustedManifest), and which planned answers they stand behind (contractFill).
 import { contractFill, type Manifest, trustedManifest } from "../extension/src/apply_core.ts";
 import { rowQuestionLabel, rowQuestionType } from "../supabase/functions/_shared/row_answer.ts";
+import {
+  bodyContents,
+  bodyShape,
+  carriesApproved as verifyCarries,
+  type Endpoint,
+  formOf,
+  isScriptFamily,
+  isSubmitEndpoint,
+  scriptSubmitEndpoint,
+} from "./career/request-verifier.ts";
 const require = createRequire(import.meta.url);
 const { hostAllowed } = require("../packages/domain/150-career-portal-browser.js");
 const { createFileTaskStore } = require("../workers/career-browser/store.cjs");
@@ -65,51 +75,8 @@ const CAPTCHA_PROVIDER =
 // The token a passed check leaves in the form. It is the provider's, not an answer: it may be present in the hidden
 // fields and the body, it is sent as the page set it, and only its length is recorded.
 const CAPTCHA_TOKEN = /^(g-recaptcha-response|h-captcha-response|cf-turnstile-response)$/;
-// The shape of a request body: its keys, never its values. Multipart part names, or JSON key paths ("a.b", "list[]").
-function bodyShape(type: string, body: Uint8Array, form: FormData | null): string[] {
-  if (form) return [...new Set([...form.keys()])].sort();
-  if (!/json/.test(type)) return [];
-  const keys = new Set<string>();
-  const walk = (v: unknown, at: string) => {
-    if (Array.isArray(v)) v.forEach((x) => walk(x, at + "[]"));
-    else if (v && typeof v === "object") { for (const [k, x] of Object.entries(v)) walk(x, at ? at + "." + k : k); }
-    else if (at) keys.add(at);
-  };
-  try {
-    walk(JSON.parse(new TextDecoder().decode(body)), "");
-  } catch {
-    return [];
-  }
-  return [...keys].sort();
-}
-// Every string in a JSON body (its leaves) or a multipart body (its text parts), and the SHA-256 of every file it
-// carries: multipart files, or JSON strings that decode from base64 (Greenhouse's documented resume_content shape).
-async function bodyContents(type: string, body: Uint8Array, form: FormData | null) {
-  const strings: string[] = [], files: string[] = [];
-  if (form) {
-    for (const [, v] of form.entries()) {
-      if (typeof v === "string") strings.push(v);
-      else files.push(sha(new Uint8Array(await v.arrayBuffer())));
-    }
-    return { strings, files };
-  }
-  const walk = (v: unknown) => {
-    if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === "object") Object.values(v).forEach(walk);
-    else if (v !== null && v !== undefined) {
-      const text = String(v);
-      strings.push(text);
-      const b64 = text.replace(/^data:[^,]*;base64,/, "");
-      if (b64.length > 16 && /^[A-Za-z0-9+/=\s]+$/.test(b64)) {
-        try {
-          files.push(sha(Uint8Array.from(atob(b64.replace(/\s/g, "")), (c) => c.charCodeAt(0))));
-        } catch { /* not base64 */ }
-      }
-    }
-  };
-  if (/json/.test(type)) walk(JSON.parse(new TextDecoder().decode(body)));
-  return { strings, files };
-}
+// The shape of a request body (keys, never values), what it carries, and whether it carries exactly the approved
+// answers: one verifier for every hand that sends an application (scripts/career/request-verifier.ts).
 function privateDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = fs.lstatSync(dir);
@@ -176,6 +143,12 @@ function options(args: string[]) {
     // forms that submit from a script (Greenhouse job-boards, Ashby), whose request is not a bound form post. Exactly one
     // request goes through, only if it carries the approved answers, and its shape (keys, never values) is recorded.
     else if (k === "--person-submits") o["person-submits"] = true;
+    // --script-submit greenhouse|ashby|lever: a local test page standing in for that family's script-submitted form. Trainee
+    // clicks the employer's own Submit and the route binds where the approved answers go (scriptSubmitEndpoint): exactly
+    // one request to that family's own application endpoint, only with exactly the approved answers; every other write
+    // is stopped. For a real employer the family comes from the posting's host, and the binding is on only where the
+    // owner switched it on (UPMORE_SCRIPT_SUBMIT_LIVE=1).
+    else if (k === "--script-submit" && isScriptFamily(args[i + 1])) o["script-submit"] = args[++i];
     // --application-id <uuid>: the queue's application this approved run drives (career_apply_jobs.id); the proof is
     // bound to it (D-024). A canonical uuid only.
     else if (k === "--application-id" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(args[i + 1] || "")) {
@@ -361,6 +334,10 @@ export async function runApply(args: string[]) {
       // A hand-off asks the person to complete a check in the browser window; a headless run has no window to use.
       if (o.handoff && !o.headed && !target.local) throw fail("HANDOFF_NEEDS_HEADED");
       if (o["person-submits"] && !o.headed && !target.local) throw fail("PERSON_SUBMITS_NEEDS_HEADED");
+      if (o["script-submit"] && o["person-submits"]) throw fail("INVALID_ARGUMENTS");
+      if (o["script-submit"] && !target.local && o["script-submit"] !== hostAllowed(u.href).atsFamily) {
+        throw fail("SCRIPT_SUBMIT_FAMILY_MISMATCH");
+      }
       // The loopback stand-in for Gmail is for the local test pages; a real employer's code comes from the real mailbox.
       if (o["email-code"] === "local-gmail" && !target.local) throw fail("LOCAL_GMAIL_LOCAL_ONLY");
     })(),
@@ -453,6 +430,19 @@ export async function runApply(args: string[]) {
   };
   const wire: any = {};
   const personSubmits = !!o["person-submits"];
+  // Script submit binding: where a script-submitted form's one application request may go. A local test page names the
+  // family it stands in for; a real posting's family is its host's, and only with the owner's switch.
+  const scriptFamily = personSubmits ? null : target.local
+    ? (o["script-submit"] ?? null)
+    : (o["script-submit"] || Deno.env.get("UPMORE_SCRIPT_SUBMIT_LIVE") === "1") && isScriptFamily(family)
+    ? family
+    : null;
+  const scriptEndpoint: Endpoint | null = scriptFamily ? scriptSubmitEndpoint(scriptFamily, u, target.local) : null;
+  // Every write stopped while the agent's submit was open (keys never kept, only where it went and why).
+  const stopped: { method: string; url: string; why: string }[] = [];
+  // Set at the final review: this form has no bound form post, so its one request is bound at the route instead. A form
+  // whose own form post is bound keeps the stricter field-by-field form check below, whatever its family.
+  let scripted = false;
   // Resume uploads the page made while filling an approved application, and the employer's answers to them.
   let resumeUploads = 0;
   const uploadEchoes: string[] = [];
@@ -611,19 +601,7 @@ export async function runApply(args: string[]) {
     return false;
   }
   // Every approved answer and the approved resume in a body the page sent; throws the name of one missing or changed.
-  function carriesApproved(got: { strings: string[]; files: string[] }) {
-    for (const [name, want] of Object.entries(wire)) {
-      if (want === null) continue;
-      if (typeof want === "object") {
-        if (!got.files.includes((want as any).sha256)) throw Error("resume");
-      } else if (!got.strings.includes(String(want))) {
-        // A select may carry its label rather than its value; a checked box may carry true in JSON.
-        const b = current?.bindings?.[name], opt = b?.options?.find((x: any) => x.value === want);
-        const checked = b?.inputType === "checkbox" && got.strings.includes("true");
-        if (!(opt && got.strings.includes(String(opt.label))) && !checked) throw Error(name);
-      }
-    }
-  }
+  const carriesApproved = (got: Awaited<ReturnType<typeof bodyContents>>) => verifyCarries(got, wire, current?.bindings || {});
   const helper = require("./career/portal-browser-helper.cjs");
   if (o.headed) Deno.env.set("UPMORE_BROWSER_HEADED", "1");
   try {
@@ -742,6 +720,45 @@ export async function runApply(args: string[]) {
         // goes out as the person's page sent it
       } else if (uploadReq) {
         // goes out as the browser sent it; the employer's answer is kept to explain the hidden field it fills
+      } else if (!["GET", "HEAD"].includes(req.method()) && !readQuery && scripted && scriptEndpoint && allowSubmit) {
+        // Trainee clicked the employer's own Submit; the employer's script sends the application. Exactly one request
+        // goes: to this posting's own application endpoint, carrying exactly the approved answers and resume (the same
+        // verifier as the person's own Submit). Any other write is stopped and recorded; a second application request
+        // is stopped; one that carries a changed answer is stopped before it leaves, and nothing is sent.
+        const type = req.headers()["content-type"] || "", body = req.postDataBuffer() || new Uint8Array();
+        const at = url.origin + url.pathname;
+        let form: FormData | null = null;
+        try { form = await formOf(type, body); } catch { /* not form data: read as it is */ }
+        const endpoint = isSubmitEndpoint(scriptEndpoint, { method: req.method(), url: req.url(), type, body, form });
+        if (!endpoint || mutations) {
+          stopped.push({ method: req.method(), url: at, why: endpoint ? "second_application_request" : "not_the_application_endpoint" });
+          evidence.stopped_requests = stopped.slice(0, 20);
+          // Answers on their way anywhere else, before the application went: the run stops with nothing sent.
+          if (!endpoint && !mutations) {
+            try {
+              const got = await bodyContents(type, body, form);
+              if (Object.values(wire).some((v) => typeof v === "string" && v.length >= 4 && got.strings.includes(v))) {
+                evidence.transport_rejection = "SUBMIT_DESTINATION_UNEXPECTED";
+              }
+            } catch { /* unreadable: stopped all the same */ }
+          }
+          await route.abort("blockedbyclient");
+          return;
+        }
+        try {
+          evidence.request_shape = { method: req.method(), url: at, content_type: type.split(";")[0], keys: bodyShape(type, body, form) };
+          carriesApproved(await bodyContents(type, body, form));
+        } catch {
+          evidence.transport_rejection = "APPROVED_BODY_MISMATCH";
+          stopped.push({ method: req.method(), url: at, why: "approved_body_mismatch" });
+          evidence.stopped_requests = stopped.slice(0, 20);
+          await route.abort("blockedbyclient");
+          return;
+        }
+        if (!(await authorizeEffect(route))) return;
+        mutations++;
+        destination = req.url();
+        postStatus = 0;
       } else if (!["GET", "HEAD"].includes(req.method()) && !readQuery && personSubmits && allowSubmit) {
         // The person pressed Submit. The first write to the employer's own origin is the application: its shape is
         // recorded (keys, never values); it goes through only if it carries every approved answer and the approved
@@ -990,7 +1007,9 @@ export async function runApply(args: string[]) {
       const action = await formAction();
       const bound = !!action && new URL(action.url).origin === u.origin && action.method.toLowerCase() === "post" &&
         (target.local || posting(new URL(action.url)).key === target.key);
-      if (!bound && !personSubmits) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
+      // A form that submits from the employer's script binds its one request at the route (scriptEndpoint) instead.
+      scripted = !!scriptEndpoint && !bound;
+      if (!bound && !personSubmits && !scripted) throw fail("SUBMIT_DESTINATION_NOT_BOUND");
       destination = bound ? action.url : "";
       evidence.fields = Object.values(planned);
       evidence.schema = current.schema; // Exact schema bytes already bound by `before`, for refusal-only question recovery.
@@ -998,7 +1017,7 @@ export async function runApply(args: string[]) {
         user_id: facts.user_id,
         posting: target.key,
         company,
-        destination: destination || "the person's own Submit, one request to " + u.origin,
+        destination: destination || (scripted ? scriptEndpoint!.describe : "the person's own Submit, one request to " + u.origin),
         fields: evidence.fields,
         resume: artifact,
         schema_hash: before,
@@ -1053,7 +1072,7 @@ export async function runApply(args: string[]) {
         );
       }
       console.log("Resume SHA-256: " + artifact.sha256);
-      console.log("Destination: " + destination);
+      console.log("Destination: " + evidence.payload.destination);
       console.log("Payload SHA-256: " + payloadHash);
       console.log("Approval hash: " + approvalHash);
       if (!o.submit) return write({ state: "not_submitted", reason: "dry_run" });
@@ -1171,6 +1190,24 @@ export async function runApply(args: string[]) {
           type: "submit_and_capture",
           screenshotPath: path.join(evidenceDir, "after-submit.png"),
         });
+        // A script-submitted form: the employer's script sends after the click, on its own time. Wait for the one
+        // request (or its refusal) and the employer's answer, then read the page as it now shows.
+        if (scripted && cap.clicked && !cap.captcha && !cap.blockedNavigation) {
+          for (let i = 0; i < 40 && (mutations === 0 || postStatus === 0) && !evidence.transport_rejection && !denied; i++) {
+            await new Promise((r) => setTimeout(r, 500));
+          }
+          await page.waitForLoadState("domcontentloaded", { timeout: 20000 }).catch(() => {});
+          await page.waitForTimeout(1500);
+          await page.screenshot({ path: path.join(evidenceDir, "after-submit.png"), fullPage: true }).catch(() => {});
+          cap = {
+            clicked: true,
+            captcha: await page.evaluate(helper.detectChallenge),
+            finalUrl: page.url(),
+            text: await page.evaluate(() =>
+              String((globalThis as any).document.body?.innerText || "").replace(/\s+/g, " ").slice(0, 6000)
+            ),
+          };
+        }
       }
       // An invisible check can turn into a challenge at the click. The send waits for the person: they complete it in
       // the window, the page sends the approved form itself, and the one-POST and body checks above still hold. Nothing
@@ -1193,7 +1230,7 @@ export async function runApply(args: string[]) {
         }
       }
       allowSubmit = false;
-      evidence.post = { mutations, status: postStatus, destination };
+      evidence.post = { mutations, status: postStatus, destination, ...(scripted ? { bound_by: "script_submit_route", family: scriptFamily } : {}) };
       if (evidence.transport_rejection) throw fail(evidence.transport_rejection);
       if (denied || cap.blockedNavigation) throw fail("HOST_REDIRECT_REFUSED");
       // A challenge at the click that nobody completed: nothing left the browser, and the reason says what is needed.

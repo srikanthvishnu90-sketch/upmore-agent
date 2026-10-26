@@ -54,3 +54,7 @@ verify_jwt = false
 
 [functions.site-careers]
 verify_jwt = false
+
+# F-RUNNER: the dispatcher (shared secret header) and the job bridge (per-job HMAC token) authenticate themselves.
+[functions.career-cloud-runner]
+verify_jwt = false

@@ -13,11 +13,21 @@
 --                         person's texting thread, queued once in the outbox (kind "mock", key "mock:<session id>")
 --   career_voice_fallback the text mock in one tap (mic blocked, WebRTC failed, or voice not wired): the same role and
 --                         company start as a text mock in the thread, its first question the thread's last word
-alter table public.career_outbox drop constraint if exists career_outbox_key_check;
-alter table public.career_outbox add constraint career_outbox_key_check
-  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock):.+$' and length(key) <= 310);
-alter table public.career_outbox drop constraint if exists career_outbox_kind_check;
-alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock'));
+-- The outbox takes 'mock' only when it does not yet: the live project (2026-10-26) has the later lists of 20261021075000
+-- ('mock' included, plus 'brief', 'digest', 'link', 'questions') without this file, and go-live applies it after them.
+-- Replaced unconditionally, this list would narrow the outbox there (or fail on a row of a later kind); in file order the
+-- check before this file lacks 'mock', so both lists are replaced exactly as before (tests/db/rehearse_live_migrations.sh).
+do $outbox$
+begin
+ if not exists (select 1 from pg_constraint where conrelid = 'public.career_outbox'::regclass and conname = 'career_outbox_kind_check' and pg_get_constraintdef(oid) like '%''mock''%')
+ or not exists (select 1 from pg_constraint where conrelid = 'public.career_outbox'::regclass and conname = 'career_outbox_key_check' and pg_get_constraintdef(oid) like '%|mock%') then
+  execute $sql$alter table public.career_outbox drop constraint if exists career_outbox_key_check$sql$;
+  execute $sql$alter table public.career_outbox add constraint career_outbox_key_check
+  check (key ~ '^(alert|report|reply|receipt|card|status|followup|mock):.+$' and length(key) <= 310)$sql$;
+  execute $sql$alter table public.career_outbox drop constraint if exists career_outbox_kind_check$sql$;
+  execute $sql$alter table public.career_outbox add constraint career_outbox_kind_check check (kind in ('alert', 'report', 'reply', 'receipt', 'card', 'status', 'followup', 'mock'))$sql$;
+ end if;
+end $outbox$;
 
 create or replace function public.career_voice_create(p_user uuid, p_thread uuid, p_state jsonb, p_now timestamptz)
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$

@@ -120,6 +120,13 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare rid uuid;
 begin
  if p_user is null then raise exception 'invalid resume upload'; end if;
+ -- A claimed fingerprint is not proof of a real uploaded file. Validate the
+ -- decoded bytes before persisting any evidence used by a resume confirmation.
+ if p_content_b64 is null or p_sha256 is null or p_bytes is null
+    or octet_length(decode(p_content_b64, 'base64')) <> p_bytes
+    or encode(sha256(decode(p_content_b64, 'base64')), 'hex') <> p_sha256 then
+  raise exception 'invalid resume upload: content does not match size and sha256';
+ end if;
  insert into public.career_resume_uploads (user_id, channel, provider_ref, filename, mime, bytes, sha256, content_b64, message_sha256)
  values (p_user, p_channel, p_ref, p_filename, p_mime, p_bytes, p_sha256, p_content_b64, p_message_sha256)
  on conflict (user_id, sha256, message_sha256) do update set created_at = public.career_resume_uploads.created_at

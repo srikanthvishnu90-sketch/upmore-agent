@@ -143,6 +143,8 @@ MIGRATIONS=(
   20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql
   20261025180000_career_outbox_card_id.sql
+  20261026060006_career_more_providers.sql
+  20261026060106_career_ingest_runs.sql
   20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql
   20261026090009_career_account_memory.sql
@@ -207,6 +209,8 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
+  "exists (select 1 from pg_constraint where conname = 'career_board_state_provider_check' and pg_get_constraintdef(oid) like '%workday%')"
+  "to_regclass('public.career_ingest_runs') is not null and exists (select 1 from pg_proc where proname = 'career_ingest_coverage')"
   "exists (select 1 from pg_constraint where conname = 'career_alert_prefs_min_fit')"
   "exists (select 1 from information_schema.columns where table_name = 'career_mail_drafts' and column_name = 'outreach_draft')"
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"

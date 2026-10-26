@@ -443,8 +443,14 @@ const CareerJobs = (() => {
     });
   }
   const INTERN_BAND = /\b(intern|internship|co op)\b/;
+  function bandHead(jd) {
+    const raw = s(jd);
+    if (raw.length <= 4000) return bandText(raw);
+    const h = bandText(raw.slice(0, 4000));
+    return h.lastIndexOf(" ") > 401 ? h : bandText(raw);
+  }
   function seniorityBand(title, jd) {
-    const t = bandText(title), j = bandText(jd);
+    const t = bandText(title), j = bandHead(jd);
     if (INTERN_BAND.test(t)) return "intern";
     if (/\b(summer|winter)\s+(business\s+)?(analyst|associate)\b/.test(t)
         && !/\b(manager|director|vp|vice president|head of|chief)\b/.test(t)) return "intern";
@@ -584,13 +590,13 @@ const CareerJobs = (() => {
     const push = (ko) => { const k = `${ko.type}|${ko.credential || ko.level || ko.min_years}`; if (!seen.has(k)) { seen.add(k); out.push(ko); } };
     for (const rawSent of knockoutSentences(posting && posting.jd_text)) {
       const sent = lc(rawSent);
-      const lic = sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/);
+      const lic = sent.includes("licen") ? sent.match(/([a-z][a-z&' -]{0,44}?)\s(licen[cs]e|licensure)\b/) : null;
       if (lic && /(active|unrestricted|current|valid|must|required|hold|maintain|possess|eligib|requirements?\s*:)/.test(sent)) {
         const words = lic[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-4);
         const tokens = credentialTokens(words);
         if (tokens.length) push({ type: "license", credential: `${tokens.join(" ")} license`, tokens, requirement: `a ${tokens.join(" ")} license`, evidence: rawSent.slice(0, 220) });
       }
-      const cert = sent.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/);
+      const cert = sent.includes("certific") ? sent.match(/([a-z][a-z&' -]{0,44}?)\s(certification|certificate)\b/) : null;
       if (cert && /(requirements?\s*:|required|must (hold|have|possess|maintain|be)|certification\s*$|certification\s+\d)/.test(sent) && !/degree|bachelor|master/.test(sent)) {
         const words = cert[1].replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).slice(-3);
         const tokens = credentialTokens(words);

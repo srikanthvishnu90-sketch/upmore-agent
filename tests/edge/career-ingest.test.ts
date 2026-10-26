@@ -1,7 +1,7 @@
 // WO-006 builder tests: the feed adapter over recorded ATS shapes, the write economy (unchanged postings are not
 // rewritten), the run's deadline and concurrency, the scheduled function's door, the shipped board list, and job search
 // ranked by fit. No network: fetch is a fake. Run: deno test -A --no-check tests/edge/career-ingest.test.ts
-import { boardFetchFeed, boardPay, directoryBoards, ingestBoards, memoryPostingsDb, searchWords, supabasePostingsDb, type Board } from "../../supabase/functions/_shared/career_ingest.ts";
+import { boardFetchFeed, boardPay, directoryBoards, INGEST_PROVIDERS, ingestBoards, memoryPostingsDb, searchWords, supabasePostingsDb, type Board } from "../../supabase/functions/_shared/career_ingest.ts";
 import { searchPostings } from "../../supabase/functions/_shared/career_search.ts";
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
 import { handleIngest } from "../../supabase/functions/career-ingest/handler.ts";
@@ -82,7 +82,8 @@ Deno.test("WO-006/B4 HTTP errors and slow boards fail the board with the reason"
   await rejects(() => boardFetchFeed(fakeFetch(() => res({}, 429)).f)({ company: "A", provider: "lever", board: "a" }), /HTTP 429/);
   const hang = ((_u: string, init?: RequestInit) => new Promise<Response>((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("The signal has been aborted", "TimeoutError"))))) as unknown as typeof fetch;
   await rejects(() => boardFetchFeed(hang, { timeoutMs: 50 })({ company: "A", provider: "ashby", board: "a" }), /timed out after 0.05s/);
-  await rejects(() => boardFetchFeed(fakeFetch(() => res({})).f)({ company: "A", provider: "workday", board: "a" }), /not supported/);
+  // WO-044 reads Workday; a provider no reader knows is still refused.
+  await rejects(() => boardFetchFeed(fakeFetch(() => res({})).f)({ company: "A", provider: "someats", board: "a" }), /not supported/);
 });
 
 Deno.test("WO-006/B5 an unchanged posting is only touched (and not even that inside touchAfterMs); a changed one is rewritten", async () => {
@@ -125,13 +126,14 @@ Deno.test("WO-006/B7 concurrency: at most N boards in flight, every board read o
   eq([peak, st.attempted, new Set(seen).size], [3, 10, 10]);
 });
 
-Deno.test("WO-006/B8 the shipped board list is the directory's live set: 2,179 boards (WO-017), no ATS vendor or demo board, no duplicate", () => {
+Deno.test("WO-006/B8 the shipped board list is the directory's live set: at least 2,179 boards (WO-017), no ATS vendor or demo board, no duplicate", () => {
   eq(shipped, directoryBoards(directory as any), "stale: run deno run -A scripts/build-ingest-boards.ts");
-  eq(shipped.length, 2179);
+  // WO-044: a merged discovery run grows the list; it never shrinks below WO-017's 2,179.
+  assert(shipped.length >= 2179, `shipped ${shipped.length} boards`);
   const keys = shipped.map((b: Board) => `${b.provider}:${b.board.toLowerCase()}`);
   eq(new Set(keys).size, keys.length);
   for (const k of ["lever:leverdemo", "greenhouse:greenhouse", "ashby:ashby", "smartrecruiters:palantir"]) assert(!keys.includes(k), `${k} must not ship`);
-  assert(shipped.every((b: Board) => ["greenhouse", "lever", "ashby", "smartrecruiters"].includes(b.provider)), "only providers the feed adapter reads");
+  assert(shipped.every((b: Board) => INGEST_PROVIDERS.includes(b.provider)), "only providers the feed adapter reads");
 });
 
 const env = (m: Record<string, string>) => ({ get: (k: string) => m[k] });

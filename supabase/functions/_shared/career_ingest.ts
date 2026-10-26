@@ -5,16 +5,24 @@
 //   memoryPostingsDb    the same semantics in memory (tests, the local runner, the simulator)
 //   supabasePostingsDb  the same semantics over career_postings / career_ingest_state, written in batches
 //   boardFetchFeed      the CareerJobs (121) feed URLs and normalizers, one request per board (SmartRecruiters paged),
-//                       a timeout per board, and a job id the apply worker can use (provider:board:<the ATS's own id>)
+//                       a timeout per board, and a job id the apply worker can use (provider:board:<the ATS's own id>);
+//                       WO-044: Workable, Recruitee, BambooHR, Teamtailor, Breezy, Personio and Workday through
+//                       career_ingest_feeds.ts, each job rewritten to the Greenhouse shape and run through the same normalizer
 //   directoryBoards     packages/career-data/board-directory.json -> the live boards
 // Network and storage are injected; nothing here deploys, schedules or spends.
 import { CareerJobs } from "./router_core.career.js";
 import { applyEmailOf } from "./apply_email.ts";
 import { BACKLOG_MS, freshWhenSeen } from "./career_fresh.ts";
+import { FEEDS, isMoreProvider, MORE_PROVIDERS } from "./career_ingest_feeds.ts";
+// Feature 6: the posting URL-shape guard (packages/domain/166-career-url-shape.js, MUSE-F-010), copied byte for byte
+// (tests/edge/career-ingest-scale.test.ts fails while the copy is stale). It sets globalThis.CareerUrlShape.
+import "./career_url_shape.js";
 
 // etag / last_modified: what the board's last full read answered (career_board_state, WO-037), sent back as a conditional
 // request; absent on the cursor path.
-export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null }
+// body_sha (Feature 6): the SHA-256 of the body the board's last full read answered; a board whose body is the same again
+// is not parsed or normalized (read as "not modified"), the way a 304 is. Only with boardFetchFeed's bodyHash option.
+export interface Board { company: string; provider: string; board: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
 export interface FeedPosting {
   job_id: string; company: string; title: string; location?: string; url: string; description?: string;
   ats_id?: string; department?: string; posted_at?: string | null; remote?: string; role_family?: string; seniority_band?: string;
@@ -24,10 +32,10 @@ export interface FeedPosting {
 // A feed returns its postings; `complete: false` says the board has more than was read (closes nothing). WO-037:
 // `not_modified` says the board answered 304 to a conditional request (nothing changed since the last read); etag and
 // last_modified are the validators a full read answered with, kept for the next conditional request.
-export interface FeedRead { postings: FeedPosting[]; complete: boolean; not_modified?: boolean; etag?: string | null; last_modified?: string | null }
+export interface FeedRead { postings: FeedPosting[]; complete: boolean; not_modified?: boolean; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
 export type FetchFeed = (b: Board) => Promise<FeedPosting[] | FeedRead>;
 // What happened to one board in a run (WO-037: the sharded scheduler records it in career_board_state).
-export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null }
+export interface BoardOutcome { status: "ok" | "partial" | "not_modified" | "failed"; error?: string; etag?: string | null; last_modified?: string | null; body_sha?: string | null }
 export interface Posting extends FeedPosting {
   provider: string; board: string; first_seen_at: string; last_seen_at: string; closed_at: string | null;
 }
@@ -43,11 +51,19 @@ export interface PostingsDb {
 export interface IngestStats {
   boards_ok: number; boards_failed: number; boards_partial: number; new: number; seen: number; reopened: number; closed: number;
   boards_not_modified?: number; // WO-037: answered 304 to a conditional request
+  // Feature 6: postings refused at ingest because their link is never a posting (a data/API endpoint, a discussion
+  // thread, a search or board page, not a URL), by shape; and links kept but of no recognized posting grammar.
+  url_rejected?: number; url_rejected_shapes?: Record<string, number>; url_unknown?: number;
+  postings_read?: number; // Feature 6: postings parsed this run (the CPU proxy postingBudget counts)
+  stopped_by?: "deadline" | "posting_budget"; // why boards were left for the next run, when any were
   failures: { board: string; provider: string; error: string }[];
   large_closes: { board: string; provider: string; closed: number; was_open: number }[]; // a board that lost half or more at once
 }
 
 const MAX_DESCRIPTION = 20000;
+// deno-lint-ignore no-explicit-any
+const URL_SHAPE = (globalThis as any).CareerUrlShape as { classifyPostingUrl(u: unknown): { verdict: "posting" | "not_posting" | "unknown"; shape: string; reasons: string[] } };
+export const urlShape = (u: unknown) => URL_SHAPE.classifyPostingUrl(u);
 const TEXT_DEFAULTS = new Set(["location", "description", "department"]); // never null in the table
 
 // ------------------------------------------------------------------------------------------------ the run
@@ -64,7 +80,7 @@ const same = (a: any, b: any) => CONTENT.every((k) => sameValue(k, a[k], b[k]));
 // run uses hours, so tens of thousands of unchanged postings are not rewritten every few minutes.
 // `useCursor: false` (WO-037, the sharded scheduler): read `boards` in the order given, from the first, and leave the
 // cursor alone; `onBoard` hears each attempted board's outcome.
-export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number; useCursor?: boolean; onBoard?: (b: Board, r: BoardOutcome) => void }): Promise<IngestStats & { attempted: number }> {
+export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; db: PostingsDb; now: number; maxBoards?: number; concurrency?: number; deadline?: number; clock?: () => number; touchAfterMs?: number; useCursor?: boolean; onBoard?: (b: Board, r: BoardOutcome) => void; postingBudget?: number }): Promise<IngestStats & { attempted: number }> {
   const now = new Date(o.now).toISOString(), n = o.boards.length, clock = o.clock || Date.now;
   const st = { boards_ok: 0, boards_failed: 0, boards_partial: 0, new: 0, seen: 0, reopened: 0, closed: 0, failures: [], large_closes: [], attempted: 0 } as IngestStats & { attempted: number };
   if (!n) return st;
@@ -74,12 +90,12 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   const pick = Array.from({ length: take }, (_, i) => o.boards[(start + i) % n]);
 
   async function one(b: Board) {
-    let list: FeedPosting[], complete = true, validators: { etag?: string | null; last_modified?: string | null } = {};
+    let list: FeedPosting[], complete = true, validators: { etag?: string | null; last_modified?: string | null; body_sha?: string | null } = {};
     try {
       const r = await o.fetchFeed(b);
       if (Array.isArray(r)) list = r;
       else {
-        list = r.postings; complete = r.complete; validators = { etag: r.etag ?? null, last_modified: r.last_modified ?? null };
+        list = r.postings; complete = r.complete; validators = { etag: r.etag ?? null, last_modified: r.last_modified ?? null, ...(r.body_sha !== undefined ? { body_sha: r.body_sha } : {}) };
         // Nothing changed since the last full read: nothing to write, nothing to close.
         if (r.not_modified) { st.boards_ok++; st.boards_not_modified = (st.boards_not_modified ?? 0) + 1; o.onBoard?.(b, { status: "not_modified", ...validators }); return; }
       }
@@ -91,10 +107,24 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
       return;
     }
     st.boards_ok++;
+    st.postings_read = (st.postings_read ?? 0) + list.length;
     if (!complete) st.boards_partial++;
     o.onBoard?.(b, { status: complete ? "ok" : "partial", ...validators });
     const fresh = new Map<string, FeedPosting>();
-    for (const p of list) if (p && p.job_id && !fresh.has(p.job_id)) fresh.set(p.job_id, p);
+    for (const p of list) {
+      if (!p || !p.job_id || fresh.has(p.job_id)) continue;
+      // Feature 6: a link that is never a posting never enters the table (and one stored before is closed below, since a
+      // complete read no longer carries it). "unknown" is kept and counted: the guard never promotes or drops a guess.
+      const v = urlShape(p.url);
+      if (v.verdict === "not_posting") {
+        st.url_rejected = (st.url_rejected ?? 0) + 1;
+        const shapes = (st.url_rejected_shapes ??= {});
+        shapes[v.shape] = (shapes[v.shape] ?? 0) + 1;
+        continue;
+      }
+      if (v.verdict === "unknown") st.url_unknown = (st.url_unknown ?? 0) + 1;
+      fresh.set(p.job_id, p);
+    }
     const known = new Map((await o.db.getMany([...fresh.keys()])).map((p) => [p.job_id, p]));
     const writes: Posting[] = [], touched: string[] = [];
     for (const p of fresh.values()) {
@@ -119,7 +149,10 @@ export async function ingestBoards(o: { boards: Board[]; fetchFeed: FetchFeed; d
   const width = Math.max(1, Math.min(o.concurrency ?? 1, pick.length));
   let next = 0;
   await Promise.all(Array.from({ length: width }, async () => {
-    while (next < pick.length && !(o.deadline && clock() >= o.deadline)) { st.attempted++; await one(pick[next++]); }
+    // Feature 6: postingBudget bounds a run's CPU (parsing and normalizing postings is most of it): once the run has parsed
+    // that many, no further board starts; the rest stay due, oldest first, for the next run.
+    const stop = () => (o.deadline && clock() >= o.deadline) ? "deadline" as const : (o.postingBudget && (st.postings_read ?? 0) >= o.postingBudget) ? "posting_budget" as const : null;
+    while (next < pick.length) { const why = stop(); if (why) { st.stopped_by = why; break; } st.attempted++; await one(pick[next++]); }
   }));
   if (useCursor) await o.db.setCursor((start + st.attempted) % n);
   return st;
@@ -196,7 +229,16 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
 }
 
 // deno-lint-ignore no-explicit-any
-export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: IngestStats, at: string): Promise<void> } {
+// Feature 6: one run's record in career_ingest_runs (20261026060106_career_ingest_runs.sql), one row per lane run.
+export interface IngestRunRow {
+  at: string; lane: number; lanes: number; window_min: number; ms: number;
+  boards_due: number; boards_read: number; boards_ok: number; boards_failed: number; boards_not_modified: number;
+  postings_new: number; postings_seen: number; postings_reopened: number; postings_closed: number; url_rejected: number;
+  lane_fresh: number | null; lane_total: number | null; directory_fresh: number | null; directory_total: number | null;
+  failures: { provider: string; board: string; error: string }[]; report: string;
+}
+export const RUN_LOG_DAYS = 14;
+export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: IngestStats, at: string): Promise<void>; recordLaneRun(row: IngestRunRow): Promise<void> } {
   const T = "career_postings", S = "career_ingest_state";
   async function pages(build: (from: number, to: number) => any, what: string): Promise<any[]> {
     const out: any[] = [];
@@ -256,6 +298,12 @@ export function supabasePostingsDb(admin: any): PostingsDb & { recordRun(stats: 
     async getCursor() { const r = must<{ cursor: number } | null>(await admin.from(S).select("cursor").eq("id", 1).maybeSingle(), "read ingest cursor"); return r ? Number(r.cursor) || 0 : 0; },
     async setCursor(c) { must(await admin.from(S).upsert({ id: 1, cursor: c }, { onConflict: "id" }), "write ingest cursor"); },
     async recordRun(stats, at) { must(await admin.from(S).upsert({ id: 1, last_run_at: at, last_stats: stats }, { onConflict: "id" }), "write ingest stats"); },
+    // Lane 0 also drops records older than RUN_LOG_DAYS (about 5,800 rows a day at 20 lanes every 5 minutes).
+    async recordLaneRun(r) {
+      const R = "career_ingest_runs";
+      must(await admin.from(R).insert({ ...r, failures: r.failures.slice(0, 50), report: r.report.slice(0, 2000) }), "write ingest run");
+      if (r.lane === 0) must(await admin.from(R).delete().lt("at", new Date(Date.parse(r.at) - RUN_LOG_DAYS * 86400000).toISOString()), "prune ingest runs");
+    },
   };
 }
 
@@ -274,7 +322,10 @@ export function decodeEntities(t: string): string {
   return out.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 const clip = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
-const RAW_ID: Record<string, (j: any) => string> = { greenhouse: (j) => j.id, lever: (j) => j.id, ashby: (j) => j.id, smartrecruiters: (j) => j.id };
+const RAW_ID: Record<string, (j: any) => string> = { greenhouse: (j) => j.id, lever: (j) => j.id, ashby: (j) => j.id, smartrecruiters: (j) => j.id,
+  ...Object.fromEntries(MORE_PROVIDERS.map((p) => [p, FEEDS[p].id])) };
+// Every provider ingest reads: the 121 bundle's four and WO-044's seven.
+export const INGEST_PROVIDERS = Object.keys(RAW_ID);
 const rawJobs: Record<string, (json: any) => any[]> = {
   greenhouse: (j) => (j && j.jobs) || [], lever: (j) => (Array.isArray(j) ? j : []), ashby: (j) => (j && j.jobs) || [], smartrecruiters: (j) => (j && j.content) || [],
 };
@@ -340,12 +391,21 @@ export function boardPay(provider: string, raw: any): string | null {
 const PAY_QUERY: Record<string, string> = { greenhouse: "pay_transparency=true", ashby: "includeCompensation=true" };
 const withPay = (provider: string, url: string) => PAY_QUERY[provider] ? `${url}${url.includes("?") ? "&" : "?"}${PAY_QUERY[provider]}` : url;
 
-export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?: string; timeoutMs?: number } = {}): FetchFeed {
+// bodyHash (Feature 6, the deployed function): every one-request read hashes its body; one equal to the board's last
+// (Board.body_sha) is "not modified" and skips parsing and normalizing, which is most of a read's CPU (measured:
+// scripts/career/measure-ingest-lane.ts). Every result is then a FeedRead carrying body_sha.
+export async function sha256Hex(text: string): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+  let h = "";
+  for (const x of d) h += x.toString(16).padStart(2, "0");
+  return h;
+}
+export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?: string; timeoutMs?: number; bodyHash?: boolean } = {}): FetchFeed {
   const headers: Record<string, string> = { accept: "application/json" };
   if (opts.userAgent) headers["user-agent"] = opts.userAgent;
   const timeoutMs = opts.timeoutMs ?? 15000;
   // WO-037: `cond` sends the board's last validators (If-None-Match / If-Modified-Since); a 304 comes back as null.
-  async function getJson(url: string, deadline: number, cond?: Board, seen?: { etag?: string | null; last_modified?: string | null }) {
+  async function getJson(url: string, deadline: number, cond?: Board, seen?: { etag?: string | null; last_modified?: string | null; body_sha?: string | null }) {
     const left = deadline - Date.now();
     if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
     const h: Record<string, string> = { ...headers };
@@ -357,15 +417,69 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
     if (seen) { seen.etag = res.headers.get("etag"); seen.last_modified = res.headers.get("last-modified"); }
     if (res.status === 304 && cond) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
     if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
-    return await res.json();
+    if (!(opts.bodyHash && seen)) return await res.json();
+    const text = await res.text();
+    seen.body_sha = await sha256Hex(text);
+    if (cond?.body_sha && cond.body_sha === seen.body_sha) return null; // the same body as the last full read
+    return JSON.parse(text);
+  }
+  // WO-044: a provider of career_ingest_feeds.ts. GET, or Workday's read-only search POST; paged where the provider
+  // pages (past maxPages the read is partial and closes nothing); the conditional request applies to one-request GETs.
+  async function readMore(b: Board, deadline: number) {
+    const spec = FEEDS[b.provider as keyof typeof FEEDS];
+    let raw: any[] = [], complete = true, first: unknown = null, total: number | null = null;
+    let validators: { etag: string | null; last_modified: string | null; body_sha?: string | null } | null = null;
+    for (let page = 0; page < spec.maxPages; page++) {
+      const rq = spec.request(b.board, page);
+      const left = deadline - Date.now();
+      // Out of time after the first page of a paged board: what was read is a partial read (it closes nothing).
+      if (left <= 0 && page > 0) { complete = false; break; }
+      if (left <= 0) throw new Error(`timed out after ${timeoutMs / 1000}s`);
+      const h: Record<string, string> = { ...headers, accept: rq.accept };
+      const cond = spec.maxPages === 1 && rq.method === "GET";
+      if (cond && b.etag) h["if-none-match"] = b.etag;
+      if (cond && b.last_modified) h["if-modified-since"] = b.last_modified;
+      if (rq.body) h["content-type"] = "application/json";
+      let res: Response;
+      try { res = await fetchFn(rq.url, { method: rq.method, headers: h, body: rq.body, signal: AbortSignal.timeout(left) }); }
+      catch (e) {
+        if (page > 0) { complete = false; break; }
+        throw new Error(e instanceof Error && /timed? ?out|abort/i.test(`${e.name} ${e.message}`) ? `timed out after ${timeoutMs / 1000}s` : e instanceof Error ? e.message : String(e)); }
+      if (res.status === 304 && cond && (b.etag || b.last_modified)) { try { await res.body?.cancel(); } catch { /* already closed */ } return null; }
+      if (res.status < 200 || res.status >= 300) { try { await res.body?.cancel(); } catch { /* already closed */ } throw new Error(`HTTP ${res.status}`); }
+      if (cond) validators = { etag: res.headers.get("etag"), last_modified: res.headers.get("last-modified") };
+      const text = await res.text();
+      if (cond && opts.bodyHash) {
+        const sha = await sha256Hex(text);
+        if (b.body_sha && b.body_sha === sha) return { same: true as const, sha, validators };
+        validators = { ...(validators ?? { etag: null, last_modified: null }), body_sha: sha };
+      }
+      const data = spec.parse(text);
+      if (!spec.shape(data)) throw new Error(`not a ${b.provider} board (unexpected body)`);
+      const got = spec.jobs(data);
+      if (page === 0) { first = data; total = spec.total(data, 0); }
+      raw.push(...got);
+      if (spec.maxPages === 1 || got.length < spec.pageSize || (total !== null && raw.length >= total)) break;
+      if (page + 1 >= spec.maxPages) complete = false;
+    }
+    raw = raw.filter((j) => j && typeof j === "object");
+    return { json: { name: spec.company(first), jobs: raw.map((j) => spec.toGreenhouse(j, b.board)) }, raw, complete, validators };
   }
   return async (b: Board) => {
+    if (isMoreProvider(b.provider)) {
+      const r = await readMore(b, Date.now() + timeoutMs);
+      if (r === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? null, last_modified: b.last_modified ?? null, ...(opts.bodyHash ? { body_sha: b.body_sha ?? null } : {}) };
+      if ("same" in r) return { postings: [], complete: false, not_modified: true, etag: r.validators?.etag ?? b.etag ?? null, last_modified: r.validators?.last_modified ?? b.last_modified ?? null, body_sha: r.sha };
+      const postings = toPostings(b, CareerJobs.normalizeGreenhouse(r.json, b.board, b.company), r.raw);
+      if (opts.bodyHash || (r.validators && (r.validators.etag || r.validators.last_modified))) return { postings, complete: r.complete, etag: r.validators?.etag ?? null, last_modified: r.validators?.last_modified ?? null, ...(opts.bodyHash ? { body_sha: r.validators?.body_sha ?? null } : {}) };
+      return r.complete ? postings : { postings, complete: false };
+    }
     const feed = (CareerJobs.feeds as any)[b.provider];
     const normalize = ({ greenhouse: CareerJobs.normalizeGreenhouse, lever: CareerJobs.normalizeLever, ashby: CareerJobs.normalizeAshby, smartrecruiters: CareerJobs.normalizeSmartRecruiters } as any)[b.provider];
     if (!feed || !normalize) throw new Error(`provider ${b.provider} is not supported`);
     const deadline = Date.now() + timeoutMs;
     const base = withPay(b.provider, feed(b.board).url as string);
-    let raw: any[] = [], complete = true, json: any, validators: { etag: string | null; last_modified: string | null } | null = null;
+    let raw: any[] = [], complete = true, json: any, validators: { etag: string | null; last_modified: string | null; body_sha?: string | null } | null = null;
     if (b.provider === "smartrecruiters") {
       for (let page = 0; ; page++) {
         const j = await getJson(`${base}?limit=${SR_PAGE}&offset=${page * SR_PAGE}`, deadline);
@@ -378,17 +492,24 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
       }
     } else {
       // One request per board: the conditional request applies (SmartRecruiters pages, so it reads in full).
-      const seen: { etag?: string | null; last_modified?: string | null } = {};
+      const seen: { etag?: string | null; last_modified?: string | null; body_sha?: string | null } = {};
       json = await getJson(base, deadline, b, seen);
-      if (json === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? seen.etag ?? null, last_modified: b.last_modified ?? seen.last_modified ?? null };
+      if (json === null) return { postings: [], complete: false, not_modified: true, etag: b.etag ?? seen.etag ?? null, last_modified: b.last_modified ?? seen.last_modified ?? null, ...(opts.bodyHash ? { body_sha: seen.body_sha ?? b.body_sha ?? null } : {}) };
       raw = rawJobs[b.provider](json);
-      validators = { etag: seen.etag ?? null, last_modified: seen.last_modified ?? null };
+      validators = { etag: seen.etag ?? null, last_modified: seen.last_modified ?? null, ...(opts.bodyHash ? { body_sha: seen.body_sha ?? null } : {}) };
     }
-    const normalized: any[] = normalize(json, b.board, b.company);
+    const postings = toPostings(b, normalize(json, b.board, b.company), raw);
+    if (opts.bodyHash) return { postings, complete, etag: validators?.etag ?? null, last_modified: validators?.last_modified ?? null, body_sha: validators?.body_sha ?? null };
+    if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
+    return complete ? postings : { postings, complete };
+  };
+}
+// One read's normalized jobs -> the rows the table takes. Every row must fit the table's constraints
+// (20261019000000_career_postings.sql): one bad row would otherwise fail its board's write on every run. A posting
+// without an https link or a title is not a job anyone can apply to.
+function toPostings(b: Board, normalized: any[], raw: any[]): FeedPosting[] {
     const token = b.board.toLowerCase();
     const postings: FeedPosting[] = [];
-    // Every row must fit the table's constraints (20261019000001_career_postings.sql): one bad row would otherwise fail
-    // its board's write on every run. A posting without an https link or a title is not a job anyone can apply to.
     normalized.forEach((p, i) => {
       const atsId = String(RAW_ID[b.provider](raw[i]) ?? "");
       const title = clip(p.title, 500), url = String(p.url || "");
@@ -401,9 +522,7 @@ export function boardFetchFeed(fetchFn: typeof fetch = fetch, opts: { userAgent?
         apply_email: applyEmailOf({ description, url }), pay: boardPay(b.provider, raw[i]),
       });
     });
-    if (validators && (validators.etag || validators.last_modified)) return { postings, complete, ...validators };
-    return complete ? postings : { postings, complete };
-  };
+    return postings;
 }
 
 // ------------------------------------------------------------------------------------------------ the directory

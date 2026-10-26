@@ -16,12 +16,16 @@ export interface BoardState {
   provider: string; board: string; bucket: number;
   last_attempt_at: string | null; last_ok_at: string | null; last_status: string | null;
   etag: string | null; last_modified: string | null; fail_count: number;
+  body_sha?: string | null; // Feature 6: the SHA-256 of the last full read's body (20261026060106_career_ingest_runs.sql)
 }
 export interface BoardStateDb {
   count(): Promise<number>;
   seed(boards: Board[]): Promise<void>; // adds a row for every board not yet known; never changes a known one
   due(buckets: number[], limit: number): Promise<BoardState[]>; // never-read first, then oldest attempt first
   record(rows: BoardState[]): Promise<void>;
+  // Feature 6: coverage. Of the boards in `buckets` (all boards when null), how many were read successfully at or after
+  // `sinceIso`. Optional: a store without it reports no coverage.
+  fresh?(buckets: number[] | null, sinceIso: string): Promise<{ fresh: number; total: number }>;
 }
 
 export function fnv1a(s: string): number {
@@ -49,7 +53,7 @@ export function pickDue(states: BoardState[], buckets: number[], limit: number):
     .slice(0, Math.max(0, limit)).map((x) => x.s);
 }
 export function freshState(b: Board): BoardState {
-  return { provider: b.provider, board: b.board, bucket: bucketOf(b), last_attempt_at: null, last_ok_at: null, last_status: null, etag: null, last_modified: null, fail_count: 0 };
+  return { provider: b.provider, board: b.board, bucket: bucketOf(b), last_attempt_at: null, last_ok_at: null, last_status: null, etag: null, last_modified: null, fail_count: 0, body_sha: null };
 }
 
 // ------------------------------------------------------------------------------------------------ sizing
@@ -91,10 +95,16 @@ export function memoryBoardState(): BoardStateDb & { rows: Map<string, BoardStat
     async seed(boards) { for (const b of boards) if (!rows.has(boardKey(b))) rows.set(boardKey(b), freshState(b)); },
     async due(buckets, limit) { return pickDue([...rows.values()], buckets, limit).map((s) => ({ ...s })); },
     async record(list) { for (const s of list) rows.set(boardKey(s), { ...s }); },
+    async fresh(buckets, sinceIso) {
+      const mine = buckets ? new Set(buckets) : null, since = Date.parse(sinceIso);
+      let total = 0, fresh = 0;
+      for (const s of rows.values()) { if (mine && !mine.has(s.bucket)) continue; total++; if (s.last_ok_at && Date.parse(s.last_ok_at) >= since) fresh++; }
+      return { fresh, total };
+    },
   };
 }
 
-const COLS = "provider,board,bucket,last_attempt_at,last_ok_at,last_status,etag,last_modified,fail_count";
+const COLS = "provider,board,bucket,last_attempt_at,last_ok_at,last_status,etag,last_modified,fail_count,body_sha";
 // deno-lint-ignore no-explicit-any
 export function supabaseBoardState(admin: any): BoardStateDb {
   const T = "career_board_state";
@@ -115,6 +125,14 @@ export function supabaseBoardState(admin: any): BoardStateDb {
       for (let i = 0; i < list.length; i += 500) {
         must(await admin.from(T).upsert(list.slice(i, i + 500).map((s) => ({ ...s, updated_at: new Date().toISOString() })), { onConflict: "provider,board" }), "record board state");
       }
+    },
+    // Two head-only counts (no rows come back): the index on (bucket, last_attempt_at) serves the bucket filter.
+    async fresh(buckets, sinceIso) {
+      const q = () => { const b = admin.from(T).select("provider", { count: "exact", head: true }); return buckets ? b.in("bucket", buckets) : b; };
+      const all = await q(), ok = await q().gte("last_ok_at", sinceIso);
+      if (all.error) throw new Error(`count board state: ${all.error.message}`);
+      if (ok.error) throw new Error(`count fresh boards: ${ok.error.message}`);
+      return { fresh: ok.count ?? 0, total: all.count ?? 0 };
     },
   };
 }

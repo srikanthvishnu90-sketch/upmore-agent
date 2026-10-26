@@ -17,7 +17,7 @@ const ROOT = new URL("../..", import.meta.url).pathname;
 const require = createRequire(import.meta.url);
 const SNAKE = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const DOUBLED = /\b([a-z]+) \1s\b/gi;
-const INTERNAL = /\b(from this handler|board adapter|served board list|wiring exists|in this run|MI-\d+)\b/gi;
+const INTERNAL = /\b(from this handler|board adapter|served board list|wiring exists|in this run|request key|owned conversation|career context|MI-\d+)\b/gi;
 export function jargonIn(text: string): string[] {
   return [...new Set([...(text.match(SNAKE) ?? []), ...(text.match(DOUBLED) ?? []), ...(text.match(INTERNAL) ?? [])])];
 }
@@ -112,5 +112,29 @@ Deno.test("every exported reply constant of the chat's modules is free of codes 
     }
   }
   assertNode.ok(scanned >= 20, `${scanned} reply constants scanned`);
+  assertNode.deepEqual(leaks, [], leaks.join("\n"));
+});
+
+Deno.test("every reply literal the handler and the channel inbound path write is free of codes and internal phrases", () => {
+  const leaks: string[] = [];
+  let scanned = 0;
+  for (const f of ["supabase/functions/agent-chat/handler-career.ts", "supabase/functions/_shared/channel_inbound.ts", "supabase/functions/_shared/channel_runtime.ts"]) {
+    const src = Deno.readTextFileSync(`${ROOT}${f}`);
+    // reply: "..." and reply: cond ? "..." : "...", and the exported *_REPLY constants' literals.
+    for (const m of src.matchAll(/\b(?:reply|message)\s*:\s*([^,}\n]*(?:"(?:[^"\\]|\\.)*"[^,}\n]*)+)/g)) {
+      for (const lit of m[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)) {
+        if (!/\s/.test(lit[1])) continue;
+        scanned++;
+        const found = jargonIn(lit[1]);
+        if (found.length) leaks.push(`${f}: ${found.join(", ")}: ${lit[1].slice(0, 120)}`);
+      }
+    }
+    for (const m of src.matchAll(/export const [A-Z_]*REPLY[A-Z_]* = "((?:[^"\\]|\\.)*)"/g)) {
+      scanned++;
+      const found = jargonIn(m[1]);
+      if (found.length) leaks.push(`${f}: ${found.join(", ")}: ${m[1].slice(0, 120)}`);
+    }
+  }
+  assertNode.ok(scanned >= 5, `${scanned} literals scanned`);
   assertNode.deepEqual(leaks, [], leaks.join("\n"));
 });

@@ -99,6 +99,11 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
 }
 
 // WO-106 (F5): the reply to a batch ask the router would have "handed to the browser worker": what happened, nothing more.
+// LAUNCH READINESS (2026-10-26): what a person reads when their turn could not be saved, in plain words. A conflict (a
+// second message, or an erase, changed the conversation while this one was answered) saves nothing; an unconfirmed save
+// may or may not have landed. Anything that goes to an employer or a contact still needs their approval of exactly it.
+export const CONFLICT_REPLY = "I couldn't save this reply because your conversation changed while I was answering it, so nothing from this message was saved or started. Send it again and I'll answer it.";
+export const UNSAVED_REPLY = "I couldn't confirm this reply was saved. Send your message again; nothing goes to an employer or a contact until you approve exactly what is sent.";
 export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
 
@@ -859,7 +864,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
       const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
-      return json(cors, { error: code, reply: conflict ? "The saved career context changed or this request key conflicts. Reload your owned conversation before retrying. Nothing new was started." : "I could not confirm that your career reply or changes were saved. Retry with the same request key; do not repeat an uncertain external action.", action: null, turn_key: turnKey }, conflict ? 409 : 503);
+      return json(cors, { error: code, reply: conflict ? CONFLICT_REPLY : UNSAVED_REPLY, action: null, turn_key: turnKey }, conflict ? 409 : 503);
     } finally {
       await gate?.leave();
     }

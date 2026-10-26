@@ -16,20 +16,74 @@ const os = require("os");
 const path = require("path");
 const { scan, scanText, definersIn, argTypes, REVIEWED_MARKER } = require("../scripts/launch/definer-revoke-scan.cjs");
 
-const GRANDFATHERED = fs.readFileSync(path.join(__dirname, "fixtures/definer-revoke-grandfathered.txt"), "utf8")
-  .split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
-const keyOf = (x) => `${x.file} ${x.key}`;
+// FROZEN (2026-10-26): the exact set, not a count. An entry may only be removed, when the scan no longer finds it
+// (the test then requires its removal); nothing may be added; swapping one entry for another fails (the swap test).
+const GRANDFATHERED = Object.freeze([
+  "20260927_000001_referral_program.sql generate_referral_code()",
+  "20260927_000001_referral_program.sql assign_referral_code()",
+  "20260927_000001_referral_program.sql is_eligible_referrer(uuid)",
+  "20260927_000001_referral_program.sql qualify_referral(text)",
+  "20260927_000001_referral_program.sql get_referral_stats(uuid)",
+  "20260927_000005_referral_pending_credit.sql qualify_referral(text)",
+  "20260927_000005_referral_pending_credit.sql credit_pending_referral(uuid)",
+  "20260927_000005_referral_pending_credit.sql get_referral_stats(uuid)",
+  "20260927_000006_plaid_spend_governor.sql plaid_month_spend(uuid)",
+  "20260927_000006_plaid_spend_governor.sql report_ai_anomaly(uuid,integer,integer)",
+  "20260928_000007_lesson_upsert_rpc.sql record_agent_lesson(text,text,text,text,text,text,text)",
+  "20261010010000_agent_permissions_ledger.sql agent_settings_audit()",
+  "20261010030000_obligation_workflows.sql agent_workflow_stop_guard()",
+  "20261010040000_financial_evidence.sql agent_financial_disconnect_guard()",
+  "20261010060000_payment_execution.sql agent_workflow_store_plan(uuid,uuid,integer,jsonb,text)",
+  "20261020050000_career_apply_daily_limit.sql career_apply_card_answer_for(uuid,uuid,int[],timestamp with time zone)",
+  "20261021070000_channel_parity.sql career_outbox_claim(timestamp with time zone,integer)",
+  "20261021070000_channel_parity.sql career_outbox_claim_key(uuid,text,timestamp with time zone)",
+  "20261021075000_career_apply_ops.sql career_apply_claim_own(integer)",
+  "20261021075000_career_apply_ops.sql career_apply_card_push_for(uuid,uuid[],text,timestamp with time zone)",
+  "20261025100000_career_apply_one_ledger.sql career_apply_email_reserve_for(uuid,jsonb,text,timestamp with time zone)",
+  "20261025100000_career_apply_one_ledger.sql career_apply_cloud_refusal(career_apply_jobs,timestamp with time zone)",
+  "20261025100000_career_apply_one_ledger.sql career_apply_claim_own(integer,text)",
+  "20261025110000_career_apply_bridge_reconcile.sql (dynamic)",
+  "20261025140000_career_apply_no_volume_ceiling.sql career_apply_daily_limit(uuid)",
+  "20261025140000_career_apply_no_volume_ceiling.sql career_apply_ledger_refusal(uuid,text,text,timestamp with time zone,integer)",
+  "20261025140000_career_apply_no_volume_ceiling.sql career_apply_prepare_candidates(timestamp with time zone,integer,integer)",
+  "20261025140000_career_apply_no_volume_ceiling.sql (dynamic)",
+  "20261025150000_career_apply_pace_parse.sql career_apply_daily_limit(uuid)",
+  "20261025160000_career_apply_pace_state.sql career_apply_daily_limit(uuid)",
+  "20261025160000_career_apply_pace_state.sql career_apply_ledger_refusal(uuid,text,text,timestamp with time zone,integer)",
+  "20261025160000_career_apply_pace_state.sql career_apply_cloud_refusal_own_pace()",
+  "20261025160000_career_apply_pace_state.sql (dynamic)",
+  "20261025170000_career_apply_card_yes_window.sql career_apply_card_answer_for(uuid,uuid,int[],timestamp with time zone)",
+  "20261025180000_career_outbox_card_id.sql career_apply_card_push_for(uuid,uuid[],text,timestamp with time zone)",
+  "20261026100000_career_apply_cloud_runner.sql (dynamic)",
+]);
+const FROZEN_COUNT = 36;
+// The findings of a migrations directory against the frozen set: new ones (never allowed) and listed ones no longer found.
+function againstFrozen(dir) {
+  const all = scan(dir).map((x) => `${x.file} ${x.key}`);
+  return { fresh: all.filter((m) => !GRANDFATHERED.includes(m)), stale: GRANDFATHERED.filter((g) => !all.includes(g)) };
+}
 const findings = (sql) => scanText("fixture.sql", sql).map((x) => [x.key, x.why]);
 const DEF = (name = "public.f", args = "p_user uuid") =>
   `create or replace function ${name}(${args}) returns void language plpgsql security definer set search_path = public as $$ begin end $$;\n`;
 
 test("every migration that makes a SECURITY DEFINER function revokes it from public and anon in the same file", () => {
-  const all = scan(path.join(__dirname, "../supabase/migrations")).map(keyOf);
-  const fresh = all.filter((m) => !GRANDFATHERED.includes(m));
+  const { fresh, stale } = againstFrozen(path.join(__dirname, "../supabase/migrations"));
   assert.deepEqual(fresh, [], `add "revoke all on function <name>(<types>) from public, anon[, authenticated];" to: ${fresh.join("; ")}`);
-  const fixed = GRANDFATHERED.filter((g) => !all.includes(g));
-  assert.deepEqual(fixed, [], `these now pass in their file; take them off the grandfathered list: ${fixed.join("; ")}`);
-  assert.equal(GRANDFATHERED.length, 37, "the list only shrinks");
+  assert.deepEqual(stale, [], `these now pass; take them off GRANDFATHERED: ${stale.join("; ")}`);
+  assert.ok(GRANDFATHERED.length <= FROZEN_COUNT && new Set(GRANDFATHERED).size === GRANDFATHERED.length, "the frozen set only shrinks");
+});
+
+test("the frozen set cannot be gamed: swapping a grandfathered file for a new leaky one fails", () => {
+  const src = path.join(__dirname, "../supabase/migrations");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "definer-swap-"));
+  for (const f of fs.readdirSync(src)) if (f.endsWith(".sql")) fs.copyFileSync(path.join(src, f), path.join(dir, f));
+  assert.deepEqual(againstFrozen(dir), { fresh: [], stale: [] }, "the copy matches the frozen set");
+  fs.rmSync(path.join(dir, "20260928_000007_lesson_upsert_rpc.sql"));
+  fs.writeFileSync(path.join(dir, "20991231000000_leaky.sql"), DEF("public.leaky", "p text") + "revoke all on function public.leaky(text) from public;\n");
+  const r = againstFrozen(dir);
+  assert.deepEqual(r.fresh, ["20991231000000_leaky.sql leaky(text)"], "the new leak is caught though the count is unchanged");
+  assert.deepEqual(r.stale, ["20260928_000007_lesson_upsert_rpc.sql record_agent_lesson(text,text,text,text,text,text,text)"]);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("the forms migrations use pass", () => {
@@ -95,4 +149,37 @@ test("a new migration file with a definer function and only 'revoke ... from pub
   fs.writeFileSync(path.join(dir, "20991231000000_new.sql"), DEF("public.leaky", "p text") + "revoke all on function public.leaky(text) from public;\n");
   assert.deepEqual(scan(dir).map((x) => [x.file, x.key, x.has]), [["20991231000000_new.sql", "leaky(text)", ["public"]]]);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("comments and strings are not statements: a definer or a revoke inside one does not count", () => {
+  assert.deepEqual(findings("/* create function f() returns int language sql security definer as $$ select 1 $$; */"), [], "a definer in a block comment");
+  assert.deepEqual(findings(DEF() + "/* revoke all on function public.f(uuid) from public, anon; */"), [["f(uuid)", "no revoke from public and anon"]], "a revoke in a block comment");
+  assert.deepEqual(findings(DEF() + "select 'revoke all on function public.f(uuid) from public, anon;';"), [["f(uuid)", "no revoke from public and anon"]], "a revoke in a string");
+  assert.deepEqual(findings("create function public.f(p uuid) returns void language plpgsql security definer set search_path = public as $$ begin\n" +
+    "  revoke all on function public.f(uuid) from public, anon;\nend $$;"), [["f(uuid)", "no revoke from public and anon"]], "a revoke inside a function body never runs at apply time");
+});
+
+test("a quoted \"anon\" is anon; GRANTED BY and WITH GRANT OPTION are read past", () => {
+  assert.deepEqual(findings(DEF() + 'revoke all on function public.f(uuid) from "public", "anon";'), [], "quoted role names");
+  assert.deepEqual(findings(DEF() + "revoke all on function public.f(uuid) from public, anon granted by postgres;"), [], "GRANTED BY after the roles");
+  assert.deepEqual(findings(DEF() + "revoke all on function public.f(uuid) from public, anon;\ngrant execute on function public.f(uuid) to anon granted by postgres;"),
+    [["f(uuid)", "granted back to public or anon after the revoke"]]);
+  assert.deepEqual(findings(DEF() + 'revoke all on function public.f(uuid) from public, anon;\ngrant execute on function public.f(uuid) to "anon" with grant option;'),
+    [["f(uuid)", "granted back to public or anon after the revoke"]]);
+  assert.deepEqual(findings(DEF() + 'revoke all on function public.f(uuid) from public, "Anon";'), [["f(uuid)", "no revoke from public and anon"]], "a quoted \"Anon\" is another role");
+});
+
+test("CREATE PROCEDURE ... SECURITY DEFINER is held to the same rule", () => {
+  const proc = "create or replace procedure public.p(n integer) language plpgsql security definer set search_path = public as $$ begin end $$;\n";
+  assert.deepEqual(findings(proc), [["p(integer)", "no revoke from public and anon"]]);
+  assert.deepEqual(findings(proc + "revoke all on procedure public.p(integer) from public, anon;"), []);
+  assert.deepEqual(findings("create procedure public.q() language sql as $$ select 1 $$;\nalter procedure public.q() security definer;"), [["q()", "no revoke from public and anon"]]);
+});
+
+test("a schema-wide grant of functions to anon or PUBLIC is refused", () => {
+  assert.deepEqual(findings("grant execute on all functions in schema public to anon;").map((f) => f[0]), ["(schema-wide grant)"]);
+  assert.deepEqual(findings("grant all on all routines in schema public to public;").map((f) => f[0]), ["(schema-wide grant)"]);
+  assert.deepEqual(findings("alter default privileges in schema public grant execute on functions to anon;").map((f) => f[0]), ["(schema-wide grant)"]);
+  assert.deepEqual(findings("grant execute on all functions in schema public to service_role;"), [], "to the service role: fine");
+  assert.deepEqual(findings("revoke execute on all functions in schema public from anon;"), [], "taking it away: fine");
 });

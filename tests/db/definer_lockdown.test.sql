@@ -31,13 +31,28 @@ end $$;
 -- A definer function on no list, open to anon and to signed-in people, as a later hand-applied one would be: the sweep's.
 create function public.zz_unlisted_definer(p text) returns text language sql security definer set search_path = public, pg_temp as $f$ select p $f$;
 grant execute on function public.zz_unlisted_definer(text) to public, anon, authenticated, service_role;
--- The three trigger functions this repo creates, as production had them.
-grant execute on function public.agent_settings_audit(), public.agent_workflow_stop_guard(), public.agent_financial_disconnect_guard() to public, anon, authenticated;
+-- Every one of the fourteen, the repo's own definitions and the stand-ins alike, gets the grants production had
+-- (tests/db/run.sh applies the repo's files, and the lockdown already ran over them): the hole, as it was live.
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure::text sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('exec_vault_read','plaid_month_spend','simplefin_secret_exists','simplefin_store_access_url',
+      'generate_referral_code','is_eligible_referrer','qualify_referral','get_referral_stats','credit_pending_referral','report_ai_anomaly',
+      'assign_referral_code','agent_settings_audit','agent_workflow_stop_guard','agent_financial_disconnect_guard') loop
+    execute format('grant execute on function %s to public, anon, authenticated, service_role', f.sig);
+  end loop;
+end $$;
 
 select t.ok(has_function_privilege('anon','public.exec_vault_read(text)','EXECUTE')
   and has_function_privilege('anon','public.simplefin_store_access_url(text)','EXECUTE')
   and has_function_privilege('anon','public.agent_settings_audit()','EXECUTE'),
   'before the lockdown: anon can run exec_vault_read, simplefin_store_access_url and a trigger function (the hole, reproduced)');
+select t.ok((select count(*) = 14 from (select distinct p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('exec_vault_read','plaid_month_spend','simplefin_secret_exists','simplefin_store_access_url',
+      'generate_referral_code','is_eligible_referrer','qualify_referral','get_referral_stats','credit_pending_referral','report_ai_anomaly',
+      'assign_referral_code','agent_settings_audit','agent_workflow_stop_guard','agent_financial_disconnect_guard')) x),
+  'all fourteen exist here: the repo''s own files for twelve (six referral, plaid_month_spend, report_ai_anomaly, exec_vault_read, three triggers), stand-ins for the two SimpleFIN ones');
 
 -- 2. The migration, twice (idempotent).
 \ir ../../supabase/migrations/20261026230500_definer_execute_lockdown.sql

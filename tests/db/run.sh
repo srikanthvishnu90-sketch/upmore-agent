@@ -60,6 +60,15 @@ for m in 20260923_000001_agent_rate_limits.sql 20260923_000006_rate_limiter_hard
          20261011050000_broker_vault_cascade.sql; do
   "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
 done
+# LAUNCH READINESS B1 (2026-10-26): the older files that make SECURITY DEFINER functions and are not part of the career
+# list above (referrals, SimpleFIN, Plaid, the action-ledger purge, the exec Vault read), in filename order, as production
+# has them: definer_lockdown.test.sql below then sees every definer function the repo makes, with the grants these files
+# give, and the lockdown (20261026230500, applied by the ledger step, later in file order) must close each one.
+for m in 20260927_000001_referral_program.sql 20260927_000002_simplefin_vault.sql 20260927_000004_simplefin_disconnect.sql \
+         20260927_000005_referral_pending_credit.sql 20260927_000006_plaid_spend_governor.sql \
+         20260928_000009_purge_user_action_ledger.sql 20260928_000010_exec_vault_read.sql; do
+  "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
+done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010120000_chat_lesson_ownership.sql"
 # Idempotent: the agent migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010010000_agent_permissions_ledger.sql"
@@ -434,11 +443,6 @@ echo "== career_apply_want_guard.test.sql (the queue write refuses an employer a
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026100000_career_apply_cloud_runner.sql"
 echo "== career_apply_cloud_runner.test.sql (global and per-portal limits through the one claim; a check is needs_user, counted per host; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cloud_runner.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-# LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown. The test applies it (twice) over production's
-# shape, then checks the whole schema as every migration left it: no SECURITY DEFINER function anon can run, none
-# without a fixed search_path.
-echo "== definer_lockdown.test.sql (the fourteen functions as set live; no definer function anon can run; every one with a search_path)"
-"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/definer_lockdown.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
@@ -463,4 +467,28 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
+# LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
+# (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
+# no SECURITY DEFINER function anon can run, none without a fixed search_path.
+# Every SECURITY DEFINER function any migration declares (read by scripts/launch/definer-revoke-scan.cjs) exists in this
+# schema, so the lockdown test below covers all of them; a definer-making file the suite does not apply fails here.
+echo "== every definer function a migration declares is built by this suite"
+node "$ROOT/scripts/launch/definer-revoke-scan.cjs" --definer-keys "$ROOT/supabase/migrations" > "$WORK/definer-keys.tsv"
+cat > "$WORK/definer-keys.sql" <<SQL
+create temp table k(file text, sch text, fn text, types text);
+\\copy k from '$WORK/definer-keys.tsv'
+do \$\$
+declare missing text; n int;
+begin
+  select count(*) into n from k;
+  select string_agg(file || ' ' || sch || '.' || fn || '(' || types || ')', '; ' order by file) into missing from k
+  where case when types = '*' then not exists (select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = k.sch and p.proname = k.fn)
+             else to_regprocedure(format('%I.%I(%s)', sch, fn, types)) is null end;
+  if missing is not null then raise exception 'FAIL definer functions a migration declares but this suite never builds: %', missing; end if;
+  raise notice 'ok   all % definer functions the migrations declare exist in the suite''s schema', n;
+end \$\$;
+SQL
+"${PSQL[@]}" -t -A -o /dev/null -f "$WORK/definer-keys.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== definer_lockdown.test.sql (the fourteen functions as set live; no definer function anon can run; every one with a search_path)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/definer_lockdown.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

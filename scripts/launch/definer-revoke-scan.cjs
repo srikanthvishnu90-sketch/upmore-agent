@@ -5,13 +5,22 @@
 // /rest/v1/rpc; the grant must be taken from anon by name.
 //
 // THE AUTHORITATIVE GUARD IS tests/db/definer_lockdown.test.sql, run by tests/db/run.sh against the schema every
-// migration actually builds: it fails on any SECURITY DEFINER function in public that anon can execute, however it got
-// there. This scan is an early, file-level warning and reads SQL with regular expressions, not a parser. What it covers:
-//   - CREATE [OR REPLACE] FUNCTION ... SECURITY DEFINER (before or after the body) and ALTER FUNCTION ... SECURITY DEFINER;
+// migration actually builds (run.sh applies every migration that declares a definer function, and checks that each one
+// it declares exists there): it fails on any SECURITY DEFINER function in public that anon can execute, however it got
+// there. This scan is an early, file-level warning and reads SQL with regular expressions, not a parser. Anything that
+// needs real parsing is the DB guard's, not this scan's: a revoke or grant inside a function body that may never run,
+// conditional or computed DDL, privileges changed by a role's default privileges at apply time, ownership changes.
+// Before matching, /* */ and -- comments are removed and every string literal ('...' and $tag$...$tag$, which includes
+// function bodies and DO blocks) is emptied, so text inside them is never read as a statement. What it covers:
+//   - CREATE [OR REPLACE] FUNCTION|PROCEDURE ... SECURITY DEFINER (before or after the body) and
+//     ALTER FUNCTION|PROCEDURE ... SECURITY DEFINER;
 //   - names quoted or not, schema-qualified or not, quoted names with spaces;
 //   - the revoke must name the same overload (argument types compared after normalizing names, defaults, modes and the
 //     common type aliases); a revoke with no argument list covers every overload of the name, as in Postgres;
-//   - a GRANT of EXECUTE (or ALL) to PUBLIC or anon after the last revoke undoes it;
+//   - a GRANT of EXECUTE (or ALL) to PUBLIC or anon after the last revoke undoes it; role names quoted or not
+//     ("anon" is anon), GRANTED BY and WITH GRANT OPTION read past;
+//   - GRANT ... ON ALL FUNCTIONS|PROCEDURES|ROUTINES IN SCHEMA, and ALTER DEFAULT PRIVILEGES ... GRANT ... ON
+//     FUNCTIONS|ROUTINES, to PUBLIC or anon is refused outright;
 //   - dynamic SQL that creates or alters a function (EXECUTE of a string that holds CREATE/ALTER FUNCTION, as in a DO
 //     block or a generator function) cannot be read here, so the file is refused unless it carries the marker
 //     "-- definer-scan: dynamic function DDL reviewed" stating someone checked what it builds.
@@ -21,7 +30,11 @@ const fs = require("fs");
 const path = require("path");
 
 const REVIEWED_MARKER = /--\s*definer-scan:\s*dynamic function DDL reviewed\b/i;
-const stripComments = (sql) => sql.replace(/--[^\n]*/g, " ");
+const stripComments = (sql) => sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+// Comments out, and every string literal emptied (its quotes kept, so a body's position and end stay readable).
+function stripLiterals(sql) {
+  return stripComments(sql).replace(/'(?:[^']|'')*'|(\$[a-z_0-9]*\$)[\s\S]*?\1/gi, (m, tag) => tag ? `${tag}${tag}` : "''");
+}
 // A function name: optional schema, each part an identifier or a "quoted identifier" (which may hold spaces).
 const IDENT = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`;
 const QNAME = String.raw`(${IDENT}(?:\s*\.\s*${IDENT})?)`;
@@ -76,7 +89,7 @@ function argTypes(list) {
 // Every SECURITY DEFINER function the file makes: { key: "name(types)", name, at }.
 function definersIn(sql) {
   const out = [];
-  const create = new RegExp(String.raw`create\s+(?:or\s+replace\s+)?function\s+${QNAME}\s*\(`, "gi");
+  const create = new RegExp(String.raw`create\s+(?:or\s+replace\s+)?(?:function|procedure)\s+${QNAME}\s*\(`, "gi");
   let m;
   while ((m = create.exec(sql))) {
     const open = m.index + m[0].length - 1;
@@ -95,7 +108,7 @@ function definersIn(sql) {
       out.push({ name: bare(m[1]), key: `${bare(m[1])}(${argTypes(args)})`, at: m.index });
     }
   }
-  const alter = new RegExp(String.raw`alter\s+function\s+${QNAME}\s*(\()?`, "gi");
+  const alter = new RegExp(String.raw`alter\s+(?:function|procedure)\s+${QNAME}\s*(\()?`, "gi");
   while ((m = alter.exec(sql))) {
     let args = null, end = m.index + m[0].length;
     if (m[2]) { const p = parenBody(sql, end - 1); args = p.body; end = p.end; }
@@ -109,19 +122,40 @@ function definersIn(sql) {
 // Each REVOKE / GRANT on functions, in file order: { kind, name, key (null: every overload), roles, at }.
 function privilegeStatements(sql) {
   const out = [];
-  const re = /\b(revoke|grant)\s+([^;]*?)\bon\s+(?:function|functions|routine|routines)\s+([\s\S]*?)\s+(from|to)\s+([^;]+);/gi;
+  const re = /\b(revoke|grant)\s+([^;]*?)\bon\s+(?:function|functions|procedure|procedures|routine|routines)\s+(?!all\s)([\s\S]*?)\s+(from|to)\s+([^;]+);/gi;
   let m;
   while ((m = re.exec(sql))) {
     const kind = m[1].toLowerCase();
     const what = m[2].toLowerCase();
     if (kind === "grant" && !/\b(execute|all)\b/.test(what)) continue;
-    const roles = m[5].toLowerCase().split(",").map((r) => r.trim().replace(/\s+(cascade|restrict|with grant option)$/, "").replace(/^group\s+/, ""));
+    const roles = rolesOf(m[5]);
     for (const item of splitTop(m[3])) {
       const nm = new RegExp(String.raw`^\s*${QNAME}\s*(\()?`).exec(item);
       if (!nm) continue;
       let key = null;
       if (nm[2]) { const p = parenBody(item, nm[0].length - 1); key = `${bare(nm[1])}(${argTypes(p.body)})`; }
       out.push({ kind, name: bare(nm[1]), key, roles, at: m.index });
+    }
+  }
+  return out;
+}
+// The roles of a GRANT/REVOKE: GRANTED BY, WITH GRANT OPTION, CASCADE/RESTRICT and GROUP read past; a quoted name is the
+// role spelled exactly ("anon" is anon), an unquoted one is folded to lower case, as Postgres does.
+function rolesOf(list) {
+  const cut = list.replace(/\s+granted\s+by\s+[\s\S]*$/i, "").replace(/\s+with\s+grant\s+option\b/i, "").replace(/\s+(cascade|restrict)\s*$/i, "");
+  return splitTop(cut).map((r) => r.trim().replace(/^group\s+/i, "")).filter(Boolean)
+    .map((r) => r.startsWith('"') ? r.slice(1, -1).replace(/""/g, '"') : r.toLowerCase());
+}
+// GRANT ... ON ALL FUNCTIONS IN SCHEMA ... TO PUBLIC/anon, or default privileges that grant functions to them.
+function schemaWideGrants(sql) {
+  const out = [];
+  const all = /\bgrant\s+([^;]*?)\bon\s+all\s+(?:functions|procedures|routines)\s+in\s+schema\s+[^;]*?\s+to\s+([^;]+);/gi;
+  const defaults = /\balter\s+default\s+privileges\b[^;]*?\bgrant\s+([^;]*?)\bon\s+(?:functions|routines)\s+to\s+([^;]+);/gi;
+  for (const re of [all, defaults]) {
+    let m;
+    while ((m = re.exec(sql))) {
+      if (!/\b(execute|all)\b/i.test(m[1])) continue;
+      if (rolesOf(m[2]).some((r) => r === "public" || r === "anon")) out.push(m[0].replace(/\s+/g, " ").slice(0, 120));
     }
   }
   return out;
@@ -140,23 +174,21 @@ function revokedIn(sql) {
   return from;
 }
 
-// Dynamic function DDL: an EXECUTE in the file, and a string literal that holds CREATE/ALTER FUNCTION.
+// Dynamic function DDL: CREATE/ALTER FUNCTION|PROCEDURE text inside a string literal (any quoting: '...', $tag$...$tag$,
+// nested in a body or a DO block), in a file that EXECUTEs something. Found by counting the DDL keywords with comments
+// removed and again with literals emptied: any the second count misses were inside a string.
 function dynamicFunctionDdl(raw) {
-  const sql = stripComments(raw);
-  const literal = /'(?:[^']|'')*'|\$([a-z_0-9]*)\$[\s\S]*?\$\1\$/gi;
-  let hasDdlString = false, m;
-  while ((m = literal.exec(sql))) {
-    const s = m[0];
-    // The function's own body ($$ ... $$) is a literal too: look inside it for a quoted string of DDL.
-    const inner = s.startsWith("$") ? (s.match(/'(?:[^']|'')*'/g) || []) : [s];
-    if (inner.some((x) => /\b(create\s+(or\s+replace\s+)?|alter\s+)function\b/i.test(x))) { hasDdlString = true; break; }
-  }
-  return hasDdlString && /\bexecute\b/i.test(sql);
+  const ddl = /\b(create\s+(or\s+replace\s+)?|alter\s+)(function|procedure)\b/gi;
+  const count = (t) => (t.match(ddl) || []).length;
+  const commentsOut = stripComments(raw);
+  // An EXECUTE that runs SQL: not "grant/revoke execute", not a trigger's "execute function|procedure".
+  const runs = commentsOut.replace(/\b(grant|revoke)\s+execute\b/gi, " ").replace(/\bexecute\s+(function|procedure)\b/gi, " ");
+  return count(commentsOut) > count(stripLiterals(raw)) && /\bexecute\b/i.test(runs);
 }
 
 function scanText(file, raw) {
   const findings = [];
-  const sql = stripComments(raw);
+  const sql = stripLiterals(raw);
   const stmts = privilegeStatements(sql);
   for (const d of definersIn(sql)) {
     const revokes = stmts.filter((s) => s.kind === "revoke" && covers(s, d));
@@ -166,6 +198,7 @@ function scanText(file, raw) {
     if (!roles.has("public") || !roles.has("anon")) findings.push({ file, fn: d.name, key: d.key, why: "no revoke from public and anon", has: [...roles].sort() });
     else if (regrant) findings.push({ file, fn: d.name, key: d.key, why: "granted back to public or anon after the revoke", has: [...roles].sort() });
   }
+  for (const g of schemaWideGrants(sql)) findings.push({ file, fn: "(schema-wide grant)", key: "(schema-wide grant)", why: `grants every function to public or anon: ${g}`, has: [] });
   if (dynamicFunctionDdl(raw) && !REVIEWED_MARKER.test(raw)) findings.push({ file, fn: "(dynamic)", key: "(dynamic)", why: "dynamic SQL creates or alters a function", has: [] });
   return findings;
 }
@@ -175,8 +208,24 @@ function scan(dir) {
   return files.flatMap((f) => scanText(f, fs.readFileSync(path.join(dir, f), "utf8")));
 }
 
-module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, REVIEWED_MARKER };
-if (require.main === module) {
+// Every definer function each file declares, for tests/db/run.sh's check that the suite built them all:
+// "file<TAB>schema<TAB>name<TAB>types" ("*" types: an ALTER with no argument list).
+function definerKeys(dir) {
+  const out = [];
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
+    for (const d of definersIn(stripLiterals(fs.readFileSync(path.join(dir, f), "utf8")))) {
+      const i = d.key.lastIndexOf("("), name = d.key.slice(0, i), types = d.key.slice(i + 1, -1);
+      const [schema, fn] = name.includes(".") ? name.split(".") : ["public", name];
+      out.push([f, schema, fn, types]);
+    }
+  }
+  return out;
+}
+
+module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, schemaWideGrants, rolesOf, stripLiterals, definerKeys, REVIEWED_MARKER };
+if (require.main === module && process.argv[2] === "--definer-keys") {
+  for (const k of definerKeys(process.argv[3] || path.join(__dirname, "../../supabase/migrations"))) console.log(k.join("\t"));
+} else if (require.main === module) {
   const miss = scan(process.argv[2] || path.join(__dirname, "../../supabase/migrations"));
   for (const x of miss) console.log(`${x.file}\t${x.key}\t${x.why}\t${x.has.join(",") || "-"}`);
   console.log(`${miss.length} findings`);

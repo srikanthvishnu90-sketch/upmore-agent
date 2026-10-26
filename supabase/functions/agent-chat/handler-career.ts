@@ -38,6 +38,7 @@ import { createCareerPersistence, careerRequestHash } from "../_shared/career_pe
 import { callModel, modelConfig, newMeter } from "../_shared/model_gateway.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
+import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
@@ -472,6 +473,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
         : null;
+      // FEATURE 13: staged brain release. With CAREER_BRAIN=staged, a turn that every code-first turn above passed on, and
+      // that the router itself would answer only with advice or conversation, goes to the brain (career_staged.ts); every
+      // action stays code's and the router still answers a model failure. Unset or CAREER_BRAIN=router, it is never
+      // taken and the router answers exactly as before. Read lazily, only when the brain test below is reached.
+      const staged = stagedRoute({ env: Deno.env, message, ctx: ctx as unknown as Record<string, unknown>, host, structured: !!(careerTask || careerBatch) });
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
@@ -519,7 +525,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
       } else if (status) {
         out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
-      } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
+      } else if (!careerTask && !careerBatch && ((AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent") || staged.toBrain()) && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
         // WO-027 (B5): the last 40 messages after the latest erase; one more row says whether the thread is longer.
@@ -553,7 +559,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           wants: supabaseWantStore(admin), limits: { daily }, posting: (id) => postingsDb.get(id),
           // WO-106 (F4): each job link is checked against its board just before it is shown.
           linkCheck: linkChecker(fetch, { userAgent: `Trainee job link check (contact: ${Deno.env.get("INGEST_CONTACT_EMAIL") || "unset"})` }),
-          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory });
+          known: { standing, alerts: alertRow ? { prefs: alertRow.prefs, tz: alertRow.tz } : null, pipeline: null, situation }, memory,
+          // FEATURE 13: the staged brain answers with the actions that have a code-first owner withheld.
+          ...(staged.chosen ? { toolPolicy: STAGED_TOOL_POLICY } : {}) });
         if (meter.calls) {
           const { error: costErr } = await admin.from("agent_turn_costs").insert({ user_id: user.id, thread_id: tid, provider: meter.provider, models: meter.models, calls: meter.calls, failed: meter.failed, input_tokens: meter.input_tokens, output_tokens: meter.output_tokens, cached_tokens: meter.cached_tokens, usd_micros: meter.usd_micros, unpriced: meter.unpriced });
           if (costErr) console.error("agent turn cost not recorded:", costErr.message);
@@ -564,7 +572,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         } else {
           // A batch of outreach drafts is shown by code, and its intent makes the next text an answer to it.
           out = { reply: turn.reply, intent: turn.show?.intent ?? "agent", resultStatus: turn.stopped, contained: false, handler: "agent", ...(turn.show?.parts ? { parts: turn.show.parts } : {}) };
-          agentMeta = { brain: "agent", tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
+          agentMeta = { brain: staged.chosen ? "staged" : "agent", ...(staged.chosen ? { router_intent: staged.decision?.intent ?? null } : {}), tool_calls: turn.tool_calls, stopped: turn.stopped, pending_approvals: turn.pending_approvals.length };
         }
       } else {
         out = host.runTurn(message, ctx);

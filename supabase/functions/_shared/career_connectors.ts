@@ -19,7 +19,7 @@
 // Never a password, a code or a token through chat: the link goes to Google's own page.
 import { contactDraft } from "./contact_draft.ts";
 import { eligibilityDraft } from "./eligibility_draft.ts";
-import { hasConfirmedResume, prepareConfigured } from "./career_apply_from_chat.ts";
+import { hasConfirmedResume, NO_RESUME_WAIT, prepareConfigured } from "./career_apply_from_chat.ts";
 import { applyAsk, applyManyAsk, APPLY_QUEUE_INTENT } from "./career_apply_chat.ts";
 import { linkAsk, possessiveAsk } from "./career_apply_link.ts";
 import { connectUrl } from "./agent/integrations.ts";
@@ -203,15 +203,16 @@ export async function readNeedsState(admin: Admin, o: { userId: string; profile:
 // ------------------------------------------------------------------------------------------------ the apply gate
 // The resume comes first for any application: with no confirmed resume, an apply ask queues nothing and says the one
 // thing needed. With the server prepare configured the apply turn already refuses with its own no_resume reply (which
-// asks only for the resume), so the gate stands aside; without it the apply turn would queue a want nothing can be
-// prepared from. Unknown (the record could not be read) decides nothing: the apply turn runs as before.
+// asks only for the resume), so the gate stands aside; without it the apply turn queues a want nothing can be prepared
+// from (FEATURE 1's design, which its tests hold), so the gate runs only with CAREER_NEEDS_RESUME_FIRST=on (the owner's
+// "no queue row before the resume"). Unknown (the record could not be read) decides nothing: the apply turn runs.
 export async function applyGate(d: { admin: Admin; message: string; userId: string; profile: any; stated?: any[]; situation: any | null;
   env: { get(k: string): string | undefined }; shortlist?: unknown[] | null }): Promise<NeedsTurnOut | null> {
   const m = d.message;
   const link = linkAsk(m), one = link ? null : applyAsk(m) ?? possessiveAsk(m);
   const many = link || one ? null : (Array.isArray(d.shortlist) && d.shortlist.length ? applyManyAsk(m) : null);
   if (!link && !one && !many) return null;
-  if (prepareConfigured(d.env)) return null;
+  if (d.env.get("CAREER_NEEDS_RESUME_FIRST") !== "on" || prepareConfigured(d.env)) return null;
   const state = await readNeedsState(d.admin, { userId: d.userId, profile: d.profile, stated: d.stated, situation: d.situation });
   if (state.resume !== "none" && state.resume !== "drafts") return null;
   const what = one ? `${one.role ? `the ${one.role} role at ` : ""}${one.company}` : link ? "that posting" : "those postings";
@@ -287,7 +288,11 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
       return { reply: `${a.queued.reply}\nThere's nothing else I need from you for it right now${from}.`, intent: a.queued.intent, resultStatus: a.queued.status, handler: "apply_queue" };
     }
     if (a.queued.status === "no_resume" && need.id === "resume") return null; // its own reply already asks only for the resume
-    return { reply: await needReply(d, need, lead(a.queued), link), intent: a.queued.intent, resultStatus: a.queued.status, handler: "apply_queue" };
+    // The apply turn's own words stand (what was queued, what was not, what happens next); its resume sentence becomes
+    // the one need, said once.
+    const text = await needReply(d, need, null, link);
+    const reply = a.queued.reply.includes(NO_RESUME_WAIT) ? a.queued.reply.replace(NO_RESUME_WAIT, text) : `${a.queued.reply}\n${text}`;
+    return { reply, intent: a.queued.intent, resultStatus: a.queued.status, handler: "apply_queue" };
   }
   // A status reply while an employer's emailed code waits: the Gmail offer, once.
   const statusTurn = a.stood ?? a.status;
@@ -305,15 +310,6 @@ export async function needsTurn(d: NeedsTurnDeps): Promise<NeedsTurnOut | null> 
 function targetForm(situation: any, company: string | null): { open_questions?: string[] } {
   const qs = (Array.isArray(situation?.tasks) ? situation.tasks : []).filter((t: any) => t?.kind === "question" && company && String(t.company ?? "").toLowerCase() === String(company).toLowerCase());
   return qs.length ? { open_questions: qs.map((q: any) => String(q.title)) } : {};
-}
-// What the queue did, in one sentence, before the need.
-// deno-lint-ignore no-explicit-any
-function lead(q: any): string {
-  const p = q.posting ?? q.queued?.[0] ?? null;
-  const name = p ? `${p.title} at ${p.company}` : "That posting";
-  if (q.status === "queued") return `${name} is on your apply list. Nothing is filled or sent yet, and nothing goes to the employer until you approve the exact application.`;
-  if (q.status === "already") return `${name} is already on your apply list.`;
-  return `I haven't queued ${name} yet.`;
 }
 async function needReply(d: NeedsTurnDeps, need: Need, leadLine: string | null, link: (scopes: string[]) => Promise<string | null>): Promise<string> {
   let text = needSentence(need);

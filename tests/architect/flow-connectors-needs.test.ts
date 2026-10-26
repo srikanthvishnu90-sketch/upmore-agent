@@ -79,11 +79,12 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
   const pg: Pg = await startPg();
   const f = fakes();
   const realFetch = globalThis.fetch;
-  const keys = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "OAUTH_STATE_SECRET", "CAREER_CONNECT_URL", "CAREER_PREPARE_AHEAD_URL", "CAREER_APPLY_LINK"];
+  const keys = ["CAREER_NEEDS_RESUME_FIRST", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "OAUTH_STATE_SECRET", "CAREER_CONNECT_URL", "CAREER_PREPARE_AHEAD_URL", "CAREER_APPLY_LINK"];
   const before = Object.fromEntries(keys.map((k) => [k, Deno.env.get(k)]));
   let handler: Awaited<ReturnType<typeof careerHandler>> | null = null;
   try {
     for (const k of keys) Deno.env.delete(k);
+    Deno.env.set("CAREER_NEEDS_RESUME_FIRST", "on"); // the owner's "no queue row before the resume" (off: FEATURE 1 queues the want)
     Deno.env.set("GOOGLE_OAUTH_CLIENT_ID", "test-client");
     Deno.env.set("GOOGLE_OAUTH_CLIENT_SECRET", "test-client-secret");
     Deno.env.set("OAUTH_STATE_SECRET", "test-state-secret");
@@ -289,6 +290,15 @@ Deno.test({ name: "FEATURE NEEDS: one next need at a time, and Gmail connected f
       const closed = await fetchVerificationCode({ userId: PAT, ats: "ashby", sinceMs: Date.now() - 60_000, maxWaitMs: 0 }, { mailbox: reader(), now: Date.now });
       eq(closed.status, "no_google_connection", "a later Gmail use fails closed");
       eq(f.gmail.length, calls, "and makes no Gmail request");
+    });
+    await t.step("(8) with CAREER_NEEDS_RESUME_FIRST off (FEATURE 1's design): the want is queued, and the reply says so and names one need", async () => {
+      Deno.env.delete("CAREER_NEEDS_RESUME_FIRST");
+      const r = await sam(`apply me to ${LINK}`);
+      eq([r.intent, r.resultStatus], ["career_apply_queue", "queued"], r.reply);
+      eq(await q(`select string_agg(posting_key, ',') from public.career_apply_wanted where user_id = '${SAM}'`), `ashby:ramp:${JOB}`, "the reply's 'queued' is true in the queue");
+      assert(/^1\/1 queued/.test(r.reply), r.reply);
+      eq((r.reply.match(/Next I need one thing: your resume/g) ?? []).length, 1, r.reply);
+      assert(!/no confirmed resume on file yet/.test(r.reply) && !CONTACT_ASK.test(r.reply), `one need, said once: ${r.reply}`);
     });
     eq(f.other, [], "no other host was reached");
   } finally {

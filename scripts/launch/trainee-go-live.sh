@@ -143,6 +143,7 @@ MIGRATIONS=(
   20261025170000_career_apply_card_yes_window.sql
   20261025180000_career_outbox_card_id.sql
   20261026060006_career_more_providers.sql
+  20261026060106_career_ingest_runs.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -203,6 +204,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
   "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
   "exists (select 1 from pg_constraint where conname = 'career_board_state_provider_check' and pg_get_constraintdef(oid) like '%workday%')"
+  "to_regclass('public.career_ingest_runs') is not null and exists (select 1 from pg_proc where proname = 'career_ingest_coverage')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

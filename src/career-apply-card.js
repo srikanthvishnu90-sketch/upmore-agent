@@ -55,8 +55,13 @@
     return { ok: true, items };
   }
 
-  // The one call a tap makes: this card, and exactly its numbers (Approve) or none (Decline).
-  function answerArgs(card, approve) {
+  // The one call a tap makes: this card, and exactly its numbers (Approve), one of them (Approve only this one: the
+  // database declines the rest of the card, as a card is answered once), or none (Decline).
+  function answerArgs(card, approve, only) {
+    if (approve && only !== undefined) {
+      if (!card.items.some((i) => i.n === only)) throw Error('not_on_card');
+      return { p_card: card.id, p_approve: [only] };
+    }
     return { p_card: card.id, p_approve: approve ? card.items.map((i) => i.n).sort((a, b) => a - b) : [] };
   }
 
@@ -95,11 +100,19 @@
     const v = verifyCard(card, prepared);
     if (!v.items) { say('This card could not be verified. Nothing was approved.', true); return v; }
     box.replaceChildren();
+    const onlyButtons = [];
     for (const it of v.items) {
       const item = el('div', undefined, 'career-apply-item');
       item.appendChild(el('b', it.n + '. ' + (it.lines[0] || it.company)));
       for (const line of it.lines.slice(1)) item.appendChild(el('div', line));
       if (it.changed) item.appendChild(el('div', 'Changed since this card was shown: it cannot be approved from this card.'));
+      if (v.ok && v.items.length > 1) {
+        const only = el('button', 'Approve only this one', 'ghostbtn career-apply-only');
+        only.type = 'button';
+        only.setAttribute('aria-label', 'Approve only ' + it.n + ', ' + (it.company || 'this application') + ', and decline the others on this card');
+        onlyButtons.push({ button: only, n: it.n });
+        item.appendChild(only);
+      }
       box.appendChild(item);
     }
     if (!v.ok) {
@@ -111,18 +124,30 @@
     const decline = el('button', 'Decline', 'ghostbtn');
     approve.type = decline.type = 'button';
     row.append(approve, decline);
+    const note = onlyButtons.length ? box.appendChild(el('p', 'Approve only this one sends just that application and declines the rest of this card.', 'career-apply-note')) : null;
     box.appendChild(row);
-    const answer = async (yes) => {
-      approve.disabled = decline.disabled = true;
+    const all = [approve, decline, ...onlyButtons.map((x) => x.button)];
+    let busy = false;
+    const answer = async (yes, only) => {
+      if (busy) return; // a second tap while the first is answered asks nothing more
+      busy = true;
+      for (const b of all) b.disabled = true;
+      box.setAttribute('aria-busy', 'true');
       try {
-        const r = await o.rpc('career_apply_card_answer_own', answerArgs(card, yes));
+        const r = await o.rpc('career_apply_card_answer_own', answerArgs(card, yes, only));
         if (r.error) throw r.error;
         if (!current()) return;
+        for (const x of onlyButtons) x.button.replaceWith(); // replaceWith() with nothing removes the node
+        if (note) note.replaceWith();
         row.replaceWith(...resultLines(r.data).map((l) => el('p', l)));
+        box.setAttribute('aria-busy', 'false');
+        box.setAttribute('role', 'status');
       } catch (e) {
         if (!current()) return;
         const msg = String((e && e.message) || e);
-        approve.disabled = decline.disabled = false;
+        busy = false;
+        for (const b of all) b.disabled = false;
+        box.setAttribute('aria-busy', 'false');
         row.appendChild(el('p', /card_stale/.test(msg) ? 'This card was shown more than 10 minutes ago, so nothing was approved. Say "show my applications" for a fresh card.'
           : /card_answered/.test(msg) ? 'This card was already answered. Nothing more was sent.'
           : /card_expired/.test(msg) ? 'This card is more than a day old, so nothing was approved.'
@@ -131,6 +156,7 @@
     };
     approve.onclick = () => answer(true);
     decline.onclick = () => answer(false);
+    for (const x of onlyButtons) x.button.onclick = () => answer(true, x.n);
     return v;
   }
 

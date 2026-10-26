@@ -198,7 +198,7 @@
   }
 
   /* ---------------- approval: the chat card's controller and RPCs ---------------- */
-  // The RPC names and arguments are the chat card's (src/upmore-app-template.html, careerApprovalCards); a test pins
+  // The RPC names and arguments are the chat card's (the web chat host, careerApprovalCards); a test pins
   // them equal. Each card is bound to its own thread, so the controller's owner/thread/hash checks apply unchanged.
   const RPC = Object.freeze({
     cloudEnabled: 'career_apply_message_cloud_enabled_own',

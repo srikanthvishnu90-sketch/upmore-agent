@@ -28,6 +28,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
+import { ADMISSION_UNAVAILABLE_REPLY, admitWebUser, NOT_INVITED_REPLY } from "../_shared/trainee_admission.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerProfile } from "../_shared/router_core.career.js";
@@ -174,6 +175,22 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // a missing profile would make the RPC error and look like rate limiting.
     const profileWrite = await supabase.from("profiles").upsert({ id: user.id }, { onConflict: "id" });
     if (profileWrite.error) throw new Error("Account profile unavailable.");
+
+    // FEATURE WEB-ADMISSION (launch readiness B7/X1, 2026-10-26): with TRAINEE_WEB_SIGNUP=invite, a person signed in on
+    // the web chats only once admitted (an account from before the gate, a confirmed phone or email on
+    // TRAINEE_ALLOWED_CONTACTS, or an invited waitlist spot); the texting channels decide their own sign-up before they
+    // call here (bridge path). `check_access: true` asks only this, before the app shows the chat. Checked before the
+    // rate limit, so a person still on the waitlist spends nothing. _shared/trainee_admission.ts.
+    if (!bridgeUserId) {
+      const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, rpc: (n, a) =>
+        createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a) });
+      if (!adm.admitted) {
+        return json(cors, { error: adm.reason, reply: adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
+          adm.reason === "not_invited" ? 403 : 503);
+      }
+      if (body.check_access === true) return json(cors, { access: "admitted" }, 200);
+    }
+    // END FEATURE WEB-ADMISSION
 
     // Rate limiting: 60 chat requests per fixed 60-minute window per user,
     // enforced on EVERY request (deterministic capabilities included) via

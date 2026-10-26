@@ -8,8 +8,11 @@ import { sameCompany, type TrackedApp } from "./career_mail.ts";
 
 export interface Want { posting_key: string; url: string; company: string; title: string; queued_at: string }
 export interface WantRow extends Want { state: "waiting" | "taken" }
+// FEATURE 1 (2026-10-25): the store may refuse an item itself (career_apply_want_put_for, 20261026100001): the person's
+// own daily pace and the 30-day employer rule are enforced in SQL too, so a race past the screens here still queues nothing.
+export interface StoreRefusal { posting_key: string; reason: "company_cooldown" | "daily_cap" | string }
 export interface WantStore {
-  put(userId: string, items: Want[]): Promise<{ added: Want[]; already: string[] }>;
+  put(userId: string, items: Want[]): Promise<{ added: Want[]; already: string[]; refused?: StoreRefusal[] }>;
   list(userId: string): Promise<WantRow[]>;
   queuedSince(userId: string, sinceIso: string): Promise<number>;
 }
@@ -75,6 +78,13 @@ export async function queueWants(store: WantStore, userId: string, picks: Pick[]
   const take = fresh.slice(0, room);
   for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over the daily pace they set themselves (${cap} a day)`));
   const r = await store.put(userId, take);
+  for (const x of r.refused ?? []) {
+    const w = take.find((t) => t.posting_key === x.posting_key);
+    if (!w) continue;
+    refused.push(refusal({ ...w, job_id: w.posting_key }, x.reason === "company_cooldown"
+      ? `they already applied to ${w.company || "this employer"} in the last ${COMPANY_COOLDOWN_DAYS} days (the queue's own record); Trainee applies once per company every ${COMPANY_COOLDOWN_DAYS} days; nothing was queued`
+      : x.reason === "daily_cap" ? `over the daily pace they set themselves${Number.isFinite(cap) ? ` (${cap} a day)` : ""}` : `the queue refused it (${x.reason})`));
+  }
   return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: Number.isFinite(cap) ? cap : null };
 }
 
@@ -307,7 +317,9 @@ export function supabaseWantStore(admin: any): WantStore {
       const { data, error } = await admin.rpc("career_apply_want_put_for", { p_user: userId, p_items: items });
       if (error) throw new Error(`the apply queue could not be saved: ${error.message}`);
       const keys = new Set<string>((data?.added ?? []) as string[]);
-      return { added: items.filter((w) => keys.has(w.posting_key)), already: items.filter((w) => !keys.has(w.posting_key)).map((w) => w.posting_key) };
+      const refused = ((data?.refused ?? []) as StoreRefusal[]).filter((x) => x && x.posting_key);
+      const no = new Set(refused.map((x) => x.posting_key));
+      return { added: items.filter((w) => keys.has(w.posting_key)), already: items.filter((w) => !keys.has(w.posting_key) && !no.has(w.posting_key)).map((w) => w.posting_key), refused };
     },
     async list(userId) {
       const { data, error } = await admin.from("career_apply_wanted").select("posting_key,url,company,title,queued_at,state").eq("user_id", userId).order("queued_at", { ascending: true }).limit(500);

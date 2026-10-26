@@ -61,11 +61,15 @@ const must = (r: { data: any; error: { message: string } | null }, what: string)
   return r.data;
 };
 
-export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?: number } = {}): Promise<AheadOutcome[]> {
+// FEATURE 1: `only` prepares just these postings of this person (the rows the chat just queued, prepare-ahead.ts serve);
+// the candidates are still the database's (career_apply_prepare_candidates: its gates decide), only narrowed.
+export async function prepareAhead(d: AheadDeps, o: { perPerson?: number; limit?: number; only?: { user_id: string; job_ids: string[] } } = {}): Promise<AheadOutcome[]> {
   const now = d.now ?? Date.now;
-  const candidates: Candidate[] = must(await d.db.rpc("career_apply_prepare_candidates", {
+  const all: Candidate[] = must(await d.db.rpc("career_apply_prepare_candidates", {
     p_now: new Date(now()).toISOString(), p_per_person: o.perPerson ?? 5, p_limit: o.limit ?? 50,
   }), "read the postings to prepare") ?? [];
+  const only = o.only ? new Set(o.only.job_ids) : null;
+  const candidates = only ? all.filter((c) => c.user_id === o.only!.user_id && only.has(c.job_id)) : all;
   const out: AheadOutcome[] = [];
   for (const c of candidates) {
     const record = async (outcome: AheadOutcome["outcome"], detail: string, prepared?: string, engineJob?: string) => {
@@ -249,10 +253,30 @@ export function storedProfile(admin: ServiceRpc) {
   };
 }
 
+// FEATURE 1: the worker host's door for the chat (agent-chat kickPrepare, career_apply_from_chat.ts). A POST with the
+// shared token and { user_id, job_ids } is answered 202 at once and prepares exactly those queued rows, one run at a time
+// (runs are chained, never concurrent). Anything else is refused. It prepares only; nothing is approved, queued or sent.
+export function prepareDoor(o: { token: string; run: (only: { user_id: string; job_ids: string[] }) => Promise<unknown> }) {
+  let chain: Promise<unknown> = Promise.resolve();
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return async (req: Request): Promise<Response> => {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    if (!o.token || req.headers.get("authorization") !== `Bearer ${o.token}`) return new Response("unauthorized", { status: 401 });
+    // deno-lint-ignore no-explicit-any
+    let body: any;
+    try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
+    const user = String(body?.user_id ?? ""), ids = Array.isArray(body?.job_ids) ? body.job_ids.map(String).filter((x: string) => x && x.length <= 300).slice(0, 100) : [];
+    if (!UUID.test(user) || !ids.length) return new Response("bad request", { status: 400 });
+    chain = chain.then(() => o.run({ user_id: user, job_ids: ids })).catch((e) => console.error(`prepare-ahead serve: ${e instanceof Error ? e.message : e}`));
+    return new Response(JSON.stringify({ accepted: ids.length }), { status: 202, headers: { "content-type": "application/json" } });
+  };
+}
+
 if (import.meta.main) {
   const [cmd, ...rest] = Deno.args;
-  if (cmd !== "once") {
-    console.error("usage: prepare-ahead.ts once [--limit N] [--draft-cover-letters]   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)");
+  if (cmd !== "once" && cmd !== "serve") {
+    console.error("usage: prepare-ahead.ts once [--limit N] [--draft-cover-letters]   (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment)\n" +
+      "       prepare-ahead.ts serve [--port N] [--draft-cover-letters]   (also CAREER_PREPARE_AHEAD_TOKEN: the chat's kick, agent-chat CAREER_PREPARE_AHEAD_URL)");
     Deno.exit(2);
   }
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -268,10 +292,24 @@ if (import.meta.main) {
   const meter = newMeter(), cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
   const draftModel: ModelFn | undefined = rest.includes("--draft-cover-letters")
     ? (payload) => callModel(cfg, payload, { meter, role: "chat" }) : undefined;
-  const done = await prepareAhead({
+  const deps: AheadDeps = {
     db: admin, runEngine: engineRunner({ root }), profileFor, draftModel,
     resumeFor: tailoredResume({ render: edgeRenderer(), resumes: supabaseResumeStore(admin) }),
-  }, { limit: Number.isInteger(limit) && limit > 0 ? limit : 50 });
+  };
+  if (cmd === "serve") {
+    const token = Deno.env.get("CAREER_PREPARE_AHEAD_TOKEN") ?? "";
+    if (!token) { console.error("CAREER_PREPARE_AHEAD_TOKEN is required to serve; nothing was started."); Deno.exit(2); }
+    const p = rest.indexOf("--port"), port = p >= 0 ? Number(rest[p + 1]) : 8787;
+    Deno.serve({ port }, prepareDoor({
+      token,
+      run: async (only) => {
+        const done = await prepareAhead(deps, { only, perPerson: 25, limit: 200 });
+        for (const r of done) console.log(`${r.outcome.toUpperCase()} ${r.job_id} (${r.detail})`);
+      },
+    }));
+    await new Promise(() => {});
+  }
+  const done = await prepareAhead(deps, { limit: Number.isInteger(limit) && limit > 0 ? limit : 50 });
   for (const r of done) console.log(`${r.outcome.toUpperCase()} ${r.job_id} (${r.detail})`);
   console.log(`${done.filter((r) => r.outcome === "ready").length} of ${done.length} prepared before they asked; nothing was sent.`);
   if (draftModel) console.log(`model calls for cover letters: ${meter.calls} (${meter.failed} failed), $${(meter.usd_micros / 1e6).toFixed(4)}${meter.unpriced ? `, ${meter.unpriced} unpriced` : ""}`);

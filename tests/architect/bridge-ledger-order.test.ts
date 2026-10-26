@@ -98,6 +98,7 @@ Deno.test({
           version: 1, user_id: u, job_id: job, company, url: `https://boards.greenhouse.io/${company.toLowerCase()}/jobs/${job}`,
           fields: [{ name: "first_name", value: "Ada" }], privacy_epoch: 0, account_version: 0,
           expires_at: new Date(Date.now() + DAY).toISOString(),
+          resume_sha256: "d".repeat(64), // OWNER RULE 2026-10-26 (20261026210016): an approved application binds its resume
         };
         const h = await pg.sql(`select public.career_apply_payload_hash($j$${JSON.stringify(p)}$j$::jsonb)`);
         const r = await svc.rpc("career_apply_enqueue", { p_payload: p, p_hash: h, p_approval: h, p_daily: 25 });

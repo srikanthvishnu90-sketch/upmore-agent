@@ -37,7 +37,9 @@ export function contactKey(channel: Channel, address: string): string {
 // Telegram update_id, WhatsApp messages[].id, LoopMessage message_id.
 export interface InboundMessage {
   provider: Provider; channel: Channel; messageId: string;
-  kind: "text" | "blocked" | "seen"; // blocked: the person blocked the bot (Telegram); seen: a non-text message (it still opens WhatsApp's window)
+  // blocked: the person blocked the bot (Telegram); seen: a non-text message (it still opens WhatsApp's window);
+  // callback: FEATURE 16, a tap on a message's button (Telegram callback_query), carried in `callback`
+  kind: "text" | "blocked" | "seen" | "callback";
   file?: boolean; // WO-106: the non-text message is a file or a photo (a resume sent as a PDF), so it gets an answer
   contact: string; address: string;
   aliases?: string[]; // other contact keys of the same sender (WhatsApp: the business-scoped id when the key is the wa_id)
@@ -52,7 +54,16 @@ export interface InboundMessage {
   // the build container), so no id is read there. A card's text yes approves only when this id is the message that
   // carried the card (career_apply_cards.ts).
   replyToMessageId?: string | null;
+  // FEATURE 16: a file the person sent (Telegram message.document): the provider's id to download it by, its stable
+  // unique id (the person's upload reference), its name, type and size as the platform reports them. `text` is its caption.
+  document?: { fileId: string; uniqueId: string; name: string; mime: string; size: number | null } | null;
+  // FEATURE 16: a button tap (Telegram callback_query): its id (answered once), the button's data, the message it was on.
+  callback?: { id: string; data: string; messageId: string | null } | null;
 }
+// FEATURE 16: buttons under a sent message (Telegram's inline keyboard), rows of { text, data } (a tap comes back as a
+// callback with data, at most 64 bytes) or { text, loginUrl } (Telegram's login: it opens the page signed in as the user).
+export interface Button { text: string; data?: string; loginUrl?: string }
+export interface SendOptions { buttons?: Button[][] }
 // A WhatsApp status callback: a message we sent failed after Meta accepted it. hold: it failed for the window (131047)
 // or the per-user marketing limit (131049), so it goes back in the queue for the person's next message.
 export interface StatusEvent { providerMessageId: string; code: number | null; hold: boolean; error: string }
@@ -76,7 +87,7 @@ export interface DeliveryAdapter {
   channel: Channel;
   limits: Partial<ChannelLimits>;
   render(text: string): string[];
-  send(address: string, bubbles: string[]): Promise<SendResult>;
+  send(address: string, bubbles: string[], opts?: SendOptions): Promise<SendResult>;
   // The short utility template that says updates are waiting (WhatsApp, outside the window). null: no template is
   // configured, so the messages wait and nothing is sent.
   sendTemplate?(address: string, count: number): Promise<SendResult | null>;
@@ -86,6 +97,9 @@ export interface ChannelAdapter extends DeliveryAdapter {
   limits: ChannelLimits;
   capabilities: ChannelCapabilities;
   parseInbound(req: Request): Promise<ParseResult>;
+  // FEATURE 16 (Telegram): download a file the person sent, by the id its update gave; and answer a button tap once.
+  fetchFile?(fileId: string, maxBytes: number): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }>;
+  answerCallback?(callbackId: string, text: string): Promise<boolean>;
 }
 
 // One message carries at most `max` characters: paragraphs travel together while they fit, a longer paragraph is split

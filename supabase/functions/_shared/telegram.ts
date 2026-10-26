@@ -42,14 +42,35 @@ export function parseTelegramUpdate(u: any): { message: InboundMessage | null; i
     if (member.new_chat_member?.status !== "kicked") return { message: null, ignored: `chat member status ${String(member.new_chat_member?.status ?? "").slice(0, 20)}` };
     return { message: { provider: "telegram", channel: "telegram", messageId, kind: "blocked", contact: `tg:${chat.id}`, address: String(chat.id), text: "" } };
   }
+  // FEATURE 16: a tap on a button Trainee sent (the card's Approve or Decline) arrives as callback_query, in the chat the
+  // button's message is in (callback_query.message.chat; https://core.telegram.org/bots/api#callbackquery, ASSUMED field
+  // names, the same shape telegram_bridge.ts reads on the live test bridge).
+  const cb = u.callback_query;
+  if (cb && typeof cb === "object") {
+    const chat = cb.message?.chat;
+    if (chat?.type !== "private" || !Number.isSafeInteger(chat.id) || chat.id <= 0) return { message: null, ignored: "not a private chat" };
+    if (cb.id === undefined || cb.id === null || typeof cb.data !== "string" || !cb.data || cb.data.length > 64) return { message: null, ignored: "not a button of Trainee's" };
+    if (cb.from?.is_bot) return { message: null, ignored: "from a bot" };
+    return { message: { provider: "telegram", channel: "telegram", messageId, kind: "callback", contact: `tg:${chat.id}`, address: String(chat.id), text: "",
+      callback: { id: String(cb.id).slice(0, 100), data: cb.data, messageId: Number.isSafeInteger(cb.message?.message_id) ? String(cb.message.message_id) : null } } };
+  }
   const m = u.message;
-  if (!m || typeof m !== "object") return { message: null, ignored: "not a new message" }; // edits, callbacks, channel posts
+  if (!m || typeof m !== "object") return { message: null, ignored: "not a new message" }; // edits, channel posts
   if (m.chat?.type !== "private" || !Number.isSafeInteger(m.chat.id) || m.chat.id <= 0) return { message: null, ignored: "not a private chat" };
   if (m.from?.is_bot) return { message: null, ignored: "from a bot" };
   // SERIAL-1462: a reply in Telegram carries the replied-to message as message.reply_to_message (Bot API); its message_id
   // is the id sendMessage returned when that message went out.
   const repliedTo = m.reply_to_message && typeof m.reply_to_message === "object" && Number.isSafeInteger(m.reply_to_message.message_id) ? String(m.reply_to_message.message_id) : null;
   const base = { provider: "telegram" as const, channel: "telegram" as const, messageId, contact: `tg:${m.chat.id}`, address: String(m.chat.id), replyToMessageId: repliedTo };
+  // FEATURE 16: a document (a resume as a PDF or Word file) is read: getFile, then the file itself (channel_inbound.ts).
+  // message.document: file_id (to download), file_unique_id (stable across bots and time), file_name, mime_type,
+  // file_size (https://core.telegram.org/bots/api#document, ASSUMED field names). Its caption is the message text.
+  const d = m.document;
+  if (d && typeof d === "object" && typeof d.file_id === "string" && d.file_id && typeof d.file_unique_id === "string" && d.file_unique_id) {
+    return { message: { ...base, kind: "text", text: typeof m.caption === "string" ? m.caption.slice(0, 1000) : "",
+      document: { fileId: d.file_id.slice(0, 300), uniqueId: d.file_unique_id.slice(0, 120), name: String(d.file_name ?? "resume").slice(0, 200) || "resume",
+        mime: String(d.mime_type ?? "").slice(0, 120), size: Number.isSafeInteger(d.file_size) ? d.file_size : null } } };
+  }
   if (typeof m.text !== "string" || !m.text.trim()) return { message: { ...base, kind: "seen", text: "", file: !!(m.document || m.photo) }, ignored: "no text (attachments are not read yet)" };
   const cmd = /^\/(start|stop|help)(?:@[A-Za-z0-9_]{1,64})?(?:\s+(\S+))?\s*$/i.exec(m.text.trim());
   if (cmd) {
@@ -88,13 +109,40 @@ export function telegramAdapter(o: {
       const r = parseTelegramUpdate(await req.json().catch(() => null));
       return { messages: r.message ? [r.message] : [], ignored: r.ignored ? [r.ignored] : [] };
     },
-    async send(address, bubbles): Promise<SendResult> {
+    // FEATURE 16: getFile names the file's path, and the file is downloaded from /file/bot<token>/<file_path>
+    // (https://core.telegram.org/bots/api#getfile, ASSUMED; bots download files of up to 20 MB). The token never leaves
+    // this function in an error.
+    async fetchFile(fileId, maxBytes): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }> {
+      const r = await call("getFile", { file_id: fileId });
+      if ("error" in r) return { ok: false, error: redact(`Telegram unreachable: ${r.error instanceof Error ? r.error.message : String(r.error)}`).slice(0, 200) };
+      const path = r.body?.result?.file_path;
+      if (r.status !== 200 || r.body?.ok !== true || typeof path !== "string" || !path) return { ok: false, error: `Telegram getFile HTTP ${r.status}: ${redact(String(r.body?.description ?? "no file path")).slice(0, 120)}` };
+      if (Number.isSafeInteger(r.body.result.file_size) && r.body.result.file_size > maxBytes) return { ok: false, error: "too_large" };
+      try {
+        const res = await f(`${TELEGRAM_API}/file/bot${o.token}/${path.split("/").map(encodeURIComponent).join("/")}`, { signal: AbortSignal.timeout(timeout) });
+        if (!res.ok) { await res.body?.cancel().catch(() => {}); return { ok: false, error: `Telegram file HTTP ${res.status}` }; }
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (bytes.length > maxBytes) return { ok: false, error: "too_large" };
+        return { ok: true, bytes };
+      } catch (e) { return { ok: false, error: redact(`Telegram file unreachable: ${e instanceof Error ? e.message : String(e)}`).slice(0, 200) }; }
+    },
+    // FEATURE 16: every tap is answered once, so the person's button stops spinning (answerCallbackQuery; ASSUMED).
+    async answerCallback(callbackId, text): Promise<boolean> {
+      const r = await call("answerCallbackQuery", { callback_query_id: callbackId, text: String(text ?? "").slice(0, 200) });
+      return !("error" in r) && r.status === 200 && r.body?.ok === true;
+    },
+    async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
       const ids: string[] = [];
       for (let i = 0; i < bubbles.length; i++) {
         await pace(address);
         const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
-        const r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false } });
+        // FEATURE 16: buttons (the card's Approve and Decline) ride the last part, under the whole card.
+        const keyboard = i === bubbles.length - 1 && opts?.buttons?.length
+          ? { reply_markup: { inline_keyboard: opts.buttons.map((row) => row.map((b) => b.loginUrl
+            ? { text: b.text.slice(0, 64), login_url: { url: b.loginUrl, request_write_access: true } }
+            : { text: b.text.slice(0, 64), callback_data: String(b.data ?? "").slice(0, 64) })) } } : {};
+        const r = await call("sendMessage", { chat_id: Number(address), text: bubbles[i].slice(0, TELEGRAM_CHARS), link_preview_options: { is_disabled: false }, ...keyboard });
         if ("error" in r) {
           const e = r.error, timedOut = e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError");
           return timedOut ? { ok: false, error: `Telegram timed out (it may have been delivered)${after}`, retryable: false }

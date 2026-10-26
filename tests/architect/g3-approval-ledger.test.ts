@@ -53,7 +53,9 @@ Deno.test({
       const payload = (u: string, job: string, company: string, extra: Record<string, unknown> = {}) => ({
         version: 1, user_id: u, job_id: job, company, url: `https://boards.greenhouse.io/${company.toLowerCase().replace(/\W+/g, "")}/jobs/${job}`,
         fields: [{ name: "first_name", value: "Ada" }], privacy_epoch: 0, account_version: 0,
-        expires_at: new Date(Date.now() + DAY).toISOString(), ...extra,
+        expires_at: new Date(Date.now() + DAY).toISOString(),
+        resume_sha256: "d".repeat(64), // OWNER RULE 2026-10-26 (20261026210016): an approved application binds its resume
+        ...extra,
       });
       const hashOf = async (p: unknown) =>
         await pg.sql(`select encode(sha256(convert_to(public.career_apply_canonical($j$${JSON.stringify(p)}$j$::jsonb),'UTF8')),'hex')`);

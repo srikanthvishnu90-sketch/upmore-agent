@@ -98,9 +98,8 @@ export interface ApplyChatDeps {
   // (career_apply_link.ts); absent, a link is not this turn's.
   link?: { db: PostingsDb; fetchFeed: FetchFeed } | null;
   // FEATURE 1: whether a row queued here is prepared at once (the server prepare is configured: CAREER_PREPARE_AHEAD_URL
-  // and its token). Only then does "no resume on file" keep a posting out of the queue: an immediate try could only end
-  // in no_resume, which the worker records and holds for a week (prepare-ahead.ts). With it off, queueing only records
-  // the person's want, so the posting is queued and the reply says a confirmed resume is needed first. Absent, taken as on.
+  // and its token). OWNER RULE (2026-10-26): no longer read for the resume check; "no resume on file" keeps every posting
+  // out of the queue either way.
   prepareOn?: () => boolean;
 }
 // A posting held back by the possible-match question (SERIAL-1490): queued only when the person answers no.
@@ -241,7 +240,8 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
   const resumeMissing = await noResume(o);
-  if (resumeMissing && prepareRunsNow(o)) {
+  // OWNER RULE (2026-10-26): never queued without a confirmed resume, prepare on or off.
+  if (resumeMissing) {
     return { reply: `${coverageLine(0, 1)} Not queued: ${p.title} at ${p.company}: ${NO_RESUME_REASON}. ${NO_RESUME_NEXT}`, status: "no_resume", intent,
       posting: { job_id: p.job_id, company: p.company, title: p.title }, coverage: { queued: 0, total: 1 } };
   }
@@ -267,10 +267,6 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
 async function noResume(o: { resumeOnFile?: () => Promise<boolean | null> }): Promise<boolean> {
   if (!o.resumeOnFile) return false;
   try { return (await o.resumeOnFile()) === false; } catch { return false; }
-}
-function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
-  if (!o.prepareOn) return true;
-  try { return o.prepareOn() !== false; } catch { return true; }
 }
 async function prepareFor(o: { prepare?: (jobIds: string[]) => Promise<PrepareKick> }, ids: string[]): Promise<PrepareKick | null> {
   if (!o.prepare || !ids.length) return null;
@@ -324,7 +320,8 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   const refused = [...missing, ...screened.refused.filter((r) => r.ask !== "employer").map((r) => ({ job_id: r.posting.job_id, company: r.posting.company, title: r.posting.title, reason: r.reason }))];
   // FEATURE 1: with no confirmed resume on file nothing can be prepared, so nothing is queued; each posting is named.
   const resumeMissing = screened.ok.length ? await noResume(o) : false;
-  if (resumeMissing && prepareRunsNow(o)) {
+  // OWNER RULE (2026-10-26): never queued without a confirmed resume, prepare on or off.
+  if (resumeMissing) {
     for (const p of screened.ok) refused.push({ job_id: p.job_id ?? null, company: String(p.company ?? ""), title: String(p.title ?? ""), reason: NO_RESUME_REASON });
     return { reply: `${coverageLine(0, total)} Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}. ${NO_RESUME_NEXT}`, status: "no_resume", intent, queued: [], refused, coverage: { queued: 0, total } };
   }

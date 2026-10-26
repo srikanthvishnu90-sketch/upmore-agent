@@ -33,6 +33,8 @@ export interface OutboxRow {
   id: string; userId: string; contact: string; key: string; text: string; deliver_at: number; attempts: number;
   // WO-038, for a channel with a service window (WhatsApp): the person's last message there and the last template nudge.
   lastInboundAt?: number | null; nudgedAt?: number | null;
+  // FEATURE 16: buttons under this message (the card's Approve and Decline on Telegram), set by the store from the row's card.
+  buttons?: { text: string; data?: string; loginUrl?: string }[][] | null;
 }
 export type DeliveryMark = { status: "delivered" | "failed" | "skipped_opt_out" | "held"; at: number; error?: string; providerId?: string; providerIds?: string[]; retryAt?: number };
 export interface ChannelStore {
@@ -133,7 +135,7 @@ export async function deliverDue(o: {
     const known = await o.store.sentTo(m.contact, day);
     if (!known && cap !== Infinity && await counted(channel) >= cap) { stall(); r.capped++; continue; } // stays queued for tomorrow's allowance
     let res: SendResult;
-    try { res = await adapter.send(addressOf(m.contact), adapter.render(m.text)); }
+    try { res = await adapter.send(addressOf(m.contact), adapter.render(m.text), m.buttons?.length ? { buttons: m.buttons } : undefined); }
     catch (e) { res = { ok: false, error: e instanceof Error ? e.message : String(e), retryable: true }; }
     if (res.ok) {
       await o.store.mark(m.id, { status: "delivered", at: o.now, providerId: res.id ?? undefined, ...(res.ids && res.ids.length > 1 ? { providerIds: res.ids } : {}) });

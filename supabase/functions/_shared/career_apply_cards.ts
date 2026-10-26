@@ -18,6 +18,7 @@ export interface Prepared {
   company: string;
   card_lines: string[];
   created_at?: string;
+  resume_sha256?: string | null; // the payload's resume hash, when the store reads it (OWNER RULE 2026-10-26)
 }
 export interface Card {
   id: string;
@@ -131,6 +132,10 @@ export function answerText(results: CardResult[]): string {
   return [head, ...lines].join("\n");
 }
 
+// OWNER RULE (2026-10-26): a card shows only applications that send a resume (the payload binds its sha256), and none
+// at all while the person has no confirmed resume.
+export const CARD_NO_RESUME = `I have no confirmed resume on file, so there is no application to show or approve. Send me your resume first: attach it as a PDF or Word file, or paste it here, then say it's yours.`;
+export const sendsResume = (p: Prepared) => !("resume_sha256" in p) || /^[a-f0-9]{64}$/.test(String(p.resume_sha256 ?? ""));
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
 // SERIAL-1461 / 1480: what a yes with no usable reply id is told, by where it was typed. The app: it can reply to the card
@@ -145,12 +150,18 @@ export function needsReplyTextFor(channel: string | null | undefined): string {
   return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_TAP_IMESSAGE : NEEDS_REPLY;
 }
 export async function cardTurn(
-  o: { message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null },
+  o: {
+    message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null;
+    // OWNER RULE (2026-10-26, "never submit applications without a real resume"): whether the person has a confirmed
+    // resume on file (career_resume_on_file). false: no card is shown and none is opened; absent: not asked.
+    resumeReady?: () => Promise<boolean | null>;
+  },
 ): Promise<{ reply: string; status: string; card_id?: string } | null> {
   const r = parseCardReply(o.message);
   if (!r) return null;
   if (r.kind === "show") {
-    const c = cardFor(await o.store.pending(o.userId));
+    if (o.resumeReady && (await o.resumeReady().catch(() => null)) === false) return { reply: CARD_NO_RESUME, status: "no_resume" };
+    const c = cardFor((await o.store.pending(o.userId)).filter(sendsResume));
     if (!c) {
       return {
         reply: "Nothing is prepared yet. Prepare applications on your computer first; they show up here.",
@@ -258,7 +269,7 @@ export function supabaseCardStore(admin: any): CardStore {
   return {
     async pending(userId) {
       return must(
-        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at").eq("user_id", userId)
+        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
           .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).limit(30),
         "read prepared applications",
       ) ?? [];

@@ -581,6 +581,12 @@
         "type": "yesno",
         "group": "skills"
       },
+      // ELIGIBILITY-SEPARATION-PROPOSAL.md (Branch A note): work
+      // authorization is its own fact — authorized to work in the US, yes
+      // or no; sponsorship is its own fact (the "sponsorship" entry below),
+      // never part of this one's meaning. The entry's "note" string below is
+      // schema data and is unchanged here; this comment records the
+      // separation the proposal's readers (module 156) implement.
       "work_authorization": {
         "kind": "fact",
         "type": "text",
@@ -2172,6 +2178,28 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (/^(native|bilingual|mother tongue|first language|fluent)$/.test(lv)) return only(options.filter((o) => /\bfluent\b/.test(low(o.label)) && !not(low(o.label))));
     return null;
   }
+  function assertsSponsorshipNeed(label) {
+    const l = low(label);
+    if (/\bwithout\b[^.]{0,40}\bsponsor/.test(l) || /\bnot\s+(require|requires|required|need|needs|needed|necessary)\b/.test(l) || /\bno\s+(visa\s+|employment\s+)?sponsorship\b/.test(l) || /n't\s+(require|need)\b/.test(l)) return false;
+    return /\b(require|requires|required|need|needs|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+  }
+  function assertsSeparateSponsorshipPosition(label) {
+    const l = low(label);
+    const clause = /\b(require|requires|required|need|needs|needed|needing)\b[^.]{0,40}\bsponsor/.test(l) || /\bsponsorship\b[^.]{0,30}\b(is\s+)?(required|needed|necessary)\b/.test(l);
+    if (!clause) return false;
+    return /^\s*(yes|no)\b/.test(l) || /\b(and|but)\b/.test(l);
+  }
+  function unrestrictedAuthorization(label) {
+    const t = low(label);
+    return /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(t) && !/will (need|require)|in the future|present employer|current employer/.test(t);
+  }
+  function degreeOptionFor(factValue, label) {
+    const v = low(factValue);
+    const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
+    if (!re) return false;
+    const t = low(label);
+    return re.test(t) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(t);
+  }
   function chooseOption(fact, value, options, question = "") {
     if (!options.length) return null;
     const v = low(value);
@@ -2211,15 +2239,17 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       }
       case "work_authorization": {
         if (yesNoOf(v) !== "yes") break;
-        const free = options.filter((o) => /any employer|without (visa |employment )?sponsorship|no restriction|do not (need|require)|not require|unrestricted/.test(low(o.label)) && !/will (need|require)|in the future|present employer|current employer/.test(low(o.label)));
+        const free = options.filter((o) => !assertsSponsorshipNeed(o.label) && !assertsSeparateSponsorshipPosition(o.label) && unrestrictedAuthorization(o.label));
         if (free.length === 1) return free[0].value;
+        const classified = (o) => assertsSponsorshipNeed(o.label) || assertsSeparateSponsorshipPosition(o.label);
+        if (options.some(classified) && !/\bwithout\b.{0,40}\bsponsor/i.test(question)) return byYesNo("yes", options.filter((o) => !classified(o)));
         break;
       }
       case "education_level": {
         const re = EDUCATION[v.replace(/'s|s$/g, "").replace(/ degree$/, "")] ?? EDUCATION[v];
         if (!re) return null;
         if (options.some((o) => /\brelevant\b|\brelated\b|\bdiscipline\b|\bfield\b/.test(low(o.label)))) return null;
-        const hits = options.filter((o) => re.test(low(o.label)) && !/in progress|pursuing|currently enrolled|incomplete|candidate|expected/.test(low(o.label)));
+        const hits = options.filter((o) => degreeOptionFor(value, o.label));
         const core = (l) => low(l).replace(/'s\b|\bdegree\b|[^a-z]/g, "").replace(/s$/, "");
         if (hits.length > 1 && hits.every((o) => core(o.label) === core(hits[0].label))) return (hits.find((o) => low(o.label) === v) ?? hits.find((o) => /\bdegree\b/.test(low(o.label))) ?? hits[0]).value;
         return only(hits);
@@ -2624,20 +2654,46 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       confirmation_id: null
     };
   }
-  var DEFAULT_DAILY = 25;
-  var MAX_DAILY = 50;
   var COMPANY_COOLDOWN_DAYS = 30;
   var DAY = 864e5;
-  var COUNTED = /* @__PURE__ */ new Set([
+  var COUNTED_STATES = /* @__PURE__ */ new Set([
+    "queued",
+    "driving",
     "confirmed",
     "submitted_unconfirmed",
     "needs_user",
-    "submitting",
-    "queued",
-    "planned"
+    "unknown_outcome",
+    "planned",
+    "submitting"
   ]);
+  var COUNTED = COUNTED_STATES;
   var normCompany = (c) => String(c ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|co|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  var dailyLimit = (l) => Math.max(1, Math.min(MAX_DAILY, Math.floor(Number(l?.daily) || DEFAULT_DAILY)));
+  var INT4_MAX = 2147483647;
+  var PACE_RE = /^\s*\+?[0-9]+\s*$/;
+  function paceState(v) {
+    if (v === null || v === void 0) return {
+      state: "none",
+      pace: null,
+      raw: null
+    };
+    const raw = typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : JSON.stringify(v) ?? String(v);
+    const n = typeof v === "number" ? v : typeof v === "string" && PACE_RE.test(v) ? Number(v.trim()) : NaN;
+    if (Number.isInteger(n) && n >= 1 && n <= INT4_MAX) return {
+      state: "set",
+      pace: n,
+      raw
+    };
+    return {
+      state: "unreadable",
+      pace: null,
+      raw
+    };
+  }
+  var dailyLimit = (l) => {
+    if (l?.unreadable !== void 0) return NaN;
+    const st = paceState(l?.daily);
+    return st.state === "set" ? st.pace : st.state === "none" ? Infinity : NaN;
+  };
   function admitApplication(log, a, now, limits) {
     if (a.approval_hash !== void 0 || a.payload_hash !== void 0) {
       if (!a.approval_hash || a.approval_hash !== a.payload_hash) return {
@@ -2655,7 +2711,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ok: false,
       reason: "company_cooldown"
     };
-    if (mine.filter((x) => x.at > now - DAY).length >= dailyLimit(limits)) return {
+    if (limits?.unreadable !== void 0 || Number.isNaN(dailyLimit(limits))) return {
+      ok: false,
+      reason: "pace_unreadable"
+    };
+    const own = dailyLimit(limits);
+    if (Number.isFinite(own) && mine.filter((x) => x.at > now - DAY).length >= own) return {
       ok: false,
       reason: "daily_cap"
     };
@@ -4394,8 +4455,9 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       ...Object.entries(o.answers),
       ...Object.entries(o.saved)
     ].find(([, a]) => a?.factId === p.factId) ?? [];
+    if (ownAnswerOnly(o.field.label) && !Object.values(o.saved).some((a) => a?.factId === p.factId)) return null;
     const shown2 = options.find((x) => x.value === p.value).label;
-    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+    return fact && optionRule(shown2, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, ""), combinedEligibility(o.answers)) ? p.value : null;
   }
   var SEARCHED = /* @__PURE__ */ new Set([
     "location",
@@ -4404,7 +4466,12 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     "school"
   ]);
   var optN = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
-  function optionRule(option, fact, searched) {
+  var combinedEligibility = (answers) => yesNoOf(String(answers?.work_authorization?.value ?? "")) === "yes" && yesNoOf(String(answers?.sponsorship?.value ?? "")) === "no";
+  function optionRule(option, fact, searched, key, combinedOk = false) {
+    if (assertsSeparateSponsorshipPosition(option)) {
+      return combinedOk && key === "work_authorization" && !assertsSponsorshipNeed(option) && yesNoOf(option) === "yes" ? "option-combined-eligibility" : null;
+    }
+    if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
     if (searched) {
       const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
       return word && optN(option).includes(word) ? "listed-name" : null;
@@ -5389,7 +5456,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
     if (ownAnswerOnly(f.label) && !tf.authorizes) return {
       problem: "it is an attestation or a personal choice, so it takes your own answer to it"
     };
-    const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf)) || (!f.section && a.kind === "text" && [
+    const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf, combinedEligibility(m.answers))) || (!f.section && a.kind === "text" && [
       "date",
       "month"
     ].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
@@ -5509,7 +5576,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       dropped
     };
   }
-  function derivation(f, kind, a, tf) {
+  function derivation(f, kind, a, tf, combinedOk = false) {
     const n = (x) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
     const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
     if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
@@ -5518,7 +5585,7 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
       return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
     }
-    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+    if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key, combinedOk);
     if (kind === "listed") return n(a.value) === n(tf.value) ? SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option" : null;
     return n(a.value) === n(tf.value) ? "verbatim" : null;
   }
@@ -5843,7 +5910,14 @@ ${words}`)}`, wording = `label:${h16(words)}`;
       return false;
     }
     press(hit);
-    const shown2 = await until(() => widgetValue(el), 1e3);
+    const renders = (v) => {
+      const a = norm3(v), b = norm3(label);
+      return a === b || a.length >= 2 && b.endsWith(a) || a.length >= 4 && b.startsWith(a);
+    };
+    const shown2 = await until(() => {
+      const v = widgetValue(el);
+      return v && renders(v) ? v : null;
+    }, 1e3);
     if (shown2) lastChoice = label;
     return !!shown2;
   }

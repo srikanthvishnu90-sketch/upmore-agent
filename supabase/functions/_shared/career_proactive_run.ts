@@ -8,8 +8,9 @@
 // backlog), so nothing below the person's threshold is ever sent; and the weekly cap is counted from the outbox (a store
 // that cannot count sends no alerts). Each alert carries its posting's first_seen_at, for the latency report.
 import { DEFAULT_PREFS, matchPosting, planProactive, quietAt } from "./career_alerts.ts";
-import { freshWhenSeen } from "./career_ingest.ts";
+import { freshWhenSeen } from "./career_fresh.ts";
 import type { AlertRow, AlertStore, Outbox } from "./career_alert_store.ts";
+import { interestsFromWatch } from "./career_watch_alerts.ts";
 import { planReceipts, type ReceiptRow } from "./career_apply_receipts.ts";
 import { cardFor, type Prepared } from "./career_apply_cards.ts";
 import { type Classified, classifyMail, draftOffer, foldEvents, type MailIn, planUpdates, type StatusEvent, type TrackedApp } from "./career_mail.ts";
@@ -25,7 +26,7 @@ import { extractInvite, type InterviewRow, interviewDrafts, interviewRow, invite
 import type { DigestStore, InterviewStore } from "./career_brief_store.ts";
 import { buildDigest, DEFAULT_DIGEST, digestDue } from "./career_digest.ts";
 
-export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number }
+export interface RunStats { users: number; alerts: number; held: number; reports: number; duplicates: number; postings: number; receipts?: number; cards?: number; statuses?: number; followups?: number; briefs?: number; brief_ms_max?: number | null; digests?: number; questions?: number; confirmations?: number; asks?: number; mail_model?: string; mail_model_ask?: string; mail_model_calls?: number; mail_model_decided?: number; mail_model_capped?: number; below_threshold?: number; watch_off?: number; watch_unread?: number }
 // WO-091c: a rail that failed for some people still reports what it did for the rest. The error carries that result as
 // `partial`, so the scheduled run records true counts beside the failure, and the message is unchanged.
 export function partialError<T>(message: string, partial: T): Error & { partial: T } {
@@ -35,12 +36,45 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const localDate = (at: number, tz: string) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(at));
 
+// A row made from watches set by text (prefs.interests, career_watch_alerts.ts) sends only what the person's watch record
+// says now (career_watch_kv, career:watch-profile:<user>, read through `watches`): the alert settings are a copy, and a
+// copy whose write failed must never keep alerting after the person paused, stopped or erased. Record gone (erased): the
+// row sends nothing and is removed. Paused, or no watch left: nothing. The watches matched are the record's. No reader,
+// or a read that fails: no watch row sends anything this run. Rows set otherwise (no interests) are not touched.
+async function verifiedWatches(rows: AlertRow[], o: { store: AlertStore; watches?: (userIds: string[]) => Promise<Map<string, unknown>> }, stats: RunStats): Promise<AlertRow[]> {
+  const theirs = rows.filter((r) => r.prefs?.interests?.length);
+  if (!theirs.length) return rows;
+  let record: Map<string, unknown> | null = null;
+  try {
+    if (o.watches) record = await o.watches(theirs.map((r) => r.id));
+  } catch (e) {
+    console.error("alerts: watch records unread, no watch alerts this run:", errText(e));
+  }
+  if (!record) {
+    stats.watch_unread = theirs.length;
+    return rows.filter((r) => !r.prefs?.interests?.length);
+  }
+  const out: AlertRow[] = [];
+  for (const r of rows) {
+    if (!r.prefs?.interests?.length) { out.push(r); continue; }
+    const wp: any = record.get(r.id) ?? null, interests = interestsFromWatch(wp);
+    if (!interests.length || wp?.opt_out?.global) {
+      stats.watch_off = (stats.watch_off ?? 0) + 1;
+      if (!wp && o.store.remove) await o.store.remove(r.id).catch((e) => console.error("alerts: remove an erased watch's settings:", errText(e)));
+      continue;
+    }
+    out.push({ ...r, prefs: { ...r.prefs, interests } });
+  }
+  return out;
+}
+
 export async function runAlerts(o: {
   store: AlertStore; outbox: Outbox; now: number;
   recentPostings: (sinceIso: string) => Promise<any[]>; postingsById: (ids: string[]) => Promise<any[]>;
+  watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
 }): Promise<RunStats> {
   const stats: RunStats = { users: 0, alerts: 0, held: 0, reports: 0, duplicates: 0, postings: 0 };
-  const rows = await o.store.active();
+  const rows = await verifiedWatches(await o.store.active(), o, stats);
   stats.users = rows.length;
   if (!rows.length) return stats;
   const recent = await o.recentPostings(new Date(o.now - 26 * 3600000).toISOString());

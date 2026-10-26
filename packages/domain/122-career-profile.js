@@ -260,7 +260,52 @@ const CareerProfile = (() => {
   // ---- plain-text resume ingestion -> DRAFT facts only ----
   const SECTION_KIND = { education: "education", experience: "experience", "work experience": "experience", employment: "experience", projects: "project", "personal projects": "project", leadership: "leadership", awards: "award", certifications: "certification", skills: "skill", "technical skills": "skill" };
   function parseResumeText(text) {
-    const lines = String(text || "").split(/\r?\n/);
+    // CHAT PASTE SHAPE (text-path measurement 2026-10-24): a resume
+    // pasted into a chat is often ONE paragraph with its section
+    // headers inline ("... Experience: Data Analyst at ... Skills:
+    // SQL, ... Education: ..."). The line parser below reads a
+    // header only as a whole line, so such a paste produced zero
+    // drafts and the ingest honestly reported "empty" for a full
+    // resume. A line carrying TWO OR MORE inline section markers is
+    // segmented at those markers before parsing; a single stray
+    // marker inside prose changes nothing, and multi-line resumes
+    // parse exactly as before.
+    const markerKeys = Object.keys(SECTION_KIND).sort((a, b) => b.length - a.length).map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const markerRe = new RegExp(`(^|[.!?]\\s+|\\s)(${markerKeys.join("|")})\\s*:`, "gi");
+    const lines = [];
+    for (const rawLine of String(text || "").split(/\r?\n/)) {
+      const marks = [...rawLine.matchAll(markerRe)];
+      if (marks.length < 2) { lines.push(rawLine); continue; }
+      const firstHead = marks[0].index + marks[0][1].length;
+      const pre = rawLine.slice(0, firstHead).trim();
+      if (pre) {
+        // HELD-OUT (2026-10-24): the lead of a segmented paste is
+        // usually name + the CURRENT ROLE narrated in prose ("…
+        // Marketing Coordinator at Brightpath Media. Ran email
+        // campaigns…") with no "Experience:" marker of its own —
+        // the line parser below would drop it as a header block
+        // and the role the user leads with would vanish. When the
+        // lead carries a role-at-company shape with narrative
+        // after it, it IS the experience section: emit it as one,
+        // with a leading "Name - " segment stripped. A lead that
+        // is only a name/contact line does not match and parses
+        // exactly as before.
+        const nameStrip = pre.match(/^([A-Z][\w.'-]+(?:\s+[A-Z][\w.'-]+){0,3})\s+[-—]\s+(.+)$/);
+        const leadBody = nameStrip ? nameStrip[2] : pre;
+        if (/\b(?:at|@)\s+[A-Z][\w&.'-]+/.test(leadBody) && /[.!?]\s+\S/.test(leadBody)) {
+          lines.push("Experience:");
+          lines.push(leadBody);
+        } else lines.push(pre);
+      }
+      for (let i = 0; i < marks.length; i++) {
+        const m = marks[i];
+        const contentStart = m.index + m[0].length;
+        const contentEnd = i + 1 < marks.length ? marks[i + 1].index + marks[i + 1][1].length : rawLine.length;
+        lines.push(`${m[2].trim()}:`);
+        const content = rawLine.slice(contentStart, contentEnd).trim();
+        if (content) lines.push(content);
+      }
+    }
     const drafts = [];
     let section = null, current = null;
     const flush = () => { if (current) { drafts.push(current); current = null; } };

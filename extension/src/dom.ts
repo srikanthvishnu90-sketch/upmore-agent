@@ -212,7 +212,18 @@ async function driveWidget(el: any, wanted: string, choose?: Chooser): Promise<b
     return false;
   }
   press(hit);
-  const shown = await until(() => widgetValue(el), 1000);
+  // The fill counts only when the widget renders the option that was clicked: a page that renders a different
+  // option's text has not taken this answer, whatever it shows (the widget-gap battery's wrong-render case).
+  // The widget may render a shortened form of the employer's own option text — its tail (the phone list's "+1"
+  // for "United States +1") or its head — never a different option.
+  const renders = (v: string) => {
+    const a = norm(v), b = norm(label!);
+    return a === b || (a.length >= 2 && b.endsWith(a)) || (a.length >= 4 && b.startsWith(a));
+  };
+  const shown = await until(() => {
+    const v = widgetValue(el);
+    return v && renders(v) ? v : null;
+  }, 1000);
   if (shown) lastChoice = label;
   return !!shown;
 }

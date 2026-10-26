@@ -13,7 +13,8 @@ function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = J
 async function rejects(f: () => Promise<unknown>, re: RegExp) { try { await f(); } catch (e) { assert(re.test(String((e as Error).message)), `wrong error: ${(e as Error).message}`); return; } throw new Error("did not reject"); }
 const T = Date.UTC(2026, 9, 19, 15); // 11:00 New York
 const iso = (t: number) => new Date(t).toISOString();
-const posting = (id: string, at: number, title = "Data Analyst") => ({ job_id: `lever:acme:${id}`, title, company: "Acme", location: "Remote - US", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(at), closed_at: null });
+// SERIAL-1530: open remote fixture; a country-limited remote posting is held for a person with no location on record.
+const posting = (id: string, at: number, title = "Data Analyst") => ({ job_id: `lever:acme:${id}`, title, company: "Acme", location: "Remote", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(at), closed_at: null });
 const prefs = (p: Record<string, unknown> = {}) => { const v = validPrefs({ keywords: ["data analyst"], ...p }); if (!v.ok) throw new Error(v.error); return v.prefs; };
 function world() {
   const store = memoryAlertStore(), posts: any[] = [];

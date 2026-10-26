@@ -108,7 +108,7 @@ export function supabaseMailStore(admin: any): MailStore {
     async applications(u) {
       const queue = must<any[]>(await admin.from("career_apply_jobs").select("id,company,url,state,created_at,updated_at,title:payload->>title")
         .eq("user_id", u).order("created_at", { ascending: false }).limit(1000), "read applications") ?? [];
-      const threads = must<any[]>(await admin.from("agent_flow_state").select("rows:state->career->trackStore->rows").eq("user_id", u).limit(200), "read the tracker") ?? [];
+      const threads = must<any[]>(await admin.from("agent_flow_state").select("rows:state->career->stores->trackStore->rows").eq("user_id", u).limit(200), "read the tracker") ?? [];
       const tracked = threads.flatMap((t) => (Array.isArray(t.rows) ? t.rows : []));
       return mergeApps(appsFromQueue(queue), appsFromTracker(tracked));
     },

@@ -131,3 +131,41 @@ Deno.test("non-text updates are ignored without an agent call", async () => {
   assertEq(res.status, 200);
   assertEq(agentCalls(calls).length, 0);
 });
+
+// SERIAL-1462: a Telegram reply carries the replied-to message as message.reply_to_message (Bot API); its message_id
+// reaches the turn as reply_to_message_id, so a card's text yes can be bound to the message that carried the card.
+Deno.test("SERIAL-1462 a reply in Telegram carries reply_to_message.message_id to the agent; a plain message carries none", async () => {
+  const { d, calls } = deps();
+  const reply = {
+    update_id: 9003,
+    message: {
+      message_id: 41, date: 1760000100, text: "yes", chat: { id: CHAT_ID, type: "private" }, from: { id: 777, is_bot: false, first_name: "Test" },
+      reply_to_message: { message_id: 40, date: 1760000050, text: "2 applications are ready. Every answer below goes exactly as shown.", chat: { id: CHAT_ID, type: "private" }, from: { id: 999, is_bot: true, first_name: "Trainee" } },
+    },
+  };
+  const res = await handleTelegramWebhook(tgReq(reply), d);
+  assertEq(res.status, 200);
+  const bodies = agentCalls(calls).map((c) => JSON.parse(c.init?.body ?? "{}"));
+  assertEq(bodies.length, 1);
+  assertEq(bodies[0].reply_to_message_id, "40", "the replied-to message's id, as Telegram gives it");
+  const plain = await handleTelegramWebhook(tgReq(textUpdate("yes", 42)), d);
+  assertEq(plain.status, 200);
+  const after = agentCalls(calls).map((c) => JSON.parse(c.init?.body ?? "{}"));
+  assertEq(after.length, 2);
+  assert(!("reply_to_message_id" in after[1]), "a plain message carries no reply id");
+});
+
+// SERIAL-1480: through the Telegram bridge too, a needs-reply answer is Telegram's wording (reply directly, or tap).
+Deno.test("SERIAL-1480 the Telegram bridge presents a needs-reply answer as reply-or-tap, word for word", async () => {
+  const { NEEDS_REPLY_CHANNEL } = await import("../../supabase/functions/_shared/career_apply_cards.ts");
+  const { fakeFetchRich } = await import("./lib/channel_fixture.ts");
+  const admin = new FakeAdmin();
+  const f = fakeFetchRich({ chat: () => ({ reply: "Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send \"yes\", or tap Approve in the app.", thread_id: "t-1", meta: { intent: "career_apply_card_answer", result_status: "needs_reply" } }) });
+  const d: any = { env: envOf({ SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, TELEGRAM_BOT_TOKEN: "fixture-bot-token", TELEGRAM_WEBHOOK_SECRET: SECRET, CHANNEL_TEST_USER_ID: TEST_USER, TELEGRAM_ALLOWED_CHAT_IDS: String(CHAT_ID) }), fetchFn: f.fn, createAdmin: () => admin, paceMs: 0 };
+  const calls = f.calls;
+  const res = await handleTelegramWebhook(tgReq(textUpdate("yes", 61)), d);
+  assertEq(res.status, 200);
+  const sends = sendCalls(calls).map((c) => JSON.parse(c.init?.body ?? "{}"));
+  assertEq(sends.length >= 1, true, "a message was sent");
+  assertEq(sends.at(-1).text, NEEDS_REPLY_CHANNEL);
+});

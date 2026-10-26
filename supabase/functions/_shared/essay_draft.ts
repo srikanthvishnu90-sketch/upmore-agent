@@ -230,6 +230,10 @@ export function employerGate(q: EssayQuestion, siblingLabels: string[]) {
   return { policy, gate };
 }
 
+// The facts that may carry this answer. A cover letter says what the person wants next too (FRS), as a "why us" answer does.
+const factsFor = (all: unknown[], q: EssayQuestion) =>
+  relevantFacts(all, { label: q.label, company: q.company, why: WHY.test(q.label) || /\bcover letter\b/i.test(q.label) });
+
 // limitText: the field's own limit when the form states it outside the label (WO-049: the card sends the field's maxlength
 // as "max 500 characters"); read with the label by lengthLimit, never shown to the model as part of the question.
 export async function draftEssay(o: {
@@ -240,32 +244,60 @@ export async function draftEssay(o: {
   let all: unknown[];
   try { all = await o.deps.facts(); }
   catch (e) { return { ok: false, why: "model", policy, detail: [`could not read your facts: ${e instanceof Error ? e.message : String(e)}`], tries: 0 }; }
-  // A cover letter says what the person wants next too (FRS), as a "why us" answer does.
-  const facts = relevantFacts(all, { label: o.q.label, company: o.q.company, why: WHY.test(o.q.label) || /\bcover letter\b/i.test(o.q.label) });
+  const facts = factsFor(all, o.q);
   if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
   const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
   const sources = [...facts.map(factText), o.q.company ?? "", o.q.label];
-  let fix: string[] = [], last: { lock: Lock; long: string | null; cut: boolean } | null = null;
+  let fix: string[] = [], last: Judged | null = null;
   for (let tries = 1; tries <= 2; tries++) {
     let msg: any;
     try { msg = await o.deps.model(draftPayload({ q: o.q, facts, limit, previous: o.previous, fix })); }
     catch (e) { return { ok: false, why: "model", policy, detail: [e instanceof Error ? e.message : String(e)], tries }; }
     const { text, cut } = textOf(msg);
     if (!text) return { ok: false, why: "model", policy, detail: ["the model returned no text"], tries };
-    const lock = factLock(text, sources);
-    const long = overLimit(text, limit);
-    const banned = W.slopGate(text, { factPack: [] }).metrics.banned_phrases.value.hard as string[];
-    if (lock.pass && !long && !cut && !banned.length) return { ok: true, text, policy, factIds: facts.map(factId).filter(Boolean), limit, tries };
-    last = { lock, long, cut };
+    const j = judge(text, cut, sources, limit);
+    if (j.pass) return { ok: true, text, policy, factIds: facts.map(factId).filter(Boolean), limit, tries };
+    last = j;
     fix = [
-      ...(lock.pass ? [] : [`It named things that are not in the facts: ${lock.untraced.join("; ")}. Leave them out entirely; do not rephrase them.`]),
-      ...(long ? [`It was too long: ${long}. Write a shorter answer; never cut a sentence off.`] : []),
-      ...(cut ? ["It stopped in the middle of a sentence. Write a complete, shorter answer."] : []),
-      ...(banned.length ? [`It used stock phrases: ${banned.join("; ")}.`] : []),
+      ...(j.lock.pass ? [] : [`It named things that are not in the facts: ${j.lock.untraced.join("; ")}. Leave them out entirely; do not rephrase them.`]),
+      ...(j.long ? [`It was too long: ${j.long}. Write a shorter answer; never cut a sentence off.`] : []),
+      ...(j.cut ? ["It stopped in the middle of a sentence. Write a complete, shorter answer."] : []),
+      ...(j.banned.length ? [`It used stock phrases: ${j.banned.join("; ")}.`] : []),
     ];
   }
-  if (last && !last.lock.pass) return { ok: false, why: "unverified", policy, detail: last.lock.untraced, tries: 2 };
-  return { ok: false, why: "too_long", policy, detail: [last?.long ?? (last?.cut ? "it kept stopping mid-sentence" : "it kept using stock phrases")], tries: 2 };
+  return failed(last, policy, 2);
+}
+
+// Every check a draft must pass before anyone reads it: each name and number traced to the sources, inside the limit,
+// finished, no stock phrase.
+interface Judged { pass: boolean; lock: Lock; long: string | null; cut: boolean; banned: string[] }
+function judge(text: string, cut: boolean, sources: string[], limit: Limit): Judged {
+  const lock = factLock(text, sources);
+  const long = overLimit(text, limit);
+  const banned = W.slopGate(text, { factPack: [] }).metrics.banned_phrases.value.hard as string[];
+  return { pass: lock.pass && !long && !cut && !banned.length, lock, long, cut, banned };
+}
+const failed = (j: Judged | null, policy: AiPolicy, tries: number): DraftOutcome =>
+  j && !j.lock.pass ? { ok: false, why: "unverified", policy, detail: j.lock.untraced, tries }
+    : { ok: false, why: "too_long", policy, detail: [j?.long ?? (j?.cut ? "it kept stopping mid-sentence" : "it kept using stock phrases")], tries };
+
+// G4: a draft written before the person asked (workers/career-browser/prepare-ahead.ts) is shown only if it passes, now,
+// every check draftEssay makes: the employer's policy (with the posting's questions as they are now) and the person's
+// confirmed facts as they are now (a fact they have since removed or not confirmed supports nothing). No model is called.
+export async function checkDraft(o: {
+  q: EssayQuestion; siblingLabels: string[]; deps: Pick<DraftDeps, "facts">; text: string; limitText?: string;
+}): Promise<DraftOutcome> {
+  const { policy, gate } = employerGate(o.q, o.siblingLabels);
+  if (!gate.allowed) return { ok: false, why: "policy", policy, detail: [gate.reason], tries: 0 };
+  let all: unknown[];
+  try { all = await o.deps.facts(); }
+  catch (e) { return { ok: false, why: "model", policy, detail: [`could not read your facts: ${e instanceof Error ? e.message : String(e)}`], tries: 0 }; }
+  const facts = factsFor(all, o.q);
+  if (facts.length < MIN_FACTS) return { ok: false, why: "thin", policy, detail: [String(facts.length)], tries: 0 };
+  const limit = lengthLimit(o.limitText ? `${o.q.label} ${o.limitText}` : o.q.label);
+  const text = String(o.text ?? "").trim();
+  const j = judge(text, !/[.!?]["”')\]]?$/.test(text), [...facts.map(factText), o.q.company ?? "", o.q.label], limit);
+  return j.pass ? { ok: true, text, policy, factIds: facts.map(factId).filter(Boolean), limit, tries: 0 } : failed(j, policy, 0);
 }
 
 // What the person reads. The draft is always shown whole; nothing is saved here.

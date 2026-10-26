@@ -31,6 +31,10 @@ const CareerOutreach = (() => {
     return _firmSetsCache;
   }
 
+  // SERIAL-1500: the planner's model of a campaign. What the live send path enforces is in career_outreach.ts and the
+  // database's career_outreach_claim (10 a day in the first week, then the person's number up to 30, 90-second spacing,
+  // 3 per address in 30 days, do-not-contact); the ramp, per-firm, per-domain, breakers and wave here are planned, not
+  // enforced, and every text that renders them says so.
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
     ceilingPerDay: 30, userCanRaise: false, perDomainPerDay: 4, perDomainRange: [3, 5],
@@ -1675,17 +1679,19 @@ const CareerOutreach = (() => {
       per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
       scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
       stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
-      approval: "one approval covers this whole plan; nothing outside it sends" };
+      // SERIAL-1511: an approval covers only the exact messages the person reviewed, within the scope they approved, until
+      // the 7-day lapse; it is never general campaign permission and never covers messages they have not seen.
+      approval: "an approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days; never general permission for the campaign, never messages you have not seen" };
   }
   function safetyPlanText(p) {
-    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. Daily cap starts at ${p.daily_cap_start}/day, ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
+    return [`Safety plan — your approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days; it is never general permission for the campaign or for messages you have not seen:`, `Channel: Gmail (your own account) only. What runs today: 10 a day in your first week of sending, then your own number (20 unless set, never above 30), 90 seconds apart, at most 3 emails to one address in 30 days, never to anyone who said stop. Planned, not enforced today: a daily cap starting at ${p.daily_cap_start}/day that ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
   }
   function honestYield(records, query, opts) {
     opts = opts || {}; const pool = buildList(records, query, opts); const kept = (pool.selected || []).concat(pool.reserve || []);
     const verified = kept.filter((c) => c.email_verification === "verified").length;
     const patternedOut = kept.filter((c) => c.email_verification !== "verified" && (c.email_source === "pattern" || !c.email_verification)).length;
     const out = { found: pool.yield.found, resolved: pool.yield.resolved, verified, patterned_out: patternedOut, trusted_emails: pool.yield.trusted_emails, risky_emails: pool.yield.risky_emails, sendable: pool.yield.sendable, selected: pool.yield.selected, reserve: pool.yield.reserve, exclusions: pool.yield.exclusions, pool };
-    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (they ride under the ${Math.round(CAPS.riskyMaxFraction * 100)}% risky cap, never padded into the trustworthy number).`;
+    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (a ${Math.round(CAPS.riskyMaxFraction * 100)}% risky share is planned, not enforced today; they are never padded into the trustworthy number).`;
     return out;
   }
   function suppressionReport(pool, opts) {

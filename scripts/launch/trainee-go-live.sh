@@ -133,6 +133,15 @@ MIGRATIONS=(
   20261024120000_career_apply_cloud_gate_waiver.sql
   20261024130000_career_apply_card_cloud_bridge.sql
   20261024140000_career_batch_approve_exclude.sql
+  20261025100000_career_apply_one_ledger.sql
+  20261025110000_career_apply_bridge_reconcile.sql
+  20261025120000_career_apply_prepare_ahead.sql
+  20261025130000_career_apply_wanted_candidates.sql
+  20261025140000_career_apply_no_volume_ceiling.sql
+  20261025150000_career_apply_pace_parse.sql
+  20261025160000_career_apply_pace_state.sql
+  20261025170000_career_apply_card_yes_window.sql
+  20261025180000_career_outbox_card_id.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -183,6 +192,15 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_cloud_gate_waivers') is not null"
   "exists (select 1 from pg_proc where proname = 'career_apply_message_cloud_authorize')"
   "exists (select 1 from pg_proc where proname = 'career_batch_turn_commit_v1' and prosrc like '%exclude_keys%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_ledger')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_reconcile_bridge')"
+  "to_regclass('public.career_apply_prepare_attempts') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_apply_prepare_candidates' and prosrc like '%career_apply_wanted%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_ledger_refusal' and prosrc like '%own is not null%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_daily_limit' and prosrc like '%PACE_RE%')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_pace_set')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%card_stale%')"
+  "exists (select 1 from information_schema.columns where table_name = 'career_outbox' and column_name = 'card_id')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -577,6 +595,13 @@ else
   fi
   # WO-093: every mark again, after the applies (a migration the ledger calls applied may never have landed), then the
   # deploy ledger's migration rows for this sha.
+  # The draft bridge and the one ledger replace the same two claim functions, so whichever ran last decides them: they
+  # are reconciled, and the run stops unless every claim guard is in place (docs/architect/MIGRATION-SEQUENCING-BRIDGE-LEDGER.md).
+  if [[ -n "$DRY" ]]; then
+    echo "DRY: psql *** -X -q -v ON_ERROR_STOP=1 -f scripts/launch/verify-claim-guards.sql (reconcile the bridge and the one ledger; any missing claim guard fails the run, each named)"
+  else
+    run "psql *** -X -q -v ON_ERROR_STOP=1 -f scripts/launch/verify-claim-guards.sql" "${P[@]}" -f scripts/launch/verify-claim-guards.sql
+  fi
   if [[ -n "$DRY" ]]; then
     echo "DRY: psql *** -tA: every migration mark (${#EARLIER[@]} earlier + ${#MIGRATIONS[@]}) read again on the live schema; any missing one fails the run, each named"
     echo "DRY: psql *** -c: insert into public.career_deploy_ledger one migration row per mark (sha, file, sha256, manifest sha256, --label)"

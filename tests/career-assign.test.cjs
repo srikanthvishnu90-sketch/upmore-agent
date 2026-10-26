@@ -158,7 +158,9 @@ test("ASG-5: out-of-area posting rejected on location; remote posting accepted",
   const res = await A.runAssignCycle({ postings: [sf], watchProfile: wp, store, now: NOW });
   assert.equal(res.reminders.length, 0);
   assert.ok(res.rejected.some((x) => x.reasons.some((r) => /location/i.test(r))));
-  const remote = posting({ job_id: "greenhouse:testbank:3", location: "Remote - US", remote: "remote" });
+  // SERIAL-1530: an open remote posting. A country-limited one ("Remote - US") is held for a person with no location on
+  // record (152 locationOk; tests/career-watch-remote-choice.test.cjs owns that rule).
+  const remote = posting({ job_id: "greenhouse:testbank:3", location: "Remote", remote: "remote" });
   const res2 = await A.runAssignCycle({ postings: [remote], watchProfile: wp, store, now: NOW });
   assert.equal(res2.reminders.length, 1);
 });

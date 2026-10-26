@@ -5,14 +5,13 @@
 // that card. Contract: docs/architect/work-orders/WO-066-chat-to-queue.md. Run: deno test -A --no-check tests/architect/
 import { memoryWantStore, wantsFrom } from "../../supabase/functions/_shared/career_apply_want.ts";
 import { careerTools } from "../../supabase/functions/_shared/agent/career_tools.ts";
-import { DEFAULT_DAILY } from "../../supabase/functions/_shared/career_apply.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = JSON.stringify(b); if (x !== y) throw new Error(`${m}\n  got:  ${x}\n  want: ${y}`); }
 const T0 = Date.UTC(2026, 9, 20, 15);
 const ctx = (now = T0) => ({ userId: "u1", threadId: "t1", now, state: {}, turn: { message: "apply me", added: [] as string[] } });
 const GH = (n: number) => ({ url: `https://job-boards.greenhouse.io/acme/jobs/${4000000 + n}`, company: "Acme", title: `Data Analyst ${n}` });
-const tool = (wants: any) => careerTools({ postings: async () => [], alerts: null, wants } as any).find((t) => t.name === "queue_applications")!;
+const tool = (wants: any, limits?: { daily?: number }) => careerTools({ postings: async () => [], alerts: null, wants, limits } as any).find((t) => t.name === "queue_applications")!;
 
 Deno.test("WO-066/1 wantsFrom keeps real ATS posting links, keyed like the extension, and refuses everything else with a reason", () => {
   const r = wantsFrom([
@@ -46,15 +45,16 @@ Deno.test("WO-066/2 the tool queues for the person, says nothing is sent, and th
   eq((await wants.list("u2")).length, 0, "another person's queue is untouched");
 });
 
-Deno.test("WO-066/3 a day's queue stops at the daily limit; what is over is refused with the limit named", async () => {
+Deno.test("WO-066/3 no product daily ceiling (CAPS-1390): a day's queue takes them all; a pace the person set is the only room, named when it refuses", async () => {
   const wants = memoryWantStore();
-  const t = tool(wants);
-  const many = Array.from({ length: DEFAULT_DAILY + 5 }, (_, i) => GH(i + 10));
-  const out: any = await t.run({ postings: many }, ctx() as any);
-  eq(out.queued, DEFAULT_DAILY);
-  eq(out.refused.length, 5);
-  assert(out.refused.every((r: any) => new RegExp(String(DEFAULT_DAILY)).test(r.why)), "the limit is named");
-  const next: any = await t.run({ postings: [GH(99)] }, ctx(T0 + 26 * 3600_000) as any);
+  const many = Array.from({ length: 30 }, (_, i) => GH(i + 10));
+  const out: any = await tool(wants).run({ postings: many }, ctx() as any);
+  eq([out.queued, out.refused.length], [30, 0], "nothing refused for volume when no pace is set");
+  const paced = memoryWantStore();
+  const own: any = await tool(paced, { daily: 25 }).run({ postings: many }, ctx() as any);
+  eq([own.queued, own.refused.length], [25, 5], "their own pace of 25 holds");
+  assert(own.refused.every((r: any) => /25 a day/.test(r.why)), "their pace is named");
+  const next: any = await tool(paced, { daily: 25 }).run({ postings: [GH(99)] }, ctx(T0 + 26 * 3600_000) as any);
   eq(next.queued, 1, "a new day has room again");
 });
 

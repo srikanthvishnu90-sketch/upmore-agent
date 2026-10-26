@@ -9,8 +9,11 @@ const NOW = Date.UTC(2026, 9, 19, 15); // 11:00 New York
 const iso = (t: number) => new Date(t).toISOString();
 const prefs = (p: Partial<AlertPrefs> = {}): AlertPrefs => ({ ...DEFAULT_PREFS, keywords: ["data analyst"], ...p });
 const user = (p: Partial<PlanUser> = {}): PlanUser => ({ id: "u1", tz: "America/New_York", prefs: prefs(), last_checked_at: iso(NOW - 15 * 60000), instant_sent_today: 0, last_report_on: "2026-10-19", ...p });
+// SERIAL-1530: the fixture posting is open remote ("Remote"). A country-limited one ("Remote - US") is held for a person
+// with no location on record (posting_region.ts); these tests are about time, caps and text, not the region rule
+// (tests/architect/alerts-remote-region.test.ts owns that).
 const posting = (id: string, title: string, extra: Record<string, unknown> = {}) =>
-  ({ job_id: `lever:acme:${id}`, title, company: "Acme", location: "Remote - US", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(NOW - 4 * 60000), closed_at: null, ...extra });
+  ({ job_id: `lever:acme:${id}`, title, company: "Acme", location: "Remote", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(NOW - 4 * 60000), closed_at: null, ...extra });
 
 Deno.test("WO-007a/B1 timestamps compare as instants, not strings (Postgres may answer with an offset)", () => {
   // 10:55-04:00 is 14:55Z, after a 14:50Z check; as strings "…T10:55" sorts before "…T14:50".

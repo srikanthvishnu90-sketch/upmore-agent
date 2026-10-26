@@ -102,7 +102,8 @@ test("L1: jd_head match — the basis line QUOTES the posting's own opening text
 
 test("L1: remote match basis is labeled remote, not dressed up as a location match", async () => {
   const store = W.createMemoryStore();
-  const remote = posting({ job_id: "greenhouse:testbank:r1", location: "Remote - US", remote: "remote" });
+  // SERIAL-1530: an open remote posting; a country-limited one is held for a person with no location on record.
+  const remote = posting({ job_id: "greenhouse:testbank:r1", location: "Remote", remote: "remote" });
   const res = await A.runAssignCycle({ postings: [remote], watchProfile: ibWatchNoSkills("u-m4", []), store, now: NOW });
   assert.equal(res.reminders.length, 1);
   const lines = res.reminders[0].fit.lines;

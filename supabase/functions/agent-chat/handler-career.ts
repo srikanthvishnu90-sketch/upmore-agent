@@ -30,7 +30,7 @@ import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
-import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs } from "../_shared/router_core.career.js";
+import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerProfile } from "../_shared/router_core.career.js";
 import { planCareerTaskIntent, normalizeCareerTaskRequest, createCareerBoardFor, createWorkerBoardProvider, planCareerBatchIntent, planCareerBatchPrepare, normalizeCareerBatchRequest } from "../_shared/career_task_bridge.js";
 import { CareerHost } from "../_shared/career_host.js";
 import { CareerPool } from "../_shared/career_pool.js";
@@ -43,10 +43,15 @@ import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_appl
 import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
+import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
+import { standingTurn, supabaseStanding } from "../_shared/career_standing.ts";
+import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerTurn, paceReader, paceTurn, supabaseEmployerAskStore } from "../_shared/career_apply_chat.ts";
+import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
 import { supabaseAlertStore } from "../_shared/career_alert_store.ts";
+import { syncWatchAlerts } from "../_shared/career_watch_alerts.ts";
 import { supabaseWantStore } from "../_shared/career_apply_want.ts";
 import { supabaseMemoryStore } from "../_shared/agent/memory.ts";
 import { codePending, readSituation } from "../_shared/career_situation.ts";
@@ -325,7 +330,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         try { batchRunRecord = await persistence.readBatchRun({ userId: user.id, runId: batchRunId }); } catch (e) { console.error("career batch status: run record unreadable", (e as Error)?.message ?? e); }
       }
       const ctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings, batchRunRecord }) as ReturnType<typeof host.createTurnCtx> & {
-        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown;
+        _hostPatch?: Record<string, unknown>; batchApplyState?: unknown; statusRecords?: unknown; alertWatchState?: Record<string, unknown>;
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
@@ -337,8 +342,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // WO-022: the card of prepared applications and the one text that answers it are code's, before any brain: "show my
       // applications", and "yes" / "yes but not 2" / "no" / "change 2" while the card is this thread's last word. Account
       // controls stay the host's.
+      // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
+      // text yes approves a card only in direct reply to the message that carried it.
+      const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: supabaseCardStore(admin), events })
+        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.
@@ -419,10 +427,57 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const cardYes = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
         ? await cloudCardYesTurn({ message, threadId: tid, ownSession: !isBridgeCall, store: personCloudCardStore(supabase) })
         : null;
+      // SUBMIT-STEER-1130: "did my application to Acme go through?", "where are my applications": answered from
+      // career_apply_jobs, the one record of what was sent, code's like the card. Submitted is said only as recorded;
+      // "confirmed" only when the employer confirmed it; an unreadable record is said, never guessed.
+      // STEP 4 F1 (2026-10-25): "apply to the <role> role at <Company>" puts the open posting on file into the person's
+      // own apply queue (career_apply_wanted), the queue the extension takes from and the server's prepare-ahead run
+      // reads; code's, like the card. The reply says what was queued and that nothing is prepared, filled or sent by
+      // it. No product ceiling (owner, 2026-10-22; CAPS-1390): only a daily pace the person set themselves is read, and
+      // only on an apply ask; the once-per-employer guard and the card's approval stand.
+      // SERIAL-1430 (b): "set my daily pace to N" / "no daily pace": the person's own number, kept only when the column holds
+      // it (career_apply_pace_set refuses the rest and says the rule); code's, like the card.
+      const paced = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await paceTurn({ message, userId: user.id, admin })
+        : null;
+      // The screens read the confirmed facts and what the person stated in chat ("I work at X" lands in statedFacts).
+      const screenFacts = [...CareerProfile.confirmedFacts((ctx as any).profile ?? {}),
+        ...(((ctx as any).statedFacts?.facts ?? []) as any[]).map((f) => ({ kind: f.kind, value: f.value, text: f.evidence ?? f.value, stated: true }))];
+      const employerAsk = supabaseEmployerAskStore(admin);
+      // SERIAL-1490/1491: "is X where you work now?" is answered by the next yes or no while that question is this thread's
+      // last word: no queues exactly that posting once, yes keeps it out; the same answer again is told it stands.
+      const employerAns = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await employerAnswerTurn({ message, userId: user.id, threadId: tid, now: Date.now(), store: employerAsk, wants: supabaseWantStore(admin),
+            apps: () => supabaseApplications(admin)(user.id), facts: screenFacts, limits: paceReader(admin, user.id), employerAnswers: () => employerAsk.answers(tid) })
+          .catch((e) => { console.error("employer answer turn:", e?.message ?? e); return null; })
+        : null;
+      const queued = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await applyTurn({
+          message, userId: user.id, now: Date.now(), postings: supabasePostingsDb(admin), wants: supabaseWantStore(admin),
+          apps: () => supabaseApplications(admin)(user.id),
+          facts: screenFacts,
+          // The batch ask ("apply to these") reads the postings this thread last listed, as the router kept them.
+          shortlist: (loaded.snapshot as any)?.stores?.discovery?.lastShortlist ?? null,
+          limits: paceReader(admin, user.id),
+          employerAnswers: () => employerAsk.answers(tid),
+        })
+        : null;
+      // WO-107 (F3): "where are my applications" / "did my application to X go through" / "where do I stand with X", "who
+      // emailed me" / "any news from X", "what follow-ups are due": one read model (the queue, the mail events, every
+      // thread's tracker, the mail drafts), each record's line named, an unreadable one said. The queue-only status turn
+      // below stays as the fallback when the reader itself fails.
+      const stood = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await standingTurn({ message, userId: user.id, now: Date.now(), read: supabaseStanding(admin) }).catch((e) => { console.error("standing turn:", e?.message ?? e); return null; })
+        : null;
+      const status = !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !queued && !stood && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
+        ? await applicationsTurn({ message, userId: user.id, now: Date.now(), read: supabaseApplications(admin) })
+        : null;
       if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);
         out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
+        // SERIAL-1451: the shown card's id rides the reply, so a yes in this thread answers this card and no other.
+        if (card.status === "shown" && card.card_id) agentMeta = { card_id: card.card_id };
       } else if (mock) {
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
@@ -447,6 +502,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // The card stays the last word, so the app shows it again; its Approve is the only way anything is sent.
         out = { reply: cardYes.reply, intent: CLOUD_CARD_INTENT, resultStatus: cardYes.status, contained: false, handler: "cloud_card" };
         agentMeta = { career_approval_card_id: cardYes.card_id, open_card: cardYes.card_id };
+      } else if (paced) {
+        out = { reply: paced.reply, intent: paced.intent, resultStatus: paced.status, contained: false, handler: "apply_pace" };
+      } else if (employerAns) {
+        // The question stays the thread's last word while any posting is still unanswered; the answers ride the reply.
+        out = { reply: employerAns.reply, intent: employerAns.intent, resultStatus: employerAns.status, contained: false, handler: "apply_employer" };
+        agentMeta = { ...(employerAns.answers?.length ? { employer_answers: employerAns.answers } : {}), ...(employerAns.pending?.length ? { employer_question: employerAns.pending } : {}) };
+        if (employerAns.intent === EMPLOYER_ANSWER_INTENT && !employerAns.answers?.length) agentMeta = null;
+      } else if (queued) {
+        // SERIAL-1490: a posting held back by "is X where you work now?" makes the question this thread's last word, with
+        // the postings it is about on the reply, so the next yes or no answers exactly them.
+        const asking = !!queued.ask?.length;
+        out = { reply: queued.reply, intent: asking ? EMPLOYER_ASK_INTENT : queued.intent, resultStatus: queued.status, contained: false, handler: "apply_queue" };
+        if (asking) agentMeta = { employer_question: queued.ask };
+      } else if (stood) {
+        out = { reply: stood.reply, intent: stood.intent, resultStatus: stood.status, contained: false, handler: "standing" };
+      } else if (status) {
+        out = { reply: status.reply, intent: status.intent, resultStatus: status.status, contained: false, handler: "status" };
       } else if (!careerTask && !careerBatch && AGENT_BRAIN_RELEASED && chooseBrain(Deno.env) === "agent" && !host.isHostControlled(message, ctx)) {
         const meter = newMeter();
         const cfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
@@ -496,6 +568,29 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }
       } else {
         out = host.runTurn(message, ctx);
+      }
+      // SUBMIT-STEER-1130: the router's confirm of a pasted resume carries no confirmation event, so no application could
+      // ever use it. Each fact this turn confirmed whose words Trainee showed the person, and that is in their own upload,
+      // gets its persisted fact_confirmed event and an owner provenance; anything else stays unevidenced. Saved with the
+      // turn below. The thread is read only on the router's resume confirm.
+      if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
+        const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
+        if (recent.error) {
+          // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
+          console.error("career evidence: the thread was not read", recent.error.message);
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events });
+          const held = heldReply(ev);
+          if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
+        } else {
+          const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+            after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
+          if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
+          // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
+          const held = heldReply(ev);
+          if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
+        }
       }
       let taskIntent = null;
       let batchIntent = null;
@@ -558,6 +653,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // WO-028: "forget everything" also removes the tailored resumes (they carry the person's name and email); best
       // effort, after the erase is recorded, like the rest of the erase's side effects.
       if (ctx._hostPatch?.erase === true) await supabaseResumeStore(admin).removeAll(user.id).catch((e) => console.error("career erase: resumes", e?.message ?? e));
+      // A job watch set, changed, paused or stopped by text is the person's alert settings, which the scheduled alerts
+      // run reads (career_watch_alerts.ts). After the save: a refused save writes none; a failed write never fails it.
+      await syncWatchAlerts({ userId: user.id, before: loaded.watchState, after: ctx.alertWatchState, erased: ctx._hostPatch?.erase === true, store: supabaseAlertStore(admin), now: Date.now() })
+        .then((r) => { if (r.action === "refused") console.error("career watch alerts: not saved:", r.reason); })
+        .catch((e) => console.error("career watch alerts:", e?.message ?? e));
       flowCtx.note = null;
       return json(cors, saved.response, 200);
     } catch (error) {

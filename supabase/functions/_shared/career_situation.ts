@@ -4,7 +4,7 @@
 // today's count against the daily limit; the last list shown; the next steps in an order fixed here; what Trainee can do
 // right now (career_capabilities.ts); and the sources that could not be read, which are never guessed.
 // Read only. The model explains it; it never decides a state.
-import { dailyLimit } from "./career_apply.ts";
+import { COUNTED_STATES, paceState } from "./career_apply.ts";
 import { sameCompany } from "./career_mail.ts";
 import { type Capability, capabilitiesFrom, type Connection } from "./career_capabilities.ts";
 
@@ -21,7 +21,7 @@ export interface Situation {
   as_of: string;
   goal: { roles: string[]; places: string[]; constraints: string[] };
   tasks: Task[];
-  today: { used: number; limit: number };
+  today: { used: number; limit: number | null; pace_unreadable?: string };
   last_shown: { at: string; query: string; items: { job_id: string; company: string; title: string }[] } | null;
   next: { who: Actor; what: string; say?: string; task_id?: string }[];
   capabilities: Capability[];
@@ -38,7 +38,7 @@ export interface SituationRows {
 
 const DAY = 86400000;
 const ACTIVE = new Set(["queued", "driving", "needs_user"]);
-const COUNTED = new Set(["queued", "driving", "confirmed", "submitted_unconfirmed", "needs_user", "unknown_outcome"]);
+const COUNTED = COUNTED_STATES; // one list with the queue and the database (G3)
 const NEEDS: Record<string, [string, string]> = {
   email_code: ["the employer emailed a code", "type the code from the employer's email on the application page in your browser, never in this chat"],
   captcha: ["a verification on the form", "finish it on the application page in your browser"],
@@ -118,7 +118,7 @@ export function situationFrom(r: SituationRows, now: number): Situation {
     as_of: new Date(now).toISOString(),
     goal: { roles: prefs?.keywords ?? [], places: [...(prefs?.locations ?? []), ...(prefs?.remote_ok ? ["remote"] : [])], constraints: r.standing.map((s) => s.text) },
     tasks,
-    today: { used: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > now - DAY).length, limit: dailyLimit({ daily: r.daily_limit as number }) },
+    today: { used: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > now - DAY).length, limit: paceState(r.daily_limit).pace, ...(paceState(r.daily_limit).state === "unreadable" ? { pace_unreadable: paceState(r.daily_limit).raw as string } : {}) },
     last_shown: ls && Array.isArray(ls.detail?.shown) ? { at: ls.at, query: ls.subject, items: ls.detail.shown } : null,
     next: nextSteps(tasks, prefs),
     capabilities, unreadable: r.unreadable,
@@ -164,7 +164,7 @@ export async function readSituation(admin: any, userId: string, now: number): Pr
     interviews: q("career_interviews").select("id,company,role,starts_at,interview_date").eq("user_id", userId).or(`starts_at.gte.${today},interview_date.gte.${today.slice(0, 10)}`).limit(20),
     alerts: q("career_alert_prefs").select("prefs,tz").eq("user_id", userId).maybeSingle(),
     kv: q("career_watch_kv").select("key,value").eq("user_id", userId).in("key", ["career:standing", "career:account"]),
-    threads: q("agent_flow_state").select("thread_id,rows:state->career->trackStore->rows").eq("user_id", userId).limit(200),
+    threads: q("agent_flow_state").select("thread_id,rows:state->career->stores->trackStore->rows").eq("user_id", userId).limit(200),
     connections: q("user_oauth_connections").select("provider,scopes,connected_at").eq("user_id", userId).limit(20),
     cloud: q("career_apply_cloud_optin").select("enabled").eq("user_id", userId).maybeSingle(),
     channel: q("channel_contacts").select("opted_out").eq("user_id", userId).maybeSingle(),
@@ -214,7 +214,7 @@ export function situationBlock(s: Situation, budget = SITUATION_BUDGET): string 
   const ls = s.last_shown, line = (t: Task) => taskLine(t, false);
   const L: [string, boolean][] = [
     [`SITUATION (built by code from their account at ${s.as_of.slice(0, 16).replace("T", " ")} UTC: every task in flight, its state, what blocks it and who acts. It is the truth about their tasks.)`, true],
-    [goalLine(s), true], [`Today: ${s.today.used} of ${s.today.limit} applications used (last 24 hours).`, true],
+    [goalLine(s), true], [s.today.pace_unreadable !== undefined ? `Today: ${s.today.used} applications in the last 24 hours (their saved daily pace could not be read: it says ${JSON.stringify(s.today.pace_unreadable)}; nothing more is queued until they say "set my daily pace to N" or "no daily pace").` : s.today.limit === null ? `Today: ${s.today.used} applications in the last 24 hours (no daily limit; they may set their own pace).` : `Today: ${s.today.used} of ${s.today.limit} applications used (last 24 hours).`, true],
     ["Next steps, in order (how is the exact step):", true], ...(s.next.length ? s.next.map(nextLine) : ["- nothing in flight"]).map((x): [string, boolean] => [x, true]),
     ...(ls ? [[`Last list shown (${day(ls.at)}, "${ls.query}"): ${ls.items.map((x, i) => `${i + 1}. ${x.company}, ${x.title} (${x.job_id})`).join("; ")}`, false] as [string, boolean]] : []),
     ["Tasks:", true],
@@ -248,7 +248,7 @@ export function statusText(s: Situation, company?: string | null): string {
     return ts.map((t) => taskLine(t).slice(2) + (t.evidence.reason && !t.blocker ? `; reason: ${t.evidence.reason}` : "")).join("\n");
   }
   const mine = needsText(s);
-  return [goalLine(s), `Today: ${s.today.used} of ${s.today.limit} applications used.`,
+  return [goalLine(s), s.today.pace_unreadable !== undefined ? `Today: ${s.today.used} applications in the last 24 hours (saved daily pace unreadable: ${JSON.stringify(s.today.pace_unreadable)}).` : s.today.limit === null ? `Today: ${s.today.used} applications in the last 24 hours (no daily limit).` : `Today: ${s.today.used} of ${s.today.limit} applications used.`,
     ...s.tasks.filter((t) => t.kind !== "question").map((t) => taskLine(t)), ...(mine ? [mine] : []),
     "What Trainee can and cannot do right now:", ...s.capabilities.map((c) => `- ${c.line}${c.unlock && c.status !== "on" ? ` (to turn on: ${c.unlock})` : ""}`),
     ...(lost ? [`Not read${lost}.`] : [])].join("\n");

@@ -1,5 +1,5 @@
 // WO-009b-1. Service-side queue adapter; no browser, provider or retry path.
-import { admitApplication, dailyLimit } from './career_apply.ts';
+import { admitApplication, type Limits, paceState } from './career_apply.ts';
 export const APPLY_TIMEOUT_MS=15*60000;
 export const APPLY_UNKNOWN_REASON='application outcome unknown: the drive stopped before recording it; not retried';
 export type ApplyOutcome='confirmed'|'submitted_unconfirmed'|'needs_user'|'failed'|'not_submitted'|'unknown_outcome';
@@ -23,15 +23,19 @@ export function supabaseApplyStore(admin:any){
  const rpc=async(name:string,args:unknown)=>must(await admin.rpc(name,args));
  return {
   async enqueue(payload:ApplyPayload,approvalHash:string,o:{now?:number;daily?:number}={}){
-   const now=o.now??Date.now(),daily=dailyLimit({daily:o.daily}),hash=await hashApplyPayload(payload);
+   // No TS ceiling (CAPS-1390): `o.daily` is the person's own pace as stored (a number, null or absent), handed to the
+   // admission as it is: never a computed Infinity or NaN, which paceState would read as unreadable (SERIAL-1450). p_daily is
+   // the legacy argument the live enqueue validates (1..50) and 20261025140000 ignores: their pace when that fits, else 50.
+   const now=o.now??Date.now(),pace=paceState(o.daily),p_daily=pace.state==='set'?Math.max(1,Math.min(50,pace.pace)):50,hash=await hashApplyPayload(payload);
+   const limits:Limits={daily:o.daily??null};
    const app={user_id:payload.user_id,job_id:payload.job_id,company:payload.company,payload_hash:hash,approval_hash:approvalHash};
-   let admitted=admitApplication([],app,now,{daily});if(!admitted.ok)throw Error(admitted.reason!);
-   const prior=must(await admin.from('career_apply_jobs').select('job_id,company,state,created_at').eq('user_id',payload.user_id));
+   let admitted=admitApplication([],app,now,limits);if(!admitted.ok)throw Error(admitted.reason!);
+   const prior=must(await admin.from('career_apply_jobs').select('job_id,company,state,created_at,claimed_at').eq('user_id',payload.user_id));
    if(!Array.isArray(prior))throw Error('APPLY_STORE_UNAVAILABLE');
    if(prior.some(r=>r.job_id===payload.job_id))throw Error('duplicate_job');
-   admitted=admitApplication(prior.map(r=>({user_id:payload.user_id,job_id:r.job_id,company:r.company,at:Date.parse(r.created_at),state:['driving','unknown_outcome'].includes(r.state)?'submitting':r.state})),app,now,{daily});
+   admitted=admitApplication(prior.map(r=>({user_id:payload.user_id,job_id:r.job_id,company:r.company,at:Date.parse(r.claimed_at??r.created_at),state:['driving','unknown_outcome'].includes(r.state)?'submitting':r.state})),app,now,limits);
    if(!admitted.ok)throw Error(admitted.reason!);
-   return await rpc('career_apply_enqueue',{p_payload:payload,p_hash:hash,p_approval:approvalHash,p_daily:daily});
+   return await rpc('career_apply_enqueue',{p_payload:payload,p_hash:hash,p_approval:approvalHash,p_daily});
   },
   async claim(now:number,limit=3){
    if(!Number.isFinite(now)||!Number.isInteger(limit)||limit<0||limit>6)throw Error('INVALID_APPLY_CLAIM');

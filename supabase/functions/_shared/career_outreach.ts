@@ -53,9 +53,15 @@ export interface OutreachStore {
   claim(userId: string, draft: OutreachDraft, hash: string, now: number, dayStart: number): Promise<Admit>;
   sentAwaiting(limit: number, sinceIso: string): Promise<{ user_id: string; draft: OutreachDraft }[]>;
   lastAssistantIntent(threadId: string): Promise<string | null>;
+  // SERIAL-1510: approved drafts the run dropped as expired (approved more than APPROVAL_TTL_MS ago, the pace never reached
+  // them) and not yet shown again: status skipped, result "expired". Re-showing marks them "expired_reshown".
+  lapsed(userId: string): Promise<OutreachDraft[]>;
 }
 
 export const OUTREACH_INTENT = "career_outreach_batch";
+export const LAPSE_NOTE = "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again.";
+export const lapsedLine = (n: number) =>
+  `${n} approved draft${n === 1 ? "" : "s"} lapsed unsent: approved more than 7 days ago, your pace did not reach ${n === 1 ? "it" : "them"}, and that approval is no longer valid. Say "show lapsed" to see exactly ${n === 1 ? "that draft" : "those drafts"} again for a fresh approval.`;
 export const BATCH_MAX = 10, DEFAULT_DAILY = 20, MAX_DAILY = 30, WARMUP_DAILY = 10, WARMUP_DAYS = 7, GAP_MS = 90_000;
 export const BATCH_TTL_MS = 72 * 3600_000, MAX_WORDS = 120, MESSAGE_MAX = 1500;
 // WO-091c: an approval is for a send soon after it, not whenever Gmail sending starts to work: after 7 days it is dropped.
@@ -291,7 +297,7 @@ export const batchText = (drafts: OutreachDraft[]) => batchMessages(drafts).join
 export type OutreachReply =
   | { kind: "send"; all: boolean; ns: number[]; except: number[] }
   | { kind: "skip"; ns: number[] } | { kind: "redo"; n: number } | { kind: "edit"; n: number; text: string }
-  | { kind: "none" } | { kind: "show" } | { kind: "bad"; why: string };
+  | { kind: "none" } | { kind: "show" } | { kind: "lapsed" } | { kind: "bad"; why: string };
 const MAX_N = 99;
 // "1-7,9", "1-7, 9", "1 2 3", "2 and 5": numbers and ranges only, nothing else. null when it is not such a list.
 export function parseNumbers(s: string): { ok: true; ns: number[] } | { ok: false; why: string } | null {
@@ -315,6 +321,8 @@ export function parseOutreachReply(text: string): OutreachReply | null {
   if (edit) return { kind: "edit", n: Number(edit[1]), text: edit[2].trim() };
   if (t.length > 80) return null;
   if (/^(?:show|see|list)(?: me)?(?: (?:my|the))? (?:outreach )?(?:drafts|emails|outreach)$/.test(t)) return { kind: "show" };
+  // SERIAL-1510: the drafts whose approval lapsed, shown again for a fresh approval.
+  if (/^(?:show|see|list|re-?show)(?: me)?(?: (?:my|the))? (?:lapsed|unsent|expired)(?: outreach)?(?: drafts| emails)?(?: again)?$/.test(t) || /^show lapsed$/.test(t)) return { kind: "lapsed" };
   if (/^(?:send none|none|don'?t send(?: any(?: of them)?)?|send nothing|cancel(?: all| them| the batch)?|skip all|no thanks)$/.test(t)) return { kind: "none" };
   const all = /^(?:send|approve)(?: them)? all(?: of them| \d+)?(?: (?:except|but|minus|without|not)\b(.*))?$/.exec(t) ?? /^send (?:them|everything)(?: (?:except|but|minus|without|not)\b(.*))?$/.exec(t);
   if (all) {
@@ -395,11 +403,26 @@ export async function outreachTurn(o: {
 }): Promise<{ reply: string; status: string; intent: string; parts?: string[] } | null> {
   const r = parseOutreachReply(o.message);
   if (!r) return null;
-  if (r.kind !== "show" && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
+  if (r.kind !== "show" && r.kind !== "lapsed" && (await o.store.lastAssistantIntent(o.threadId)) !== OUTREACH_INTENT) return null;
+  // SERIAL-1510 (b): approvals the run dropped as expired are said when the person next asks, never proactively; the old
+  // approval is dead, and only a fresh "send" on the re-shown drafts approves them again.
+  const lapsed = r.kind === "show" || r.kind === "lapsed" ? await o.store.lapsed(o.userId) : [];
+  if (r.kind === "lapsed") {
+    if (!lapsed.length) return { reply: "No approved drafts have lapsed: nothing approved went unsent past its 7 days.", status: "none_lapsed", intent: "career_outreach_answer" };
+    const again = lapsed.map((d, i) => ({ n: i + 1, recipient: d.recipient, subject: d.subject, body: d.body, footer: d.footer, hash: d.hash, shared: d.shared, status: "shown" as const,
+      approved_hash: null, approved_at: null, sent_at: null, gmail_id: null, gmail_thread: null, result: null, created_at: new Date(o.now).toISOString() }));
+    const shown = await o.store.saveBatch(o.userId, o.threadId, again, o.now);
+    for (const d of lapsed) await o.store.update(o.userId, { ...d, result: "expired_reshown" }, { status: "skipped" });
+    for (const d of shown) await recordOutreach(o.events, o.userId, "outreach_redrafted", d, o.now, { lapsed: true });
+    const head = `${shown.length} draft${shown.length === 1 ? "" : "s"} lapsed unsent; here ${shown.length === 1 ? "it is" : "they are"} again, exactly as before. The earlier approval no longer counts: nothing is sent until you approve ${shown.length === 1 ? "it" : "them"} again.`;
+    const parts = [head, ...batchMessages(shown)];
+    return { reply: parts.join("\n\n"), status: "lapsed_shown", intent: OUTREACH_INTENT, parts };
+  }
   const batch = await o.store.latestBatch(o.userId);
-  if (!batch.length) return r.kind === "show" ? { reply: "There are no outreach drafts yet. Ask me to draft emails to people on your list.", status: "empty", intent: "career_outreach_answer" } : null;
+  const note = lapsed.length ? `${lapsedLine(lapsed.length)}\n\n` : "";
+  if (!batch.length) return r.kind === "show" ? { reply: `${note}There are no outreach drafts yet. Ask me to draft emails to people on your list.`, status: lapsed.length ? "empty_lapsed" : "empty", intent: "career_outreach_answer" } : null;
   const open = (s: string, status: string) => ({ reply: s, status, intent: OUTREACH_INTENT });
-  if (r.kind === "show") return { ...open(batchText(batch), "shown"), parts: batchMessages(batch) };
+  if (r.kind === "show") return { ...open(note + batchText(batch), lapsed.length ? "shown_lapsed" : "shown"), parts: [...(lapsed.length ? [lapsedLine(lapsed.length)] : []), ...batchMessages(batch)] };
   const byN = new Map(batch.map((d) => [d.n, d]));
   const numbers = batch.map((d) => d.n);
   const range = numbers.length === 1 ? "only number 1" : `numbers 1 to ${Math.max(...numbers)}`;
@@ -456,7 +479,7 @@ export async function outreachTurn(o: {
   if (left.length) lines.push(`Not sent: ${left.join(", ")}.`);
   if (approved.length) {
     const own = prefs.daily_cap ?? DEFAULT_DAILY;
-    lines.push(`They go from your Gmail one at a time, at least 90 seconds apart, at most ${own} a day${own > WARMUP_DAILY ? ` (${WARMUP_DAILY} a day in your first week of sending)` : ""}.`);
+    lines.push(`They go from your Gmail one at a time, at least 90 seconds apart, at most ${own} a day${own > WARMUP_DAILY ? ` (${WARMUP_DAILY} a day in your first week of sending)` : ""}. ${LAPSE_NOTE}`);
     const connected = o.gmailConnected ? await o.gmailConnected().catch(() => false) : false;
     if (!connected) lines.push(`Nothing can go out until your Gmail is connected for sending.${o.connectAsk ? `\n\n${o.connectAsk}` : ""}`);
   }
@@ -618,6 +641,7 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
       return copy(drafts.filter((d) => d.status === "sent" && d.sent_at && d.sent_at >= since).slice(0, limit).map((d) => ({ user_id: d.user_id, draft: d })));
     },
     async lastAssistantIntent(threadId: string) { return intents[threadId] ?? null; },
+    async lapsed(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "skipped" && d.result === "expired").sort((a, z) => String(a.approved_at ?? a.created_at).localeCompare(String(z.approved_at ?? z.created_at)))); },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
     setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
     dump() { return { drafts: copy(drafts), dnc: Object.fromEntries(Object.entries(dnc).map(([k, v]) => [k, [...v]])), prefs: copy(prefs) }; },
@@ -652,6 +676,9 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
     async contacted(u) {
       const rows = must(await admin.from("career_outreach_drafts").select("recipient_email").eq("user_id", u).neq("status", "skipped").limit(5000), "read who was contacted");
       return new Set((rows ?? []).map((r: any) => String(r.recipient_email).toLowerCase()));
+    },
+    async lapsed(u) {
+      return (must(await admin.from("career_outreach_drafts").select(COLS).eq("user_id", u).eq("status", "skipped").eq("result", "expired").order("created_at").limit(200), "read the lapsed drafts") ?? []).map(fromRow);
     },
     async dnc(u) {
       const rows = must(await admin.from("career_outreach_dnc").select("email_hash").eq("user_id", u).limit(10000), "read the do-not-contact list");

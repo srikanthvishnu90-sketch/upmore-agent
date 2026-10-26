@@ -49,6 +49,16 @@ test('dry run: six steps in order, every Trainee migration in order, agent-chat 
   inOrder(out, ['STEP 1/6 preflight', 'STEP 1/6 preflight: OK', 'STEP 2/6 migrations', 'STEP 2/6 migrations: OK', 'STEP 3/6 secrets', 'STEP 3/6 secrets: OK',
     'STEP 4/6 deploy', 'STEP 4/6 deploy: OK', 'STEP 5/6 schedules', 'STEP 5/6 schedules: OK', 'STEP 6/6 smoke', 'STEP 6/6 smoke: OK']);
   inOrder(out, MIGRATIONS.map((m) => `--single-transaction -f supabase/migrations/${m}`));
+  // 20261024130000 (the draft card-cloud bridge) and 20261025100000 (the one ledger) both replace career_apply_claim_own and
+  // career_apply_cloud_refusal; the bridge applied after the ledger strips the ledger's approval re-check from both
+  // (docs/architect/MIGRATION-SEQUENCING-BRIDGE-LEDGER.md). Go-live never applies the bridge after the ledger.
+  const at = (m) => out.indexOf(`--single-transaction -f supabase/migrations/${m}`);
+  const [bridge, ledger] = [at('20261024130000_career_apply_card_cloud_bridge.sql'), at('20261025100000_career_apply_one_ledger.sql')];
+  assert.ok(ledger > 0, 'go-live applies the one ledger');
+  assert.ok(bridge < 0 || bridge < ledger, 'go-live never applies the draft bridge after the one ledger');
+  // And whatever was already live, after its migrations go-live reconciles the two and stops unless every claim guard
+  // is in place (a bridge applied on its own after the ledger, or its rollback, would otherwise leave the claim without them).
+  inOrder(out, [`--single-transaction -f supabase/migrations/${MIGRATIONS.at(-1)}`, '-f scripts/launch/verify-claim-guards.sql', 'STEP 2/6 migrations: OK']);
   for (const f of fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => /^2026101[56].*career/.test(f))) {
     assert.match(out, new RegExp(`check ${f} is on the live project.*never applied here`), `${f} is only checked`);
     assert.doesNotMatch(out, new RegExp(`-f supabase/migrations/${f}`), `${f} is never applied`);

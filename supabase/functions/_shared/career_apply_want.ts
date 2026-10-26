@@ -20,7 +20,9 @@ const host = (url: string) => { try { return new URL(url).hostname; } catch { re
 export interface Pick { url?: string; job_id?: string; company?: string; title?: string; location?: string }
 // WO-091b: a refused pick names the posting and the reason, so the model says exactly what happened. `url` and `why` are
 // the same refusal in WO-066's words, kept for its callers.
-export interface Refusal { posting: { job_id: string | null; company: string; title: string; url: string }; reason: string; url: string; why: string }
+// SERIAL-1490: `ask` marks a refusal that is a question to the person (a possible current-employer match): the posting
+// is not queued until they answer it, and the chat asks it once.
+export interface Refusal { posting: { job_id: string | null; company: string; title: string; url: string }; reason: string; url: string; why: string; ask?: "employer" }
 export function refusal(p: Pick, reason: string): Refusal {
   const url = String(p?.url ?? "").trim();
   return { posting: { job_id: p?.job_id ? String(p.job_id) : null, company: String(p?.company ?? ""), title: String(p?.title ?? ""), url }, reason, url, why: reason };
@@ -55,17 +57,25 @@ export function dayStart(now: number, tz = "UTC"): string {
 }
 
 // Queue what fits under today's limit; what is over is refused with the limit named.
+// No product ceiling on how many a person queues (owner, 2026-10-22; CAPS-1390): room is computed only against a daily
+// pace the person set themselves; the once-per-employer screen, the exact-payload approval on each card and the site
+// limits stand.
 export async function queueWants(store: WantStore, userId: string, picks: Pick[], now: number, o: { limits?: Limits; tz?: string } = {}) {
   const { ok, refused } = wantsFrom(picks, now);
+  // SERIAL-1430: a saved pace that cannot be read is unknown, not "no limit": nothing is queued, each pick refused by name.
+  if (o.limits?.unreadable !== undefined || Number.isNaN(dailyLimit(o.limits))) {
+    for (const w of ok) refused.push(refusal({ ...w, job_id: w.posting_key }, `their saved daily pace could not be read (it says ${JSON.stringify(String(o.limits?.unreadable ?? ""))}); nothing was queued until they set it again ("set my daily pace to N", or "no daily pace")`));
+    return { queued: 0, already: 0, items: [] as Want[], refused, limit: null as number | null };
+  }
   const cap = dailyLimit(o.limits);
-  const used = await store.queuedSince(userId, dayStart(now, o.tz));
+  const used = Number.isFinite(cap) ? await store.queuedSince(userId, dayStart(now, o.tz)) : 0;
   const room = Math.max(0, cap - used);
   const have = new Set((await store.list(userId)).map((w) => w.posting_key));
   const fresh = ok.filter((w) => !have.has(w.posting_key));
   const take = fresh.slice(0, room);
-  for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over today's limit of ${cap} applications`));
+  for (const w of fresh.slice(room)) refused.push(refusal({ ...w, job_id: w.posting_key }, `over the daily pace they set themselves (${cap} a day)`));
   const r = await store.put(userId, take);
-  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: cap };
+  return { queued: r.added.length, already: ok.length - fresh.length + r.already.length, items: r.added, refused, limit: Number.isFinite(cap) ? cap : null };
 }
 
 // ------------------------------------------------------------------------------------------------ WO-091b: what a pick means
@@ -100,18 +110,71 @@ const COMMON = new Set(("new first general american national united global inter
   "green smart true next one all best great pacific atlantic summit peak bright clear prime core cloud network media partners consulting associates " +
   "ventures foods insurance medical care community remote work part time full").split(" "));
 const words = (s: unknown) => normCompany(s).split(" ").filter(Boolean);
+// An employer's name is its first line: whatever a stored company field carries after a line break or control character
+// (a pasted paragraph, an injected heading) is not part of the name the person types.
+const nameLine = (s: unknown) => String(s ?? "").split(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/, 1)[0];
+const SUFFIX_WORDS = new Set(["inc", "llc", "ltd", "corp", "corporation", "company", "group", "holdings", "limited", "plc"]);
+const distinctiveOf = (ws: string[]) => ws.filter((w) => w.length >= 4 && !COMMON.has(w) && !SUFFIX_WORDS.has(w));
+// Two contracts over one matcher (SERIAL-1490/1491), kept apart on purpose:
+//   namesEmployer (selection): does this text name this employer? Strict: a company with two or more distinctive words
+//     needs every one of them in a run. Used to pick the posting the person asked for; a miss costs a question, never a
+//     wrong employer.
+//   employerMatch (the protective screen): could this employer be where the person works now? "yes" when the text names
+//     it; "possible" when the two share their leading distinctive word but one name is longer ("I work at Acme" against
+//     "Acme Robotics Inc", or "I work at Acme Robotics Inc" against "Acme"); "no" otherwise. A possible match is asked
+//     once and queues nothing until answered: the wrong direction (applying to their own employer unasked) is worse than
+//     an extra question.
 export function namesEmployer(text: unknown, company: unknown): boolean {
-  const co = words(company), t = words(text);
+  const co = words(nameLine(company)), t = words(text);
   if (!co.length || !t.length) return false;
   if (` ${t.join(" ")} `.includes(` ${co.join(" ")} `)) return true;
+  // SERIAL-1480: a company with two or more distinctive words is named only by a run of words that carries every one of
+  // them ("Acme Robotics" is not "Acme Health", "TEST Chat Employer" is not "TEST Current Employer"); one shared leading word
+  // is not it, and sameCompany's alias leniency (a dropped suffix, a leading-words match) does not apply to that run.
+  const distinctive = distinctiveOf(co);
+  if (distinctive.length >= 2) {
+    for (let n = distinctive.length; n <= Math.min(6, t.length); n++) {
+      for (let i = 0; i + n <= t.length; i++) {
+        const g = t.slice(i, i + n);
+        if (distinctive.every((w) => g.includes(w))) return true;
+      }
+    }
+    return false;
+  }
+  // SERIAL-1491: a one-word match is not the employer when the text's name goes on with a distinctive word the company
+  // lacks ("Acme Robotics Inc" in the text is not the posting at "Acme Health"; "Acme Health" still is, "health" being a
+  // common word).
+  const foreign = (w: string | undefined) => !!w && w.length >= 4 && !COMMON.has(w) && !SUFFIX_WORDS.has(w) && !co.includes(w);
   for (let n = 1; n <= Math.min(4, co.length + 1); n++) {
     for (let i = 0; i + n <= t.length; i++) {
       const g = t.slice(i, i + n);
       if (n === 1 && (g[0].length < 4 || COMMON.has(g[0]))) continue;
+      if (foreign(t[i - 1]) || foreign(t[i + n])) continue;
       if (sameCompany(g.join(" "), co.join(" "))) return true;
     }
   }
   return false;
+}
+export type EmployerMatch = "yes" | "possible" | "no";
+const core = (name: unknown) => words(nameLine(name)).filter((w) => !SUFFIX_WORDS.has(w));
+export function employerMatch(text: unknown, company: unknown): EmployerMatch {
+  const co = words(nameLine(company)), t = words(text);
+  if (!co.length || !t.length) return "no";
+  const coD = distinctiveOf(co), cc = core(company);
+  // The employers the text names: after "at", or the text itself when it is a bare name (a current_employer fact's value).
+  const named = [...employersNamed(String(text ?? "")), ...(t.length <= 5 ? [String(text ?? "")] : [])].map(core).filter((n) => n.length);
+  const prefix = (a: string[], b: string[]) => a.length < b.length && a.every((w, i) => b[i] === w);
+  for (const n of named) {
+    if (n.join(" ") === cc.join(" ")) return "yes";
+    // One name the leading words of the other, in either direction ("Acme" at work and a posting at "Acme Robotics Inc";
+    // "Acme Robotics Inc" at work and a posting at "Acme"; "Acme" and "Acme Health"): possible, asked, never passed.
+    if (prefix(n, cc) || prefix(cc, n)) return "possible";
+  }
+  // No named employer to compare (the text has no "at <Name>" and is not a bare name): the selection rule decides.
+  if (!named.length && namesEmployer(text, company)) return "yes";
+  // A shared leading distinctive word ("Acme Robotics Inc" at work, a posting at "Acme Health"): possible.
+  if (coD.length && t.includes(coD[0])) return "possible";
+  return "no";
 }
 // The employers a message names after "at" ("the operations role at Quickhire Remote Jobs"), capitalized as names are.
 export function employersNamed(message: string): string[] {
@@ -134,15 +197,25 @@ const BROAD = /\b(\d+|a few|some|several|all|any|every|more|many)\b|\b(jobs|role
 const NOW_WORDS = /\b(current(ly)?|presently|present|now|still|i work|i'?m working|i am working|i'?m employed|i am employed|works? (at|for)|working (at|for)|employed (at|by))\b/i;
 const PAST_WORDS = /\b(former(ly)?|previous(ly)?|used to|ex|left|until|interned|worked|was|were)\b/i;
 const WISH_WORDS = /\b(want|wants|hope|goal|dream|would like|aspire|target|interested)\b/i;
-export function currentEmployerFact(company: string, facts: any[]): any | null {
-  return (facts ?? []).find((f) => {
-    if (!f || f.needs_confirmation || f.status === "draft") return false;
-    const text = String(f.text ?? f.value ?? "");
-    if (f.key === "current_employer" || f.kind === "current_employer") return namesEmployer(text, company);
-    if (["goal", "preference", "skill", "education", "location"].includes(String(f.kind))) return false;
-    return NOW_WORDS.test(text) && !PAST_WORDS.test(text) && !WISH_WORDS.test(text) && namesEmployer(text, company);
-  }) ?? null;
+// A fact's reading against this employer by the protective screen's contract (employerMatch), or "no" when the fact is
+// not about where they work now.
+function employerFactMatch(f: any, company: string): EmployerMatch {
+  if (!f || f.needs_confirmation || f.status === "draft") return "no";
+  const text = String(f.text ?? f.value ?? "");
+  if (f.key === "current_employer" || f.kind === "current_employer") return employerMatch(text, company);
+  if (["goal", "preference", "skill", "education", "location"].includes(String(f.kind))) return "no";
+  return NOW_WORDS.test(text) && !PAST_WORDS.test(text) && !WISH_WORDS.test(text) ? employerMatch(text, company) : "no";
 }
+export function currentEmployerFact(company: string, facts: any[]): any | null {
+  return (facts ?? []).find((f) => employerFactMatch(f, company) === "yes") ?? null;
+}
+// SERIAL-1490: a fact that may name this employer (a shared leading distinctive word, one name longer): asked, never passed.
+export function possibleEmployerFact(company: string, facts: any[]): any | null {
+  return (facts ?? []).find((f) => employerFactMatch(f, company) === "possible") ?? null;
+}
+// The person's answer to that question, kept on the thread (SERIAL-1491): is this company where they work now?
+export interface EmployerAnswer { company: string; is_employer: boolean }
+export const employerQuestion = (company: string) => `is ${company} where you work now?`;
 // Their knowing go-ahead, in their own words this turn ("I know I work there, apply anyway").
 const GO_AHEAD = /\b(anyway|regardless|even though|internal(ly)?|knowing|i know (i|it|that|they|this))\b/i;
 
@@ -161,9 +234,12 @@ export function recentApplication(company: string, apps: TrackedApp[], now: numb
 
 // Each resolved pick, checked against what the person said this turn (`message`), what the previous turn showed them
 // (`before`; undefined when the caller has no history), their applications and their confirmed facts.
-export function screenPicks(picks: Pick[], o: { message?: string; before?: string; apps: TrackedApp[]; facts: any[]; now: number }): { ok: Pick[]; refused: Refusal[] } {
+// `resolved` (SERIAL-1491): the person's answers to the possible-match question in this thread; "no" clears a possible
+// match for that company (and no other), "yes" makes it their employer in their own words.
+export function screenPicks(picks: Pick[], o: { message?: string; before?: string; apps: TrackedApp[]; facts: any[]; now: number; resolved?: EmployerAnswer[] }): { ok: Pick[]; refused: Refusal[] } {
   const ok: Pick[] = [], refused: Refusal[] = [];
   const message = o.message ?? "";
+  const answered = (co: string) => (o.resolved ?? []).filter((a) => a && a.company && sameCompany(a.company, co)).map((a) => !!a.is_employer).pop();
   const named = o.message === undefined ? [] : employersNamed(message);
   const byReference = o.message !== undefined && (BY_POSITION.test(message) || !BROAD.test(message));
   for (const p of picks) {
@@ -178,9 +254,17 @@ export function screenPicks(picks: Pick[], o: { message?: string; before?: strin
         continue;
       }
     }
-    const job = currentEmployerFact(co, o.facts);
-    if (job && !GO_AHEAD.test(message)) {
-      refused.push(refusal(p, `${co} is their current employer (their confirmed fact: "${String(job.text ?? job.value ?? "").slice(0, 160)}"); nothing was queued. Ask them first, and queue it only if they say to go ahead knowing that`));
+    const job = currentEmployerFact(co, o.facts), said = answered(co);
+    if ((job || said === true) && !GO_AHEAD.test(message)) {
+      const basis = job ? `their confirmed fact: "${String(job.text ?? job.value ?? "").slice(0, 160)}"` : "they said so when asked";
+      refused.push(refusal(p, `${co} is their current employer (${basis}); nothing was queued. Ask them first, and queue it only if they say to go ahead knowing that`));
+      continue;
+    }
+    // SERIAL-1490: a possible match (a shared leading distinctive word, one name longer) is a question, asked once, and the
+    // posting waits for the answer; their "no" on this thread clears it for this company only.
+    const maybe = !job && said === undefined ? possibleEmployerFact(co, o.facts) : null;
+    if (maybe && !GO_AHEAD.test(message)) {
+      refused.push({ ...refusal(p, `${co} may be where they work now (their confirmed fact: "${String(maybe.text ?? maybe.value ?? "").slice(0, 160)}"); nothing was queued until they answer: ${employerQuestion(co)}`), ask: "employer" });
       continue;
     }
     const prior = recentApplication(co, o.apps, o.now);

@@ -8,7 +8,7 @@ import { matchPosting, WEEKLY_DEFAULT, type AlertPrefs } from "../../supabase/fu
 import { memoryAlertStore, validPrefs, type AlertRow } from "../../supabase/functions/_shared/career_alert_store.ts";
 import { runAlerts } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { relevanceFloor } from "../../supabase/functions/_shared/career_floor.ts";
-import { buildRows, gate, prefsOf, score, wilson, type LabelFile, type Persona, type Row } from "../../evals/career/alert-labels/label_set.ts";
+import { buildRows, stratumOf, STRATA as STRATA_ALL, gate, prefsOf, score, wilson, type LabelFile, type Persona, type Row } from "../../evals/career/alert-labels/label_set.ts";
 import { parseCsv, sample, score as hiddenScore, sheet } from "../../scripts/career/hidden-market.ts";
 
 function assert(v: unknown, m = "assertion failed"): asserts v { if (!v) throw new Error(m); }
@@ -125,8 +125,32 @@ Deno.test("WO-037/A4 the candidate set: 200 real postings, 8+ personas, near mis
   for (const s of ["gate_pass", "near_miss_floor", "near_miss_place", "near_miss_title", "near_miss_synonym"]) assert(rows.filter((r) => r.stratum === s).length >= 15, `stratum ${s}`);
   assert(rows.every((r) => /^(greenhouse|lever|ashby|smartrecruiters):/.test(r.posting.job_id) && /^https:\/\//.test(r.posting.url)), "real postings from the product's reader, with links");
   const byId = new Map(personas.map((p) => [p.id, prefsOf(p)]));
-  for (const r of rows) eq(gate(r.posting, byId.get(r.persona)!), r.gate, `${r.id}: stored gate answer`);
-  eq(buildRows(rows.map((r) => r.posting), personas).length, 200, "the build is reproducible from the pool");
+  // The set keeps its answers as collected (the gate of 2026-10-20). SERIAL-1530 changed the gate (a remote posting limited
+  // to a country is held for a persona with no stated location), and SERIAL-1540 keeps the original set as it was and
+  // records today's answers for the rows that changed in a versioned re-read file, with the reason and the per-persona
+  // quota gap. The check: every row not in the re-read answers as stored; every row in it answers as the re-read says,
+  // and the re-read's "was" is the stored one. The re-read is a re-read, never a quality measurement on its own.
+  const reread = JSON.parse(Deno.readTextFileSync(new URL("evals/career/alert-labels/candidates.reread-2026-10-26.json", ROOT)));
+  eq([reread.kind, reread.of], ["reread", "candidates.json"]);
+  assert(/not an independent quality measurement/.test(reread.reason), "the re-read says what it is");
+  const changed = new Map<string, any>(reread.rows.map((x: any) => [x.id, x]));
+  const byPersona = new Map(personas.map((p) => [p.id, p]));
+  for (const r of rows) {
+    const c = changed.get(r.id);
+    const g = gate(r.posting, byId.get(r.persona)!), st = stratumOf(r.posting, byPersona.get(r.persona)!, byId.get(r.persona)!);
+    if (!c) { eq(g, r.gate, `${r.id}: stored gate answer`); eq(st, r.stratum, `${r.id}: stored stratum`); continue; }
+    eq([c.gate_was, c.stratum_was], [r.gate, r.stratum], `${r.id}: the re-read's "was" is the stored answer`);
+    eq([c.gate_now, c.stratum_now], [g, st], `${r.id}: the re-read's "now" is today's gate and builder`);
+    assert(c.gate_was !== c.gate_now || c.stratum_was !== c.stratum_now, `${r.id}: listed only when something changed`);
+  }
+  eq(reread.changed, reread.rows.length);
+  for (const p of personas) {
+    const cov = reread.coverage[p.id];
+    assert(cov && cov.quota && cov.have_original && cov.have_reread && cov.gap_reread, `${p.id}: coverage against the quota is stated`);
+    const have = STRATA_ALL.reduce((acc, s) => ({ ...acc, [s]: rows.filter((r) => r.persona === p.id && (changed.get(r.id)?.stratum_now ?? r.stratum) === s).length }), {} as Record<string, number>);
+    eq(cov.have_reread, have, `${p.id}: the stated re-read coverage is the count`);
+  }
+  assert(buildRows(rows.map((r) => r.posting), personas).every((b) => rows.some((r) => r.posting.job_id === b.posting.job_id)), "the build draws only from the pool");
 });
 
 Deno.test("WO-037/A5 precision counts only rows a person labeled; none labeled is NOT_RUN; assumed labels are never human", () => {

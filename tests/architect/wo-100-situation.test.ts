@@ -36,7 +36,7 @@ Deno.test("WO-100/1 each task has its exact state and blocker: Notion's confirma
   assert(task(s, "Brex").state === "queued" && task(s, "Brex").blocker.who === "extension");
   assert(task(s, "Figma", "application").state === "awaiting_approval" && /2 open questions/.test(task(s, "Figma", "application").blocker.what));
   assert(s.tasks.filter((t: any) => t.company === "Plaid" && t.kind !== "outreach").length === 1, "the tracker's Plaid is the queue's Plaid, not a second task");
-  assert(s.today.used === 2 && s.today.limit === 25, JSON.stringify(s.today));
+  assert(s.today.used === 2 && s.today.limit === null, `no pace set: no product daily number (CAPS-1390): ${JSON.stringify(s.today)}`);
   assert(s.goal.roles[0] === "data analyst" && s.goal.constraints[0] === "Needs visa sponsorship (F-1 OPT)");
 });
 

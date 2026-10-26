@@ -7,6 +7,7 @@
 // person's across channels.
 import type { ChannelStore, DeliveryMark, OutboxRow } from "./channel.ts";
 import type { Channel } from "./channel_adapters.ts";
+import { alertStillWanted } from "./career_watch_alerts.ts";
 
 export const SENDING_TIMEOUT_MS = 10 * 60000; // longer than any run can last (a function's wall clock is shorter)
 export const UNKNOWN_OUTCOME = "delivery outcome unknown: the run stopped before recording it; not resent";
@@ -50,6 +51,18 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
     // WO-091c: paused, opted out or erased (career_user_quiet, 20261022120000_career_control_state.sql).
     async quiet(userId) {
       return must<boolean>(await admin.rpc("career_user_quiet", { p_user: userId }), "read the pause") === true;
+    },
+    // A queued job alert or report, checked at delivery against the person's alert settings, the watch record behind them
+    // (career_watch_kv) and the posting (career_postings). A read that fails throws: the row waits, never sent on a guess.
+    async alertWanted(m) {
+      const prefs = must<any>(await admin.from("career_alert_prefs").select("prefs").eq("user_id", m.userId).maybeSingle(), "read alert settings");
+      const record = prefs?.prefs?.interests?.length
+        ? must<any>(await admin.from("career_watch_kv").select("value").eq("user_id", m.userId).eq("key", `career:watch-profile:${m.userId}`).maybeSingle(), "read the watch record")?.value ?? null
+        : null;
+      const posting = m.key.startsWith("alert:")
+        ? must<any>(await admin.from("career_postings").select("*").eq("job_id", m.key.slice("alert:".length)).maybeSingle(), "read the posting")
+        : null;
+      return alertStillWanted(m.key, { row: prefs ? { prefs: prefs.prefs } : null, record, posting });
     },
     async setOptOut(contact, out, at) {
       must(await admin.rpc("channel_set_opt_out", { p_contact: contact, p_out: out, p_at: iso(at) }), "save opt-out");

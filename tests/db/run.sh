@@ -191,7 +191,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261022120500_career_deploy_ledger.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -206,7 +206,7 @@ PENDING_ROOT="$ROOT"
 if [[ -f "$BRIDGE_PATH" ]]; then
   PENDING_ROOT="$WORK/historical-pending-view"
   mkdir -p "$PENDING_ROOT/scripts/launch" "$PENDING_ROOT/supabase/migrations"
-  cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$PENDING_ROOT/scripts/launch/"
+  cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$ROOT/scripts/launch/verify-claim-guards.sql" "$PENDING_ROOT/scripts/launch/"
   for file in "$ROOT"/supabase/migrations/*.sql; do
     [[ "$(basename "$file")" == "$BRIDGE_NAME" ]] && continue
     cp "$file" "$PENDING_ROOT/supabase/migrations/"
@@ -237,7 +237,7 @@ echo "== career_apply_cards.test.sql (prepared, shown on a card, approved by one
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_card_push.test.sql (the scheduled run shows the card in the texting thread)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_card_push.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
-echo "== career_apply_daily_limit.test.sql (25 a day by default, the person's own up to 50)"
+echo "== career_apply_daily_limit.test.sql (no product daily number; the person's own pace, if set, with no maximum)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_daily_limit.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_apply_questions.test.sql (asked once by text, answered once, read back by the person's computer)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_questions.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -359,16 +359,60 @@ echo "== career_apply_cloud.test.sql (after 20261024120000: no waiver, the gate 
 # Lane B: TEST-only Messages approval nonce, after the modern batch approval contract.
 echo "== career_apply_message_cards.test.sql (exact shown payload, authenticated single-use tap)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_message_cards.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# G3's one ledger (20261025100000) replaces functions the historical phases above re-created from older files; it is
+# applied last, twice (idempotent), with the reconcile (20261025110000), and every claim guard must then be in place.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025100000_career_apply_one_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025100000_career_apply_one_ledger.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025110000_career_apply_bridge_reconcile.sql"
+# G4's server prepare (20261025120000) and STEP 4 F1 (20261025130000: the prepare's candidates come from the person's own
+# apply queue too), applied after the one ledger they read; each twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025120000_career_apply_prepare_ahead.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025120000_career_apply_prepare_ahead.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025130000_career_apply_wanted_candidates.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025130000_career_apply_wanted_candidates.sql"
+echo "== career_apply_wanted_candidates.test.sql (a queued posting is a prepare-ahead candidate under the same gates as an alerted one)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_wanted_candidates.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# CAPS-1390 (20261025140000): no product daily number on the apply path; applied twice (idempotent), after everything it replaces.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025140000_career_apply_no_volume_ceiling.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025140000_career_apply_no_volume_ceiling.sql"
+echo "== career_apply_no_volume_ceiling.test.sql (no product daily number; a person's own pace holds with no maximum; the 30-day rule stands)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_no_volume_ceiling.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# SERIAL-1420 (a) (20261025150000): one parse rule for the person's pace, the TypeScript's; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025150000_career_apply_pace_parse.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025150000_career_apply_pace_parse.sql"
+echo "== career_apply_pace_parse.test.sql (an explicit number is the pace, floored and bounded; anything else is none; SQL and TypeScript agree)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_pace_parse.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# SERIAL-1430 (20261025160000): absent, set or unreadable; the setter refuses what the column cannot hold; applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025160000_career_apply_pace_state.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025160000_career_apply_pace_state.sql"
+echo "== career_apply_pace_state.test.sql (only a missing key is no preference; an unreadable pace refuses; the setter refuses what cannot be held)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_pace_state.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# SERIAL-1451 (20261025170000): the card's 10-minute yes window in the database; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025170000_career_apply_card_yes_window.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025170000_career_apply_card_yes_window.sql"
+echo "== career_apply_card_yes_window.test.sql (an approval after 10 minutes is refused by the database; a decline is taken; answered once; an unreadable pace named)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_apply_card_yes_window.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# SERIAL-1462 (20261025180000): the outbox row that carried a card records the card; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025180000_career_outbox_card_id.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261025180000_career_outbox_card_id.sql"
+echo "== career_outbox_card_id.test.sql (the push's row and a chat reply's row carry the card id; the delivered provider id finds the card)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_outbox_card_id.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
+"${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 if [[ -f "$BRIDGE_PATH" ]]; then
   echo "== card-cloud bridge (latest schema, standalone up twice; no enclosing transaction)"
   "${PSQL[@]}" -f "$BRIDGE_PATH"
   "${PSQL[@]}" -f "$BRIDGE_PATH"
   "${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$BRIDGE_NAME','$(sha256sum "$BRIDGE_PATH" | cut -d' ' -f1)')"
+  # The bridge applied after the one ledger (20261025100000) replaced the claim's approval re-check; the reconcile puts
+  # both halves back and the run stops unless every claim guard is in place. The bridge's tests below then run on that.
+  echo "== claim guards after the bridge (scripts/launch/verify-claim-guards.sql)"
+  "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
   for file in career_apply_card_cloud.test.sql career_apply_card_cloud_lifecycle.test.sql; do
     echo "== $file (latest card-bound cloud semantics, all earlier phases retained)"
     "${PSQL[@]}" -v card_cloud_tests_authorized=true -f "$HERE/pending/$file"
   done
-  echo "== career_apply_card_cloud_daily_cap.test.sql (cloud15; extension/global unchanged)"
+  echo "== career_apply_card_cloud_daily_cap.test.sql (the bridge's claim-time cloud15 as its own text; a tap is refused only by the person's own pace; extension/global unchanged)"
   "${PSQL[@]}" -v card_cloud_tests_authorized=true -v card_cloud_disposable_database=postgres \
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"

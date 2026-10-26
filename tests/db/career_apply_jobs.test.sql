@@ -15,7 +15,10 @@ do $$declare p jsonb;h text;begin
  p:=(select i.p from apply_input i)||'{"job_id":"TEST-OTHER","company":"Test Employer LLC"}';h:=encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex');
  perform t.must_fail(format('select career_apply_enqueue(%L,%L,%L,15)',p,h,h),'company_cooldown','company aliases share the 30-day cap');
  p:=p||'{"company":"Different Employer"}';h:=encode(sha256(convert_to(career_apply_canonical(p),'UTF8')),'hex');
- perform t.must_fail(format('select career_apply_enqueue(%L,%L,%L,1)',p,h,h),'daily_cap','SQL enforces admission under the owner lock');
+ -- CAPS-1390: the caller's number is never a ceiling (1 here is ignored); the person's own pace, once set, is enforced under the owner lock.
+ update career_watch_kv set value=value||'{"daily_limit":1}' where key='career:account' and user_id='00000000-0000-4000-8000-000000000901';
+ perform t.must_fail(format('select career_apply_enqueue(%L,%L,%L,1)',p,h,h),'daily_cap','SQL enforces admission (the person''s own pace) under the owner lock');
+ update career_watch_kv set value=value-'daily_limit' where key='career:account' and user_id='00000000-0000-4000-8000-000000000901';
 end $$;
 update career_watch_kv set value='{"epoch":1,"version":1,"paused":true}' where key='career:account' and user_id='00000000-0000-4000-8000-000000000901';
 select t.ok((select count(*)=0 from career_apply_claim(now(),6)),'paused owner cannot be driven');

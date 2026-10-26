@@ -39,7 +39,11 @@ export function stratumOf(x: PoolPosting, p: Persona, prefs: AlertPrefs = prefsO
   const noFloor = { ...prefs, floor: undefined };
   const everywhere = { ...noFloor, locations: [], remote_ok: true };
   if (gate(x, noFloor) && prefs.floor && !relevanceFloor(asOpen(x), prefs.floor).pass) return "near_miss_floor";
-  if (!gate(x, noFloor) && gate(x, { ...everywhere, floor: prefs.floor })) return "near_miss_place";
+  // The place is the reason when the gate passes it with no place filter, or would pass it as an OPEN remote posting:
+  // a remote posting limited to a country is held for a persona with no stated location (SERIAL-1530), and that hold
+  // is a place reason, not a title one.
+  const anyPlace = { ...everywhere, floor: prefs.floor };
+  if (!gate(x, noFloor) && (gate(x, anyPlace) || gate({ ...x, location: "Remote" }, anyPlace))) return "near_miss_place";
   const title = new Set(words(x.title));
   // Sharing only a generic word ("engineer", "manager") is not close; sharing the specific one ("data", "nurse") is.
   const kw = prefs.keywords.flatMap(words).filter((w) => !GENERIC.has(w));

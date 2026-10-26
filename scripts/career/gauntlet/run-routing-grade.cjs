@@ -77,7 +77,11 @@ const ROOT = path.join(__dirname, "..", "..", "..");
 const EXPECTATIONS_PATH = path.join(__dirname, "routing-expectations.json");
 const SCEN_DIR = path.join(ROOT, "scripts", "career", "scenarios");
 const DOMAIN_DIR = path.join(ROOT, "packages", "domain");
-const CANON_DOC = path.join(process.env.HOME, "workspace/your_files/upmore-career-300-scenarios.md");
+// The owner's canonical 300-scenario document: UPMORE_CANON_300_DOC when set, else its usual place under the home
+// directory. It is not part of the repository; where it is absent, parseCanonicalAsks reads the asks from the committed
+// routing-expectations.json (the same text, derived from the document when it was last present), so the derivation and
+// the drift check run on any machine. The module and grounding derivation never depends on the document.
+const CANON_DOC = process.env.UPMORE_CANON_300_DOC || path.join(process.env.HOME || "", "workspace/your_files/upmore-career-300-scenarios.md");
 const LEDGER = path.join(ROOT, "docs", "scenario-ledger.md");
 const EXPECTATIONS_VERSION = 1;
 
@@ -164,9 +168,13 @@ function headToModule(head, modules) {
   return CAREER_ALIAS[head] || null;
 }
 function parseCanonicalAsks() {
-  const doc = fs.readFileSync(CANON_DOC, "utf8");
   const out = new Map();
-  for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !out.has(m[1])) out.set(m[1], m[2].trim()); }
+  if (fs.existsSync(CANON_DOC)) {
+    const doc = fs.readFileSync(CANON_DOC, "utf8");
+    for (const line of doc.split("\n")) { const m = line.match(/^(SC-\d{3})\s+(.+)$/); if (m && !out.has(m[1])) out.set(m[1], m[2].trim()); }
+  } else if (fs.existsSync(EXPECTATIONS_PATH)) {
+    for (const e of JSON.parse(fs.readFileSync(EXPECTATIONS_PATH, "utf8")).entries || []) if (e && e.id && e.ask && !out.has(e.id)) out.set(e.id, e.ask);
+  }
   const ledger = fs.readFileSync(LEDGER, "utf8");
   const fam = new Map();
   for (const line of ledger.split("\n")) { const m = line.match(/^\| (SC-\d{3}) \| ([^|]+) \|/); if (m && !fam.has(m[1])) fam.set(m[1], m[2].trim()); }

@@ -1,3 +1,4 @@
+import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards.ts";
 // Shared turn core for the Trainee messaging-channel test bridges
 // (telegram-inbound, whatsapp-inbound). Mirrors supabase/functions/
 // imessage-inbound/index.ts: the same agent-chat core call (service-role
@@ -101,7 +102,7 @@ export class TurnLimitError extends Error {
 // apikey/Authorization pairs — same note as imessage-inbound).
 async function callAgentChat(
   deps: ChannelDeps,
-  args: { userId: string; threadId: string; message: string; turnKey?: string; careerBatch?: unknown },
+  args: { userId: string; threadId: string; message: string; turnKey?: string; careerBatch?: unknown; replyToMessageId?: string | null },
 ): Promise<any> {
   const supabaseUrl = deps.env("SUPABASE_URL") ?? "";
   const serviceKey = deps.env("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -120,6 +121,8 @@ async function callAgentChat(
         as_user_id: args.userId,
         ...(args.turnKey ? { turn_key: args.turnKey } : {}),
         ...(args.careerBatch ? { career_batch: args.careerBatch } : {}),
+        // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
+        ...(args.replyToMessageId ? { reply_to_message_id: args.replyToMessageId } : {}),
       }),
       signal: ctrl.signal,
     });
@@ -255,6 +258,7 @@ export async function runChannelTurnRich(
     userId: string;
     text: string;
     messageId: string | null;
+    replyToMessageId?: string | null; // SERIAL-1462: the provider's id of the message the person replied to
   },
 ): Promise<{ kind: "duplicate" } | RichTurnOutcome> {
   const admin = deps.createAdmin();
@@ -296,7 +300,7 @@ export async function runChannelTurnRich(
 
   // Ask the agent brain. Service-role bearer + as_user_id: agent-chat runs
   // the whole turn as that user (see its TEST BRIDGE block).
-  let chat = await callAgentChat(deps, { userId: args.userId, threadId: threadId as string, message: args.text });
+  let chat = await callAgentChat(deps, { userId: args.userId, threadId: threadId as string, message: args.text, replyToMessageId: args.replyToMessageId ?? null });
   if (chat.thread_id && String(chat.thread_id) !== threadId) {
     threadId = String(chat.thread_id);
     await admin.from("channel_threads").upsert(
@@ -344,7 +348,11 @@ export async function runChannelTurnRich(
       // plain turn already succeeded and stands.
     }
   }
-  const replyText = cleanReply(String(chat.reply ?? ""));
+  // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's terms (Telegram has a verified
+  // reply-id path through this bridge; the Twilio WhatsApp sandbox does not, so it is told to tap).
+  const replyText = chat?.meta?.result_status === CARD_NEEDS_REPLY_STATUS
+    ? needsReplyTextFor(args.channel === "telegram" ? "telegram" : "imessage")
+    : cleanReply(String(chat.reply ?? ""));
   return { kind: "done", threadId: threadId as string, replyText, chat };
 }
 

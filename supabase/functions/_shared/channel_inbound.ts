@@ -1,3 +1,4 @@
+import { CARD_NEEDS_REPLY_STATUS, needsReplyTextFor } from "./career_apply_cards.ts";
 // Texts coming in, on any channel (WO-038; first written for LoopMessage in WO-013b-2, whose order it keeps): the
 // message id claimed per provider (a retried webhook never runs a second turn), the person found by the contact (or its
 // alias), the time of their message recorded (it opens WhatsApp's window and makes this their most recent channel; held
@@ -41,7 +42,7 @@ export interface InboundStore {
   createPerson(contact: string, at: number, phone?: string | null): Promise<Person>;
   setThread(contact: string, threadId: string, userId?: string): Promise<void>; // one thread per person, every channel
   setOptOut(contact: string, out: boolean, at: number): Promise<void>;
-  enqueueReply(userId: string, key: string, text: string, at: number, channel?: Channel, part?: { of: string; n: number }): Promise<boolean>;
+  enqueueReply(userId: string, key: string, text: string, at: number, channel?: Channel, part?: { of: string; n: number }, cardId?: string | null): Promise<boolean>;
   // WO-038 (optional, so a store written for WO-013 still runs the LoopMessage path unchanged):
   sawInbound?(contact: string, at: number, o: { alias?: string | null; phone?: string | null }): Promise<void>;
   linkCandidate?(phone: string, except: Channel): Promise<{ userId: string; contact: string } | null>;
@@ -59,7 +60,9 @@ export interface CoreDeps {
   render: (text: string) => string[];
   // parts (optional): a reply longer than one message's worth (an outreach batch of drafts, a long card), each part at most
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[] }>;
+  // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
+  // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
 }
 type Out = { status: number; body: Record<string, unknown> };
@@ -168,8 +171,9 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     }
 
     const key = `reply:${scoped(msg)}`;
+    let cardId: string | null = null; // the card the turn's reply shows, recorded on the outbox row (SERIAL-1462)
     const answer = async (text: string, extra: Record<string, unknown>) => {
-      await store.enqueueReply(person!.userId, key, text, now, msg.channel);
+      await store.enqueueReply(person!.userId, key, text, now, msg.channel, undefined, cardId);
       try { await d.deliver({ userId: person!.userId, key, now }); }
       catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
       return ok(extra);
@@ -195,9 +199,15 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
       const said = msg.text || (command ? `/${command}` : "");
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey });
+      // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
+      // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
+      // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on
+      // iMessage, where it has none, only "tap the card".
+      if (out.resultStatus === CARD_NEEDS_REPLY_STATUS) reply = needsReplyTextFor(msg.channel);
       parts = replyParts(out.parts);
+      cardId = typeof out.cardId === "string" && out.cardId ? out.cardId : null;
       if (toBrain && command === "start") {
         reply = `${CHANNEL_REPLIES.start}\n\n${reply}`;
         if (parts) parts = [`${CHANNEL_REPLIES.start}\n\n${parts[0]}`, ...parts.slice(1)];
@@ -211,7 +221,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     // come after the provider took it, so it must not reach the catch below (which would also say "couldn't answer").
     // A reply in parts is one row per part (reply:<id>:<n>), each whole, sent in order.
     const rows = parts ? parts.map((text, i) => ({ key: `${key}:${i + 1}`, text, part: { of: key, n: i + 1 } })) : [{ key, text: fitReply(reply), part: undefined }];
-    for (const r of rows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part);
+    for (const r of rows) await store.enqueueReply(person.userId, r.key, r.text, now, msg.channel, r.part, cardId);
     try { for (const r of rows) await d.deliver({ userId: person.userId, key: r.key, now }); }
     catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
     return ok({ replied: true, ...(parts ? { parts: parts.length } : {}) });

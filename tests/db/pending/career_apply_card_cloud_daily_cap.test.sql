@@ -1,6 +1,8 @@
 -- TESTS ONLY / WRITTEN / NOT_RUN. No SQL execution, apply, engine or employer evidence claimed.
 -- Outside run.sh discovery. Requires reviewed bridge SQL including cloud-only15/day clamp
 -- (source reviewed: 7bbd2096); missing prerequisites are setup errors, never baseline regressions.
+-- After 20261025140000 (CAPS-1390) the queue's enqueue takes no ceiling from its caller: the tap-time check below
+-- is against the person's own pace; the bridge's claim-time 15 is its own text and is exercised unchanged.
 -- Caller supplies an explicit local disposable DB connection, card_cloud_tests_authorized=true,
 -- card_cloud_disposable_database=<exact name>, and session marker upmore.test.disposable=
 -- 'card-cloud-daily-cap'. Baseline schema/bridge must already be installed by separate authorization.
@@ -160,17 +162,25 @@ select pg_temp.cap_ok((select v='[]'::jsonb from cap_state where k='sixteenth')
 select pg_temp.cap_ok((select daily=25 from public.career_apply_cloud_optin where user_id='00000000-0000-4000-8000-00000000cb01'),
  'claim clamp works while legacy raw daily25 remains unchanged');
 
--- Tap has its own cap: it cannot mint another job/approval once the account is already at15.
+-- Tap: the number it hands the queue (15) is no ceiling since 20261025140000 (CAPS-1390: Trainee sets no daily number);
+-- the one ledger refuses a tap only against the pace the person set themselves. Here their own pace is set to exactly
+-- what the ledger counts for them today, so the next tap is theirs to refuse: no job, no permission, card unanswered.
 insert into cap_state values('at-limit-card',public.career_apply_message_cloud_card_show_as(
  '00000000-0000-4000-8000-00000000cb01','00000000-0000-4000-8000-00000000cba1',
  jsonb_build_array(pg_temp.cc_full_item('resume-negative'))));
 create temp table cap_counts as select (select count(*) from public.career_apply_jobs) jobs,
- (select count(*) from public.career_apply_batch_approvals) approvals;
+ (select count(*) from public.career_apply_batch_approvals) approvals,
+ (select count(*) from public.career_apply_ledger('00000000-0000-4000-8000-00000000cb01',clock_timestamp()-interval'1 day')) today;
+select pg_temp.cap_ok((select today>=1 from cap_counts),'the ledger counts what went today');
+update public.career_watch_kv set value=value||jsonb_build_object('daily_limit',(select today from cap_counts))
+ where user_id='00000000-0000-4000-8000-00000000cb01' and key='career:account';
 set role authenticated;
 select pg_temp.cap_must_fail($$select public.career_apply_message_card_approve_own(
  (select (v->>'id')::uuid from cap_state where k='at-limit-card'),(select v->>'hash' from cap_state where k='at-limit-card'))$$,
- 'daily_cap','cloud tap refuses above15 without partial approval consumption');
+ 'daily_cap','a tap past the pace the person set is refused without partial approval consumption (the tap''s own 15 no longer binds)');
 reset role;
+update public.career_watch_kv set value=value||'{"daily_limit":25}'
+ where user_id='00000000-0000-4000-8000-00000000cb01' and key='career:account';
 select pg_temp.cap_ok((select count(*) from public.career_apply_jobs)=(select jobs from cap_counts)
  and (select count(*) from public.career_apply_batch_approvals)=(select approvals from cap_counts)
  and (select approved_at is null from public.career_apply_message_cards

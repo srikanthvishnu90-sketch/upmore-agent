@@ -105,6 +105,18 @@ serve((req) => {
       }
       return out;
     },
+    // The watch records behind alerts set by text (career_watch_alerts.ts): the run sends only what these say now. A read
+    // that fails throws, and no watch alert goes out this run.
+    watches: async (ids) => {
+      const out = new Map<string, unknown>();
+      for (let i = 0; i < ids.length; i += 500) {
+        const part = ids.slice(i, i + 500);
+        const { data, error } = await admin.from("career_watch_kv").select("user_id,value").in("user_id", part).in("key", part.map((u) => `career:watch-profile:${u}`));
+        if (error) throw new Error(`read watch records: ${error.message}`);
+        for (const r of data ?? []) out.set(String(r.user_id), r.value);
+      }
+      return out;
+    },
     // WO-032: the questions a preparation left open, pushed once (career_apply_questions_push_as decides the rest).
     questions: {
       open: async () => {

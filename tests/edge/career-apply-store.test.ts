@@ -9,7 +9,7 @@ async function refuses(fn:()=>Promise<unknown>,text:string){let got='';try{await
 Deno.test('009b-1 approval and admission precede every insert; owner log is authoritative',async()=>{
  const f=fake(),s=supabaseApplyStore(f.admin);await refuses(()=>s.enqueue(payload,'0'.repeat(64),{now}),'not_approved');eq(f.calls,[]);
  const hash=await hashApplyPayload(payload);await s.enqueue(payload,hash,{now});eq(f.calls.map(c=>c.name||c.table),['career_apply_jobs','career_apply_enqueue']);eq(f.calls[0].value,'owner');
- eq(f.calls[1].args.p_hash,hash);eq(f.calls[1].args.p_approval,hash);eq(f.calls[1].args.p_daily,25);
+ eq(f.calls[1].args.p_hash,hash);eq(f.calls[1].args.p_approval,hash);eq(f.calls[1].args.p_daily,50);/* no pace set: the legacy enqueue's most permissive legal number (1..50); after 20261025140000 (CAPS-1390) the SQL reads no ceiling from it */
 });
 Deno.test('009b-1 permanent job uniqueness and uncertain/driving jobs count toward admission',async()=>{
  const hash=await hashApplyPayload(payload);
@@ -18,7 +18,7 @@ Deno.test('009b-1 permanent job uniqueness and uncertain/driving jobs count towa
  }
  const f=fake([{job_id:'other',company:'Test Employer LLC',created_at:new Date(now).toISOString(),state:'unknown_outcome'}]);await refuses(()=>supabaseApplyStore(f.admin).enqueue(payload,hash,{now}),'company_cooldown');eq(f.calls.length,1);
 });
-Deno.test('009b-1 daily limit is capped at 50 and a claim sweeps dead drives first',async()=>{
+Deno.test('009b-1 the number handed to the legacy enqueue stays within what it accepts (1..50; not a ceiling after 20261025140000) and a claim sweeps dead drives first',async()=>{
  const f=fake([],name=>name==='career_apply_claim'?[{id:'j',lease_token:'lease',state:'driving'}]:3),s=supabaseApplyStore(f.admin);
  await s.enqueue(payload,await hashApplyPayload(payload),{now,daily:500});eq(f.calls[1].args.p_daily,50);f.calls.length=0;
  eq((await s.claim(now,6)).length,1);eq(f.calls.map(c=>c.name),['career_apply_sweep','career_apply_claim']);eq(f.calls[0].args,{p_now:new Date(now).toISOString()});assert(APPLY_TIMEOUT_MS===900000);
@@ -29,4 +29,11 @@ Deno.test('009b-1 finish is lease-bound and transport uncertainty is never retri
 });
 Deno.test('009b-1 payload hashing is stable across key order and rejects non-JSON numbers',async()=>{
  eq(await hashApplyPayload({b:1,a:{'10':'x','2':'y'}}),await hashApplyPayload({a:{'2':'y','10':'x'},b:1}));await refuses(()=>hashApplyPayload({salary:NaN}),'INVALID_APPLY_PAYLOAD');
+});
+Deno.test('SERIAL-1450 an unset pace enqueues (never read as unreadable); a stored pace is passed as stored; an unreadable one refuses by name',async()=>{
+ const hash=await hashApplyPayload(payload);
+ for(const daily of [undefined,null] as any[]){const f=fake();await supabaseApplyStore(f.admin).enqueue(payload,hash,{now,daily});eq(f.calls[1].args.p_daily,50);}
+ const seven=fake();await supabaseApplyStore(seven.admin).enqueue(payload,hash,{now,daily:7});eq(seven.calls[1].args.p_daily,7);
+ const big=fake();await supabaseApplyStore(big.admin).enqueue(payload,hash,{now,daily:1000000});eq(big.calls[1].args.p_daily,50);
+ const bad=fake();await refuses(()=>supabaseApplyStore(bad.admin).enqueue(payload,hash,{now,daily:'lots' as any}),'pace_unreadable');eq(bad.calls.length,0);
 });

@@ -9,15 +9,22 @@
 //                  posting published days before it was first seen (a new board's backlog) is never news (freshWhenSeen)
 //   WO-037         a weekly cap on top of the daily one: no more than the person's max_per_week (default 15, at most 25)
 //                  alerts in any rolling 7 days (sent_this_week, counted from the outbox by the run); past it, held.
-import { freshWhenSeen } from "./career_ingest.ts";
-import { type Floor, relevanceFloor } from "./career_floor.ts";
+import { regionDecision } from "./posting_region.ts";
+import { freshWhenSeen } from "./career_fresh.ts";
+import { type Floor, relevanceFloor, sameCompany } from "./career_floor.ts";
 
 export interface AlertPrefs {
   on: boolean; keywords: string[]; locations: string[]; remote_ok: boolean;
   report_hour: number; quiet_start: number; quiet_end: number; max_instant_per_day: number;
   floor?: Floor; // the person's stated relevance floor (C-04); absent means nothing is hidden
   max_per_week?: number; // WO-037: alerts in any rolling 7 days; absent means WEEKLY_DEFAULT
+  // The watches the person set by text (career_watch_alerts.ts), each matched on its own: a posting is news when it
+  // fits one watch whole (its role, its places, its floor, its firms), never one watch's role in another's city.
+  // Present, these decide the match and `keywords` only lists their words (the table's shape).
+  interests?: AlertInterest[];
 }
+// home (SERIAL-1530): the person's stated location, as they said it, for a posting's stated country or region restriction.
+export interface AlertInterest { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[]; home?: string }
 export interface PlanUser {
   id: string; tz: string; prefs: AlertPrefs; last_checked_at: string; instant_sent_today: number;
   last_report_on: string | null; // YYYY-MM-DD in the person's zone
@@ -45,14 +52,23 @@ const httpsUrl = (u: unknown) => (/^https:\/\/\S+$/.test(String(u ?? "")) ? Stri
 export function matchPosting(p: any, prefs: AlertPrefs): boolean {
   if (!p || p.closed_at || !httpsUrl(p.url)) return false;
   if (prefs.floor && !relevanceFloor(p, prefs.floor).pass) return false;
+  if (prefs.interests?.length) return prefs.interests.some((i) => fits(p, i));
+  return fits(p, prefs);
+}
+// One watch: its role words, its places, its own floor and firms.
+function fits(p: any, w: { keywords: string[]; locations: string[]; remote_ok: boolean; floor?: Floor; companies?: string[]; home?: string }): boolean {
+  if (w.floor && !relevanceFloor(p, w.floor).pass) return false;
+  // A watch for named firms is news from those firms only (the same company rule as the floor's exclusions).
+  if (w.companies?.length && !w.companies.some((c) => sameCompany(p.company, c))) return false;
   // A keyword matches when every one of its words is a whole word of the title ("data analyst" matches
   // "Analyst, Data Platform", never "Metadata Analyst" for "data"). No keywords means no alerts, never everything.
   const title = new Set(words(p.title));
-  if (!prefs.keywords.some((k) => { const ws = words(k); return ws.length > 0 && ws.every((w) => title.has(w)); })) return false;
+  if (!w.keywords.some((k) => { const ws = words(k); return ws.length > 0 && ws.every((x) => title.has(x)); })) return false;
+  // SERIAL-1530: the remote preference, the watched places and the posting's stated country or region against the
+  // person's stated location, one rule (posting_region.ts); a restriction with no location on record is held, not passed.
   const loc = String(p.location ?? "").toLowerCase();
-  if (prefs.remote_ok && /\bremote\b/.test(loc)) return true;
-  if (!prefs.locations.length) return true;
-  return prefs.locations.some((l) => { const t = String(l).trim().toLowerCase(); return t.length > 0 && loc.includes(t); });
+  const placeOk = () => ({ ok: !w.locations.length || w.locations.some((l) => { const t = String(l).trim().toLowerCase(); return t.length > 0 && loc.includes(t); }) });
+  return regionDecision(p, w, placeOk).ok;
 }
 
 // The person's local date, hour and minute at an instant.

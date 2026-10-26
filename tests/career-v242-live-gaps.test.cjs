@@ -137,7 +137,7 @@ function freshDb(sharedAccount, over = {}) {
   return Object.assign({
     state: { career: { v: 1, stores: {} } },
     messages: [], writes: [], account: sharedAccount, version: 8455,
-    kbMode: "ok", kbCalls: 0, kbTargetedCalls: 0, artifactRows: [],
+    kbMode: "ok", kbCalls: 0, kbTargetedCalls: 0, artifactRows: [], events: [],
     kbRows: [kbRow()], kbShelf: null, patches: [], patchErrors: [],
   }, over);
 }
@@ -198,11 +198,35 @@ async function stagedApp(db, user, thread) {
           select() { const q = { eq() { return q; }, async maybeSingle() { return { data: null, error: null }; }, then(r) { return r({ data: [], error: null }); } }; return q; },
         };
       }
+      // The resume-confirm evidence step (handler-career.ts, d671223c) writes career_events and reads the thread's
+      // recent messages newest first; the stub serves both, as the real tables would (STEP 3 F0, 2026-10-25).
+      if (table === "career_events") {
+        const q = { eq() { return q; }, order() { return q; }, limit() { return q; }, select() { return q; }, then(r) { return r({ data: [], error: null }); } };
+        return { async insert(row) { db.events.push(clone(row)); return { error: null }; }, select() { return q; } };
+      }
       assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table), `unexpected table: ${table}`);
       const filters = {};
       const query = {
+        _limit: null,
         select() { return query; },
         eq(key, value) { filters[key] = value; return query; },
+        order() { return query; },
+        limit(n) { query._limit = n; return query; },
+        then(resolve) {
+          // A LIST read awaited directly on the builder — the
+          // handler's history window and its SUBMIT-STEER evidence
+          // read (handler-career.ts: agent_messages, newest first,
+          // limited). Serve the recorded messages for the filtered
+          // thread in that order; before the evidence step existed
+          // nothing awaited this builder as a list, so the fake
+          // never grew the shape and the read threw -> HTTP 503
+          // (REGRESSION-1255). Rows carry the handler's own inserted
+          // fields; ids are positional (the store assigns real ones).
+          if (table !== "agent_messages") return resolve({ data: [], error: null });
+          const rows = db.messages.filter((m) => m.thread_id === filters.thread_id).slice().reverse()
+            .map((m, i) => ({ id: m.id ?? (db.messages.length - i), role: m.role, content: m.content }));
+          return resolve({ data: clone(query._limit ? rows.slice(0, query._limit) : rows), error: null });
+        },
         async maybeSingle() {
           assert.equal(filters.user_id, user);
           if (table === "agent_threads") { assert.equal(filters.id, thread); return { data: { id: thread, user_id: user }, error: null }; }

@@ -9,7 +9,7 @@ import { canonicalTypedValue, classifyField, classifyOutcome, fileAlternative, t
 import { mapQuestion, NEVER_BY_TEXT } from "../../supabase/functions/_shared/question_map.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
 import { questionsToStore } from "../../workers/career-browser/ask-once.ts";
-import { howHeardChannel } from "../../supabase/functions/_shared/answer_options.ts";
+import { assertsSeparateSponsorshipPosition, assertsSponsorshipNeed, howHeardChannel, yesNoOf } from "../../supabase/functions/_shared/answer_options.ts";
 import { readAiPolicy } from "../../supabase/functions/_shared/ai_policy.ts";
 import { STATE_NAMES } from "../../supabase/functions/_shared/posting_place.ts";
 import { typedProfileFile } from "../../supabase/functions/_shared/typed_profile_fields.ts";
@@ -125,15 +125,37 @@ export function chooseWidgetOption(o: {
   const p = r.fill.find((x) => x.name === o.field.name);
   if (!p || !labels.includes(p.value) || (o.factId && p.factId !== o.factId)) return null;
   const [key, fact] = [...Object.entries(o.answers), ...Object.entries(o.saved)].find(([, a]) => a?.factId === p.factId) ?? [];
+  // An attestation or a personal choice is clicked only from the person's own answer to that question (a saved
+  // answer), never from a standing fact — contractFill's judge applies the same rule before the drive; the click
+  // itself is held to it too, so no caller of this chooser can auto-accept an attestation from a fact.
+  if (ownAnswerOnly(o.field.label) && !Object.values(o.saved).some((a) => a?.factId === p.factId)) return null;
   const shown = options.find((x) => x.value === p.value)!.label;
-  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, ""))) ? p.value : null;
+  return fact && optionRule(shown, fact.value, SEARCHED.has(String(key).replace(/^fact:/, "")), String(key).replace(/^fact:/, ""), combinedEligibility(o.answers)) ? p.value : null;
 }
 // A place or a school is searched by its name, not picked from a fixed list: the employer's entry must name the fact (its
 // first word: "Chicago, Illinois, United States" for "Chicago, IL"). Any other widget is a select whose list opens late.
 const SEARCHED = new Set(["location", "city", "state", "school"]);
 const optN = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
 // How an employer's option derives from the fact (WO-102's select rules, or listed-name for a search), or null: asked.
-function optionRule(option: string, fact: string, searched: boolean): string | null {
+// The one conjunction career_apply's authorizedWithoutSponsorship sanctions for a combined eligibility answer:
+// authorized (yes) AND no sponsorship need (no), both standing as facts. Anything weaker is not a combined answer.
+const combinedEligibility = (answers: Record<string, { value?: unknown } | undefined> | undefined) =>
+  yesNoOf(String(answers?.work_authorization?.value ?? "")) === "yes" && yesNoOf(String(answers?.sponsorship?.value ?? "")) === "no";
+function optionRule(option: string, fact: string, searched: boolean, key?: string, combinedOk = false): string | null {
+  // The two-class eligibility classification (answer_options, shared verbatim with chooseOption): a positive
+  // sponsorship-need assertion is the sponsorship fact's own territory — it derives only from an affirmative
+  // sponsorship fact (the bare yes-prefix class below once admitted "Yes, I will require sponsorship" on the
+  // authorization fact alone; the widget battery pins that as a wrong answer, never chosen) — and a COMBINED
+  // answer, one that takes a separate sponsorship position in a compound phrasing ("Yes, I am authorized and
+  // do not require sponsorship"), derives from NO single fact. The one sanctioned exception is the planner's
+  // both-facts derivation (career_apply's authorizedWithoutSponsorship): where both facts stand in the exact
+  // conjunction above, the option asserts nothing beyond them (no positive need, a yes), and the plan entry
+  // rides on the authorization fact, the choice is that derivation's — answered from both facts, never from
+  // the authorization fact alone (combinedOk is false whenever either fact is missing or says otherwise).
+  if (assertsSeparateSponsorshipPosition(option)) {
+    return combinedOk && key === "work_authorization" && !assertsSponsorshipNeed(option) && yesNoOf(option) === "yes" ? "option-combined-eligibility" : null;
+  }
+  if (assertsSponsorshipNeed(option) && !(key === "sponsorship" && yesNoOf(fact) === "yes")) return null;
   if (searched) {
     // A US state code is named by the state ("IL": "Illinois, United States").
     const word = STATE_NAMES[optN(fact)] ?? optN(fact).split(/[^a-z0-9]+/).find((x) => x.length >= 3) ?? optN(fact);
@@ -870,7 +892,7 @@ function judge(f: FormField, a: BatchAnswer, m: Manifest, schema: FormField[], j
     if (!legal) return { problem: "a legal name needs your stated legal name or your own answer to this exact question" };
   }
   if (ownAnswerOnly(f.label) && !tf.authorizes) return { problem: "it is an attestation or a personal choice, so it takes your own answer to it" };
-  const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf)) ||
+  const rule = (f.section && tf.table === "saved" ? savedRowRule(f, a, tf, m, jobId) : f.section?.kind === "work" ? workRowRule(f, a, tf, m, schema) : derivation(f, a.kind, a, tf, combinedEligibility(m.answers))) ||
     (!f.section && a.kind === "text" && ["date", "month"].includes(f.type) && canonicalTypedValue(f, tf.value) === a.value ? "calendar-equivalent" : null);
   return rule ? { rule, tf } : { problem: `the answer Trainee would give ("${a.shown}") is not what you said ("${tf.value}")` };
 }
@@ -935,7 +957,7 @@ export function contractFill(o: { schema: FormField[]; plan: ReturnType<typeof p
 // on the employer's yes or no option or box; the resume he picked. Anything else changes meaning and is asked.
 // A widget (`listed`) is a select: by its option when its list is known; else the fact's own words now, and the option it
 // opens on is held to the same rules when clicked (chooseWidgetOption) and at the send (batchMatch).
-function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFact): string | null {
+function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFact, combinedOk = false): string | null {
   const n = (x: string) => String(x ?? "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").toLowerCase();
   const yn = /^(yes|no)$/.exec(n(tf.value))?.[1] ?? null;
   if (kind === "file") return tf.factId.startsWith("approved-local-resume:") && a.file === tf.value ? "attachment" : null;
@@ -944,7 +966,7 @@ function derivation(f: FormField, kind: BatchKind, a: BatchAnswer, tf: TrustedFa
     if (n(a.shown) === n(tf.value) || a.value === tf.value) return "option-exact";
     return yn && new RegExp(`^${yn}\\b`).test(n(a.shown)) ? "option-yes-no" : null;
   }
-  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false);
+  if (kind === "listed" && f.options.length) return !optionText(f, a.value) ? null : a.value === tf.value ? "option-exact" : optionRule(a.shown, tf.value, false, tf.key, combinedOk);
   if (kind === "listed") return n(a.value) === n(tf.value) ? (SEARCHED.has(tf.key.replace(/^fact:/, "")) ? "listed-name" : "widget-option") : null;
   return n(a.value) === n(tf.value) ? "verbatim" : null;
 }

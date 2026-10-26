@@ -79,7 +79,8 @@ export const CONVERSATIONS: { id: string; title: string; turns: Turn[] }[] = [
   ] },
   { id: "T13", title: "what's left for today?", turns: [
     { user: "what's left for today?", oracle: seq([{ name: "list_applications", input: {} }]),
-      truth: [T("daily_use", "of (your )?15|15 a day|\\b2 of\\b"), T("waiting_on_person", "(authori[sz]ed|salary|code|figma)")] },
+      // CAPS-1390 (20261025140000): with no pace set there is no "2 of 25"; the honest line is the count and that no daily limit applies.
+      truth: [T("daily_use", "of (your )?15|15 a day|\\b2 of\\b|\\b2 applications in the last 24 hours[^\\n]{0,40}no daily limit"), T("waiting_on_person", "(authori[sz]ed|salary|code|figma)")] },
   ] },
   { id: "T14", title: "approve the Figma one", turns: [
     { user: "approve the Figma one", oracle: seq([{ name: "list_applications", input: {} }]),

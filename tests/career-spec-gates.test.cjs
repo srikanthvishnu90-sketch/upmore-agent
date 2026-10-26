@@ -272,11 +272,16 @@ test("S3-8D example 1: the allowed line passes the audit; the not-allowed additi
 
 test("S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in the copy surfaces this program owns", () => {
   const banned = [/beats?\s+(the\s+)?ATS/i, /gets?\s+you\s+hired/i, /guaranteed\s+(interviews?|jobs?|offers?)/i, /guarantee\s+you\s+(a\s+)?(job|interview|offer)/i];
+  // The two surfaces this repository owns are always checked. The owner's review copy
+  // (review/honest-yield-copy.md, in the owner's files) lives outside the repository: it is checked when UPMORE_REVIEW_DIR
+  // names its directory, and otherwise named as not checked, instead of failing every machine that lacks that
+  // folder (the gate was red on CI and on fresh checkouts with ENOENT here).
   const surfaces = [
     path.join(__dirname, "..", "packages", "domain", "124-career-outreach.js"),
     path.join(__dirname, "..", "packages", "domain", "147-career-platform-drafts.js"),
-    path.join(__dirname, "..", "..", "your_files", "review", "honest-yield-copy.md"),
   ];
+  if (process.env.UPMORE_REVIEW_DIR) surfaces.push(path.join(process.env.UPMORE_REVIEW_DIR, "honest-yield-copy.md"));
+  else process.stdout.write("# S3 claims register: owner review copy not checked (set UPMORE_REVIEW_DIR to its folder)\n");
   for (const f of surfaces) {
     const text = fs.readFileSync(f, "utf8");
     for (const re of banned) assert.ok(!re.test(text), `${path.basename(f)} must not contain the banned claim ${re}`);

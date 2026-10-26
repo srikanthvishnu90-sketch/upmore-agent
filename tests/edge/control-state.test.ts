@@ -126,7 +126,8 @@ Deno.test("WO-091c/C2c the database claim carries the same two refusals, in a ne
 const SECRET = "x".repeat(40);
 const req = () => new Request("https://x/career-proactive", { method: "POST", headers: { "x-trainee-proactive-secret": SECRET } });
 const prefs = (p: Record<string, unknown> = {}) => { const v = validPrefs({ keywords: ["data analyst"], ...p }); if (!v.ok) throw new Error(v.error); return v.prefs; };
-const posting = (id: string, at: number) => ({ job_id: `lever:acme:${id}`, title: "Data Analyst", company: "Acme", location: "Remote - US", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(at), closed_at: null });
+// SERIAL-1530: open remote fixture; a country-limited remote posting is held for a person with no location on record.
+const posting = (id: string, at: number) => ({ job_id: `lever:acme:${id}`, title: "Data Analyst", company: "Acme", location: "Remote", url: `https://jobs.lever.co/acme/${id}`, first_seen_at: iso(at), closed_at: null });
 
 Deno.test("WO-091c/C3 one person's Gmail error does not stop outreach, asks or questions for anyone; the run row is true", async () => {
   const T = Date.UTC(2026, 9, 20, 15);

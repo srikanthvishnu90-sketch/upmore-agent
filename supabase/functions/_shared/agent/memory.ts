@@ -8,7 +8,7 @@
 // The block has a size budget. Standing instructions are never dropped; past the budget the oldest facts and the
 // oldest pipeline lines go first, and the block says how many it left out.
 import type { AlertPrefs } from "../career_alerts.ts";
-import { dailyLimit } from "../career_apply.ts";
+import { paceState } from "../career_apply.ts";
 import { type Situation, situationBlock } from "../career_situation.ts";
 import { personalSourceGuard } from "../personal_fact_source.ts";
 
@@ -117,7 +117,7 @@ export interface PipelineRows {
 }
 export interface Pipeline {
   waiting: number; card: { shown_at: string; count: number } | null; queued: number;
-  sent_24h: number; limit: number; questions: number | null;
+  sent_24h: number; limit: number | null; pace_unreadable?: string; questions: number | null;
   needs: { company: string; url: string; what: string }[];
   recent: { company: string; state: string; at: string }[];
 }
@@ -139,7 +139,7 @@ export function summarizePipeline(r: PipelineRows, now: number): Pipeline {
     card: r.openCard && Date.parse(r.openCard.shown_at) >= day ? { shown_at: r.openCard.shown_at, count: r.openCard.items.length } : null,
     queued: r.jobs.filter((j) => j.state === "queued" || j.state === "driving").length,
     sent_24h: r.jobs.filter((j) => COUNTED.has(j.state) && Date.parse(j.created_at) > day).length,
-    limit: dailyLimit({ daily: r.dailyLimit as number }),
+    limit: paceState(r.dailyLimit).pace, ...(paceState(r.dailyLimit).state === "unreadable" ? { pace_unreadable: paceState(r.dailyLimit).raw as string } : {}),
     questions: r.openQuestions === null ? null : Number(r.openQuestions) || 0,
     needs, recent,
   };
@@ -240,7 +240,7 @@ export function personBlock(o: { profile?: any; standing: Standing[]; alerts: { 
   type Section = { heading?: string; lines: string[] };
   const pipeline: Section[] = o.situation ? [] : p
     ? [
-      { lines: [`Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.sent_24h} of their ${p.limit} a day used in the last 24 hours.`] },
+      { lines: [`Applications: ${p.waiting} prepared and waiting for their yes${p.card ? ` (a card of ${p.card.count} is open, shown ${p.card.shown_at.slice(0, 16).replace("T", " ")} UTC; their yes, "yes but not 2" or "no" answers it)` : p.waiting ? ' (texting "show my applications" shows them)' : ""}; ${p.queued} approved and waiting to run on their computer; ${p.pace_unreadable !== undefined ? `${p.sent_24h} sent in the last 24 hours (their saved daily pace could not be read: it says ${JSON.stringify(p.pace_unreadable)}; nothing more is queued until they set it again)` : p.limit === null ? `${p.sent_24h} sent in the last 24 hours (no daily limit; they may set their own pace)` : `${p.sent_24h} of their ${p.limit} a day used in the last 24 hours`}.`] },
       ...(p.questions === null ? [{ lines: ["Questions only they can answer: could not be read this turn; never guess."] }]
         : p.questions ? [{ lines: [`Questions only they can answer, holding up applications: ${p.questions} (texting "what do you need from me" shows them; never answer one for them).`] }] : []),
       ...(p.needs.length ? [{ heading: "Stopped until they help:", lines: p.needs.map((n) => `- ${n.company} (${n.url}): ${n.what}`) }] : []),

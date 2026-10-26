@@ -13,6 +13,7 @@ import {
 } from "../../supabase/functions/_shared/career_apply_cards.ts";
 import { prepare, runApproved } from "../../workers/career-browser/approve-first.ts";
 import { planReceipts } from "../../supabase/functions/_shared/career_apply_receipts.ts";
+import { proofFor } from "./proof-fixture.ts";
 
 function eq(a: unknown, b: unknown, m = "") {
   const x = JSON.stringify(a), y = JSON.stringify(b);
@@ -63,7 +64,7 @@ Deno.test("WO-022/2 a card shows every line of every application verbatim, at mo
   assert(huge && "tooLong" in huge, "past the outbox's limit it is not shown by text");
 });
 
-function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number }> = {}) {
+function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number; shownCard: string | null }> = {}) {
   const prepared = [prep(1), prep(2), prep(3)];
   let card: any = null, lastIntent: string | null = over.lastIntent ?? null;
   const answers: number[][] = [];
@@ -79,6 +80,8 @@ function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number 
       return card;
     },
     latestOpen: async () => card,
+    lastShownCard: async () => over.shownCard === undefined ? (card?.id ?? null) : over.shownCard,
+    cardOfMessage: async (_t, id) => (card && String(id) === `M-${card.id}` ? card.id : null),
     answer: async (_u, _c, approve) => {
       answers.push(approve);
       return card.items.map((i: any) => ({
@@ -91,8 +94,9 @@ function memoryCards(over: Partial<{ lastIntent: string | null; shownAt: number 
   };
   return { store, answers, setIntent: (v: string | null) => (lastIntent = v) };
 }
-const turn = (store: CardStore, message: string, now = T) =>
-  cardTurn({ message, userId: "TEST-USER", threadId: "TH", now, store });
+// SERIAL-1461: an approval counts only in direct reply to the card's own message; the memory stores name that message "M-<card id>".
+const turn = (store: CardStore, message: string, now = T, replyTo?: string | null) =>
+  cardTurn({ message, userId: "TEST-USER", threadId: "TH", now, store, replyTo });
 
 Deno.test("WO-022/3 a yes answers the card only while the card is the thread's last word", async () => {
   const m = memoryCards();
@@ -102,20 +106,30 @@ Deno.test("WO-022/3 a yes answers the card only while the card is the thread's l
   m.setIntent("agent");
   eq(await turn(m.store, "yes"), null, "the brain spoke after the card: this yes is not the card's");
   eq(m.answers.length, 0);
+  eq((await turn(m.store, "yes", T, "M-C1"))?.status, "answered", "SERIAL-1461: but a yes in direct reply to the card's message is the card's, whatever came after");
+  eq(m.answers, [[1, 2, 3]]);
 });
 
-Deno.test("WO-022/4 a text yes approves nothing (only the tap sends); a number not on the card and an old card approve nothing", async () => {
+Deno.test("WO-022/4 a text yes within 10 minutes approves exactly what it says (the owner, 2026-10-22: one yes handles a batch); a number not on the card, a card older than 10 minutes and an old card approve nothing", async () => {
   const m = memoryCards();
   await turn(m.store, "show my applications");
-  const bad = await turn(m.store, "yes but not 9");
+  const bad = await turn(m.store, "yes but not 9", T, "M-C1");
   eq(bad?.status, "not_on_card");
   eq(m.answers.length, 0);
-  const yes = await turn(m.store, "yes but not 2");
-  eq(yes?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
-  eq(m.answers.length, 0, "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
+  const bare = await turn(m.store, "yes but not 2");
+  eq(bare?.status, "needs_reply", "SERIAL-1461: a yes with no reply id approves nothing and says how");
+  assert(/reply directly to the card/.test(bare!.reply) && /tap Approve/.test(bare!.reply), bare!.reply);
+  eq(m.answers.length, 0);
+  const yes = await turn(m.store, "yes but not 2", T, "M-C1");
+  eq(yes?.status, "answered", "SERIAL-1440 (1) / 1461: a yes in direct reply to the card's message, within 10 minutes, approves the batch it names");
+  eq(m.answers, [[1, 3]], "exactly the numbers the yes left in");
+  const late = memoryCards({ shownAt: T - 11 * 60000 });
+  await turn(late.store, "show my applications", T - 11 * 60000);
+  eq((await turn(late.store, "yes", T, "M-C1"))?.status, "stale_card", "a yes more than 10 minutes after the card approves nothing");
+  eq(late.answers.length, 0);
   const old = memoryCards({ shownAt: T - 25 * 3600000 });
   await turn(old.store, "show my applications", T - 25 * 3600000);
-  eq((await turn(old.store, "yes"))?.status, "expired");
+  eq((await turn(old.store, "yes", T, "M-C1"))?.status, "stale_card");
   eq(old.answers.length, 0);
   const no = memoryCards();
   await turn(no.store, "show my applications");
@@ -141,7 +155,7 @@ Deno.test("WO-022/5 the answer's words: what was approved, what was not and why"
   );
 });
 
-Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends nothing, the tap approves 1 and 3, queued, run, receipts", async () => {
+Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes approves 1 and 3 exactly as shown, queued, run, receipts", async () => {
   // 1. The engine's dry run on three postings (a fake engine; the real one is in tests/career-approve-first.test.cjs).
   const prepared: { id: string; payload: any; card: string[]; hash: string }[] = [];
   for (const i of [1, 2, 3]) {
@@ -194,7 +208,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
         const p = prepared.find((x) => x.id === it.prepared_id)!;
         if (approve.includes(it.n)) {
           queue.push({
-            id: `J${it.n}`,
+            id: `00000000-0000-4000-8000-${String(it.n).padStart(12, "0")}`, // a uuid, as the queue makes them
             lease_token: `L${it.n}`,
             url: p.payload.url,
             payload: p.payload,
@@ -204,12 +218,12 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
         return { n: it.n, company: p.payload.company, result: approve.includes(it.n) ? "queued" : "declined" };
       }),
     lastAssistantIntent: async () => last,
+    lastShownCard: async () => "C1",
+    cardOfMessage: async (_t, id) => (String(id) === "M-C1" ? "C1" : null),
   };
   const shown = await turn(store, "show my applications");
   for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
-  eq((await turn(store, "yes but not 2"))?.status, "needs_tap", "option A (chosen 2026-10-22 under the owner's delegation): a text yes never approves or sends; only the person's tap on the exact payload does");
-  eq(queue.length, 0, "a text yes queued nothing");
-  await store.answer("TEST-USER", "C1", [1, 3]); // the person's tap on the card (career_apply_card_answer_own)
+  eq((await turn(store, "yes but not 2", T, "M-C1"))?.status, "answered", "SERIAL-1440 (1): their one text yes, in reply to the card's message, approves 1 and 3 exactly as shown (career_apply_card_answer_own)");
   eq(queue.map((j) => j.payload.company), ["TEST Employer 1", "TEST Employer 3"]);
   eq(queue.map((j) => j.approval), [prepared[0].hash, prepared[2].hash], "approved by the hash that was shown");
   // 3. The person's computer runs them with the engine's own approval; 4. each ends in one receipt.
@@ -233,7 +247,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
     runEngine: async (args) => {
       ran.push(args);
       return {
-        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C" },
+        result: { state: "confirmed", reason: "employer confirmation on the page", confirmation_id: "TEST-C", proof: proofFor(args) },
         evidence: {},
       };
     },
@@ -249,4 +263,25 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, a text yes sends n
     receipts.every((r) => /the employer confirmed it on their page \(confirmation TEST-C\)/.test(r.text)),
     JSON.stringify(receipts),
   );
+});
+
+Deno.test("SERIAL-1451 the yes answers the card this thread showed, no other: a newer card shown elsewhere makes it out of date; nothing approved or declined; the thread that showed the newest card approves", async () => {
+  // Thread A showed C1; a card shown in thread B since (C2) closed it and is now the person's newest open card.
+  const a = memoryCards({ shownCard: "C1" });
+  await turn(a.store, "show my applications");
+  (a as any).card = null;
+  const newest = memoryCards({ shownCard: "C2" });
+  await newest.store.open("TEST-USER", ["P-1", "P-2", "P-3"]);
+  const cross: CardStore = { ...a.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), cardOfMessage: async (_t, id) => (String(id) === "M-C1" ? "C1" : null) };
+  for (const m of ["yes", "yes but not 2", "no"]) {
+    const r = await cardTurn({ message: m, userId: "TEST-USER", threadId: "A", now: T, store: cross, replyTo: m === "no" ? undefined : "M-C1" });
+    eq(r?.status, "card_outdated", m);
+    assert(/out of date/.test(r!.reply) && /nothing was approved/.test(r!.reply) && /show my applications/.test(r!.reply), r!.reply);
+  }
+  eq(a.answers, [], "thread A approved and declined nothing");
+  eq(newest.answers, [], "and touched the newer card not at all");
+  // The thread that showed C2 approves it.
+  const own: CardStore = { ...newest.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), lastShownCard: async () => "C2", cardOfMessage: async (_t, id) => (String(id) === "M-C2" ? "C2" : null) };
+  eq((await cardTurn({ message: "yes", userId: "TEST-USER", threadId: "B", now: T, store: own, replyTo: "M-C2" }))?.status, "answered");
+  eq(newest.answers, [[1, 2, 3]]);
 });

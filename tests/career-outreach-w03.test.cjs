@@ -29,7 +29,7 @@ test("applyListOps: drop VPs + Michigan + boutique re-cut removes exactly the no
 });
 test("safetyPlan: finish date = start + days-1; caps come from CAPS", () => {
   const p = M.safetyPlan(M.createCampaign({}), { scheduled: 24, days: 3, deferred: [] }, { startDateIso: "2026-10-13T00:00:00Z" });
-  assert.equal(p.finish_date, "2026-10-15"); assert.equal(p.daily_cap_start, M.CAPS.startPerDay); assert.match(M.safetyPlanText(p), /approve once/);
+  assert.equal(p.finish_date, "2026-10-15"); assert.equal(p.daily_cap_start, M.CAPS.startPerDay); assert.match(M.safetyPlanText(p), /your approval covers only the exact messages you reviewed, within the scope you approved, until it lapses after 7 days/);
 });
 test("honestYield: patterned-out counted separately from verified", () => {
   const recs = [cand({ person_id: "a", full_name: "Alpha One", work_email: "a@evercore.com" }), cand({ person_id: "b", full_name: "Beta Two", work_email: "b@evercore.com", email_verification: null, email_source: "pattern", email_confidence: 0.6 })];

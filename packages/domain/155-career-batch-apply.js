@@ -377,7 +377,16 @@ const CareerBatchApply = (() => {
           app.tailored = { ran: true, version: (t && t.version) || null, gaps: t && t.gaps ? t.gaps.length : null };
         } catch { app.tailored = { ran: false }; }
       }
-      const profile = profileFor(d, posting);
+      let profile = profileFor(d, posting);
+      // SUBMIT-STEER-1130: answers recorded for THIS application only
+      // (chat capture, carried in deps.appAnswers) ride this posting's
+      // own profile composition and are stamped on its app record —
+      // never the shared profile, never a sibling's.
+      const carried = (d.appAnswers || {})[key];
+      if (carried && Object.keys(carried).length) {
+        app.answers = JSON.parse(JSON.stringify(carried));
+        profile = Object.assign({}, profile, { answers: Object.assign({}, profile.answers || {}, JSON.parse(JSON.stringify(carried))) });
+      }
       rt.profiles[key] = profile;
       const board = boardOrStop(run, app, d, posting);
       if (!board) continue;
@@ -396,6 +405,9 @@ const CareerBatchApply = (() => {
         continue;
       }
       absorbPrepareResult(run, app, res);
+      // SUBMIT-STEER-1130: an UNCOVERED_QUESTION stop carries the
+      // question descriptors the chat path asks and binds answers to.
+      if (app.stop && app.stop.code === "UNCOVERED_QUESTION") app.stop.questions = stopQuestions(res, board);
       // F-031: a doorstep application's page is still live on its board
       // session — leave the execution turn its handle + the exact payload.
       recordBoardSession(run, app, board, res, now);
@@ -414,6 +426,17 @@ const CareerBatchApply = (() => {
       }
     }
     run.cardSha256 = cardSha(run);
+    // APPROVAL INVALIDATION (2026-10-24): the card binds a yes only
+    // while (a) it is inside its validity window and (b) the profile
+    // its answers were built from still stands. The window is the
+    // module's own session-reuse window: prepared forms are the
+    // product of that window, and a yes landing hours later on forms
+    // prepared hours earlier is exactly what approveRun must refuse.
+    // The profile digest covers the answer-bearing profile the
+    // drives consumed (deps.profile, pre-cover-note), canonicalized
+    // so key order cannot fake a change or hide one.
+    run.cardExpiresAt = doorstepApps.length ? now + SESSION_REUSE_TTL_MS : null;
+    run.profileSha256 = doorstepApps.length ? profileDigestOf(d.profile || {}) : null;
     run.status = doorstepApps.length ? "awaiting_approval" : "completed";
     run.summary = summarizeRun(run);
     // Coverage fraction first: how many of the selected came through,
@@ -490,6 +513,62 @@ const CareerBatchApply = (() => {
     event(run, "stopped", { postingKey: app.postingKey, code });
   }
 
+  // SUBMIT-STEER-1130 (answer capture): the question descriptors an
+  // UNCOVERED_QUESTION stop is waiting on — built from the drive's
+  // own asks and the board's own form definition (the standard field
+  // set when the board does not expose one). A descriptor exists only
+  // for a REQUIRED field the person answers in words (screening /
+  // question kinds): files, cover-note drafts and attestations are
+  // never chat questions (an attestation is never taken from chat
+  // text at all). Scope: a field of the standard form is answered
+  // once, on the profile; a field only this posting's form carries
+  // belongs to this application alone.
+  function stopQuestions(res, board) {
+    const Portal = getPortal();
+    const standard = (Portal && Portal.SANDBOX_FIELDS) || [];
+    const stdIds = new Set(standard.map((f) => f.field_id));
+    const defs = new Map();
+    for (const f of standard) if (f && f.field_id) defs.set(f.field_id, f);
+    try {
+      const form = board && typeof board.form === "function" ? board.form() : null;
+      for (const f of (form && form.fields) || []) if (f && f.field_id) defs.set(f.field_id, f);
+    } catch { /* the standard set + the form analysis still name the standard questions */ }
+    const analysis = new Map(((res && res.formAnalysis) || []).map((f) => [f.field_id, f]));
+    const out = [];
+    const seen = new Set();
+    for (const ask of (res && res.asks) || []) {
+      if (!ask || !ask.field_id || seen.has(ask.field_id)) continue;
+      const def = defs.get(ask.field_id) || null;
+      const an = analysis.get(ask.field_id) || null;
+      const kind = (def && def.kind) || (an && an.category) || null;
+      const required = def ? !!def.required : !!(an && an.required);
+      if (!required || (kind !== "screening" && kind !== "question")) continue;
+      seen.add(ask.field_id);
+      out.push({
+        field_id: ask.field_id,
+        question_key: (def && def.question_key) || ask.field_id,
+        label: (def && def.label) || (an && an.label) || ask.field_id,
+        kind,
+        scope: stdIds.has(ask.field_id) ? "profile" : "posting",
+      });
+    }
+    return out;
+  }
+
+  // The run's open chat questions, in the order they are asked: the
+  // first stopped application (in selection order) and its first
+  // unanswered question is the pending one; the rest queue behind it.
+  function openQuestions(run) {
+    const out = [];
+    for (const key of (run && run.selected) || []) {
+      const app = run.apps && run.apps[key];
+      if (!app || !app.stop || app.stop.code !== "UNCOVERED_QUESTION" || !Array.isArray(app.stop.questions)) continue;
+      for (const q of app.stop.questions) out.push({ postingKey: key, company: app.company || null, role: app.role || null, question: q });
+    }
+    return out;
+  }
+  function firstOpenQuestion(run) { const all = openQuestions(run); return all.length ? all[0] : null; }
+
   function nextDayIso(now) {
     const d = new Date(now || Date.now());
     d.setHours(0, 0, 0, 0);
@@ -505,6 +584,20 @@ const CareerBatchApply = (() => {
     return pairs.length ? sha256(pairs.join("|")) : null;
   }
 
+  // Canonical digest of the answer-bearing profile: recursively
+  // key-sorted JSON, hashed. Both sides of an approval compute it
+  // the same way — prepareRun stores it on the run; the router
+  // recomputes it over the CURRENT profile at the approval turn
+  // and hands it to approveRun inside the approval object.
+  function profileDigestOf(profile) {
+    const canon = (v) => {
+      if (Array.isArray(v)) return v.map(canon);
+      if (v && typeof v === "object") { const o = {}; for (const k of Object.keys(v).sort()) o[k] = canon(v[k]); return o; }
+      return v;
+    };
+    return sha256(JSON.stringify(canon(profile || {})));
+  }
+
   // ---------------- J3: one yes -> per-application hash-bound approvals ----
   function approveRun(run, approval) {
     if (!run || run.status !== "awaiting_approval") {
@@ -513,9 +606,53 @@ const CareerBatchApply = (() => {
     if (!approval || approval.approvedByUser !== true) {
       return { ok: false, code: "APPROVAL_REQUIRED", reason: "the batch stops at the card until the owner says yes" };
     }
+    // ACCOUNT BINDING (2026-10-24): the run stores its owner at
+    // creation (createRun's run.userId, from the creating ctx).
+    // An approval arriving as a DIFFERENT account does not bind —
+    // checked before the set hash, the expiry and the digest are
+    // consulted, because a digest binds a profile, never an
+    // identity: two accounts can hold identical profiles, and
+    // only the owner comparison separates them.
+    // FAIL CLOSED on a MISSING owner (coordinator, 2026-10-24):
+    // the comparison above only refused when BOTH sides named an
+    // owner — a run or an approval carrying no userId bound
+    // anyway, the same hole shape as the absent expiry/digest.
+    // No owner on either side = not bindable, same re-review line.
+    if (!run.userId || !approval.userId) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card or this approval names no owning account, and a yes can only land on a card bound to the account approving it" };
+    }
+    if (approval.userId !== run.userId) {
+      return { ok: false, code: "APPROVAL_ACCOUNT_MISMATCH", reason: "this batch was prepared for a different account than the one approving — a card can only be approved by the account it was prepared for. Nothing was submitted; ask me to prepare the batch on this account and approve that card instead" };
+    }
     const nowSha = cardSha(run);
     if (!nowSha || nowSha !== run.cardSha256) {
       return { ok: false, code: "APPROVAL_SET_CHANGED", reason: "the doorstep set or a payload changed since the card was shown — the batch must be re-prepared and re-approved, never silently re-pointed" };
+    }
+    // FAIL CLOSED (2026-10-24): the two checks below are only as
+    // strong as their inputs. A run that does not CARRY the fields
+    // (prepared before they existed — legacy runs exist) or an
+    // approval that does not SUPPLY them is not a card a yes can
+    // land on: absent or unparseable expiry/digest refuses here,
+    // never skips. The refusal's first move is always the same:
+    // re-review needed: I will re-prepare and show a fresh card.
+    if (!Number.isFinite(run.cardExpiresAt) || typeof approval.now !== "number" || !Number.isFinite(approval.now) || !run.profileSha256 || !approval.profileSha256) {
+      return { ok: false, code: "APPROVAL_REVIEW_NEEDED", reason: "re-review needed: I will re-prepare and show a fresh card — this card does not carry the verifiable expiry and profile binding an approval must land on, so no approval can bind to it" };
+    }
+    // EXPIRY (2026-10-24): a yes that arrives after the card's
+    // window does not bind. The window rides the run
+    // (cardExpiresAt, set at prepare from the session-reuse TTL);
+    // presence is guaranteed by the fail-closed check above.
+    if (typeof approval.now === "number" && run.cardExpiresAt && approval.now >= run.cardExpiresAt) {
+      return { ok: false, code: "APPROVAL_CARD_EXPIRED", reason: "this review card has expired — prepared applications are held only for a short window, so a yes can't land on forms prepared earlier. The batch must be re-prepared, and the new card is the one a yes can bind to" };
+    }
+    // PROFILE CHANGE (2026-10-24): the card's answers were built
+    // from the profile as it stood at prepare; if the profile has
+    // changed since — an edited answer, a corrected fact — the yes
+    // was given against answers that no longer stand, and it does
+    // not bind. Presence on both sides is guaranteed by the
+    // fail-closed check above; this is the value comparison.
+    if (run.profileSha256 && approval.profileSha256 && approval.profileSha256 !== run.profileSha256) {
+      return { ok: false, code: "APPROVAL_PROFILE_CHANGED", reason: "your profile changed since this card was prepared, so its answers were built from facts that no longer stand — the batch must be re-prepared from your current profile and re-approved" };
     }
     // P1 text yes ("yes but not 2"): the owner may leave applications
     // OFF the card he was shown — never add one. Every excluded key must
@@ -702,6 +839,7 @@ const CareerBatchApply = (() => {
     const note = (k) => seen.set(k, (seen.get(k) || 0) + 1);
     for (const x of sm.ready || []) note(x.postingKey);
     for (const x of sm.confirmations || []) note(x.postingKey);
+    for (const x of sm.sentUnconfirmed || []) note(x.postingKey);
     for (const x of sm.stops || []) note(x.postingKey);
     for (const x of sm.deferred || []) if (x.code !== "COUNT_DEFERRED") note(x.postingKey);
     for (const x of sm.pending || []) note(x.postingKey);
@@ -737,7 +875,12 @@ const CareerBatchApply = (() => {
       eligible: run.eligible, selected: run.selected.length,
       doorstep: apps.filter((a) => a.stage === "doorstep").length,
       submitted: submitted.length,
-      confirmations: submitted.map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      // SPLIT-1146 (d): the confirmations list holds only RECORDED
+      // employer confirmations. A submission the board accepted with
+      // no confirmation id is a separate group — sent, unconfirmed —
+      // never an entry here with a null id.
+      confirmations: submitted.filter((a) => a.confirmationId).map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role, confirmationId: a.confirmationId })),
+      sentUnconfirmed: submitted.filter((a) => !a.confirmationId).map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
       stops,
       deferred: run.deferred.slice(),
       ready: apps.filter((a) => a.stage === "doorstep").map((a) => ({ postingKey: a.postingKey, company: a.company, role: a.role })),
@@ -752,6 +895,20 @@ const CareerBatchApply = (() => {
     const acc = accountRun(run);
     const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
     const lines = [`${acc.through}/${acc.total} applications ${verb}.`];
+    // SPLIT-1146 (d): after the yes, a selected application whose
+    // stage is "submitted" but which carries NO recorded employer
+    // confirmation is not counted as submitted in the headline —
+    // the headline counts only confirmed submissions, and each
+    // unconfirmed one is named with its own code and reason.
+    if (acc.phase === "submitted") {
+      const selApps = (run.selected || []).map((k) => (run.apps || {})[k]).filter(Boolean);
+      const unconfirmed = selApps.filter((a) => a.stage === "submitted" && !a.confirmationId);
+      if (unconfirmed.length) {
+        const confirmed = selApps.filter((a) => a.stage === "submitted" && a.confirmationId).length;
+        lines[0] = `${confirmed}/${acc.total} applications submitted with employer confirmations.`;
+        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: SENT_WITHOUT_CONFIRMATION — the employer's system took the application but recorded no confirmation; it is not counted as submitted.`);
+      }
+    }
     for (const o of acc.outcomes) {
       if (o.through) continue;
       lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
@@ -772,7 +929,7 @@ const CareerBatchApply = (() => {
       lines.push(`The ${selApps.length} selected:`);
       for (const a of selApps) {
         const stage = a.stage === "doorstep" ? "ready at the final review screen"
-          : a.stage === "submitted" ? `submitted${a.confirmationId ? ` — confirmation ${a.confirmationId}` : ""}`
+          : a.stage === "submitted" ? (a.confirmationId ? `submitted — confirmation ${a.confirmationId}` : "sent — no confirmation from the employer is recorded, so this is not counted as submitted")
           : a.stage === "captcha_handoff" ? "a captcha appeared — the last step is yours"
           : a.stage === "stopped" ? "stopped (named below)"
           : a.stage === "deferred_cap" ? "queued past today's cap"
@@ -792,7 +949,7 @@ const CareerBatchApply = (() => {
         lines.push(`Your yes also gives each of these applications its own certification, for that application only: ${texts.map((t) => `"${t}"`).join("; ")}.`);
       }
     }
-    if (sm.submitted) lines.push(`Submitted ${sm.submitted} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
+    if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
     for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
@@ -806,7 +963,7 @@ const CareerBatchApply = (() => {
   function serializeRun(run) { return JSON.parse(JSON.stringify(run)); }
   function restoreRun(json) { return json && json.id ? json : null; }
 
-  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
+  return { parseApplyAsk, createRun, prepareRun, approveRun, executeRun, summarizeRun, speakSummary, coverageLines, accountRun, checkAccounted, assertAccounted, serializeRun, restoreRun, postingKeyOf, profileDigestOf, openQuestions, firstOpenQuestion, SESSION_REUSE_TTL_MS, RESUME_FALLBACK_CODES, _runtime: RUNTIME };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = CareerBatchApply;

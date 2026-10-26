@@ -48,6 +48,9 @@ export interface ProactiveDeps {
   outreach?: (now: number) => Promise<Record<string, unknown>>;
   // WO-091c: who among these people is paused, opted out or erased (career_quiet_users). Absent: nobody is.
   quiet?: (userIds: string[]) => Promise<Set<string>>;
+  // The watch records of people whose alerts were set by text (career_watch_kv, career:watch-profile:<user>), by user.
+  // Absent, or a read that fails: those people get no alerts this run (career_proactive_run.ts, verifiedWatches).
+  watches?: (userIds: string[]) => Promise<Map<string, unknown>>;
   recordRun: (r: RunStats & { ms: number; error: string | null; at: string; errors?: Record<string, string> | null }) => Promise<void>;
   now: () => number;
 }
@@ -78,7 +81,7 @@ export async function handleProactive(req: Request, d: ProactiveDeps): Promise<R
   };
   const store = d.store();
   const alertStore = d.quiet ? { ...store, active: async () => awake(await store.active(), (r) => r.id) } : store;
-  await step("alerts", () => runAlerts({ store: alertStore, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById }), (s) => Object.assign(stats, s));
+  await step("alerts", () => runAlerts({ store: alertStore, outbox: store, now: started, recentPostings: d.recentPostings, postingsById: d.postingsById, watches: d.watches }), (s) => Object.assign(stats, s));
   if (d.finishedApplications) await step("receipts", () => runReceipts({ outbox: store, now: started, finished: d.finishedApplications!, events: d.events ? d.events() : null }), (n) => { stats.receipts = n; });
   if (d.readyApplications && d.pushCard) {
     const ready = d.readyApplications;

@@ -488,7 +488,9 @@ begin
   insert into public.career_signup_gate (user_id, invite_id, step, created_at, updated_at)
   values (p_user, i.id, 'age', p_now, p_now) on conflict (user_id) do nothing;
   -- The web gate (trainee_admit) admits the same person on every channel.
-  insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', i.waitlist_id) on conflict (user_id) do nothing;
+  -- via 'waitlist' when the invite came from a waitlist row (a wave), 'invite' for one made without one.
+  insert into public.trainee_admissions (user_id, via, waitlist_id)
+  values (p_user, case when i.waitlist_id is null then 'invite' else 'waitlist' end, i.waitlist_id) on conflict (user_id) do nothing;
   if i.sms_consent_text is not null then
     insert into public.career_consents (user_id, kind, version, text_sha256, source, channel, accepted_at)
     values (p_user, 'sms', 'site_waitlist', encode(sha256(convert_to(i.sms_consent_text, 'UTF8')), 'hex'), 'site_waitlist', 'site', coalesce(i.sms_consent_at, i.created_at))
@@ -571,7 +573,8 @@ create trigger career_invites_on_opt_out after insert or update of opted_out on 
 --   the account already holds a redeemed invite (bound by career_invite_bind, which recorded the admission), or
 --   its CONFIRMED phone matches an invite that was sent and is still unused, which is then taken for this account
 --   (redeemed via the web, bound, its admission recorded, the sign-up steps begun).
--- Answers 'waitlist' or null. Expiry, STOP and single use are career_invite_take_core's.
+-- Answers 'waitlist' (or 'invite' for an invite made without a waitlist row) or null. Expiry, STOP and single use are
+-- career_invite_take_core's.
 create or replace function public.career_invite_admit(p_user uuid) returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare ph text; inv uuid; wl uuid; r jsonb;
@@ -579,8 +582,9 @@ begin
   if p_user is null then return null; end if;
   select i.id, i.waitlist_id into inv, wl from public.career_invites i where i.redeemed_user = p_user;
   if inv is not null then
-    insert into public.trainee_admissions (user_id, via, waitlist_id) values (p_user, 'waitlist', wl) on conflict (user_id) do nothing;
-    return 'waitlist';
+    insert into public.trainee_admissions (user_id, via, waitlist_id)
+    values (p_user, case when wl is null then 'invite' else 'waitlist' end, wl) on conflict (user_id) do nothing;
+    return (select via from public.trainee_admissions where user_id = p_user);
   end if;
   select case when u.phone_confirmed_at is not null then public.trainee_phone_digits(u.phone) end into ph from auth.users u where u.id = p_user;
   if ph is null then return null; end if;
@@ -591,7 +595,7 @@ begin
   r := public.career_invite_take_core(inv, 'web:' || p_user::text, 'web', clock_timestamp());
   if r ? 'error' then return null; end if;
   perform public.career_invite_bind(inv, p_user, clock_timestamp());
-  return 'waitlist';
+  return (select via from public.trainee_admissions where user_id = p_user);
 end $$;
 revoke all on function public.career_invite_admit(uuid) from public, anon, authenticated;
 grant execute on function public.career_invite_admit(uuid) to service_role;

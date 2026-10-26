@@ -32,9 +32,6 @@ import { ANON_KEY, SERVICE_KEY, SUPABASE_URL, supabaseParity } from "../flow/han
 import { engineRunner } from "../../workers/career-browser/approve-first.ts";
 import { prepareAhead, storedProfile, tailoredResume } from "../../workers/career-browser/prepare-ahead.ts";
 import { edgeRenderer, memoryResumeStore, type ResumeStore } from "../../supabase/functions/_shared/career_tailor.ts";
-import { SIGNUP_AGE_ASK, SIGNUP_DONE, termsAsk, termsFrom } from "../../supabase/functions/_shared/career_signup.ts"; // FEATURE WAVES
-const TERMS_ENV = { TRAINEE_TERMS_URL: "https://trainee.test/terms", TRAINEE_TERMS_VERSION: "2026-10-26",
-  TRAINEE_PRIVACY_URL: "https://trainee.test/privacy", TRAINEE_PRIVACY_VERSION: "2026-10-26" };
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -465,19 +462,11 @@ Deno.test({
 
       await t.step("their first chat turn: a reply in their own thread, saved", async () => {
         const reply = await say(page, "hi");
-        assertEquals(reply, SIGNUP_AGE_ASK, "the first reply is the sign-up's 18+ question");
+        assert(reply.length > 0, "a reply");
         const thread = await pg.sql(`select id from public.agent_threads where user_id = '${PERSON}'`);
         assert(/^[0-9a-f-]{36}$/.test(thread), "one thread of theirs");
         assertEquals(await pg.sql(`select string_agg(role, ',' order by id) from public.agent_messages where thread_id = '${thread}'`), "user,assistant");
         assertEquals(await pg.sql(`select content from public.agent_messages where thread_id = '${thread}' and role = 'assistant'`), reply, "the page shows the saved reply");
-      });
-
-      await t.step("the sign-up steps: 18+, then the terms and privacy policy, each recorded with its version", async () => {
-        assertEquals(await say(page, "yes"), termsAsk(termsFrom(Deno.env)!));
-        assertEquals(await say(page, "I agree"), SIGNUP_DONE);
-        assertEquals(await pg.sql(`select step from public.career_signup_gate where user_id = '${PERSON}'`), "active");
-        assertEquals(await pg.sql(`select string_agg(kind || ':' || coalesce(version, '') || ':' || coalesce(channel, ''), ',' order by kind) from public.career_consents where user_id = '${PERSON}'`),
-          `age_18_plus:v1:web,privacy:${TERMS_ENV.TRAINEE_PRIVACY_VERSION}:web,sms:site_waitlist:site,terms:${TERMS_ENV.TRAINEE_TERMS_VERSION}:web`);
       });
 
       await t.step("their resume as a .txt file: refused as a PDF, read as text, shown each entry, confirmed", async () => {

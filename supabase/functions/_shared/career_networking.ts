@@ -8,6 +8,9 @@
 //       batch, the approval card outreachTurn already answers ("send 1", "send all", "redo 2"): one approval per exact
 //       message, hash-bound. Sending stays the scheduled run's (career-proactive, CAREER_OUTREACH_SEND), through the
 //       database's claim (caps, do-not-contact, recipient cap). Nothing here sends.
+//   (c2) a role with no name and no firm ("draft a note to a recruiter asking about next steps"): the recipient is
+//       unresolved, so the reply asks which specific person — naming the matches in the person's own contacts —
+//       and states the note will be drafted and held for approval. This path can only draft or clarify, never send.
 // Never an invented address: a recipient is a row of the person's own contacts, with the address on that row, or no one.
 // The model writes only when the caller passes one (CAREER_NETWORKING_DRAFT=on, metered); without it the reply names who
 // would be written to and that nothing was drafted.
@@ -32,7 +35,8 @@ export type Ask =
   | { kind: "draft"; target: Target; topic: string | null };
 export type Target =
   | { by: "name"; name: string; firm: string | null }
-  | { by: "group"; firm: string; count: number | null; role: string | null };
+  | { by: "group"; firm: string; count: number | null; role: string | null }
+  | { by: "role"; role: string; count: number | null; firm: null }; // a role only: the recipient is unresolved
 
 const plain = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "").replace(/&/g, " and ").replace(/[^a-z0-9@.]+/g, " ").trim();
 const NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, a: 1, an: 1 };
@@ -49,7 +53,10 @@ function firmOf(raw: string): string | null {
 
 // (b) and (c): what the message asks, or null when it is not a networking ask (the rest of the chain answers it).
 export function parseNetworkingAsk(message: string): Ask | null {
-  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").trim();
+  // A trailing "do not send (it)" is an instruction about this ask, never part of its topic or its recipient, so it
+  // is stripped here; the path below honours it structurally — it can only draft (held for approval) or clarify.
+  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "")
+    .replace(/[.\s,;—–-]*(?:please\s+)?\b(?:do not|don['’]?t)\s+send(?:\s+it)?\s*$/i, "").replace(/[?!.]+$/, "").trim();
   if (!t || t.length > 300) return null;
   const who = [
     /^(?:who|which (?:people|contacts|connections))(?: else)? (?:do i know|do i have|in my (?:network|contacts|connections)|(?:are|is) (?:in )?my (?:contacts|connections|network))(?: (?:who |that )?works?| working)? (?:at|from|in) (.+)$/i,
@@ -62,7 +69,7 @@ export function parseNetworkingAsk(message: string): Ask | null {
     const m = rx.exec(t);
     if (m) { const firm = firmOf(m[1]); return firm ? { kind: "who", firm } : null; }
   }
-  const verb = new RegExp(`^(?:email|e-mail|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
+  const verb = new RegExp(`^(?:email|e-mail|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: cold| short| quick| networking)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
   if (!verb) return null;
   const verbCount = numberOf(verb[1]);
   let rest = verb[2].trim(), topic: string | null = null;
@@ -85,6 +92,15 @@ export function parseNetworkingAsk(message: string): Ask | null {
   if (role && firm && /^[a-z][a-z -]{1,40}$/i.test(role[1])) {
     const many = /s$/i.test(role[1].trim()) && !/ss$/i.test(role[1].trim());
     return { kind: "draft", topic, target: { by: "group", firm, count: many ? verbCount : 1, role: role[1].trim().replace(/s$/i, "") } };
+  }
+  // The same role with no firm ("a recruiter", "the hiring manager"): nobody specific is named, so the recipient
+  // stays unresolved and draftTurn asks which person. Without this branch the ask falls to the name target below,
+  // whose STOP list rejects "a"/"recruiter", and is lost. Only a phrase that names an occupation counts; anything
+  // else ("a friend", "my resume") keeps falling through exactly as before.
+  if (role && !firm && /^[a-z][a-z -]{1,40}$/i.test(role[1]) && role[1].trim().split(/\s+/).length <= 4
+    && /\b(?:recruiters?|managers?|hiring|talent|sourcers?|interviewers?|coordinators?)\b/i.test(role[1])) {
+    const many = /s$/i.test(role[1].trim()) && !/ss$/i.test(role[1].trim());
+    return { kind: "draft", topic, target: { by: "role", firm: null, count: many ? verbCount : 1, role: role[1].trim().replace(/s$/i, "") } };
   }
   const words = who2.split(/\s+/);
   const STOP = /^(?:my|the|a|an|your|our|me|him|her|them|it|this|that|these|those|resume|cv|cover|letter|application|everyone|someone|anyone|recruiters?|people|contacts|connections)$/i;
@@ -110,6 +126,13 @@ function uniq(rows: ContactRow[]): ContactRow[] {
   return [...by.values()];
 }
 const atFirm = (rows: ContactRow[], firm: string) => uniq(rows.filter((r) => r.firm && (sameFirm(r.firm, firm) || sameFirm(r.firm_raw, firm))));
+// The rows whose title is the role asked for: recruiter-shaped roles match the recruiting titles; any other role
+// matches a title holding every word of it. Shared by the group target and the unresolved-role target.
+const rolePool = (rows: ContactRow[], role: string): ContactRow[] => {
+  const rw = plain(role);
+  const isRecruiter = /recruit|talent|hr|people team/.test(rw);
+  return rows.filter((r) => { const tt = plain(r.title); return isRecruiter ? /recruit|talent|sourc/.test(tt) : rw.split(" ").every((w) => tt.includes(w.replace(/s$/, ""))); });
+};
 const lineOf = (r: ContactRow) => `- ${r.name}${r.title ? `, ${r.title}` : ""}${r.email ? ` (${r.email})` : " (no email address)"}`;
 const fileWord = (rows: ContactRow[]) => { const f = [...new Set(rows.map((r) => r.file))]; return f.length === 1 ? f[0] : `${f.length} lists`; };
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -226,11 +249,16 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
     label = `${t.name}${firmName ? ` at ${firmName}` : ""}`;
     if (!pool.length) return { reply: `No one named ${t.name}${firmName ? ` at ${firmName}` : ""} is in your contacts${firmName && atFirm(all, firmName).length ? ` (your contacts there: ${atFirm(all, firmName).slice(0, 5).map((r) => r.name).join(", ")})` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "not_in_contacts" };
     if (pool.length > 1) return { reply: `More than one ${t.name} is in your contacts:\n${pool.slice(0, LIST_MAX).map((r) => `${lineOf(r)}${r.firm ? ` at ${r.firm}` : ""}`).join("\n")}\nSay which, with the full name and firm ("email ${pool[0].name} at ${pool[0].firm || "<firm>"}").`, intent: DRAFT_INTENT, status: "which" };
+  } else if (t.by === "role") {
+    // The recipient is unresolved (a role, no name, no firm): a draft is written to one specific person from the
+    // person's own contacts, so ask which one — naming the matches on file — and state what happens on the
+    // answer: the note is drafted and held for approval. Nothing here plans or makes a send.
+    const matches = rolePool(uniq(all), t.role);
+    if (!matches.length) return { reply: `There's no ${t.role} in your ${plural(all.length, "contact")} yet, so I don't have one specific person to draft to. Tell me who you mean — their name, and their firm if they're in your contacts. The note will be drafted and held for your approval; nothing is sent from here. ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "which" };
+    return { reply: `Which ${t.role} should the note go to? A draft is written to one specific person from your contacts, then held for your approval — nothing is sent. In your contacts: ${matches.slice(0, LIST_MAX).map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}. Say the name (with the firm, to be exact) and I'll draft it.`, intent: DRAFT_INTENT, status: "which" };
   } else {
     const here = atFirm(all, firmName!);
-    const rw = t.role ? plain(t.role) : "";
-    const isRecruiter = /recruit|talent|hr|people team/.test(rw);
-    pool = !rw ? here : here.filter((r) => { const tt = plain(r.title); return isRecruiter ? /recruit|talent|sourc/.test(tt) : rw.split(" ").every((w) => tt.includes(w.replace(/s$/, ""))); });
+    pool = !t.role ? here : rolePool(here, t.role);
     label = `${t.role ? `${t.role}s` : "your contacts"} at ${firmName}`;
     if (!pool.length) {
       const there = here.length ? ` Your contacts at ${firmName}: ${here.slice(0, 5).map((r) => `${r.name}${r.title ? ` (${r.title})` : ""}`).join(", ")}.` : "";
@@ -250,7 +278,7 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
   if (!pick.length) return { reply: `I can't write to ${label}: ${held.map((h) => `${h.name}: ${h.why}`).join("; ")}. Nothing was drafted. To add an address, send a CSV with Name,Company,Email.`, intent: DRAFT_INTENT, status: "held" };
   const facts = confirmed(((o.state.profile as any)?.facts ?? []) as unknown[]);
   if (!facts.length) return { reply: `I write only from facts you've confirmed, and there are none on record yet, so nothing was drafted. Paste your resume here and confirm it, then ask again.`, intent: DRAFT_INTENT, status: "no_facts" };
-  if (!o.model) return { reply: `Drafting emails isn't switched on here yet, so nothing was written or sent. From your contacts I would write to: ${pick.map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""} <${r.email}>`).join("; ")}.${heldLine ? ` ${heldLine}` : ""}`, intent: DRAFT_INTENT, status: "drafting_off" };
+  if (!o.model) return { reply: `Drafting emails isn't switched on here yet, so nothing was written or sent, and nothing is queued. From your contacts I would write to: ${pick.map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""} <${r.email}>`).join("; ")}.${heldLine ? ` ${heldLine}` : ""}`, intent: DRAFT_INTENT, status: "drafting_off" };
   const prefs = await o.store.prefs(o.userId);
   if (!prefs.signature) return { reply: SIGN_ASK, intent: SIGNATURE_INTENT, status: "needs_signature" };
   return await writeBatch(o, pick, held, considered, ask.topic, prefs.signature, facts);

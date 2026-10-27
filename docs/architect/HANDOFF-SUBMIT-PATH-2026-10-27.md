@@ -36,7 +36,21 @@ versions either the agent-chat handler (mine) or the router files (`142-career-r
 | career-v240-live-gaps | 11/0 | 10/1 | 10/1 | 11/0 | 11/0 |
 | career-v241-live-gaps | 6/0 | 5/1 | 5/1 | 6/0 | 6/0 |
 | career-v242-live-gaps | 2/0 | 1/1 | 1/1 | 1/1 | 2/0 |
+| career-ibtn-integration | 32/0 | 31/1 | 31/1 | 32/0 | 32/0 |
 | career-textpath-heldout-blind1-20261024 (CI, fresh HOME) | absent | 0/15 → 15/15 after `fd606d9d` | | | 15/15 |
+
+CI's own list at `32d1aa0e` (run `40448874128`, gate core: 3058 tests, 33 failed, 24 skipped) is exactly these rows:
+- the 15 heldout-blind1 cases;
+- the 9 chatpath cases;
+- alert-intents #15;
+- bundle-reachability #365 (subtest 3, "manages a watch");
+- depth-memory #561;
+- document-delivery #575;
+- ibtn-integration #1100;
+- resume-phrase-scope #2133;
+- the v240, v241 and v242 wrappers (probe j (a)/(b), LIVE-shaped, chain, and the throwing tailor leg).
+
+Every other step passed: architect-tests, career-edge 151/0, typecheck, bundle, and gate (browser).
 
 - **Mine, fixed:**
   - v242's staged fake did not serve the `agent_messages` read and the `career_events` insert that my evidence step

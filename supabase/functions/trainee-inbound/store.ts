@@ -125,6 +125,7 @@ export function supabaseInboundStore(admin: any): InboundStore {
     },
     async bindInvite(inviteId, userId, at) {
       must(await admin.rpc("career_invite_bind", { p_invite: inviteId, p_user: userId, p_now: iso(at) }), "bind the invite");
+    },
     async unlinkTelegram(userId, at) {
       return Number(must<number>(await admin.rpc("channel_telegram_unlink_as", { p_user: userId, p_now: iso(at) }), "unlink Telegram")) || 0;
     },

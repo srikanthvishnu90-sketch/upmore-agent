@@ -454,6 +454,8 @@ echo "== career_erase_complete.test.sql (forget everything empties every career 
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_erase_complete.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== career_turn_gate.test.sql (a person's turns one at a time, in ticket order; a lapsed ticket never blocks; service only)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_turn_gate.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== career_turn_gate_race.py (two real sessions enter at once: the second waits; S4)"
+python3 "$HERE/career_turn_gate_race.py" "${PSQL[@]}"
 echo "== career_kb_postings_recency_index.test.sql (the pool read walks the posted_at index, no sort)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_kb_postings_recency_index.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"

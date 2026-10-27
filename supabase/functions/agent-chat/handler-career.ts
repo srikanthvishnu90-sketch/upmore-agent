@@ -39,7 +39,7 @@ import { callModel as callModelUncapped, modelConfig, newMeter } from "../_share
 // LAUNCH READINESS (2026-10-26): the daily model ceiling, the per-person turn order, the pool read only when used.
 import { spendCap, spendLimitsFromEnv, supabaseDailySpend } from "../_shared/career_spend_cap.ts";
 import { enterTurnGate, type TurnGate } from "../_shared/career_turn_gate.ts";
-import { CONFLICT_REPLIES, CONFLICT_REPLY } from "../_shared/career_save_replies.ts";
+import { CONFLICT_CODES, CONFLICT_REPLY, countSend, newTurnEffects, refusedSaveReply, trackTurnEffects } from "../_shared/career_save_replies.ts";
 import { poolNeeded } from "./career_pool_need.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
@@ -103,7 +103,7 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
 // LAUNCH READINESS (2026-10-26): what a person reads when their turn could not be saved, in plain words. A conflict (a
 // second message, or an erase, changed the conversation while this one was answered) saves nothing; an unconfirmed save
 // may or may not have landed. Anything that goes to an employer or a contact still needs their approval of exactly it.
-export { CONFLICT_REPLIES, CONFLICT_REPLY };
+export { CONFLICT_REPLY, refusedSaveReply };
 
 export const UNSAVED_REPLY = "I couldn't confirm this reply was saved. Send your message again; nothing goes to an employer or a contact until you approve exactly what is sent.";
 export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
@@ -210,7 +210,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     }
 
     const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // A refused save must say what the turn already did (_shared/career_save_replies.ts): the service client records
+    // the turn's writes, the database's answer to a card yes, and each send, from the turn gate to the commit.
+    const turnEffects = newTurnEffects();
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { global: { fetch: trackTurnEffects(turnEffects) } });
     // WO-100: the person's situation (every task in flight, the next steps, what Trainee can do), read once per turn,
     // before anything answers; a source that fails is named in it, never guessed. A code an employer emailed them, while
     // waiting, is removed from this text like a labeled one.
@@ -335,6 +338,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try {
       gate = await enterTurnGate(admin, user.id, turnKey, { thread: tid });
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
+      turnEffects.on = true;
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       // LAUNCH READINESS X3: the pool is read only on a turn that reaches the router and whose message the router answers
       // with postings (agent-chat/career_pool_need.ts); ensurePool() below reads it once, then puts it on the turn.
@@ -440,7 +444,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ? await emailTurn({ message, userId: user.id, threadId: tid, now: Date.now(), deps: {
           store: supabaseEmailStore(admin), profile: () => ((ctx as any).profile ?? {}), resume: resumes.resume, attachment: resumes.attachment,
           draft: { model: (payload) => callModel(draftCfg, payload, { meter: draftMeter, role: "chat" }), facts: () => ((ctx as any).profile?.facts ?? []) },
-          canSend: async (u) => !!(await sendToken(u)), send: (u, m) => sendMail({ fetch, token: sendToken }, u, m),
+          canSend: async (u) => !!(await sendToken(u)), send: countSend(turnEffects, (u: string, m: any) => sendMail({ fetch, token: sendToken }, u, m)),
           // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
           sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
         } })
@@ -545,7 +549,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
             mailOn: Deno.env.get("CAREER_MAIL_TRACKING") === "on",
             readNow: (u) => mailNow({ userId: u, now: Date.now(), store: supabaseMailStore(admin), cursor: f08Stores.cursor, read: gmailReadNow(f08Grant, fetch), confirm: supabaseConfirmStore(admin) }),
             sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on", canSend: async (u) => !!(await sendToken(u)),
-            send: (u, m) => gmailSender({ fetch, token: (uu) => sendToken(uu) }).send(u, m), connectAsk: missingIntegration("gmail"),
+            send: countSend(turnEffects, (u: string, m: any) => gmailSender({ fetch, token: (uu: string) => sendToken(uu) }).send(u, m)), connectAsk: missingIntegration("gmail"),
           } }).catch((e) => { console.error("follow-up turn:", e?.message ?? e); return null; })
         : null;
       const stood = !f08 && !card && !mock && !asked && !which && !emailed && !outreachAns && !cloud && !cardYes && !paced && !employerAns && !queued && !receiptAns && !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
@@ -865,8 +869,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       return json(cors, saved.response, 200);
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
-      const conflict = Object.hasOwn(CONFLICT_REPLIES, code);
-      return json(cors, { error: code, reply: conflict ? CONFLICT_REPLIES[code] : UNSAVED_REPLY, action: null, turn_key: turnKey }, conflict ? 409 : 503);
+      turnEffects.on = false;
+      const conflict = CONFLICT_CODES.includes(code);
+      return json(cors, { error: code, reply: conflict ? refusedSaveReply(code, turnEffects) : UNSAVED_REPLY, action: null, turn_key: turnKey,
+        turn_effects: turnEffects.writes.size > 0 || turnEffects.queued > 0 || turnEffects.sent > 0 || turnEffects.sendUnknown > 0 }, conflict ? 409 : 503);
     } finally {
       await gate?.leave();
     }

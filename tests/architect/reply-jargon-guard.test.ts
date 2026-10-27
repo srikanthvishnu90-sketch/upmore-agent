@@ -139,20 +139,24 @@ Deno.test("every reply literal the handler and the channel inbound path write is
   assertNode.deepEqual(leaks, [], leaks.join("\n"));
 });
 
-// The replies for a refused save (_shared/career_save_replies.ts) are built from parts, so the literal scan above cannot
-// see them whole: render each and scan it.
-import { CONFLICT_REPLIES } from "../../supabase/functions/_shared/career_save_replies.ts";
-Deno.test("every refused-save reply is free of codes and internal phrases, and each conflict has its own wording", () => {
-  const codes = ["revision_conflict", "turn_key_conflict", "task_event_conflict", "watch_profile_conflict", "privacy_epoch_changed"];
-  assertNode.deepEqual(Object.keys(CONFLICT_REPLIES).sort(), [...codes].sort());
-  assertNode.equal(new Set(Object.values(CONFLICT_REPLIES)).size, codes.length, "no two conflicts share a reply");
-  for (const [code, text] of Object.entries(CONFLICT_REPLIES)) {
-    assertNode.deepEqual(jargonIn(text), [], `${code}: ${text}`);
-    assertNode.ok(/Nothing new was started/.test(text), `${code} keeps the sentence the stale-commit flow test reads`);
-    if (code !== "revision_conflict") assertNode.ok(!/conversation changed|conversation moved on/.test(text), `${code} does not claim the conversation changed`);
-  }
-  // A tool that writes the person's own data writes before the commit, so the reply must not say nothing was saved.
-  for (const code of codes.filter((c) => c !== "privacy_epoch_changed")) {
-    assertNode.ok(/stays saved/.test(CONFLICT_REPLIES[code]) && !/nothing from this message was saved/i.test(CONFLICT_REPLIES[code]), code);
+// The replies for a refused save (_shared/career_save_replies.ts) are built from what the turn did, so the literal scan
+// above cannot see them whole: render every combination and scan it.
+import { CONFLICT_CODES, refusedSaveReply } from "../../supabase/functions/_shared/career_save_replies.ts";
+Deno.test("every refused-save reply is free of codes and internal phrases, says only what the turn did, and each conflict has its own wording", () => {
+  assertNode.deepEqual([...CONFLICT_CODES].sort(), ["privacy_epoch_changed", "revision_conflict", "task_event_conflict", "turn_key_conflict", "watch_profile_conflict"]);
+  const none = { writes: new Set<string>(), queued: 0, sent: 0, sendUnknown: 0 };
+  assertNode.equal(new Set(CONFLICT_CODES.map((c) => refusedSaveReply(c, none))).size, CONFLICT_CODES.length, "no two conflicts share a reply");
+  for (const code of CONFLICT_CODES) {
+    for (const e of [none, { ...none, writes: new Set(["rpc:career_standing_put"]) }, { ...none, queued: 1 }, { ...none, queued: 3 }, { ...none, sent: 1 }, { ...none, sendUnknown: 1 }, { writes: new Set(["x"]), queued: 2, sent: 1, sendUnknown: 0 }]) {
+      const text = refusedSaveReply(code, e);
+      assertNode.deepEqual(jargonIn(text), [], `${code}: ${text}`);
+      const did = e.writes.size > 0 || e.queued > 0 || e.sent > 0 || e.sendUnknown > 0;
+      assertNode.equal(/Nothing new was started/.test(text), !did, `"Nothing new was started" only when the turn did nothing: ${text}`);
+      assertNode.equal(/nothing was sent or submitted/i.test(text), e.queued === 0 && e.sent === 0 && e.sendUnknown === 0, `"nothing was sent" only when nothing was: ${text}`);
+      if (e.queued) assertNode.ok(text.includes(e.queued === 1 ? "The application you approved" : `The ${e.queued} applications you approved`), text);
+      if (e.sent) assertNode.ok(/email you approved was sent/.test(text), text);
+      if (e.sendUnknown) assertNode.ok(/couldn't confirm whether the email you approved went out/.test(text), text);
+      if (code !== "revision_conflict") assertNode.ok(!/conversation changed|conversation moved on/.test(text), `${code} does not claim the conversation changed`);
+    }
   }
 });

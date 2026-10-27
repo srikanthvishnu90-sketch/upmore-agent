@@ -87,7 +87,7 @@ Deno.test("R1: the gate goes ahead, never blocks for good: no table, a failed ch
   eq(waited.outcome, "waited");
 });
 
-Deno.test("R1: the channel sends a revision_conflict once more with the same key; any other refusal, and a second conflict, are not retried", async () => {
+Deno.test("R1: the channel sends a revision_conflict once more only when the turn did nothing; a refused save's own reply is what the person reads", async () => {
   const real = globalThis.fetch;
   try {
     const seq = (bodies: [number, unknown][]) => {
@@ -96,15 +96,22 @@ Deno.test("R1: the channel sends a revision_conflict once more with the same key
       return sent;
     };
     const turn = { userId: "u", threadId: "t", message: "hi", turnKey: "tk-1" };
-    let sent = seq([[409, { error: "revision_conflict" }], [200, { reply: "answered", thread_id: "t" }]]);
-    const r = await chatThroughAgent("http://x", "k", { retryDelayMs: 0 })(turn);
-    eq([r.reply, sent.length, sent.map((b) => b.turn_key)], ["answered", 2, ["tk-1", "tk-1"]], "retried once, same turn key");
-    sent = seq([[409, { error: "turn_key_conflict" }]]);
-    await assertNode.rejects(() => chatThroughAgent("http://x", "k", { retryDelayMs: 0 })(turn), /HTTP 409/);
-    eq(sent.length, 1, "a key conflict is never retried");
+    const chat = chatThroughAgent("http://x", "k", { retryDelayMs: 0 });
+    let sent = seq([[409, { error: "revision_conflict", turn_effects: false, reply: "not saved" }], [200, { reply: "answered", thread_id: "t" }]]);
+    let r = await chat(turn);
+    eq([r.reply, sent.length, sent.map((b) => b.turn_key)], ["answered", 2, ["tk-1", "tk-1"]], "a turn that did nothing is retried once, same turn key");
+    sent = seq([[409, { error: "revision_conflict", turn_effects: true, reply: "The 2 applications you approved are queued and will be submitted." }], [200, { reply: "ran again" }]]);
+    r = await chat(turn);
+    eq([r.status, r.reply, sent.length], [409, "The 2 applications you approved are queued and will be submitted.", 1], "a turn that acted is not run again; its reply is read");
+    sent = seq([[409, { error: "turn_key_conflict", reply: "looks like a repeat" }]]);
+    r = await chat(turn);
+    eq([r.reply, sent.length], ["looks like a repeat", 1], "a key conflict is never retried; its reply is read");
+    sent = seq([[409, { error: "revision_conflict", turn_effects: false, reply: "second refusal" }]]);
+    r = await chat(turn);
+    eq([r.reply, sent.length], ["second refusal", 2], "one retry only, then the refusal's own reply");
     sent = seq([[409, { error: "revision_conflict" }]]);
-    await assertNode.rejects(() => chatThroughAgent("http://x", "k", { retryDelayMs: 0 })(turn), /HTTP 409/);
-    eq(sent.length, 2, "one retry only");
+    await assertNode.rejects(() => chat(turn), /HTTP 409/);
+    eq(sent.length, 1, "a refusal with no record of what the turn did is not retried, and with no reply it is an error");
   } finally { globalThis.fetch = real; }
 });
 

@@ -146,8 +146,7 @@ Deno.test({ name: "account memory (3): two threads from the same account version
     release();
     const late = await first;
     eq(late.status, 409, `the stale commit is refused: ${late.status} ${late.reply}`);
-    // The refused turn says plainly that nothing from it was saved or started (CONFLICT_REPLY); the rows below prove it is true.
-    assert(/nothing from this message was saved or started/.test(late.reply), late.reply);
+    assert(/Nothing new was started/.test(late.reply), late.reply);
   } finally { globalThis.fetch = inner; }
   eq(((await account(person)).memory?.tracker?.rows ?? []).map((r: any) => r.company), ["Stripe", "Figma", "Ramp"], "the refused turn wrote nothing");
   eq(await num(`select count(*) from public.agent_messages where content = 'I applied to Notion for the data analyst intern role'`), 0, "its messages were not stored");

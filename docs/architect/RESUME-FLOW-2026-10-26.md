@@ -139,10 +139,25 @@ for one job at a time (lease, `career_apply_cloud_resume` checks the job's perso
 
 ## 6. Merge and tests
 
-`git merge-tree --write-tree` of this branch with each of #194 (8664fbcb4), #206 (cb3a008da), #201 (44d9ea43a) and #202
-(d74ee2035): no conflicts. Files touched: the migration, `career_resume_record.ts` (new), `career_cloud_optin.ts` (+9
-lines), `scripts/launch/trainee-go-live.sh` (one migration and its mark, placed before #194's and #202's lines), this
-document, two tests.
+This branch's own change, applied on the PRs' base (9d4226fc0), merges with no conflict (`git merge-tree --write-tree`)
+with #194 (82ec2e688, its head at the time of the check), #206 (cb3a008da), #201 (44d9ea43a) and #202 (d74ee2035).
+Against today's trunk (with #197 and #207 merged) #194, #206 and #202 already conflict in `trainee-go-live.sh`,
+`rehearse_live_migrations.sh` and `tests/db/run.sh`; this branch adds no conflict of its own there (its lines sit away
+from theirs: the migration list before `20261026140000`, the mark before `career_apply_receipt_files`, and the rehearsal's
+not-live list at its first line). Files touched: the migration, `career_resume_record.ts` (new), `career_cloud_optin.ts`
+(+9 lines), `trainee-go-live.sh` (+2 lines), `rehearse_live_migrations.sh` (+1 -1 and a comment), this document, two tests.
 
-Tests: `tests/architect/one-resume-record.test.ts` (database, 7 steps) and `tests/architect/flow-one-resume.test.ts` (the
-real chat handler, 6 steps). The PR body carries the fail-first output on trunk, the mutation table and what is not proven.
+Tests: `tests/architect/one-resume-record.test.ts` (database, 8 steps, plus the chat's phrasings and replies) and
+`tests/architect/flow-one-resume.test.ts` (the real chat handler, 7 steps). The PR body carries the fail-first output on
+trunk, the mutation table and what is not proven.
+
+## 7. Gaps seen and not closed here
+
+- The same resume content in a new file: the router says the entries are already on record and records no new
+  confirmation, so the record keeps the earlier upload (an older PDF stays the one the cloud attaches). Needs a router or
+  intake change (files #194 and #201 own).
+- After a refused apply in a texting thread, pasting the resume again in that same thread was answered "I did not catch
+  what to do with that one" (seen in the flow test; the same paste on the web was read). Cause not isolated.
+- A web file (#201) keeps no bytes until #201 stores them (section 4, #201 note 2): such a record has no copy for the cloud.
+- With the switch off, a render the database cannot see (kept outside storage) and a local file on the person's own
+  computer are not refused for a person with a record; only `career_resume_everyone_on()` makes that strict.

@@ -4,7 +4,8 @@
 //      Google with its refresh token (else its access token): a 5-second timeout per call, up to 3 tries on a network
 //      failure, a timeout, a 429 or a 5xx; only Google's 200 counts as revoked;
 //   2. the stored tokens (Vault oauth_<provider>_<uid>) and the connection rows are deleted, every result checked;
-//      deleting the google_career row also deletes the mail rows read from that Gmail (trigger 20261026200011);
+//      the mail rows read from that Gmail (events, drafts, read cursor) are deleted by the google_career row's delete
+//      (trigger 20261026200011) and again here, so the order the code and the migration are deployed in does not matter;
 //   3. the state is read back: no Google connection row and no mail-tracking row is left, or the result says what is.
 // What the person is told (disconnectReply) is only what that read-back shows, in plain words; a revoke Google did not
 // confirm is said so, with where to remove access by hand.
@@ -61,9 +62,16 @@ export async function revokeAtGoogle(d: RevokeDeps, storedSecret: string | null 
   return refused ? "refused" : "not_confirmed";
 }
 
+// Everything mail tracking keeps from a person's Gmail (20261020100000_career_mail_tracking.sql): the status events, the
+// follow-up and thank-you drafts made from them, and the read cursor.
+export const MAIL_TABLES = ["career_mail_events", "career_mail_drafts", "career_mail_cursors"] as const;
+const MAIL_SAID = "delete the application updates, drafts and read time saved from your Gmail";
+
 export interface DisconnectResult {
   ok: boolean; // every Google row and token is gone and no mail-tracking row is left
   had: string[]; // the providers the person had connected
+  mailChecked: boolean; // the career grant was in scope, so the mail rows were judged
+  mailErased: boolean; // mail rows existed before and none is left
   revoke: Record<string, RevokeOutcome>;
   failures: string[]; // what could not be done, in plain words
 }
@@ -71,9 +79,24 @@ export interface DisconnectResult {
 // admin: a service-role supabase-js client.
 export async function disconnectGoogle(admin: any, userId: string, d: RevokeDeps, providers: readonly string[] = GOOGLE_PROVIDERS): Promise<DisconnectResult> {
   const failures: string[] = [], revoke: Record<string, RevokeOutcome> = {};
+  // Mail tracking reads only through the career grant, so its rows are judged when that grant was asked to go.
+  const mailChecked = providers.includes("google_career");
   const rows = await admin.from("user_oauth_connections").select("provider").eq("user_id", userId).in("provider", [...providers]);
-  if (rows.error) return { ok: false, had: [], revoke, failures: ["read which Google accounts are connected"] };
+  if (rows.error) return { ok: false, had: [], mailChecked, mailErased: false, revoke, failures: ["read which Google accounts are connected"] };
   const had: string[] = (rows.data ?? []).map((r: any) => String(r.provider));
+  // Do mail rows exist? A person can have them with no connection left: a mail check that was running when they
+  // disconnected, or a disconnect made before the migration that erases them (20261026200011).
+  const mailLeft = async (): Promise<boolean | null> => {
+    let any = false, unknown = false;
+    for (const t of MAIL_TABLES) { // every table is read, so one that cannot be read does not hide another that has rows
+      const r = await admin.from(t).select("user_id").eq("user_id", userId).limit(1);
+      if (r.error) unknown = true;
+      else if ((r.data ?? []).length) any = true;
+    }
+    return any ? true : unknown ? null : false;
+  };
+  const mailBefore = mailChecked ? await mailLeft() : false;
+  if (mailBefore === null) failures.push("check that everything was deleted");
   for (const p of had) {
     const name = `oauth_${p}_${userId}`;
     const v = await admin.rpc("oauth_vault_read", { p_name: name });
@@ -88,28 +111,34 @@ export async function disconnectGoogle(admin: any, userId: string, d: RevokeDeps
     const del = await admin.from("user_oauth_connections").delete().eq("user_id", userId).in("provider", had);
     if (del.error) failures.push("delete the Google connection");
   }
+  // The migration's trigger deletes these with the career row; deleting them here too means a disconnect does not depend on
+  // the order the code and the migration were deployed in, and clears what a mail check left after the connection was gone.
+  if (mailChecked) {
+    for (const t of MAIL_TABLES) {
+      const del = await admin.from(t).delete().eq("user_id", userId);
+      if (del.error) failures.push(MAIL_SAID);
+    }
+  }
   // Read back what is left: the person is told what is true, not what was attempted.
   const left = await admin.from("user_oauth_connections").select("provider").eq("user_id", userId).in("provider", [...providers]);
-  // Mail tracking reads only through the career grant, so its rows are checked when that grant was asked to go.
-  const mail = providers.includes("google_career")
-    ? await admin.from("career_mail_events").select("id").eq("user_id", userId).limit(1)
-    : { data: [], error: null };
-  if (left.error || mail.error) failures.push("check that everything was deleted");
+  const mailAfter = mailChecked ? await mailLeft() : false;
+  if (left.error || mailAfter === null) failures.push("check that everything was deleted");
   else {
     if ((left.data ?? []).length) failures.push("delete the Google connection");
-    if ((mail.data ?? []).length) failures.push("delete the application updates read from your Gmail");
+    if (mailAfter) failures.push(MAIL_SAID);
   }
   for (const p of had) {
     const still = await admin.rpc("oauth_vault_read", { p_name: `oauth_${p}_${userId}` });
     if (still.error) failures.push("check that everything was deleted");
     else if (still.data) failures.push("delete the stored Google tokens");
   }
-  return { ok: failures.length === 0, had, revoke, failures: [...new Set(failures)] };
+  return { ok: failures.length === 0, had, mailChecked, mailErased: mailBefore === true && mailAfter === false, revoke, failures: [...new Set(failures)] };
 }
 
 const PERMISSIONS = "myaccount.google.com/permissions";
 export function disconnectReply(r: DisconnectResult): string {
-  if (!r.had.length && r.ok) return "No Google account is connected to Trainee, so there was nothing to disconnect.";
+  if (!r.had.length && r.ok && !r.mailErased) return "No Google account is connected to Trainee, so there was nothing to disconnect.";
+  if (!r.had.length && r.ok) return "No Google account is connected to Trainee, but I deleted the application updates, drafts and read time still saved from an earlier connection. Your application tracker and this chat keep their history.";
   const outcomes = Object.values(r.revoke);
   const google = outcomes.length && outcomes.every((o) => o === "revoked")
     ? "Google confirmed Trainee's access is revoked."
@@ -117,7 +146,10 @@ export function disconnectReply(r: DisconnectResult): string {
   if (!r.ok) {
     return `I couldn't finish disconnecting Gmail: I wasn't able to ${r.failures.join(", or ")}. ${google} Say "disconnect gmail" again to retry.`;
   }
-  return `Gmail is disconnected. ${google} I deleted the stored access and the application updates I had read from your Gmail. Your application tracker and this chat keep their history. Say "connect gmail" any time to connect it again.`;
+  const deleted = !r.mailChecked ? "I deleted the stored access."
+    : r.mailErased ? "I deleted the stored access and the application updates I had read from your Gmail."
+    : "I deleted the stored access. No application updates had been saved from your Gmail.";
+  return `Gmail is disconnected. ${google} ${deleted} Your application tracker and this chat keep their history. Say "connect gmail" any time to connect it again.`;
 }
 
 // The chat's ask: "disconnect gmail", "disconnect my google account", "remove access to gmail", "revoke gmail".

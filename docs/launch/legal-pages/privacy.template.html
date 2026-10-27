@@ -94,6 +94,7 @@ footer.site .copy{color:var(--muted-dark);font-size:15px}
     <li><strong>Service providers that run Trainee for us,</strong> under contracts that limit them to doing so: Supabase (our database and servers), OpenAI (the AI model that reads your messages and writes Trainee's replies; OpenAI does not use API data to train its models), Vercel (our website and, if you use cloud apply, the browser that fills the employer's form), and the messaging service you chose: Telegram, LoopMessage (SMS and iMessage) or Meta (WhatsApp).</li>
     <li><strong>When the law requires it,</strong> or to protect the safety of people or of Trainee.</li>
   </ul>
+  <p><strong>Text messaging:</strong> No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Text messaging opt-in data and consent will not be shared with any third parties.</p>
 
   <h2 id="google">Your Google account (Gmail)</h2>
   <p>Connecting Google is optional. Trainee works without it: you can type an emailed code yourself and tell Trainee how an application went. If you connect it, Trainee asks Google for these permissions only:</p>
@@ -109,7 +110,7 @@ footer.site .copy{color:var(--muted-dark);font-size:15px}
     <li><strong>Security codes:</strong> never stored. A code is held in memory only until it is typed into the form, and never shown in the chat, written to a log, or kept with the application.</li>
     <li><strong>Emails it reads for tracking:</strong> not stored. For an email from an employer about one of your applications, Trainee keeps only the result (for example "Acme: interview"), the employer, the role, one short evidence line taken from the subject, the email's date, and a one-way fingerprint of Gmail's message ID so the same email is never counted twice. For every other email it keeps nothing. It also keeps the time it last read up to, so it does not read the same mail again, and any follow-up or thank-you draft it wrote for you from a tracked email.</li>
     <li><strong>Access to Google:</strong> the tokens Google issues are stored encrypted in our database's secret store, are used only by Trainee's servers, and never reach the chat, your browser or the AI model.</li>
-    <li>These are kept until you disconnect Google, say "forget everything", or delete your account.</li>
+    <li>The tracked email results and the drafts are kept until you disconnect Google, say "forget everything", or delete your account. The time it last read up to is kept until you disconnect Google or delete your account: "forget everything" does not delete it, so that Trainee does not read the same mail again and bring back what you just erased.</li>
   </ul>
 
   <h3>Who sees it</h3>
@@ -120,7 +121,7 @@ footer.site .copy{color:var(--muted-dark);font-size:15px}
   </ul>
 
   <h3 id="disconnect">Disconnecting Google</h3>
-  <p>Say "disconnect gmail" to Trainee at any time. Trainee revokes its access at Google, deletes the stored tokens, and deletes the tracked email results, drafts and read time described above. If Google doesn't confirm the revoke, or anything can't be deleted, Trainee tells you so in its reply. Application stages already updated in your tracker and messages already in your chat stay as part of your history until you say "forget everything" or delete your account. You can also remove Trainee's access yourself at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+  <p>Say "disconnect gmail" to Trainee at any time. Trainee revokes its access at Google, deletes the stored tokens, and deletes the tracked email results, drafts and read time described above. If Google doesn't confirm the revoke, or anything can't be deleted, Trainee tells you so in its reply. If a mail check was already running when you disconnected, it can save what it had read just before; Trainee stops it from saving anything it reads after, and saying "disconnect gmail" again deletes whatever it saved. Application stages already updated in your tracker and messages already in your chat stay as part of your history until you say "forget everything" or delete your account. You can also remove Trainee's access yourself at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
 
   <h2 id="keep">How long we keep your information</h2>
   <p>We keep your account information while your account is open. Saying "forget everything" to Trainee deletes your profile, confirmed facts, tracker, tailored resumes and mail tracking results. To delete your whole account, email us at {{SUPPORT_EMAIL}} with the phone number you signed up with; deleting it removes your stored data and connected-account tokens, and we confirm when it is done. Copies in our providers' backups are deleted on their own schedules.</p>

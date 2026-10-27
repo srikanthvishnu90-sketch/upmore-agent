@@ -8,7 +8,7 @@ import {
 } from "../../supabase/functions/_shared/google_scopes.ts";
 import { careerLanding, LEGACY_OFF_MESSAGE, redirectUriFrom, requestScopesFor, scopeSet, startAllowed } from "../../supabase/functions/gmail-oauth/career.ts";
 import { disconnectGoogle, disconnectReply, GOOGLE_REVOKE, isGoogleDisconnect, revokeAtGoogle, REVOKE_TIMEOUT_MS } from "../../supabase/functions/_shared/google_disconnect.ts";
-import { buildLegal, buildNoticePage, missingInputs, OWNER_INPUTS } from "../../scripts/launch/build-legal-pages.ts";
+import { buildLegal, buildNoticePage, missingInputs, OWNER_INPUTS, placeholdersIn } from "../../scripts/launch/build-legal-pages.ts";
 import OAUTH_SRC from "../../supabase/functions/gmail-oauth/index.ts" with { type: "text" };
 import GO_LIVE from "../../scripts/launch/trainee-go-live.sh" with { type: "text" };
 import DB_RUN from "../db/run.sh" with { type: "text" };
@@ -137,63 +137,91 @@ Deno.test("GV/5 revoke at Google: only a 200 is revoked; timeout, retries, and e
   eq(new URLSearchParams(m.calls.at(-1)!.body).getAll("token"), ["a&token=b"], "a hostile token is one encoded field");
 });
 
-// A service-role client double: the person's rows in memory; each call can be told to fail.
-function adminDouble(o: { rows?: string[]; vault?: Record<string, string>; mail?: number; fail?: Set<string> } = {}) {
-  const state = { rows: [...(o.rows ?? [])], vault: { ...(o.vault ?? {}) }, mail: o.mail ?? 0 };
-  const fail = o.fail ?? new Set<string>();
+// A service-role client double: the person's rows in memory; each call can be told to fail. Keys of `fail`:
+//   row_read / row_readback (the first / the later read of the connection rows), row_delete (error, nothing deleted),
+//   row_delete_silent (no error, nothing deleted), row_delete_done (deleted, but the answer is an error),
+//   mail_read / mail_readback (the first / the later read of a mail table), mail_delete (error, nothing deleted),
+//   mail_silent:<table> (no error, that table's rows stay), vault_read (every read), vault_read_after (reads after a delete),
+//   vault_delete, vault_delete_done. trigger:false is the database before migration 20261026200011.
+const MAIL = ["career_mail_events", "career_mail_drafts", "career_mail_cursors"] as const;
+function adminDouble(o: { rows?: string[]; vault?: Record<string, string>; mail?: number; fail?: Set<string>; trigger?: boolean } = {}) {
+  const state = { rows: [...(o.rows ?? [])], vault: { ...(o.vault ?? {}) }, mail: Object.fromEntries(MAIL.map((t) => [t, o.mail ?? 0])) as Record<string, number> };
+  const fail = o.fail ?? new Set<string>(), trigger = o.trigger ?? true;
   const err = (k: string) => (fail.has(k) ? { message: `${k} failed` } : null);
-  const q = (table: string) => {
-    let op = "select";
+  const seen: Record<string, number> = {};
+  const mailTotal = () => Object.values(state.mail).reduce((a, b) => a + b, 0);
+  const from = (table: string) => {
+    let op = "select", ps: string[] = [];
     const self: any = {
       select: () => self, eq: () => self, limit: () => self,
       delete: () => { op = "delete"; return self; },
-      in: (_c: string, ps: string[]) => { self.ps = ps; return self; },
-      then: (ok: (v: unknown) => void) => {
-        if (table === "career_mail_events") return ok({ data: err("mail_read") ? null : Array.from({ length: state.mail }, (_, i) => ({ id: i })), error: err("mail_read") });
-        if (op === "delete") {
-          if (err("row_delete")) return ok({ data: null, error: err("row_delete") });
-          if (!fail.has("row_delete_silent")) { state.rows = state.rows.filter((p) => !self.ps.includes(p)); if (self.ps.includes("google_career")) state.mail = 0; }
-          return ok({ data: null, error: err("row_delete_done") });
+      in: (_c: string, p: string[]) => { ps = p; return self; },
+      then: (resolve: (v: unknown) => void, reject: (e: unknown) => void) => { try { resolve(run()); } catch (e) { reject(e); } },
+    };
+    const run = () => {
+      const n = (seen[`${table}:${op}`] = (seen[`${table}:${op}`] ?? 0) + 1);
+      if (table === "user_oauth_connections" && op === "select") {
+        const e = err(n === 1 ? "row_read" : "row_readback");
+        return { data: e ? null : state.rows.filter((p) => ps.includes(p)).map((provider) => ({ provider })), error: e };
+      }
+      if (table === "user_oauth_connections" && op === "delete") {
+        if (err("row_delete")) return { data: null, error: err("row_delete") };
+        if (!fail.has("row_delete_silent")) {
+          state.rows = state.rows.filter((p) => !ps.includes(p));
+          if (trigger && ps.includes("google_career")) for (const t of MAIL) state.mail[t] = 0;
         }
-        const key = state.rows.length && op === "select" && self.readBack ? "row_readback" : "row_read";
-        self.readBack = true;
-        return ok({ data: err(key) ? null : state.rows.filter((p) => self.ps.includes(p)).map((provider) => ({ provider })), error: err(key) });
-      },
+        return { data: null, error: err("row_delete_done") };
+      }
+      if ((MAIL as readonly string[]).includes(table) && op === "select") {
+        const e = err(n === 1 ? "mail_read" : "mail_readback");
+        return { data: e ? null : state.mail[table] > 0 ? [{ user_id: U }] : [], error: e };
+      }
+      if ((MAIL as readonly string[]).includes(table) && op === "delete") {
+        if (err("mail_delete")) return { data: null, error: err("mail_delete") };
+        if (!fail.has(`mail_silent:${table}`)) state.mail[table] = 0;
+        return { data: null, error: null };
+      }
+      throw new Error(`${table} ${op}`);
     };
     return self;
   };
-  let reads = 0;
+  let reads = 0, deleted = false;
   const admin = {
-    from: (t: string) => q(t),
+    from,
     rpc: async (fn: string, a: { p_name: string }) => {
-      if (fn === "oauth_vault_read") { reads++; if (err("vault_read")) return { data: null, error: err("vault_read") }; return { data: state.vault[a.p_name] ?? null, error: null }; }
+      if (fn === "oauth_vault_read") {
+        reads++;
+        if (err("vault_read") || (deleted && err("vault_read_after"))) return { data: null, error: err("vault_read") ?? err("vault_read_after") };
+        return { data: state.vault[a.p_name] ?? null, error: null };
+      }
       if (fn === "oauth_vault_delete") {
         if (err("vault_delete")) return { data: null, error: err("vault_delete") };
-        delete state.vault[a.p_name];
+        delete state.vault[a.p_name]; deleted = true;
         return { data: null, error: err("vault_delete_done") }; // deleted, but the answer was an error (a timeout after commit)
       }
       throw new Error(fn);
     },
   };
-  return { admin, state, reads: () => reads };
+  return { admin, state, mailTotal, reads: () => reads };
 }
 const U = "00000000-0000-4000-8000-0000000004b1";
 const ok200 = { fetch: (async () => new Response("", { status: 200 })) as typeof fetch, sleep: async () => {}, timeoutMs: 20 };
 const down = { fetch: (async () => { throw new TypeError("down"); }) as typeof fetch, sleep: async () => {}, timeoutMs: 20 };
 const grant = (p: string) => ({ [`oauth_${p}_${U}`]: JSON.stringify({ refresh_token: `rt-${p}` }) });
+const MAIL_SAID = "delete the application updates, drafts and read time saved from your Gmail";
 
 Deno.test("GV/6 disconnect: revoked, deleted and read back; every failure path is ok:false and said plainly", async () => {
   let w = adminDouble({ rows: ["google_career", "gmail"], vault: { ...grant("google_career"), ...grant("gmail") }, mail: 2 });
   let r = await disconnectGoogle(w.admin, U, ok200);
-  eq([r.ok, r.had, r.revoke, r.failures], [true, ["google_career", "gmail"], { google_career: "revoked", gmail: "revoked" }, []], "both grants");
-  eq([w.state.rows, w.state.vault, w.state.mail], [[], {}, 0], "rows, tokens and mail rows gone");
-  assert(/^Gmail is disconnected\. Google confirmed Trainee's access is revoked\./.test(disconnectReply(r)), disconnectReply(r));
+  eq([r.ok, r.had, r.revoke, r.failures, r.mailErased], [true, ["google_career", "gmail"], { google_career: "revoked", gmail: "revoked" }, [], true], "both grants");
+  eq([w.state.rows, w.state.vault, w.mailTotal()], [[], {}, 0], "rows, tokens and mail rows gone");
+  assert(/^Gmail is disconnected\. Google confirmed Trainee's access is revoked\. I deleted the stored access and the application updates I had read from your Gmail\./.test(disconnectReply(r)), disconnectReply(r));
   w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 1 });
   r = await disconnectGoogle(w.admin, U, down);
   eq([r.ok, r.revoke.google_career], [true, "not_confirmed"], "Google unreachable: still deleted, revoke not confirmed");
   assert(/Gmail is disconnected\. Google didn't confirm that Trainee's access is revoked, so please remove Trainee at myaccount\.google\.com\/permissions/.test(disconnectReply(r)), disconnectReply(r));
   r = await disconnectGoogle(adminDouble().admin, U, ok200);
-  eq([r.ok, r.had], [true, []], "nothing connected");
+  eq([r.ok, r.had, r.mailErased], [true, [], false], "nothing connected");
   eq(disconnectReply(r), "No Google account is connected to Trainee, so there was nothing to disconnect.", "said so");
   const cases: [string, string][] = [
     ["row_read", "read which Google accounts are connected"], ["vault_read", "read the stored Google access to revoke it"],
@@ -201,24 +229,55 @@ Deno.test("GV/6 disconnect: revoked, deleted and read back; every failure path i
     ["row_delete_silent", "delete the Google connection"], ["mail_read", "check that everything was deleted"],
     // The store answered an error though the delete went through: never reported as done (the person retries; it is safe).
     ["vault_delete_done", "delete the stored Google tokens"], ["row_delete_done", "delete the Google connection"],
+    // The read-backs themselves failing: not knowing is not "deleted".
+    ["row_readback", "check that everything was deleted"], ["mail_readback", "check that everything was deleted"],
+    ["vault_read_after", "check that everything was deleted"],
+    // The mail delete failing, or "succeeding" without removing a table's rows (each table is judged on its own).
+    ["mail_delete", MAIL_SAID], ["mail_silent:career_mail_events", MAIL_SAID], ["mail_silent:career_mail_drafts", MAIL_SAID], ["mail_silent:career_mail_cursors", MAIL_SAID],
   ];
   for (const [f, said] of cases) {
-    w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 1, fail: new Set([f]) });
+    // A mail delete that fails or removes nothing is tried against a database without the trigger, which would clear the rows itself.
+    w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 1, fail: new Set([f]), trigger: !f.startsWith("mail_") || f.endsWith("read") || f.endsWith("readback") });
     r = await disconnectGoogle(w.admin, U, ok200);
     eq(r.ok, false, `${f}: not ok`);
     assert(r.failures.includes(said), `${f}: ${JSON.stringify(r.failures)}`);
     const reply = disconnectReply(r);
     assert(reply.startsWith("I couldn't finish disconnecting Gmail: I wasn't able to ") && reply.includes(said) && /Say "disconnect gmail" again to retry\./.test(reply), `${f}: ${reply}`);
+    assert(!/I deleted/.test(reply), `${f}: a failed disconnect never says it deleted anything: ${reply}`);
   }
   // A token left behind (the delete said yes but the read-back still finds it) is a failure too.
   w = adminDouble({ rows: ["google_career"], vault: grant("google_career") });
   const sticky = { ...w.admin, rpc: async (fn: string, a: { p_name: string }) => fn === "oauth_vault_delete" ? { data: null, error: null } : w.admin.rpc(fn, a) };
   r = await disconnectGoogle(sticky, U, ok200);
   eq([r.ok, r.failures], [false, ["delete the stored Google tokens"]], "read-back finds the token");
-  // A legacy-only disconnect does not judge mail rows (they belong to the career grant, which stays).
+  // A legacy-only disconnect does not judge or touch mail rows (they belong to the career grant, which stays).
   w = adminDouble({ rows: ["google_career", "gmail"], vault: { ...grant("google_career"), ...grant("gmail") }, mail: 3 });
   r = await disconnectGoogle(w.admin, U, ok200, ["gmail"]);
-  eq([r.ok, w.state.rows, w.state.mail], [true, ["google_career"], 3], "only the legacy grant goes");
+  eq([r.ok, w.state.rows, w.mailTotal(), r.mailChecked], [true, ["google_career"], 9, false], "only the legacy grant goes");
+  assert(/I deleted the stored access\. Your application tracker/.test(disconnectReply(r)) && !/application updates/.test(disconnectReply(r)), disconnectReply(r));
+});
+
+Deno.test("GV/6b the migration is not needed for a disconnect to delete the mail rows, and stray mail rows are cleaned up", async () => {
+  // Code deployed before migration 20261026200011: the database has no trigger, so the code itself deletes the mail rows.
+  let w = adminDouble({ rows: ["google_career"], vault: grant("google_career"), mail: 2, trigger: false });
+  let r = await disconnectGoogle(w.admin, U, ok200);
+  eq([r.ok, r.mailErased, w.mailTotal(), w.state.rows], [true, true, 0, []], "no trigger: the mail rows are still deleted");
+  assert(/I deleted the stored access and the application updates I had read from your Gmail\./.test(disconnectReply(r)), disconnectReply(r));
+  // Mail rows with no connection left (a mail check that was running when the person disconnected): saying it again cleans up.
+  w = adminDouble({ mail: 2 });
+  r = await disconnectGoogle(w.admin, U, ok200);
+  eq([r.ok, r.had, r.mailErased, w.mailTotal()], [true, [], true, 0], "stray mail rows deleted though nothing is connected");
+  eq(disconnectReply(r), "No Google account is connected to Trainee, but I deleted the application updates, drafts and read time still saved from an earlier connection. Your application tracker and this chat keep their history.", "and said so, not 'nothing to disconnect'");
+  // Connected, but no mail was ever tracked: it does not claim to have deleted any.
+  w = adminDouble({ rows: ["google_career"], vault: grant("google_career") });
+  r = await disconnectGoogle(w.admin, U, ok200);
+  eq([r.ok, r.mailErased], [true, false], "nothing tracked");
+  assert(/I deleted the stored access\. No application updates had been saved from your Gmail\./.test(disconnectReply(r)), disconnectReply(r));
+  // Stray rows that cannot be deleted: not ok, and never reported as nothing to do.
+  w = adminDouble({ mail: 1, fail: new Set(["mail_silent:career_mail_cursors"]) });
+  r = await disconnectGoogle(w.admin, U, ok200);
+  eq([r.ok, r.failures], [false, [MAIL_SAID]], "stray rows that stay");
+  assert(/^I couldn't finish disconnecting Gmail/.test(disconnectReply(r)), disconnectReply(r));
 });
 
 Deno.test("GV/9 the asks that disconnect, and the ones that don't", () => {
@@ -265,7 +324,7 @@ Deno.test("GV/12 once filled, the pages say only what the code does, with Google
   const r = buildLegal(SAMPLE, TEMPLATES);
   assert(r.ok, JSON.stringify(r));
   const f = (r as any).built.files as Record<string, string>;
-  for (const [n, html] of Object.entries(f)) assert(!/\{\{[A-Z_]+\}\}/.test(html), `${n}: no placeholder left`);
+  for (const [n, html] of Object.entries(f)) eq(placeholdersIn(html), [], `${n}: no placeholder, bracketed instruction or template note left`);
   const t = text(f["privacy.html"]);
   assert(t.includes("Trainee's use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements."), "Limited Use, verbatim");
   assert(/never used to create, train or improve a machine learning or artificial intelligence model/.test(t), "AI/ML statement");
@@ -287,6 +346,83 @@ Deno.test("GV/12 once filled, the pages say only what the code does, with Google
   const run = await new Deno.Command(Deno.execPath(), { args: ["run", "-A", "scripts/launch/build-legal-pages.ts", "--inputs", inputs, "--out", dir], cwd: ROOT.pathname, stdout: "piped", stderr: "piped" }).output();
   eq(run.code, 0, new TextDecoder().decode(run.stderr));
   for (const name of Object.keys(f)) eq(Deno.readTextFileSync(`${dir}/${name}`), f[name], `${name} written`);
+});
+
+// Review of #196, blocker 1: a successful build ships no placeholder of any kind, and a template that still has one is refused by name.
+Deno.test("GV/11b the built pages carry no bracketed placeholder or template note; the check finds each kind, and the build names what it refuses", () => {
+  // The detector finds what the review found in the unbuilt homepage (so a build that left them would be refused).
+  const raw = placeholdersIn(TEMPLATES.home);
+  for (const w of ["[YOUR PRICE]", "[Plan name]", "[What's included]", "[Launch timing]", "[Confirm which connections are live at launch and remove the rest.]", "[Your name]", "[One-line bio]", "[DATE]",
+    "Template. Only publish claims that are true of your actual systems.", "support@example.com"]) assert(raw.includes(w), `the check finds ${w}`);
+  assert(raw.some((x) => x.startsWith("[Paragraph 1:")), "and the story paragraphs");
+  // Code is not mistaken for a placeholder.
+  eq(placeholdersIn('<script>const a = [0], re = /[A-Z]/, b = x[i]; const d = {k:[1,2]}</script><p>[x]</p><svg><text>[Not Counted Here]</text></svg>'), [], "array indexes, character classes and svg text");
+  // A built homepage has none of them, in any file.
+  const r = buildLegal(SAMPLE, TEMPLATES);
+  assert(r.ok, JSON.stringify(r));
+  for (const [n, html] of Object.entries((r as any).built.files as Record<string, string>)) eq(placeholdersIn(html), [], `${n}`);
+  // Any one of them left by a template change refuses the build, and it says which.
+  const bad: [string, string][] = [
+    ["a price", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>[YOUR PRICE]</p><h2>Reporting a problem</h2>")],
+    ["a template note", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>Template. Only publish claims that are true of your actual systems.</p><h2>Reporting a problem</h2>")],
+    ["a {{name}}", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>{{PRICE}}</p><h2>Reporting a problem</h2>")],
+    ["an example address", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>write to info@example.com</p><h2>Reporting a problem</h2>")],
+  ];
+  for (const [what, home] of bad) {
+    const x = buildLegal(SAMPLE, { ...TEMPLATES, home });
+    assert(!x.ok && (x as any).left.length >= 1, `${what}: the build refuses`);
+  }
+  const x = buildLegal(SAMPLE, { ...TEMPLATES, home: TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>[YOUR PRICE]</p><h2>Reporting a problem</h2>") });
+  eq([x.ok, (x as any).left], [false, ["[YOUR PRICE]"]], "refused, naming the placeholder");
+  // The privacy and terms templates themselves carry none once the three owner inputs are filled.
+  for (const k of ["privacy", "terms"] as const) eq(placeholdersIn((r as any).built.files[`${k}.html`]), [], k);
+});
+
+// Review of #196, blocker 2: with openid, email and gmail.readonly submitted, no page says Trainee sends from the person's
+// Gmail or touches a calendar. When Google approves gmail.send (a later submission), the send patterns stop applying.
+Deno.test("GV/14 the site never claims sending from Gmail or Calendar while those scopes are not submitted", () => {
+  const sends = SUBMITTED_SCOPES.includes(GMAIL_SEND), calendar = SUBMITTED_SCOPES.some((x) => x.includes("calendar"));
+  eq([sends, calendar], [false, false], "today's submission");
+  const SEND: RegExp[] = [/from your own (email|address|gmail|inbox)/i, /come from your own/i, /sent from you\b/i, /sends? (them|it|emails?|the email|messages?) (from|in) your/i,
+    /connect gmail or outlook/i, /sends? (a |the )?(follow-?ups?|notes?|intro|introduction)s? (from|through) your/i];
+  const CAL: RegExp[] = [/calendar/i, /books? (the|a) (time|call|chat|slot)/i, /outlook/i, /suggest times/i, /add interviews/i];
+  const claims = (html: string) => {
+    const t = text(html.replace(/<svg[\s\S]*?<\/svg>/g, " "));
+    return [...(sends ? [] : SEND), ...(calendar ? [] : CAL)].flatMap((re) => t.match(new RegExp(re.source, "gi")) ?? []);
+  };
+  // The check does find the claims the review found, in the unpatched homepage: it is not vacuous.
+  const before = claims(TEMPLATES.home);
+  for (const w of ["come from your own", "Connect Gmail or Outlook", "suggest times", "Calendar", "books the time"]) assert(before.some((c) => c.toLowerCase().includes(w.toLowerCase())), `found "${w}" in the unpatched homepage: ${JSON.stringify(before)}`);
+  const r = buildLegal(SAMPLE, TEMPLATES);
+  assert(r.ok, JSON.stringify(r));
+  const files = (r as any).built.files as Record<string, string>;
+  for (const [n, html] of Object.entries(files)) eq(claims(html), [], `${n} claims sending or Calendar`);
+  // What the Connections page does say: read-only Gmail, and how to disconnect.
+  const conn = text(files["index.html"].slice(files["index.html"].indexOf("slug:'connections'"), files["index.html"].indexOf("slug:'approvals'")));
+  assert(/The permission is read-only: Trainee can't send, delete, label or change any email\./.test(conn) && /Say disconnect gmail to Trainee\./.test(conn), conn);
+  assert(!/LinkedIn|Handshake|Indeed/.test(conn), "and promises no connection that does not exist");
+});
+
+// Review of #196, non-blocking: each public sentence about behavior is tied to the thing that makes it true.
+Deno.test("GV/15 policy sentences are tied to their cause: the extension's agentSubmits flag, the erase that keeps the read time, the text-messaging sentence", () => {
+  const privacy = text(((buildLegal(SAMPLE, TEMPLATES) as any).built.files as Record<string, string>)["privacy.html"]);
+  // (a) "It never submits an application for you" holds only while extension/config.js has agentSubmits: false.
+  const flag = (cfg: string) => { const m = [...cfg.matchAll(/^\s*agentSubmits:\s*(true|false)\s*,/gm)]; if (m.length !== 1) throw new Error(`expected one agentSubmits line, found ${m.length}`); return m[0][1] === "true"; };
+  const policyBroken = (cfg: string, policy: string) => flag(cfg) && /It never submits an application for you/.test(policy);
+  const CONFIG = read("extension/config.js");
+  assert(/It never submits an application for you, solves a captcha, or checks a legal attestation\./.test(privacy), "the policy makes the claim");
+  eq(flag(CONFIG), false, "extension/config.js ships agentSubmits: false; if the owner turns agent submits on, this fails until the policy sentence is changed");
+  eq(policyBroken(CONFIG, privacy), false, "so the claim is true");
+  eq(policyBroken(CONFIG.replace("agentSubmits: false,", "agentSubmits: true,"), privacy), true, "and the same check refuses the claim once the flag is on");
+  // (b) The policy and the erase agree on the read time: "forget everything" keeps it, a disconnect deletes it.
+  assert(/The time it last read up to is kept until you disconnect Google or delete your account: "forget everything" does not delete it/.test(privacy), "the policy says the read time survives forget everything");
+  assert(!/career_mail_cursors/.test(read("supabase/migrations/20261021090000_career_mail_erase.sql").replace(/--[^\n]*/g, "")), "and the erase migration really leaves the cursor (tests/db/career_mail_erase.test.sql asserts it on a database)");
+  assert(/career_mail_cursors where user_id = old\.user_id/.test(MIGRATION), "while the disconnect trigger deletes it");
+  // (c) A mail check running during a disconnect.
+  assert(/If a mail check was already running when you disconnected, it can save what it had read just before; Trainee stops it from saving anything it reads after, and saying "disconnect gmail" again deletes whatever it saved\./.test(privacy), "the window is stated as it is");
+  assert(/stillConnected/.test(read("supabase/functions/_shared/career_proactive_run.ts")), "and the run really checks (google-disconnect-race.test.ts runs it)");
+  // (d) The text-messaging sentence the old Privacy help page had is kept in the policy.
+  assert(privacy.includes("No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Text messaging opt-in data and consent will not be shared with any third parties."), "the SMS sentence");
 });
 
 Deno.test("GV/13 the launch doc states the same scope set the code requests", () => {

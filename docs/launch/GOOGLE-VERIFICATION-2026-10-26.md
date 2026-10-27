@@ -389,7 +389,14 @@ true. "Fixed here" means this PR made it true.
 2. Run `deno run -A scripts/launch/build-legal-pages.ts`.
    - It writes `site/privacy.html`, `site/terms.html` and `site/google.html`, and updates `site/index.html`: the legal
      links, the help pages and `supportEmail`.
-   - If any input is missing or malformed, it prints `REFUSED: owner inputs missing or invalid: …` and writes nothing.
+   - It also takes the unfinished template text out of the homepage instead of filling it with a guess: the launch-timing
+     and price FAQ answers, the Pricing help page, the "Our story" and "The team" sections, and the template note on the
+     Security help page. It rewrites the Connections help page, the coffee-chat copy and the logo strip so they claim only
+     read-only Gmail (no sending, no Calendar, no Outlook, no job-site connections). Add any of these back when you have the
+     real words.
+   - If any input is missing or malformed, it prints `REFUSED: owner inputs missing or invalid: …` and writes nothing. If any
+     placeholder, `[Bracketed instruction]` or template note is still in what it would write, it prints
+     `REFUSED: placeholders left after filling: …`, naming each one, and writes nothing.
 3. Review the diff, then commit.
 
 **Step 1: the domain on Vercel.** Vercel → project `trainee` → Settings → Domains → Add `{{DOMAIN}}`. Use the A/CNAME records

@@ -3,7 +3,9 @@
 // ever served. This build:
 //   1. reads the owner's inputs (docs/launch/legal-pages/owner-inputs.json, or --inputs <file>) and refuses, naming each
 //      one, while any is missing, empty or not the right shape (SUPPORT_EMAIL must be one email address);
-//   2. fills the templates and refuses if any {{PLACEHOLDER}} is left in what it would write;
+//   2. fills the templates and refuses, naming it, if ANY placeholder or template note is left in what it would write: a
+//      {{PLACEHOLDER}}, a [Bracketed instruction], or a note such as "Template. Only publish claims...". The homepage's
+//      unfinished sections are removed or rewritten to what is true (patchHome); none is filled with an invented fact;
 //   3. writes privacy.html, terms.html and google.html (the pre-consent notice, from _shared/google_scopes.ts
 //      consentNotice) and the homepage with its legal links pointed at them (index.html), into site/ or --out <dir>.
 // Run: deno run -A scripts/launch/build-legal-pages.ts [--inputs file.json] [--out dir]
@@ -33,8 +35,19 @@ export function fill(template: string, inputs: OwnerInputs): string {
     return k in inputs ? escHtml(inputs[k].trim()) : m;
   });
 }
+// Anything that is template text rather than a published page: {{NAME}}, [Bracketed instruction or value] (an uppercase
+// word then more words, or an all-caps tag such as [DATE] or [YOUR PRICE]; code like [A-Z] or [0] is neither), the
+// "Template. Only publish..." note, and filler such as lorem ipsum or example.com.
+const LEFTOVERS: RegExp[] = [
+  PLACEHOLDER,
+  /\[(?:[A-Z][^\[\]<>\n]* [^\[\]<>\n]*|[A-Z]{3,}(?: [A-Z]+)*)\]/g,
+  /Template\. Only publish[^<]*/g,
+  /lorem ipsum/gi,
+  /\b(?:support|info|hello|contact)@example\.(?:com|org|test)\b/gi,
+];
 export function placeholdersIn(html: string): string[] {
-  return [...new Set(html.match(PLACEHOLDER) ?? [])];
+  const text = html.replace(/<svg[\s\S]*?<\/svg>/g, "");
+  return [...new Set(LEFTOVERS.flatMap((re) => text.match(new RegExp(re.source, re.flags)) ?? []))];
 }
 
 // The public copy of the words shown before Google's consent screen, with the privacy page's head and footer.
@@ -92,6 +105,59 @@ export function patchHome(home: string, inputs: OwnerInputs): string {
   once("<p>[Describe how connections are authorized, for example through OAuth, and that passwords are never stored.]</p>",
     "<p>Google is connected on Google's own page, so Trainee never sees your Google password. Saying \"disconnect gmail\" revokes Trainee's access at Google and deletes what it kept. See <a href=\"/google\">what Trainee reads in Gmail</a>.</p>");
   once("supportEmail: 'support@example.com',", `supportEmail: '${inputs.SUPPORT_EMAIL.trim().replace(/'/g, "")}',`);
+  // Review of #196, blocker 1: nothing the owner still has to write ships. Each piece below is a section of template text
+  // (a price, a launch date, a founder story, a bio): it is removed, never filled in with a guess. Add it back when the
+  // owner has the real words; the build then refuses nothing, because nothing is left to refuse.
+  const cut = (marker: string, start: string, end: string) => { // the block from `start` (before marker) to `end`, once
+    const m = s.split(marker).length - 1;
+    if (m !== 1) throw new Error(`homepage: expected one "${marker.slice(0, 60)}", found ${m}`);
+    const at = s.indexOf(marker), a = s.lastIndexOf(start, at), b = s.indexOf(end, at);
+    if (a < 0 || b < 0) throw new Error(`homepage: the block around "${marker.slice(0, 60)}" was not found`);
+    s = s.slice(0, a) + s.slice(b + end.length);
+  };
+  cut("[Launch timing]", "        <details>", "</details>\n");
+  cut("[YOUR PRICE]. Cancel anytime.", "        <details>", "</details>\n");
+  cut("[Paragraph 1:", '  <section class="dark">', "  </section>\n");
+  cut("[Your name]", '  <section class="dark">', "  </section>\n");
+  once('  <section class="light">\n    <div class="wrap section">\n      <div class="head center reveal"><h2>What we believe</h2>',
+    '  <section class="dark">\n    <div class="wrap section">\n      <div class="head center reveal"><h2>What we believe</h2>'); // keeps the light/dark rhythm
+  cut("slug:'pricing', group:'Account'", "{ slug:'pricing'", "</tbody></table></div>\n<h2>Canceling</h2>\n<p>Text <code>cancel plan</code> to Trainee or email support. You keep access until the end of your billing period.</p>`},\n\n");
+  once('<div class="note"><i class="ph" aria-hidden="true"><svg class="ic"><use href="#i-warning"/></svg></i><p>Template. Only publish claims that are true of your actual systems.</p></div>\n', "");
+
+  // Review of #196, blocker 2: what the pages say Trainee can do with Google is what the submitted scopes allow (openid,
+  // email, gmail.readonly): it reads application mail, it cannot send, and it has no Calendar. The Connections help page
+  // is rewritten to that, and the sending and booking claims elsewhere are made true of drafts.
+  const a = s.indexOf('<div class="note"><i class="ph" aria-hidden="true"><svg class="ic"><use href="#i-info"/></svg></i><p>[Confirm which connections'), endTag = "tell Trainee to disconnect anything at any time.</p>";
+  const b = s.indexOf(endTag, a);
+  if (a < 0 || b < 0 || s.split("[Confirm which connections").length !== 2) throw new Error("homepage: the Connections help page was not found");
+  const seg = s.slice(a, b + endTag.length), g = seg.indexOf("Gmail</span>");
+  if (g < 0) throw new Error("homepage: the Gmail logo on the Connections help page was not found");
+  const gmail = seg.slice(seg.indexOf("<span>"), g + "Gmail</span>".length);
+  s = s.slice(0, a) + `<h2>Gmail</h2>
+<div class="brands">${gmail}</div>
+<p>Connect Gmail so Trainee can read the emails that matter to your applications and update your tracker. The permission is read-only: Trainee can't send, delete, label or change any email. What it reads and keeps is listed in the <a href="/google">notice shown before you connect</a> and in the <a href="/privacy#google">Privacy Policy</a>.</p>
+<h2>Disconnecting</h2>
+<p>Say <code>disconnect gmail</code> to Trainee. It revokes Trainee's access at Google and deletes the stored access and what it saved from your Gmail. You can also remove Trainee yourself at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>` + s.slice(b + endTag.length);
+  once("desc:'Link the accounts Trainee needs to act for you. Everything is optional and can be disconnected.',", "desc:'Connect Gmail so Trainee can track your application emails. It is optional and you can disconnect it at any time.',");
+  const dropBrand = (region: string, label: string) => { // one logo from the row that follows `region`
+    const r = s.indexOf(region), k = s.indexOf(`${label}</span>`, r);
+    if (r < 0 || k < 0 || k > s.indexOf("</div>", r)) throw new Error(`homepage: the ${label} logo was not found`);
+    const st = s.lastIndexOf("<span>", k), end = k + `${label}</span>`.length;
+    s = s.slice(0, st).replace(/\s*$/, "") + s.slice(end);
+  };
+  for (const label of ["Outlook", "Google Calendar"]) dropBrand('<div class="logo-row">', label);
+  once("desc:'Trainee finds the right people at the firms you want and writes to them for you.',", "desc:'Trainee finds the right people at the firms you want and drafts a note to each for you to review.',");
+  once("drafts a short personal note to each, sends them from your own email once you approve, and helps book the time when they reply.", "drafts a short personal note to each for you to review and send.");
+  once("<li>Personal emails, sent from you</li><li>One polite follow-up, then books the time</li>", "<li>Personal drafts, in your words</li><li>A polite follow-up draft</li>");
+  once("writes each one a personal note from your email, and books the time when they reply.',", "drafts a personal note to each for you to review.',");
+  once("bullets:['Finds the right people','Personal emails, sent from you','Follows up and books the time'],", "bullets:['Finds the right people','Personal drafts, in your words','You review every note'],");
+  once(`      {f:'me', t:'send all 6'},
+      {f:'you', t:'sent. Jordan already replied'},
+      {f:'card', side:'you', icon:'calendar-blank', title:'Coffee chat with Jordan', sub:'Thursday, 3:00 – 3:30 PM'},
+      {f:'me', t:'let’s go'}
+`, `      {f:'me', t:'looks good'},
+      {f:'you', t:'the 6 drafts are ready for you to review and send'}
+`);
   return s;
 }
 

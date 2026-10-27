@@ -567,7 +567,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         : null;
       // END FEATURE GV
       if (googleOff) {
-        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
+        out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
       } else if (card) {
         // A card still waiting for its answer stays this thread's last word; an answered one does not.
         const waiting = ["shown", "not_on_card", "change"].includes(card.status);

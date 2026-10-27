@@ -377,7 +377,10 @@ test('--non-interactive: a function secret set on the project is kept (never gen
   assert.match(r.calls, /trainee-smoke\.cjs --kept CAREER_INGEST_SECRET,TRAINEE_INBOUND_SECRET --wait-runs 420/);
   assert.equal((r.calls.match(/secrets list/g) || []).length, 1, 'the names are read once');
   for (const v of [...SECRET_VALUES, CI_ENV.SUPABASE_ACCESS_TOKEN]) assert.ok(!r.out.includes(v) && !r.log.includes(v), `${v.slice(0, 12)}… is not printed or logged`);
-  assert.doesNotMatch(r.out + r.log, /0f0f/, 'the secrets list itself is never printed');
+  // The secrets list itself is never printed — asserted in the list's own shape (header + "NAME | digest" rows).
+  // A bare /0f0f/ tripwire also matches the 4 hex digits inside the sha256 of any staged file the manifest prints
+  // (router_core.career.js hashed to dd76458b…0f0f5de3… at c4cefa29), which is not a leak.
+  assert.doesNotMatch(r.out + r.log, /NAME \| DIGEST|(?:CAREER_INGEST_SECRET|TRAINEE_INBOUND_SECRET|OPENAI_API_KEY) \| 0f0f/, 'the secrets list itself is never printed');
 });
 
 test('--non-interactive: a secret that also lives outside the project is never generated; an unreadable secrets list stops the run', () => {

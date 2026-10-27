@@ -97,6 +97,8 @@ jobs:
         run: deno run -A evals/career/sealed/seal.ts pubkey --secret-env OPENAI_API_KEY > evals/career/sealed/recipient.json && cat evals/career/sealed/recipient.json
       - name: Open the sealed set
         if: steps.req.outputs.action == 'eval' && steps.req.outputs.set == 'sealed'
+        env:
+          HELDOUT_SEAL_KEY: ${{ secrets.HELDOUT_SEAL_KEY }}
         run: |
           deno run -A evals/career/sealed/seal.ts meta evals/career/sealed/heldout-sealed.v1.json
           sha=$(deno eval 'console.log(JSON.parse(Deno.readTextFileSync("evals/career/sealed/heldout-sealed.v1.json")).sha256)')

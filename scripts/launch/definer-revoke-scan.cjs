@@ -21,9 +21,11 @@
 //     ("anon" is anon), GRANTED BY and WITH GRANT OPTION read past;
 //   - GRANT ... ON ALL FUNCTIONS|PROCEDURES|ROUTINES IN SCHEMA, and ALTER DEFAULT PRIVILEGES ... GRANT ... ON
 //     FUNCTIONS|ROUTINES, to PUBLIC or anon is refused outright;
-//   - dynamic SQL that creates or alters a function (EXECUTE of a string that holds CREATE/ALTER FUNCTION, as in a DO
-//     block or a generator function) cannot be read here, so the file is refused unless it carries the marker
-//     "-- definer-scan: dynamic function DDL reviewed" stating someone checked what it builds.
+//   - a SECURITY DEFINER function made inside a DO block (which runs at apply time) is read like a top-level one and needs
+//     the same file-level revoke; it is also in --definer-keys, so tests/db/run.sh checks the suite builds it;
+//   - CREATE/ALTER FUNCTION|PROCEDURE text in any other literal (a function body, a '...' or $tag$ string, EXECUTE or
+//     not) cannot be read here as run at apply time, so the file is refused unless it carries the marker
+//     "-- definer-scan: dynamic function DDL reviewed" (as a real comment) stating someone checked what it builds.
 // Used by tests/career-definer-revoke.test.cjs.
 "use strict";
 const fs = require("fs");
@@ -35,7 +37,7 @@ const REVIEWED_MARKER = /--\s*definer-scan:\s*dynamic function DDL reviewed\b/i;
 // comment is not a string, /* */ nests (as in Postgres), E'...' takes backslash escapes, $tag$...$tag$ is closed only
 // by the same tag. Comments become a space. With emptyLiterals every '...' and $tag$...$tag$ is emptied (quotes kept, so
 // a function body's position and end stay readable); without it they are kept. "quoted names" are always kept.
-function lex(sql, emptyLiterals, onComment) {
+function lex(sql, emptyLiterals, onComment, onLiteral) {
   let out = "", i = 0;
   const n = sql.length;
   const isIdent = (c) => c !== undefined && /[A-Za-z0-9_$\u0080-\uffff]/.test(c);
@@ -59,6 +61,7 @@ function lex(sql, emptyLiterals, onComment) {
         i++;
       }
       i = Math.min(i + 1, n);
+      if (onLiteral) onLiteral(sql.slice(start + 1, i - 1), false);
       out += emptyLiterals ? "''" : sql.slice(start, i); continue;
     }
     if (c === '"') {
@@ -72,6 +75,7 @@ function lex(sql, emptyLiterals, onComment) {
       if (tag) {
         const close = sql.indexOf(tag[0], i + tag[0].length);
         const end = close < 0 ? n : close + tag[0].length;
+        if (onLiteral) onLiteral(sql.slice(i + tag[0].length, close < 0 ? n : close), DO_BEFORE.test(out));
         out += emptyLiterals ? tag[0] + tag[0] : sql.slice(i, end);
         i = end; continue;
       }
@@ -80,6 +84,8 @@ function lex(sql, emptyLiterals, onComment) {
   }
   return out;
 }
+// A dollar-quoted literal right after DO (or DO LANGUAGE x) is an anonymous block that runs when the file is applied.
+const DO_BEFORE = /\bdo\s*(?:language\s+[A-Za-z_][A-Za-z0-9_]*\s*)?$/i;
 const stripComments = (sql) => lex(sql, false);
 const stripLiterals = (sql) => lex(sql, true);
 // The reviewed marker counts only as a real comment, never as text inside a string or a function body.
@@ -223,23 +229,36 @@ function revokedIn(sql) {
   return from;
 }
 
-// Dynamic function DDL: CREATE/ALTER FUNCTION|PROCEDURE text inside a string literal (any quoting: '...', $tag$...$tag$,
-// nested in a body or a DO block), in a file that EXECUTEs something. Found by counting the DDL keywords with comments
-// removed and again with literals emptied: any the second count misses were inside a string.
-function dynamicFunctionDdl(raw) {
-  const ddl = /\b(create\s+(or\s+replace\s+)?|alter\s+)(function|procedure)\b/gi;
-  const count = (t) => (t.match(ddl) || []).length;
-  const commentsOut = stripComments(raw);
-  // An EXECUTE that runs SQL: not "grant/revoke execute", not a trigger's "execute function|procedure".
-  const runs = commentsOut.replace(/\b(grant|revoke)\s+execute\b/gi, " ").replace(/\bexecute\s+(function|procedure)\b/gi, " ");
-  return count(commentsOut) > count(stripLiterals(raw)) && /\bexecute\b/i.test(runs);
+// Function DDL inside literals, read one level at a time (a body may hold literals of its own):
+//   - inside a DO block: the block runs when the file is applied, so its SECURITY DEFINER functions are read like the
+//     file's own (doDefiners) and need the same file-level revoke; a revoke inside the block does not count.
+//   - anywhere else (a function body, a '...' string, a $tag$ string not run by DO): CREATE/ALTER FUNCTION|PROCEDURE text
+//     there is SQL the scan cannot read as run at apply time; the file is refused unless it carries the reviewed marker.
+//     This holds whether or not the file has an EXECUTE: static DDL in a function body runs when the function is called.
+const FN_DDL = /\b(create\s+(or\s+replace\s+)?|alter\s+)(function|procedure)\b/i;
+function nestedDdl(raw) {
+  const doDefiners = []; let hidden = false;
+  const visit = (sql) => lex(sql, true, null, (content, isDo) => {
+    if (isDo) { doDefiners.push(...definersIn(stripLiterals(content))); visit(content); }
+    else if (FN_DDL.test(stripComments(content))) hidden = true;
+    else visit(content);
+  });
+  visit(raw);
+  return { doDefiners, hidden };
+}
+const dynamicFunctionDdl = (raw) => nestedDdl(raw).hidden;
+// Every SECURITY DEFINER function the file makes at apply time: at its top level and inside DO blocks.
+function allDefiners(raw) {
+  const all = [...definersIn(stripLiterals(raw)), ...nestedDdl(raw).doDefiners];
+  const seen = new Set();
+  return all.filter((d) => !seen.has(d.key) && seen.add(d.key));
 }
 
 function scanText(file, raw) {
   const findings = [];
   const sql = stripLiterals(raw);
   const stmts = privilegeStatements(sql);
-  for (const d of definersIn(sql)) {
+  for (const d of allDefiners(raw)) {
     const revokes = stmts.filter((s) => s.kind === "revoke" && covers(s, d));
     const roles = new Set(revokes.flatMap((s) => s.roles));
     const lastRevoke = revokes.reduce((a, s) => Math.max(a, s.at), -1);
@@ -262,7 +281,7 @@ function scan(dir) {
 function definerKeys(dir) {
   const out = [];
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
-    for (const d of definersIn(stripLiterals(fs.readFileSync(path.join(dir, f), "utf8")))) {
+    for (const d of allDefiners(fs.readFileSync(path.join(dir, f), "utf8"))) {
       const i = d.key.lastIndexOf("("), name = d.key.slice(0, i), types = d.key.slice(i + 1, -1);
       const [schema, fn] = name.includes(".") ? name.split(".") : ["public", name];
       out.push([f, schema, fn, types]);
@@ -271,7 +290,7 @@ function definerKeys(dir) {
   return out;
 }
 
-module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, schemaWideGrants, rolesOf, stripLiterals, stripComments, hasReviewedMarker, definerKeys, REVIEWED_MARKER };
+module.exports = { allDefiners, nestedDdl, scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, schemaWideGrants, rolesOf, stripLiterals, stripComments, hasReviewedMarker, definerKeys, REVIEWED_MARKER };
 if (require.main === module && process.argv[2] === "--definer-keys") {
   for (const k of definerKeys(process.argv[3] || path.join(__dirname, "../../supabase/migrations"))) console.log(k.join("\t"));
 } else if (require.main === module) {

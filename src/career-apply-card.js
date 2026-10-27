@@ -29,6 +29,7 @@
     stale: 'not sent: your details changed after it was prepared; prepare it again',
     changed: 'not sent: it changed after the card was shown',
     pace_unreadable: 'not sent: your saved daily pace could not be read',
+    no_resume: 'not sent: there is no confirmed resume on file to send with it',
     refused: 'not sent: the queue refused it',
   });
 

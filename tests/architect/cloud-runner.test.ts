@@ -12,6 +12,7 @@
 //      functions (the draft bridge is not installed here), a started sandbox is stopped at the finish.
 //   3. real Postgres and the real engine in Chromium on a local form: the engine's dry run prepares, then the sandbox
 //      runner submits exactly the approved application once, records it, and reads back submitted_unconfirmed.
+import { confirmedResumeSql } from "../flow/resume-seed.ts"; // OWNER RULE 2026-10-26: the person has a confirmed resume
 import assertNode from "node:assert/strict";
 import { pgBinDir, startPg, type Pg } from "../flow/pg.ts";
 import { type ClaimedJob, dispatch, handleBridge, jobToken, type Rpc, type SandboxHost } from "../../supabase/functions/_shared/cloud_runner.ts";
@@ -125,6 +126,7 @@ async function people(pg: Pg, ids: string[], portals: string[]) {
     await pg.sql(`insert into auth.users (id, email) values ('${u}', '${u.slice(-2)}@example.test');
       insert into public.profiles (id) values ('${u}');
       insert into public.career_watch_kv (user_id, key, value) values ('${u}', 'career:account', '{"epoch":1,"version":1,"paused":false}');
+      ${confirmedResumeSql(u)}
       select public.career_apply_cloud_optin_as('${u}', true, 'TEST terms');
       insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch)
        values ('${u}', '${RESUME_SHA}', 'resume.pdf', decode('${btoa(String.fromCharCode(...RESUME))}', 'base64'), 1);`);

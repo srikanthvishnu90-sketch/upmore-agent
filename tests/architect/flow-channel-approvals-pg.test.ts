@@ -25,7 +25,9 @@
 //   9. the provider gets its 200 before the turn runs, and a retry while it runs is a duplicate (E-15)
 // Telegram also: a "yes" in reply to a text whose Telegram message_id equals the card message's agent_messages.id
 // approves nothing (E-15's id collision). iMessage also: the documented `sender` field (Trainee's own sender id) is never
-// read as the person; a reaction runs nothing; a file with no text is answered, never silence.
+// read as the person; a reaction runs nothing; a file with no text is answered, never silence; and a "yes" posted as a
+// reply in the card's thread (the webhook's thread.initial_message_id naming a bubble that carried the card) approves
+// exactly that card, while a "yes" replied to any other bubble approves nothing (step 8b).
 //
 // Fixture sources (read 2026-10-26):
 //   whatsapp-text.json            https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview/
@@ -409,6 +411,40 @@ Deno.test({
           assert(/Employer 2[^\n]*: approved, not sent yet\. \(under an hour in this stage\) http:\/\/supabase\.test\/functions\/v1\/trainee-inspect\?t=[0-9a-f]{32}&f=sent$/.test(lines[0]), `newest first, stage, time in it, the link: ${st.reply}`);
           assert(/Employer 1/.test(lines[1]) && !/viewed|opened|seen/i.test(st.reply), st.reply);
         });
+        if (ch === "imessage") {
+          await t.step("imessage 8b. a yes replied in the card's thread approves it (thread.initial_message_id); a yes replied to any other bubble approves nothing", async () => {
+            await seed(a, ch, [3]);
+            const mark = wire.length;
+            await say(ch, A, "show my applications");
+            const c3 = await openCard(a);
+            assert(c3 && c3.id !== card.id, "a third card, for the third application");
+            eq(c3.items.map((i: any) => i.payload_hash), [await preparedHash(a, ch, 3)], "one application per card, bound by its payload hash");
+            const bubbles = got(ch, A, mark);
+            assert(bubbles.length >= 1, "the card went out");
+            const cardRow = await json(`select provider_id, provider_ids from public.career_outbox where user_id = '${a}' and card_id = '${c3.id}' and status = 'delivered'`);
+            const carried: string[] = [cardRow.provider_id, ...(cardRow.provider_ids ?? [])].filter(Boolean);
+            assert(bubbles.every((w) => carried.includes(w.id)), `every bubble that carried the card is recorded on its outbox row: ${JSON.stringify(cardRow)} vs ${JSON.stringify(bubbles.map((w) => w.id))}`);
+            // A yes replied to a bubble that carried no card (the first answer Trainee sent this person), and one
+            // replied to no bubble of ours: refused, in iMessage's own words (the code, nothing it does not have).
+            const said = `Nothing was approved. To approve, send YES and the 4-digit code at the end of the card (like YES 1234).`;
+            eq((await say(ch, A, "yes", { replyTo: got(ch, A, 0)[0].id })).reply, said);
+            eq((await say(ch, A, "yes", { replyTo: "LM-OUT-999999" })).reply, said);
+            eq([(await jobs(a)).length, (await openCard(a))?.id], [2, c3.id], "nothing approved; the third card stands");
+            // A yes replied to the card's own last bubble (the one that names the reply): exactly that application.
+            const yes = await say(ch, A, "yes", { replyTo: bubbles.at(-1)!.id });
+            assert(/^1 approved exactly as shown/.test(yes.reply), yes.reply);
+            const j = await jobs(a);
+            eq(j.map((x: any) => x.job_id), [`TEST-${ch}-1`, `TEST-${ch}-2`, `TEST-${ch}-3`]);
+            eq(j[2].approval_hash, await preparedHash(a, ch, 3), "queued by the hash the card showed");
+            eq(await q1(`select state from public.career_apply_cards where id = '${c3.id}'`), "answered");
+            // The provider's retry of that same webhook runs nothing.
+            const rows = await q1(`select count(*) from public.career_outbox where user_id = '${a}'`);
+            const retry = await post(ch, A, { text: "yes", id: yes.post.id.replace("LM-IN-", ""), replyTo: bubbles.at(-1)!.id });
+            eq(retry.status, 200);
+            assert(JSON.stringify(retry.body).includes("duplicate webhook"), JSON.stringify(retry.body));
+            eq([await q1(`select count(*) from public.career_outbox where user_id = '${a}'`), (await jobs(a)).length], [rows, 3], "a retried webhook runs nothing");
+          });
+        }
         await t.step(`${ch} 9. the provider gets 200 before the turn runs; a retry while it runs is a duplicate (E-15)`, async () => {
           const mark = wire.length, rows = await q1(`select count(*) from public.career_outbox where user_id = '${a}'`);
           const ackId = ch === "telegram" ? "990001" : `ack-${ch}`;

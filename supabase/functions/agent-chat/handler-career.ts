@@ -93,6 +93,7 @@ import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.t
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
+import { keepConfirmedResumeForCloud, supabaseCloudResumeStore } from "../_shared/career_apply_cloud_resume.ts"; // FEATURE 17 follow-up: the confirm seam's cloud keep
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -838,6 +839,24 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
           const held = heldReply(ev);
           if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
+          // FEATURE 17 follow-up (the #202 gap): a resume confirmed here is kept for the cloud, so a hosted
+          // preparation has the file to attach — until this call, nothing in production called
+          // career_apply_cloud_resume_put_for. Only a fully evidenced confirm keeps (nothing held, facts
+          // stamped this turn): the confirmed file's own bytes (career_resume_uploads, found by the upload's
+          // sha256), stored by their hash and verified on read-back by the module; a paste-only confirm has
+          // no file, keeps nothing, and the reply carries the module's own line saying so.
+          if (!held && ev.stamped > 0) {
+            const fileUp = seen.upload?.kind === "file" ? seen.upload : null;
+            let cloudFile: { filename: string; bytes: Uint8Array } | null = null;
+            if (fileUp) {
+              const up = await admin.from("career_resume_uploads").select("content_b64,filename").eq("user_id", user.id).eq("sha256", fileUp.sha256).limit(1);
+              const rec = up.error ? null : up.data?.[0];
+              if (rec?.content_b64) cloudFile = { filename: rec.filename || "resume", bytes: Uint8Array.from(atob(rec.content_b64), (c) => c.charCodeAt(0)) };
+            }
+            const attach = await keepConfirmedResumeForCloud(supabaseCloudResumeStore(admin), { userId: user.id, file: cloudFile })
+              .catch((e) => { console.error("career cloud resume: the confirmed resume was not kept:", (e as Error)?.message ?? e); return null; });
+            if (attach) out = { ...out, reply: `${out.reply}\n${attach.line}` };
+          }
         }
       }
       // FEATURE 1: answer capture (DIAGNOSIS F1): the router's batch stack records a chat answer to a stopped application

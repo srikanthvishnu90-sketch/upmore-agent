@@ -5,7 +5,10 @@ create role authenticated nologin;
 create role service_role nologin bypassrls;
 
 create schema auth;
-create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+-- phone and the two confirmation times: Supabase Auth's columns (phone as digits, no plus sign), read by trainee_admit
+-- (20261026230000), which counts a contact only once it is confirmed.
+create table auth.users (id uuid primary key default gen_random_uuid(), email text, phone text,
+  email_confirmed_at timestamptz, phone_confirmed_at timestamptz);
 -- Supabase resolves the caller from the request's JWT claims.
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid

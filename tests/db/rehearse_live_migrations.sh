@@ -9,6 +9,7 @@
 # 2026-10-26 files trunk added the same day (the launch-readiness audit, PR #192, read all 32 as missing live: 33 of
 # go-live's 65 marks true). Without those eight the mimic applied them before what they need and the job failed on
 # trunk itself. Override with LIVE_MISSING="<file> <file> ..." when the live project moves on.
+#   FEATURE WAVES re-read the 2026-10-26 marks at 19:50 UTC (still false) and adds its own file, 20261026233017 (listed missing too).
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox
 #   constraints are what the migrations before it left). LIVE_SAFE_BRIEF_DIGEST=0 applies the full file instead.
@@ -50,7 +51,8 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
-  20261026140000_career_apply_receipt_store.sql"
+  20261026140000_career_apply_receipt_store.sql 20261026230000_trainee_web_admission.sql
+  20261026233017_career_invite_waves.sql"
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

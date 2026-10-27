@@ -5,7 +5,7 @@
 // answers 503 NOT_WIRED). Tests: tests/edge/manual-connect.test.ts. CORS: the app's own origins only.
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
-import { corsFor } from "../agent-chat/_shared/chat_cors.ts";
+import { financeCorsFor as corsFor } from "../agent-chat/_shared/chat_cors.ts";
 import { handleManualConnect, manualDb } from "../_shared/manual_connect.ts";
 import { browserbaseBrowser } from "../_shared/manual_browser.ts";
 

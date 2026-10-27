@@ -28,6 +28,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
+import { ADMISSION_UNAVAILABLE_REPLY, admitWebUser, NOT_INVITED_REPLY } from "../_shared/trainee_admission.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerProfile } from "../_shared/router_core.career.js";
@@ -75,6 +76,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { commitSignupTurn, SIGNUP_UNAVAILABLE_REPLY, signupTurn } from "../_shared/career_signup.ts"; // FEATURE WAVES
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -174,6 +176,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // a missing profile would make the RPC error and look like rate limiting.
     const profileWrite = await supabase.from("profiles").upsert({ id: user.id }, { onConflict: "id" });
     if (profileWrite.error) throw new Error("Account profile unavailable.");
+
+    // FEATURE WEB-ADMISSION (launch readiness B7/X1, 2026-10-26): a person signed in on the web chats only once
+    // admitted (_shared/trainee_admission.ts; the database decides, closed unless the owner opened sign-up): an account
+    // from before the gate, a confirmed phone on TRAINEE_ALLOWED_CONTACTS, or a redeemed invite (`invite`: the token from
+    // their invite link, redeemed as them through FEATURE WAVES' career_invite_redeem_own). The texting channels decide
+    // their own sign-up before they call here (bridge path). `check_access: true` asks only this. Checked before the
+    // rate limit, so a person still on the waitlist spends nothing. The database refuses their applications too.
+    if (!bridgeUserId) {
+      const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, invite: body.invite,
+        rpc: (n, a) => createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a), personRpc: (n, a) => supabase.rpc(n, a) });
+      if (!adm.admitted) {
+        return json(cors, { error: adm.reason, reply: adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
+          adm.reason === "not_invited" ? 403 : 503);
+      }
+      if (body.check_access === true) return json(cors, { access: "admitted" }, 200);
+    }
+    // END FEATURE WEB-ADMISSION
 
     // Rate limiting: 60 chat requests per fixed 60-minute window per user,
     // enforced on EVERY request (deterministic capabilities included) via
@@ -314,6 +333,31 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     try {
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
+      // FEATURE WAVES: invite waves (GB-01). An invite link's first message on the web (`invite`: the token) is redeemed as
+      // the signed-in person; a person who came in by invite answers the sign-up steps (18+, then the terms and privacy
+      // policy, each recorded with its version) before any other turn. Accounts with no sign-up record are untouched.
+      {
+        // Fails closed: when the sign-up record can't be read or a step can't be saved, the turn stops with a plain "try again"
+        // (503), never carries on to the agent. An invitee who hasn't said they are 18+ or accepted the terms must not get the
+        // full agent because a read failed. Only a database with no sign-up table at all (readGate: the migration isn't applied,
+        // so no invite could exist) is "no sign-up record".
+        let signup: Awaited<ReturnType<typeof signupTurn>>;
+        try {
+          signup = await signupTurn({ admin, person: isBridgeCall ? null : supabase, userId: user.id, message, invite: body.invite, bridge: isBridgeCall, env: Deno.env, now: Date.now() });
+        } catch (e) {
+          console.error("signup turn failed (closed):", e instanceof Error ? e.message : String(e));
+          flowCtx.note = null;
+          return json(cors, { error: "signup_unavailable", reply: SIGNUP_UNAVAILABLE_REPLY }, 503);
+        }
+        if (signup) {
+          const sctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on", snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord: null });
+          const response = { thread_id: tid, reply: flowCtx.note ? `${flowCtx.note} ${signup.reply}` : signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };
+          const kept = await commitSignupTurn(persistence, { userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(sctx), input: userContent, response });
+          flowCtx.note = null;
+          return json(cors, kept, 200);
+        }
+      }
+      // FEATURE WAVES end
       const pool = await poolLoader.loadPool();
       if (pool.error) console.error("career pool load failed:", pool.error);
       // V240 LIVE-FIX (probe f2): the window is a discovery slice,
@@ -360,7 +404,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
+        // FEATURE WEB-ADMISSION (B7): a signed-in web person reads the card with its buttons (the bridge is a texting channel).
+        ? await cardTurn({ surface: bridgeUserId ? "text" : "web", message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.

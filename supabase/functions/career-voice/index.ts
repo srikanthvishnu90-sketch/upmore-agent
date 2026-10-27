@@ -39,5 +39,9 @@ serve((req) => {
       }
       : undefined,
     log: (line) => console.log(line),
+    admitted: async (userId) => {
+      const { data, error } = await admin.rpc("trainee_may_act", { p_user: userId });
+      return !error && data === true;
+    },
   });
 });

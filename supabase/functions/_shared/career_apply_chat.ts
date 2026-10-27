@@ -184,8 +184,11 @@ export async function paceTurn(o: { message: string; userId: string; admin: { rp
 }
 
 
-const NOTHING_SENT = (company: string) =>
-  `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
+// Launch readiness Q2 (2026-10-26): what happens next is said as the deployed system does it. With the server's prepare
+// configured (prepareRunsNow), Trainee prepares it; without it, only the Trainee extension on the person's computer does.
+const NOTHING_SENT = (company: string, prepares = true) => prepares
+  ? `Nothing is sent and nothing is filled yet: I prepare it before you ask, from the facts you confirmed and a resume tailored to it; if the form asks something you haven't told me, I'll ask you here. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`
+  : `Nothing is sent and nothing is filled yet: it waits in your queue until the Trainee extension prepares it on your computer. The exact application goes to ${company} only when you approve it on the card that shows it exactly.`;
 
 export async function applyTurn(o: ApplyChatDeps): Promise<ApplyChatResult | null> {
   // FEATURE E2E: a pasted posting link, or a role named by the company's possessive, read from the ATS on demand
@@ -255,10 +258,10 @@ export async function applyPicked(o: ApplyChatDeps, p: any): Promise<ApplyChatRe
   const kick = r.queued && !resumeMissing ? await prepareFor(o, r.items.map((w) => w.posting_key)) : null;
   const ahead = [prepareSentence(kick, r.queued), resumeMissing && r.queued ? NO_RESUME_WAIT : ""].filter(Boolean).join(" ");
   if (r.queued) {
-    return { reply: `${coverageLine(1, 1)} Queued: ${p.title} at ${p.company} is on your apply list.${ahead ? ` ${ahead}` : ""} ${NOTHING_SENT(p.company)}`, status: "queued", intent, posting,
+    return { reply: `${coverageLine(1, 1)} Queued: ${p.title} at ${p.company} is on your apply list.${ahead ? ` ${ahead}` : ""} ${NOTHING_SENT(p.company, prepareRunsNow(o))}`, status: "queued", intent, posting,
       coverage: { queued: 1, total: 1 }, ...(kick ? { prepare: kick } : {}) };
   }
-  if (r.already) return { reply: `${coverageLine(0, 1, 1)} ${p.title} at ${p.company} is already in your queue, so nothing changed. ${NOTHING_SENT(p.company)}`, status: "already", intent, posting, coverage: { queued: 0, total: 1 } };
+  if (r.already) return { reply: `${coverageLine(0, 1, 1)} ${p.title} at ${p.company} is already in your queue, so nothing changed. ${NOTHING_SENT(p.company, prepareRunsNow(o))}`, status: "already", intent, posting, coverage: { queued: 0, total: 1 } };
   const why = r.refused[0]?.reason ?? "it could not be queued";
   return { reply: `${coverageLine(0, 1)} Not queued: ${why}.`, status: "refused", intent, posting, coverage: { queued: 0, total: 1 } };
 }
@@ -278,7 +281,17 @@ async function prepareFor(o: { prepare?: (jobIds: string[]) => Promise<PrepareKi
   try { return await o.prepare(ids); } catch { return "failed"; }
 }
 
-const NOTHING_SENT_MANY = "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here. Each application goes to its employer only when you approve it on the card that shows it exactly; one card can carry several, and one yes to that card approves exactly what it shows.";
+// Whether Trainee prepares applications itself (cloud prepare on) or only the extension on the person's computer does;
+// it picks the "nothing is sent" wording. #194 removed it from the resume check (a missing resume now refuses, prepare
+// on or off); the replies below still read it.
+function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
+  if (!o.prepareOn) return true;
+  try { return o.prepareOn() !== false; } catch { return true; }
+}
+const NOTHING_SENT_MANY = (prepares = true) => (prepares
+  ? "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here."
+  : "Nothing is sent and nothing is filled yet: they wait in your queue until the Trainee extension prepares each one on your computer.") +
+  " Each application goes to its employer only when you approve it on the card that shows it exactly; one card can carry several, and one yes to that card approves exactly what it shows.";
 const nameOf = (p: { title?: string | null; company?: string | null }) =>
   !p.company && /^#\d+$/.test(String(p.title ?? "")) ? String(p.title) : `${p.title || "the posting"} at ${p.company || "an employer not on record"}`;
 const listed = (names: string[], max = 12) => names.length <= max ? names.join("; ") : `${names.slice(0, max).join("; ")}; and ${names.length - max} more`;
@@ -351,7 +364,7 @@ export async function applyManyTurn(o: ApplyChatDeps): Promise<ApplyChatResult |
   if (refused.length) parts.push(`Not queued: ${listed(refused.map((r) => `${nameOf(r)}: ${r.reason}`), 8)}.`);
   if (asking.length) parts.push(askText(asking.map((r) => r.posting), o.facts ?? []));
   const status = queued.length ? "queued" : already ? "already" : asking.length ? "asking_employer" : "refused";
-  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY}` : refused.length ? ` (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)` : "";
+  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : refused.length ? ` (Trainee applies to an employer once in ${COMPANY_COOLDOWN_DAYS} days.)` : "";
   return { reply: `${note}${parts.join(" ")}${tail}`.trim(), status, intent, queued, refused, coverage: { queued: queued.length, total }, ...(kick ? { prepare: kick } : {}),
     ...(asking.length ? { ask: asking.map((r) => ({ job_id: r.posting.job_id, url: r.posting.url, company: r.posting.company, title: r.posting.title })) } : {}) };
 }
@@ -466,7 +479,7 @@ export async function employerAnswerTurn(o: Omit<ApplyChatDeps, "postings" | "sh
   if (queued.length) parts.push(`Noted, not your employer. Queued: ${queued.join("; ")}.`);
   if (already) parts.push(`Already in your queue, unchanged.`);
   if (refused.length) parts.push(`Not queued: ${refused.join("; ")}.`);
-  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY}` : "";
+  const tail = queued.length || already ? ` ${NOTHING_SENT_MANY(prepareRunsNow(o))}` : "";
   return { reply: `${parts.join(" ")}${more}${tail}`.trim(), status: queued.length ? "queued" : already ? "already" : "refused", intent, pending: rest, answers };
 }
 

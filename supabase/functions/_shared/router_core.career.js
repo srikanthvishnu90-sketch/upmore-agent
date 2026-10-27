@@ -20624,13 +20624,13 @@ const CareerRouter = (() => {
       const co = (target && target.company) || (aboutCo && namedRoleCompanyOf(aboutCo[1])) || (nctx && nctx.company) || (ctx.posting && ctx.posting.company) || null;
       const role = (target && target.role) || (nctx && nctx.role) || (ctx.posting && ctx.posting.title) || null;
       const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
-      const facts = ["What I can do: prepare the full application for a named role — the tailored resume and the complete packet — run it to an approval card in this conversation, and submit only after your tap on that card, through the browser worker."];
-      if (worker && worker.status === "NOT_WIRED") facts.push("What I can't do from this handler today: actually submit — the browser worker is not connected here, so a prepared application stops at your approval card until that wiring exists.");
+      const facts = ["What I can do: put a role you name on your apply list; the Trainee extension on your computer prepares the application with a resume tailored to it, shows you the exact answers on a card, and sends it only after you tap approve."];
+      if (worker && worker.status === "NOT_WIRED") facts.push("What I can't do here today: send an application myself, so each one waits for the extension and your tap on its card.");
       if (co) {
         const found = resolveNamedPosting(target || { company: co, role }, ctx);
-        facts.push(found ? `The ${role || "role"} at ${co} is on record as a posting I can prepare from.` : `The ${role || "role you named"} at ${co} is not in the served board list I can prepare from — paste the posting or its link and I will prepare it from that instead.`);
+        facts.push(found ? `The ${role || "role"} at ${co} is on record as a posting I can prepare from.` : `The ${role || "role you named"} at ${co} is not in the postings I have on file — paste the posting or its link and I will work from that instead.`);
       }
-      const reply = compose({ headline: "Plainly, about submitting applications:", facts, nextStep: co ? "Paste the posting or say \"apply\" with the role named and the preparation starts in this turn." : "Name the role and company — or paste the posting — and the preparation starts in this turn." });
+      const reply = compose({ headline: "Plainly, about submitting applications:", facts, nextStep: co ? "Paste the posting, or say \"apply\" with the role named, and I'll put it on your apply list." : "Name the role and company, or paste the posting, and I'll put it on your apply list." });
       return { intent: "named_role_apply", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     if (!applyVerb && !linked && !(target && /^\s*(the role is|that role is)/i.test(raw))) return null;
@@ -20645,7 +20645,7 @@ const CareerRouter = (() => {
     if (!posting) {
       if (tgt.company) { const mir = threadMirrorForWrite(ctx); if (mir) mir.namedApply = { company: tgt.company, role: tgt.role || null }; }
       const worker = ctx.workerCapabilities && ctx.workerCapabilities.portal_browser;
-      const facts = [`The apply path runs on postings in the served board list or on a posting you paste; the ${tgt.role || "role"} posting at ${tgt.company || "that company"} is in neither right now, and no role will be invented to fill the gap.`];
+      const facts = [`I can apply only to a posting I have on file or one you paste. The ${tgt.role || "role"} posting at ${tgt.company || "that company"} is not on file, and I won't make one up.`];
       if (worker && worker.status === "NOT_WIRED") facts.push("The browser worker that executes applications is also not wired in this handler — even a listed role would stop at preparation here.");
       const reply = compose({ headline: `I can't apply to the ${tgt.role || "role"} at ${tgt.company || "that company"} yet — that posting is not in the list I can work from.`, facts, nextStep: "Paste the posting or its link and I will prepare the application from it in this turn." });
       return { intent: "named_role_apply", reply, resultStatus: "blocked", sends: 0 };
@@ -27593,6 +27593,29 @@ const CareerBatchApply = (() => {
     };
   }
 
+  const STOP_WORDS = {
+    BOARD_NOT_WIRED: "Trainee can't reach this employer's application site from here, so nothing was filled or sent",
+    UNCOVERED_QUESTION: "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer",
+    CAPTCHA_HANDOFF: "a captcha appeared, so the last step is yours",
+    EXECUTION_ERROR: "it stopped with an error, so it is not counted as submitted",
+    DRIVER_ERROR: "it stopped with an error before it was submitted",
+    NO_RESULT: "the employer's site gave no result, so it is not counted as submitted",
+    UNKNOWN_OUTCOME: "the submit gave no readable result, so it is recorded as unknown and will not be sent again on its own",
+    NOT_PREPARED: "it is selected but not prepared yet",
+    NOT_SUBMITTED: "it reached the final review but was not in what you approved, so it was not sent",
+    CAP_REACHED: "today's application limit was reached, so it waits for the next day",
+    COUNT_DEFERRED: "it is beyond the number you asked for, so it stays in the queue",
+    KNOCKOUT_UNMET: "it has a requirement you don't meet",
+    JOB_CLOSED: "the posting is closed",
+  };
+  function plainStop(code) {
+    return STOP_WORDS[code] || "it was stopped, so it is not counted as submitted";
+  }
+  function rolesPhrase(n, familyText) {
+    const fam = String(familyText || "").replace(/\s*\broles?$/i, "").trim();
+    return `${n} ${fam ? `${fam} ` : ""}${n === 1 ? "role" : "roles"}`;
+  }
+
   function coverageLines(run) {
     const acc = accountRun(run);
     const verb = acc.phase === "submitted" ? "submitted" : "ready for your yes";
@@ -27603,12 +27626,12 @@ const CareerBatchApply = (() => {
       if (unconfirmed.length) {
         const confirmed = selApps.filter((a) => a.stage === "submitted" && a.confirmationId).length;
         lines[0] = `${confirmed}/${acc.total} applications submitted with employer confirmations.`;
-        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: SENT_WITHOUT_CONFIRMATION — the employer's system took the application but recorded no confirmation; it is not counted as submitted.`);
+        for (const a of unconfirmed) lines.push(`- ${a.company || "a company"} — ${a.role || "a role"}: the employer's system took the application but recorded no confirmation, so it is not counted as submitted.`);
       }
     }
     for (const o of acc.outcomes) {
       if (o.through) continue;
-      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${o.code} — ${o.reason}`);
+      lines.push(`- ${o.company || "a company"} — ${o.role || "a role"}: ${plainStop(o.code)}.`);
     }
     return lines;
   }
@@ -27616,9 +27639,9 @@ const CareerBatchApply = (() => {
   function speakSummary(run) {
     const sm = run.summary || summarizeRun(run);
     const lines = coverageLines(run);
-    lines.push(`Found ${sm.found} ${run.familyText} roles${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
-    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : x.code})`).join("; ")}.`);
-    lines.push(`${sm.eligible} were eligible; I took the ${sm.selected} you named.`);
+    lines.push(`Found ${rolesPhrase(sm.found, run.familyText)}${sm.duplicatesRemoved ? ` — ${sm.duplicatesRemoved} duplicate${sm.duplicatesRemoved === 1 ? "" : "s"} removed` : ""}.`);
+    if (sm.screenedOut.length) lines.push(`Screened out ${sm.screenedOut.length}: ${sm.screenedOut.map((x) => `${x.company || "a posting"} (${x.code === "KNOCKOUT_UNMET" ? "knockout requirement you don't meet" : x.code === "JOB_CLOSED" ? "posting closed" : plainStop(x.code)})`).join("; ")}.`);
+    lines.push(`${sm.eligible} ${sm.eligible === 1 ? "was" : "were"} eligible; I took the ${sm.selected} you named.`);
     const selApps = (run.selected || []).map((k) => run.apps[k]).filter(Boolean);
     if (selApps.length) {
       lines.push(`The ${selApps.length} selected:`);
@@ -27643,7 +27666,7 @@ const CareerBatchApply = (() => {
       }
     }
     if (sm.confirmations.length) lines.push(`Submitted ${sm.confirmations.length} with employer confirmations: ${sm.confirmations.map((c) => `${c.company} (${c.confirmationId})`).join("; ")}.`);
-    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${st.code} — ${st.reason}`}`);
+    for (const st of sm.stops) lines.push(`Stopped — ${st.company || "a role"}: ${st.code === "UNCOVERED_QUESTION" ? "a required question has no confirmed fact on your profile, so I stopped instead of inventing an answer" : st.code === "CAPTCHA_HANDOFF" ? `a captcha appeared; the last step is yours here: ${st.handoffUrl || ""}` : `${plainStop(st.code)}.`}`);
     const capDef = sm.deferred.filter((x) => x.code === "CAP_REACHED");
     const countDef = sm.deferred.filter((x) => x.code === "COUNT_DEFERRED");
     if (capDef.length) lines.push(`${capDef.length} hit today's application cap and are queued for ${capDef[0].resumeOn || "tomorrow"} — they resume automatically, they are not lost.`);

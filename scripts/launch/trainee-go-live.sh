@@ -166,6 +166,9 @@ MIGRATIONS=(
   20261026140000_career_apply_receipt_store.sql
   20261026210016_career_resume_required.sql
   20261026220016_channel_telegram_login.sql
+  20261026230100_career_erase_complete.sql
+  20261026230300_career_turn_gate.sql
+  20261026230400_career_kb_postings_recency_index.sql
   20261026230500_definer_execute_lockdown.sql
 )
 MIGRATION_MARK=(
@@ -236,6 +239,9 @@ MIGRATION_MARK=(
   "to_regclass('public.career_apply_receipt_files') is not null"
   "to_regclass('public.career_resume_uploads') is not null and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_resume_guard') and exists (select 1 from pg_proc where proname = 'career_resume_ok') and exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%no_resume%')"
   "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
+  "exists (select 1 from pg_proc where proname = 'career_erase_person') and exists (select 1 from pg_constraint where conname = 'extension_submission_reports_user_fk')"
+  "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
+  "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

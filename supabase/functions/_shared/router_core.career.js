@@ -14818,6 +14818,21 @@ const CareerRouter = (() => {
   function handleHonestUnavailableAction(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw);
+    if (/\bhow (?:do|does) (?:job alerts?|alerts?|job-alert watches?|watches?|a watch) work\b/.test(t)
+      || /\bwhat (?:are|is) (?:job alerts?|alerts?|a (?:job[- ]alert )?watch|job[- ]alert watches?)\b/.test(t)
+      || /\bexplain (?:job )?alerts?\b/.test(t)) {
+      return { intent: "career_alerts_explainer", resultStatus: "awaiting_user", reply: compose({
+        headline: "How job alerts work here.",
+        facts: [
+          "You set a watch in your own words — say \"watch for\" plus a role, and add a city, named firms, or \"no remote\" if you want them.",
+          "The watch is saved on your record — per-user, not per-thread — so it stands across conversations.",
+          "New postings are matched against your watches and scored against your confirmed facts and interests, and the matches are recorded as they land — a watch fires on roles that fit your record, not on everything carrying the title.",
+          alertDeliveryLine(ctx),
+          "You run it from this chat: \"what alerts do I have\" reads your list back, you can cap alerts per day, and \"pause my alerts\" / \"resume my alerts\" stop and restart them — while a pause stands the watches stay on file and no reminders are queued.",
+        ],
+        nextStep: "Say \"watch for\" plus a role and the first watch is set in this turn — or ask \"what alerts do I have\" to see your list.",
+      }) };
+    }
     if (/\bwhat can you (actually |really )?(do|help(?: me)? with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t) || /^help( me)?[.!?]*$/.test(t)) {
       return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: "Fair question — here is the real list.", facts: [CAPABILITY_LINE], nextStep: "Name one and it starts now." }) };
     }
@@ -20606,9 +20621,23 @@ const CareerRouter = (() => {
   function handleGreeting(text, ctx) {
     const raw = s(text).trim();
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
+    const isHelp = /^\/help(?:@[A-Za-z0-9_]{1,64})?(\s+\S+)?[.!]?$/i.test(raw);
+    if (isHelp) return helpResult();
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
     return greetingResult();
+  }
+  function helpResult() {
+    const reply = compose({
+      headline: "Help — what Trainee does, and the commands this chat takes.",
+      facts: [
+        "Here is what I can do: find and screen roles against your record; set job-alert watches; tailor your resume and build application packets; run interview prep — briefs, mocks and question practice; track your applications; and draft outreach and negotiation messages, always held for your approval.",
+        "Commands: /start — start, or come back (on Telegram it also links this chat when it carries a link code); /help — this list; /stop — stop every message Trainee sends on its own, alerts and reports included; Trainee still answers when you text it.",
+        "The plain words work too, on any channel: texting STOP, START or HELP does the same as the command, and INFO is another word for HELP.",
+      ],
+      nextStep: "Name anything from the list — a role to find, a watch to set, a draft to write — and it starts now.",
+    });
+    return { intent: "career_help", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function greetingResult() {
     const reply = compose({

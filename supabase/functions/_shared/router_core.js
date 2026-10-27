@@ -39059,6 +39059,36 @@ const CareerRouter = (() => {
   function handleHonestUnavailableAction(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw);
+    // ALERTS EXPLAINER (live misroute, v254, 2026-10-27): "how do
+    // job alerts work?" — a how-does-it-work question about a REAL
+    // feature — matched no branch here and exited as the catch-all
+    // ("I did not catch what to do with that one", plus the
+    // role/date clarifier). The explainer answers from the watch
+    // machinery's own mechanics ONLY: a watch set in the user's
+    // words and saved on their record (per-user, across threads),
+    // new postings matched and scored against that record, the
+    // user's own controls in this chat (list / cap / pause /
+    // resume), and the delivery sentence read off the SAME flag
+    // every watch reply reads (alertDeliveryLine) — off means the
+    // not-on-yet sentence, never a promise to text matches the
+    // code does not keep. In-topic alert turns ("pause my alerts",
+    // "what alerts do I have", "what are my alerts") name no
+    // how/what-is shape and keep their watch-manage owner below.
+    if (/\bhow (?:do|does) (?:job alerts?|alerts?|job-alert watches?|watches?|a watch) work\b/.test(t)
+      || /\bwhat (?:are|is) (?:job alerts?|alerts?|a (?:job[- ]alert )?watch|job[- ]alert watches?)\b/.test(t)
+      || /\bexplain (?:job )?alerts?\b/.test(t)) {
+      return { intent: "career_alerts_explainer", resultStatus: "awaiting_user", reply: compose({
+        headline: "How job alerts work here.",
+        facts: [
+          "You set a watch in your own words — say \"watch for\" plus a role, and add a city, named firms, or \"no remote\" if you want them.",
+          "The watch is saved on your record — per-user, not per-thread — so it stands across conversations.",
+          "New postings are matched against your watches and scored against your confirmed facts and interests, and the matches are recorded as they land — a watch fires on roles that fit your record, not on everything carrying the title.",
+          alertDeliveryLine(ctx),
+          "You run it from this chat: \"what alerts do I have\" reads your list back, you can cap alerts per day, and \"pause my alerts\" / \"resume my alerts\" stop and restart them — while a pause stands the watches stay on file and no reminders are queued.",
+        ],
+        nextStep: "Say \"watch for\" plus a role and the first watch is set in this turn — or ask \"what alerts do I have\" to see your list.",
+      }) };
+    }
     if (/\bwhat can you (actually |really )?(do|help(?: me)? with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t) || /^help( me)?[.!?]*$/.test(t)) {
       return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: "Fair question — here is the real list.", facts: [CAPABILITY_LINE], nextStep: "Name one and it starts now." }) };
     }
@@ -47331,9 +47361,42 @@ const CareerRouter = (() => {
   function handleGreeting(text, ctx) {
     const raw = s(text).trim();
     const isStart = /^\/start(\s+\S+)?[.!]?$/i.test(raw);
+    // HELP COMMAND (live misroute, v254, 2026-10-27): "/help" is a
+    // real command, not a miss. Telegram's parser accepts exactly
+    // /start, /stop, /help (with an optional @bot suffix and one
+    // optional argument token) and the channel layer forwards a
+    // known person's /help to the brain ON PURPOSE (WO-038), as
+    // the literal text "/help" — which no branch claimed, so the
+    // turn exited as the 140 unmatched fallback ("I may have
+    // missed what you meant") with no command list at all. The
+    // claim is whole-turn, on the parser's own grammar. /stop
+    // never reaches the brain (the channel answers it and sets
+    // the opt-out first), so it is listed, never claimed here;
+    // /start keeps the greeting above, unchanged.
+    const isHelp = /^\/help(?:@[A-Za-z0-9_]{1,64})?(\s+\S+)?[.!]?$/i.test(raw);
+    if (isHelp) return helpResult();
     const isGreeting = /^(hi|hello|hey|hiya|howdy|greetings|good\s+(morning|afternoon|evening))(\s+there)?[\s!.]*$/i.test(raw);
     if (!isStart && !isGreeting) return null;
     return greetingResult();
+  }
+  // The help surface: what Trainee does (the honest capability
+  // list the capabilities branch serves) plus the command list
+  // derived from the code's own command handling — Telegram's
+  // three commands (telegram.ts) and the plain words the channel
+  // layer maps to the same commands on every channel (channel.ts
+  // COMMANDS: STOP/START/HELP/INFO; STOPALL/UNSUBSCRIBE are STOP's
+  // other words). No command is listed that no layer handles.
+  function helpResult() {
+    const reply = compose({
+      headline: "Help — what Trainee does, and the commands this chat takes.",
+      facts: [
+        "Here is what I can do: find and screen roles against your record; set job-alert watches; tailor your resume and build application packets; run interview prep — briefs, mocks and question practice; track your applications; and draft outreach and negotiation messages, always held for your approval.",
+        "Commands: /start — start, or come back (on Telegram it also links this chat when it carries a link code); /help — this list; /stop — stop every message Trainee sends on its own, alerts and reports included; Trainee still answers when you text it.",
+        "The plain words work too, on any channel: texting STOP, START or HELP does the same as the command, and INFO is another word for HELP.",
+      ],
+      nextStep: "Name anything from the list — a role to find, a watch to set, a draft to write — and it starts now.",
+    });
+    return { intent: "career_help", reply, resultStatus: "awaiting_user", sends: 0 };
   }
   function greetingResult() {
     const reply = compose({

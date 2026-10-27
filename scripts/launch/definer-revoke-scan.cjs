@@ -30,11 +30,60 @@ const fs = require("fs");
 const path = require("path");
 
 const REVIEWED_MARKER = /--\s*definer-scan:\s*dynamic function DDL reviewed\b/i;
-const stripComments = (sql) => sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
-// Comments out, and every string literal emptied (its quotes kept, so a body's position and end stay readable).
-function stripLiterals(sql) {
-  return stripComments(sql).replace(/'(?:[^']|'')*'|(\$[a-z_0-9]*\$)[\s\S]*?\1/gi, (m, tag) => tag ? `${tag}${tag}` : "''");
+// One left-to-right pass, so what is a comment, a string or a quoted name is decided by where it starts and never by a
+// pattern run over the whole text: "--" or "/*" inside a string or a "quoted name" is not a comment, a quote inside a
+// comment is not a string, /* */ nests (as in Postgres), E'...' takes backslash escapes, $tag$...$tag$ is closed only
+// by the same tag. Comments become a space. With emptyLiterals every '...' and $tag$...$tag$ is emptied (quotes kept, so
+// a function body's position and end stay readable); without it they are kept. "quoted names" are always kept.
+function lex(sql, emptyLiterals, onComment) {
+  let out = "", i = 0;
+  const n = sql.length;
+  const isIdent = (c) => c !== undefined && /[A-Za-z0-9_$\u0080-\uffff]/.test(c);
+  while (i < n) {
+    const c = sql[i], d = sql[i + 1];
+    if (c === "-" && d === "-") { const start = i; while (i < n && sql[i] !== "\n") i++; if (onComment) onComment(sql.slice(start, i)); out += " "; continue; }
+    if (c === "/" && d === "*") {
+      const start = i; let depth = 1; i += 2;
+      while (i < n && depth > 0) {
+        if (sql[i] === "/" && sql[i + 1] === "*") { depth++; i += 2; } else if (sql[i] === "*" && sql[i + 1] === "/") { depth--; i += 2; } else i++;
+      }
+      if (onComment) onComment(sql.slice(start, i));
+      out += " "; continue;
+    }
+    if (c === "'") {
+      const escapes = /^[eE]$/.test(sql[i - 1] || "") && !isIdent(sql[i - 2]);
+      const start = i; i++;
+      while (i < n) {
+        if (escapes && sql[i] === "\\") { i += 2; continue; }
+        if (sql[i] === "'") { if (sql[i + 1] === "'") { i += 2; continue; } break; }
+        i++;
+      }
+      i = Math.min(i + 1, n);
+      out += emptyLiterals ? "''" : sql.slice(start, i); continue;
+    }
+    if (c === '"') {
+      const start = i; i++;
+      while (i < n) { if (sql[i] === '"') { if (sql[i + 1] === '"') { i += 2; continue; } break; } i++; }
+      i = Math.min(i + 1, n);
+      out += sql.slice(start, i); continue;
+    }
+    if (c === "$" && !isIdent(sql[i - 1])) {
+      const tag = /^\$(?:[A-Za-z_\u0080-\uffff][A-Za-z0-9_\u0080-\uffff]*)?\$/.exec(sql.slice(i, i + 80));
+      if (tag) {
+        const close = sql.indexOf(tag[0], i + tag[0].length);
+        const end = close < 0 ? n : close + tag[0].length;
+        out += emptyLiterals ? tag[0] + tag[0] : sql.slice(i, end);
+        i = end; continue;
+      }
+    }
+    out += c; i++;
+  }
+  return out;
 }
+const stripComments = (sql) => lex(sql, false);
+const stripLiterals = (sql) => lex(sql, true);
+// The reviewed marker counts only as a real comment, never as text inside a string or a function body.
+const hasReviewedMarker = (sql) => { let found = false; lex(sql, true, (c) => { if (REVIEWED_MARKER.test(c)) found = true; }); return found; };
 // A function name: optional schema, each part an identifier or a "quoted identifier" (which may hold spaces).
 const IDENT = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`;
 const QNAME = String.raw`(${IDENT}(?:\s*\.\s*${IDENT})?)`;
@@ -199,7 +248,7 @@ function scanText(file, raw) {
     else if (regrant) findings.push({ file, fn: d.name, key: d.key, why: "granted back to public or anon after the revoke", has: [...roles].sort() });
   }
   for (const g of schemaWideGrants(sql)) findings.push({ file, fn: "(schema-wide grant)", key: "(schema-wide grant)", why: `grants every function to public or anon: ${g}`, has: [] });
-  if (dynamicFunctionDdl(raw) && !REVIEWED_MARKER.test(raw)) findings.push({ file, fn: "(dynamic)", key: "(dynamic)", why: "dynamic SQL creates or alters a function", has: [] });
+  if (dynamicFunctionDdl(raw) && !hasReviewedMarker(raw)) findings.push({ file, fn: "(dynamic)", key: "(dynamic)", why: "dynamic SQL creates or alters a function", has: [] });
   return findings;
 }
 
@@ -222,7 +271,7 @@ function definerKeys(dir) {
   return out;
 }
 
-module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, schemaWideGrants, rolesOf, stripLiterals, definerKeys, REVIEWED_MARKER };
+module.exports = { scan, scanText, definersIn, revokedIn, privilegeStatements, argTypes, dynamicFunctionDdl, schemaWideGrants, rolesOf, stripLiterals, stripComments, hasReviewedMarker, definerKeys, REVIEWED_MARKER };
 if (require.main === module && process.argv[2] === "--definer-keys") {
   for (const k of definerKeys(process.argv[3] || path.join(__dirname, "../../supabase/migrations"))) console.log(k.join("\t"));
 } else if (require.main === module) {

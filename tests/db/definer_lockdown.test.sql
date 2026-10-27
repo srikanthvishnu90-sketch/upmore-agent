@@ -54,6 +54,25 @@ select t.ok((select count(*) = 14 from (select distinct p.proname from pg_proc p
       'assign_referral_code','agent_settings_audit','agent_workflow_stop_guard','agent_financial_disconnect_guard')) x),
   'all fourteen exist here: the repo''s own files for twelve (six referral, plaid_month_spend, report_ai_anomaly, exec_vault_read, three triggers), stand-ins for the two SimpleFIN ones');
 
+-- 2a. The named list ALONE (the migration's first block, read from the file, not a copy): the sweep that follows it would
+--     close any function the list forgot, so this is the only place a name missing from the list, or a dropped revoke,
+--     is seen. The unlisted function must still be open afterwards, which shows the sweep did not run.
+\set named_block `awk '/^do \$lockdown_named\$/,/^\$lockdown_named\$;/' "$UPMORE_ROOT/supabase/migrations/20261026230500_definer_execute_lockdown.sql"`
+select t.ok(:'named_block' like 'do $lockdown_named$%' and :'named_block' like '%$lockdown_named$;', 'the named-list block was read from the migration file');
+select :'named_block' \gexec
+select t.ok((select bool_and(not has_function_privilege('anon', p.oid, 'EXECUTE') and not has_function_privilege('public'::name, p.oid, 'EXECUTE'))
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('exec_vault_read','plaid_month_spend','simplefin_secret_exists','simplefin_store_access_url',
+      'generate_referral_code','is_eligible_referrer','qualify_referral','get_referral_stats','credit_pending_referral','report_ai_anomaly',
+      'assign_referral_code','agent_settings_audit','agent_workflow_stop_guard','agent_financial_disconnect_guard')),
+  'the named list alone: anon (and PUBLIC) can run none of the fourteen, every overload');
+select t.ok(not has_function_privilege('anon','public.exec_vault_read(text)','EXECUTE')
+  and not has_function_privilege('authenticated','public.exec_vault_read(text)','EXECUTE')
+  and has_function_privilege('service_role','public.exec_vault_read(text)','EXECUTE'),
+  'the named list alone: exec_vault_read is service role only');
+select t.ok(has_function_privilege('anon','public.zz_unlisted_definer(text)','EXECUTE'),
+  'the named list alone leaves a definer function on no list open to anon (so the sweep was not what closed the fourteen)');
+
 -- 2. The migration, twice (idempotent).
 \ir ../../supabase/migrations/20261026230500_definer_execute_lockdown.sql
 \ir ../../supabase/migrations/20261026230500_definer_execute_lockdown.sql
@@ -85,7 +104,9 @@ select t.ok(has_function_privilege('authenticated','public.career_apply_claim_ow
   'the sweep keeps a signed-in person''s own functions (career_apply_claim_own) and takes nothing else');
 rollback;
 
--- 4. The guard, on the schema as every migration left it (outside the transaction above: no stand-ins).
+-- 4. The guard, on the schema the whole suite built (outside the transaction above: no stand-ins). tests/db/run.sh has applied
+--    every migration that declares a definer function and checked that each one exists here (by the scan's
+--    --definer-keys), so this covers the repo's real functions, not only the ones this file builds.
 do $$
 declare open_to_anon text; no_path text;
 begin

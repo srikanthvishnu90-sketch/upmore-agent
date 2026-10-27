@@ -14,7 +14,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { scan, scanText, definersIn, argTypes, REVIEWED_MARKER } = require("../scripts/launch/definer-revoke-scan.cjs");
+const { scan, scanText, definersIn, argTypes, hasReviewedMarker, stripLiterals, REVIEWED_MARKER } = require("../scripts/launch/definer-revoke-scan.cjs");
 
 // FROZEN (2026-10-26): the exact set, not a count. An entry may only be removed, when the scan no longer finds it
 // (the test then requires its removal); nothing may be added; swapping one entry for another fails (the swap test).
@@ -57,6 +57,10 @@ const GRANDFATHERED = Object.freeze([
   "20261026100000_career_apply_cloud_runner.sql (dynamic)",
 ]);
 const FROZEN_COUNT = 36;
+// STRUCTURAL FREEZE: the lockdown migration is the line. A file that sorts at or after it can never be grandfathered, whatever
+// this list says or its length is: it must carry its own revoke. The list holds only files that sort before the line.
+const LOCKDOWN_FILE = "20261026230500_definer_execute_lockdown.sql";
+const MIGRATIONS = path.join(__dirname, "../supabase/migrations");
 // The findings of a migrations directory against the frozen set: new ones (never allowed) and listed ones no longer found.
 function againstFrozen(dir) {
   const all = scan(dir).map((x) => `${x.file} ${x.key}`);
@@ -71,6 +75,28 @@ test("every migration that makes a SECURITY DEFINER function revokes it from pub
   assert.deepEqual(fresh, [], `add "revoke all on function <name>(<types>) from public, anon[, authenticated];" to: ${fresh.join("; ")}`);
   assert.deepEqual(stale, [], `these now pass; take them off GRANDFATHERED: ${stale.join("; ")}`);
   assert.ok(GRANDFATHERED.length <= FROZEN_COUNT && new Set(GRANDFATHERED).size === GRANDFATHERED.length, "the frozen set only shrinks");
+});
+
+test("the frozen set is structurally closed: every grandfathered file sorts before the lockdown migration, and no later file has a finding", () => {
+  assert.ok(fs.existsSync(path.join(MIGRATIONS, LOCKDOWN_FILE)), "the lockdown migration is the line the freeze is drawn at");
+  const files = GRANDFATHERED.map((g) => g.split(" ")[0]);
+  const late = files.filter((f) => !(f < LOCKDOWN_FILE));
+  assert.deepEqual(late, [], `grandfathered files must sort before ${LOCKDOWN_FILE}: ${late.join("; ")}`);
+  for (const f of new Set(files)) assert.ok(fs.existsSync(path.join(MIGRATIONS, f)), `${f} is grandfathered but is not a migration`);
+  // Independent of the list: nothing at or after the lockdown may have a finding at all.
+  const after = scan(MIGRATIONS).filter((x) => !(x.file < LOCKDOWN_FILE));
+  assert.deepEqual(after.map((x) => `${x.file} ${x.key}`), [], "a migration at or after the lockdown carries its own revoke");
+});
+
+test("the structural freeze catches a leaky file added after the lockdown even when it is listed as grandfathered", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "definer-late-"));
+  for (const f of fs.readdirSync(MIGRATIONS)) if (f.endsWith(".sql")) fs.copyFileSync(path.join(MIGRATIONS, f), path.join(dir, f));
+  fs.writeFileSync(path.join(dir, "20991231000000_late_leaky.sql"), DEF("public.late_leaky", "p text") + "revoke all on function public.late_leaky(text) from public;\n");
+  const grandfathered = [...GRANDFATHERED, "20991231000000_late_leaky.sql late_leaky(text)"];   // what an editor of the list would do
+  assert.deepEqual(grandfathered.map((g) => g.split(" ")[0]).filter((f) => !(f < LOCKDOWN_FILE)), ["20991231000000_late_leaky.sql"], "the filename rule refuses the entry");
+  assert.deepEqual(scan(dir).filter((x) => !(x.file < LOCKDOWN_FILE)).map((x) => `${x.file} ${x.key}`), ["20991231000000_late_leaky.sql late_leaky(text)"],
+    "and the list-independent scan still finds the leak");
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("the frozen set cannot be gamed: swapping a grandfathered file for a new leaky one fails", () => {
@@ -182,4 +208,30 @@ test("a schema-wide grant of functions to anon or PUBLIC is refused", () => {
   assert.deepEqual(findings("alter default privileges in schema public grant execute on functions to anon;").map((f) => f[0]), ["(schema-wide grant)"]);
   assert.deepEqual(findings("grant execute on all functions in schema public to service_role;"), [], "to the service role: fine");
   assert.deepEqual(findings("revoke execute on all functions in schema public from anon;"), [], "taking it away: fine");
+});
+
+test("block comments: /* */ hides a definer, a revoke, a grant-back and a marker; nested ones too", () => {
+  assert.deepEqual(findings(DEF() + "/* revoke all on function public.f(uuid) from public, anon; */"), [["f(uuid)", "no revoke from public and anon"]]);
+  assert.deepEqual(findings(DEF() + "revoke all on function public.f(uuid) from public, anon;\n/* grant execute on function public.f(uuid) to anon; */"), [],
+    "a grant in a comment never runs");
+  assert.deepEqual(findings(DEF() + "/* outer /* inner */ revoke all on function public.f(uuid) from public, anon; */"), [["f(uuid)", "no revoke from public and anon"]],
+    "nested: the revoke is still inside the outer comment");
+  assert.deepEqual(findings("/* a */ create function f() returns int language sql security definer as $$ select 1 $$; /* b */"), [["f()", "no revoke from public and anon"]],
+    "a definer between two comments is read");
+  assert.equal(hasReviewedMarker("/* -- definer-scan: dynamic function DDL reviewed */ select 1"), true, "a marker in a comment counts");
+});
+
+test("strings: a revoke, a marker or a comment opener inside a string or a dollar-quoted body is text", () => {
+  assert.deepEqual(findings(DEF() + "do $x$ begin revoke all on function public.f(uuid) from public, anon; end $x$;"), [["f(uuid)", "no revoke from public and anon"]],
+    "a revoke in a dollar-quoted DO block");
+  assert.deepEqual(findings(DEF() + "select $q$revoke all on function public.f(uuid) from public, anon;$q$;"), [["f(uuid)", "no revoke from public and anon"]], "tagged dollar quote");
+  assert.deepEqual(findings(DEF() + "select 'it''s --' ; revoke all on function public.f(uuid) from public, anon;"), [],
+    "a -- inside a string does not comment out the real revoke after it");
+  assert.deepEqual(findings(DEF() + "select '/*'; select 1;\nrevoke all on function public.f(uuid) from public, anon;\nselect '*/';"), [],
+    "a /* inside a string does not start a comment that swallows the revoke");
+  assert.deepEqual(findings(DEF() + "select E'a\\'b'; revoke all on function public.f(uuid) from public, anon;"), [], "E'' strings take backslash escapes");
+  assert.deepEqual(findings(DEF('public."f--g"', "") + 'revoke all on function public."f--g"() from public, anon;'), [], "-- inside a quoted name is part of the name");
+  assert.deepEqual(findings("select '-- definer-scan: dynamic function DDL reviewed'; do $$ begin execute 'create function public.z() returns int language sql security definer as ''select 1'''; end $$;"),
+    [["(dynamic)", "dynamic SQL creates or alters a function"]], "a marker inside a string is not a review");
+  assert.equal(stripLiterals("select 'a -- b', $t$ c /* d $t$, \"e--f\" -- g\n h"), "select '', $t$$t$, \"e--f\"  \n h");
 });

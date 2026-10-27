@@ -22,11 +22,11 @@
 -- Idempotent: every statement is a revoke or grant on what exists; a function that is absent is skipped.
 -- The guard: tests/db/definer_lockdown.test.sql (no definer function anon-executable, every one with a fixed search_path),
 -- and tests/career-definer-revoke.test.cjs (every migration that creates one revokes it from public and anon in the file).
-do $lockdown$
+-- Two blocks, so tests/db/definer_lockdown.test.sql can run each alone: the named list must close the fourteen without the
+-- sweep's help (the sweep would otherwise hide a name missing from the list).
+do $lockdown_named$
 declare
   f record;
-  had_auth boolean;
-  had_service boolean;
 begin
   for f in
     select p.oid, p.oid::regprocedure::text as sig, p.proname
@@ -48,7 +48,15 @@ begin
       execute format('grant execute on function %s to authenticated, service_role', f.sig);
     end if;
   end loop;
+end
+$lockdown_named$;
 
+do $lockdown_sweep$
+declare
+  f record;
+  had_auth boolean;
+  had_service boolean;
+begin
   for f in
     select p.oid, p.oid::regprocedure::text as sig
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -61,4 +69,4 @@ begin
     execute format('revoke all on function %s from public, anon', f.sig);
   end loop;
 end
-$lockdown$;
+$lockdown_sweep$;

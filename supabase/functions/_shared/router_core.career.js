@@ -16345,6 +16345,26 @@ const CareerRouter = (() => {
     for (const f of INTERVIEW_FAMILIES) if (f.re.test(t)) return f;
     return null;
   }
+  function prepCompanyCandidates(ctx, posting) {
+    const out = [];
+    const seen = new Set();
+    const add = (name) => {
+      const v = s(name).replace(/\s+/g, " ").trim();
+      if (!v) return;
+      const k = lc(v);
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(v);
+    };
+    const facts = statedFactsOf(ctx);
+    for (const f of facts) if (f && f.kind === "target_firm") add(f.value);
+    for (const f of facts) if (f && f.kind === "interview_company") add(f.value);
+    try { const C = threadContextOf(ctx); for (const r of C.rows || []) add(r && r.company); } catch {   }
+    for (const f of facts) if (f && f.key && ["recruiter_contact", "hiring_manager", "interview_day", "company_preference"].includes(f.kind)) add(displayKey(f, facts));
+    if (posting) add(posting.company);
+    return out.slice(0, 4);
+  }
+
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
@@ -16647,9 +16667,10 @@ const CareerRouter = (() => {
       }
       if (Prep.composeBrief) {
         const posting = ctx.posting || (company ? (rankedShortlist(profile, ctx, { company: lc(company) }).ranked[0] || {}).posting : null);
-        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
+        let brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
         let facts = briefFacts(brief);
-        const fam = !company && !posting ? interviewFamilyOf(t) : null;
+        const fam = !company ? interviewFamilyOf(t) : null;
+        if (fam && posting) { try { brief = Prep.composeBrief(profile, { company: null }, cirFor(text, ctx)); } catch {   } }
         if (fam) facts = [
           `No company is named, so no company's process or hiring bar is claimed; this is the general shape of ${fam.label} interviews.`,
           `What they usually test: ${fam.tests}.`,
@@ -16657,12 +16678,23 @@ const CareerRouter = (() => {
           ...(fam.questions && fam.questions.length ? [`Likely questions: ${fam.questions[0]}`, ...fam.questions.slice(1)] : []),
         ];
         if (fam) { try { prepThreadForWrite(ctx).family = fam.label; } catch {   } }
-        if (!company && !posting && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
-          return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
-            headline: "Happy to build that brief — I need the target first.",
-            facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
-            nextStep: "Which company and which role is the interview for?",
-          }) };
+        if (!company && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
+          const candidates = prepCompanyCandidates(ctx, posting);
+          if (candidates.length) {
+            const list = candidates.join(", ");
+            return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+              headline: "Happy to build that brief — I need the company first.",
+              facts: ["A prep brief is built on one company: their loop, their bar, and the questions that round actually asks. The ask has to name it — I won't pick the company for you."],
+              nextStep: `Which company is the interview for — ${list}, or another company? And which role is it for?`,
+            }) };
+          }
+          if (!posting) {
+            return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+              headline: "Happy to build that brief — I need the target first.",
+              facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
+              nextStep: "Which company and which role is the interview for?",
+            }) };
+          }
         }
         const preShapeLen = facts.length;
         const briefQSet = new Set((brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean));

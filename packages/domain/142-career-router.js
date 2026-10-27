@@ -4955,6 +4955,38 @@ const CareerRouter = (() => {
     for (const f of INTERVIEW_FAMILIES) if (f.re.test(t)) return f;
     return null;
   }
+  // T3 (2026-10-27): the companies the RECORD ties to this person,
+  // for a which-company question's options — every name from the
+  // record's own data, nothing invented: the stated target firm and
+  // interview company (values as recorded), the tracker rows'
+  // companies (applications on record), the keyed facts' companies
+  // (recruiter / hiring-manager / interview-day / preference rows,
+  // rendered through displayKey — the Item-C render law: trailing
+  // conjunctions stripped, case restored only from record text),
+  // and a staged posting's company. Deduped case-insensitively,
+  // first-seen form kept, capped at four — the question always ends
+  // "or another company?", so the cap never hides an option's
+  // existence, it only keeps the list speakable.
+  function prepCompanyCandidates(ctx, posting) {
+    const out = [];
+    const seen = new Set();
+    const add = (name) => {
+      const v = s(name).replace(/\s+/g, " ").trim();
+      if (!v) return;
+      const k = lc(v);
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(v);
+    };
+    const facts = statedFactsOf(ctx);
+    for (const f of facts) if (f && f.kind === "target_firm") add(f.value);
+    for (const f of facts) if (f && f.kind === "interview_company") add(f.value);
+    try { const C = threadContextOf(ctx); for (const r of C.rows || []) add(r && r.company); } catch { /* the tracker is optional */ }
+    for (const f of facts) if (f && f.key && ["recruiter_contact", "hiring_manager", "interview_day", "company_preference"].includes(f.kind)) add(displayKey(f, facts));
+    if (posting) add(posting.company);
+    return out.slice(0, 4);
+  }
+
   function handlePrepExtras(text, ctx) {
     if (!Prep) return null;
     const profile = ctx.profile;
@@ -5409,7 +5441,7 @@ const CareerRouter = (() => {
         const posting = ctx.posting || (company ? (rankedShortlist(profile, ctx, { company: lc(company) }).ranked[0] || {}).posting : null);
         // IB-F5F7-3: the company file rides into the brief — a null CIR
         // produced NO_CIR briefs that cannot validate or cite.
-        const brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
+        let brief = Prep.composeBrief(profile, posting ? { title: posting.title, company: posting.company } : { company: company || null }, cirFor(text, ctx));
         // WORDING-BACKLOG (BUG-136): the brief reply speaks the
         // brief's own record (bar, loop, signals, story-mapping
         // state, questions) under a headline that names the ask's
@@ -5418,7 +5450,18 @@ const CareerRouter = (() => {
         let facts = briefFacts(brief);
         // 2026-10-23: with no company and no posting, every prep ask got the same brief ("No company file on file for
         // this company", three generic behavioral questions) whatever the role. A named role family gets its own brief.
-        const fam = !company && !posting ? interviewFamilyOf(t) : null;
+        // T3 (2026-10-27, live retest of v254/v255): the family escape
+        // and the clarifier below were both gated on !posting — but a
+        // staged posting is conversation state (a whitelisted snapshot
+        // key), not the ask's target. On the live record, where a
+        // posting rides the thread, EVERY company-less prep ask —
+        // family asks included — silently briefed on the posting's
+        // company. The escape now turns on what the ASK names; when
+        // it fires over a staged posting, the brief is recomposed
+        // company-less so the payload is the same record the
+        // no-posting path serves, not the posting's brief.
+        const fam = !company ? interviewFamilyOf(t) : null;
+        if (fam && posting) { try { brief = Prep.composeBrief(profile, { company: null }, cirFor(text, ctx)); } catch { /* the served brief stands */ } }
         if (fam) facts = [
           `No company is named, so no company's process or hiring bar is claimed; this is the general shape of ${fam.label} interviews.`,
           `What they usually test: ${fam.tests}.`,
@@ -5431,12 +5474,29 @@ const CareerRouter = (() => {
         // dedicated shapes below that carry their own company-less
         // content — has no target to build a brief on. Ask for the
         // target instead of serving the generic NO_CIR brief.
-        if (!company && !posting && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
-          return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
-            headline: "Happy to build that brief — I need the target first.",
-            facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
-            nextStep: "Which company and which role is the interview for?",
-          }) };
+        // T3 (2026-10-27, live retest of v254/v255): the !posting
+        // exemption is gone — a staged posting no longer counts as
+        // the ask naming a target (see the family note above). When
+        // the record itself holds candidate companies, the question
+        // names them as the options, from the record's own data;
+        // the empty-record clarifier below stands verbatim.
+        if (!company && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
+          const candidates = prepCompanyCandidates(ctx, posting);
+          if (candidates.length) {
+            const list = candidates.join(", ");
+            return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+              headline: "Happy to build that brief — I need the company first.",
+              facts: ["A prep brief is built on one company: their loop, their bar, and the questions that round actually asks. The ask has to name it — I won't pick the company for you."],
+              nextStep: `Which company is the interview for — ${list}, or another company? And which role is it for?`,
+            }) };
+          }
+          if (!posting) {
+            return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+              headline: "Happy to build that brief — I need the target first.",
+              facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
+              nextStep: "Which company and which role is the interview for?",
+            }) };
+          }
         }
         const preShapeLen = facts.length;
         // ITEM-A: with the questions split into separate facts, the

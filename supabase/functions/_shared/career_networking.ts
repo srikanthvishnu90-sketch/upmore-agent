@@ -316,11 +316,15 @@ async function templateNoteTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "dr
     `Thanks for your time,\n${sign}`,
   ].join("\n\n");
   const matches = all.length ? rolePool(uniq(all), t.role) : [];
+  // (c3) The wrapper is lean: the ask is for a SHORT note, so one sentence before the draft
+  // (a draft follows, held, nothing sent) and one after it (naming a person gets it
+  // addressed, matches on file named inside the same sentence). The draft itself —
+  // subject and body — is unchanged.
   const next = matches.length
-    ? `In your contacts: ${matches.slice(0, LIST_MAX).map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}. Say the name (with the firm, to be exact) and I'll address it to them — an addressed draft is the one that can be approved to send.`
-    : `When you know who it's for, tell me their name and firm and I'll address it to them — an addressed draft is the one that can be approved to send.`;
+    ? `Name who it's for — on file: ${matches.slice(0, LIST_MAX).map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")} — and I'll address it to them.`
+    : `Name who it's for and I'll address it to them.`;
   const reply = [
-    `Here is a short draft to a ${t.role}, ready to use once the placeholders are filled in. It is held for your approval — nothing is sent, and it is not saved as a sendable draft: a recipient is only needed before a send, and sending stays off until you approve an exact message.`,
+    `Here's a draft to a ${t.role} — held for your approval; nothing is sent.`,
     `Subject: Asking about ${topic}`,
     body,
     next,

@@ -16,6 +16,11 @@
 //      is written only from the person's own words — so a signature on file still signs it. Naming a
 //      specific person remains available as personalisation.
 //      The clarification survives only where a draft cannot be composed at all: the ask names no topic.
+//   3. The wrapper around the draft was trimmed (live retest of v254/v255): the ask is for a SHORT note,
+//      and the reply wrapped it in a three-sentence intro (what it is, that it is held and unsaved, why a
+//      recipient is only needed before a send) and a two-sentence outro. The wrapper is now one sentence
+//      before the draft (a draft follows, held, nothing sent) and one sentence after it (naming a person
+//      gets it addressed). The draft itself — subject and body, placeholders included — is byte-identical.
 // Run: deno test -A --no-check tests/architect/f10-networking-draft-note.test.ts
 import nodeAssert from "node:assert/strict";
 const assert = (v: unknown, m?: string) => nodeAssert.ok(v, m);
@@ -77,6 +82,23 @@ Deno.test("turn: the live string gets a generic draft with placeholders — held
   assert(!/wave|send plan/i.test(r!.reply), r!.reply);
   // Personalisation stays available as the secondary line: the matches on file are named.
   assertMatch(r!.reply, /Sam Rivera, Technical Recruiter at Stripe/);
+  // The wrapper is lean (step 3): exactly one sentence before the draft and one after it —
+  // the reply is [intro, subject, body…, outro] joined by blank lines (the body itself is
+  // three paragraphs). The draft in between is byte-identical to the pre-trim draft.
+  const parts = r!.reply.split("\n\n");
+  const sentences = (x: string) => (x.match(/[.!?](?=\s|$)/g) || []).length;
+  assertEquals(sentences(parts[0]), 1, `intro must be one sentence: ${parts[0]}`);
+  assertEquals(sentences(parts[parts.length - 1]), 1, `outro must be one sentence: ${parts[parts.length - 1]}`);
+  assertEquals(parts[1], "Subject: Asking about next steps");
+  assertEquals(parts.slice(2, 5).join("\n\n"), "Hi [Name],\n\nI'm writing to ask about next steps at [Company]. If there's anything I should prepare or send over in the meantime, I'm happy to.\n\nThanks for your time,\nAlex");
+  // The long wrapper sentences are gone.
+  assert(!/ready to use once the placeholders are filled in/.test(r!.reply), r!.reply);
+  assert(!/not saved as a sendable draft/.test(r!.reply), r!.reply);
+  assert(!/a recipient is only needed before a send/.test(r!.reply), r!.reply);
+  assert(!/sending stays off until you approve an exact message/.test(r!.reply), r!.reply);
+  assert(!/Say the name \(with the firm, to be exact\)/.test(r!.reply), r!.reply);
+  assert(!/an addressed draft is the one that can be approved to send/.test(r!.reply), r!.reply);
+  assertMatch(parts[parts.length - 1], /address it to them/);
   assertEquals(calls, 0, "no model call: the template is composed deterministically");
   assertEquals(await store.latestBatch(U), [], "no batch or draft is persisted for a send");
   // With drafting off (the live configuration) the same template comes back: it never needed the model.
@@ -96,6 +118,10 @@ Deno.test("turn: no matching role in contacts — the generic draft still comes 
   assertMatch(r!.reply, /ask about next steps at \[Company\]/);
   assertMatch(r!.reply, /held for your approval/);
   assertMatch(r!.reply, /nothing is sent/i);
+  // No matches on file: the outro is still the same single lean sentence shape.
+  const tail = r!.reply.split("\n\n").pop()!;
+  assertEquals((tail.match(/[.!?](?=\s|$)/g) || []).length, 1, `outro must be one sentence: ${tail}`);
+  assertMatch(tail, /address it to them/);
   assertEquals(calls, 0);
   assertEquals(await store.latestBatch(U), []);
   const state2 = await imported([{ name: "Connections.csv", text: LINKEDIN }]);

@@ -338,8 +338,29 @@ test("(c) ROUTER-SIDE wording: with no host writer installed, the reply never cl
     `no success wording without a confirmed host write: ${out.reply}`);
   assert.match(out.reply, /not confirmed|not calling it saved|no confirmed .* write/i,
     `the reply says plainly the write is not confirmed: ${out.reply}`);
-  assert.match(out.reply, /invalid|stale|will not be submitted/i,
-    "the stale-packet protection is still spoken: a packet built on the old answer does not go out");
+  // ROUTER-C adjudication (2026-10-27): this scenario holds NO packet —
+  // no doorstep, no submission, no standing batch — so the reply must
+  // tell no packet story at all: neither a ready claim nor an
+  // invalidation story about a packet that does not exist (the same
+  // guarantee tests/architect/handler-submit-router.test.ts (c) pins).
+  // The stale-packet protection itself is pinned where a packet DOES
+  // exist, in the next test.
+  assert.doesNotMatch(out.reply, /prepared packet|packet is|packet counts|re-prepare/i,
+    `no packet story for a person with no packet: ${out.reply}`);
+});
+
+test("(c) ROUTER-SIDE wording: with a prepared packet standing, the stale-packet protection IS spoken and recorded", () => {
+  const w = makeWorld({ master: WA_MASTER });
+  const U = "split-c-packet";
+  const snapshot = { stores: { doorstepState: { doorstep: { state: "REVIEW" } } } };
+  const { out, ctx } = w.say(U, WA_TEXT, { nowOffset: 0, snapshot });
+  assert.match(out.reply, /The prepared packet built on the old answer is invalid now and will not be submitted\./,
+    `a packet built on the old answer is spoken as invalid and unsubmittable: ${out.reply}`);
+  assert.doesNotMatch(out.reply, /I saved|saved your|packet is ready/i,
+    `still no save claim without a confirmed host write: ${out.reply}`);
+  assert.ok(ctx.doorstepState && ctx.doorstepState.invalidation && ctx.doorstepState.invalidation.active === true
+    && ctx.doorstepState.invalidation.reason === "sensitive_fact_corrected",
+    "the invalidation is recorded on the doorstep store, not only spoken");
 });
 
 // ---------- (d) application status readback — career_apply_jobs, before the router ----------

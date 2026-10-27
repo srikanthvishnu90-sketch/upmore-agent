@@ -113,6 +113,41 @@ read from the environment or asked on a hidden prompt; none is echoed, written t
 
 Function secrets are project-wide in Supabase: every function sees every one.
 
+## The web app and sign-up in waves
+
+The Vercel project `trainee` serves the repository's `site/` folder: the home page and waitlist form at `/`, and the
+web app (sign in with a texted code, the chat, the approval card, the applications view) at `/app`, built into
+`site/app/` by `python3 scripts/web/build-trainee-web.py`. Its production branch is `main`. `vercel.json` sends
+`frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff` and `no-referrer` on `/app`; the page carries its own
+Content-Security-Policy (its inline blocks by hash, the project as the only place it connects).
+
+- **Who can use it** (migration `20261026230000_trainee_web_admission.sql`, enforced in the database): sign-up is
+  closed. Accounts that existed when the migration ran keep working; a new account gets in by a confirmed phone on
+  `TRAINEE_ALLOWED_CONTACTS`, or by redeeming its invite link (FEATURE WAVES, the one invite system). An email never
+  admits anyone. A person not admitted gets no chat turn, no essay draft, no voice mock and no email code, and the
+  database refuses every prepared application, card, queue row and apply want of theirs, whoever writes it.
+- **Who keeps working when the migration runs (owner: review this list BEFORE you apply it).** Not every account. The first
+  run admits an account with a confirmed email or phone AND at least one row in `career_events`, tagged with the batch
+  `backfill-20261026`. Read the list first (the exact query is in the header of
+  `supabase/migrations/20261026230000_trainee_web_admission.sql`; it only reads). An email Supabase Auth auto-confirmed proves
+  nothing about its owner, so look at every address. After applying: `select public.trainee_revoke(array['<id>'::uuid]);`
+  takes one back, `select public.trainee_revoke_batch('backfill-20261026');` takes back the whole run, and
+  `select public.trainee_grandfather(array['<id>'::uuid, ...]);` admits people the query missed (tagged `owner-list`). Revoking
+  only touches these tagged rows, never an allow-list, invite or open admission.
+- **The env cannot open sign-up.** `TRAINEE_SIGNUP=open` on the texting channels lets a contact get an account and nothing
+  more; whether they may apply is the database setting below. Only a contact named on `TRAINEE_ALLOWED_CONTACTS` is passed to
+  the database as allow-listed, so the admission recorded is always the true reason.
+- **Opening it.** `select public.trainee_set_signup('open');` lets anyone who signs in use Trainee;
+  `select public.trainee_set_signup('invite');` closes it again (everyone admitted meanwhile stays admitted).
+- **Waves** are FEATURE WAVES' (`scripts/launch/invite-wave.ts`, `docs/architect/INVITE-WAVES-2026-10-26.md`). The
+  invite link is `<TRAINEE_APP_URL>/?invite=<token>`; set `TRAINEE_APP_URL=https://trainee-six.vercel.app/app`.
+- **Supabase Auth settings** (Dashboard > Authentication):
+  - Sign In / Providers > Email: **Confirm email ON** (with it off, any address is "confirmed" at sign-up);
+  - Sign In / Providers > Phone: on, with an SMS provider, so codes can be texted;
+  - Email Templates > Magic Link: include `{{ .Token }}` for email codes;
+  - Rate Limits: SMS and email sends per hour, and token verifications per IP; Attack Protection: CAPTCHA on;
+  - URL Configuration: add `https://trainee-six.vercel.app/app`.
+
 ## The steps and what each changes
 
 1. **preflight**: tools, inputs, a clean tree at `HEAD` = `--sha`, the commit staged from `git archive <sha>`, the two

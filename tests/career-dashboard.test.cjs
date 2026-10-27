@@ -122,9 +122,10 @@ test('load reads only the signed-in person\'s rows from the existing tables', as
     return chain;
   } };
   const data = await D.load(client, OWNER);
-  assert.deepEqual(calls.map(c => c.table), ['career_outbox', 'career_alert_prefs', 'career_apply_message_cards', 'career_apply_prepared', 'career_apply_jobs', 'career_postings']);
-  for (const c of calls.slice(0, 5)) assert.ok(c.ops.some(o => o[0] === 'eq' && o[1] === 'user_id' && o[2] === OWNER), c.table + ' is filtered to the person');
-  assert.deepEqual(calls[5].ops.find(o => o[0] === 'in'), ['in', 'job_id', ['greenhouse:a:1', 'job-a']]);
+  // career_apply_cards (launch readiness B7, 2026-10-26): the chat's open card, shown in the queue.
+  assert.deepEqual(calls.map(c => c.table), ['career_outbox', 'career_alert_prefs', 'career_apply_message_cards', 'career_apply_prepared', 'career_apply_jobs', 'career_apply_cards', 'career_postings']);
+  for (const c of calls.slice(0, 6)) assert.ok(c.ops.some(o => o[0] === 'eq' && o[1] === 'user_id' && o[2] === OWNER), c.table + ' is filtered to the person');
+  assert.deepEqual(calls[6].ops.find(o => o[0] === 'in'), ['in', 'job_id', ['greenhouse:a:1', 'job-a']]);
   assert.deepEqual(data.prefs, prefs);
   await assert.rejects(D.load(client, 'not-a-uuid'), /sign in/);
 });

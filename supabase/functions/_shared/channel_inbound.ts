@@ -17,6 +17,8 @@ import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type Inboun
 import { telegramDeepLink } from "./telegram.ts";
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
+export const NOT_ADMITTED_REPLY = "Trainee is invite-only right now and your account isn't let in yet, so I haven't started anything for you and nothing was sent. Once you're let in, text me again.";
+export const ADMISSION_UNCHECKED_REPLY = "I couldn't check that you're let in just now, so I haven't started anything. Try again in a minute.";
 export const CHAT_DOWN_REPLY = "I couldn't answer that just now. Try again in a minute.";
 // The owner's wording for the question on the channel already linked (WO-038).
 export const linkAskText = (newChannel: Channel) => `Someone texted Trainee on ${CHANNEL_NAME[newChannel]} from your number. Reply yes to link it.`;
@@ -51,6 +53,9 @@ export interface InboundStore {
   issueLinkNonce?(userId: string, at: number): Promise<string>;
   redeemLinkNonce?(nonce: string, contact: string, at: number): Promise<Redeemed>;
   reholdSent?(providerMessageId: string, at: number, error: string): Promise<number>; // a sent message that failed for the window
+  // Sign-up in waves (20261026230000, optional): the admission recorded on a new account the env let in (listed).
+  // Asked on every turn of a known person (idempotent): how they were let in, or null when they are not.
+  admit?(userId: string, listed: boolean): Promise<string | null>;
 }
 export interface CoreDeps {
   env: { get(k: string): string | undefined };
@@ -70,8 +75,10 @@ const ok = (body: Record<string, unknown>): Out => ({ status: 200, body: { ok: t
 
 // TRAINEE_ALLOWED_CONTACTS lists phones and emails as before, and "telegram:<chat id>" or "whatsapp:<id>"; a WhatsApp
 // sender whose number is listed is allowed too.
-export function signupAllows(env: CoreDeps["env"], contact: string, phone?: string | null): boolean {
-  if ((env.get("TRAINEE_SIGNUP") || "closed") === "open") return true;
+// Whether this contact is NAMED on TRAINEE_ALLOWED_CONTACTS: the only thing the env may tell the database about a person
+// (trainee_admit's p_allowlisted). TRAINEE_SIGNUP=open never counts here: whether sign-up is open is the database's own
+// setting (trainee_set_signup), so an env can narrow who gets an account on a channel but never widen who may apply.
+export function listedByEnv(env: CoreDeps["env"], contact: string, phone?: string | null): boolean {
   const list = (env.get("TRAINEE_ALLOWED_CONTACTS") || "").split(",").map((c) => c.trim()).filter(Boolean);
   return list.some((c) => {
     const p = /^(telegram|tg):\s*(.+)$/i.exec(c), w = /^(whatsapp|wa):\s*(.+)$/i.exec(c);
@@ -79,6 +86,11 @@ export function signupAllows(env: CoreDeps["env"], contact: string, phone?: stri
     if (w) return `wa:${w[2]}` === contact;
     try { const n = normalizeContact(c); return n === contact || (!!phone && n === phone); } catch { return false; }
   });
+}
+// Who may get an account on a texting channel: TRAINEE_SIGNUP=open (an account only) or a listed contact.
+export function signupAllows(env: CoreDeps["env"], contact: string, phone?: string | null): boolean {
+  if ((env.get("TRAINEE_SIGNUP") || "closed") === "open") return true;
+  return listedByEnv(env, contact, phone);
 }
 // The parts contract (WO-038, for WO-033's outreach batch and long cards): agent-chat may answer with `parts`, each at
 // most OUTBOX_CHARS. Each becomes its own outbox row and is never cut: a part over the limit is split on purpose (lines
@@ -178,6 +190,18 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
       return ok(extra);
     };
+    // Let in, as the database sees it (trainee_admit, 20261026230000), asked on EVERY turn: an env-listed contact is recorded
+    // here, and one whose write failed on an earlier turn is recorded now. Not let in, or not knowing: said so, and nothing else runs (no link, no Telegram code, no turn).
+    if (store.admit) {
+      let via: string | null;
+      try { via = await store.admit(person.userId, listedByEnv(d.env, contact, msg.phone)); }
+      catch (e) {
+        console.error("inbound: admission not checked:", e instanceof Error ? e.message : String(e));
+        return await answer(ADMISSION_UNCHECKED_REPLY, { refused: "admission unchecked" });
+      }
+      if (!via) return await answer(NOT_ADMITTED_REPLY, { refused: "not admitted" });
+    }
+
     // A yes to "Reply yes to link it", within the hour, on the channel that was asked.
     if (YES.test(msg.text.trim()) && store.confirmLink) {
       const linked = await store.confirmLink({ userId: person.userId, askedOn: contact, at: now, notice: LINKED_HERE_REPLY });

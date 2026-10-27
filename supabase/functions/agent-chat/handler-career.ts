@@ -28,6 +28,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { redactionNote } from "../_shared/identity_redact.ts";
 import { corsFor } from "./_shared/chat_cors.ts";
+import { ADMISSION_UNAVAILABLE_REPLY, admitWebUser, NOT_INVITED_REPLY } from "../_shared/trainee_admission.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { CareerAccess, CareerOnboarding, CareerRouter, CareerDoorstep, CareerReply, CareerContainment, CareerBatchApply, CareerJobs, CareerProfile } from "../_shared/router_core.career.js";
@@ -185,6 +186,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // a missing profile would make the RPC error and look like rate limiting.
     const profileWrite = await supabase.from("profiles").upsert({ id: user.id }, { onConflict: "id" });
     if (profileWrite.error) throw new Error("Account profile unavailable.");
+
+    // FEATURE WEB-ADMISSION (launch readiness B7/X1, 2026-10-26): a person signed in on the web chats only once
+    // admitted (_shared/trainee_admission.ts; the database decides, closed unless the owner opened sign-up): an account
+    // from before the gate, a confirmed phone on TRAINEE_ALLOWED_CONTACTS, or a redeemed invite (`invite`: the token from
+    // their invite link, redeemed as them through FEATURE WAVES' career_invite_redeem_own). The texting channels decide
+    // their own sign-up before they call here (bridge path). `check_access: true` asks only this. Checked before the
+    // rate limit, so a person still on the waitlist spends nothing. The database refuses their applications too.
+    if (!bridgeUserId) {
+      const adm = await admitWebUser({ env: Deno.env, user: user as { id: string }, invite: body.invite,
+        rpc: (n, a) => createClient(Deno.env.get("SUPABASE_URL")!, serviceKey).rpc(n, a), personRpc: (n, a) => supabase.rpc(n, a) });
+      if (!adm.admitted) {
+        return json(cors, { error: adm.reason, reply: adm.reason === "not_invited" ? NOT_INVITED_REPLY : ADMISSION_UNAVAILABLE_REPLY },
+          adm.reason === "not_invited" ? 403 : 503);
+      }
+      if (body.check_access === true) return json(cors, { access: "admitted" }, 200);
+    }
+    // END FEATURE WEB-ADMISSION
 
     // Rate limiting: 60 chat requests per fixed 60-minute window per user,
     // enforced on EVERY request (deterministic capabilities included) via
@@ -396,7 +414,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        ? await cardTurn({ message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
+        // FEATURE WEB-ADMISSION (B7): a signed-in web person reads the card with its buttons (the bridge is a texting channel).
+        ? await cardTurn({ surface: bridgeUserId ? "text" : "web", message, userId: user.id, threadId: tid, now: Date.now(), replyTo, store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.

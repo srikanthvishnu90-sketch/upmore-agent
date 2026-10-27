@@ -41,6 +41,7 @@ import {
   verifyState,
   issueState,
 } from "./career.ts";
+import { mayAct } from "../_shared/trainee_admission.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -101,6 +102,8 @@ serve(async (req) => {
         purpose = verified.purpose;
         const userId = verified.userId;
         if (!clientId || !clientSecret) throw new Error("OAuth not configured");
+        // Launch readiness B7: no career token is stored for a person Trainee has not let in (the database's trainee_may_act).
+        if (purpose === "career" && !(await mayAct((n, a) => createClient(supabaseUrl, serviceKey).rpc(n, a), userId))) return done(false);
         const tokRes = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -161,6 +164,9 @@ serve(async (req) => {
 
     const startPurpose = purposeForAction(action);
     if (startPurpose) {
+      if (startPurpose === "career" && !(await mayAct((n, a) => admin.rpc(n, a), user.id))) {
+        return json({ error: "not_admitted", reply: "Trainee isn't open to this account yet, so I can't connect your Google account. Nothing was connected." }, 403);
+      }
       if (!clientId) return json({ error: startPurpose === "career" ? "Google connect is not configured yet" : "Gmail connect is not configured yet" }, 503);
       const state = await issueState(user.id, startPurpose, stateSecret);
       const q = new URLSearchParams({

@@ -167,6 +167,7 @@ MIGRATIONS=(
   20261026230100_career_erase_complete.sql
   20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql
+  20261026230000_trainee_web_admission.sql
   20261026230500_definer_execute_lockdown.sql
 )
 MIGRATION_MARK=(
@@ -238,6 +239,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_erase_person') and exists (select 1 from pg_constraint where conname = 'extension_submission_reports_user_fk')"
   "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
+  "to_regclass('public.trainee_admissions') is not null and exists (select 1 from pg_proc where proname = 'trainee_may_act')"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

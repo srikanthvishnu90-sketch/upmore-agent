@@ -298,7 +298,8 @@ Deno.test({
         assertEquals(texts.map((x: any) => x.state), ["not_submitted", "submitted_unconfirmed"]);
         console.log(texts.map((x: any) => x.text).join("\n"));
         // The claim's own words for why (G3: "not sent: the application changed after it was approved"), said once.
-        assertMatch(texts[0].text, /^Not sent to \S+: the application changed after it was approved\. Nothing reached the employer\.$/);
+        // The owner's iMessage spec 7.4 (#218): a failure also says it is not retried by itself and names the one next step.
+        assertMatch(texts[0].text, /^Not sent to \S+: the application changed after it was approved\. Nothing reached the employer\. Nothing is retried on its own\. Next: ask me to apply again and I'll show you the new application to approve first\.$/);
         assertMatch(texts[1].text, /^Sent to .+\. Their page said it was received; their confirmation email is the proof, and I'll mark it confirmed when it comes\.$/);
         assert(!/confirmed by/.test(texts[1].text), "a page's thank-you is never said as the employer's confirmation");
         assertEquals(await run(), 0, "a second run says nothing again: the outbox key is once, ever");

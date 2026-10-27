@@ -10,6 +10,7 @@ import { supabaseEventStore } from "../_shared/agent/timeline.ts";
 import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_brief_store.ts";
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
+import type { ReceiptRow } from "../_shared/career_apply_receipts.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
 
@@ -42,17 +43,24 @@ serve((req) => {
     recentPostings: (since) => postings.newSince(since), postingsById: (ids) => postings.getMany(ids),
     finishedApplications: async (since) => {
       // An application emailed from the chat was already said there when it went (WO-032); it gets no second receipt.
-      const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id,email_confirmed_at,evidence,source,approval_hash")
+      const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id,email_confirmed_at,evidence,source")
         .in("state", ["confirmed", "submitted_unconfirmed", "needs_user", "failed", "not_submitted", "unknown_outcome"]).gte("updated_at", since)
         .or("source.is.null,source.neq.email").limit(2000);
       if (error) throw new Error(`read finished applications: ${error.message}`);
-      // 2026-10-26 (spec 7.2): the link to exactly what was sent, by the approving card's inspect token. Unread: no link.
-      const base = `${url.replace(/\/+$/, "")}/functions/v1/trainee-inspect`;
-      const rows = data ?? [];
-      for (const r of rows) {
-        if (!/^[0-9a-f]{64}$/.test(String(r.approval_hash ?? "")) || !["confirmed", "submitted_unconfirmed"].includes(r.state)) continue;
-        const t = await admin.rpc("career_apply_inspect_token_for", { p_user: r.user_id, p_hash: r.approval_hash });
-        if (!t.error && typeof t.data === "string" && /^[0-9a-f]{32}$/.test(t.data)) r.sent_link = `${base}?t=${t.data}&f=sent`;
+      const rows: ReceiptRow[] = data ?? [];
+      // 2026-10-26 (spec 7.2): the link to exactly what was sent, by the approving card's inspect token. The approval hash
+      // is read on its own, only for the sent ones, so the receipt read above stays the queue's own row; unread: no link.
+      const sent = rows.filter((r) => ["confirmed", "submitted_unconfirmed"].includes(r.state));
+      if (sent.length) {
+        const hashes = await admin.from("career_apply_jobs").select("id,approval_hash").in("id", sent.map((r) => r.id));
+        const hashOf = new Map<string, string>((hashes.error ? [] : hashes.data ?? []).map((h: { id: string; approval_hash: string | null }) => [h.id, String(h.approval_hash ?? "")]));
+        const base = `${url.replace(/\/+$/, "")}/functions/v1/trainee-inspect`;
+        for (const r of sent) {
+          const hash = hashOf.get(r.id) ?? "";
+          if (!/^[0-9a-f]{64}$/.test(hash)) continue;
+          const t = await admin.rpc("career_apply_inspect_token_for", { p_user: r.user_id, p_hash: hash });
+          if (!t.error && typeof t.data === "string" && /^[0-9a-f]{32}$/.test(t.data)) r.sent_link = `${base}?t=${t.data}&f=sent`;
+        }
       }
       return rows;
     },

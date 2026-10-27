@@ -9,6 +9,21 @@ insert into public.profiles(id) values('00000000-0000-0000-0000-0000000000c1'),(
 insert into public.career_watch_kv(user_id,key,value) values
  ('00000000-0000-0000-0000-0000000000c1','career:account','{"epoch":0,"version":0,"paused":false}'),
  ('00000000-0000-0000-0000-0000000000c2','career:account','{"epoch":0,"version":0,"paused":false}');
+-- Both people have a confirmed resume on file (an entry and its fact_confirmed event) and the render their payloads bind
+-- (resume_sha256 'b'x64) stored for them: #194's resume rule (career_resume_ok) refuses a prepared row, a card and a
+-- queued application without them, and this test is about the code, not about that rule (tests/db/career_resume_required).
+insert into public.agent_threads(id,user_id) values ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000c1'),('00000000-0000-0000-0000-0000000000d2','00000000-0000-0000-0000-0000000000c2');
+insert into public.agent_flow_state(thread_id,user_id,state) select t, u,
+ jsonb_build_object('career', jsonb_build_object('stores', jsonb_build_object('profile', jsonb_build_object('facts', jsonb_build_array(
+  jsonb_build_object('id','f1','kind','experience','status','confirmed','needs_confirmation',false,'confirmation_event_id','ev-cc-'||right(u::text,2),'text','CC Intern'))))))
+ from (values ('00000000-0000-0000-0000-0000000000d1'::uuid,'00000000-0000-0000-0000-0000000000c1'::uuid),('00000000-0000-0000-0000-0000000000d2'::uuid,'00000000-0000-0000-0000-0000000000c2'::uuid)) v(t,u);
+insert into public.career_events(user_id,kind,subject,detail) values
+ ('00000000-0000-0000-0000-0000000000c1','fact_confirmed','CC Intern','{"confirmation_event_id":"ev-cc-c1"}'),
+ ('00000000-0000-0000-0000-0000000000c2','fact_confirmed','CC Intern','{"confirmation_event_id":"ev-cc-c2"}');
+insert into storage.objects(bucket_id,name) select 'career-resumes', u || '/' || repeat('b',64) || '.pdf'
+ from (values ('00000000-0000-0000-0000-0000000000c1'),('00000000-0000-0000-0000-0000000000c2')) v(u);
+select t.ok(public.career_resume_ok('00000000-0000-0000-0000-0000000000c1', jsonb_build_object('resume_sha256', repeat('b',64)))
+  and public.career_resume_ok('00000000-0000-0000-0000-0000000000c2', jsonb_build_object('resume_sha256', repeat('b',64))), 'setup: both people pass the resume rule');
 create temp table cc (u uuid, n int, p public.career_apply_prepared);
 do $$ declare g int; who uuid; r public.career_apply_prepared; pl jsonb; begin
  foreach who in array array['00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c2']::uuid[] loop

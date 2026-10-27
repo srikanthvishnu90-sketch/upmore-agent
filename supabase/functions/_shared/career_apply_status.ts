@@ -12,7 +12,7 @@
 import { sameCompany } from "./career_mail.ts";
 
 export const STATUS_INTENT = "career_apply_status";
-const MAX_LISTED = 8, RECENT_DAYS = 30;
+const MAX_LISTED = 8, RECENT_DAYS = 30, DETAIL_LINKS = 20;
 
 // One application as career_apply_jobs keeps it (the columns read; no answer's text).
 export interface AppRow {
@@ -32,15 +32,19 @@ export function supabaseApplications(admin: any): ReadApplications {
       .eq("user_id", userId).order("updated_at", { ascending: false }).limit(500);
     if (r.error) throw new Error(`read the applications: ${r.error.message}`);
     const rows = (r.data ?? []) as (AppRow & { approval_hash?: string | null })[];
-    // The detail links: each application's approving card, by the hash the card showed. Unread: no links, same status.
+    // The detail links: each application's approving card, by the hash the card showed, through the receipt's own lookup
+    // (career_apply_inspect_token_for), so the status itself is read from the queue's record alone. Only the newest
+    // DETAIL_LINKS rows get one (a reply lists at most MAX_LISTED). Unread: no links, same status.
     try {
       // deno-lint-ignore no-explicit-any
       const base = String((globalThis as any).Deno?.env?.get?.("SUPABASE_URL") ?? "").replace(/\/+$/, "");
-      const cards = base ? await admin.from("career_apply_cards").select("inspect_token,items").eq("user_id", userId).not("inspect_token", "is", null)
-        .order("shown_at", { ascending: false }).limit(500) : { data: [] };
-      const byHash = new Map<string, string>();
-      for (const c of cards.data ?? []) for (const it of Array.isArray(c.items) ? c.items : []) if (!byHash.has(it?.payload_hash)) byHash.set(it?.payload_hash, c.inspect_token);
-      for (const a of rows) { const t = a.approval_hash ? byHash.get(a.approval_hash) : null; if (t && /^[0-9a-f]{32}$/.test(t)) a.detail_link = `${base}/functions/v1/trainee-inspect?t=${t}&f=sent`; }
+      const hashes = base ? [...new Set(rows.slice(0, DETAIL_LINKS).map((a) => String(a.approval_hash ?? "")).filter((h) => /^[0-9a-f]{64}$/.test(h)))] : [];
+      const tokenOf = new Map<string, string>();
+      await Promise.all(hashes.map(async (h) => {
+        const t = await admin.rpc("career_apply_inspect_token_for", { p_user: userId, p_hash: h });
+        if (!t.error && typeof t.data === "string" && /^[0-9a-f]{32}$/.test(t.data)) tokenOf.set(h, t.data);
+      }));
+      for (const a of rows) { const t = a.approval_hash ? tokenOf.get(a.approval_hash) : null; if (t) a.detail_link = `${base}/functions/v1/trainee-inspect?t=${t}&f=sent`; }
     } catch (e) { console.error("applications status: detail links:", e instanceof Error ? e.message : String(e)); }
     return rows;
   };

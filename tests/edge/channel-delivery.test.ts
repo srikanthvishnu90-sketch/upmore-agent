@@ -21,11 +21,12 @@ const ok = (body: unknown = {}) => new Response(JSON.stringify(body), { status: 
 const status = (s: number) => new Response("{}", { status: s });
 
 Deno.test("WO-013b-1/L1 one POST per bubble, raw key in Authorization, body {contact, text}, paused between bubbles", async () => {
-  const net = fakeFetch(() => ok({ message_id: "lm-1" }));
+  const net = fakeFetch((i) => ok({ message_id: `lm-${i + 1}` }));
   const pauses: number[] = [];
   const send = loopSend({ apiKey: "k-test", fetch: net.f, sleep: async (ms) => { pauses.push(ms); } });
   const r = await send("+15550001111", ["first", "https://jobs.lever.co/acme/1"]);
-  eq(r, { ok: true, id: "lm-1" });
+  // id: the first bubble's; ids: every bubble's, in order (a reply in a thread names the bubble it answers).
+  eq(r, { ok: true, id: "lm-1", ids: ["lm-1", "lm-2"] });
   eq(net.calls.map((c) => c.url), [LOOPMESSAGE_SEND_URL, LOOPMESSAGE_SEND_URL]);
   eq((net.calls[0].init.headers as Record<string, string>).Authorization, "k-test", "the raw key, no Bearer prefix");
   eq(net.calls.map((c) => JSON.parse(String(c.init.body))), [{ contact: "+15550001111", text: "first" }, { contact: "+15550001111", text: "https://jobs.lever.co/acme/1" }]);

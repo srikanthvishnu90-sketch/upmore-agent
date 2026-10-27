@@ -17,6 +17,8 @@ serve((req) => {
   return handleInbound(req, {
     env: Deno.env, now: Date.now, store: () => supabaseInboundStore(admin), send: (apiKey) => loopSend({ apiKey }),
     chat: chatThroughAgent(url, key),
+    // FEATURE 16: a contact who texted STOP gets no attachment fetched.
+    optedOut: async (contact) => (await admin.rpc("channel_opted_out", { p_contact: contact })).data === true,
     // The answer, or a link question to another channel, through whichever adapters are wired.
     deliverReply: (a) => deliverNow({ userId: a.userId, key: a.key, now: a.now }),
   });

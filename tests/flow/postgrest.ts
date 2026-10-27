@@ -159,6 +159,16 @@ commit;`);
       const u = o.users[tok];
       return u ? json(200, { id: u.id, email: u.email ?? null, aud: "authenticated", role: "authenticated" }) : json(401, { message: "invalid token" });
     }
+    // GoTrue admin createUser, as supabase-js sends it (the inbound channels make a person's account on first contact). The
+    // stub auth.users has only id and email, so a phone account is stored under a synthetic email; the profile row is what the
+    // platform's sign-up creates for every account.
+    if (url.pathname === "/auth/v1/admin/users" && req.method === "POST") {
+      if (who.role !== "service_role") return json(401, { message: "not allowed", code: "not_admin" });
+      const b = await req.json().catch(() => ({})) as { email?: string; phone?: string };
+      const id = crypto.randomUUID(), email = b.email ?? (b.phone ? `phone-${b.phone.replace(/\D/g, "")}@phone.test` : `${id}@channel.test`);
+      await pg.sql(`insert into auth.users (id, email) values ('${id}', ${q(email)}); insert into public.profiles (id) values ('${id}')`);
+      return json(200, { id, email, phone: b.phone ?? "", aud: "authenticated", role: "authenticated", user_metadata: {}, app_metadata: {} });
+    }
     const rpc = /^\/rest\/v1\/rpc\/([a-z_][a-z0-9_]*)$/.exec(url.pathname);
     if (rpc) {
       const args = req.method === "GET" ? Object.fromEntries(url.searchParams) : await req.json().catch(() => ({}));

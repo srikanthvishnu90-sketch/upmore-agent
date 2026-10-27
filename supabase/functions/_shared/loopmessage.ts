@@ -45,7 +45,19 @@ export function loopSend(o: { apiKey: string; fetch?: typeof fetch; pauseMs?: nu
 // An inbound webhook body. LoopMessage posts inbound messages AND delivery callbacks to the same webhook; only real
 // inbound text reaches the agent. The candidate fields are the ones the owner's test bridge handled (documented and
 // observed shapes); the owner confirms them against LoopMessage's documentation before go-live.
-export type LoopInbound = { kind: "text"; text: string; sender: string; messageId: string | null } | { kind: "ignored"; why: string };
+// media (FEATURE 16): the address of each attachment the message carried, as the webhook gave it (untrusted; sms_media.ts
+// decides what may be fetched). The field name is NOT verified against LoopMessage's documentation (unreachable from the
+// build environment): `attachments` (strings, or objects with url/link/href), `attachment` and `media_url` are read.
+export type LoopInbound = { kind: "text"; text: string; sender: string; messageId: string | null; media: string[] } | { kind: "ignored"; why: string };
+export function attachmentUrls(...places: unknown[]): string[] {
+  const out: string[] = [];
+  const take = (v: unknown) => {
+    if (typeof v === "string" && v.trim()) out.push(v.trim());
+    else if (v && typeof v === "object") { const o = v as Record<string, unknown>; take(o.url ?? o.link ?? o.href ?? o.media_url); }
+  };
+  for (const p of places) { if (Array.isArray(p)) p.forEach(take); else take(p); }
+  return [...new Set(out)].slice(0, 20); // the message and its envelope can be the same object: one address once
+}
 export function parseLoopInbound(raw: unknown): LoopInbound {
   // deno-lint-ignore no-explicit-any
   const b: any = raw && typeof raw === "object" ? raw : {};
@@ -55,7 +67,9 @@ export function parseLoopInbound(raw: unknown): LoopInbound {
   const text = msg.text ?? msg.body ?? msg.content ?? b.text ?? b.body ?? "";
   const sender = msg.from ?? msg.sender ?? msg.contact ?? msg.recipient ?? msg.phone ?? b.from ?? b.sender ?? b.contact ?? b.recipient ?? b.phone ?? "";
   const id = msg.message_id ?? msg.id ?? b.message_id ?? b.id ?? null;
-  if (typeof text !== "string" || !text.trim()) return { kind: "ignored", why: "no text (attachments are not read yet)" };
+  const media = attachmentUrls(msg.attachments, b.attachments, msg.attachment, b.attachment, msg.media_url, b.media_url);
+  const caption = typeof text === "string" ? text : "";
+  if (!caption.trim() && !media.length) return { kind: "ignored", why: "no text (attachments are not read yet)" };
   if (typeof sender !== "string" || !sender.trim()) return { kind: "ignored", why: "no sender" };
-  return { kind: "text", text, sender, messageId: id === null || id === undefined || id === "" ? null : String(id).slice(0, 200) };
+  return { kind: "text", text: caption, media, sender, messageId: id === null || id === undefined || id === "" ? null : String(id).slice(0, 200) };
 }

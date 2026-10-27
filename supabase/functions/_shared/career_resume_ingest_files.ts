@@ -14,8 +14,9 @@
 // called (a photo is not read: the reply asks for a PDF or the pasted text).
 import { CareerProfile } from "./router_core.career.js";
 import { unzipSync } from "./vendor/fflate-0.8.2.mjs";
+import { REPLIES, RESUME_FILE_MAX_BYTES } from "./career_resume_replies.ts";
 
-export const RESUME_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export { RESUME_FILE_MAX_BYTES };
 // The stored turn input is bounded at 20,000 characters (career_host_commit p_input). The resume text is bounded below
 // that, so the file's marker line still fits; anything past it is cut at a line and the reply says so.
 export const RESUME_TEXT_MAX = 19_000;
@@ -49,20 +50,7 @@ export async function sha256Hex(b: Uint8Array | string) {
   return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-// ---- the replies: exact, plain, and never a claim that anything was read -------------------------------------------
-const PASTE = "or paste the text here";
-export const REPLIES = {
-  too_large: (mb: string) => `That file is ${mb} MB, and I read resume files up to 10 MB, so I haven't read it. Send a smaller copy (a PDF saved from Word or Google Docs is usually under 1 MB), ${PASTE}.`,
-  checksum: "That file didn't arrive whole (it doesn't match the checksum it was sent with), so I haven't read it. Send it again.",
-  empty: `That file is empty, so there was nothing to read. Send the resume file again, ${PASTE}.`,
-  image: `That's a picture, and I don't read text out of pictures, so I haven't read it. Send your resume as a PDF or Word file, ${PASTE}.`,
-  scanned: `That PDF has no text in it: it's a scan or a picture of the page, and I don't read text out of pictures, so I haven't read it. Send the PDF saved from Word or Google Docs, ${PASTE}.`,
-  encrypted_pdf: `That PDF is locked with a password, so I can't open it. Send a copy without the password (in most PDF apps: Print, then Save as PDF), ${PASTE}. Please don't send me the password.`,
-  protected_docx: `That Word file is protected with a password, so I can't open it. Save a copy without the password and send that, ${PASTE}. Please don't send me the password.`,
-  legacy_doc: `That's an older Word file (.doc), which I can't read. Save it as .docx or PDF and send it again, ${PASTE}.`,
-  corrupt: (what: string) => `I couldn't open that ${what}: it looks damaged or incomplete, so I haven't read it. Save or export it again and send it, ${PASTE}.`,
-  unsupported: (what: string) => `I can't read ${what} files. I read PDF, Word (.docx), RTF and plain-text files, so send it as one of those, ${PASTE}.`,
-};
+export { REPLIES };
 
 // ---- format sniffing: the bytes decide, the name and type only break ties ------------------------------------------
 const startsWith = (b: Uint8Array, sig: number[], at = 0) => sig.every((x, i) => b[at + i] === x);

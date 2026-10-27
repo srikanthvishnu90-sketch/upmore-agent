@@ -17,6 +17,7 @@ export interface Prepared {
   id: string;
   company: string;
   card_lines: string[];
+  url?: string | null; // the posting, so the ask names where it goes
   created_at?: string;
   resume_sha256?: string | null; // the payload's resume hash, when the store reads it (OWNER RULE 2026-10-26)
 }
@@ -24,7 +25,17 @@ export interface Card {
   id: string;
   items: { n: number; prepared_id: string; payload_hash: string }[];
   shown_at: string;
+  // 20261026235017: the card's approval code, drawn by the database when the card is opened ("YES 4821"), and the token
+  // of its inspect links (trainee-inspect).
+  approve_code?: string | null;
+  inspect_token?: string | null;
 }
+// The answer by code (career_apply_card_answer_code_as): the database finds the card by the code, for this person only.
+export type CodeAnswer =
+  | { status: "answered"; card_id: string; results: CardResult[] }
+  | { status: "no_card" | "locked" | "outdated" | "answered_before" | "stale" | "expired" | "changed" }
+  | { status: "wrong_code"; misses?: number }
+  | { status: "not_on_card"; count: number };
 export interface CardResult {
   n: number;
   company: string;
@@ -41,17 +52,21 @@ export interface CardStore {
   lastShownCard(threadId: string): Promise<string | null>;
   // SERIAL-1460 (2): the card the given message of this thread showed (meta.card_id), or null when that message is not a
   // card. Read only when the channel passes the id of the message a yes replies to.
-  cardOfMessage?(threadId: string, messageId: string | number, userId: string): Promise<string | null>;
+  // channel (2026-10-26, E-15): where the reply came from. A texting channel's reply id is the provider's id of the text
+  // that carried the card, never an agent_messages id: a Telegram message_id is a small number that can equal one.
+  cardOfMessage?(threadId: string, messageId: string | number, userId: string, channel?: string | null): Promise<string | null>;
+  // 20261026235017: "YES <code>" answers the card that carries the code. except: numbers left out; decline: "NO <code>".
+  answerCode?(userId: string, code: string, except: number[], decline: boolean): Promise<CodeAnswer>;
 }
 
 export type CardReply =
   | { kind: "show" }
-  | { kind: "yes"; except: number[] }
-  | { kind: "no" }
+  | { kind: "yes"; except: number[]; code?: string }
+  | { kind: "no"; code?: string }
   | { kind: "change"; n: number };
 
 export const CARD_INTENT = "career_apply_card";
-export const MAX_PER_CARD = 8;
+export const MAX_PER_CARD = 1; // one approval ask per message (spec section 7.1); the database still takes up to 8 (the app)
 export const YES_WINDOW_MS = 10 * 60_000; // D-031: a text yes counts only this long after the card was shown
 export const CARD_CHAR_BUDGET = 1600; // one card with two or more applications stays under this
 export const CARD_HARD_LIMIT = 4000; // one application alone may go up to the outbox's limit, never cut
@@ -66,6 +81,18 @@ export function parseCardReply(text: string): CardReply | null {
     return { kind: "show" };
   }
   const nums = "(\\d+(?:\\s*(?:,|and|&)\\s*\\d+)*)";
+  // The card's code (one approval model on every channel): "YES 4821", "yes, 4821", "Yes4821", "approve 4821", "4821 yes",
+  // "yes code 4821", each optionally "but not 2". A yes word is always needed: a bare number is never an approval.
+  // 3 to 8 digits are read as a try at the code (a mistyped code is told so and counted); the card's code is 4.
+  const leave = `(?:[ ,;-]*(?:but )?(?:not|except|skip|without|minus) (?:numbers? |#)?${nums})?`;
+  const split = (x?: string) => (x ? [...new Set(x.split(/\s*(?:,|and|&)\s*/).map(Number))] : []);
+  const yesWord = "(?:yes|yep|yeah|y|ok|okay|approve|approved|send|confirm)(?: it| them| all| please)?";
+  const a = t.match(new RegExp(`^${yesWord}[ ,:;.!#-]*(?:code[ :#]*)?#?(\\d{3,8})${leave}$`));
+  if (a) return { kind: "yes", except: split(a[2]), code: a[1] };
+  const b = t.match(new RegExp(`^(?:code[ :#]*)?#?(\\d{3,8})[ ,:;.!-]*${yesWord}${leave}$`));
+  if (b) return { kind: "yes", except: split(b[2]), code: b[1] };
+  const d = t.match(/^(?:no|nope|decline|skip)[ ,:;.!#-]*(?:code[ :#]*)?#?(\d{3,8})$/);
+  if (d) return { kind: "no", code: d[1] };
   const except = new RegExp(
     `^(?:yes|yep|yeah|approve)[ ,-]*(?:but )?(?:not|except|skip|without|minus) (?:numbers? |#)?${nums}$`,
   );
@@ -80,34 +107,56 @@ export function parseCardReply(text: string): CardReply | null {
   return null;
 }
 
-const one = (p: Prepared, n: number) => {
+// One approval ask per message, never bundled (the owner's iMessage experience spec, section 7.1, 2026-10-26; it replaces
+// D-031's batch card on texting channels): one application per card, and the card says what will happen, to whom,
+// that it cannot be taken back and that Trainee does not charge for it, links to inspect the exact answers and the exact resume file (pages
+// whose content hashes to the card's hash: trainee-inspect), and the exact reply expected, "YES <code>", the code bound
+// to this card and through it to the payload's hash (20261026235017). Every line of the application is shown verbatim.
+const one = (p: Prepared) => {
   const [head, ...rest] = p.card_lines.map((l) => String(l).replace(/\s+/g, " ").trim()).filter(Boolean);
-  return [`${n}. ${head ?? p.company}`, ...rest.map((l) => `   ${l}`)].join("\n");
+  return [head ?? p.company, ...rest.map((l) => `   ${l}`)].join("\n");
 };
-const HEAD = (count: number) =>
-  `${count === 1 ? "1 application is" : `${count} applications are`} ready. Every answer below goes exactly as shown.`;
-const FOOT = (count: number) =>
-  count === 1
-    ? `Reply "yes" to send it, or "no".`
-    : `Reply "yes" to send all ${count}, "yes but not 2" to leave some out, or "no".`;
+const hostOf = (u: unknown) => { try { return /^https?:\/\//.test(String(u)) ? new URL(String(u)).host : ""; } catch { return ""; } };
+const company = (p: Prepared) => String(p.company ?? "").replace(/\s+/g, " ").trim().slice(0, 80) || "the employer";
+// The slots the database fills once the card exists (the chat's "show" below; the scheduled push in
+// career_apply_card_push_for): the card's code, and the token of its inspect links.
+export const CODE_SLOT = "[[APPROVE-CODE]]";
+export const TOKEN_SLOT = "[[INSPECT-TOKEN]]";
+// The inspect page's address: the trainee-inspect function of this project (SUPABASE_URL is set in every edge function).
+export function inspectBase(): string | null {
+  // deno-lint-ignore no-explicit-any
+  const url = String((globalThis as any).Deno?.env?.get?.("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+  return /^https?:\/\/\S+$/.test(url) ? `${url}/functions/v1/trainee-inspect` : null;
+}
+const HEAD = (p: Prepared) => {
+  const host = hostOf(p.url);
+  return `Ready to submit your application to ${company(p)}${host ? ` (${host})` : ""}. It goes exactly as shown:`;
+};
+const LINKS = (base: string | null) => base
+  ? `Review the exact answers: ${base}?t=${TOKEN_SLOT}\nReview the exact resume file: ${base}?t=${TOKEN_SLOT}&f=resume`
+  : "";
+const FINAL = (p: Prepared) => `Once it's submitted, ${company(p)} keeps a copy: withdrawing it later doesn't erase it. Trainee doesn't charge for it.`;
+const FOOT = `Reply "YES ${CODE_SLOT}" to submit it, or "no" to skip it.`;
+// A card opened without a code (a database before 20261026235017): no texted approval exists, so none is offered.
+export const FOOT_NO_CODE = `It can't be approved by text yet, so nothing will be sent from this message. Reply "no" to skip it.`;
+export function withCode(text: string, code: string | null | undefined, token?: string | null): string {
+  let out = text;
+  out = token && /^[0-9a-f]{32}$/.test(token) ? out.split(TOKEN_SLOT).join(token)
+    : out.split("\n").filter((l) => !l.includes(TOKEN_SLOT)).join("\n").replace(/\n{3,}/g, "\n\n");
+  if (code && /^[0-9]{4}$/.test(code)) return out.split(CODE_SLOT).join(code);
+  return out.split("\n").map((l) => (l.includes(CODE_SLOT) ? FOOT_NO_CODE : l)).join("\n");
+}
 
-// How many of the pending applications fit one card: at most 8, under 1,600 characters with two or more, and the first
-// always (alone up to 4,000; an answer is never cut).
-export function cardFor(pending: Prepared[]): { take: Prepared[]; text: string } | { tooLong: Prepared } | null {
+// One application per card: the first pending one, alone up to 4,000 characters (an answer is never cut).
+export function cardFor(pending: Prepared[], o: { inspect?: string | null } = {}): { take: Prepared[]; text: string } | { tooLong: Prepared } | null {
   if (!pending.length) return null;
-  const take: Prepared[] = [];
-  for (const p of pending.slice(0, MAX_PER_CARD)) {
-    const next = [...take, p];
-    const text = render(next);
-    if (take.length && text.length > CARD_CHAR_BUDGET) break;
-    take.push(p);
-  }
-  const text = render(take);
+  const take = pending.slice(0, MAX_PER_CARD);
+  const text = render(take[0], o.inspect === undefined ? inspectBase() : o.inspect);
   if (text.length > CARD_HARD_LIMIT) return { tooLong: take[0] };
   return { take, text };
 }
-function render(list: Prepared[]) {
-  return [HEAD(list.length), ...list.map((p, i) => one(p, i + 1)), FOOT(list.length)].join("\n\n");
+function render(p: Prepared, base: string | null) {
+  return [HEAD(p), one(p), LINKS(base), FINAL(p), FOOT].filter(Boolean).join("\n\n");
 }
 
 const RESULT: Record<string, string> = {
@@ -141,20 +190,31 @@ export const CARD_RESUME_UNREAD = `I couldn't check your resume on file just now
 export const sendsResume = (p: Prepared) => /^[a-f0-9]{64}$/.test(String(p.resume_sha256 ?? ""));
 // One turn, before any brain. Returns null when the text is not about a card, so the turn goes on as before.
 export const CARD_OUTDATED = `That card is out of date: a newer card was shown since, so nothing was approved. Say "show my applications" for the current one.`;
-// SERIAL-1461 / 1480: what a yes with no usable reply id is told, by where it was typed. The app: it can reply to the card
-// message or tap Approve. A channel with a verified reply-id path (Telegram, WhatsApp Cloud): reply directly to the card,
-// or tap. iMessage, where this integration has no verified reply-id path: tap the card; it is never told to reply.
-export const NEEDS_REPLY = `Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve in the app.`;
-export const NEEDS_REPLY_CHANNEL = `Nothing was approved. To approve, reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve on the card.`;
-export const NEEDS_TAP_IMESSAGE = `Nothing was approved. To approve, tap the card to approve exactly what it shows.`;
+// SERIAL-1461 / 1480, and one approval model on every channel (2026-10-26, E-3 / E-5): what a bare yes is told, naming
+// only what exists where it was typed. Everywhere: the card's code ("YES 4821"). The app: also a reply to the card
+// message, or its Approve tap. Telegram and WhatsApp: also the Approve button sent under the card (Telegram's inline
+// keyboard, WhatsApp's reply buttons) and a direct reply to the card (both platforms give the replied-to id). iMessage
+// (LoopMessage): only the code; it has no buttons, and its reply thread id is documented but not verified live here.
+export const NEEDS_REPLY = `Nothing was approved. To approve, send YES and the 4-digit code at the end of the card (like YES 1234), reply directly to the card message (press and hold it, then Reply) and send "yes", or tap Approve in the app.`;
+export const NEEDS_REPLY_CHANNEL = `Nothing was approved. To approve, tap Approve under the card, send YES and the 4-digit code at the end of the card (like YES 1234), or reply directly to the card message (press and hold it, then Reply) and send "yes".`;
+export const NEEDS_TAP_IMESSAGE = `Nothing was approved. To approve, send YES and the 4-digit code at the end of the card (like YES 1234).`;
+export const NEEDS_CODE_IMESSAGE = NEEDS_TAP_IMESSAGE;
 export const CARD_NEEDS_REPLY_STATUS = "needs_reply";
-// The channel's wording for a needs_reply answer: by whether this integration has a verified reply-id path there.
+// The channel's wording for a needs_reply answer: what that channel actually has.
 export function needsReplyTextFor(channel: string | null | undefined): string {
-  return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_TAP_IMESSAGE : NEEDS_REPLY;
+  return channel === "telegram" || channel === "whatsapp" ? NEEDS_REPLY_CHANNEL : channel === "imessage" ? NEEDS_CODE_IMESSAGE : NEEDS_REPLY;
 }
+// The answers to "YES <code>" (career_apply_card_answer_code_as), each naming what happened, never more.
+export const CODE_WRONG = `That code doesn't match your card, so nothing was approved. Send YES and the 4-digit code at the end of your latest card.`;
+export const CODE_LOCKED = `That card had too many wrong codes, so it can't be approved by text now; nothing was sent. Say "show my applications" for a new card with a new code.`;
+export const CODE_NO_CARD = `There's no card waiting for an answer, so nothing was approved. Say "show my applications" to see what's ready.`;
+export const CODE_STALE = `That card was shown more than 10 minutes ago, so its code no longer approves it; nothing was sent. Say "show my applications" for a fresh card.`;
+export const CODE_CHANGED = `That card changed after it was shown, so nothing was approved. Say "show my applications" for the current one.`;
 export async function cardTurn(
   o: {
     message: string; userId: string; threadId: string; now: number; store: CardStore; events?: EventStore | null; replyTo?: string | number | null;
+    // E-15: the texting channel the reply id comes from (telegram, whatsapp, imessage); absent: the app (agent_messages ids).
+    replyChannel?: string | null;
     // OWNER RULE (2026-10-26, "never submit applications without a real resume"): whether the person has a confirmed
     // resume on file (career_resume_on_file). false: no card is shown and none is opened; absent: not asked.
     resumeReady?: () => Promise<boolean | null>;
@@ -180,19 +240,47 @@ export async function cardTurn(
     if ("tooLong" in c) {
       return {
         reply:
-          `The application to ${c.tooLong.company} is too long to show in a text. Open it in the app to approve it.`,
+          `The application to ${c.tooLong.company} is too long to show in one message, so it can't be approved here. Nothing was sent.`,
         status: "too_long",
       };
     }
     const opened = await o.store.open(o.userId, c.take.map((p) => p.id));
-    return { reply: c.text, status: "shown", card_id: opened.id };
+    return { reply: withCode(c.text, opened.approve_code, opened.inspect_token), status: "shown", card_id: opened.id };
+  }
+  // One approval model on every channel: a typed code names its card, so it needs no reply id and no "last word". The
+  // database decides everything (this person's card, open, in its window, every payload as shown); this only words it.
+  if ((r.kind === "yes" || r.kind === "no") && r.code !== undefined && o.store.answerCode) {
+    const a = await o.store.answerCode(o.userId, r.code, r.kind === "yes" ? r.except : [], r.kind === "no");
+    switch (a.status) {
+      case "answered": {
+        for (const x of a.results) {
+          await recordEvent(o.events, {
+            user_id: o.userId, at: o.now, kind: x.result === "queued" ? "application_approved" : "status_change", subject: x.company,
+            detail: { card: a.card_id, n: x.n, result: x.result, via: "code" }, source: "card",
+          });
+        }
+        return { reply: answerText(a.results), status: "answered", card_id: a.card_id };
+      }
+      case "wrong_code": return { reply: CODE_WRONG, status: "wrong_code" };
+      case "locked": return { reply: CODE_LOCKED, status: "code_locked" };
+      // A yes and a number while no card waits: said plainly for a 4-digit code (a code try); any other number is not
+      // about a card, so the turn goes on as before.
+      case "no_card": return r.code.length === 4 ? { reply: CODE_NO_CARD, status: "no_card" } : null;
+      case "outdated": return { reply: CARD_OUTDATED, status: "card_outdated" };
+      case "answered_before": return { reply: "That card was already answered. Nothing more was sent.", status: "answered_before" };
+      case "stale": return { reply: CODE_STALE, status: "stale_card" };
+      case "expired": return { reply: `That card is more than a day old, so nothing was sent. Say "show my applications" to see them again.`, status: "expired" };
+      case "changed": return { reply: CODE_CHANGED, status: "changed" };
+      case "not_on_card": return { reply: `This card has ${a.count === 1 ? "only number 1" : `numbers 1 to ${a.count}`}; nothing was sent.`, status: "not_on_card" };
+    }
+    return null;
   }
   // Which card the answer is about (SERIAL-1461). An approval counts only when the text carries the channel's reply-to
   // id and that id is the message that carried the card: an explicit reply to any other or older message refuses, and
   // a yes with no reply id approves nothing and says how (reply directly to the card, or tap). A decline or a change
   // needs no reply id: it counts while the card is this thread's last word, and sends nothing either way.
   const hasReply = o.replyTo !== undefined && o.replyTo !== null && String(o.replyTo) !== "";
-  const repliedCard = hasReply && o.store.cardOfMessage ? await o.store.cardOfMessage(o.threadId, o.replyTo!, o.userId) : null;
+  const repliedCard = hasReply && o.store.cardOfMessage ? await o.store.cardOfMessage(o.threadId, o.replyTo!, o.userId, o.replyChannel ?? null) : null;
   const lastWordIsCard = (await o.store.lastAssistantIntent(o.threadId)) === CARD_INTENT;
   const card = await o.store.latestOpen(o.userId);
   if (!card) return null;
@@ -212,9 +300,11 @@ export async function cardTurn(
   if (!shownId || shownId !== card.id) return { reply: CARD_OUTDATED, status: "card_outdated" };
   const numbers = card.items.map((i) => i.n);
   if (r.kind === "change") {
+    const code = typeof (card as Card).approve_code === "string" && /^[0-9]{4}$/.test((card as Card).approve_code!) ? (card as Card).approve_code : null;
     return {
       reply:
-        `Application ${r.n} was not sent. To change an answer, change it where you keep your details and prepare it again; it comes back on a new card. To send the others, tap Approve on each one in the app.`,
+        `Application ${r.n} was not sent. To change an answer, change it where you keep your details and prepare it again; it comes back on a new card.${
+          code && numbers.length > 1 ? ` To send the others, reply "YES ${code} but not ${r.n}".` : ""}`,
       status: "change",
     };
   }
@@ -236,7 +326,7 @@ export async function cardTurn(
   const approve = numbers.filter((n) => !leaveOut.includes(n));
   if (approve.length && Date.parse(card.shown_at) < o.now - YES_WINDOW_MS) {
     return {
-      reply: `That card was shown more than 10 minutes ago, so a text yes can't approve it; nothing was sent. Say "show my applications" for a fresh card, or tap Approve in the app.`,
+      reply: `That card was shown more than 10 minutes ago, so a text yes can't approve it; nothing was sent. Say "show my applications" for a fresh card.`,
       status: "stale_card",
     };
   }
@@ -278,7 +368,7 @@ export function supabaseCardStore(admin: any): CardStore {
   return {
     async pending(userId) {
       return must(
-        await admin.from("career_apply_prepared").select("id,company,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
+        await admin.from("career_apply_prepared").select("id,company,url,card_lines,created_at,resume_sha256:payload->>resume_sha256").eq("user_id", userId)
           .in("state", ["ready", "shown"]).order("created_at", { ascending: true }).limit(30),
         "read prepared applications",
       ) ?? [];
@@ -288,7 +378,7 @@ export function supabaseCardStore(admin: any): CardStore {
     },
     async latestOpen(userId) {
       const rows = must(
-        await admin.from("career_apply_cards").select("id,items,shown_at").eq("user_id", userId).eq("state", "open")
+        await admin.from("career_apply_cards").select("id,items,shown_at,approve_code").eq("user_id", userId).eq("state", "open")
           .order("shown_at", { ascending: false }).limit(1),
         "read the open card",
       );
@@ -318,12 +408,23 @@ export function supabaseCardStore(admin: any): CardStore {
       const m = rows?.[0]?.meta;
       return m?.intent === CARD_INTENT && typeof m?.card_id === "string" ? m.card_id : null;
     },
-    async cardOfMessage(threadId, messageId, userId) {
+    async answerCode(userId, code, except, decline) {
+      const r = must(
+        await admin.rpc("career_apply_card_answer_code_as", { p_user: userId, p_code: code, p_except: except, p_decline: decline }),
+        "answer the card by its code",
+      );
+      if (!r || typeof r.status !== "string") throw new Error("answer the card by its code: no status");
+      return r as CodeAnswer;
+    },
+    async cardOfMessage(threadId, messageId, userId, channel) {
       // The app replies to its own message ids (agent_messages.id, this thread); a texting channel replies to the
       // provider's id of the message that went out, which the outbox recorded when it delivered the card's text
       // (career_outbox.provider_id / provider_ids, the row's card_id or its 'card:<id>' key). SERIAL-1462.
+      // E-15: a texting channel's id is read only against that channel's own delivered texts: a Telegram message_id is a
+      // small number, and read as an agent_messages id it could name the card although the person replied to another text.
       const id = String(messageId).slice(0, 200);
-      if (/^[0-9]{1,18}$/.test(id)) {
+      const ch = channel === "telegram" || channel === "whatsapp" || channel === "imessage" ? channel : null;
+      if (!ch && /^[0-9]{1,18}$/.test(id)) {
         const rows = must(
           await admin.from("agent_messages").select("meta").eq("thread_id", threadId).eq("role", "assistant").eq("id", Number(id)).limit(1),
           "read the replied-to message",
@@ -331,11 +432,12 @@ export function supabaseCardStore(admin: any): CardStore {
         const m = rows?.[0]?.meta;
         if (m?.intent === CARD_INTENT && typeof m?.card_id === "string") return m.card_id;
       }
-      const sent = must(
-        await admin.from("career_outbox").select("key,card_id,provider_id,provider_ids").eq("user_id", userId).eq("status", "delivered")
-          .or(`provider_id.eq.${JSON.stringify(id)},provider_ids.cs.{${JSON.stringify(id)}}`).limit(2),
-        "read the replied-to text",
-      );
+      let q = admin.from("career_outbox").select("key,card_id,provider_id,provider_ids").eq("user_id", userId).eq("status", "delivered")
+        .or(`provider_id.eq.${JSON.stringify(id)},provider_ids.cs.{${JSON.stringify(id)}}`);
+      if (ch === "telegram") q = q.like("contact", "tg:%");
+      else if (ch === "whatsapp") q = q.like("contact", "wa:%");
+      else if (ch === "imessage") q = q.not("contact", "like", "tg:%").not("contact", "like", "wa:%");
+      const sent = must(await q.limit(2), "read the replied-to text");
       const row = Array.isArray(sent) ? sent[0] : null;
       if (!row) return null;
       if (typeof row.card_id === "string" && row.card_id) return row.card_id;

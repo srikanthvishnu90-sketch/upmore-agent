@@ -147,7 +147,7 @@ Function secrets are project-wide in Supabase: every function sees every one.
 4. **deploy**: first downloads the live `agent-chat` to `~/trainee-rollback/agent-chat-<UTC>` (best effort), then deploys
    `agent-chat` from the career-only staged tree (`node scripts/career/stage-career.cjs`: `index-career.ts` as
    `agent-chat/index.ts`, JWT on; deploying it from the repo tree would ship the shelved finance entry), then
-   `career-ingest`, `career-proactive`, `trainee-deliver`, `trainee-inbound`, `trainee-telegram`, `trainee-whatsapp`
+   `career-ingest`, `career-proactive`, `trainee-deliver`, `trainee-inbound`, `trainee-telegram`, `trainee-whatsapp`, `trainee-inspect`
    with `--no-verify-jwt` (pg_cron, LoopMessage, Telegram and Meta send no JWT; each function checks its own secret).
    The two channel webhooks deploy even when their channel is not wired: they then answer 503 `NOT_WIRED`. Every deploy
    runs from the staged commit, and right after each one its row goes into `public.career_deploy_ledger`: the sha, the
@@ -189,18 +189,36 @@ Webhook URL (inbound messages), in LoopMessage's dashboard:
 https://<ref>.supabase.co/functions/v1/trainee-inbound?secret=<TRAINEE_INBOUND_SECRET>
 ```
 
-**Check these against LoopMessage's own documentation before you turn it on**; none was verified there (the docs were
-unreachable from the build environment, WO-013). The code uses the shape your test bridge used live, 2026-10-08..11:
+Or leave `?secret=` off and set the same value as the webhook's **Authorization header** in LoopMessage's dashboard
+(LoopMessage: "You can configure the authorization header used for webhook requests via the dashboard"); both are
+accepted (`_shared/loopmessage_adapter.ts` `inboundSecretOf`), and the header keeps the secret out of URL logs.
 
-- send: `POST https://a.loopmessage.com/api/v1/message/send/`, header `Authorization: <raw API key>`, body
-  `{ "contact", "text" }`, one request per bubble (`_shared/loopmessage.ts`). Some LoopMessage documentation describes
-  a different host and fields (`server.loopmessage.com`, a second `Loop-Secret-Key` header, `recipient` and
-  `sender_name`): confirm which one your account uses.
-- retried as "certainly not sent": HTTP 429, 502, 503 and a connection that never opened; anything else is final.
-- inbound: the webhook body is read from `alert_type` (`message_inbound`; delivery callbacks are ignored),
-  `message_id` (dedupe), `recipient` / `from` / `sender` / `contact` / `phone` (the person's number) and `text`.
-- the webhook answers after the chat turn (up to about 2 minutes). If LoopMessage retries sooner, the retry is
-  answered "duplicate webhook" and runs nothing; confirm its timeout and retry rules.
+Checked on 2026-10-26 against LoopMessage's documentation (https://loopmessage.com/apidocs/send-message/,
+https://loopmessage.com/apidocs/conversation-api-webhooks); not yet seen on a live account:
+
+- send: `POST https://a.loopmessage.com/api/v1/message/send/`, header `Authorization: <API key>`, body
+  `{ "contact", "text" }` (text under 10,000 characters), one request per bubble; the answer's `message_id` is kept for
+  every bubble (a reply in a thread names the bubble it was applied to). A 200 means queued, not delivered.
+- retried as "certainly not sent": HTTP 429, 502, 503 and a connection that never opened; anything else is final (the
+  docs do not say which statuses are safe to retry).
+- inbound: only `event` = `message_inbound` runs anything (`message_reaction` carries the reacted-to text and is not a
+  message; delivery and failure callbacks, `inbound_call` and group messages run nothing). The person is `contact`;
+  `sender` is Trainee's own sender id and is never read as the person. A file with no text (`message_type`
+  `attachments`) is answered ("I can't open files sent here yet ..."), never silence. `thread.initial_message_id` is read
+  as the reply id. The older shape (`alert_type`, `recipient`) is still read.
+- timing: LoopMessage disconnects after 15 seconds and retries up to 30 times (10 every 30 s, 10 every 3 min, 10 every
+  15 min). The webhook claims the message id, answers 200 at once and runs the turn after the answer
+  (`EdgeRuntime.waitUntil`); a retry is answered "duplicate webhook" and runs nothing.
+
+### Approving a card on any channel
+
+Every card is one application (never two asks in one message) and ends with its own code: `Reply "YES 4821" to submit
+it, or "no" to skip it.` The code approves that card only, for that person, once, within 10 minutes of the card, and
+only while the application still hashes to what the card showed (`20261026235017_career_apply_card_code.sql`). Five
+wrong codes lock the card. Telegram and WhatsApp also send Approve and Decline buttons under the card. The card links to
+`trainee-inspect` (deployed with the channel functions, `--no-verify-jwt`; its 128-bit token is the gate), which shows
+the exact answers and serves the exact resume file, as plain text and the file itself (Supabase serves HTML only on a
+custom domain). Receipts link to exactly what was sent.
 
 ## Telegram (Bot API)
 

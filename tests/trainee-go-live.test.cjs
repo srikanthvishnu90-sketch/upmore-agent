@@ -224,7 +224,9 @@ test('checkInboundHelp: ok + command help + sent passes; not sent, ignored or NO
   const f = fakeFetch((c) => [200, { ok: true, command: c.body.text.toLowerCase(), sent: true }]);
   assert.equal((await smoke.checkInboundHelp(args(f))).status, 'PASS');
   assert.equal(f.calls[0].secretOk, true);
-  assert.equal(f.calls[0].body.recipient, FAKE.TRAINEE_SMOKE_CONTACT);
+  // LoopMessage's documented inbound shape (event, contact): https://loopmessage.com/apidocs/conversation-api-webhooks
+  assert.equal(f.calls[0].body.contact, FAKE.TRAINEE_SMOKE_CONTACT);
+  assert.equal(f.calls[0].body.event, 'message_inbound');
   assert.equal((await smoke.checkInboundHelp(args(fakeFetch(() => [200, { ok: true, command: 'help', sent: false }])))).status, 'FAIL');
   assert.equal((await smoke.checkInboundHelp(args(fakeFetch(() => [200, { ok: true, ignored: 'no sender' }])))).status, 'FAIL');
   assert.equal((await smoke.checkInboundHelp(args(fakeFetch(() => [503, { error: 'NOT_WIRED: LOOPMESSAGE_API_KEY is not set; no turn was run' }])))).status, 'WARN');

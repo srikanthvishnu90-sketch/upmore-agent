@@ -7,8 +7,8 @@
 //            nothing is approved, filled or sent
 //   prepare  prepare-ahead.ts prepareAhead draws both; shared facts asked once; the essay asked once PER posting
 //   answers  "what do you need from me" / "use N" / "N <text>" through handleChat
-//   card     "show my applications" -> one card with both; their one text "yes" within 10 minutes approves exactly those
-//            two payloads (D-031), each by the hash the card carries
+//   card     "show my applications" -> one card per application (one ask per message, the owner's iMessage spec 7.1,
+//            2026-10-26); each yes within 10 minutes approves exactly that payload, by the hash its card carries
 //   drive    runApproved -> scripts/apply.ts, once per employer; each receives only its own essay
 // Everything but the employer pages (127.0.0.1) and the person's taps is the product's own code.
 // Fail-first on b3c23bf5: "apply to these" is the router's catch-all ("I did not catch what to do with that one"),
@@ -235,7 +235,8 @@ Deno.test({
       await t.step("their one yes (SERIAL-1451/1461/1462): the card shown in thread A is closed by the card shown in thread B; a bare yes says how; a yes in reply to A's card message approves nothing, a replay nothing; a yes in reply to B's card message approves exactly the two payloads", async () => {
         const cardA = await say("show my applications");
         assertEquals([cardA.intent, cardA.resultStatus], ["career_apply_card", "shown"], cardA.reply);
-        assert(/2 applications are ready/.test(cardA.reply) && cardA.reply.includes(FIRST_WHY) && cardA.reply.includes(SIBLING_WHY), `the card shows both essays verbatim: ${cardA.reply}`);
+        // One approval ask per message (the owner's iMessage spec 7.1, 2026-10-26): the card shows one application, its essay verbatim.
+        assert(/^Ready to submit your application to /.test(cardA.reply) && (cardA.reply.includes(FIRST_WHY) !== cardA.reply.includes(SIBLING_WHY)), `one application per ask, its essay verbatim: ${cardA.reply}`);
         const metaA = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
         assert(typeof metaA?.card_id === "string" && metaA.intent === "career_apply_card", `the shown card's id rides the reply: ${JSON.stringify(metaA)}`);
         // The same person in a second thread shows a card: it closes thread A's card (card_open_for) and is now the newest.
@@ -276,10 +277,19 @@ Deno.test({
         assertEquals(toOther.resultStatus, "needs_reply", `a yes in reply to a message that is not the card approves nothing and says how: ${toOther.intent} ${toOther.reply}`);
         // The thread that showed the newest card approves it, once, by replying to the card's message.
         const yesB = await threadB.say("yes", { reply_to_message_id: Number(cardMsgB) });
-        assertEquals(yesB.resultStatus, "answered", `SERIAL-1440 (1): one text yes in the thread that showed the card approves the batch it shows: ${yesB.reply}`);
-        assert(/2 approved exactly as shown/.test(yesB.reply) && /Nothing has gone to an employer yet/.test(yesB.reply), yesB.reply);
-        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, by the hashes the card carried");
+        assertEquals(yesB.resultStatus, "answered", `SERIAL-1440 (1): one text yes in the thread that showed the card approves the application it shows: ${yesB.reply}`);
+        assert(/1 approved exactly as shown/.test(yesB.reply) && /Nothing has gone to an employer yet/.test(yesB.reply), yesB.reply);
+        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "1", "one application, its exact payload, by the hash the card carried");
         assertEquals(await threadB.say("yes").then((r) => r.resultStatus === "answered"), false, "a second yes approves nothing: the card is single-use");
+        // The other application: its own ask, its own yes.
+        const cardC = await threadB.say("show my applications");
+        assertEquals([cardC.intent, cardC.resultStatus], ["career_apply_card", "shown"], cardC.reply);
+        assert((cardC.reply.includes(FIRST_WHY) !== cardC.reply.includes(SIBLING_WHY)) && cardC.reply.includes(FIRST_WHY) !== cardB.reply.includes(FIRST_WHY), `the other application, alone: ${cardC.reply}`);
+        const metaC = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
+        const cardMsgC = await pg.sql(`select id from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaC.card_id}' order by id desc limit 1`);
+        const yesC = await threadB.say("yes", { reply_to_message_id: Number(cardMsgC) });
+        assertEquals(yesC.resultStatus, "answered", yesC.reply);
+        assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, each by the hash its own card carried");
         const queue = ownQueue(person);
         const done = await runApproved({
           claim: () => queue.claim(2),

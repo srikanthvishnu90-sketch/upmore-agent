@@ -1,9 +1,10 @@
 // WO-022 (architect): the card of prepared applications and the one text that answers it, then the whole loop on fakes:
-// prepared (the engine's dry run) -> card -> "yes but not 2" -> queue -> the person's computer runs them -> receipts.
+// prepared (the engine's dry run) -> card -> "yes" -> queue -> the person's computer runs them -> receipts. Since
+// 2026-10-26 (the owner's iMessage spec 7.1; it replaces D-031's batch card on texting): one application per ask.
 // The database half (prepare_own, card open and answer) is proven in tests/db/career_apply_cards.test.sql.
 import {
   answerText,
-  CARD_CHAR_BUDGET,
+  withCode,
   CARD_INTENT,
   cardFor,
   type CardStore,
@@ -52,13 +53,22 @@ const prep = (i: number, lines = 4): Prepared => ({
   resume_sha256: "b".repeat(64), // OWNER RULE 2026-10-26: the store reads each prepared application's resume hash; none, no card
 });
 
-Deno.test("WO-022/2 a card shows every line of every application verbatim, at most 8, under 1,600 characters with two or more", () => {
-  const c = cardFor(Array.from({ length: 12 }, (_, i) => prep(i + 1)));
+Deno.test("WO-022/2 a card is one approval ask (the owner's iMessage spec 7.1, 2026-10-26): every line of one application verbatim, what happens, to whom, that it can't be undone, the inspect links, and the exact reply", () => {
+  const c = cardFor(Array.from({ length: 12 }, (_, i) => ({ ...prep(i + 1), url: `https://jobs.lever.co/test/${i + 1}` })), { inspect: "https://x.supabase.co/functions/v1/trainee-inspect" });
   assert(c && "take" in c);
-  assert(c.take.length <= 8 && c.text.length <= CARD_CHAR_BUDGET, `${c.take.length} ${c.text.length}`);
-  for (const p of c.take) for (const l of p.card_lines) assert(c.text.includes(l), "missing: " + l);
-  assert(!c.text.includes("TEST Employer 9"), "nothing beyond the card");
-  assert(/"yes but not 2"/.test(c.text) && /"no"/.test(c.text) && !/\bstop\b/i.test(c.text), c.text);
+  eq(c.take.map((p) => p.id), ["P1"], "one application per ask; never two in one message");
+  assert(c.text.length <= 1600, `${c.text.length}`);
+  for (const l of c.take[0].card_lines) assert(c.text.includes(l), "missing: " + l);
+  assert(!c.text.includes("TEST Employer 2"), "nothing beyond the one ask");
+  for (const w of ["Ready to submit your application to TEST Employer 1 (jobs.lever.co).", "Review the exact answers: https://x.supabase.co/functions/v1/trainee-inspect?t=[[INSPECT-TOKEN]]",
+    "Review the exact resume file: https://x.supabase.co/functions/v1/trainee-inspect?t=[[INSPECT-TOKEN]]&f=resume", "TEST Employer 1 keeps a copy: withdrawing it later doesn't erase it. Trainee doesn't charge for it.",
+    'Reply "YES [[APPROVE-CODE]]" to submit it, or "no" to skip it.']) assert(c.text.includes(w), `${w}:\n${c.text}`);
+  assert(!/\bstop\b/i.test(c.text), c.text);
+  // One approval model (20261026235017): the slots are the database's; filled, nothing of them is left.
+  const filled = withCode(c.text, "4821", "0123456789abcdef0123456789abcdef");
+  assert(filled.includes('Reply "YES 4821" to submit it') && filled.includes("?t=0123456789abcdef0123456789abcdef&f=resume") && !filled.includes("[["), filled);
+  const noCode = withCode(c.text, null, null);
+  assert(!noCode.includes("[[") && !/YES/.test(noCode) && !/Review the exact/.test(noCode) && /can't be approved by text yet/.test(noCode), noCode);
   const big = cardFor([prep(1, 40), prep(2, 40)]);
   assert(big && "take" in big && big.take.length === 1, "a long application goes alone, never cut");
   const huge = cardFor([prep(1, 200)]);
@@ -108,7 +118,7 @@ Deno.test("WO-022/3 a yes answers the card only while the card is the thread's l
   eq(await turn(m.store, "yes"), null, "the brain spoke after the card: this yes is not the card's");
   eq(m.answers.length, 0);
   eq((await turn(m.store, "yes", T, "M-C1"))?.status, "answered", "SERIAL-1461: but a yes in direct reply to the card's message is the card's, whatever came after");
-  eq(m.answers, [[1, 2, 3]]);
+  eq(m.answers, [[1]], "the one application the ask named");
 });
 
 Deno.test("WO-022/4 a text yes within 10 minutes approves exactly what it says (the owner, 2026-10-22: one yes handles a batch); a number not on the card, a card older than 10 minutes and an old card approve nothing", async () => {
@@ -117,13 +127,13 @@ Deno.test("WO-022/4 a text yes within 10 minutes approves exactly what it says (
   const bad = await turn(m.store, "yes but not 9", T, "M-C1");
   eq(bad?.status, "not_on_card");
   eq(m.answers.length, 0);
-  const bare = await turn(m.store, "yes but not 2");
+  const bare = await turn(m.store, "yes");
   eq(bare?.status, "needs_reply", "SERIAL-1461: a yes with no reply id approves nothing and says how");
-  assert(/reply directly to the card/.test(bare!.reply) && /tap Approve/.test(bare!.reply), bare!.reply);
+  assert(/YES and the 4-digit code/.test(bare!.reply) && /reply directly to the card/.test(bare!.reply) && /tap Approve/.test(bare!.reply), bare!.reply);
   eq(m.answers.length, 0);
-  const yes = await turn(m.store, "yes but not 2", T, "M-C1");
-  eq(yes?.status, "answered", "SERIAL-1440 (1) / 1461: a yes in direct reply to the card's message, within 10 minutes, approves the batch it names");
-  eq(m.answers, [[1, 3]], "exactly the numbers the yes left in");
+  const yes = await turn(m.store, "yes", T, "M-C1");
+  eq(yes?.status, "answered", "SERIAL-1440 (1) / 1461: a yes in direct reply to the card's message, within 10 minutes, approves what it names");
+  eq(m.answers, [[1]], "exactly the one application on the card");
   const late = memoryCards({ shownAt: T - 11 * 60000 });
   await turn(late.store, "show my applications", T - 11 * 60000);
   eq((await turn(late.store, "yes", T, "M-C1"))?.status, "stale_card", "a yes more than 10 minutes after the card approves nothing");
@@ -187,12 +197,13 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
   }
   // 2. The card and its answer, against a store that queues exactly what was shown.
   const queue: any[] = [];
-  let card: any = null, last: string | null = null;
+  let card: any = null, last: string | null = null, cards = 0;
+  const answered = new Set<string>();
   const store: CardStore = {
-    pending: async () => prepared.map((p) => ({ id: p.id, company: p.payload.company, card_lines: p.card, resume_sha256: p.payload.resume_sha256 })),
+    pending: async () => prepared.filter((p) => !answered.has(p.id)).map((p) => ({ id: p.id, company: p.payload.company, card_lines: p.card, resume_sha256: p.payload.resume_sha256 })),
     open: async (_u, ids) => {
       card = {
-        id: "C1",
+        id: `C${++cards}`,
         items: ids.map((id, i) => ({
           n: i + 1,
           prepared_id: id,
@@ -207,6 +218,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
     answer: async (_u, _c, approve) =>
       card.items.map((it: any) => {
         const p = prepared.find((x) => x.id === it.prepared_id)!;
+        answered.add(p.id);
         if (approve.includes(it.n)) {
           queue.push({
             id: `00000000-0000-4000-8000-${String(it.n).padStart(12, "0")}`, // a uuid, as the queue makes them
@@ -219,12 +231,16 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
         return { n: it.n, company: p.payload.company, result: approve.includes(it.n) ? "queued" : "declined" };
       }),
     lastAssistantIntent: async () => last,
-    lastShownCard: async () => "C1",
-    cardOfMessage: async (_t, id) => (String(id) === "M-C1" ? "C1" : null),
+    lastShownCard: async () => card?.id ?? null,
+    cardOfMessage: async (_t, id) => (card && String(id) === `M-${card.id}` ? card.id : null),
   };
-  const shown = await turn(store, "show my applications");
-  for (const p of prepared) for (const l of p.card) assert(shown!.reply.includes(l), "card line missing: " + l);
-  eq((await turn(store, "yes but not 2", T, "M-C1"))?.status, "answered", "SERIAL-1440 (1): their one text yes, in reply to the card's message, approves 1 and 3 exactly as shown (career_apply_card_answer_own)");
+  // One ask per application (spec 7.1): 1 yes, 2 no, 3 yes, each in reply to its own card's message.
+  for (const [i, answer] of [[0, "yes"], [1, "no"], [2, "yes"]] as const) {
+    const shown = await turn(store, "show my applications");
+    for (const l of prepared[i].card) assert(shown!.reply.includes(l), "card line missing: " + l);
+    for (const other of prepared.filter((_, k) => k !== i)) assert(!shown!.reply.includes(other.payload.company), `one application per ask: ${shown!.reply}`);
+    eq((await turn(store, answer, T, `M-${card.id}`))?.status, "answered", `${prepared[i].payload.company}: ${answer}`);
+  }
   eq(queue.map((j) => j.payload.company), ["TEST Employer 1", "TEST Employer 3"]);
   eq(queue.map((j) => j.approval), [prepared[0].hash, prepared[2].hash], "approved by the hash that was shown");
   // 3. The person's computer runs them with the engine's own approval; 4. each ends in one receipt.
@@ -284,5 +300,5 @@ Deno.test("SERIAL-1451 the yes answers the card this thread showed, no other: a 
   // The thread that showed C2 approves it.
   const own: CardStore = { ...newest.store, latestOpen: async () => ({ ...(await newest.store.latestOpen("TEST-USER"))!, id: "C2" }), lastShownCard: async () => "C2", cardOfMessage: async (_t, id) => (String(id) === "M-C2" ? "C2" : null) };
   eq((await cardTurn({ message: "yes", userId: "TEST-USER", threadId: "B", now: T, store: own, replyTo: "M-C2" }))?.status, "answered");
-  eq(newest.answers, [[1, 2, 3]]);
+  eq(newest.answers, [[1, 2, 3]], "a three-item card opened directly (the database still takes up to 8; the app's) is answered whole");
 });

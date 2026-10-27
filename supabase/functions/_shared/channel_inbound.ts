@@ -75,7 +75,7 @@ export interface CoreDeps {
   // OUTBOX_CHARS; when given with two or more, they are what the person reads, in order, and `reply` is not sent.
   // replyToMessageId (optional): the provider's id of the message the person replied to (SERIAL-1462). cardId (optional,
   // in the answer): the card this reply shows, so the outbox row that carries it is recorded against the card.
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; artifacts?: { ref: string; filename: string; mime: string }[] }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; replyChannel?: string | null }) => Promise<{ status: number; reply: string; threadId: string | null; parts?: string[]; cardId?: string | null; resultStatus?: string | null; artifacts?: { ref: string; filename: string; mime: string }[] }>;
   deliver: (a: { userId: string; key: string; now: number }) => Promise<void>; // a head start on the every-minute run
   // FEATURE 16 (Telegram; optional, so the other channels run unchanged):
   // resumeFile: a document the person sent, downloaded, read and stored as their upload (channel_resume_upload.ts); ok
@@ -87,6 +87,11 @@ export interface CoreDeps {
   // FEATURE 16: the turn's documents (owner-scoped refs) sent as files after its reply; how many went. Absent: the channel
   // sends no files, and the reply's own words stand (agent-chat says when a file could not be attached).
   sendArtifacts?: (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string; filename: string; mime: string }[] }) => Promise<{ sent: number; failed: number }>;
+  // E-15 (2026-10-26): run the work after the provider has its answer. LoopMessage disconnects after 15 seconds and
+  // retries up to 30 times; Meta and Telegram retry what is not answered 2xx; a turn takes up to 120 seconds. With
+  // defer, a webhook claims each message id (the provider's retry is then a duplicate), answers 200 at once, and hands
+  // the turn to defer (the edge runtime's EdgeRuntime.waitUntil). Absent: the turn runs before the answer, as before.
+  defer?: (work: Promise<unknown>) => void;
 }
 type Out = { status: number; body: Record<string, unknown> };
 const ok = (body: Record<string, unknown>): Out => ({ status: 200, body: { ok: true, ...body } });
@@ -128,8 +133,19 @@ const scoped = (m: InboundMessage) => (m.provider === "loopmessage" ? m.messageI
 const YES = /^yes[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
 
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
+  if (!(await d.store.claimMessage(msg.messageId, d.now(), msg.provider))) return ok({ ignored: "duplicate webhook" });
+  return await runClaimed(msg, d);
+}
+// E-15: claim now, answer the provider now, run the turn after. A message whose id was claimed before is a retry and
+// runs nothing. Without d.defer the turn runs here (tests, and a runtime with no background tasks).
+export async function acceptInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
+  if (!d.defer) return await runInbound(msg, d);
+  if (!(await d.store.claimMessage(msg.messageId, d.now(), msg.provider))) return ok({ ignored: "duplicate webhook" });
+  d.defer(runClaimed(msg, d).catch((e) => console.error("inbound (after the answer) failed:", e instanceof Error ? e.message : String(e))));
+  return ok({ accepted: true });
+}
+async function runClaimed(msg: InboundMessage, d: CoreDeps): Promise<Out> {
   const now = d.now(), store = d.store;
-  if (!(await store.claimMessage(msg.messageId, now, msg.provider))) return ok({ ignored: "duplicate webhook" });
   let contact = msg.contact;
   // The message id is claimed, so a failure past this point is never retried by the provider: say so to the person once
   // (best effort) rather than leave them with silence.
@@ -269,7 +285,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
       const said = fileMessage ?? (msg.text || (command ? `/${command}` : ""));
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
-      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
+      const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId, replyChannel: msg.channel } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;
       // SERIAL-1480: a card's yes with no usable reply id is told how in this channel's own terms: where this
       // integration has a verified reply-id path (Telegram, WhatsApp Cloud) "reply directly to the card, or tap"; on
@@ -310,8 +326,8 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
 }
 
 // A webhook of a provider that may carry several messages and status callbacks (WhatsApp) or one update (Telegram). The
-// provider gets 200 once its messages are claimed and run, so it does not retry what was handled; a failure inside one
-// message was already said to that person.
+// provider gets 200 once its messages are claimed and run (with d.defer: once they are claimed; the turns run after the
+// answer), so it does not retry what was handled; a failure inside one message is said to that person.
 export async function handleChannelWebhook(req: Request, adapter: ChannelAdapter, d: CoreDeps): Promise<Response> {
   const parsed = await adapter.parseInbound(req);
   if ("response" in parsed) return parsed.response;
@@ -323,6 +339,22 @@ export async function handleChannelWebhook(req: Request, adapter: ChannelAdapter
   }
   if (!parsed.messages.length) return json({ ok: true, ...(reheld ? { reheld } : {}), ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const results: Record<string, unknown>[] = [];
+  if (d.defer) {
+    // Every message id claimed before the answer; the turns run after it, one after another, in the webhook's order.
+    const claimed: InboundMessage[] = [];
+    for (const m of parsed.messages) {
+      if (await d.store.claimMessage(m.messageId, d.now(), m.provider)) { claimed.push(m); results.push({ ok: true, accepted: true }); }
+      else results.push({ ok: true, ignored: "duplicate webhook" });
+    }
+    if (claimed.length) {
+      d.defer((async () => {
+        for (const m of claimed) {
+          try { await runClaimed(m, d); } catch (e) { console.error("inbound (after the answer) failed:", e instanceof Error ? e.message : String(e)); }
+        }
+      })());
+    }
+    return json({ ok: true, ...(reheld ? { reheld } : {}), results });
+  }
   for (const m of parsed.messages) {
     const r = await runInbound(m, d);
     results.push(r.body);

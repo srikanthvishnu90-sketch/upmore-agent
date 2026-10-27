@@ -5,6 +5,9 @@
 //       and the reply says today's limit was reached; under it the model answers and the cost is recorded; yesterday's
 //       spend and another person's spend do not count; the call ceiling holds; a spend that cannot be read is no call.
 //   R1  two texts sent close together are both answered, in the order they arrived; nothing is lost to a conflict.
+//   B1  a refused save (a conflict after a tool already wrote) says only what is true: the answer was not saved, what the tool
+//       already saved stays (the database holds it), nothing was sent; B2 the gate is per thread (p_thread sent, other thread not held)
+//   D1  a double-tapped send (the same turn key twice) is answered once and replayed, not conflicted
 //   X3  the postings pool is read only on a turn that uses it: not for "hi", not for a code-first turn.
 //   S3  text inside a posting the brain reads never becomes a standing instruction; the person's own words still do.
 //   Q2  the apply reply says what will happen with the workers deployed: without the server's prepare, the extension.
@@ -19,7 +22,7 @@ const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a,
 const CI = Deno.env.get("CI") === "true";
 const id = (n: number) => `7b0f8f8e-6a43-4a49-9d2c-00000${String(n).padStart(7, "0")}`;
 const PEOPLE: Record<string, string> = {};
-for (let n = 1; n <= 12; n++) PEOPLE[`tok-lr${n}`] = id(2610260 + n);
+for (let n = 1; n <= 14; n++) PEOPLE[`tok-lr${n}`] = id(2610260 + n);
 const P = (n: number) => PEOPLE[`tok-lr${n}`];
 const ADVICE = "how should I follow up after an interview?";
 const ANSWER = "Send a short thank-you note within a day that names one thing you discussed, then ask when they expect to decide.";
@@ -162,10 +165,15 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
           hold = new Promise<void>((r) => { release = r; });
           const n = calls.length;
           const first = chat.say(ADVICE);
-          for (let i = 0; i < 250 && calls.length === n; i++) await new Promise((r) => setTimeout(r, 20));
+          // No fixed sleeps: wait for the first turn to be at the model, then for the second text to have taken its ticket.
+          for (let i = 0; i < 3000 && calls.length === n; i++) await new Promise((r) => setTimeout(r, 20));
           assert(calls.length > n, "the first turn reached the model and is held there");
           const second = chat.say("hi again");
-          await new Promise((r) => setTimeout(r, 1500));
+          let tickets = 0;
+          for (let i = 0; i < 1500 && tickets < 2; i++) { tickets = Number(await pg.sql(`select count(*) from public.career_turn_gate where user_id = '${P(round)}'`)); if (tickets < 2) await new Promise((r) => setTimeout(r, 20)); }
+          eq(tickets, 2, "the second text took a ticket behind the first (the turn gate is in the path)");
+          eq(await pg.sql(`select career_turn_gate_ready(user_id, ticket) from public.career_turn_gate where user_id = '${P(round)}' order by ticket desc limit 1`), "f", "the second text is told to wait");
+          eq(await pg.sql(`select count(*) from public.agent_messages where thread_id = '${tid}' and content = 'hi again'`), "0", "and has saved nothing while it waits");
           release();
           const [a, b] = await Promise.all([first, second]);
           eq([a.status, b.status], [200, 200], `both answered: ${a.status} ${a.reply.slice(0, 80)} | ${b.status} ${b.reply.slice(0, 120)}`);
@@ -179,6 +187,73 @@ Deno.test({ name: "launch readiness at the real handler: spend ceiling, turn ord
         hold = null;
         Deno.env.delete("CAREER_BRAIN");
       }
+    });
+
+    await t.step("B1/B2: a refused save after a tool already wrote says what is true; the gate is per thread", async () => {
+      Deno.env.set("CAREER_BRAIN", "staged");
+      const enters: any[] = [];
+      const inner = globalThis.fetch;
+      let release!: () => void, reached!: () => void, held = false;
+      const gate = new Promise<void>((r) => release = r), atCommit = new Promise<void>((r) => reached = r);
+      let tidA = "";
+      globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (url.includes("/rpc/career_turn_gate_enter") || (url.includes("/rpc/career_host_commit") && !held)) {
+          const txt = typeof init?.body === "string" ? init.body : input instanceof Request ? await input.clone().text() : "";
+          if (url.includes("/rpc/career_turn_gate_enter")) enters.push(JSON.parse(txt || "{}"));
+          else if (tidA && txt.includes(tidA)) { held = true; reached(); await gate; }
+        }
+        return inner(input as any, init);
+      }) as typeof fetch;
+      try {
+        mode = "remember";
+        const a = handler!.chat("tok-lr13"), b = handler!.chat("tok-lr13");
+        await say(a, "hi"); await say(b, "hi");
+        tidA = a.thread()!;
+        const tidB = b.thread()!;
+        assert(tidA && tidB && tidA !== tidB, "two threads of one account");
+        const first = a.say(ADVICE);
+        await Promise.race([atCommit, first.then((r) => { throw new Error(`the turn finished without reaching the held commit: ${r.status} ${r.reply.slice(0, 200)} meta=${JSON.stringify(r.body.meta)}`); })]); // the model asked the tool to save the instruction, the answer is ready, the commit is held
+        eq(await pg.sql(`select value->'items'->0->>'text' from public.career_watch_kv where user_id = '${P(13)}' and key = 'career:standing'`), "Follow up after an interview",
+          "the tool has already written the person's standing instruction, before the commit");
+        // The other thread of the same account must not wait for thread A's live ticket (B2), and must finish while A is held.
+        eq(await pg.sql(`select string_agg(thread_id, ',') from public.career_turn_gate where user_id = '${P(13)}'`), tidA, "thread A holds a live ticket, labelled with its thread");
+        const t0 = Date.now();
+        const other = await say(b, "hi again");
+        assert(Date.now() - t0 < 20_000 && other.reply.length > 0, `thread B was answered while thread A was held (${Date.now() - t0} ms)`);
+        assert(enters.length >= 4 && enters.every((e) => e.p_thread === tidA || e.p_thread === tidB), `every ticket names its thread: ${JSON.stringify(enters)}`);
+        // Make the held commit stale: the thread moved on since the turn read it.
+        await pg.sql(`update public.agent_flow_state set state = jsonb_set(state, '{career,revision}', to_jsonb(coalesce((state#>>'{career,revision}')::bigint, 0) + 1)) where thread_id = '${tidA}'`);
+        release();
+        const late = await first;
+        eq(late.status, 409, `the stale commit is refused: ${late.status} ${late.reply}`);
+        // The reply must match the database, not the other way round.
+        const savedInstruction = (await pg.sql(`select count(*) from public.career_watch_kv where user_id = '${P(13)}' and key = 'career:standing'`)) === "1";
+        const savedMessage = (await pg.sql(`select count(*) from public.agent_messages where thread_id = '${tidA}' and content = '${ADVICE}'`)) !== "0";
+        eq([savedInstruction, savedMessage], [true, false], "the instruction stays saved; the message and answer were not");
+        assert(/stays saved/.test(late.reply) && /couldn't save my answer/.test(late.reply) && !/nothing from this message was saved/i.test(late.reply), `the reply says both truths: ${late.reply}`);
+        assert(/Nothing new was started/.test(late.reply) && /nothing was sent or submitted/.test(late.reply), late.reply);
+        eq(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${P(13)}'`), "0", "and nothing was sent or submitted");
+        eq(await pg.sql(`select count(*) from public.career_turn_gate where user_id = '${P(13)}'`), "0", "every ticket was given back");
+      } finally {
+        release();
+        globalThis.fetch = inner;
+        mode = "answer";
+        Deno.env.delete("CAREER_BRAIN");
+      }
+    });
+
+    await t.step("D1: the same send twice at once (a double tap, same turn key) is answered once and replayed", async () => {
+      const chat = handler!.chat("tok-lr14");
+      await say(chat, "hi");
+      const tid = chat.thread()!;
+      const n = calls.length;
+      const [x, y] = await Promise.all([chat.say("where are my applications", { turn_key: "tap-1" }), chat.say("where are my applications", { turn_key: "tap-1" })]);
+      eq([x.status, y.status], [200, 200], `${x.reply} | ${y.reply}`);
+      eq(x.reply, y.reply, "both taps read the same answer");
+      eq(await pg.sql(`select count(*) from public.agent_messages where thread_id = '${tid}' and role = 'user' and content = 'where are my applications'`), "1", "saved once");
+      eq(await pg.sql(`select count(*) from public.career_turn_gate where user_id = '${P(14)}'`), "0", "every ticket was given back");
+      eq(calls.length - n, 0, "a code-first answer made no model request, and the replay made none either");
     });
 
     await t.step("X3: the postings pool is read only on a turn that uses it", async () => {

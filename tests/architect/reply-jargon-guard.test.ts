@@ -138,3 +138,21 @@ Deno.test("every reply literal the handler and the channel inbound path write is
   assertNode.ok(scanned >= 5, `${scanned} literals scanned`);
   assertNode.deepEqual(leaks, [], leaks.join("\n"));
 });
+
+// The replies for a refused save (_shared/career_save_replies.ts) are built from parts, so the literal scan above cannot
+// see them whole: render each and scan it.
+import { CONFLICT_REPLIES } from "../../supabase/functions/_shared/career_save_replies.ts";
+Deno.test("every refused-save reply is free of codes and internal phrases, and each conflict has its own wording", () => {
+  const codes = ["revision_conflict", "turn_key_conflict", "task_event_conflict", "watch_profile_conflict", "privacy_epoch_changed"];
+  assertNode.deepEqual(Object.keys(CONFLICT_REPLIES).sort(), [...codes].sort());
+  assertNode.equal(new Set(Object.values(CONFLICT_REPLIES)).size, codes.length, "no two conflicts share a reply");
+  for (const [code, text] of Object.entries(CONFLICT_REPLIES)) {
+    assertNode.deepEqual(jargonIn(text), [], `${code}: ${text}`);
+    assertNode.ok(/Nothing new was started/.test(text), `${code} keeps the sentence the stale-commit flow test reads`);
+    if (code !== "revision_conflict") assertNode.ok(!/conversation changed|conversation moved on/.test(text), `${code} does not claim the conversation changed`);
+  }
+  // A tool that writes the person's own data writes before the commit, so the reply must not say nothing was saved.
+  for (const code of codes.filter((c) => c !== "privacy_epoch_changed")) {
+    assertNode.ok(/stays saved/.test(CONFLICT_REPLIES[code]) && !/nothing from this message was saved/i.test(CONFLICT_REPLIES[code]), code);
+  }
+});

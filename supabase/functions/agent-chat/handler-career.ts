@@ -39,6 +39,7 @@ import { callModel as callModelUncapped, modelConfig, newMeter } from "../_share
 // LAUNCH READINESS (2026-10-26): the daily model ceiling, the per-person turn order, the pool read only when used.
 import { spendCap, spendLimitsFromEnv, supabaseDailySpend } from "../_shared/career_spend_cap.ts";
 import { enterTurnGate, type TurnGate } from "../_shared/career_turn_gate.ts";
+import { CONFLICT_REPLIES, CONFLICT_REPLY } from "../_shared/career_save_replies.ts";
 import { poolNeeded } from "./career_pool_need.ts";
 import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
@@ -102,7 +103,8 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
 // LAUNCH READINESS (2026-10-26): what a person reads when their turn could not be saved, in plain words. A conflict (a
 // second message, or an erase, changed the conversation while this one was answered) saves nothing; an unconfirmed save
 // may or may not have landed. Anything that goes to an employer or a contact still needs their approval of exactly it.
-export const CONFLICT_REPLY = "I couldn't save this reply because your conversation changed while I was answering it, so nothing from this message was saved. Nothing new was started. Send it again and I'll answer it.";
+export { CONFLICT_REPLIES, CONFLICT_REPLY };
+
 export const UNSAVED_REPLY = "I couldn't confirm this reply was saved. Send your message again; nothing goes to an employer or a contact until you approve exactly what is sent.";
 export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
@@ -863,8 +865,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       return json(cors, saved.response, 200);
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? String(error.code) : "storage_unavailable";
-      const conflict = ["turn_key_conflict", "task_event_conflict", "revision_conflict", "privacy_epoch_changed", "watch_profile_conflict"].includes(code);
-      return json(cors, { error: code, reply: conflict ? CONFLICT_REPLY : UNSAVED_REPLY, action: null, turn_key: turnKey }, conflict ? 409 : 503);
+      const conflict = Object.hasOwn(CONFLICT_REPLIES, code);
+      return json(cors, { error: code, reply: conflict ? CONFLICT_REPLIES[code] : UNSAVED_REPLY, action: null, turn_key: turnKey }, conflict ? 409 : 503);
     } finally {
       await gate?.leave();
     }

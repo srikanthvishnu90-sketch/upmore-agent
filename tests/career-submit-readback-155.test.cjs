@@ -94,6 +94,7 @@ test("155 readback: confirmed counted apart from sent-unconfirmed, and the error
   const errLine = lines.find((l) => l.includes("TestCo 3"));
   assert.ok(errLine, `the errored row appears in the spoken readback: ${lines.join(" | ")}`);
   // Launch readiness Q3 (2026-10-26): the error is said in plain words; its code stays on the record (sm.stops above).
+  assert.ok(typeof sm.stops[0].code === "string" && sm.stops[0].code.length > 0, "the record still carries the stop's code");
   assert.ok(/stopped with an error/.test(errLine) && !errLine.includes(sm.stops[0].code), `and it appears WITH its recorded error, in plain words: ${errLine}`);
 
   // the exactly-once accounting still holds over all three outcomes

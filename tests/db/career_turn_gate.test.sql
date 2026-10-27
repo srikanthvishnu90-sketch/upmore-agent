@@ -24,8 +24,18 @@ select t.must_fail($$select career_turn_gate_enter('00000000-0000-4000-8000-0000
 reset role;
 select t.ok(not has_function_privilege('authenticated','public.career_turn_gate_enter(uuid,text,integer,text)','EXECUTE')
   and not has_function_privilege('anon','public.career_turn_gate_ready(uuid,bigint)','EXECUTE')
-  and not has_table_privilege('authenticated','public.career_turn_gate','select'),
+  and not has_table_privilege('authenticated','public.career_turn_gate','select')
+  and not has_table_privilege('anon','public.career_turn_gate','select'),
   'a person''s session and anon cannot take, check or read tickets');
+select t.ok((select relrowsecurity from pg_class where oid = 'public.career_turn_gate'::regclass), 'row level security is on for the ticket table');
+select t.ok(not has_sequence_privilege('anon','public.career_turn_gate_ticket_seq','usage')
+  and not has_sequence_privilege('authenticated','public.career_turn_gate_ticket_seq','usage')
+  and not has_sequence_privilege('anon','public.career_turn_gate_ticket_seq','select')
+  and not has_sequence_privilege('authenticated','public.career_turn_gate_ticket_seq','select')
+  and has_sequence_privilege('service_role','public.career_turn_gate_ticket_seq','usage'),
+  'only the service role can draw tickets from the sequence');
+select t.ok((select prosrc ilike '%pg_advisory_xact_lock%' from pg_proc where oid = 'public.career_turn_gate_enter(uuid,text,integer,text)'::regprocedure),
+  'a ticket is drawn under a per-person-and-thread lock (the enter-then-ready race is closed)');
 -- Two threads of one account do not hold each other; two turns of one thread do.
 set role service_role;
 create temp table tk3 as select

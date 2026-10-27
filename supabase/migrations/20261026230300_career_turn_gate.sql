@@ -9,6 +9,11 @@
 -- (career_turn_gate_ready), and gives its ticket back after it commits (career_turn_gate_leave). A ticket lapses after
 -- its lease (a crashed turn never blocks the next one for longer than that). Service role only: agent-chat calls these
 -- with its own key for every turn, the person's app never does.
+-- Limits, stated: a ticket's lease is 90 s and a turn waits at most 60 s behind an earlier one. A turn that runs longer than
+-- its lease (a very slow model call) stops holding the line; the next turn then goes ahead on the same thread revision, and
+-- if the earlier one commits first, career_host_commit refuses the later write (revision_conflict) and the channel retries
+-- it once with a fresh read. Turns of different threads of one account are not ordered by this gate (the account version
+-- check in career_host_commit orders them).
 -- Idempotent. Tested by tests/db/career_turn_gate.test.sql and, end to end, tests/architect/launch-readiness-handler.test.ts.
 create table if not exists public.career_turn_gate (
   ticket bigserial primary key,
@@ -24,6 +29,8 @@ create index if not exists career_turn_gate_user_ticket on public.career_turn_ga
 alter table public.career_turn_gate enable row level security;
 revoke all on public.career_turn_gate from anon, authenticated;
 grant all on public.career_turn_gate to service_role;
+-- Supabase's default privileges hand new sequences to anon and authenticated; only the service role uses this one.
+revoke all on sequence public.career_turn_gate_ticket_seq from public, anon, authenticated;
 grant usage, select on sequence public.career_turn_gate_ticket_seq to service_role;
 
 -- A ticket for this turn; lapsed tickets of the person are cleared on the way in. Turns of different threads of one account
@@ -36,6 +43,10 @@ begin
   if p_user is null or p_turn_key is null or p_lease_seconds is null or p_lease_seconds not between 5 and 600 then
     raise exception 'invalid turn gate ticket';
   end if;
+  -- Tickets of one person and thread are taken one at a time, and the number is drawn after the lock is held, so a later
+  -- ticket number is always a later commit: a turn that enters second can never see itself first because the earlier
+  -- turn's row had not committed yet (the enter-then-ready race).
+  perform pg_advisory_xact_lock(hashtextextended('career_turn_gate:' || p_user::text || ':' || coalesce(p_thread, ''), 0));
   delete from career_turn_gate where user_id = p_user and lease_until < now();
   insert into career_turn_gate(user_id, turn_key, thread_id, lease_until) values (p_user, p_turn_key, coalesce(p_thread, ''), now() + make_interval(secs => p_lease_seconds))
   returning ticket into t;

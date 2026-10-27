@@ -16495,12 +16495,13 @@ const CareerRouter = (() => {
           const overlap = emToks.size ? inter / emToks.size : 0;
           if (pts.length && overlap < 0.45) push(`What they screen for: ${pts.join(" · ")}`);
         }
-        if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) push(s(brief.gaps[0]));
+        if (brief.status === "NO_CIR" && brief.company) push(`No company file is on record for ${brief.company}, so its process stages, hiring bar and comp are not claimed.`);
         if (Array.isArray(brief.story_map) && brief.story_map.length) push(`Your story "${brief.story_map[0].title}" is matched to: ${cutWords((brief.story_map[0].mapped_to_questions || [])[0] || "", 110)}.`);
         else if (brief.stories_note || brief.status) push("No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.");
         const qs2 = (brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter((q) => q && q.length <= 110 && !/\bstage\b|walk me through how you will handle/i.test(q));
-        if (qs2.length) push(`Likely first questions: ${qs2.slice(0, 3).join(" · ")}`);
-        return F.slice(0, 5);
+        const qFacts = [];
+        if (qs2.length) { qFacts.push(`Likely first questions: ${qs2[0]}`); for (const q of qs2.slice(1, 3)) qFacts.push(q); }
+        return [...F.slice(0, 5), ...qFacts];
       };
       const producerFacts = (fn, out) => {
         const F = [];
@@ -16638,12 +16639,20 @@ const CareerRouter = (() => {
           `No company is named, so no company's process or hiring bar is claimed; this is the general shape of ${fam.label} interviews.`,
           `What they usually test: ${fam.tests}.`,
           `Prepare first: ${fam.prep}.`,
-          `Likely questions: ${fam.questions.join(" · ")}`,
+          ...(fam.questions && fam.questions.length ? [`Likely questions: ${fam.questions[0]}`, ...fam.questions.slice(1)] : []),
         ];
         if (fam) { try { prepThreadForWrite(ctx).family = fam.label; } catch {   } }
+        if (!company && !posting && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
+          return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+            headline: "Happy to build that brief — I need the target first.",
+            facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
+            nextStep: "Which company and which role is the interview for?",
+          }) };
+        }
         const preShapeLen = facts.length;
+        const briefQSet = new Set((brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean));
         if (/\bportfolio walkthrough\b/.test(t)) {
-          facts = facts.filter((f) => !/^Likely first questions/.test(f));
+          facts = facts.filter((f) => !/^Likely first questions/.test(f) && !briefQSet.has(f));
           facts.push("Each project runs in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
           const projects = (profile.facts || []).filter((f) => f && /project/i.test(s(f.type || f.kind || "")) && f.title).slice(0, 2);
           for (const p of projects) { const pn = s(p.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim(); facts.push(`Opener for ${pn}: "Walk me through ${pn} — why that stack, what broke first, and what you would change now."`); }
@@ -16651,7 +16660,7 @@ const CareerRouter = (() => {
         if (/\bhiring[ -]manager\b/.test(t)) { facts.push("A hiring-manager round goes deeper than the screen: how you would run the team's next term, the calls you would make in the first month, and your questions about their roadmap."); facts.push("The questions a hiring manager actually asks: what would you do in your first 30 days here, which call would you make first, and what would you need from this team to succeed?"); }
         if (/\bportfolio walkthrough\b/.test(t) || /\bhiring[ -]manager\b/.test(t)) {
           const shapeFacts = facts.splice(preShapeLen);
-          const base = facts.filter((f) => !(/\bhiring[ -]manager\b/.test(t) && /^Likely first questions/.test(f)));
+          const base = facts.filter((f) => !(/\bhiring[ -]manager\b/.test(t) && (/^Likely first questions/.test(f) || briefQSet.has(f))));
           facts = [...shapeFacts, ...base];
         }
         if (/\binterviewer brief\b/.test(t)) facts.push("No interviewer is named in this session, so there is no interviewer brief to build — paste the invite names and each brief is built from public sources only.");

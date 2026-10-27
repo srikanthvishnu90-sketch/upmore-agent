@@ -5190,12 +5190,22 @@ const CareerRouter = (() => {
           const overlap = emToks.size ? inter / emToks.size : 0;
           if (pts.length && overlap < 0.45) push(`What they screen for: ${pts.join(" · ")}`);
         }
-        if (brief.status === "NO_CIR" && Array.isArray(brief.gaps) && brief.gaps.length) push(s(brief.gaps[0]));
+        // ITEM-A (2026-10-27): 127's NO_CIR gaps[0] is an internal
+        // gap note ("No company file on file for …"), never spoken
+        // text. The spoken form is the human on-record sentence,
+        // and only when a company was actually named.
+        if (brief.status === "NO_CIR" && brief.company) push(`No company file is on record for ${brief.company}, so its process stages, hiring bar and comp are not claimed.`);
         if (Array.isArray(brief.story_map) && brief.story_map.length) push(`Your story "${brief.story_map[0].title}" is matched to: ${cutWords((brief.story_map[0].mapped_to_questions || [])[0] || "", 110)}.`);
         else if (brief.stories_note || brief.status) push("No story is mapped to these questions — the profile holds no mineable story, so answers get built from your facts in the mock, with the gaps named instead of a match invented.");
         const qs2 = (brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter((q) => q && q.length <= 110 && !/\bstage\b|walk me through how you will handle/i.test(q));
-        if (qs2.length) push(`Likely first questions: ${qs2.slice(0, 3).join(" · ")}`);
-        return F.slice(0, 5);
+        // ITEM-A (2026-10-27): the questions are separate facts,
+        // never one " · "-joined inline fact — the first carries
+        // the label, the rest stand as their own sentences. They
+        // ride after the 5-fact cap so splitting never truncates
+        // the brief's own facts.
+        const qFacts = [];
+        if (qs2.length) { qFacts.push(`Likely first questions: ${qs2[0]}`); for (const q of qs2.slice(1, 3)) qFacts.push(q); }
+        return [...F.slice(0, 5), ...qFacts];
       };
       // WORDING-BACKLOG (BUG-135): every producer's reply speaks its
       // OWN record — the prompts, framework, changes, scripts,
@@ -5383,15 +5393,32 @@ const CareerRouter = (() => {
           `No company is named, so no company's process or hiring bar is claimed; this is the general shape of ${fam.label} interviews.`,
           `What they usually test: ${fam.tests}.`,
           `Prepare first: ${fam.prep}.`,
-          `Likely questions: ${fam.questions.join(" · ")}`,
+          ...(fam.questions && fam.questions.length ? [`Likely questions: ${fam.questions[0]}`, ...fam.questions.slice(1)] : []),
         ];
         if (fam) { try { prepThreadForWrite(ctx).family = fam.label; } catch { /* the brief stands without the record */ } }
+        // ITEM-A (2026-10-27, live msg 19436): a prep ask naming no
+        // company, no posting, and no role family — and none of the
+        // dedicated shapes below that carry their own company-less
+        // content — has no target to build a brief on. Ask for the
+        // target instead of serving the generic NO_CIR brief.
+        if (!company && !posting && !fam && !/\bportfolio walkthrough\b|\bhiring[ -]manager\b|\binterviewer brief\b|\btwo interviews\b|\bsame day\b|\bnight[ -]before\b/.test(t)) {
+          return { intent: "prep_brief", resultStatus: "awaiting_user", sends: 0, reply: compose({
+            headline: "Happy to build that brief — I need the target first.",
+            facts: ["A prep brief is built on the company and the role: their loop, their bar, and the questions that round actually asks. With neither named I would be handing you a generic brief and calling it yours."],
+            nextStep: "Which company and which role is the interview for?",
+          }) };
+        }
         const preShapeLen = facts.length;
+        // ITEM-A: with the questions split into separate facts, the
+        // shape filters below drop the whole set — the labeled first
+        // fact by its label, the rest by membership in the brief's
+        // own question list.
+        const briefQSet = new Set((brief.likely_questions || []).map((q) => s(typeof q === "string" ? q : q.q || "")).filter(Boolean));
         if (/\bportfolio walkthrough\b/.test(t)) {
           // WORDING-BACKLOG (BUG-192): a walkthrough's openers are
           // per project, from the profile's own project facts —
           // the generic behavioral trio is not a walkthrough prep.
-          facts = facts.filter((f) => !/^Likely first questions/.test(f));
+          facts = facts.filter((f) => !/^Likely first questions/.test(f) && !briefQSet.has(f));
           facts.push("Each project runs in this order: the problem, your role in it, the decisions and their trade-offs, and the number it moved.");
           const projects = (profile.facts || []).filter((f) => f && /project/i.test(s(f.type || f.kind || "")) && f.title).slice(0, 2);
           for (const p of projects) { const pn = s(p.title).replace(/\s*\((?:TEST)[^)]*\)/g, "").trim(); facts.push(`Opener for ${pn}: "Walk me through ${pn} — why that stack, what broke first, and what you would change now."`); }
@@ -5405,7 +5432,7 @@ const CareerRouter = (() => {
         // trio (its own questions ride above).
         if (/\bportfolio walkthrough\b/.test(t) || /\bhiring[ -]manager\b/.test(t)) {
           const shapeFacts = facts.splice(preShapeLen);
-          const base = facts.filter((f) => !(/\bhiring[ -]manager\b/.test(t) && /^Likely first questions/.test(f)));
+          const base = facts.filter((f) => !(/\bhiring[ -]manager\b/.test(t) && (/^Likely first questions/.test(f) || briefQSet.has(f))));
           facts = [...shapeFacts, ...base];
         }
         if (/\binterviewer brief\b/.test(t)) facts.push("No interviewer is named in this session, so there is no interviewer brief to build — paste the invite names and each brief is built from public sources only.");

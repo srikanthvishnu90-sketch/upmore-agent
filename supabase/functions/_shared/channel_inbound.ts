@@ -226,6 +226,18 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
       catch (e) { console.error("inbound: immediate send failed (the outbox has it):", e instanceof Error ? e.message : String(e)); }
       return ok(extra);
     };
+    // Let in, as the database sees it (trainee_admit, 20261026230000), asked on EVERY turn: an env-listed contact is recorded
+    // here, and one whose write failed on an earlier turn is recorded now. Not let in, or not knowing: said so, and nothing else runs (no link, no Telegram code, no turn).
+    if (store.admit) {
+      let via: string | null;
+      try { via = await store.admit(person.userId, listedByEnv(d.env, contact, msg.phone)); }
+      catch (e) {
+        console.error("inbound: admission not checked:", e instanceof Error ? e.message : String(e));
+        return await answer(ADMISSION_UNCHECKED_REPLY, { refused: "admission unchecked" });
+      }
+      if (!via) return await answer(NOT_ADMITTED_REPLY, { refused: "not admitted" });
+    }
+
     // FEATURE 16: a tap on a card's Approve or Decline (Telegram's inline keyboard): answered exactly as the web tap
     // (channel_card_tap.ts), the button answered once, and the result said in the chat through the outbox.
     if (msg.kind === "callback") {
@@ -273,18 +285,6 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
         : bot && d.env.get("TELEGRAM_BOT_TOKEN") ? connectTelegramReply(telegramDeepLink(bot, await store.issueLinkNonce(person.userId, now)))
         : TELEGRAM_NOT_WIRED_REPLY;
       return await answer(text, { connect: "telegram" });
-    }
-
-    // Let in, as the database sees it (trainee_admit, 20261026230000), asked on EVERY turn: an env-listed contact is recorded
-    // here, and one whose write failed on an earlier turn is recorded now. Not let in, or not knowing: said so, no turn runs.
-    if (store.admit) {
-      let via: string | null;
-      try { via = await store.admit(person.userId, listedByEnv(d.env, contact, msg.phone)); }
-      catch (e) {
-        console.error("inbound: admission not checked:", e instanceof Error ? e.message : String(e));
-        return await answer(ADMISSION_UNCHECKED_REPLY, { refused: "admission unchecked" });
-      }
-      if (!via) return await answer(NOT_ADMITTED_REPLY, { refused: "not admitted" });
     }
 
     let reply: string, parts: string[] | null = null, artifacts: { ref: string; filename: string; mime: string }[] = [], turnThread: string | null = person.threadId;

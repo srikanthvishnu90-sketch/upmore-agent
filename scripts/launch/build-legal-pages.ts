@@ -37,13 +37,13 @@ export function fill(template: string, inputs: OwnerInputs): string {
 }
 // Anything that is template text rather than a published page: {{NAME}}, [Bracketed instruction or value] (an uppercase
 // word then more words, or an all-caps tag such as [DATE] or [YOUR PRICE]; code like [A-Z] or [0] is neither), the
-// "Template. Only publish..." note, and filler such as lorem ipsum or example.com.
+// "Template." / "Template only." notes of any wording, and filler such as lorem ipsum or any @example.com/.org/.net address.
 const LEFTOVERS: RegExp[] = [
   PLACEHOLDER,
   /\[(?:[A-Z][^\[\]<>\n]* [^\[\]<>\n]*|[A-Z]{3,}(?: [A-Z]+)*)\]/g,
-  /Template\. Only publish[^<]*/g,
+  /\bTemplate(?: only)?\.[^<`]*/g,
   /lorem ipsum/gi,
-  /\b(?:support|info|hello|contact)@example\.(?:com|org|test)\b/gi,
+  /[A-Za-z0-9._%+-]+@example\.(?:com|org|net|test)\b/gi,
 ];
 export function placeholdersIn(html: string): string[] {
   const text = html.replace(/<svg[\s\S]*?<\/svg>/g, "");
@@ -76,6 +76,97 @@ ${li(n.undo)}
   <p>Connecting is optional: without it you type an emailed code yourself and tell Trainee how an application went. The full details are in the <a href="/privacy#google">Privacy Policy</a>.</p>
 ${foot}`;
 }
+
+// The tour and the home conversations (review of #196, round 3). Each line is something the product does: the job read,
+// the resume tailored from confirmed facts, an application prepared and shown as the exact card the person approves, a
+// status said only when the product sees it (the employer's confirmation email, through read-only Gmail), notes drafted
+// from the person's own contacts, alerts, interview practice. No counts of roles, applications, people or replies.
+const TOUR = `var TOUR = [
+  { title:'Reads the job', slug:'job-breakdown',
+    desc:'Send any job link. Trainee pulls out what the role really cares about, compares it with your background, and flags gaps before you apply.',
+    bullets:['Plain-English breakdown of every post','Your fit, against the role','Gaps flagged before you apply'],
+    thread:[
+      {f:'stamp', t:'Today 9:41 AM'},
+      {f:'me', t:'is this one worth applying to?'},
+      {f:'card', side:'me', icon:'link', title:'Summer Analyst, M&A – Chicago', sub:'boards.greenhouse.io'},
+      {f:'you', t:'yes. they care most about financial modeling and deal experience'},
+      {f:'you', t:'your internship covers both. one gap: they list Excel VBA'},
+      {f:'you', t:'want me to frame your automation project around it?'},
+      {f:'me', t:'do it'}
+    ]},
+  { title:'Tailors your resume', slug:'resume',
+    desc:'A fresh version of your resume for every role. Trainee moves the right experience to the top and matches the post’s language, using only what you’ve actually done.',
+    bullets:['A new version per application','Nothing made up, ever','Every version saved'],
+    thread:[
+      {f:'me', t:'tailor my resume for the M&A role'},
+      {f:'you', t:'done. moved your valuation work to the top and tightened every bullet'},
+      {f:'card', side:'you', icon:'file-pdf', title:'Resume – M&A Analyst.pdf', sub:'PDF Document · 1 page'},
+      {f:'me', t:'this is so much better'}
+    ]},
+  { title:'Applies for you', slug:'applying',
+    desc:'Tell Trainee what you want. It prepares each application and shows you exactly what it will send; nothing goes until you say yes.',
+    bullets:['You approve the exact answers','Fills the forms and short answers','Tracks every application'],
+    thread:[
+      {f:'me', t:'apply to summer analyst roles in Chicago'},
+      {f:'you', t:'this one fits. here is exactly what I’ll send'},
+      {f:'card', side:'you', icon:'check-circle', title:'Summer Analyst – Chicago', sub:'Your answers and resume, ready to approve'},
+      {f:'me', t:'yes'},
+      {f:'you', t:'submitted. I’ll tell you when the employer’s confirmation email arrives'}
+    ]},
+  { title:'Coffee chat notes', slug:'coffee-chats',
+    desc:'Send Trainee your contacts. It tells you who you know at the firms you want and drafts a personal note to each for you to review and send.',
+    bullets:['Works from your own contacts','Personal drafts, in your words','You review and send every note'],
+    thread:[
+      {f:'me', t:'who do I know at Stripe?'},
+      {f:'you', t:'from the contacts you sent me: Jordan, an analyst on the finance team'},
+      {f:'me', t:'write Jordan about the analyst role'},
+      {f:'you', q:true, t:'“Hi Jordan, I’m a finance student and just applied to your team’s analyst program…”'},
+      {f:'you', t:'here’s the draft. edit it, then copy it into your own email when you’re happy with it'}
+    ]},
+  { title:'Sends job alerts', slug:'job-alerts',
+    desc:'Trainee keeps watching after you close the chat, and texts you when a role you’d actually want goes live.',
+    bullets:['Matches what you told it','Texts you when it goes live','Pause or change alerts by text'],
+    thread:[
+      {f:'stamp', t:'Mon 7:02 AM'},
+      {f:'you', t:'a new role just went live. strong match'},
+      {f:'card', side:'you', icon:'briefcase', title:'Corporate Finance Analyst – Chicago', sub:'jobs.lever.co'},
+      {f:'you', t:'want me to prepare the application?'},
+      {f:'me', t:'yes!!'},
+      {f:'you', t:'ready. check what I’ll send and say yes'}
+    ]},
+  { title:'Preps your interviews', slug:'interview-prep',
+    desc:'Real practice for the real interview. Trainee asks the questions you’ll likely face for that role and firm, and gives honest feedback on every answer.',
+    bullets:['Behavioral and technical questions','Built from the role and firm','Honest feedback, by text'],
+    thread:[
+      {f:'me', t:'superday tomorrow. prep me'},
+      {f:'you', t:'let’s practice in the real format. first one: walk me through a DCF'},
+      {f:'me', t:'project free cash flows, discount them at WACC, add a terminal value'},
+      {f:'you', t:'solid start. say which terminal value method you’d use and why'},
+      {f:'you', t:'next: why us over the other banks?'}
+    ]}
+];
+`;
+const THREADS = `var THREADS = {
+  hero: [
+    {f:'stamp', t:'Today 9:41 AM'},
+    {f:'you', t:'Hey, I’m Trainee, your personal career agent'},
+    {f:'you', t:'I find jobs, tailor your resume, prepare your applications and draft coffee chat notes. all by text'},
+    {f:'me', t:'wait, you can do all that?'},
+    {f:'you', t:'yep. send me your resume and tell me what you’re looking for'},
+    {f:'me', t:'let’s do it'}
+  ],
+  intro: [
+    {f:'stamp', t:'Today 9:41 AM'},
+    {f:'me', t:'hey Trainee, help me land a summer analyst role'},
+    {f:'you', t:'on it. send me your resume and where you want to be'},
+    {f:'card', side:'me', icon:'file-pdf', title:'Resume.pdf', sub:'PDF Document · 1 page'},
+    {f:'me', t:'Chicago or NYC, banking or corporate finance'},
+    {f:'you', t:'here are the roles that fit best so far. want a tailored resume for each?'},
+    {f:'me', t:'yes please'},
+    {f:'you', t:'on it. I’ll show you each application before anything is sent'}
+  ]
+};
+`;
 
 // The homepage's legal links and help pages, pointed at the published pages. Each edit must find its text exactly once
 // (a homepage that moved on fails the build instead of shipping half-edited).
@@ -139,25 +230,44 @@ export function patchHome(home: string, inputs: OwnerInputs): string {
 <h2>Disconnecting</h2>
 <p>Say <code>disconnect gmail</code> to Trainee. It revokes Trainee's access at Google and deletes the stored access and what it saved from your Gmail. You can also remove Trainee yourself at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>` + s.slice(b + endTag.length);
   once("desc:'Link the accounts Trainee needs to act for you. Everything is optional and can be disconnected.',", "desc:'Connect Gmail so Trainee can track your application emails. It is optional and you can disconnect it at any time.',");
-  const dropBrand = (region: string, label: string) => { // one logo from the row that follows `region`
-    const r = s.indexOf(region), k = s.indexOf(`${label}</span>`, r);
-    if (r < 0 || k < 0 || k > s.indexOf("</div>", r)) throw new Error(`homepage: the ${label} logo was not found`);
-    const st = s.lastIndexOf("<span>", k), end = k + `${label}</span>`.length;
-    s = s.slice(0, st).replace(/\s*$/, "") + s.slice(end);
+  // Review of #196 (round 3): the homepage says only what the product does.
+  //   - No "Works across the tools you already use" strip: LinkedIn, Handshake, Indeed, Outlook and Calendar are not
+  //     connected, and automating LinkedIn or Indeed is forbidden.
+  //   - Coffee chats work from the contacts the person gives Trainee (career_networking.ts: no people database and no
+  //     email finder, by decision D-018a); notes are drafts the person reviews and sends.
+  //   - The tour and the home conversations claim no results the product cannot show (no "all 24 sent", no "3 under
+  //     review", no counts at all): Trainee prepares, the person approves the exact card, and a status is said only as the
+  //     product observes it.
+  cut('<p class="muted">Works across the tools you already use</p>', '    <div class="wrap logos reveal">', "      </div>\n    </div>\n");
+  const block = (start: string, end: string, to: string) => { // replaces the one block from `start` through `end`
+    if (s.split(start).length !== 2) throw new Error(`homepage: expected one "${start.slice(0, 40)}"`);
+    const i = s.indexOf(start), j = s.indexOf(end, i);
+    if (j < 0) throw new Error(`homepage: the end of "${start.slice(0, 40)}" was not found`);
+    s = s.slice(0, i) + to + s.slice(j + end.length);
   };
-  for (const label of ["Outlook", "Google Calendar"]) dropBrand('<div class="logo-row">', label);
-  once("desc:'Trainee finds the right people at the firms you want and writes to them for you.',", "desc:'Trainee finds the right people at the firms you want and drafts a note to each for you to review.',");
-  once("drafts a short personal note to each, sends them from your own email once you approve, and helps book the time when they reply.", "drafts a short personal note to each for you to review and send.");
-  once("<li>Personal emails, sent from you</li><li>One polite follow-up, then books the time</li>", "<li>Personal drafts, in your words</li><li>A polite follow-up draft</li>");
-  once("writes each one a personal note from your email, and books the time when they reply.',", "drafts a personal note to each for you to review.',");
-  once("bullets:['Finds the right people','Personal emails, sent from you','Follows up and books the time'],", "bullets:['Finds the right people','Personal drafts, in your words','You review every note'],");
-  once(`      {f:'me', t:'send all 6'},
-      {f:'you', t:'sent. Jordan already replied'},
-      {f:'card', side:'you', icon:'calendar-blank', title:'Coffee chat with Jordan', sub:'Thursday, 3:00 – 3:30 PM'},
-      {f:'me', t:'let’s go'}
-`, `      {f:'me', t:'looks good'},
-      {f:'you', t:'the 6 drafts are ready for you to review and send'}
-`);
+  block("var TOUR = [", "\n];\n", TOUR);
+  block("var THREADS = {", "\n};\n", THREADS);
+  once("{ slug:'coffee-chats', group:'Features', title:'Books coffee chats',\n  desc:'Trainee finds the right people at the firms you want and writes to them for you.',",
+    "{ slug:'coffee-chats', group:'Features', title:'Coffee chat notes',\n  desc:'Trainee tells you who you know at the firms you want and drafts a note to each for you to review.',");
+  once('data-label="Books coffee chats video"', 'data-label="Coffee chat notes video"');
+  once("<p>Trainee looks for alumni and team members at the companies you’re targeting, drafts a short personal note to each, sends them from your own email once you approve, and helps book the time when they reply.</p>",
+    "<p>Trainee works from the contacts you give it: send your LinkedIn connections export (LinkedIn: Settings, Data privacy, Get a copy of your data, Connections) or paste rows like Name,Company,Title,Email. Ask who you know at a firm, and Trainee drafts a short personal note to each of them for you to review and send yourself. It has no people database and never guesses names or email addresses.</p>");
+  once("<ul><li>Finds alumni and team members</li><li>Personal emails, sent from you</li><li>One polite follow-up, then books the time</li></ul>",
+    "<ul><li>Works from your own contacts</li><li>Personal drafts, in your words</li><li>You review and send every note</li></ul>");
+  once("<p>Text Trainee: <code>find alumni at the firms I applied to</code></p>", "<p>Text Trainee: <code>who do I know at Stripe</code></p>");
+  { // "lines up coffee chats" (meta description, social card, hero): Trainee drafts the notes; it books nothing.
+    const n = s.split("lines up coffee chats").length - 1;
+    if (n !== 3) throw new Error(`homepage: expected three "lines up coffee chats", found ${n}`);
+    s = s.replaceAll("lines up coffee chats", "drafts coffee chat notes");
+  }
+  once("applies, sets up coffee chats and preps you for interviews.", "applies when you say yes, drafts coffee chat notes and preps you for interviews.");
+  once("it reads job posts, tailors your resume, applies for you, finds people to talk to, and gets you ready for interviews.", "it reads job posts, tailors your resume, prepares applications for your yes, drafts notes to people you know, and gets you ready for interviews.");
+  once('<strong>Books coffee chats</strong><span>Finds people and writes the email.</span>', "<strong>Coffee chat notes</strong><span>Drafts notes to people you know.</span>");
+  // Round 3, item 1: no example address anywhere. Applications for jobs at Trainee go to the support address the owner gave;
+  // the sign-up field's hint is words, not an address.
+  once("careersEmail: 'careers@example.com',", `careersEmail: '${inputs.SUPPORT_EMAIL.trim().replace(/'/g, "")}',`);
+  once('placeholder="you@example.com"', 'placeholder="Your email"');
+  once('<div class="note"><i class="ph" aria-hidden="true"><svg class="ic"><use href="#i-warning"/></svg></i><p>Template. Carriers review this page when you register your texting number, so keep it accurate.</p></div>\n', "");
   return s;
 }
 

@@ -141,7 +141,7 @@ Deno.test("GV/5 revoke at Google: only a 200 is revoked; timeout, retries, and e
 //   row_read / row_readback (the first / the later read of the connection rows), row_delete (error, nothing deleted),
 //   row_delete_silent (no error, nothing deleted), row_delete_done (deleted, but the answer is an error),
 //   mail_read / mail_readback (the first / the later read of a mail table), mail_delete (error, nothing deleted),
-//   mail_silent:<table> (no error, that table's rows stay), vault_read (every read), vault_read_after (reads after a delete),
+//   mail_silent:<table> (no error, that table's rows stay), mail_delete_done (deleted, but the answer is an error), vault_read (every read), vault_read_after (reads after a delete),
 //   vault_delete, vault_delete_done. trigger:false is the database before migration 20261026200011.
 const MAIL = ["career_mail_events", "career_mail_drafts", "career_mail_cursors"] as const;
 function adminDouble(o: { rows?: string[]; vault?: Record<string, string>; mail?: number; fail?: Set<string>; trigger?: boolean } = {}) {
@@ -179,7 +179,7 @@ function adminDouble(o: { rows?: string[]; vault?: Record<string, string>; mail?
       if ((MAIL as readonly string[]).includes(table) && op === "delete") {
         if (err("mail_delete")) return { data: null, error: err("mail_delete") };
         if (!fail.has(`mail_silent:${table}`)) state.mail[table] = 0;
-        return { data: null, error: null };
+        return { data: null, error: err("mail_delete_done") }; // deleted, but the answer was an error
       }
       throw new Error(`${table} ${op}`);
     };
@@ -233,7 +233,7 @@ Deno.test("GV/6 disconnect: revoked, deleted and read back; every failure path i
     ["row_readback", "check that everything was deleted"], ["mail_readback", "check that everything was deleted"],
     ["vault_read_after", "check that everything was deleted"],
     // The mail delete failing, or "succeeding" without removing a table's rows (each table is judged on its own).
-    ["mail_delete", MAIL_SAID], ["mail_silent:career_mail_events", MAIL_SAID], ["mail_silent:career_mail_drafts", MAIL_SAID], ["mail_silent:career_mail_cursors", MAIL_SAID],
+    ["mail_delete", MAIL_SAID], ["mail_delete_done", MAIL_SAID], ["mail_silent:career_mail_events", MAIL_SAID], ["mail_silent:career_mail_drafts", MAIL_SAID], ["mail_silent:career_mail_cursors", MAIL_SAID],
   ];
   for (const [f, said] of cases) {
     // A mail delete that fails or removes nothing is tried against a database without the trigger, which would clear the rows itself.
@@ -353,7 +353,10 @@ Deno.test("GV/11b the built pages carry no bracketed placeholder or template not
   // The detector finds what the review found in the unbuilt homepage (so a build that left them would be refused).
   const raw = placeholdersIn(TEMPLATES.home);
   for (const w of ["[YOUR PRICE]", "[Plan name]", "[What's included]", "[Launch timing]", "[Confirm which connections are live at launch and remove the rest.]", "[Your name]", "[One-line bio]", "[DATE]",
-    "Template. Only publish claims that are true of your actual systems.", "support@example.com"]) assert(raw.includes(w), `the check finds ${w}`);
+    "Template. Only publish claims that are true of your actual systems.", "support@example.com",
+    // Round 3: any "Template." note, any @example address.
+    "Template. Carriers review this page when you register your texting number, so keep it accurate.", "Template only. Have a lawyer review this before launch.",
+    "careers@example.com", "you@example.com"]) assert(raw.includes(w), `the check finds ${w}: ${JSON.stringify(raw)}`);
   assert(raw.some((x) => x.startsWith("[Paragraph 1:")), "and the story paragraphs");
   // Code is not mistaken for a placeholder.
   eq(placeholdersIn('<script>const a = [0], re = /[A-Z]/, b = x[i]; const d = {k:[1,2]}</script><p>[x]</p><svg><text>[Not Counted Here]</text></svg>'), [], "array indexes, character classes and svg text");
@@ -367,6 +370,9 @@ Deno.test("GV/11b the built pages carry no bracketed placeholder or template not
     ["a template note", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>Template. Only publish claims that are true of your actual systems.</p><h2>Reporting a problem</h2>")],
     ["a {{name}}", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>{{PRICE}}</p><h2>Reporting a problem</h2>")],
     ["an example address", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>write to info@example.com</p><h2>Reporting a problem</h2>")],
+    ["any example address", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>write to jobs@example.net</p><h2>Reporting a problem</h2>")],
+    ["any template note", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>Template. Fill this in later.</p><h2>Reporting a problem</h2>")],
+    ["a template-only note", TEMPLATES.home.replace("<h2>Reporting a problem</h2>", "<p>Template only. Ask a lawyer.</p><h2>Reporting a problem</h2>")],
   ];
   for (const [what, home] of bad) {
     const x = buildLegal(SAMPLE, { ...TEMPLATES, home });
@@ -397,6 +403,15 @@ Deno.test("GV/14 the site never claims sending from Gmail or Calendar while thos
   assert(r.ok, JSON.stringify(r));
   const files = (r as any).built.files as Record<string, string>;
   for (const [n, html] of Object.entries(files)) eq(claims(html), [], `${n} claims sending or Calendar`);
+  // Round 3: no people-finding, no tool strip, no job-site connections, anywhere in the built homepage (help pages, tour,
+  // home conversations, logo strip). The product answers NO_FINDER (career_networking.ts, D-018a) and connects none of them.
+  const FALSE: RegExp[] = [/alumni/i, /team members/i, /finds? (the right )?people/i, /works across the tools/i, /class="wrap logos/,
+    /(LinkedIn|Handshake|Indeed)<\/span>/, /\b(use|uses|connect|connects|works with|profile details)\b[^.<]{0,40}\b(LinkedIn|Handshake|Indeed)\b(?! connections export)/i, /(books?|lines? up|sets? up) coffee chats/i];
+  const falseIn = (html: string) => { const t = html.replace(/<svg[\s\S]*?<\/svg>/g, " "); return FALSE.flatMap((re) => t.match(new RegExp(re.source, re.flags.includes("i") ? "gi" : "g")) ?? []); };
+  const was = falseIn(TEMPLATES.home);
+  for (const w of ["alumni", "Works across the tools", "LinkedIn</span>", "Indeed</span>", "Finds the right people", "Books coffee chats"]) assert(was.some((c) => c.toLowerCase() === w.toLowerCase()), `found "${w}" in the unpatched homepage: ${JSON.stringify(was)}`);
+  eq(falseIn(files["index.html"]), [], "the built homepage claims people-finding, a tool strip or job-site connections");
+  assert(/<code>who do I know at Stripe<\/code>/.test(files["index.html"]) && /It has no people database and never guesses names or email addresses\./.test(files["index.html"]), "and says what it does instead");
   // What the Connections page does say: read-only Gmail, and how to disconnect.
   const conn = text(files["index.html"].slice(files["index.html"].indexOf("slug:'connections'"), files["index.html"].indexOf("slug:'approvals'")));
   assert(/The permission is read-only: Trainee can't send, delete, label or change any email\./.test(conn) && /Say disconnect gmail to Trainee\./.test(conn), conn);
@@ -423,6 +438,28 @@ Deno.test("GV/15 policy sentences are tied to their cause: the extension's agent
   assert(/stillConnected/.test(read("supabase/functions/_shared/career_proactive_run.ts")), "and the run really checks (google-disconnect-race.test.ts runs it)");
   // (d) The text-messaging sentence the old Privacy help page had is kept in the policy.
   assert(privacy.includes("No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Text messaging opt-in data and consent will not be shared with any third parties."), "the SMS sentence");
+});
+
+// Review of #196, round 3 (architect decision): the tour and the home conversations claim no result the product cannot
+// show. Trainee prepares, the person approves the exact card, and a status is said only as the product observes it.
+Deno.test("GV/16 the tour claims no counts of sent or under-review applications, no invented results, and shows the approval", () => {
+  const conv = (html: string) => {
+    const a = html.indexOf("var TOUR = ["), b = html.indexOf("\n};\n", html.indexOf("var THREADS = {"));
+    assert(a > 0 && b > a, "the tour and the conversations are found");
+    return html.slice(a, b);
+  };
+  const CLAIMS: RegExp[] = [
+    /\b\d+\b[^'\n]{0,40}\b(sent|submitted|applied|applications?|roles?|alumni|people|repl(y|ied|ies)|more|under review|interviews?)\b/gi,
+    /\b(all|every)\b[^'\n]{0,20}\bsent\b/gi, /under review/gi, /already (replied|moved)/gi, /one of the first applicants/gi, /\bsent\. /gi,
+  ];
+  const claims = (t: string) => CLAIMS.flatMap((re) => t.match(new RegExp(re.source, re.flags)) ?? []);
+  const before = claims(conv(TEMPLATES.home));
+  for (const w of ["all 24 sent", "under review", "found 6 alumni", "one of the first applicants"]) assert(before.some((c) => c.includes(w) || w.includes(c)), `the check finds "${w}" in the unpatched tour: ${JSON.stringify(before)}`);
+  const built = conv(((buildLegal(SAMPLE, TEMPLATES) as any).built.files as Record<string, string>)["index.html"]);
+  eq(claims(built), [], "the built tour and conversations");
+  // The real flow: the exact card is approved before anything is sent, and the status comes from the employer's email.
+  assert(/here is exactly what I’ll send'\},\n\s*\{f:'card', side:'you', icon:'check-circle', title:'Summer Analyst – Chicago', sub:'Your answers and resume, ready to approve'\},\n\s*\{f:'me', t:'yes'\},\n\s*\{f:'you', t:'submitted\. I’ll tell you when the employer’s confirmation email arrives'\}/.test(built), "apply: card, yes, then submitted");
+  assert(/'ready\. check what I’ll send and say yes'/.test(built), "an alert prepares; it does not send");
 });
 
 Deno.test("GV/13 the launch doc states the same scope set the code requests", () => {

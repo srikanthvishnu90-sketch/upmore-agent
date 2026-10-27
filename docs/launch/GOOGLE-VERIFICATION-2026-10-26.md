@@ -391,9 +391,13 @@ true. "Fixed here" means this PR made it true.
      links, the help pages and `supportEmail`.
    - It also takes the unfinished template text out of the homepage instead of filling it with a guess: the launch-timing
      and price FAQ answers, the Pricing help page, the "Our story" and "The team" sections, and the template note on the
-     Security help page. It rewrites the Connections help page, the coffee-chat copy and the logo strip so they claim only
-     read-only Gmail (no sending, no Calendar, no Outlook, no job-site connections). Add any of these back when you have the
-     real words.
+     Security and SMS Terms help pages. It rewrites the Connections help page and the coffee-chat copy so they claim only
+     read-only Gmail and what networking really does (drafts from the contacts you give it; no people database), removes the
+     "Works across the tools you already use" logo strip, and replaces the tour and home conversations with the real flow
+     (Trainee prepares, you approve the exact card, statuses only as the product sees them, no invented counts). Job
+     applications to Trainee go to `SUPPORT_EMAIL`. Add any of these back when you have the real words.
+   - `scripts/extension/package.sh --variant agent` refuses while the privacy policy says the extension "never submits an
+     application for you"; change that sentence first if you ever distribute the agent build.
    - If any input is missing or malformed, it prints `REFUSED: owner inputs missing or invalid: …` and writes nothing. If any
      placeholder, `[Bracketed instruction]` or template note is still in what it would write, it prints
      `REFUSED: placeholders left after filling: …`, naming each one, and writes nothing.

@@ -13211,6 +13211,20 @@ const CareerRouter = (() => {
   }
   const familyLabel = (f) => FAMILY_LABELS[f] || lc(f);
 
+  function askLocationsOf(text, ctx) {
+    const t = lc(text);
+    const out = new Set();
+    const cities = new Set();
+    for (const raw of postingsFromCtx(ctx)) {
+      const city = lc(s(raw && raw.location).split(",")[0].split("—")[0].trim());
+      if (city && !/^remote\b/.test(city)) cities.add(city);
+    }
+    for (const c of FACT_CITIES) cities.add(lc(c));
+    for (const city of cities) if (city.length > 2 && t.includes(city)) out.add(city);
+    if (/\bremote\b/.test(t)) out.add("remote");
+    return out;
+  }
+
   function handleDiscovery(text, ctx, opts) {
     const o = opts || {};
     const profile = ctx.profile;
@@ -13219,6 +13233,13 @@ const CareerRouter = (() => {
     const limit = o.limit || (countM ? Number(countM[1]) : 5);
     const fams = o.families !== undefined ? o.families : discoveryFamilies(text);
     const { ranked, excluded, dedupedTo, family } = rankedShortlist(profile, ctx, Object.assign({}, o, { askFamilies: fams && fams.length ? fams : null }));
+    const locSet = (o.askPlace && o.locations instanceof Set && o.locations.size) ? o.locations : null;
+    const placeLabel = locSet ? ([...locSet].filter((x) => x !== "remote").map((x) => x.replace(/\b\w/g, (ch) => ch.toUpperCase())).join(" or ") || null) : null;
+    const locPoolCount = locSet ? postingsFromCtx(ctx).filter((p) => {
+      const loc = lc(s(p && p.location));
+      if (locSet.has("remote") && p && (p.remote === "remote" || /\bremote\b/.test(loc))) return true;
+      return locSet.has(loc.split(",")[0].split("—")[0].trim());
+    }).length : 0;
     try {
       const prevP = (ctx.discovery && ctx.discovery.lastParams) || null;
       const cleanedAsk = s(text).replace(/^\s*(wait|actually|ok|okay|so|eh|and)[ ,]+/i, "").replace(/^.*?\bi meant\s+/i, "").replace(/^(find|show|get|give|search|list)(\s+me)?\s+/i, "");
@@ -13268,11 +13289,22 @@ const CareerRouter = (() => {
       const reply = compose({ headline: `I found no ${label} roles in the current list, and I will not pad it with other kinds of roles.`, facts: [`The current list holds ${dedupedTo} scored roles, and none of them are ${label} roles.`], nextStep: `Add boards that carry ${label} roles, or widen the ask to a neighbouring family, and I will search again.` });
       return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams }, publicFacts);
     }
+    if (locSet && placeLabel && !top.length && locPoolCount === 0) {
+      const outside = rankedShortlist(profile, ctx, Object.assign({}, o, { locations: undefined, askPlace: false, askFamilies: fams && fams.length ? fams : null })).ranked.slice(0, 3);
+      const outsideText = outside.map((r, i) => `${i + 1}) ${r.title} at ${r.company} (${r.location || "location not stated"})`).join("; ");
+      const facts = outside.length
+        ? [`The closest matches sit outside ${placeLabel}: ${outsideText}.`, `Say the word and I will pull those up — or name another place and I will search there instead.`]
+        : ["Nothing elsewhere in the current list ranks on your profile either."];
+      const reply = compose({ headline: `No roles in ${placeLabel} in the current list.`, facts, nextStep: "Name another place, or say go ahead and I will show the closest matches outside it." });
+      return Object.assign({ intent: o.intent || "career_discovery", reply, requested_families: fams || [] }, publicFacts);
+    }
     if (!top.length) {
       const reply = compose({ headline: "I found no roles in the current list that pass your profile's hard filters.", facts: excluded.length ? [`${excluded.length} postings were excluded, mostly for: ${excluded[0].reasons[0]}.`] : [], nextStep: "Widen the location or role and I will search again." });
       return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
     }
-    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts: top.map(roleSentence), nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
+    const facts = top.map(roleSentence);
+    if (locSet && placeLabel && top.length < limit) facts.push(`Only ${top.length} ${top.length === 1 ? "role is" : "roles are"} in ${placeLabel} in the current list — nothing outside ${placeLabel} is included.`);
+    const reply = compose({ headline: o.headline || `Here are the ${top.length} roles most worth applying to, ranked by fit with your profile.`, facts, nextStep: o.nextStep || "Tell me one to tailor your resume for, and I will do that next." });
     return Object.assign({ intent: o.intent || "career_discovery", reply }, publicFacts);
   }
 
@@ -15816,6 +15848,53 @@ const CareerRouter = (() => {
     const rm = lc(s(text)).match(/\b(?:for|to)\s+(?:a|an|the|this|that)\s+([a-z][a-z /&-]{1,40}?)\s+(role|job|position|internship|opening)\b/);
     if (rm) return { label: `the ${rm[1].trim()} ${rm[2]}`, cir: null, company: null };
     return { label: null, cir: null, company: null };
+  }
+  function roleTitleMatches(title, role) {
+    const tt = new Set(lc(s(title)).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean));
+    const rt = lc(s(role)).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && w !== "role" && w !== "job" && w !== "position");
+    return rt.length > 0 && rt.every((w) => tt.has(w));
+  }
+  function tailorNamedRoleOf(text, ctx) {
+    const t = lc(text);
+    let role = null;
+    const rm = t.match(/\b(?:for|to)\s+(?:a|an|the|this|that)\s+([a-z][a-z /&-]{1,40}?)\s+(?:role|job|position|internship|opening)\b/);
+    if (rm) role = rm[1].trim();
+    let company = null;
+    if (!role) {
+      try {
+        const nrt = namedRoleTargetOf(text, ctx);
+        if (nrt && nrt.role) {
+          role = lc(nrt.role).replace(/\s+(?:role|job|position)$/, "").trim();
+          company = nrt.company || null;
+        }
+      } catch {   }
+    }
+    if (!role || role.length < 3) return null;
+    if (!company) { try { company = companyFromText(text, ctx) || null; } catch { company = null; } }
+    return { role, company };
+  }
+  function tailorNamedRoleAskResult(text, c, named) {
+    const { ranked } = rankedShortlist(c.profile, c, named.company ? { company: lc(named.company) } : {});
+    const stagedKey = c.posting ? lc(`${c.posting.title || ""}|${c.posting.company || ""}`) : null;
+    const cands = [];
+    const seen = new Set();
+    const push = (p, label) => {
+      if (!p) return;
+      const key = lc(`${p.title || ""}|${p.company || ""}`);
+      if (!key.replace("|", "") || seen.has(key)) return;
+      seen.add(key);
+      cands.push({ p, label: label || null });
+    };
+    for (const r of ranked.slice(0, 4)) push(r.posting, stagedKey && lc(`${r.title || ""}|${r.company || ""}`) === stagedKey ? "the posting currently staged in this chat" : null);
+    if (c.posting) push(c.posting, "the posting currently staged in this chat");
+    const list = cands.slice(0, 4);
+    const roleLabel = named.role.replace(/\b\w/g, (ch) => ch.toUpperCase());
+    const facts = list.length
+      ? [`Candidates on the current list: ${list.map((x, i) => `${i + 1}) ${x.p.title} at ${x.p.company} (${x.p.location || "location not stated"})${x.label ? ` — ${x.label}` : ""}`).join("; ")}.`]
+      : ["The current list holds no postings to choose from yet."];
+    facts.push("Tell me which one and the tailor runs against it — or paste the posting and I will use that.");
+    const reply = compose({ headline: `No ${roleLabel} posting is in the current list, so I have not tailored anything yet.`, facts, nextStep: "Name the posting or company to tailor for." });
+    return { intent: "tailor_needs_posting", reply, resultStatus: "awaiting_user", artifact: null, sends: 0 };
   }
   function handleTailorNeedsFacts(text, ctx) {
     const target = tailorTargetOf(text, ctx);
@@ -20638,7 +20717,7 @@ const CareerRouter = (() => {
     if (FAM_ROLE_NOUN.test(t) && !/\b(?:applied|my applications?)\b/.test(t)
         && (/\b(?:any|show me|list|got any|are there|see|browse|look(?:ing)? (?:at|for))\b/.test(t) || /\b(?:in|near|around)\s+[A-Z][a-z]/.test(raw) || /\bremote\b/.test(t))) {
       if (/\binternships?\b/.test(t)) return handleInternship(text, ctx);
-      return handleDiscovery(text, ctx, {});
+      return handleDiscovery(text, ctx, { locations: askLocationsOf(text, ctx), askPlace: true });
     }
     if (!FAM_CAREER.test(t) && /\b(weather|forecast|poems?|poetry|songs?|lyrics|jokes?|riddles?|recipes?|bake|baking|cook|cooking|restaurants?|pizza|movies?|films?|tv shows?|netflix|who won|the score|scores?|super bowl|nba|nfl|mlb|lakers|homework|calculus|algebra|equations?|capital of|trivia|horoscope)\b/.test(t)) {
       const reply = compose({ headline: "That is outside what I can help with.", facts: ["I'm Trainee, a career agent: I find roles, prepare and track your applications, and get you ready for interviews."], nextStep: "Is there something in your job search I can take on?" });
@@ -21454,6 +21533,21 @@ const CareerRouter = (() => {
         const bt = handleBatchTailor(text, c);
         if (bt) return bt;
       }
+      const namedRoleAsk = (profile && !c.jdText && !c.jd) ? tailorNamedRoleOf(text, c) : null;
+      if (namedRoleAsk) {
+        const stagedP = c.posting || null;
+        const stagedFits = !!stagedP && roleTitleMatches(stagedP.title, namedRoleAsk.role)
+          && (!namedRoleAsk.company || lc(stagedP.company || "") === lc(namedRoleAsk.company));
+        if (!stagedFits) {
+          const poolHit = postingsFromCtx(c).find((p) => p && roleTitleMatches(p.title, namedRoleAsk.role)
+            && (!namedRoleAsk.company || lc(p.company || "") === lc(namedRoleAsk.company)));
+          if (poolHit) {
+            const chained = handleTailor(text, Object.assign({}, c, { posting: poolHit }));
+            if (chained && chained.artifact) { chained.chained_from = "named_role"; return chained; }
+          }
+          return tailorNamedRoleAskResult(text, c, namedRoleAsk);
+        }
+      }
       const stagedUsable = c.posting && (c.posting.jd_text || c.posting.title || (Array.isArray(c.posting.requirements) && c.posting.requirements.length));
       if (stagedUsable || c.jdText || c.jd) return handleTailor(text, c);
       let comp = companyFromText(text, c);
@@ -21823,14 +21917,14 @@ const CareerRouter = (() => {
       const dead = profile ? handleDeadBoard(text, c) : null;
       if (dead) return dead;
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
-      return handleDiscovery(text, c, {});
+      return handleDiscovery(text, c, { locations: askLocationsOf(text, c), askPlace: true });
     }
     if (/\b(need|want|looking for|searching for)\b[^.]*\b(internships?|jobs?|roles?)\b|\binternships?\b[^.]*\b(help|next summer|summer)\b|\bhelp\b[^.]*\b(internships?|jobs?)\b/.test(t)) {
       return handleInternship(text, c);
     }
     if (/\bfind\b|\bshortlist\b|\broles worth\b/.test(t)) {
       if (/^internships?$/.test(findHeadNoun(t) || "")) return handleInternship(text, c);
-      return handleDiscovery(text, c, {});
+      return handleDiscovery(text, c, { locations: askLocationsOf(text, c), askPlace: true });
     }
     { const ob = routeOnboardingNeeds(text, c); if (ob) return ob; }
     if (guidanceIntentFor(t)) {

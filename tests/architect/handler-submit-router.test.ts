@@ -8,13 +8,13 @@
 // (a1) and (a3) moved to tests/architect/handler-submit-path.test.ts once the router showed the entries (e0aad64b).
 // Move this file out of pending/ once it is green on the joined head; never weaken an assertion to get there.
 import assertNode from "node:assert/strict";
-import { pgBinDir, type Pg, startPg } from "../../flow/pg.ts";
-import { careerHandler, supabaseParity } from "../../flow/handler.ts";
-import { storedProfile, trustedProfile } from "../../../workers/career-browser/prepare-ahead.ts";
+import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
+import { careerHandler, supabaseParity } from "../flow/handler.ts";
+import { storedProfile, trustedProfile } from "../../workers/career-browser/prepare-ahead.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
-const ROOT = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "");
+const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
 const PEOPLE: Record<string, string> = { "tok-r3": "7b0f8f8e-6a43-4a49-9d2c-00000000e003" };
 const words = (s: string) => s.toLowerCase().replace(/\s+/g, " ");

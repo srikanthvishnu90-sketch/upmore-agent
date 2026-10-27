@@ -35,8 +35,12 @@ const READ_ONLY = "forms-ci coverage: the replay stayed read-only and never reac
 const form = (id) => `forms-ci coverage: ${id}`;
 
 // The shard table. Balanced from measured per-test durations (the shard `report` notices); the last shard is the
-// remainder and is not listed. Every shard holds at least one full form drive before the read-only proof, so that
-// proof judges a log containing all five read/fill command types (as in the single process).
+// remainder and is not listed. The read-only proof is appended to every shard. It judges the helper command log and
+// local-server request log of the tests registered BEFORE it in the suite (test line ~950), exactly as in the single
+// process. In shards 1, 2, 4 and 5 a form drive precedes it. In shard 3 nothing does (the conditional guard is
+// registered after the proof), so there the proof takes its own standalone path: it drives CAPTURED[0] (Prolific,
+// ~150 s, part of shard 3's measured 619 s) and judges that drive's log. The guard's commands after the proof are
+// unjudged there, just as the guards after the proof were in the single process.
 const SHARDS = [
   // Seconds measured per test on PR #209's first sharded run (run 40441854421), from the shards' notices.
   // 1: Anduril's drive alone (668 s; its own 900 s test budget) — the floor of the sharded wall time.
@@ -90,12 +94,14 @@ function checkTable(names) {
     }
   }
   if (names.length !== known.size) throw new Error("forms-ci shard table: the suite has duplicate test names; name patterns cannot shard it");
+  // The proof is added to every shard by name: if it were renamed, shards 1..N-1 would silently run without it.
+  if (!known.has(READ_ONLY)) throw new Error(`forms-ci shard table: the read-only proof "${READ_ONLY}" is not a test in the suite (renamed or removed?) — update READ_ONLY in scripts/forms-ci-shards.cjs`);
 }
 
-function args(shard, count) {
+function args(shard, count, names = listTests()) {
   if (count !== SHARDS.length + 1) throw new Error(`forms-ci shards: the table defines ${SHARDS.length + 1} shards, the workflow asked for ${count}`);
   if (!(shard >= 1 && shard <= count)) throw new Error(`forms-ci shards: shard ${shard} is out of range 1..${count}`);
-  checkTable(listTests());
+  checkTable(names);
   if (shard < count) return [...SHARDS[shard - 1], READ_ONLY].map((n) => `--test-name-pattern=${anchored(n)}`);
   return SHARDS.flat().map((n) => `--test-skip-pattern=${anchored(n)}`);
 }
@@ -121,6 +127,32 @@ function parseTap(text) {
   return { passed: [...new Set(passed)], failed: [...new Set(failed)], durations };
 }
 
+// The aggregate check. Fails unless: the shard table matches the suite; there is one report per shard; no test
+// failed in any shard; every test of the suite passed in some shard; no shard reported an unknown test; and the
+// read-only proof passed in EVERY shard (it is appended to each shard by name and judges that shard's own logs).
+function verifyReports(names, reports) {
+  const errors = [];
+  try { checkTable(names); } catch (e) { errors.push(String(e.message || e)); }
+  const passedIn = new Map();
+  let failed = [];
+  const shardsWithoutProof = [];
+  for (const rep of reports) {
+    for (const n of rep.passed) passedIn.set(n, (passedIn.get(n) || 0) + 1);
+    failed = failed.concat(rep.failed);
+    if (!rep.passed.includes(READ_ONLY)) shardsWithoutProof.push(path.basename(rep.file || "?"));
+  }
+  const missing = names.filter((n) => !passedIn.has(n));
+  const unknown = [...passedIn.keys()].filter((n) => !names.includes(n));
+  const lines = [`forms-ci coverage: ${names.length} tests in the suite; ${reports.length} shard reports; ${names.length - missing.length} passed in some shard; read-only proof passed in ${passedIn.get(READ_ONLY) || 0} of ${SHARDS.length + 1} shards`];
+  for (const n of names) lines.push(`  ${passedIn.has(n) ? "ran " + passedIn.get(n) + "x" : "MISSING"}  ${n}`);
+  if (reports.length !== SHARDS.length + 1) errors.push(`expected ${SHARDS.length + 1} shard reports, found ${reports.length}`);
+  if (failed.length) errors.push(`failed in a shard: ${failed.join("; ")}`);
+  if (missing.length) errors.push(`did not pass in any shard: ${missing.join("; ")}`);
+  if (unknown.length) errors.push(`reported tests the suite does not define: ${unknown.join("; ")}`);
+  if (shardsWithoutProof.length) errors.push(`the read-only proof did not pass in shard report(s) ${shardsWithoutProof.join(", ")}; it must pass in every shard`);
+  return { lines, errors };
+}
+
 function main() {
   const [cmd, a, b] = process.argv.slice(2);
   if (cmd === "list") {
@@ -134,30 +166,17 @@ function main() {
     const esc = (s) => s.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
     console.log(`::notice title=forms-ci shard tests - ${rep.passed.length} passed - ${rep.failed.length} failed::${esc(lines.join("\n").slice(0, 3800))}`);
   } else if (cmd === "verify") {
-    const names = listTests();
-    checkTable(names);
-    const files = fs.readdirSync(a, { recursive: true }).map(String).filter((f) => f.endsWith(".json")).map((f) => path.join(a, f));
-    const passedIn = new Map();
-    let failed = [];
-    for (const f of files) {
-      const rep = JSON.parse(fs.readFileSync(f, "utf8"));
-      for (const n of rep.passed) passedIn.set(n, (passedIn.get(n) || 0) + 1);
-      failed = failed.concat(rep.failed);
-    }
-    const missing = names.filter((n) => !passedIn.has(n));
-    const unknown = [...passedIn.keys()].filter((n) => !names.includes(n));
-    console.log(`forms-ci coverage: ${names.length} tests in the suite; ${files.length} shard reports; ${names.length - missing.length} passed in some shard; read-only proof passed in ${passedIn.get(READ_ONLY) || 0} shards`);
-    for (const n of names) console.log(`  ${passedIn.has(n) ? "ran " + passedIn.get(n) + "x" : "MISSING"}  ${n}`);
-    if (failed.length) console.log(`::error title=forms-ci shards::failed in a shard: ${failed.join("; ").slice(0, 1500)}`);
-    if (missing.length) console.log(`::error title=forms-ci shards::did not pass in any shard: ${missing.join("; ").slice(0, 1500)}`);
-    if (unknown.length) console.log(`::error title=forms-ci shards::reported tests the suite does not define: ${unknown.join("; ").slice(0, 1500)}`);
-    if (failed.length || missing.length || unknown.length || files.length !== SHARDS.length + 1) {
-      if (files.length !== SHARDS.length + 1) console.log(`::error title=forms-ci shards::expected ${SHARDS.length + 1} shard reports, found ${files.length}`);
-      process.exitCode = 1;
-    }
+    const dir = a;
+    const files = fs.readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith(".json")).map((f) => path.join(dir, f));
+    const reports = files.map((f) => ({ file: f, ...JSON.parse(fs.readFileSync(f, "utf8")) }));
+    const { lines, errors } = verifyReports(listTests(), reports);
+    for (const l of lines) console.log(l);
+    for (const e of errors) console.log(`::error title=forms-ci shards::${e.slice(0, 1500)}`);
+    if (errors.length) process.exitCode = 1;
   } else {
     console.error("usage: forms-ci-shards.cjs list | args <shard> <count> | report <tap-log> <out.json> | verify <dir>");
     process.exitCode = 2;
   }
 }
-main();
+if (require.main === module) main();
+module.exports = { SHARDS, READ_ONLY, listTests, checkTable, args, parseTap, verifyReports };

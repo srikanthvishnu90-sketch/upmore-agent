@@ -36,7 +36,10 @@ begin
         and c2.table_schema not like 'pg_temp%' loop
       cols := ''; vals := '';
       for c in select column_name cn, data_type dt, udt_name un from information_schema.columns
-        where table_schema=r.s and table_name=r.n and (column_name in ('user_id','thread_id') or (is_nullable='NO' and column_default is null)) loop
+        where table_schema=r.s and table_name=r.n
+          -- Identity and generated columns fill themselves (a GENERATED ALWAYS column refuses a value), so never write them.
+          and is_identity = 'NO' and is_generated = 'NEVER'
+          and (column_name in ('user_id','thread_id') or (is_nullable='NO' and column_default is null)) loop
         v := case
           when c.cn = 'user_id' then quote_literal(u)
           when c.cn = 'thread_id' and c.dt = 'uuid' then quote_literal(th)

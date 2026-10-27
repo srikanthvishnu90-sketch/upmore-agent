@@ -19,6 +19,7 @@
 //
 // The person is synthetic (TEST). Their facts file carries name and email only, each with its source. Sponsorship and
 // work authorization come only from the person's own chat messages, through their own "use N".
+import { confirmedResumeSql } from "../flow/resume-seed.ts"; // OWNER RULE 2026-10-26: the person has a confirmed resume
 import assertNode from "node:assert/strict";
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const assertEquals = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -107,6 +108,7 @@ Deno.test({
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'ada.tester@example.test');
         insert into public.profiles (id) values ('${PERSON}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false,"daily_limit":"3"}');
+        ${confirmedResumeSql(PERSON)}
         insert into public.agent_threads (id, user_id, title) values ('${THREAD}', '${PERSON}', 'TEST');
         insert into public.agent_messages (thread_id, role, content, created_at) values
           ('${THREAD}', 'user', 'I''m authorized to work in the US', '2026-10-20T15:00:00Z'),

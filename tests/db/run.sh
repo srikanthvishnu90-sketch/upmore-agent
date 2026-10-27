@@ -197,7 +197,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060106_career_ingest_runs.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" || "$t" == "$HERE/career_resume_required.test.sql" || "$t" == "$HERE/channel_telegram_login.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -215,6 +215,11 @@ if [[ -f "$BRIDGE_PATH" ]]; then
   cp "$ROOT/scripts/launch/apply-rails-and-seed.sh" "$ROOT/scripts/launch/verify-claim-guards.sql" "$PENDING_ROOT/scripts/launch/"
   for file in "$ROOT"/supabase/migrations/*.sql; do
     [[ "$(basename "$file")" == "$BRIDGE_NAME" ]] && continue
+    # FEATURE 16: the owner's resume rule (triggers on the queue, the prepared rows and the cards) is deferred the same
+    # way: the historical phases below queue synthetic payloads with no resume, and it is applied last, after them.
+    # (named by its prefix here, so tests/flow/provision-pg.sh, which reads the file names above the ledger step, keeps
+    # it in filename order, after the migrations it reads)
+    [[ "$(basename "$file")" == 20261026210016_* ]] && continue
     cp "$file" "$PENDING_ROOT/supabase/migrations/"
   done
 fi
@@ -458,4 +463,18 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
+# FEATURE 16 (20261026210016): OWNER RULE 2026-10-26, never queued, claimed, prepared or carded without a resume; applied
+# twice (idempotent), last, after every phase (the bridge's pending tests included) that queues synthetic payloads.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"
+"${PSQL[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('20261026210016_career_resume_required.sql','$(sha256sum "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql" | cut -d' ' -f1)') on conflict do nothing"
+echo "== career_resume_required.test.sql (no resume hash: not queued, not claimed, not prepared, not carded; the resume on file needs its events; uploads erased)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_resume_required.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# FEATURE 16 (20261026220016): Telegram's login links a chat once, to one account; applied twice (idempotent).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026220016_channel_telegram_login.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026220016_channel_telegram_login.sql"
+echo "== channel_telegram_login.test.sql (a signed sign-in links once; a replay, another account's Telegram, a second Telegram refused; unlink)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_telegram_login.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== claim guards after the resume rule (scripts/launch/verify-claim-guards.sql)"
+"${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
 echo "db tests passed"

@@ -31,6 +31,13 @@
    "eph": "s0GMNl1yUGOVfjPavA8l8hzUbdNGZwuFX3NqX6Kn5nA",
    "iv": "PlrUR5sLs0Biuuxz",
    "wrapped": "/3yREhDzKdsq3cN7oToXajTNZeXX7p5ifvj72Qk2Fg4zu49OiWeemrq8ZlebXORR"
+  },
+  {
+   "secret_env": "HELDOUT_SEAL_KEY",
+   "pub": "CwJ-dix4tdStP3K8WJ3y-LdTxSiHfvm-tLDqHVU7Bi8",
+   "eph": "9rliKFC2IkIoiKuk7OHg-91Qffs8yGWgExMH6kVM6gQ",
+   "iv": "XN2VnBlqLKJrltPk",
+   "wrapped": "D3vuzgou5UFFwj99mPRLA2yEFOfoVqip+9ww9rYLerSvE4shk9iyUtYKxXC1lWn+"
   }
  ],
  "iv": "dsWVr73trIysfTsN",

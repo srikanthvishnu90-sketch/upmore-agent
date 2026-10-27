@@ -103,15 +103,15 @@ Deno.test({ name: "FEATURE NEEDS: a brand-new person asks what Trainee can do an
     });
 
     await t.step("an API key, a token and an employer's password: none stored; each gets its own safe path", async () => {
-      const key = "sk-proj-AbCdEfGhIjKlMnOpQrStUvWx0123456789";
+      const key = "sk-proj-FAKEdEfGhIjKlMnOpQrStUvWx0123456789";
       const k = await lee(`here's my openai api key ${key} if you need it`);
       assert(/^\(I removed the key or token from your message and didn't keep it\./.test(k.reply), k.reply);
       assert(/I don't use any key or token from you: your accounts connect only on their own sign-in pages \(for Gmail, say "connect gmail"\)\. If that was a real key, revoke it where you made it/.test(k.reply), k.reply);
-      const gh = await lee("token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB");
+      const gh = await lee("token: ghp_fakeefghijklmnopqrstuvwxyz0123456789AB");
       eq(gh.resultStatus, "secret_refused", gh.reply);
       const wd = await lee("my workday password is Spr1ng!2026 for the Ramp application");
       assert(/Sign in to the employer's site yourself, on its own page in your browser; I never take an employer account password or code\./.test(wd.reply), wd.reply);
-      for (const s of [key, "ghp_abcdefghijklmnopqrstuvwxyz0123456789AB", "Spr1ng!2026"]) {
+      for (const s of [key, "ghp_fakeefghijklmnopqrstuvwxyz0123456789AB", "Spr1ng!2026"]) {
         eq(await q(`select count(*) from public.agent_messages m join public.agent_threads t on t.id = m.thread_id where t.user_id = '${LEE}' and position('${s}' in m.content) > 0`), "0", `${s.slice(0, 8)}… stored nowhere`);
       }
       eq((await rows(LEE)).needs, "secret_refused:employer,secret_refused:google,secret_refused:key");

@@ -263,12 +263,12 @@ Deno.test("keys and tokens are removed from the chat before anything stores them
   const { redactIdentity, redactionNote } = await import("../../supabase/functions/_shared/identity_redact.ts");
   const gone = (m: string) => { const r = redactIdentity(m); return { text: r.text, key: r.removed.includes("key") }; };
   for (const [m, secret] of [
-    ["here's my openai api key sk-proj-AbCdEfGhIjKlMnOpQrStUvWx0123456789", "sk-proj-AbCdEfGhIjKlMnOpQrStUvWx0123456789"],
-    ["token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB", "ghp_abcdefghijklmnopqrstuvwxyz0123456789AB"],
-    ["stripe sk_live_51HabcdefGHIJKLmnop0123", "sk_live_51HabcdefGHIJKLmnop0123"],
+    ["here's my openai api key sk-proj-FAKEdEfGhIjKlMnOpQrStUvWx0123456789", "sk-proj-FAKEdEfGhIjKlMnOpQrStUvWx0123456789"],
+    ["token: ghp_fakeefghijklmnopqrstuvwxyz0123456789AB", "ghp_fakeefghijklmnopqrstuvwxyz0123456789AB"],
+    ["stripe sk_test_FAKE0000defGHIJKLmnop0123", "sk_test_FAKE0000defGHIJKLmnop0123"],
     ["aws AKIAIOSFODNN7EXAMPLE", "AKIAIOSFODNN7EXAMPLE"],
     ["access token = ya29.a0AfH6SMBx1234567890abcdefghij", "ya29.a0AfH6SMBx1234567890abcdefghij"],
-    ["jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abcdefghijklmnop", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abcdefghijklmnop"],
+    ["jwt eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsIm5vdGUiOiJmYWtlIn0.abcdefghijklmnop", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiIsIm5vdGUiOiJmYWtlIn0.abcdefghijklmnop"],
   ] as const) {
     const r = gone(m);
     assert(r.key && !r.text.includes(secret) && r.text.includes("[key removed]"), `${m} -> ${r.text}`);

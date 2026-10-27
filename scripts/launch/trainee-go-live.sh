@@ -33,7 +33,8 @@
 #                                                      (one sandbox for ~25 minutes, Vercel spend) and uses its id
 #   CLOUD_RUNNER_SECRET, CLOUD_DISPATCH_SECRET, CAREER_PREPARE_AHEAD_TOKEN   function secrets (Enter generates each)
 #   CLOUD_BRIDGE_URL and CAREER_PREPARE_AHEAD_URL      derived from the project ref, never asked
-#   the numbers, each optional (unset: the runner's default, cloud_runner_http.ts LIMIT_DEFAULTS):
+#   the numbers, each optional; one not given is set to its first-wave value (CLOUD_WAVE1 below, the same numbers as
+#   cloud_runner_http.ts LIMIT_DEFAULTS and docs/launch/CLOUD-RUNNER.md), so the project always holds all nine explicitly:
 #     CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE
 #     CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE
 #   CLOUD_RUNNER_ENABLED, CLOUD_PREPARE_ENABLED        'on' turns sending / preparation on; unset: not touched (off
@@ -268,6 +269,10 @@ CLOUD_HIDDEN=(CLOUD_RUNNER_SECRET CLOUD_DISPATCH_SECRET CAREER_PREPARE_AHEAD_TOK
 CLOUD_PLAIN=(VERCEL_TEAM_ID VERCEL_PROJECT_ID CLOUD_SANDBOX_SNAPSHOT_ID CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK
   CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY
   CLOUD_PREPARE_PER_SITE_MINUTE CLOUD_RUNNER_ENABLED CLOUD_PREPARE_ENABLED)
+# The first wave's numbers (the owner's decision, 2026-10-26: phone-only sending within these), set by name when not given.
+declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD_MAX_STARTS_PER_TICK]=2 [CLOUD_MAX_PER_PERSON_DAY]=3
+  [CLOUD_MAX_PER_SITE_MINUTE]=1 [CLOUD_PREPARE_MAX_CONCURRENT]=2 [CLOUD_PREPARE_STARTS_PER_TICK]=2 [CLOUD_PREPARE_PER_PERSON_DAY]=10
+  [CLOUD_PREPARE_PER_SITE_MINUTE]=2)
 DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "$CLOUD_FN")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
@@ -781,7 +786,9 @@ else
       else echo "  kept: $v (not given)"; fi
     done
     for v in "${CLOUD_PLAIN[@]}"; do
-      if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "${!v}"; else echo "  kept: $v (not given; unset means the runner's default, or off for a switch)"; fi
+      if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "${!v}"
+      elif [[ -n "${CLOUD_WAVE1[$v]:-}" ]]; then add "$v" "${CLOUD_WAVE1[$v]}" "${CLOUD_WAVE1[$v]}"; echo "  $v: not given, set to the first wave's ${CLOUD_WAVE1[$v]}"
+      else echo "  kept: $v (not given; off for a switch)"; fi
     done
     add CLOUD_BRIDGE_URL "$BASE/functions/v1/$CLOUD_FN" "$BASE/functions/v1/$CLOUD_FN"
     add CAREER_PREPARE_AHEAD_URL "$BASE/functions/v1/$CLOUD_FN/prepare" "$BASE/functions/v1/$CLOUD_FN/prepare"

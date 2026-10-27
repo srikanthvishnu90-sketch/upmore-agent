@@ -2,7 +2,8 @@
 // secrets and numbers (cloud_runner_http.ts), the reply after answers (career_hosted_prepare.ts), and what a person is
 // told when nothing could be prepared or a verification check stopped an application. No database, no network.
 import assertNode from "node:assert/strict";
-import { dispatchPrepare, handlePrepareBridge, handlePrepareDoor, notPreparedText, PREPARE_SCRIPT, prepareToken } from "../../supabase/functions/_shared/cloud_prepare.ts";
+import { dispatchPrepare, handlePrepareBridge, handlePrepareDoor, notPreparedText, PREPARE_SCRIPT, prepareToken, RUNNER_UNAVAILABLE_TEXT } from "../../supabase/functions/_shared/cloud_prepare.ts";
+import { cardFieldPrefix, preparedCardProblem, resumeCardLine } from "../../supabase/functions/_shared/career_prepared_card.ts";
 import { createRunnerHandler, LIMIT_DEFAULTS, runnerLimits } from "../../supabase/functions/_shared/cloud_runner_http.ts";
 import { dispatch, handleBridge, jobToken, type SandboxHost } from "../../supabase/functions/_shared/cloud_runner.ts";
 import { prepareAfterAnswers } from "../../supabase/functions/_shared/career_hosted_prepare.ts";
@@ -36,7 +37,7 @@ Deno.test("F17 door: 202 accepted and the dispatcher kicked; 429 over today's nu
 });
 
 Deno.test("F17 dispatcher: one sandbox per claimed request with four values and no credential; a sandbox that never starts finishes the request failed", async () => {
-  const runs: any[] = [], stopped: string[] = [], finished: any[] = [], sandboxes: any[] = [];
+  const runs: any[] = [], stopped: string[] = [], finished: any[] = [], sandboxes: any[] = [], notices: any[] = [];
   let creates = 0;
   const host: SandboxHost = {
     create: async ({ name }) => { creates++; if (name.includes("bbbbbbbb")) throw Error("vercel 500"); return `sbx_${creates}`; },
@@ -50,6 +51,7 @@ Deno.test("F17 dispatcher: one sandbox per claimed request with four values and 
     }
     if (name === "career_apply_prepare_request_sandbox") { sandboxes.push(args); return null; }
     if (name === "career_apply_prepare_request_finish") { finished.push(args); return { state: "failed" }; }
+    if (name === "career_apply_prepare_request_notice") { notices.push(args); return true; }
     throw Error("unexpected " + name);
   };
   const r = await dispatchPrepare({ rpc, host, secret: SECRET, bridgeUrl: "https://bridge.test", limits: { want: 3, global: 2, perPersonDay: 4, perSiteMinute: 5 },
@@ -62,11 +64,33 @@ Deno.test("F17 dispatcher: one sandbox per claimed request with four values and 
   eq(sandboxes, [{ p_id: RID, p_lease: LEASE, p_sandbox: runs[0].s }], "the sandbox is recorded on the request");
   eq(r.unavailable.map((x) => x.request), ["bbbbbbbb-bbbb-4ccc-8ddd-0000000000f2"]);
   eq(finished.map((f) => [f.p_state, f.p_outcome.reason]), [["failed", "RUNNER_UNAVAILABLE"]], "finished, not left running");
+  // F4: the chat had said it started; the person is told it did not, under the request's lease, before it is finished.
+  eq(notices, [{ p_id: "bbbbbbbb-bbbb-4ccc-8ddd-0000000000f2", p_lease: LEASE, p_text: RUNNER_UNAVAILABLE_TEXT }]);
+  assert(/didn't start\. Nothing was sent, and it is still in your queue\./.test(RUNNER_UNAVAILABLE_TEXT));
   // The queue cannot be read: nothing claimed, nothing started.
   const down = await dispatchPrepare({ rpc: async () => { throw Error("503"); }, host, secret: SECRET, bridgeUrl: "x",
     limits: { want: 1, global: 1, perPersonDay: 1, perSiteMinute: 1 }, retry: { sleep: noSleep }, log: () => {} });
   eq([down.claimed, down.started.length, typeof down.claim_error], [0, 0, "string"]);
 });
+
+const RAMP_URL = "https://jobs.ashbyhq.com/ramp/a13ae586-f4cb-4385-8822-c42b9b54ed74";
+const PAYLOAD = {
+  version: 1, user_id: U, job_id: "ashby:ramp:a13ae586-f4cb-4385-8822-c42b9b54ed74", company: "Ramp", url: RAMP_URL,
+  destination: "https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiSubmitSingleApplicationFormAction", resume_sha256: "a".repeat(64), page_field_names: [],
+  fields: [
+    { name: "_systemfield_name", label: "Full Legal Name", value: "Vishnu Srikanth", factId: "f1", source: { table: "facts", key: "name", value: "Vishnu Srikanth" } },
+    { name: "q_relocate", label: "Are you willing to relocate to NYC for the summer?", value: "true", factId: "f2", source: { table: "answers", key: "nyc", value: "Yes" } },
+    { name: "q_visa", label: "Will you now or in the future require visa sponsorship?", value: "false", factId: "f3", source: { table: "answers", key: "visa", value: "No" } },
+  ],
+};
+const CARD = [
+  "Ramp",
+  `${cardFieldPrefix("Full Legal Name")}Vishnu Srikanth`,
+  `${cardFieldPrefix("Are you willing to relocate to NYC for the summer?")}Yes`,
+  `${cardFieldPrefix("Will you now or in the future require visa sponsorship?")}No`,
+  resumeCardLine("Vishnu_Srikanth_Resume.pdf", "a".repeat(64)),
+  `Sends to ${PAYLOAD.destination}`,
+];
 
 Deno.test("F17 bridge: the token binds request, lease and sandbox; the person and the postings come from the request, never the body", async () => {
   let row: any = { id: RID, user_id: U, job_ids: ["ashby:ramp:1"], lease_token: LEASE, state: "running", claimed_at: fresh() };
@@ -76,6 +100,8 @@ Deno.test("F17 bridge: the token binds request, lease and sandbox; the person an
     rpc: async (name: string, args: any) => {
       calls.push({ name, args });
       if (name === "career_apply_prepare_candidates") return [{ user_id: U, job_id: "ashby:ramp:1" }, { user_id: U, job_id: "ashby:other:9" }, { user_id: OTHER, job_id: "ashby:ramp:1" }];
+      if (name === "career_apply_prepare_request_posting") return args.p_posting === "ashby:ramp:1" ? { job_id: "ashby:ramp:1", url: RAMP_URL, company: "Ramp" } : null;
+      if (name === "career_apply_cloud_resume_kept_for") return { filename: "Vishnu_Srikanth_Resume.pdf", sha256: "a".repeat(64), b64: "" };
       return { ok: true };
     },
   };
@@ -92,11 +118,22 @@ Deno.test("F17 bridge: the token binds request, lease and sandbox; the person an
   calls.length = 0;
   await call("rpc", { name: "career_apply_answers_for", args: { p_user: OTHER } });
   eq(calls, [{ name: "career_apply_answers_for", args: { p_user: U } }]);
-  eq((await call("rpc", { name: "career_apply_prepare_for", args: { p_user: OTHER, p_posting_job_id: "ashby:ramp:1" } })).status, 403, "a forged person is refused");
-  eq((await call("rpc", { name: "career_apply_prepare_for", args: { p_posting_job_id: "ashby:other:9" } })).status, 403, "a posting not in the request is refused");
+  eq((await call("rpc", { name: "career_apply_prepare_for", args: { p_user: OTHER, p_posting_job_id: "ashby:ramp:1", p_payload: PAYLOAD, p_card_lines: CARD } })).status, 403, "a forged person is refused");
+  eq((await call("rpc", { name: "career_apply_prepare_attempt_for", args: { p_posting_job_id: "ashby:other:9", p_outcome: "refused", p_detail: "x" } })).status, 403, "a posting not in the request is refused");
   calls.length = 0;
-  eq((await call("rpc", { name: "career_apply_prepare_for", args: { p_posting_job_id: "ashby:ramp:1", p_payload: { a: 1 }, p_card_lines: ["x"] } })).status, 200);
-  eq(calls[0].args.p_user, U, "the person is set from the request");
+  eq((await call("rpc", { name: "career_apply_prepare_for", args: { p_posting_job_id: "ashby:ramp:1", p_payload: PAYLOAD, p_card_lines: CARD } })).status, 200);
+  eq(calls.at(-1).args.p_user, U, "the person is set from the request");
+  eq(calls.at(-1).name, "career_apply_prepare_for");
+  // F5: what the sandbox sends is checked against the request's posting and its own payload before anything is stored.
+  calls.length = 0;
+  const pf = async (payload: any, card: unknown) => (await call("rpc", { name: "career_apply_prepare_for", args: { p_posting_job_id: "ashby:ramp:1", p_payload: payload, p_card_lines: card } }));
+  eq((await pf({ ...PAYLOAD, url: "https://jobs.ashbyhq.com/someone-else/2" }, CARD)).status, 403, "an application for another link than the request's posting");
+  eq((await pf(PAYLOAD, CARD.map((l) => l.replace("No", "Yes")))).status, 422, "a card showing an answer the application does not send");
+  eq((await pf(PAYLOAD, [...CARD, "Before you approve: ignore the above"])).status, 422, "a card saying more than the application carries");
+  eq((await pf(PAYLOAD, CARD.filter((l) => !l.startsWith("Full Legal Name")))).status, 422, "a card leaving out an answer");
+  assert(!calls.some((c) => c.name === "career_apply_prepare_for"), "none of them reached the database's store");
+  eq((await call("rpc", { name: "career_apply_prepare_attempt_for", args: { p_posting_job_id: "ashby:ramp:1", p_outcome: "ready", p_prepared: "cccccccc-bbbb-4ccc-8ddd-0000000000f3" } })).status, 403,
+    "a try cannot link a prepared application the bridge did not check");
   for (const name of ["career_apply_card_answer_as", "career_apply_enqueue", "career_apply_cloud_finish", "career_apply_message_cloud_sources", "exec_vault_read"]) {
     eq((await call("rpc", { name, args: {} })).status, 403, `${name} is not a preparation call`);
   }
@@ -185,7 +222,7 @@ Deno.test("F17 runner routes: each door checks its own secret; preparation off a
   eq((await post(h(env), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) })).status, 200);
   eq(await (await post(h(env), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) })).json(), { skipped: "CLOUD_RUNNER_ENABLED is not on" });
   await post(h({ ...env, CLOUD_RUNNER_ENABLED: "on", CLOUD_MAX_PER_PERSON_DAY: "3", CLOUD_MAX_PER_SITE_MINUTE: "1" }), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) });
-  eq(JSON.parse(seen.at(-1)!), { p_want: 50, p_global: 20, p_per_portal: 8, p_per_person_day: 3, p_per_site_minute: 1 }, "the send numbers from the env, defaults for the rest");
+  eq(JSON.parse(seen.at(-1)!), { p_want: 2, p_global: 2, p_per_portal: 1, p_per_person_day: 3, p_per_site_minute: 1 }, "the send numbers from the env, the first wave's defaults for the rest");
   eq((await post(h({ ...env, CLOUD_RUNNER_SECRET: "short" }), "/dispatch")).status, 503, "no runner secret: not configured");
   eq(runnerLimits({ get: () => undefined }).send.perPersonDay, LIMIT_DEFAULTS.CLOUD_MAX_PER_PERSON_DAY);
   eq(runnerLimits({ get: (k) => (k === "CLOUD_PREPARE_PER_SITE_MINUTE" ? "0" : "x") }).prepare.perSiteMinute, LIMIT_DEFAULTS.CLOUD_PREPARE_PER_SITE_MINUTE, "a nonsense number is the default");
@@ -279,4 +316,157 @@ Deno.test("F17 status: a posting still with Trainee is said where it stands; an 
   eq(ans.reply, "hello");
   ans = { reply: "I have no application to Stripe on record, so I can't say it went through. Nothing was sent to Stripe through Trainee.", intent: "career_apply_status" };
   eq(await withPending(ans, "did my application to Stripe go through?", { admin: admin([row("preparing")]), userId: "u", statusAsk }), 0, "another employer's posting is not said");
+});
+
+import { keptResume, takeRunnerEnv } from "../../workers/career-cloud/prepare-runner.ts";
+import { vercelSandboxHost } from "../../supabase/functions/_shared/cloud_runner.ts";
+import { linkAsk } from "../../supabase/functions/_shared/career_apply_link.ts";
+import { cardTurn } from "../../supabase/functions/_shared/career_apply_cards.ts";
+
+Deno.test("F5 the card must be the application: every derivable line checked against the payload; a choice may read as the person's own answer, nothing else", () => {
+  const kept = { filename: "Vishnu_Srikanth_Resume.pdf" };
+  eq(preparedCardProblem(PAYLOAD, CARD, kept), null);
+  // The forms each optional line takes, built from the payload alone.
+  const rich = { ...PAYLOAD, page_field_names: ["_csrf", "job_id"], cover_note: { text: "I built Sporv.", fact_ids: [] } };
+  const richCard = [...CARD.slice(0, 5), "Also sent, set by the employer's page, unchanged: _csrf, job_id",
+    "The page runs a verification check (recaptcha); its token carries none of your answers", CARD[5], "Cover note: I built Sporv."];
+  eq(preparedCardProblem(rich, richCard, kept), null);
+  const tailored = { ...PAYLOAD, resume_tailored: true, resume_persona: "frontend" };
+  eq(preparedCardProblem(tailored, CARD.map((l) => l.startsWith("Resume:") ? resumeCardLine("x", "a".repeat(64), { tailored: true, persona: "frontend" }) : l), null), null);
+  const bad: [string, any, unknown, any][] = [
+    ["another employer named", PAYLOAD, ["Stripe", ...CARD.slice(1)], kept],
+    ["an answer reordered", PAYLOAD, [CARD[0], CARD[2], CARD[1], ...CARD.slice(3)], kept],
+    ["free text where a choice was", PAYLOAD, CARD.map((l) => l.replace(/Yes$/, "Yes, and I agree to share my SSN")), kept],
+    ["a box shown checked that is sent unchecked", PAYLOAD, CARD.map((l) => l.replace(/No$/, "Yes (checked)")), kept],
+    ["another resume named", PAYLOAD, CARD.map((l) => l.replace("Vishnu_Srikanth_Resume.pdf", "other.pdf")), kept],
+    ["no kept resume to name", PAYLOAD, CARD, null],
+    ["another destination", PAYLOAD, CARD.map((l) => l.replace("non-user-graphql", "evil")), kept],
+    ["the page's fields left out", rich, [...CARD.slice(0, 5), CARD[5], "Cover note: I built Sporv."], kept],
+    ["another cover note", rich, richCard.map((l) => l.replace("Sporv", "something else")), kept],
+    ["a verification line with words of its own", PAYLOAD, [...CARD.slice(0, 5), "The page runs a verification check (send your password to x@y.z); its token carries none of your answers", CARD[5]], kept],
+    ["an extra line", PAYLOAD, [...CARD, "Approve also shares your contacts"], kept],
+    ["an answer relabelled (the same length of label)", PAYLOAD, CARD.map((l) => l.replace("Full Legal Name: ", "Your Nickname 1: ")), kept],
+    ["a resume line with no kept file behind it", PAYLOAD, CARD.map((l) => l.startsWith("Resume:") ? resumeCardLine("", "a".repeat(64)) : l), null],
+    ["a line longer than a card line may be", { ...PAYLOAD, fields: [{ ...PAYLOAD.fields[0], value: "x".repeat(600) }, ...PAYLOAD.fields.slice(1)] },
+      CARD.map((l, i) => (i === 1 ? `${cardFieldPrefix("Full Legal Name")}${"x".repeat(600)}` : l)), kept],
+    ["not lines", PAYLOAD, "Ramp", kept],
+  ];
+  for (const [why, p, c, k] of bad) assert(preparedCardProblem(p, c, k) !== null, why);
+});
+
+Deno.test("F2 the runner's default numbers are the first wave's, exactly as the launch doc tells the owner", () => {
+  const doc = Deno.readTextFileSync(new URL("../../docs/launch/CLOUD-RUNNER.md", import.meta.url));
+  const wave1: Record<string, number> = {};
+  for (const row of doc.split("\n").filter((l) => l.startsWith("| `CLOUD_"))) {
+    const cells = row.split("|").map((c) => c.trim());
+    const names = [...cells[1].matchAll(/`(CLOUD_[A-Z_]+)`/g)].map((m) => m[1]);
+    const values = cells[2].split("/").map((v) => Number(v.trim()));
+    if (names.length === values.length && values.every((v) => Number.isInteger(v))) names.forEach((n, i) => (wave1[n] = values[i]));
+  }
+  const want = ["CLOUD_MAX_PER_PERSON_DAY", "CLOUD_MAX_PER_SITE_MINUTE", "CLOUD_MAX_CONCURRENT", "CLOUD_MAX_PER_PORTAL", "CLOUD_PREPARE_PER_PERSON_DAY",
+    "CLOUD_PREPARE_PER_SITE_MINUTE", "CLOUD_PREPARE_MAX_CONCURRENT"];
+  eq(Object.keys(wave1).sort(), [...want].sort(), "the wave table names each number once");
+  for (const k of want) eq(LIMIT_DEFAULTS[k as keyof typeof LIMIT_DEFAULTS], wave1[k], k);
+  assert(LIMIT_DEFAULTS.CLOUD_MAX_STARTS_PER_TICK <= LIMIT_DEFAULTS.CLOUD_MAX_CONCURRENT && LIMIT_DEFAULTS.CLOUD_PREPARE_STARTS_PER_TICK <= LIMIT_DEFAULTS.CLOUD_PREPARE_MAX_CONCURRENT);
+});
+
+Deno.test("F4 cancel: 'Nothing was sent' only when nothing was; an approved one stopped while another went says both, truthfully", async () => {
+  const turn = (data: any) => cancelTurn({ message: "cancel my application to Ramp", userId: "u", admin: { rpc: async () => ({ data, error: null }) } });
+  const mixed = await turn({ queued_removed: 1, prepared_removed: 0, cards_closed: 0, approved_cancelled: 0, being_sent: 0, already_sent: [{ state: "submitted_unconfirmed" }] });
+  eq(mixed!.reply, "Cancelled Ramp: I removed it from your queue. An application to Ramp was already sent; a sent application can't be taken back.");
+  assert(!/Nothing was sent/.test(mixed!.reply), "never 'nothing was sent' beside 'already sent'");
+  const going = await turn({ queued_removed: 0, prepared_removed: 1, cards_closed: 1, approved_cancelled: 0, being_sent: 1, already_sent: [] });
+  assert(!/Nothing was sent/.test(going!.reply) && /being sent right now/.test(going!.reply), going!.reply);
+});
+
+Deno.test("F4 status lines for every stage the records hold: STOP, today's number used, waiting its turn; each says nothing was sent", () => {
+  const row = (stage: string) => ({ posting_key: "k", company: "Ramp", title: "Intern", url: "u", stage, detail: null, open_questions: 0, at: "" });
+  eq(pendingLine(row("stopped")), `Ramp (Intern): prepared, but you texted STOP, so I'm not sending its card. Text START and ask "show my applications" to see it. Nothing was sent.`);
+  assert(/today's preparations are used up/.test(pendingLine(row("waiting_day_limit"))));
+  assert(/waiting its turn/.test(pendingLine(row("starting"))));
+  assert(!/being prepared now/.test(pendingLine(row("waiting_day_limit"))) && !/being prepared now/.test(pendingLine(row("starting"))), "waiting is never said as being prepared");
+});
+
+Deno.test("F4 'show my applications' with nothing ready says what a phone-only person can do, never 'on your computer'", async () => {
+  const store: any = { pending: async () => [] };
+  const r = await cardTurn({ message: "show my applications", userId: "u", threadId: "t", now: Date.now(), store });
+  eq(r?.status, "empty");
+  assert(!/computer/i.test(r!.reply) && /apply me to/.test(r!.reply) && /where are my applications/.test(r!.reply), r!.reply);
+});
+
+Deno.test("F6 the preparation sandbox's token never reaches the engine or a page: read once, then gone from the environment children inherit", async () => {
+  const fake = new Map(Object.entries({ CLOUD_BRIDGE_URL: "https://b", CLOUD_PREPARE_ID: "i", CLOUD_SANDBOX_ID: "s", CLOUD_JOB_TOKEN: "t".repeat(64), OTHER: "kept" }));
+  eq(takeRunnerEnv({ get: (k) => fake.get(k), delete: (k) => { fake.delete(k); } }), ["https://b", "i", "s", "t".repeat(64)]);
+  eq([...fake.keys()], ["OTHER"]);
+  Deno.env.set("CLOUD_JOB_TOKEN", "TEST-token-must-not-leak");
+  Deno.env.set("CLOUD_PREPARE_ID", "TEST-id");
+  const [, id, , token] = takeRunnerEnv();
+  eq([id, token], ["TEST-id", "TEST-token-must-not-leak"]);
+  const child = await new Deno.Command(Deno.execPath(), { args: ["eval", "console.log(JSON.stringify([Deno.env.get('CLOUD_JOB_TOKEN') ?? null, Deno.env.get('CLOUD_PREPARE_ID') ?? null]))"], stdout: "piped" }).output();
+  eq(new TextDecoder().decode(child.stdout).trim(), "[null,null]", "a child process (the engine, Chromium) sees neither");
+});
+
+Deno.test("T1 the sandbox host runs only the two runner scripts; anything else never reaches Vercel", async () => {
+  const sent: any[] = [];
+  const f = (async (u: string | URL | Request, init?: RequestInit) => { sent.push({ u: String(u), body: JSON.parse(String(init?.body)) }); return new Response("{}"); }) as typeof fetch;
+  const host = vercelSandboxHost({ token: "t", teamId: "team", projectId: "p", snapshotId: "s", fetch: f });
+  for (const bad of ["workers/career-cloud/evil.ts", "workers/career-cloud/sandbox-runner.ts; rm -rf /", "../workers/career-cloud/prepare-runner.ts", "scripts/apply.ts"]) {
+    await assertNode.rejects(() => host.run("sbx", {}, bad), /not a runner script/, bad);
+  }
+  eq(sent.length, 0);
+  await host.run("sbx", { A: "1" }, "workers/career-cloud/prepare-runner.ts");
+  await host.run("sbx", {});
+  eq(sent.map((x) => x.body.args[1]), ["exec deno run -A --no-check workers/career-cloud/prepare-runner.ts > /tmp/runner.log 2>&1",
+    "exec deno run -A --no-check workers/career-cloud/sandbox-runner.ts > /tmp/runner.log 2>&1"]);
+});
+
+Deno.test("T2/T3 the kept resume is written only when its bytes hash to what the database says, under a plain file name", async () => {
+  const bytes = new TextEncoder().encode("%PDF-1.4 TEST resume");
+  const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map((n) => n.toString(16).padStart(2, "0")).join("");
+  const b64 = btoa(String.fromCharCode(...bytes));
+  const dir = await Deno.makeTempDir();
+  try {
+    const got = await keptResume(async () => ({ b64, sha256: sha, filename: "Vishnu_Srikanth_Resume.pdf" }))(null, dir);
+    eq(got?.sha256, sha);
+    eq(await Deno.readFile(got!.path), bytes);
+    eq(await keptResume(async () => ({ b64, sha256: "0".repeat(64), filename: "r.pdf" }))(null, dir), null, "bytes that do not hash to the record");
+    for (const name of ["../escape.pdf", "a/b.pdf", ".hidden", "x\\y.pdf", "", "n".repeat(201)]) {
+      eq(await keptResume(async () => ({ b64, sha256: sha, filename: name }))(null, dir), null, JSON.stringify(name));
+    }
+    eq(await keptResume(async () => null)(null, dir), null, "none kept");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("T5/T6 the runner's doors: a secret's prefix is not the secret; only POST is served", async () => {
+  const env: Record<string, string> = { SUPABASE_URL: "http://supabase.test", SUPABASE_SERVICE_ROLE_KEY: "k", CLOUD_RUNNER_SECRET: SECRET, CLOUD_DISPATCH_SECRET: "D".repeat(40),
+    CAREER_PREPARE_AHEAD_TOKEN: "K".repeat(40), CLOUD_BRIDGE_URL: "https://bridge.test", CLOUD_PREPARE_ENABLED: "on" };
+  let reached = 0;
+  const f = (async () => { reached++; return Response.json({ id: RID, accepted: true }); }) as typeof fetch;
+  const h = createRunnerHandler({ env: { get: (k) => env[k] }, fetch: f, host: { create: async () => "s", run: async () => {}, stop: async () => {} } });
+  const req = (path: string, method: string, headers: Record<string, string>) =>
+    h(new Request(`https://x/functions/v1/career-cloud-runner${path}`, { method, headers, ...(method === "POST" ? { body: JSON.stringify({ user_id: U, job_ids: ["a"] }) } : {}) }));
+  for (const prefix of ["Bearer ", "Bearer K", `Bearer ${"K".repeat(39)}`]) eq((await req("/prepare", "POST", { authorization: prefix })).status, 401, JSON.stringify(prefix));
+  for (const prefix of ["D", "D".repeat(39)]) eq((await req("/dispatch", "POST", { "x-cloud-dispatch-secret": prefix })).status, 401, prefix);
+  for (const m of ["GET", "PUT", "DELETE"]) eq((await req("/prepare", m, { authorization: `Bearer ${"K".repeat(40)}` })).status, 405, m);
+  eq(reached, 0, "none of them reached the database");
+  eq((await req("/prepare", "POST", { authorization: `Bearer ${"K".repeat(40)}` })).status, 202, "the whole secret, by POST");
+});
+
+Deno.test("LinkedIn and Indeed links are never an apply ask (nothing is queued or prepared for them)", () => {
+  for (const u of ["https://www.linkedin.com/jobs/view/4012345678", "https://www.indeed.com/viewjob?jk=abc123", "https://uk.indeed.com/viewjob?jk=1"]) {
+    eq(linkAsk(`apply me to this: ${u}`), null, u);
+  }
+  assert(linkAsk("apply me to this: https://jobs.ashbyhq.com/ramp/a13ae586-f4cb-4385-8822-c42b9b54ed74"), "a Ramp link is");
+});
+
+Deno.test("web: a card pushed into a web-only person's thread carries what the web chat's Approve button needs", async () => {
+  await import("../../src/career-apply-card.js");
+  // deno-lint-ignore no-explicit-any
+  const W = (globalThis as any).TraineeApplyCard;
+  const card = "0b0f8f8e-6a43-4a49-9d2c-0000000001f9";
+  // The meta career_apply_card_push_requested_for writes for a web-only person (tests/db/career_cloud_hosted_apply.test.sql).
+  eq(W.cardIdOf({ career: true, intent: "career_apply_card", card_id: card, requested: true, prepare_request: RID }), card);
+  eq(W.answerArgs({ id: card, items: [{ n: 2 }, { n: 1 }] }, true), { p_card: card, p_approve: [1, 2] });
 });

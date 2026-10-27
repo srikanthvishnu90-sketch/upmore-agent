@@ -38,7 +38,10 @@ export function pendingLine(p: PendingRow): string {
   switch (p.stage) {
     case "on_card": return `${name}: ready on the card I sent you; nothing is sent until you approve it there.`;
     case "ready": return `${name}: prepared; the card with every answer is on its way. Nothing is sent until you approve it.`;
+    case "stopped": return `${name}: prepared, but you texted STOP, so I'm not sending its card. Text START and ask "show my applications" to see it. Nothing was sent.`;
     case "preparing": return `${name}: being prepared now; nothing is sent until you approve its card.`;
+    case "waiting_day_limit": return `${name}: not started yet: today's preparations are used up, so it starts within a day, by itself. Nothing was sent.`;
+    case "starting": return `${name}: waiting its turn to be prepared (within minutes); nothing is sent until you approve its card.`;
     case "waiting_on_you": return `${name}: waiting on your answer to ${p.open_questions === 1 ? "1 question" : `${p.open_questions} questions`}; say "what do you need from me". Nothing was sent.`;
     case "no_resume": return `${name}: not prepared: I don't have your resume file to attach. Send it here as a PDF or Word file. Nothing was sent.`;
     case "refused": return `${name}: not prepared: the employer's form could not be filled ahead of time. Nothing was sent.`;
@@ -101,14 +104,16 @@ export async function cancelTurn(o: { message: string; userId: string; admin: an
   if (r.error) return { reply: `I couldn't cancel anything for ${co} just now; nothing was changed. Ask me again in a minute.`, status: "unreadable", intent: CANCEL_INTENT };
   const d = r.data ?? {};
   const did = (d.queued_removed ?? 0) + (d.prepared_removed ?? 0) + (d.approved_cancelled ?? 0);
+  const sent = Array.isArray(d.already_sent) ? d.already_sent : [];
+  // "Nothing was sent" only when it is true of this employer: nothing being sent now and nothing sent before.
+  const nothingWent = !d.being_sent && !sent.length;
   const parts: string[] = [];
   if (did) {
     const what = [d.queued_removed ? "removed it from your queue" : "", d.prepared_removed ? "deleted what I had prepared" : "",
       d.cards_closed ? "closed its card, so a tap on it approves nothing" : "", d.approved_cancelled ? "stopped the approved application before it was sent" : ""].filter(Boolean);
-    parts.push(`Cancelled ${co}: I ${what.join(", ")}. Nothing was sent to ${co}.`);
+    parts.push(`Cancelled ${co}: I ${what.join(", ")}.${nothingWent ? ` Nothing was sent to ${co}.` : ""}`);
   }
   if (d.being_sent) parts.push(`${d.being_sent === 1 ? "One application" : `${d.being_sent} applications`} to ${co} ${d.being_sent === 1 ? "is" : "are"} being sent right now and can't be stopped midway; I'll tell you how it ended.`);
-  const sent = Array.isArray(d.already_sent) ? d.already_sent : [];
   if (sent.length) parts.push(`${sent.length === 1 ? "An application" : `${sent.length} applications`} to ${co} ${sent.length === 1 ? "was" : "were"} already sent; a sent application can't be taken back.`);
   if (!parts.length) parts.push(`I have nothing for ${co} in your queue, so there is nothing to cancel. Nothing was sent to ${co} through Trainee.`);
   return { reply: parts.join(" "), status: did ? "cancelled" : d.being_sent || sent.length ? "too_late" : "none", intent: CANCEL_INTENT };

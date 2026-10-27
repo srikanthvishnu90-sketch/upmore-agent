@@ -99,6 +99,11 @@ begin
  return coalesce(r, false);
 end $$;
 
+-- Where the application is sent: only an https address the employer's form posts to (a form only the person can submit
+-- carries none). Its own function so the rule is one place.
+create or replace function public.career_apply_cloud_destination_ok(p_dest text) returns boolean
+language sql immutable set search_path = pg_catalog as $$ select coalesce(p_dest, '') ~ '^https://' $$;
+
 -- Why the cloud may not take this text-card job now, or null. p_phase: 'claim' (queued, unclaimed) or 'authorize' (the
 -- same job, driving under this route's claim). p_per_person_day / p_per_site_minute: the dispatcher's numbers, or null.
 create or replace function public.career_apply_cloud_text_refusal(j public.career_apply_jobs, p_now timestamptz, p_phase text,
@@ -109,6 +114,9 @@ declare fam text := public.career_apply_portal(j.url); v_host text := public.car
  went text[] := array['driving', 'confirmed', 'submitted_unconfirmed', 'needs_user', 'unknown_outcome']; cap integer;
 begin
  if p_now is null or p_phase is null or p_phase not in ('claim', 'authorize') then return 'invalid'; end if;
+ -- The owner's kill switch (CAREER_AGENT_SUBMIT), the cloud's (CAREER_CLOUD_APPLY) and this route's (CAREER_CLOUD_TEXT_CARDS):
+ -- all three, as every other cloud route requires the first two.
+ if not public.career_apply_agent_submit_enabled() then return 'cloud_switches_off'; end if;
  if not public.career_apply_cloud_enabled() or not public.career_apply_cloud_text_cards_enabled() then return 'cloud_switches_off'; end if;
  if p_phase = 'claim' and (j.state <> 'queued' or j.attempts <> 0 or j.source is not null) then return 'not_approved'; end if;
  if p_phase = 'authorize' and (j.state <> 'driving' or j.source is distinct from 'cloud' or j.attempts <> 1
@@ -126,7 +134,7 @@ begin
   and t.card_id = (card->>'card_id')::uuid and t.item_n = (card->>'n')::int) then return 'not_approved'; end if;
  if public.career_apply_current(j.user_id, j.payload) is distinct from true then return 'stale'; end if;
  if fam is null or fam not in ('greenhouse', 'lever', 'ashby') then return 'portal_not_cloud'; end if;
- if coalesce(j.payload->>'destination', '') !~ '^https://' then return 'person_submits'; end if;
+ if not public.career_apply_cloud_destination_ok(j.payload->>'destination') then return 'person_submits'; end if;
  if not public.career_apply_cloud_open(fam) then
   if p_phase = 'claim' and public.career_apply_cloud_waiver_left(j.user_id, fam, p_now) <= 0 then return 'gate_closed'; end if;
   -- At the authorization this job already counts against its waiver: it may go while the count, it included, is within.
@@ -162,6 +170,7 @@ declare ids uuid[]; users uuid[]; u uuid; c uuid; j public.career_apply_jobs; ca
  lim int := greatest(0, least(6, coalesce(p_limit, 0)));
 begin
  if p_now is null or lim = 0 or p_portal is null or p_portal not in ('greenhouse', 'lever', 'ashby')
+  or not public.career_apply_agent_submit_enabled()
   or not public.career_apply_cloud_enabled() or not public.career_apply_cloud_text_cards_enabled() then return; end if;
  ids := array(select x.id from (select q.id, q.created_at, row_number() over (partition by q.user_id order by q.created_at, q.id) rn
    from public.career_apply_jobs q join public.career_apply_cloud_optin o on o.user_id = q.user_id and o.enabled
@@ -188,7 +197,7 @@ end $$;
 -- own authorization, unchanged; a text-card job to this route's, which re-checks everything the claim checked.
 create or replace function public.career_apply_cloud_text_authorize(p_id uuid, p_lease uuid, p_hash text, p_source_digest text default null) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare u uuid; j public.career_apply_jobs; why text;
+declare u uuid; j public.career_apply_jobs; why text; dig text;
 begin
  select user_id into u from public.career_apply_jobs where id = p_id;
  if u is null then raise exception 'invalid apply claim'; end if;
@@ -197,8 +206,16 @@ begin
  if j.state is distinct from 'driving' or j.source is distinct from 'cloud' or p_lease is null or j.lease_token is distinct from p_lease
   or j.payload_hash is distinct from p_hash or j.claimed_at is null or j.claimed_at <= clock_timestamp() - interval '15 minutes' then
   raise exception 'invalid apply claim'; end if;
+ -- The owner's kill switch first, in its own words: nothing goes to the engine or to Submit while it is off.
+ if not public.career_apply_agent_submit_enabled() then raise exception 'agent submit is off'; end if;
  why := public.career_apply_cloud_text_refusal(j, clock_timestamp(), 'authorize');
  if why is not null then raise exception '%', why; end if;
+ -- The approved sources as they are now (the same digest the card-cloud route checks): the worker read them and checked
+ -- every approved answer still stands; a change between that read and this call refuses.
+ if coalesce(p_source_digest, '') !~ '^[0-9a-f]{64}$' then raise exception 'invalid source digest'; end if;
+ if to_regprocedure('public.career_apply_message_cloud_sources(uuid)') is null then raise exception 'approved sources unreadable'; end if;
+ execute 'select public.career_apply_message_cloud_sources($1)->>''digest''' into dig using j.user_id;
+ if dig is distinct from p_source_digest then raise exception 'approved sources changed'; end if;
  return jsonb_build_object('authorized', true, 'job_id', p_id, 'lease_token', p_lease, 'payload_hash', p_hash, 'route', 'text_card');
 end $$;
 create or replace function public.career_apply_cloud_authorize_any(p_id uuid, p_lease uuid, p_hash text, p_source_digest text default null) returns jsonb
@@ -297,7 +314,7 @@ create table if not exists public.career_apply_prepare_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   job_ids text[] not null check (cardinality(job_ids) between 1 and 25),
-  hosts text[] not null default '{}',
+  hosts text[] not null default '{}' check (cardinality(hosts) = cardinality(job_ids)),
   state text not null default 'queued' check (state in ('queued', 'running', 'done', 'failed', 'expired')),
   lease_token uuid,
   sandbox text,
@@ -313,9 +330,11 @@ alter table public.career_apply_prepare_requests enable row level security;
 revoke all on public.career_apply_prepare_requests from public, anon, authenticated;
 grant select on public.career_apply_prepare_requests to service_role;
 
--- The chat's request: the person's own queued postings (career_apply_wanted, waiting) and nothing else. A second request
--- for the same postings while one is waiting or running is the same request (a double tap or a retried kick).
--- Returns {id, state, accepted, waiting_for}: waiting_for 'per_person_day' when today's number is already reached.
+-- The chat's request: the person's own queued postings (career_apply_wanted, waiting) and nothing else, never one on
+-- LinkedIn or Indeed (Trainee never automates either). A second request for the same postings while one is waiting or
+-- running is the same request (a double tap or a retried kick). hosts[i] is the employer host of job_ids[i].
+-- The numbers count postings, not requests: one request may hold up to 25. Returns {id, state, accepted, waiting_for}:
+-- waiting_for 'per_person_day' when today's postings are already used (the request waits, and says so when asked).
 create or replace function public.career_apply_prepare_request_put(p_user uuid, p_job_ids text[], p_per_person_day integer)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare ids text[]; r public.career_apply_prepare_requests; used int;
@@ -324,29 +343,45 @@ begin
   or p_per_person_day not between 1 and 200 then raise exception 'invalid prepare request'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 7));
  ids := array(select distinct w.posting_key from public.career_apply_wanted w where w.user_id = p_user and w.state = 'waiting'
-  and w.posting_key = any(p_job_ids) order by 1 limit 25);
+  and w.posting_key = any(p_job_ids) and not public.career_apply_never_automated(w.url) order by 1 limit 25);
  if cardinality(ids) = 0 then raise exception 'nothing_to_prepare'; end if;
  select * into r from public.career_apply_prepare_requests where user_id = p_user and state in ('queued', 'running')
   and job_ids @> ids and job_ids <@ ids and created_at > clock_timestamp() - interval '15 minutes' order by created_at desc limit 1;
+ used := public.career_apply_prepare_postings_today(p_user, clock_timestamp());
  if r.id is null then
-  insert into public.career_apply_prepare_requests (user_id, job_ids, hosts)
-  values (p_user, ids, array(select distinct public.career_apply_url_host(w.url) from public.career_apply_wanted w
-   where w.user_id = p_user and w.posting_key = any(ids) and public.career_apply_url_host(w.url) is not null order by 1))
+  insert into public.career_apply_prepare_requests (user_id, job_ids, hosts, outcome)
+  values (p_user, ids, array(select coalesce(public.career_apply_url_host(w.url), '') from unnest(ids) with ordinality k(pk, n)
+   join public.career_apply_wanted w on w.user_id = p_user and w.posting_key = k.pk order by k.n),
+   case when used >= p_per_person_day then '{"waiting_for":"per_person_day"}'::jsonb else '{}'::jsonb end)
   returning * into r;
  end if;
- select count(*) into used from public.career_apply_prepare_requests where user_id = p_user and claimed_at > clock_timestamp() - interval '1 day';
  return jsonb_build_object('id', r.id, 'state', r.state, 'accepted', used < p_per_person_day,
   'waiting_for', case when used >= p_per_person_day then 'per_person_day' end);
 end $$;
 
+-- Postings Trainee started preparing for this person in the 24 hours before p_at.
+create or replace function public.career_apply_prepare_postings_today(p_user uuid, p_at timestamptz) returns integer
+language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce(sum(cardinality(job_ids)), 0)::integer from public.career_apply_prepare_requests
+ where user_id = p_user and claimed_at > p_at - interval '1 day'
+$$;
+-- A posting Trainee never prepares or sends: LinkedIn and Indeed (the owner's rule: never automated).
+create or replace function public.career_apply_never_automated(p_url text) returns boolean
+language sql immutable set search_path = pg_catalog as $$
+ select coalesce(lower(substring(p_url from '^[a-z]+://([^/?#:@]+)')), '') ~ '(^|\.)(linkedin\.com|indeed\.com|indeed\.[a-z.]+)$'
+$$;
+
 -- The dispatcher's claim: requests running past their 15-minute lease are expired (never re-run: a sandbox may still be
--- writing); then the oldest queued ones, at most p_want, never more than p_global running at once, at most
--- p_per_person_day claimed per person in 24 hours, at most p_per_site_minute claimed per employer host per minute.
--- Requests older than 24 hours that never fit are expired.
+-- writing); then the oldest queued ones, at most p_want, never more than p_global running at once. The numbers count
+-- postings: at most p_per_person_day postings started per person in 24 hours, at most p_per_site_minute postings started
+-- per employer host per minute. A request that fits only in part is split: the postings that fit run now, the rest wait in
+-- a request of their own (same age, same order). A request that does not fit at all records why it waits.
+-- Requests older than 24 hours that never fit are expired, and the person told.
 create or replace function public.career_apply_prepare_request_claim(p_want integer, p_global integer, p_per_person_day integer,
  p_per_site_minute integer) returns setof public.career_apply_prepare_requests
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare r public.career_apply_prepare_requests; running int; got int := 0; n timestamptz := clock_timestamp();
+ left_person int; take text[]; take_h text[]; rest text[]; rest_h text[]; i int; h text; site jsonb; why text;
 begin
  if p_want is null or p_want not between 0 and 500 or p_global is null or p_global not between 1 and 10000
   or p_per_person_day is null or p_per_person_day not between 1 and 200 or p_per_site_minute is null or p_per_site_minute not between 1 and 600 then
@@ -364,12 +399,30 @@ begin
   perform public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, 'I couldn''t start preparing the application you asked for within a day: today''s preparations were used up. Nothing was sent, and it is still in your queue. Say "apply me to" with the link to try again.');
  end loop;
  select count(*) into running from public.career_apply_prepare_requests where state = 'running';
+ -- Postings started this minute, per host.
+ select coalesce(jsonb_object_agg(y.host, y.c), '{}') into site from (select u.host, count(*) c from public.career_apply_prepare_requests x, unnest(x.hosts) u(host)
+  where x.claimed_at > n - interval '1 minute' group by u.host) y;
  for r in select * from public.career_apply_prepare_requests where state = 'queued' order by created_at, id for update skip locked loop
   exit when got >= p_want or running + got >= p_global;
-  continue when (select count(*) from public.career_apply_prepare_requests x where x.user_id = r.user_id and x.claimed_at > n - interval '1 day') >= p_per_person_day;
-  continue when exists (select from unnest(r.hosts) h where (select count(*) from public.career_apply_prepare_requests x
-   where x.claimed_at > n - interval '1 minute' and h = any(x.hosts)) >= p_per_site_minute);
-  update public.career_apply_prepare_requests set state = 'running', claimed_at = n, lease_token = gen_random_uuid()
+  left_person := p_per_person_day - public.career_apply_prepare_postings_today(r.user_id, n);
+  take := '{}'; take_h := '{}'; rest := '{}'; rest_h := '{}'; why := null;
+  for i in 1 .. cardinality(r.job_ids) loop
+   h := coalesce(r.hosts[i], '');
+   if cardinality(take) >= left_person then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_person_day');
+   elsif coalesce((site->>h)::int, 0) >= p_per_site_minute then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_site_minute');
+   else take := take || r.job_ids[i]; take_h := take_h || h; site := site || jsonb_build_object(h, coalesce((site->>h)::int, 0) + 1);
+   end if;
+  end loop;
+  if cardinality(take) = 0 then
+   update public.career_apply_prepare_requests set outcome = outcome || jsonb_build_object('waiting_for', why) where id = r.id;
+   continue;
+  end if;
+  if cardinality(rest) > 0 then
+   insert into public.career_apply_prepare_requests (user_id, job_ids, hosts, created_at, outcome)
+   values (r.user_id, rest, rest_h, r.created_at, jsonb_build_object('waiting_for', why, 'split_from', r.id));
+  end if;
+  update public.career_apply_prepare_requests set state = 'running', claimed_at = n, lease_token = gen_random_uuid(),
+   job_ids = take, hosts = take_h, outcome = outcome - 'waiting_for'
    where id = r.id returning * into r;
   got := got + 1;
   return next r;
@@ -409,6 +462,15 @@ language sql stable security definer set search_path = public, pg_temp as $$
  join public.career_apply_prepared p on p.id = t.prepared_id and p.user_id = r.user_id and p.state = 'ready'
  where r.id = p_id and r.state = 'running' and p_lease is not null and r.lease_token = p_lease
  order by p.created_at, p.id
+$$;
+
+-- The posting this request asked for, as Trainee holds it (career_postings: the link the person sent), only under its
+-- lease and only for one of its postings: the bridge stores a prepared application only when it is for this link.
+create or replace function public.career_apply_prepare_request_posting(p_id uuid, p_lease uuid, p_posting text) returns jsonb
+language sql stable security definer set search_path = public, pg_temp as $$
+ select jsonb_build_object('job_id', p.job_id, 'url', p.url, 'company', p.company)
+ from public.career_apply_prepare_requests r join public.career_postings p on p.job_id = p_posting
+ where r.id = p_id and r.state = 'running' and p_lease is not null and r.lease_token = p_lease and p_posting = any(r.job_ids)
 $$;
 
 -- ---------------------------------------------------------------------------------------------- 3. the bounded push
@@ -533,8 +595,15 @@ language sql stable security definer set search_path = public, pg_temp as $$
   case
    when exists (select from public.career_apply_prepared p join public.career_apply_cards c on c.user_id = p.user_id and c.state = 'open'
      and c.items @> jsonb_build_array(jsonb_build_object('prepared_id', p.id::text)) where p.id = t.prepared_id and p.state = 'shown') then 'on_card'
+   -- Prepared, but they texted STOP: no card is shown until they text START.
+   when exists (select from public.career_apply_prepared p where p.id = t.prepared_id and p.state = 'ready')
+    and exists (select from public.channel_contacts c where c.user_id = w.user_id and c.opted_out) then 'stopped'
    when exists (select from public.career_apply_prepared p where p.id = t.prepared_id and p.state = 'ready') then 'ready'
-   when exists (select from public.career_apply_prepare_requests r where r.user_id = w.user_id and r.state in ('queued', 'running') and w.posting_key = any(r.job_ids)) then 'preparing'
+   when exists (select from public.career_apply_prepare_requests r where r.user_id = w.user_id and r.state = 'running' and w.posting_key = any(r.job_ids)) then 'preparing'
+   -- Waiting to start: because today's preparations are used up, or for its turn (another site's minute, the queue).
+   when exists (select from public.career_apply_prepare_requests r where r.user_id = w.user_id and r.state = 'queued' and w.posting_key = any(r.job_ids)
+    and r.outcome->>'waiting_for' = 'per_person_day') then 'waiting_day_limit'
+   when exists (select from public.career_apply_prepare_requests r where r.user_id = w.user_id and r.state = 'queued' and w.posting_key = any(r.job_ids)) then 'starting'
    when t.outcome = 'asked' and q.n > 0 then 'waiting_on_you'
    when t.outcome in ('refused', 'no_resume', 'error') then t.outcome
    else 'in_queue' end,
@@ -571,7 +640,8 @@ begin
  get diagnostics prepared = row_count;
  delete from public.career_apply_wanted where user_id = p_user and posting_key = any(keys);
  get diagnostics wanted = row_count;
- update public.career_apply_prepare_requests set job_ids = array(select x from unnest(job_ids) x where not x = any(keys))
+ update public.career_apply_prepare_requests set (job_ids, hosts) = (select array_agg(u.j order by u.n), array_agg(coalesce(u.h, '') order by u.n)
+   from unnest(job_ids, hosts) with ordinality u(j, h, n) where not u.j = any(keys))
   where user_id = p_user and state in ('queued', 'running') and job_ids && keys and cardinality(array(select x from unnest(job_ids) x where not x = any(keys))) > 0;
  update public.career_apply_prepare_requests set state = 'expired', finished_at = clock_timestamp(),
   outcome = outcome || '{"reason":"cancelled by the person"}' where user_id = p_user and state in ('queued', 'running') and job_ids <@ keys;
@@ -598,7 +668,9 @@ revoke all on function public.career_apply_cloud_text_cards_enabled(), public.ca
  public.career_apply_prepare_request_scope(uuid, uuid), public.career_apply_prepare_request_sandbox(uuid, uuid, text),
  public.career_apply_prepare_request_finish(uuid, uuid, text, jsonb, uuid), public.career_apply_prepare_request_ready(uuid, uuid),
  public.career_apply_card_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_questions(uuid, uuid),
- public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text), public.career_apply_prepare_tell(uuid, text, text)
+ public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text), public.career_apply_prepare_tell(uuid, text, text),
+ public.career_apply_cloud_destination_ok(text), public.career_apply_prepare_postings_today(uuid, timestamptz), public.career_apply_never_automated(text),
+ public.career_apply_prepare_request_posting(uuid, uuid, text)
  from public, anon, authenticated, service_role;
 grant execute on function public.career_apply_cloud_text_cards_enabled(), public.career_apply_url_host(text),
  public.career_apply_cloud_authorize_any(uuid, uuid, text, text), public.career_apply_cloud_dispatch_claim2(integer, integer, integer, integer, integer),
@@ -607,4 +679,5 @@ grant execute on function public.career_apply_cloud_text_cards_enabled(), public
  public.career_apply_prepare_request_scope(uuid, uuid), public.career_apply_prepare_request_sandbox(uuid, uuid, text),
  public.career_apply_prepare_request_finish(uuid, uuid, text, jsonb, uuid), public.career_apply_prepare_request_ready(uuid, uuid),
  public.career_apply_card_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_questions(uuid, uuid),
- public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text) to service_role;
+ public.career_apply_questions_push_requested_for(uuid, uuid, uuid[], text, timestamptz), public.career_apply_prepare_request_notice(uuid, uuid, text), public.career_apply_pending_for(uuid), public.career_apply_cancel_for(uuid, text),
+ public.career_apply_prepare_request_posting(uuid, uuid, text) to service_role;

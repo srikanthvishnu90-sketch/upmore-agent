@@ -299,10 +299,12 @@ Go-live deploys `career-cloud-runner` every time (without its secrets it answers
 the same run, only when `VERCEL_TOKEN` is given: then it asks for `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` and
 `CLOUD_SANDBOX_SNAPSHOT_ID` (or builds the snapshot at `--sha` with `--build-snapshot`: one Vercel sandbox for about 25
 minutes, which is spend), generates `CLOUD_RUNNER_SECRET`, `CLOUD_DISPATCH_SECRET` and `CAREER_PREPARE_AHEAD_TOKEN` when not
-given, derives `CLOUD_BRIDGE_URL` and `CAREER_PREPARE_AHEAD_URL` from the project ref, sets each number that is given
-(`CLOUD_MAX_*`, `CLOUD_PREPARE_*`), and schedules the two minute ticks (`scripts/launch/schedule-career-cloud.sql`). It never
+given, derives `CLOUD_BRIDGE_URL` and `CAREER_PREPARE_AHEAD_URL` from the project ref, sets all nine numbers by name
+(`CLOUD_MAX_*`, `CLOUD_PREPARE_*`: each as given, or, when not given, its first-wave value: sending 3 per person a day, 1
+per site a minute, 2 at once, 1 per family, 2 started a tick; preparation 10 postings per person a day, 2 per site a
+minute, 2 at once, 2 a tick), and schedules the two minute ticks (`scripts/launch/schedule-career-cloud.sql`). It never
 turns anything on by itself: `CLOUD_RUNNER_ENABLED=on` / `CLOUD_PREPARE_ENABLED=on` only when given, and the database's
-`CAREER_CLOUD_APPLY` / `CAREER_CLOUD_TEXT_CARDS` only by the owner's SQL. Everything else (the route, the limits, the
+`CAREER_AGENT_SUBMIT` / `CAREER_CLOUD_APPLY` / `CAREER_CLOUD_TEXT_CARDS` only by the owner's SQL. Everything else (the route, the limits, the
 recommended first-wave numbers, the gate): docs/launch/CLOUD-RUNNER.md. The owner's first run: docs/launch/RAMP-FIRST-RUN.md.
 
 ## Rollback

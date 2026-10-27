@@ -130,14 +130,33 @@ pg_cron "career-cloud-dispatch"  POST <runner>/dispatch -> career_apply_cloud_di
 
 **Bound on time, phone to card:** the kick dispatches at once; if it does not, the next minute's tick does. Measured in the
 flow test on a local copy of Ramp's form: the card queued 9.9 to 13.1 s after the person's last message (5 runs: 9,861 to 13,061 ms), the
-engine's dry run being most of it. In production add sandbox creation (26 ms measured from the snapshot, up to 3 tries
+engine's dry run being most of it. After the bridge's checks below were added, 18.3 to 27.0 s in 3 runs (18,270 / 21,236 /
+27,007 ms; second card 17,447 / 28,930 / 29,048 ms), on the same machine at a load average of 19 to 33 from other runs, so
+the two sets are not a like-for-like comparison. The flow test holds the bound at 120 s. In production add sandbox creation (26 ms measured from the snapshot, up to 3 tries
 over about 7 s), a real form's own load (the load model above says 30 to 90 s per application), and up to one minute for
 delivery. The preparation's lease is 15 minutes and the sandbox's own timeout 13; a request that does not finish inside
 its lease is expired, never re-run, and its postings stay in the person's queue.
 
+**What the preparation sandbox may store** (review of #202, F5): the sandbox opens the employer's page, which nobody
+trusts, so nothing it sends is trusted. The bridge stores a prepared application only when it is for the link this
+request asked for (`career_apply_prepare_request_posting`: the posting's own link in `career_postings`, exactly) and its
+card says what it sends (`career_prepared_card.ts`): the employer, every answer in the payload's order as the value sent
+(or, for a box, "Yes (checked)"/"No"; for a choice, the person's own confirmed answer that filled it), the kept resume by
+name and hash, the page's own fields, a verification line with no words of its own, the destination, the cover note
+sent, and nothing else. What it cannot check: which option code of a select stands for the answer shown. A try may not
+name a prepared application. The sandbox's token leaves its environment before the engine starts (`takeRunnerEnv`).
+
+**The numbers count postings, not requests:** a request may hold up to 25 postings; per person per day and per host per
+minute count the postings started. A request that fits in part is split (the rest wait in a request of their own, same
+age, and record why: `per_person_day` or `per_site_minute`); "where are my applications" says which (`waiting_day_limit`
+reads "today's preparations are used up", `starting` "waiting its turn"). LinkedIn and Indeed postings are never taken
+(`career_apply_never_automated`). A sandbox that never starts is told to the person (the chat had said it started).
+
+
 **The text-card route** (finding 1, owner approval of code only, 2026-10-26): a job approved on the card shown in chat is
 claimable by the cloud only when every one of these holds at the claim, and again at the authorization before the engine
-and before Submit: `CAREER_CLOUD_APPLY = 'on'` and `CAREER_CLOUD_TEXT_CARDS = 'on'` (both off by default); the job is
+and before Submit: the owner's kill switch `CAREER_AGENT_SUBMIT = 'on'`, `CAREER_CLOUD_APPLY = 'on'` and `CAREER_CLOUD_TEXT_CARDS = 'on'`
+(all off by default); the approved sources' digest unchanged since the worker read them (at the authorization); the job is
 exactly the card item's (same person, payload and hash; that number approved and queued; created inside the card's
 showing and its answer; under 24 hours old); the account as approved; greenhouse, lever or ashby; an https destination;
 the gate open or a live waiver with sends left; the person's opt-in for this account; no pause; under the person's daily
@@ -154,15 +173,17 @@ marker (`career_apply_cloud_text_claims`) the authorization requires. The gate, 
 | `CLOUD_RUNNER_SECRET`, `CLOUD_DISPATCH_SECRET`, `CAREER_PREPARE_AHEAD_TOKEN` | the job/request tokens' key, the ticks' header, the chat's kick | generated (48 characters) |
 | `CLOUD_BRIDGE_URL`, `CAREER_PREPARE_AHEAD_URL` | `<project>/functions/v1/career-cloud-runner` and `.../prepare` | derived, never asked |
 | `CLOUD_RUNNER_ENABLED`, `CLOUD_PREPARE_ENABLED` | `on` turns sending / preparation on | not touched: off |
-| `CLOUD_MAX_CONCURRENT`, `CLOUD_MAX_PER_PORTAL`, `CLOUD_MAX_STARTS_PER_TICK` | sending: global, per family, per tick | 20, 8, 50 |
-| `CLOUD_MAX_PER_PERSON_DAY`, `CLOUD_MAX_PER_SITE_MINUTE` | sending: per person per 24 h, per employer host per minute | 5, 2 |
-| `CLOUD_PREPARE_MAX_CONCURRENT`, `CLOUD_PREPARE_STARTS_PER_TICK` | preparation: global, per tick | 10, 20 |
-| `CLOUD_PREPARE_PER_PERSON_DAY`, `CLOUD_PREPARE_PER_SITE_MINUTE` | preparation: per person per 24 h, per employer host per minute | 20, 6 |
+| `CLOUD_MAX_CONCURRENT`, `CLOUD_MAX_PER_PORTAL`, `CLOUD_MAX_STARTS_PER_TICK` | sending: global, per family, per tick | 2, 1, 2 (wave 1) |
+| `CLOUD_MAX_PER_PERSON_DAY`, `CLOUD_MAX_PER_SITE_MINUTE` | sending: per person per 24 h, per employer host per minute | 3, 1 (wave 1) |
+| `CLOUD_PREPARE_MAX_CONCURRENT`, `CLOUD_PREPARE_STARTS_PER_TICK` | preparation: global, per tick | 2, 2 (wave 1) |
+| `CLOUD_PREPARE_PER_PERSON_DAY`, `CLOUD_PREPARE_PER_SITE_MINUTE` | preparation: postings per person per 24 h, postings per employer host per minute | 10, 2 (wave 1) |
 
 The database switches stay the owner's, by SQL: `insert into career_cloud_settings (key, value) values
-('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on') on conflict (key) do update set value = excluded.value;`
+('CAREER_AGENT_SUBMIT', 'on'), ('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on') on conflict (key) do update set value = excluded.value;`
+(`CAREER_AGENT_SUBMIT` is the owner's kill switch for every route that submits; turning it off stops the text-card route at the
+claim and at both authorizations.)
 
-### Recommended caps for the first waves (recommendations; nothing here changes a number)
+### Recommended caps for the first waves (the code's defaults are wave 1; wave 2 is set by name)
 
 | | Wave 1 (the owner, then up to 10 people) | Wave 2 (up to 100) | Why |
 |---|---|---|---|
@@ -222,7 +243,7 @@ with no email after 24 hours (`unconfirmed_after_24h` in the rates).
 4. **Edge function secrets** (Supabase → Edge Functions → Secrets), by name:
    `CLOUD_RUNNER_SECRET` (random, ≥ 32 characters), `CLOUD_DISPATCH_SECRET` (random), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`,
    `VERCEL_PROJECT_ID`, `CLOUD_SANDBOX_SNAPSHOT_ID`, `CLOUD_BRIDGE_URL` (`https://<project>.supabase.co/functions/v1/career-cloud-runner`),
-   and the limits `CLOUD_MAX_CONCURRENT` (start at 5), `CLOUD_MAX_PER_PORTAL` (start at 2), `CLOUD_MAX_STARTS_PER_TICK` (start at 5).
+   and the limits only to raise them past wave 1 (unset, `CLOUD_MAX_CONCURRENT` 2, `CLOUD_MAX_PER_PORTAL` 1, `CLOUD_MAX_STARTS_PER_TICK` 2).
    Optional: `CLOUD_SANDBOX_REGION` (iad1), `CLOUD_SANDBOX_VCPUS` (2). Then `CLOUD_RUNNER_ENABLED=on`.
 5. **Deploy** `supabase functions deploy career-cloud-runner --no-verify-jwt` (config.toml sets `verify_jwt = false`; the
    dispatcher checks its header secret, the bridge its per-job token).

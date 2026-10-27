@@ -8,6 +8,7 @@
 // (APPROVED_APPLICATION_CHANGED, nothing sent). The outcome goes back with career_apply_finish; an engine that gave no
 // result is recorded unknown_outcome and never retried.
 import { mapQuestion } from "../../supabase/functions/_shared/question_map.ts";
+import { CARD_MARK, resumeCardLine as sharedResumeCardLine } from "../../supabase/functions/_shared/career_prepared_card.ts";
 import { createRequire } from "node:module";
 import { normLabel, questionFieldType } from "../../supabase/functions/_shared/career_apply.ts";
 import { hashApplyPayload } from "../../supabase/functions/_shared/career_apply_store.ts";
@@ -60,10 +61,10 @@ export interface ResumeTag {
   tailored: true;
   persona: string | null;
 }
+// The card's resume line and answer marks are the server's own rules (career_prepared_card.ts), which the hosted bridge
+// checks every card against before it stores the application.
 export function resumeCardLine(filename: string, sha256: string, tag?: ResumeTag | null): string {
-  return tag?.tailored
-    ? `Resume: ${tag.persona ?? "your base resume"}, tailored for this role (${sha256.slice(0, 12)})`
-    : `Resume: ${filename} (${sha256.slice(0, 12)})`;
+  return sharedResumeCardLine(filename, sha256, tag);
 }
 // "--tailored-resume <persona|base>" on the command line; the rest goes to the engine.
 export function takeResumeTag(args: string[]): { tag: ResumeTag | null; rest: string[] } {
@@ -151,7 +152,7 @@ export async function prepare(o: {
 
 // On the card, an answer the person must read as theirs says so: a consent they give, a legal statement they make, an
 // answer about this job's terms. The mark is drawn from the question's meaning; the application carries the answer only.
-const MARK: Record<string, string> = { consent: "You agree: ", attestation: "Your statement: ", screen: "About this job: " };
+const MARK: Record<string, string> = CARD_MARK;
 
 // The approved answers as the engine's confirmed facts: each under its question, with its fact id, so the engine maps
 // the same question to the same answer and the approval hash comes out the same. WO-102: each carries the source it was

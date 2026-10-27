@@ -11,7 +11,7 @@ insert into auth.users(id,email) values
 insert into profiles(id) select id from auth.users where id::text like '00000000-0000-4000-8000-00000000f17%';
 insert into career_watch_kv(user_id,key,value) select id,'career:account','{"epoch":1,"version":1,"paused":false}'::jsonb from profiles
  where id::text like '00000000-0000-4000-8000-00000000f17%';
-delete from career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_CLOUD_TEXT_CARDS','gate_user_ids','owner_user_id');
+delete from career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_CLOUD_TEXT_CARDS','CAREER_AGENT_SUBMIT','gate_user_ids','owner_user_id');
 delete from career_apply_cloud_pauses;
 insert into career_cloud_settings(key,value) values('CAREER_CLOUD_APPLY','on');
 -- A and C opted in, B not. A holds an Ashby waiver of 2 sends; C holds none (the gate stays closed: no gate testers).
@@ -62,10 +62,20 @@ select (career_apply_enqueue(pg_temp.payload('00000000-0000-4000-8000-00000000f1
  career_apply_payload_hash(pg_temp.payload('00000000-0000-4000-8000-00000000f173',4,'https://jobs.ashbyhq.com/hosted4/4')),
  career_apply_payload_hash(pg_temp.payload('00000000-0000-4000-8000-00000000f173',4,'https://jobs.ashbyhq.com/hosted4/4')),15)).id;
 
--- The route's own switch is off by default: nothing is claimed, even with the kill switch on.
+-- The route's own switch is off by default: nothing is claimed, even with the kill switch and the cloud's switch on.
+insert into career_cloud_settings(key,value) values('CAREER_AGENT_SUBMIT','on');
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1)='cloud_switches_off','route switch off: refused');
 select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10)),'route switch off: the dispatcher claims nothing');
 insert into career_cloud_settings(key,value) values('CAREER_CLOUD_TEXT_CARDS','on');
+-- F1: the owner's kill switch. With the cloud's and this route's switches on but CAREER_AGENT_SUBMIT absent, nothing is
+-- refused for another reason first, nothing is claimed, and nothing can be authorized.
+delete from career_cloud_settings where key='CAREER_AGENT_SUBMIT';
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1)='cloud_switches_off','kill switch absent: the card-approved job is refused');
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10)),'kill switch absent: the dispatcher claims nothing');
+select t.ok((select count(*)=0 from career_apply_cloud_text_claim_at(6,clock_timestamp(),'ashby',15,10)),'kill switch absent: the text claim itself claims nothing');
+insert into career_cloud_settings(key,value) values('CAREER_AGENT_SUBMIT','off');
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1)='cloud_switches_off','kill switch off: refused');
+update career_cloud_settings set value='on' where key='CAREER_AGENT_SUBMIT';
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',4)='not_card_approved','a job no card approved is refused (directly enqueued)');
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1) is null,'the card-approved job may go');
 
@@ -80,6 +90,16 @@ select t.must_fail($$select * from career_apply_cloud_text_claim_at(1,now(),'ash
 select t.must_fail($$select * from career_apply_cloud_dispatch_claim2(1,1,1,0,1)$$,'invalid dispatch limits','a zero per-person number is refused');
 select t.must_fail($$select * from career_apply_cloud_dispatch_claim2(1,1,1,1,0)$$,'invalid dispatch limits','a zero per-site number is refused');
 reset role;
+-- Every function this migration adds: none executable by anon or a signed-in person (directly or through PUBLIC); the
+-- inner checks not even by the service, which reaches them only through its doors.
+select t.ok((select count(*)=28 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array['career_apply_cancel_for','career_apply_card_push_requested_for','career_apply_cloud_authorize_any','career_apply_cloud_card_bound','career_apply_cloud_destination_ok','career_apply_cloud_dispatch_claim2','career_apply_cloud_resume_kept_for','career_apply_cloud_resume_put_for','career_apply_cloud_text_authorize','career_apply_cloud_text_card_of','career_apply_cloud_text_cards_enabled','career_apply_cloud_text_claim_at','career_apply_cloud_text_refusal','career_apply_never_automated','career_apply_pending_for','career_apply_prepare_postings_today','career_apply_prepare_request_claim','career_apply_prepare_request_finish','career_apply_prepare_request_notice','career_apply_prepare_request_posting','career_apply_prepare_request_put','career_apply_prepare_request_questions','career_apply_prepare_request_ready','career_apply_prepare_request_sandbox','career_apply_prepare_request_scope','career_apply_prepare_tell','career_apply_questions_push_requested_for','career_apply_url_host'])),
+ 'every function the migration adds is accounted for');
+select t.ok(not exists(select from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array['career_apply_cancel_for','career_apply_card_push_requested_for','career_apply_cloud_authorize_any','career_apply_cloud_card_bound','career_apply_cloud_destination_ok','career_apply_cloud_dispatch_claim2','career_apply_cloud_resume_kept_for','career_apply_cloud_resume_put_for','career_apply_cloud_text_authorize','career_apply_cloud_text_card_of','career_apply_cloud_text_cards_enabled','career_apply_cloud_text_claim_at','career_apply_cloud_text_refusal','career_apply_never_automated','career_apply_pending_for','career_apply_prepare_postings_today','career_apply_prepare_request_claim','career_apply_prepare_request_finish','career_apply_prepare_request_notice','career_apply_prepare_request_posting','career_apply_prepare_request_put','career_apply_prepare_request_questions','career_apply_prepare_request_ready','career_apply_prepare_request_sandbox','career_apply_prepare_request_scope','career_apply_prepare_tell','career_apply_questions_push_requested_for','career_apply_url_host'])
+ and (has_function_privilege('anon',p.oid,'execute') or has_function_privilege('authenticated',p.oid,'execute'))),'anon and a signed-in person execute none of them');
+select t.ok(not exists(select from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+ and p.proname=any(array['career_apply_cloud_text_claim_at','career_apply_cloud_text_authorize','career_apply_cloud_text_refusal','career_apply_cloud_text_card_of',
+  'career_apply_prepare_tell','career_apply_never_automated','career_apply_prepare_postings_today','career_apply_cloud_destination_ok'])
+ and has_function_privilege('service_role',p.oid,'execute')),'the inner checks are not the service''s to call');
 -- The claim: one job, under its lease, with its marker; a second dispatch claims nothing (no double claim).
 create temp table d1 as select * from career_apply_cloud_dispatch_claim2(10,10,10,15,10);
 select t.ok((select count(*)=1 and bool_and(job_id='TEST-HOSTED-1' and state='driving' and source='cloud' and attempts=1 and lease_token is not null) from d1),
@@ -90,9 +110,35 @@ select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,
 select t.ok((select state='queued' and source is null from career_apply_jobs where job_id='TEST-HOSTED-4'),'the never-approved job is left alone');
 
 -- The authorization: forged lease, forged hash, then the real one; a pause makes it stale; the route is named.
-select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,gen_random_uuid(),%L,null)$$,(select id from d1),(select payload_hash from d1)),'invalid apply claim','a forged lease is refused');
-select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,null)$$,(select id from d1),(select lease_token from d1),repeat('0',64)),'invalid apply claim','a forged hash is refused');
-select t.ok((career_apply_cloud_authorize_any((select id from d1),(select lease_token from d1),(select payload_hash from d1),null))->>'route'='text_card','authorized, by the text-card route');
+select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,gen_random_uuid(),%L,%L)$$,(select id from d1),(select payload_hash from d1),
+ career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000f171')->>'digest'),'invalid apply claim','a forged lease is refused');
+select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,%L)$$,(select id from d1),(select lease_token from d1),repeat('0',64),
+ career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000f171')->>'digest'),'invalid apply claim','a forged hash is refused');
+select t.ok((career_apply_cloud_authorize_any((select id from d1),(select lease_token from d1),(select payload_hash from d1),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000f171')->>'digest')))->>'route'='text_card','authorized, by the text-card route, with the approved sources'' digest');
+create function pg_temp.auth1() returns jsonb language sql as $$ select career_apply_cloud_authorize_any((select id from d1),(select lease_token from d1),(select payload_hash from d1),
+ (career_apply_message_cloud_sources('00000000-0000-4000-8000-00000000f171')->>'digest')) $$;
+select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,null)$$,(select id from d1),(select lease_token from d1),(select payload_hash from d1)),'invalid source digest','no sources digest: refused');
+select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,%L)$$,(select id from d1),(select lease_token from d1),(select payload_hash from d1),repeat('a',64)),'approved sources changed','sources changed since the worker read them: refused');
+update career_cloud_settings set value='off' where key='CAREER_AGENT_SUBMIT';
+select t.must_fail($$select pg_temp.auth1()$$,'agent submit is off','the owner''s kill switch stops it at the authorization, in its own words');
+update career_cloud_settings set value='on' where key='CAREER_AGENT_SUBMIT';
+create temp table mk as select * from career_apply_cloud_text_claims where job_id=(select id from d1);
+delete from career_apply_cloud_text_claims where job_id=(select id from d1);
+select t.must_fail($$select pg_temp.auth1()$$,'not_approved','a claimed job with no marker is authorized for nothing');
+insert into career_apply_cloud_text_claims select * from mk;
+update career_apply_cloud_text_claims set item_n=2 where job_id=(select id from d1);
+select t.must_fail($$select pg_temp.auth1()$$,'not_approved','a marker naming another item of the card authorizes nothing');
+update career_apply_cloud_text_claims set item_n=1 where job_id=(select id from d1);
+update career_apply_cloud_text_claims set user_id='00000000-0000-4000-8000-00000000f172' where job_id=(select id from d1);
+select t.must_fail($$select pg_temp.auth1()$$,'not_approved','a marker under another person''s name authorizes nothing');
+update career_apply_cloud_text_claims set user_id='00000000-0000-4000-8000-00000000f171' where job_id=(select id from d1);
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set claimed_at=claimed_at-interval '16 minutes' where id=(select id from d1);
+select t.must_fail($$select pg_temp.auth1()$$,'invalid apply claim','a claim older than its 15-minute lease authorizes nothing');
+update career_apply_jobs set claimed_at=claimed_at+interval '16 minutes' where id=(select id from d1);
+alter table career_apply_jobs enable trigger user;
+select t.ok((pg_temp.auth1())->>'authorized'='true','restored: authorized again');
 update career_watch_kv set value=jsonb_set(value,'{paused}','"true"') where user_id='00000000-0000-4000-8000-00000000f171' and key='career:account';
 select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,null)$$,(select id from d1),(select lease_token from d1),(select payload_hash from d1)),'stale','a paused account stops it before the engine or Submit');
 update career_watch_kv set value=jsonb_set(value,'{paused}','"false"') where user_id='00000000-0000-4000-8000-00000000f171' and key='career:account';
@@ -103,6 +149,15 @@ update career_cloud_settings set value='on' where key='CAREER_CLOUD_APPLY';
 select career_apply_cloud_finish((select id from d1),(select lease_token from d1),'submitted_unconfirmed','{"reason":"page said received"}'::jsonb,'submitted',null);
 select t.must_fail(format($$select career_apply_cloud_authorize_any(%L,%L,%L,null)$$,(select id from d1),(select lease_token from d1),(select payload_hash from d1)),'invalid apply claim','a finished job is authorized for nothing');
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1)='not_approved','a job that already went is never claimed again (double send)');
+-- Never retried: even put back to queued (a hand edit, a bug elsewhere), a job tried once is never claimed again.
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set state='queued', source=null where job_id='TEST-HOSTED-1';
+alter table career_apply_jobs enable trigger user;
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',1)='not_approved','a job with one attempt, queued again, is refused');
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10) where job_id='TEST-HOSTED-1'),'and the dispatcher does not claim it');
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set state='submitted_unconfirmed', source='cloud' where job_id='TEST-HOSTED-1';
+alter table career_apply_jobs enable trigger user;
 
 -- Refusals, each on its own: approval older than 24 hours; a missing resume; a person not opted in; an erase.
 create temp table c3 as select pg_temp.tap('00000000-0000-4000-8000-00000000f171',array[pg_temp.prep('00000000-0000-4000-8000-00000000f171',3,'https://jobs.ashbyhq.com/hosted3/3')],'{1}') card;
@@ -115,6 +170,28 @@ delete from career_apply_cloud_resumes where user_id='00000000-0000-4000-8000-00
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='resume_not_in_cloud','no kept resume: refused');
 select career_apply_cloud_resume_put_for('00000000-0000-4000-8000-00000000f171','resume.pdf',encode(convert_to('%PDF-1.4 TEST resume 00000000-0000-4000-8000-00000000f171','UTF8'),'base64'));
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3) is null,'with the resume back, it may go');
+-- The binding to the card, each condition on its own (the rows changed under the job, then put back).
+create temp table k3 as select * from career_apply_cards where id=(select card from c3);
+create temp table q3 as select * from career_apply_prepared where job_id='TEST-HOSTED-3';
+update career_apply_cards set items=(select jsonb_agg(jsonb_set(it,'{payload_hash}',to_jsonb(repeat('0',64)))) from jsonb_array_elements(items) it) where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','the card item must carry the job''s hash');
+update career_apply_cards set items=(select items from k3) where id=(select card from c3);
+update career_apply_cards set answer=jsonb_set(answer,'{approve}','[]') where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','its number must be among those approved');
+update career_apply_cards set answer=(select answer from k3) where id=(select card from c3);
+update career_apply_cards set answer=jsonb_set(answer,'{results}',(select jsonb_agg(jsonb_set(r,'{result}','"declined"')) from jsonb_array_elements(answer->'results') r)) where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','its result must be queued');
+update career_apply_cards set answer=(select answer from k3) where id=(select card from c3);
+update career_apply_cards set user_id='00000000-0000-4000-8000-00000000f172' where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','the card must be this person''s');
+update career_apply_cards set user_id='00000000-0000-4000-8000-00000000f171' where id=(select card from c3);
+update career_apply_prepared set user_id='00000000-0000-4000-8000-00000000f172' where id=(select id from q3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','the prepared application must be this person''s');
+update career_apply_prepared set user_id='00000000-0000-4000-8000-00000000f171' where id=(select id from q3);
+update career_apply_cards set shown_at=shown_at+interval '1 hour', answered_at=answered_at+interval '2 hours' where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3)='not_card_approved','a job made before the card was shown is not that card''s');
+update career_apply_cards set shown_at=(select shown_at from k3), answered_at=(select answered_at from k3) where id=(select card from c3);
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3) is null,'restored: it may go');
 -- Per person per day: one already went today, the dispatcher's number is 1.
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3,1)='daily_limit','the per-person number is held');
 -- Per site per minute: one Ashby claim this minute, the number is 1.
@@ -141,6 +218,17 @@ select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_opted_in'
 -- An erase (the epoch moves): the opt-in and the kept resume go with it; the job is stale.
 insert into career_apply_cloud_gate_waivers(user_id,portal,max_sends,expires_at,note) values('00000000-0000-4000-8000-00000000f173','ashby',5,now()+interval '1 day','TEST C');
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6) is null,'C with a waiver may go');
+-- One employer per 30 days on this route too: an application to Hosted Employer 6 that went another way this month.
+-- (C's other application, the directly queued one, made out to the same employer for this check, then put back.)
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set company='Hosted Employer 6' where job_id='TEST-HOSTED-4';
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6)='company_cooldown','an employer with another application this month is refused');
+update career_apply_jobs set company='Hosted Employer 4' where job_id='TEST-HOSTED-4';
+alter table career_apply_jobs enable trigger user;
+-- The dispatcher's room: one text job is in flight (A's, claimed above). With a global 1, or 1 per family, C's waits.
+select t.ok((select count(*)=1 from career_apply_jobs where source='cloud' and state='driving'),'one in flight');
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,1,10,15,10)),'global 1, one in flight: nothing more is claimed');
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,1,15,10)),'1 per family, one Ashby in flight: nothing more is claimed');
 update career_watch_kv set value=jsonb_set(value,'{epoch}','2') where user_id='00000000-0000-4000-8000-00000000f173' and key='career:account';
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6)='stale','after an erase the approval is stale');
 select t.ok((select count(*)=0 from career_apply_cloud_resumes where user_id='00000000-0000-4000-8000-00000000f173'),'and the kept resume is gone');
@@ -155,9 +243,22 @@ select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',9)='person_submit
 -- The job changed after the tap (payload no longer the prepared one): refused.
 alter table career_apply_jobs disable trigger user;
 update career_apply_jobs set payload=jsonb_set(payload,'{fields,0,value}','"changed@example.test"') where job_id='TEST-HOSTED-7';
+alter table career_apply_jobs enable trigger user;
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_approved','a payload that no longer hashes to what was approved is refused as such');
+alter table career_apply_jobs disable trigger user;
 update career_apply_jobs set payload_hash=career_apply_payload_hash(payload),approval_hash=career_apply_payload_hash(payload) where job_id='TEST-HOSTED-7';
 alter table career_apply_jobs enable trigger user;
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_card_approved','a job whose payload is not the card''s is refused, even rehashed');
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set payload=jsonb_set(payload,'{user_id}','"00000000-0000-4000-8000-00000000f171"') where job_id='TEST-HOSTED-7';
+update career_apply_jobs set payload_hash=career_apply_payload_hash(payload),approval_hash=career_apply_payload_hash(payload) where job_id='TEST-HOSTED-7';
+alter table career_apply_jobs enable trigger user;
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_approved','a job carrying another person''s application is refused as such');
+alter table career_apply_jobs disable trigger user;
+update career_apply_jobs set payload=jsonb_set(jsonb_set(payload,'{user_id}','"00000000-0000-4000-8000-00000000f172"'),'{engine_approval}','"not-an-approval"') where job_id='TEST-HOSTED-7';
+update career_apply_jobs set payload_hash=career_apply_payload_hash(payload),approval_hash=career_apply_payload_hash(payload) where job_id='TEST-HOSTED-7';
+alter table career_apply_jobs enable trigger user;
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_approved','a job without the engine''s approval of the exact application is refused as such');
 -- The prepared application changed after the tap (its row no longer the job's): refused, though the card's hash still is.
 update career_apply_prepared set payload=jsonb_set(payload,'{company}','"Someone Else"') where job_id='TEST-HOSTED-6';
 select t.ok(career_apply_cloud_text_refusal((select j from career_apply_jobs j where job_id='TEST-HOSTED-6'),clock_timestamp(),'claim') in ('not_card_approved'),
@@ -184,7 +285,7 @@ select t.must_fail($$select career_apply_prepare_request_put('00000000-0000-4000
 select t.must_fail($$select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f172','{ashby:hostedp:1}',5)$$,'nothing_to_prepare','another person''s queued posting is not theirs to prepare');
 create temp table r1 as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f171','{ashby:hostedp:1,ashby:hostedp:2,ashby:not-theirs:9}',5) v;
 select t.ok((select (v->>'accepted')::boolean from r1),'accepted');
-select t.ok((select job_ids='{ashby:hostedp:1,ashby:hostedp:2}' and hosts='{jobs.ashbyhq.com}' from career_apply_prepare_requests where id=(select (v->>'id')::uuid from r1)),
+select t.ok((select job_ids='{ashby:hostedp:1,ashby:hostedp:2}' and hosts='{jobs.ashbyhq.com,jobs.ashbyhq.com}' from career_apply_prepare_requests where id=(select (v->>'id')::uuid from r1)),
  'only their own queued postings, with the employer host');
 select t.ok((select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f171','{ashby:hostedp:2,ashby:hostedp:1}',5)->>'id')=(select v->>'id' from r1),
  'a second kick for the same postings is the same request (double tap)');
@@ -223,6 +324,11 @@ select t.must_fail(format($$select career_apply_card_push_requested_for('0000000
  (select v->>'id' from r1),(select id from qq)),'not a requested preparation','a prepared row they did not ask for in this request is not pushed this way');
 select t.must_fail(format($$select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f172',%L,array[%L::uuid],'P1 Co: Email: a@example.test',now())$$,
  (select v->>'id' from r1),(select id from pp)),'not a requested preparation','another person''s request pushes nothing');
+-- Even when that person has their own prepared try on the same posting: a request is its own person's only.
+create temp table pb as select pg_temp.prep('00000000-0000-4000-8000-00000000f172',31,'https://jobs.ashbyhq.com/hostedp/1','P9 Co') id;
+select career_apply_prepare_attempt_for('00000000-0000-4000-8000-00000000f172','ashby:hostedp:1','ready',null,(select id from pb),'TEST-HOSTED-31');
+select t.must_fail(format($$select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f172',%L,array[%L::uuid],'P9 Co: Email: a@example.test',now())$$,
+ (select v->>'id' from r1),(select id from pb)),'not a requested preparation','another person''s request pushes nothing of theirs, even for the same posting');
 select t.must_fail(format($$select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f171',%L,array[%L::uuid],'P1 Co only',now())$$,
  (select v->>'id' from r1),(select id from pp)),'does not carry every line','a text missing a card line is refused');
 create temp table pushed as select career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f171',(select (v->>'id')::uuid from r1),
@@ -238,13 +344,18 @@ update channel_contacts set opted_out=true where contact='tg:417001';
 update career_apply_prepared set state='ready' where id=(select id from pp);
 select t.ok(career_apply_card_push_requested_for('00000000-0000-4000-8000-00000000f171',(select (v->>'id')::uuid from r1),array[(select id from pp)],'P1 Co: Email: a@example.test',now()) is null,
  'after STOP, nothing is pushed');
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:1')='stopped',
+ 'and its status says why (they texted STOP), never "on its way"');
 -- ------------------------------------------------------------------------------------------ follow-through
 update channel_contacts set opted_out=false where contact='tg:417001';
 update career_apply_prepared set state='shown' where id=(select id from pp);
 select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:1')='on_card',
  'a posting on an open card reads on_card');
-select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:2') in ('preparing','in_queue'),
- 'a posting not prepared yet reads preparing or in_queue');
+-- (Requests made in one transaction share their time, so which one an earlier claim took is the database's choice:
+-- the stage must follow whichever it is.)
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f171') where posting_key='ashby:hostedp:2')
+ = case when exists(select from career_apply_prepare_requests where state='running' and 'ashby:hostedp:2'=any(job_ids)) then 'preparing' else 'waiting_day_limit' end,
+ 'a posting reads preparing only while its request runs; waiting on today''s number otherwise');
 -- Changing their mind: cancel P1 Co. The queue row, the prepared application and its try go; the open card closes; a tap
 -- on it then approves nothing; asking again prepares afresh.
 create temp table cx as select career_apply_cancel_for('00000000-0000-4000-8000-00000000f171','P1 Co') v;
@@ -276,6 +387,17 @@ create temp table pushedw as select career_apply_card_push_requested_for('000000
 select t.ok((select card is not null from pushedw),'web only: the card is shown');
 select t.ok((select meta->>'card_id'=(select card::text from pushedw) from agent_messages where thread_id='00000000-0000-4000-8000-0000000f17bb' order by id desc limit 1),'in the thread they last talked in');
 select t.ok(not exists(select from career_outbox where user_id='00000000-0000-4000-8000-00000000f174'),'no text is queued for a person with no texting contact');
+-- And they can approve it there: the web chat's Approve button (src/career-apply-card.js) calls career_apply_card_answer_own
+-- as the signed-in person, with the card that message names; another person cannot.
+grant select on pushedw to authenticated;
+select t.as_user('00000000-0000-4000-8000-00000000f172'); set role authenticated;
+select t.must_fail($$select career_apply_card_answer_own((select card from pushedw), array[1])$$,'invalid card answer','another person cannot approve the web card');
+reset role;
+select t.as_user('00000000-0000-4000-8000-00000000f174'); set role authenticated;
+select career_apply_card_answer_own((select card from pushedw), array[1]);
+reset role;
+select t.ok((select state='queued' and approval_hash=payload_hash from career_apply_jobs where user_id='00000000-0000-4000-8000-00000000f174' and job_id='TEST-HOSTED-14'),
+ 'web only: the card in their thread is approved by its button, and exactly that application is queued');
 -- An expired request is told, once: queued for more than a day.
 update career_apply_prepare_requests set created_at=now()-interval '25 hours' where id=(select (v->>'id')::uuid from rw);
 select count(*) from career_apply_prepare_request_claim(0,10,5,10);
@@ -329,4 +451,78 @@ select t.ok(not career_apply_prepare_tell('00000000-0000-4000-8000-00000000f173'
 select t.ok(career_apply_prepare_tell('00000000-0000-4000-8000-00000000f174','status:prepare:once-test','x'),'a thread notice is written');
 select t.ok(not career_apply_prepare_tell('00000000-0000-4000-8000-00000000f174','status:prepare:once-test','x'),'the same notice again is refused');
 select t.ok((select count(*)=1 from agent_messages where meta->>'notice_key'='status:prepare:once-test'),'a thread notice is written once');
+-- ------------------------------------------------------------------------------------------ preparation numbers count postings
+insert into auth.users(id,email) values('00000000-0000-4000-8000-00000000f176','hosted-many@example.test'),('00000000-0000-4000-8000-00000000f177','hosted-site@example.test'),
+ ('00000000-0000-4000-8000-00000000f178','hosted-lock@example.test'),('00000000-0000-4000-8000-00000000f179','hosted-lock2@example.test');
+insert into profiles(id) values('00000000-0000-4000-8000-00000000f176'),('00000000-0000-4000-8000-00000000f177'),('00000000-0000-4000-8000-00000000f178'),('00000000-0000-4000-8000-00000000f179');
+insert into career_watch_kv(user_id,key,value) select id,'career:account','{"epoch":1,"version":1,"paused":false}'::jsonb from profiles
+ where id in ('00000000-0000-4000-8000-00000000f176','00000000-0000-4000-8000-00000000f177');
+-- (f178 and f179 are left without an account row: writing one takes the person's lock, and the lock checks below need
+-- persons nothing has locked yet.)
+-- The probe: one request of 25 postings on one host, with 1 posting a day per person and 1 a minute per site.
+insert into career_apply_wanted(user_id,posting_key,url,company,title)
+ select '00000000-0000-4000-8000-00000000f176','ashby:many:'||g,'https://jobs.ashbyhq.com/many/'||g,'Many '||g,'Intern' from generate_series(1,25) g;
+create temp table rm as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f176',array(select 'ashby:many:'||g from generate_series(1,25) g),1) v;
+select t.ok((select (v->>'accepted')::boolean from rm) and (select cardinality(job_ids)=25 and cardinality(hosts)=25 from career_apply_prepare_requests where id=(select (v->>'id')::uuid from rm)),
+ 'one request of 25 is accepted (nothing started today), each posting with its host');
+-- Nothing else may run this minute on that host for this check: earlier requests are done.
+update career_apply_prepare_requests set state='done', finished_at=now() where state in ('queued','running') and user_id<>'00000000-0000-4000-8000-00000000f176';
+update career_apply_prepare_requests set claimed_at=claimed_at-interval '2 days' where claimed_at is not null;
+create temp table pm as select * from career_apply_prepare_request_claim(10,10,1,1);
+select t.ok((select count(*)=1 and bool_and(cardinality(job_ids)=1 and cardinality(hosts)=1) from pm),'per person 1 a day: one posting of the 25 starts, not 25');
+select t.ok((select count(*)=1 and bool_and(cardinality(job_ids)=24 and outcome->>'waiting_for'='per_person_day') from career_apply_prepare_requests
+ where user_id='00000000-0000-4000-8000-00000000f176' and state='queued'),'the other 24 wait in a request of their own, and say why');
+select t.ok((select count(*) filter (where stage='preparing')=1 and count(*) filter (where stage='waiting_day_limit')=24 from career_apply_pending_for('00000000-0000-4000-8000-00000000f176')),
+ 'their status: one being prepared, 24 waiting on today''s number');
+select t.ok((select count(*)=0 from career_apply_prepare_request_claim(10,10,1,1)),'and nothing more starts for them today');
+-- Changing their mind about one of the 24: it leaves the waiting request; the others keep their hosts in order.
+select career_apply_cancel_for('00000000-0000-4000-8000-00000000f176','Many 5');
+select t.ok((select cardinality(job_ids)=23 and cardinality(hosts)=23 and not 'ashby:many:5'=any(job_ids) from career_apply_prepare_requests
+ where user_id='00000000-0000-4000-8000-00000000f176' and state='queued'),'a cancelled posting leaves the waiting request, the rest as they were');
+-- Per site: another person, three postings on the same host, this minute: none start (1 a minute there is used);
+-- one on another host starts.
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values
+ ('00000000-0000-4000-8000-00000000f177','ashby:site:1','https://jobs.ashbyhq.com/site/1','Site 1','Intern'),
+ ('00000000-0000-4000-8000-00000000f177','ashby:site:2','https://jobs.ashbyhq.com/site/2','Site 2','Intern'),
+ ('00000000-0000-4000-8000-00000000f177','greenhouse:site:3','https://job-boards.greenhouse.io/site/jobs/3','Site 3','Intern');
+create temp table rsite as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f177','{ashby:site:1,ashby:site:2,greenhouse:site:3}',10) v;
+create temp table psite as select * from career_apply_prepare_request_claim(10,10,10,1);
+select t.ok((select count(*)=1 and bool_and(job_ids='{greenhouse:site:3}') from psite),'per site 1 a minute: only the posting on another host starts');
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f177') where posting_key='ashby:site:1')='starting',
+ 'a posting waiting for its site''s minute reads starting (within minutes), not being prepared');
+-- Later the site has room but their day's number is used: the waiting request records the new reason, and says it.
+select count(*) from career_apply_prepare_request_claim(10,10,1,10);
+select t.ok((select stage from career_apply_pending_for('00000000-0000-4000-8000-00000000f177') where posting_key='ashby:site:1')='waiting_day_limit',
+ 'a request skipped for the person''s day records why, so their status says it');
+-- LinkedIn and Indeed are never prepared (nor sent): a queued posting there is not taken.
+insert into career_apply_wanted(user_id,posting_key,url,company,title) values
+ ('00000000-0000-4000-8000-00000000f177','linkedin:x:1','https://www.linkedin.com/jobs/view/1','LI Co','Intern'),
+ ('00000000-0000-4000-8000-00000000f177','indeed:x:1','https://www.indeed.com/viewjob?jk=1','IN Co','Intern'),
+ ('00000000-0000-4000-8000-00000000f177','indeed:x:2','https://uk.indeed.co.uk/viewjob?jk=2','IN2 Co','Intern');
+select t.must_fail($$select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f177','{linkedin:x:1,indeed:x:1,indeed:x:2}',10)$$,'nothing_to_prepare','LinkedIn and Indeed postings never reach a hosted preparation');
+-- The person's lock: a cancel takes both of the person's locks (the claim's and the push's), so nothing is claimed or
+-- pushed halfway through it. f178 has touched nothing before this.
+create function pg_temp.holds(k bigint) returns boolean language sql as $$
+ select exists(select from pg_locks where locktype='advisory' and pid=pg_backend_pid() and granted and objsubid=1
+  and classid=((k>>32)&4294967295)::bigint::oid and objid=(k&4294967295)::bigint::oid) $$;
+select t.ok(not pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f178',0)) and not pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f178',1)),'(f178 holds no lock yet)');
+select pg_advisory_xact_lock(hashtextextended('lock-probe',0));
+select t.ok(pg_temp.holds(hashtextextended('lock-probe',0)),'(the lock probe sees a lock that is held)');
+select career_apply_cancel_for('00000000-0000-4000-8000-00000000f178','Nobody');
+select t.ok(pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f178',0)) and pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f178',1)),'a cancel holds the person''s claim and push locks');
+-- The text claim takes each candidate person's lock before it reads their job (f179: opted in, a queued job, no card).
+insert into career_apply_cloud_optin(user_id,enabled,privacy_epoch) values('00000000-0000-4000-8000-00000000f179',true,1);
+insert into career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash)
+ select '00000000-0000-4000-8000-00000000f179','TEST-HOSTED-79','Lock Co','https://jobs.ashbyhq.com/lock/79',
+  pg_temp.payload('00000000-0000-4000-8000-00000000f179',79,'https://jobs.ashbyhq.com/lock/79','Lock Co'),
+  career_apply_payload_hash(pg_temp.payload('00000000-0000-4000-8000-00000000f179',79,'https://jobs.ashbyhq.com/lock/79','Lock Co')),
+  career_apply_payload_hash(pg_temp.payload('00000000-0000-4000-8000-00000000f179',79,'https://jobs.ashbyhq.com/lock/79','Lock Co'));
+select t.ok(not pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f179',0)),'(f179 holds no lock yet)');
+-- With the owner's kill switch off the claim touches no one: not even a person's lock is taken.
+update career_cloud_settings set value='off' where key='CAREER_AGENT_SUBMIT';
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10)),'kill switch off: nothing claimed');
+select t.ok(not pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f179',0)),'kill switch off: no person''s lock taken');
+update career_cloud_settings set value='on' where key='CAREER_AGENT_SUBMIT';
+select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10) where user_id='00000000-0000-4000-8000-00000000f179'),'a job no card approved is not claimed');
+select t.ok(pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f179',0)),'but the claim held the person''s lock while it read the job');
 rollback;

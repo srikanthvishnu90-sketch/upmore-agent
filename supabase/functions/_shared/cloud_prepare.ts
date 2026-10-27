@@ -14,6 +14,7 @@
 import { cardFor } from "./career_apply_cards.ts";
 import { type OpenQuestion, questionsText } from "./career_apply_questions.ts";
 import { type Rpc, type SandboxHost, withRetry } from "./cloud_runner.ts";
+import { preparedCardProblem } from "./career_prepared_card.ts";
 
 const enc = new TextEncoder();
 const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b)).map((n) => n.toString(16).padStart(2, "0")).join("");
@@ -25,6 +26,8 @@ const sameText = (a: string, b: string) => {
   return d === 0;
 };
 export const PREPARE_SCRIPT = "workers/career-cloud/prepare-runner.ts";
+export const RUNNER_UNAVAILABLE_TEXT =
+  "I couldn't start preparing the application you asked for: the machine that prepares it didn't start. Nothing was sent, and it is still in your queue. Say \"apply me to\" with the link to try again in a few minutes.";
 
 // The token a preparation sandbox carries: HMAC-SHA256 over the request id, its lease and the sandbox id, under the same
 // secret as the send runner's, with its own prefix (a send token never opens a preparation, nor the other way round).
@@ -38,8 +41,9 @@ export interface PrepareLimits { want: number; global: number; perPersonDay: num
 export interface PrepareRequestRow { id: string; user_id: string; job_ids: string[]; lease_token: string; state?: string; claimed_at?: string }
 export interface PrepareDispatchResult { claimed: number; started: { request: string; sandbox: string }[]; unavailable: { request: string; why: string }[]; claim_error?: string }
 
-// One tick: claim, then one sandbox per claimed request. A sandbox that cannot be started is stopped and its request
-// finished 'failed' (RUNNER_UNAVAILABLE): nothing was prepared, the postings stay in the person's queue.
+// One tick: claim, then one sandbox per claimed request. A sandbox that cannot be started is stopped, the person is told
+// (the chat said it had started), and its request finished 'failed' (RUNNER_UNAVAILABLE): nothing was prepared, the
+// postings stay in the person's queue.
 export async function dispatchPrepare(o: {
   rpc: Rpc; host: SandboxHost; limits: PrepareLimits; secret: string; bridgeUrl: string;
   retry?: { tries?: number; baseMs?: number; sleep?: (ms: number) => Promise<void> }; log?: (line: string) => void;
@@ -71,6 +75,8 @@ export async function dispatchPrepare(o: {
     } catch (e) {
       const why = String((e as Error)?.message ?? e).slice(0, 200);
       if (sandbox) await o.host.stop(sandbox).catch(() => {});
+      // The chat told them it started; they are told it did not, once, on their channel (never after STOP).
+      await o.rpc("career_apply_prepare_request_notice", { p_id: r.id, p_lease: r.lease_token, p_text: RUNNER_UNAVAILABLE_TEXT }).catch(() => {});
       await o.rpc("career_apply_prepare_request_finish", { p_id: r.id, p_lease: r.lease_token, p_state: "failed",
         p_outcome: { reason: "RUNNER_UNAVAILABLE", detail: why }, p_card: null }).catch(() => {});
       out.unavailable.push({ request: r.id, why });
@@ -140,6 +146,23 @@ export async function handlePrepareBridge(op: string, body: any, d: PrepareBridg
         if (POSTING_RPCS.has(name)) {
           if (!postings.has(String(args.p_posting_job_id ?? ""))) return refuse(403, "not one of this request's postings");
           if (args.p_user !== undefined && args.p_user !== user) return refuse(403, "not this request's person");
+          if (name === "career_apply_prepare_for") {
+            // The sandbox read a page nobody trusts: the application must be for the link this request asked for, and
+            // its card must say exactly what it sends (career_prepared_card.ts), or nothing is stored.
+            const posting = await d.rpc("career_apply_prepare_request_posting", { p_id: id, p_lease: lease, p_posting: String(args.p_posting_job_id) });
+            const payload = args.p_payload;
+            if (!posting || typeof posting.url !== "string" || !payload || typeof payload !== "object" || payload.url !== posting.url) {
+              return refuse(403, "not the application for this request's posting");
+            }
+            const kept = await d.rpc("career_apply_cloud_resume_kept_for", { p_user: user });
+            const problem = preparedCardProblem(payload, args.p_card_lines, kept && typeof kept.filename === "string" ? { filename: kept.filename } : null);
+            if (problem) return refuse(422, `card refused: ${problem}`);
+          }
+          // A try names no prepared application from the sandbox: only career_apply_prepare_for (checked above) links one, and
+          // never with outcome 'ready' (that is what a stored, checked application records itself).
+          if (name === "career_apply_prepare_attempt_for" && (args.p_prepared != null || args.p_outcome === "ready")) {
+            return refuse(403, "a try cannot name a prepared application");
+          }
           return { status: 200, body: await d.rpc(name, { ...args, p_user: user }) };
         }
         return refuse(403, "not a preparation call");

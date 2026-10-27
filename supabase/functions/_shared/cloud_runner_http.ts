@@ -11,9 +11,11 @@ import { dispatchPrepare, handlePrepareBridge, handlePrepareDoor, type PrepareRe
 
 export interface RunnerEnv { get(k: string): string | undefined }
 // The numbers the runner reads, with the defaults used when one is unset (docs/launch/CLOUD-RUNNER.md, "Limits").
+// The defaults are the first wave's numbers ("Recommended caps for the first waves"): an unset number is never looser than
+// what the owner was told the first wave runs at. Raising one is setting it, by name.
 export const LIMIT_DEFAULTS = {
-  CLOUD_MAX_STARTS_PER_TICK: 50, CLOUD_MAX_CONCURRENT: 20, CLOUD_MAX_PER_PORTAL: 8, CLOUD_MAX_PER_PERSON_DAY: 5, CLOUD_MAX_PER_SITE_MINUTE: 2,
-  CLOUD_PREPARE_STARTS_PER_TICK: 20, CLOUD_PREPARE_MAX_CONCURRENT: 10, CLOUD_PREPARE_PER_PERSON_DAY: 20, CLOUD_PREPARE_PER_SITE_MINUTE: 6,
+  CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_PER_PERSON_DAY: 3, CLOUD_MAX_PER_SITE_MINUTE: 1,
+  CLOUD_PREPARE_STARTS_PER_TICK: 2, CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_PER_PERSON_DAY: 10, CLOUD_PREPARE_PER_SITE_MINUTE: 2,
 } as const;
 export function runnerLimits(env: RunnerEnv) {
   const num = (k: keyof typeof LIMIT_DEFAULTS) => {

@@ -531,6 +531,19 @@ test('FEATURE 17 dry run: without VERCEL_TOKEN the cloud runner is not wired (de
   assert.match(snap.out, /DRY: VERCEL_TOKEN=\*\*\* [^\n]*deno run -A scripts\/cloud-runner\/build-snapshot\.ts/, 'the snapshot step only with --build-snapshot');
   assert.ok(!snap.out.includes(CLOUD.VERCEL_TOKEN));
 });
+test('FEATURE 17: a number not given is set to its first-wave value, explicitly, and those values are the runner\'s defaults', () => {
+  const { code, out } = dry([], { ...CLOUD, CLOUD_MAX_CONCURRENT: '', CLOUD_MAX_PER_PORTAL: '', CLOUD_MAX_PER_PERSON_DAY: '', CLOUD_MAX_PER_SITE_MINUTE: '',
+    CLOUD_PREPARE_MAX_CONCURRENT: '', CLOUD_PREPARE_PER_PERSON_DAY: '', CLOUD_PREPARE_PER_SITE_MINUTE: '' });
+  assert.equal(code, 0, out);
+  const set = out.match(/supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: ([^>]*)>/)[1].split(' ');
+  const wave1 = { CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_MAX_PER_PERSON_DAY: 3, CLOUD_MAX_PER_SITE_MINUTE: 1,
+    CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_STARTS_PER_TICK: 2, CLOUD_PREPARE_PER_PERSON_DAY: 10, CLOUD_PREPARE_PER_SITE_MINUTE: 2 };
+  for (const [k, v] of Object.entries(wave1)) assert.ok(set.includes(`${k}=${v}`), `${k}=${v} in ${set.join(' ')}`);
+  const http = fs.readFileSync(path.join(root, 'supabase/functions/_shared/cloud_runner_http.ts'), 'utf8');
+  for (const [k, v] of Object.entries(wave1)) assert.match(http, new RegExp(`\\b${k}: ${v},`), `the runner's default for ${k} is ${v}`);
+  const given = dry([], CLOUD);
+  assert.ok(given.out.includes('CLOUD_MAX_CONCURRENT=5') && !given.out.includes('CLOUD_MAX_CONCURRENT=2'), 'a number given is set as given');
+});
 test('FEATURE 17: the cloud schedule reads CLOUD_DISPATCH_SECRET into Vault and sends the header the runner checks, on both routes; the workflow passes every name', () => {
   const sql = fs.readFileSync(path.join(root, 'scripts/launch/schedule-career-cloud.sql'), 'utf8');
   assert.match(sql, /printf '%s' "\$CLOUD_DISPATCH_SECRET"/);

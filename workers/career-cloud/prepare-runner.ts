@@ -70,9 +70,17 @@ export async function runPrepareRequest(o: {
   return { outcomes: done, finish };
 }
 
+// The four values the dispatcher started this sandbox with, read once and removed from this process's environment, so
+// the engine and Chromium it starts (engineRunner inherits the environment) and any page they open never see the token.
+export const RUNNER_ENV = ["CLOUD_BRIDGE_URL", "CLOUD_PREPARE_ID", "CLOUD_SANDBOX_ID", "CLOUD_JOB_TOKEN"] as const;
+export function takeRunnerEnv(env: { get(k: string): string | undefined; delete(k: string): void } = Deno.env): string[] {
+  const out = RUNNER_ENV.map((k) => env.get(k) || "");
+  for (const k of RUNNER_ENV) env.delete(k);
+  return out;
+}
+
 if (import.meta.main) {
-  const env = (k: string) => Deno.env.get(k) || "";
-  const [url, id, sandbox, token] = ["CLOUD_BRIDGE_URL", "CLOUD_PREPARE_ID", "CLOUD_SANDBOX_ID", "CLOUD_JOB_TOKEN"].map(env);
+  const [url, id, sandbox, token] = takeRunnerEnv();
   if (!url || !id || !sandbox || !token) {
     console.error("usage: CLOUD_BRIDGE_URL, CLOUD_PREPARE_ID, CLOUD_SANDBOX_ID and CLOUD_JOB_TOKEN (set by the dispatcher)");
     Deno.exit(2);

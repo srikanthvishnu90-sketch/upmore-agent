@@ -12,11 +12,11 @@
 //   4. the card is shown in their thread at once (career_apply_card_push_requested_for) and queued for their channel,
 //      within a measured, bounded time of their last message;
 //   5. their tap (career_apply_card_answer_as, the service door the Telegram button calls): one job, bound to the hash;
-//   6. the cloud send: the real dispatcher's text-card route refuses this job because a local page is no portal family
-//      (asserted); then, as tests/architect/cloud-runner.test.ts part 3 does, the job is put in its claimed state with
-//      its marker (a named seam) and the send sandbox runs it through the real bridge with the real engine; the
-//      authorization is a named stand-in (the real one, career_apply_cloud_text_authorize, refuses a local host and is
-//      proven in tests/db/career_cloud_hosted_apply.test.sql);
+//   6. the cloud send, with no stand-in on the path: as written, the text-card route refuses a local page (asserted);
+//      then, with three URL readers in this test database treating the local copy's origin as Ashby's (named), the real
+//      dispatcher claims the job, the send sandbox (sandbox-runner.ts's runSandboxJob, run in this process instead of in
+//      a Vercel sandbox) reads it through the real bridge, the real authorization (approved sources, their digest, the
+//      text-card route's every rule) runs before the engine and again before the one Submit, and the engine submits;
 //   7. the outcome loop: the page's confirmation is evidence (a screenshot hash), the row stays submitted_unconfirmed;
 //      the receipt goes to their channel; "did it go through?" reads it back; with Gmail connected, Ramp's confirmation
 //      email (the Gmail API is the seam) makes it confirmed, and the read-back says so;
@@ -95,6 +95,9 @@ Deno.test({
     const setEnv = (k: string, v: string) => { saved[k] = Deno.env.get(k); Deno.env.set(k, v); };
     try {
       await pg.sql(Deno.readTextFileSync(`${ROOT}/scripts/launch/verify-claim-guards.sql`).replace(/^\\.*$/gm, ""));
+      // Setup (named): career_postings takes only https links; this test database lets the local copy's link in (step 2).
+      await pg.sql(`do $d$ declare c text; begin for c in select conname from pg_constraint where conrelid = 'public.career_postings'::regclass
+        and contype = 'c' and pg_get_constraintdef(oid) ~ 'url' loop execute format('alter table public.career_postings drop constraint %I', c); end loop; end $d$;`);
       await supabaseParity(pg);
       const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000001f7";
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'tg-${CHAT}@users.trainee.invalid');
@@ -108,6 +111,7 @@ Deno.test({
       // dispatcher gives it. Every sandbox is recorded and must be stopped.
       const created: string[] = [], stopped: string[] = [], runs: Promise<unknown>[] = [], envs: Record<string, Record<string, string>> = {};
       let sendSite = site, phases: string[] = [];
+      const sendResults: any[] = [], rpcCalls: string[] = [];
       const prepEngine = engineRunner({ root: ROOT, extra: ["--state-dir", `${work}/engine-state`, "--script-submit", "ashby"] });
       await Deno.mkdir(`${work}/evidence`, { mode: 0o700 });
       // The cloud engine as the send sandbox runs it, told this local page stands in for an Ashby form (--script-submit).
@@ -118,8 +122,16 @@ Deno.test({
         run: async (sandbox, env, script) => {
           envs[sandbox] = env;
           if (script === "workers/career-cloud/prepare-runner.ts") {
+            // Setup (named): the posting's link in Trainee's records is the local copy of Ramp's form, so the engine opens
+            // it as it opens the real link, and the bridge's check (the application is for this request's posting) is the
+            // production check, on this link.
+            await pg.sql(`update public.career_postings set url = '${sendSite.form}' where job_id = '${RAMP_KEY}' and url <> '${sendSite.form}';`);
             runs.push(runPrepareRequest({ bridge: prepareBridge({ url: env.CLOUD_BRIDGE_URL, id: env.CLOUD_PREPARE_ID, sandbox, token: env.CLOUD_JOB_TOKEN }),
-              runEngine: prepEngine, urlFor: () => sendSite.form, tmpRoot: work, log: () => {} }));
+              runEngine: prepEngine, tmpRoot: work, log: () => {} }));
+          } else if ((script ?? "workers/career-cloud/sandbox-runner.ts") === "workers/career-cloud/sandbox-runner.ts") {
+            // The send sandbox, as sandbox-runner.ts's main runs it: the real bridge, the real authorization, the cloud engine.
+            runs.push(runSandboxJob({ bridge: bridgeQueue({ url: env.CLOUD_BRIDGE_URL, id: env.CLOUD_JOB_ID, sandbox, token: env.CLOUD_JOB_TOKEN }),
+              runEngine: sendEngine, tmpRoot: work, log: () => {} }).then((r) => { sendResults.push(r); }));
           } else throw Error(`unexpected script ${script}`);
         },
         stop: async (sandbox) => { stopped.push(sandbox); },
@@ -138,7 +150,8 @@ Deno.test({
         const req = input instanceof Request && !init ? input : new Request(input as any, init);
         const u = new URL(req.url);
         if (u.origin === "http://runner.test") { if (u.pathname.endsWith("/prepare")) kicks.push(Date.now()); return runner(req); }
-        if (u.origin === new URL(SUPABASE_URL).origin || u.hostname === "127.0.0.1") return double(req);
+        if (u.origin === new URL(SUPABASE_URL).origin) { rpcCalls.push(u.pathname.split("/").at(-1)!); return double(req); }
+        if (u.hostname === "127.0.0.1") return double(req);
         outbound.push(u.href);
         if (u.hostname === "api.ashbyhq.com") return double(new Request(`${site.origin}${u.pathname}${u.search}`, req));
         return Promise.reject(new Error(`the hosted flow reaches no real host: ${u.href}`));
@@ -312,29 +325,43 @@ Deno.test({
       });
 
       if (!ok) return;
-      ok = await t.step("6. the cloud send: the real dispatcher refuses a local page (no portal family); in its claimed state the send sandbox submits exactly the card, once", async () => {
-        await q1(`delete from public.career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_CLOUD_TEXT_CARDS');
-          insert into public.career_cloud_settings (key, value) values ('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on');
+      ok = await t.step("6. the cloud send, end to end with no stand-in: the real dispatcher claims it, the send sandbox's real authorization (sources digest, text-card route) runs before the engine and before Submit, the engine submits exactly the card, once", async () => {
+        await q1(`delete from public.career_cloud_settings where key in ('CAREER_CLOUD_APPLY','CAREER_CLOUD_TEXT_CARDS','CAREER_AGENT_SUBMIT');
+          insert into public.career_cloud_settings (key, value) values ('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on'), ('CAREER_AGENT_SUBMIT', 'on');
           select public.career_apply_cloud_optin_as('${PERSON}', true, 'TEST terms');
           insert into public.career_apply_cloud_gate_waivers (user_id, portal, max_sends, expires_at, note) values ('${PERSON}', 'ashby', 1, now() + interval '1 day', 'TEST hosted');`);
-        const d = await runner(new Request(`${RUNNER}/dispatch`, { method: "POST", headers: { "x-cloud-dispatch-secret": DISPATCH } }));
-        eq((await d.json()).claimed, 0, "nothing claimed");
-        eq(await q1(`select public.career_apply_cloud_text_refusal(j, clock_timestamp(), 'claim', 5, 2) from public.career_apply_jobs j where id = '${job.id}'`), "portal_not_cloud",
-          "a page on 127.0.0.1 is no portal family: the text route refuses it (a real Ramp link is ashby)");
         const bad = await runner(new Request(`${RUNNER}/dispatch`, { method: "POST", headers: { "x-cloud-dispatch-secret": "wrong" } }));
         eq(bad.status, 401, "a tick without the secret is refused");
-        // The named seam: the claimed state the dispatcher leaves, with its marker.
-        const claimed = JSON.parse((await q1(`update public.career_apply_jobs set state = 'driving', attempts = 1, claimed_at = now(), lease_token = gen_random_uuid(), source = 'cloud'
-          where id = '${job.id}' returning json_build_object('id', id, 'lease', lease_token)`)).split("\n").at(-1)!);
-        await q1(`insert into public.career_apply_cloud_text_claims (job_id, user_id, card_id, item_n, host, claimed_at) values ('${job.id}', '${PERSON}', '${card.card_id}', 1, '127.0.0.1', now())`);
-        const { jobToken } = await import("../../supabase/functions/_shared/cloud_runner.ts");
-        const sandbox = "sbx_TESTSEND";
-        const bridge = bridgeQueue({ url: RUNNER, id: claimed.id, sandbox, token: await jobToken(SECRET, claimed.id, claimed.lease, sandbox) });
-        phases = [];
-        const done = await runSandboxJob({ bridge, runEngine: sendEngine, tmpRoot: work, log: () => {},
-          queue: (q) => ({ ...q, authorize: async (_j, phase) => { phases.push(phase); } }) });
+        // As written, the text-card route refuses a page that is no portal family: a local page is never the cloud's.
+        const d0 = await runner(new Request(`${RUNNER}/dispatch`, { method: "POST", headers: { "x-cloud-dispatch-secret": DISPATCH } }));
+        eq((await d0.json()).claimed, 0, "nothing claimed");
+        eq(await q1(`select public.career_apply_cloud_text_refusal(j, clock_timestamp(), 'claim', 5, 2) from public.career_apply_jobs j where id = '${job.id}'`), "portal_not_cloud");
+        // Setup (named): in this test database only, three URL readers treat the local copy's origin as Ashby's
+        // (career_apply_portal, career_apply_url_host, career_apply_cloud_destination_ok); every other rule runs as written.
+        const O = site.origin;
+        await q1(`create or replace function public.career_apply_portal(p_url text) returns text language sql immutable set search_path = pg_catalog as $f$
+           select case when p_url like '${O}/%' then 'ashby'
+            when h ~ '(^|\\.)greenhouse\\.io$' then 'greenhouse' when h ~ '(^|\\.)lever\\.co$' then 'lever' when h ~ '(^|\\.)ashbyhq\\.com$' then 'ashby'
+            when h ~ '(^|\\.)smartrecruiters\\.com$' then 'smartrecruiters' end
+           from (select lower(substring(p_url from '^https://([^/?#:@]+)(?::[0-9]+)?(?:[/?#]|$)')) as h) x $f$;
+          create or replace function public.career_apply_url_host(p_url text) returns text language sql immutable set search_path = pg_catalog as $f$
+           select case when p_url like '${O}/%' then '127.0.0.1' else lower(substring(p_url from '^https://([^/?#:@]+)(?::[0-9]+)?(?:[/?#]|$)')) end $f$;
+          create or replace function public.career_apply_cloud_destination_ok(p_dest text) returns boolean language sql immutable set search_path = pg_catalog as $f$
+           select coalesce(p_dest, '') ~ '^https://' or coalesce(p_dest, '') like '${O}/%' $f$;`);
+        eq(await q1(`select coalesce(public.career_apply_cloud_text_refusal(j, clock_timestamp(), 'claim', 5, 2), 'none') from public.career_apply_jobs j where id = '${job.id}'`), "none",
+          "every other rule passes: the card's approval, the switches, the waiver, the opt-in, the numbers, the kept resume");
+        rpcCalls.length = 0;
+        const d = await runner(new Request(`${RUNNER}/dispatch`, { method: "POST", headers: { "x-cloud-dispatch-secret": DISPATCH } }));
+        const dj = await d.json();
+        eq([dj.claimed, dj.started?.length], [1, 1], JSON.stringify(dj));
+        await settle();
+        eq(sendResults.length, 1, "the send sandbox ran");
+        const done = sendResults[0];
         eq([done.state, done.outcome], ["confirmed", "submitted"], `${JSON.stringify(done)} ${await q1(`select evidence::text from public.career_apply_jobs where id = '${job.id}'`)}`);
-        eq(phases, ["before_engine", "before_engine", "before_effect"], "authorized before the engine and again before the one Submit");
+        eq(rpcCalls.filter((n) => n === "career_apply_cloud_authorize_any").length, 3, `authorized before the engine and again before the one Submit: ${rpcCalls.join(",")}`);
+        eq(rpcCalls.filter((n) => n === "career_apply_message_cloud_sources").length, 3, "each time against the approved sources as they are now");
+        assert(rpcCalls.includes("career_apply_cloud_dispatch_claim2"), "claimed by the dispatcher's own door");
+        eq(await q1(`select count(*) from public.career_apply_cloud_text_claims where job_id = '${job.id}' and card_id = '${card.card_id}' and item_n = 1`), "1", "its claim marker names the card item");
         eq(site.applications.length, 1, `exactly one application mutation: ${JSON.stringify(site.other)}`);
         const sent = site.applications[0].variables;
         const got = new Map((sent.applicationForm.fieldEntries as any[]).map((e) => [e.field, e.value]));
@@ -345,6 +372,7 @@ Deno.test({
         }
         eq(await hex(Uint8Array.from(atob(sent.resume.content), (c) => c.charCodeAt(0))), FILE_SHA, "their resume file, byte for byte");
         eq(sent.resume.name, FILE_NAME);
+        eq(stopped.sort(), [...created].sort(), "every sandbox, the send one too, was stopped at its finish");
       });
 
       if (!ok) return;
@@ -438,9 +466,9 @@ Deno.test({
           eq([row.state, row.reason, row.attempts], ["needs_user", "bot_check", 1], "handed back, never retried");
           const text = receiptText({ ...row, url: RAMP_LINK });
           eq(text, `Ramp is not finished: a verification check appeared, and Trainee never solves one, so finish this one yourself: open the link below, enter the answers you approved on the card, complete the check on the page, then press Submit. Nothing reached Ramp. ${RAMP_LINK}`);
-          // The throttle counts a check per portal family (career_apply_cloud_record); a local page is none, so nothing is
-          // counted here. The count on a real family is proven in tests/db/career_apply_cloud_runner.test.sql.
-          eq(await q1(`select count(*) from public.career_apply_cloud_events where job_id = '${claimed.id}'`), "0");
+          // The throttle counts the check against Ashby (career_apply_cloud_record; this page reads as Ashby's since step 6),
+          // so a run of checks pauses the family or the person (tests/db/career_apply_cloud_runner.test.sql).
+          eq(await q1(`select count(*) from public.career_apply_cloud_events where job_id = '${claimed.id}' and portal = 'ashby'`), "1", "counted once, against Ashby");
         } finally { site.setChallenge(false); }
         assert(outbound.every((u) => u.startsWith("https://api.ashbyhq.com/")), `no other host was asked: ${outbound}`);
       });

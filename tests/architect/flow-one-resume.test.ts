@@ -23,6 +23,7 @@ const RESUME2 = RESUME.replace("LEADERSHIP", "EXPERIENCE\nData Analyst Intern, N
 const PERSON = "7b0f8f8e-6a43-4a49-9d2c-0000000001a1";
 const JOB = "greenhouse:onerestest:11", COMPANY = "TEST One Resume Employer", ROLE = "TEST Analyst";
 const JOB2 = "greenhouse:onerestwo:12", COMPANY2 = "TEST Second Employer";
+const JOB3 = "greenhouse:oneresthree:13", COMPANY3 = "TEST Third Employer";
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 const sha = async (s: string) => hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
 
@@ -40,6 +41,8 @@ Deno.test({ name: "one confirmed resume, a new person on a texting channel and t
       values ('${JOB}', 'greenhouse', 'onerestest', '${COMPANY}', '${ROLE}', 'Chicago, IL', 'https://boards.greenhouse.io/onerestest/jobs/11',
       '${ROLE}. Requirements: SQL, Python, dashboards.', now(), now()),
       ('${JOB2}', 'greenhouse', 'onerestwo', '${COMPANY2}', '${ROLE}', 'Chicago, IL', 'https://boards.greenhouse.io/onerestwo/jobs/12',
+      '${ROLE}. Requirements: SQL, Python, dashboards.', now(), now()),
+      ('${JOB3}', 'greenhouse', 'oneresthree', '${COMPANY3}', '${ROLE}', 'Chicago, IL', 'https://boards.greenhouse.io/oneresthree/jobs/13',
       '${ROLE}. Requirements: SQL, Python, dashboards.', now(), now());
       insert into auth.users (id, email) values ('${PERSON}', '${PERSON}@example.test'); insert into public.profiles (id) values ('${PERSON}');
       insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');`);
@@ -122,6 +125,17 @@ Deno.test({ name: "one confirmed resume, a new person on a texting channel and t
       const p = await pg.asService().rpc("career_apply_profile_for", { p_user: PERSON });
       eq((p.data?.facts ?? []).filter((f: any) => ["experience", "education", "project", "leadership", "certification"].includes(f.kind)), [],
         "what every prepare reads holds no resume entry");
+    });
+    await t.step("web: a resume confirmed again lifts the block: the next 'apply to ...' is queued", async () => {
+      const pasted = await say(`here is my resume:\n${RESUME}`);
+      eq(pasted.intent, "career_resume_ingest", pasted.reply);
+      const yes = await say("yes that's my resume");
+      eq([yes.intent, yes.resultStatus], ["career_resume_ingest", "completed"], yes.reply);
+      eq((await record()).state, "confirmed");
+      const r = await say(`apply to the ${ROLE} role at ${COMPANY3}`);
+      eq(r.intent, "career_apply_queue", r.reply);
+      ok(!/no confirmed resume/i.test(r.reply), `not refused for a resume: ${r.reply}`);
+      ok((await wanted()).includes(`${JOB3}:waiting`));
     });
   } finally {
     h?.restore();

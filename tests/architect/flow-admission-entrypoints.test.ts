@@ -27,14 +27,15 @@ function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = J
 
 type Handler = (req: Request) => Response | Promise<Response>;
 // An entry file's request handler: its index.ts loaded unchanged, std's `serve` (Deno.serve) captured instead of listening.
-async function entry(path: string): Promise<Handler> {
+// The import is written out at each call (a literal specifier), so Deno prepares the entry's remote modules with the graph.
+async function entry(path: string, load: () => Promise<unknown>): Promise<Handler> {
   let handler: Handler | undefined;
   const real = Deno.serve;
   (Deno as unknown as { serve: unknown }).serve = (...a: unknown[]) => {
     handler = (a.find((x) => typeof x === "function") ?? (a[0] as { handler: Handler })?.handler) as Handler;
     return { finished: Promise.resolve(), shutdown() {}, ref() {}, unref() {}, addr: {} };
   };
-  try { await import(`../../supabase/functions/${path}`); } finally { (Deno as unknown as { serve: unknown }).serve = real; }
+  try { await load(); } finally { (Deno as unknown as { serve: unknown }).serve = real; }
   if (!handler) throw new Error(`${path} registered no handler`);
   return handler;
 }
@@ -52,6 +53,7 @@ Deno.test({
     const pg = await startPg({ gate: "invite" });
     const realFetch = globalThis.fetch;
     const outbound: string[] = [];
+    let breakGate = false;
     try {
       await supabaseParity(pg);
       eq(await pg.sql(`select public.trainee_signup_mode()`), "invite", "sign-up is closed, as production has it");
@@ -72,6 +74,8 @@ Deno.test({
       globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
         const req = input instanceof Request && !init ? input : new Request(input as never, init);
         const u = new URL(req.url);
+        // The database cannot answer the gate's questions (the settings below): every call to them errors.
+        if (breakGate && /\/rest\/v1\/rpc\/(trainee_may_act|trainee_admit)$/.test(u.pathname)) return Response.json({ message: "db down", code: "XX000" }, { status: 500 });
         if (u.origin === new URL(SUPABASE_URL).origin) return await double.fetch(req);
         outbound.push(`${u.hostname}${u.pathname}`);
         return Response.json({ error: "no real host in this test" }, { status: 502 });
@@ -102,7 +106,7 @@ Deno.test({
       Object.assign(zero, afterB); // from here on, B's own turn is the baseline
 
       // career-essay-draft: the model is the first thing it would spend
-      const essay = await entry("career-essay-draft/index.ts");
+      const essay = await entry("career-essay-draft/index.ts", () => import("../../supabase/functions/career-essay-draft/index.ts"));
       const essayBody = { question: "Why do you want this role?", employer: "Acme", role: "Analyst" };
       const eA = await essay(post("career-essay-draft", TA, essayBody));
       eq(eA.status, 401, "essay draft refuses A");
@@ -111,7 +115,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // career-email-code: Gmail is the first thing it would read
-      const code = await entry("career-email-code/index.ts");
+      const code = await entry("career-email-code/index.ts", () => import("../../supabase/functions/career-email-code/index.ts"));
       const cA = await code(post("career-email-code", TA, { job_id: crypto.randomUUID() }));
       eq(cA.status, 401, "email code refuses A");
       await unchanged("email code for A");
@@ -119,7 +123,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // career-voice: its signed link names the person
-      const voice = await entry("career-voice/index.ts");
+      const voice = await entry("career-voice/index.ts", () => import("../../supabase/functions/career-voice/index.ts"));
       const link = async (u: string) => await signToken({ s: crypto.randomUUID(), u, k: "start", exp: Date.now() + 600_000 }, SERVICE_KEY);
       const vA = await voice(new Request(`${SUPABASE_URL}/functions/v1/career-voice`, { method: "POST", body: JSON.stringify({ action: "start", token: await link(A) }) }));
       eq([vA.status, (await vA.json()).reason], [403, "not_admitted"], "voice refuses A");
@@ -129,7 +133,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // gmail-oauth: the consent link, then the callback that would store the tokens
-      const gmail = await entry("gmail-oauth/index.ts");
+      const gmail = await entry("gmail-oauth/index.ts", () => import("../../supabase/functions/gmail-oauth/index.ts"));
       const gA = await gmail(post("gmail-oauth", TA, { action: "start_career" }));
       const gAbody = await gA.json();
       eq([gA.status, gAbody.error, "url" in gAbody], [403, "not_admitted", false], "no consent link for A");
@@ -145,7 +149,7 @@ Deno.test({
       outbound.length = 0;
 
       // extension-sync: the proof is the row it would insert
-      const ext = await entry("extension-sync/index.ts");
+      const ext = await entry("extension-sync/index.ts", () => import("../../supabase/functions/extension-sync/index.ts"));
       const proof = { employer: "Acme", role: "Analyst", posting: { url: "https://job-boards.greenhouse.io/acme/jobs/1" }, confirmation: { confirmationId: "X-1", confirmationText: "Thanks", successText: true, formStillOpen: false },
         answersSubmitted: {}, observedAt: new Date().toISOString() };
       const xp = (token: string, p: string, method = "POST") => new Request(`${SUPABASE_URL}/functions/v1/extension-sync/${p}`,
@@ -157,6 +161,22 @@ Deno.test({
       eq((await rows()).proofs, 0, "no proof row for A");
       const xB = await ext(xp(TB, "application-proofs"));
       eq(xB.status !== 403, true, "the extension goes on for B");
+
+      // The gate cannot be asked (the database errors): even B, who IS let in, is refused by every entry, and nothing is
+      // written or spent. Failing open here would let any signed-in person through whenever the check breaks.
+      outbound.length = 0; Object.assign(zero, await rows());
+      breakGate = true;
+      try {
+        const gB2 = await gmail(post("gmail-oauth", TB, { action: "start_career" }));
+        eq([gB2.status, "url" in await gB2.json()], [403, false], "broken gate: no consent link");
+        const cb2 = await gmail(new Request(`${SUPABASE_URL}/functions/v1/gmail-oauth?code=abc&state=${encodeURIComponent(stateB)}`));
+        eq(cb2.headers.get("location")?.endsWith("#you?career=error"), true, "broken gate: the callback lands on the error page");
+        eq((await code(post("career-email-code", TB, { job_id: crypto.randomUUID() }))).status, 401, "broken gate: no mail is read");
+        eq((await essay(post("career-essay-draft", TB, essayBody))).status, 401, "broken gate: no draft");
+        eq((await ext(xp(TB, "application-proofs"))).status, 403, "broken gate: the extension records nothing");
+        eq((await voice(new Request(`${SUPABASE_URL}/functions/v1/career-voice`, { method: "POST", body: JSON.stringify({ action: "start", token: await link(B) }) }))).status, 403, "broken gate: no voice session");
+        await unchanged("every entry with the gate unavailable");
+      } finally { breakGate = false; }
     } finally {
       globalThis.fetch = realFetch;
       await pg.stop();

@@ -2891,13 +2891,20 @@ const CareerRouter = (() => {
     // canned specifics.
     const ENTITLEMENT = /\b(unemployment|benefits?|severance|disability|workers'? comp|fmla|overtime|minimum wage)\b/;
     const hasAnchor = /\b(at|for|with) [A-Z][a-z]/.test(raw) || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|next week|next month|this week|this month)\b/.test(t);
+    // CATCHALL-META: a question about the agent's own capabilities
+    // ("what can you help me with", "how can you help me") is not
+    // about a role, a company, or a date — the case clarifier
+    // misfires on it. It takes the same bounded choice the anchored
+    // branch offers. The case clarifier stays for the entitlement /
+    // work-life topics this block was written for.
+    const metaCapabilities = /\b(what|how)\b[^.?!]{0,48}\byou\b[^.?!]{0,24}\b(help|do|offer|assist|handle)\b/.test(t) || /\bcapabilit\w*\b/.test(t);
     const facts = [];
     if (ENTITLEMENT.test(t)) facts.push("On that topic the specifics depend on where you live — deadlines and amounts are set by your state, and your state agency for it is the source for them, not me.");
     facts.push(CAPABILITY_LINE);
     return { intent: "career_catchall", resultStatus: "awaiting_user", reply: compose({
       headline: "I did not catch what to do with that one.",
       facts,
-      nextStep: hasAnchor ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
+      nextStep: (hasAnchor || metaCapabilities) ? "Do you want the general picture, or help acting on your specific case?" : "Which role or company is it about, and what date does it turn on?",
     }) };
   }
 

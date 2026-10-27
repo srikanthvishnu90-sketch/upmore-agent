@@ -20,7 +20,7 @@
 //              (copy-ready text, or a mailto link): Trainee never sends and never contacts anyone itself. Tracked
 //              (sent, replied, no reply: the person's word or Gmail's), with a reminder only when they ask for one.
 //   forget     "forget my LinkedIn contacts" (and Gmail contacts, job emails, intro requests): deleted and read back.
-import { contactsOf, type ContactRow, MX_NOT_WIRED, verifyRows } from "./career_contacts.ts";
+import { contactsOf, type ContactRow, MX_NOT_WIRED, normalizeFirm, verifyRows } from "./career_contacts.ts";
 import { confirmed, draftFor, factText, type ModelFn, type OutreachStore, type Recipient } from "./career_outreach.ts";
 import { parseNetworkingAsk } from "./career_networking.ts";
 import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
@@ -398,8 +398,8 @@ const fromExport = (r: ContactRow) => (r as unknown as { linkedin_export?: boole
 async function mirror(o: PeopleTurnIn, file: string, rows: PersonRow[], replace: boolean) {
   const pick = [...rows.filter((r) => r.email), ...rows.filter((r) => !r.email)].slice(0, MIRROR_MAX);
   const at = new Date(o.now).toISOString();
-  const asRows: ContactRow[] = pick.map((r) => ({ file, row: Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0), name: r.name, email: r.email, firm: r.company, firm_raw: r.company,
-    company: r.company, title: r.position, school: r.school, connected_on: r.connected_on, source_kind: "own_export", retrieved_at: at, linkedin_export: true } as ContactRow));
+  const asRows: ContactRow[] = pick.map((r) => ({ file, row: Number(/row (\d+)$/.exec(r.source_ref)?.[1] ?? 0), name: r.name, email: r.email, firm: normalizeFirm(r.company), firm_raw: r.company,
+    company: normalizeFirm(r.company), title: r.position, school: r.school, connected_on: r.connected_on, source_kind: "own_export", retrieved_at: at, linkedin_export: true } as ContactRow));
   const checked = await verifyRows(asRows, MX_NOT_WIRED);
   // a file replaces every earlier copy of the export; a pasted part adds to it
   const kept = contactsOf(o.state).filter((r) => r.file !== file && !(replace && fromExport(r)));

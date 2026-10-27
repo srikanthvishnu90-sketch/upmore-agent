@@ -114,6 +114,8 @@ Deno.test("people turn: the drafter's copy in the thread: a new file replaces ev
   let bin = ""; for (const b of zip) bin += String.fromCharCode(b);
   eq((await say("zip", { attachments: [{ name: "export.zip", mime: "application/zip", text: btoa(bin) }] }))!.status, "imported");
   eq((state.contacts as unknown[]).length, 8);
+  const lee = (state.contacts as any[]).find((r) => r.name === "Lee Park");
+  eq([lee.firm, lee.firm_raw, lee.company], ["Ramp", "Ramp, Inc.", "Ramp"], "the drafter's copy keeps the firm the way the contacts importer does");
   const both = await say("both", { attachments: [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }, { name: "friends.csv", mime: "text/csv", text: "Name,Company,Email\nMo Li,Plaid,mo@plaid.example\n" }] });
   nodeAssert.match(both!.reply, /\nfriends\.csv: not read in this message\. Send it on its own and I'll import it\.$/, "a second list is never dropped silently");
   const all = await say("forget my contacts");

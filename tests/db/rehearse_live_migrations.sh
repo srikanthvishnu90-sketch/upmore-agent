@@ -5,8 +5,10 @@
 #   PGBIN=/usr/lib/postgresql/16/bin bash tests/db/rehearse_live_migrations.sh
 #
 # The live snapshot (2026-10-26, read-only queries of project mrwngntwmnaqrqhupvlt): every MIGRATION_MARK read true but
-# the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live). Override with
-# LIVE_MISSING="<file> <file> ..." when the live project moves on.
+# the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live), plus the eight
+# 2026-10-26 files trunk added the same day (the launch-readiness audit, PR #192, read all 32 as missing live: 33 of
+# go-live's 65 marks true). Without those eight the mimic applied them before what they need and the job failed on
+# trunk itself. Override with LIVE_MISSING="<file> <file> ..." when the live project moves on.
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox
 #   constraints are what the migrations before it left). LIVE_SAFE_BRIEF_DIGEST=0 applies the full file instead.
@@ -45,12 +47,13 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261025130000_career_apply_wanted_candidates.sql 20261025140000_career_apply_no_volume_ceiling.sql
   20261025150000_career_apply_pace_parse.sql 20261025160000_career_apply_pace_state.sql
   20261025170000_career_apply_card_yes_window.sql 20261025180000_career_outbox_card_id.sql
-  20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026100000_career_apply_cloud_runner.sql
+  20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
+  20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
+  20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
+  20261026140000_career_apply_receipt_store.sql
   20261026210016_career_resume_required.sql 20261026220016_channel_telegram_login.sql"
-# The last five are not live (20261026220016 is new here, NOT APPLIED): 20261026060006 and 20261026060106 alter career_board_state, created by 20261021110000
-# (missing above); 20261026210016 reads career_apply_profile_for, created by 20261025120000 (missing above);
-# 20261026100000 says NOT APPLIED in its header (merged after the snapshot), and applied to the live mimic before the
-# one ledger it would generate its portal claim from the older claim_at.
+# 20261026210016 and 20261026220016 (FEATURE 16, NOT APPLIED) are new here, not live; 20261026210016 reads
+# career_apply_profile_for, created by 20261025120000 (missing above).
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

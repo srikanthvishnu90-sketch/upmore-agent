@@ -246,7 +246,7 @@ Kept unchanged, as asked:
 - **Unique confirmation IDs:** `career_apply_confirmation_key`, `career_apply_jobs_confirmation`.
 - **Payload-hash re-verify at claim:** `career_apply_void_unsendable`, `career_apply_jobs_fixed`.
 
-## Approval model on the chosen path today (APPROVAL-1226; not changed)
+## Approval model on the chosen path (APPROVAL-1226; changed 2026-10-27 by D-MS-1)
 
 - **A batch, by the person's own call.** `career_apply_card_answer_own(p_card, p_approve int[])` approves every listed
   item of one card in one call (`20261020030000_career_apply_cards.sql:130`, body
@@ -256,8 +256,43 @@ Kept unchanged, as asked:
   whose prepared payload no longer hashes to it is `changed`, not queued (the same function). Enqueue requires
   `approval = payload hash = career_apply_payload_hash(payload)` (`20261025100000…:162-163`). The claim closes any job
   whose payload no longer hashes to its approval as not sent (`career_apply_void_unsendable`).
-- **A chat "yes" does not approve (Option A, 2026-10-22).** A text "yes" to the card replies "A text yes doesn't send
-  anything … tap Approve" (`supabase/functions/_shared/career_apply_cards.ts:174-181`). A text "no" declines.
-- **The tension, unresolved:** the owner's words "a yes does handle a batch of submissions" (Oct 22 5:09 PM) fit the
-  database's batch approval. The chat path's Option A refuses a text yes. That is the owner's call, and I have changed
-  neither.
+- **(Superseded 2026-10-27 by D-MS-1, below.)** ~~A chat "yes" does not approve (Option A, 2026-10-22).~~ A text "yes"
+  to the card replied "A text yes doesn't send anything … tap Approve"; later (SERIAL-1461) only a yes in direct reply to
+  the card's message counted.
+- **(Resolved 2026-10-27 by the owner, D-MS-1.)** The tension between "a yes does handle a batch of submissions" and
+  Option A is closed in favour of the texted yes.
+
+### Approval model from 2026-10-27 (D-MS-1, mass submission, chat side)
+
+- **A texted yes approves exactly the batch shown, on any channel** (SMS/iMessage, WhatsApp, Telegram, the web app).
+  `cardTurn` (`supabase/functions/_shared/career_apply_cards.ts`) calls the existing batch approval once,
+  `career_apply_card_answer_as(p_user, p_card, p_approve int[])` with the card's numbers: the same function the tap uses
+  (`_own`), no new trust path. The database still decides per item: an item whose prepared payload no longer hashes to
+  the hash the card carries is `changed`, not queued, and the rest go on; the reply names it ("2. Beta Labs: not sent: it
+  changed after the card was shown") and says how to see it again.
+- **Which card a yes is about.** The card this thread showed, while it is still the thread's last word (the plain yes
+  that iMessage, SMS and the web app send), or the card whose message the text replies to (Telegram, WhatsApp Cloud). A
+  reply to any other message approves nothing and says how. Of two cards shown only the latest is open (opening a card
+  closes the older one in `career_apply_card_open_for`): a yes to the older one is "out of date", nothing approved.
+  Within 10 minutes of the showing (the chat and `career_apply_card_answer_for`'s `card_stale`), once (`card_answered`).
+- **What a reply means.** "yes", "yes to all", "approve all", "send them", "go ahead": the whole card. "yes except 3",
+  "yes but not Acme", "approve, skip 2": all but those. "only 1, 2 and 5", "just 1 and 2", "1, 2 and 5", "send 1 and
+  3": exactly those. "not Acme" alone: confirmed first ("Reply "yes except 1" to send the other 5"), nothing approved.
+  "no": declines all. "wait", "hold on", "not yet": holds, nothing approved, the card still waits. "maybe", "ok", "sure",
+  "yes?", "1 or 2", "approve 2", "yes 3", "yes acme", "yes but not the one in Ohio": unclear, nothing approved, the card
+  asks again in plain words. A number not on the card, an employer not on it, "yes send all 60" on a card of 3, or a
+  subset that leaves nothing: refused, nothing approved. "stop" stays the carrier's opt-out, never a card answer.
+- **No 8-per-card limit (D-MS-2).** "show my applications" puts the whole batch on one card, paged into messages of at
+  most 3,800 characters for reading (`batchFor`; the reply's `parts`, delivered whole on every channel), and one yes
+  covers every page; the answer says plainly how many were approved and lists each not sent with why. A batch past 20
+  pages (a transport bound for one reply) shows what fits and says "N more are ready; they come on the next card". The
+  scheduled push (`cardFor`) is still one text. **Until builder A's D-MS-2 migration** drops the database's
+  `between 1 and 8` (`career_apply_card_open_for`, the `items` check), the database refuses a larger card: the chat then
+  shows 8 and says how many more wait, and the next card holds the rest.
+- **Mass asks.** "apply me to all of them", "apply to the top 50", "apply to all remote ones", "apply to every SWE intern
+  role you found" queue the listed postings (a filter is read against the listed titles and locations) as one batch
+  (`career_apply_chat.ts` `applyManyAsk` / `applyManyTurn`). The resume rule is unchanged: no confirmed resume, nothing
+  queued, the reply asks for it.
+- **Tests:** `tests/architect/mass-submit-chat.test.ts`, `mass-submit-channels.test.ts` (iMessage, Telegram, WhatsApp
+  through their real webhook handlers), `mass-submit-handler-pg.test.ts` (the production handler on Postgres, the web
+  app's turn; `career_apply_jobs` asserted).

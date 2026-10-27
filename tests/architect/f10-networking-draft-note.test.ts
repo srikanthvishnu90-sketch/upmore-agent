@@ -8,9 +8,13 @@
 //   2. Judged against the raw ask, a clarification is still not what was requested: the person asked for a
 //      short generic note. A recipient is needed before a SEND (approval-gated, off) — not before a DRAFT.
 //      So an unresolved role WITH a topic now gets a template draft, composed deterministically with NO model
-//      call: placeholders [Name] and [Company] stand in for the recipient, only facts the record carries
-//      (a confirmed goal) are woven in, it is presented as held for approval with nothing sent, and it is
-//      never persisted as a sendable batch. Naming a specific person remains available as personalisation.
+//      call: placeholders [Name] and [Company] stand in for the recipient, it is presented as held for
+//      approval with nothing sent, and it is never persisted as a sendable batch. The template is
+//      placeholders only — NO profile-derived text is woven in, not even a confirmed goal: while the
+//      profile's provenance is unverified, a database "confirmed" flag does not make a fact the user's
+//      (2026-10-27). The sign-off signature is not profile-derived — it lives in career_outreach_prefs and
+//      is written only from the person's own words — so a signature on file still signs it. Naming a
+//      specific person remains available as personalisation.
 //      The clarification survives only where a draft cannot be composed at all: the ask names no topic.
 // Run: deno test -A --no-check tests/architect/f10-networking-draft-note.test.ts
 import nodeAssert from "node:assert/strict";
@@ -114,18 +118,26 @@ Deno.test("turn: no contacts at all — a generic draft needs no recipient on fi
   assertEquals(await store.latestBatch(U), []);
 });
 
-Deno.test("turn: a confirmed goal on record is woven into the template in the person's own words; an unconfirmed one is not used", async () => {
+Deno.test("turn: no profile-derived text in the template — even a CONFIRMED goal on record is not woven in (provenance unverified)", async () => {
   const store = memoryOutreachStore(), state = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
   (state.profile as any).facts = [...FACTS, { id: "g1", kind: "goal", text: "a data analyst internship for summer 2027", status: "confirmed" }];
   const r = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state, store, model: null });
   assertEquals(r!.status, "template_draft");
-  assertMatch(r!.reply, /I'm looking for a data analyst internship for summer 2027\./);
-  const state2 = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
-  (state2.profile as any).facts = [...FACTS, { id: "g1", kind: "goal", text: "a data analyst internship for summer 2027", status: "confirmed", needs_confirmation: true }];
-  const q = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state: state2, store, model: null });
-  assertEquals(q!.status, "template_draft");
-  assert(!/data analyst internship/.test(q!.reply), q!.reply);
-  assertMatch(q!.reply, /Hi \[Name\],/);
+  // The goal's distinctive words must be absent — a "confirmed" flag in suspect data proves nothing.
+  assert(!/data analyst/.test(r!.reply), r!.reply);
+  assert(!/internship/.test(r!.reply), r!.reply);
+  assert(!/summer 2027/.test(r!.reply), r!.reply);
+  assert(!/I'm looking for/.test(r!.reply), r!.reply);
+  // Nothing else from the profile record leaks in either (the FACTS on file).
+  assert(!/TEST University/.test(r!.reply), r!.reply);
+  assert(!/TEST Systems/.test(r!.reply), r!.reply);
+  assert(!/Software Engineering Intern/.test(r!.reply), r!.reply);
+  // Placeholders only: recipient, company and (no signature on file here) the sign-off.
+  assertMatch(r!.reply, /Hi \[Name\],/);
+  assertMatch(r!.reply, /I'm writing to ask about next steps at \[Company\]\. If there's anything/);
+  assertMatch(r!.reply, /\[Your name\]/);
+  assertMatch(r!.reply, /held for your approval/);
+  assertEquals(await store.latestBatch(U), []);
 });
 
 Deno.test("turn: no topic at all — there is no ask to compose, so the clarification is what remains", async () => {

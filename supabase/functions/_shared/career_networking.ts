@@ -21,7 +21,7 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, factText, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 
@@ -299,18 +299,20 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
 // and its batch formatting (draftText/batchMessages) renders a persisted OutreachDraft addressed to a
 // Recipient with an email. This draft has no recipient, is never persisted, and is never sendable as shown,
 // so it is presented in the reply only. Deterministic: no model call, whether or not one is configured.
-// Nothing is invented: the topic is the person's own words from this turn, the one fact woven in is a
-// confirmed goal on record in their own words, and everything else is a placeholder.
+// Nothing is invented and nothing is taken from the profile record: the topic is the person's own words
+// from this turn, and everything else is a placeholder. No profile-derived text is woven in — not even a
+// confirmed goal — while that record's provenance is unverified: a "confirmed" flag in suspect data does
+// not make a fact the user's (2026-10-27). The sign-off signature is NOT profile-derived: it lives in
+// career_outreach_prefs, written only from the person's own words (signatureTurn / set_outreach_signature
+// both save exactly what the person wrote in chat), so a signature on file still signs it.
 async function templateNoteTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>, all: ContactRow[]): Promise<NetworkingResult> {
   const t = ask.target as Extract<Target, { by: "role" }>;
   const topic = String(ask.topic ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
-  const goalFact = confirmed(((o.state.profile as any)?.facts ?? []) as unknown[]).find((f: any) => f?.kind === "goal");
-  const goalText = goalFact ? String((goalFact as any).text ?? factText(goalFact)).replace(/\s+/g, " ").replace(/[.;\s]+$/, "").trim() : "";
   const prefs = await o.store.prefs(o.userId).catch(() => ({ daily_cap: null, signature: null }));
   const sign = prefs.signature?.trim() ? prefs.signature.trim() : "[Your name]";
   const body = [
     `Hi [Name],`,
-    `I'm writing to ask about ${topic} at [Company].${goalText && goalText.length <= 140 ? ` I'm looking for ${goalText}.` : ""} If there's anything I should prepare or send over in the meantime, I'm happy to.`,
+    `I'm writing to ask about ${topic} at [Company]. If there's anything I should prepare or send over in the meantime, I'm happy to.`,
     `Thanks for your time,\n${sign}`,
   ].join("\n\n");
   const matches = all.length ? rolePool(uniq(all), t.role) : [];

@@ -44,7 +44,7 @@ import { mockTurn, supabaseMockStore } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
 import { applicationsTurn, supabaseApplications } from "../_shared/career_apply_status.ts";
-import { evidenceResumeConfirmation, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
+import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts";
@@ -513,12 +513,21 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // turn below. The thread is read only on the router's resume confirm.
       if (out.handler !== "agent" && out.intent === "career_resume_ingest" && out.resultStatus === "completed") {
         const recent = await admin.from("agent_messages").select("id,role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(40);
-        if (recent.error) console.error("career evidence: the thread was not read", recent.error.message);
-        else {
+        if (recent.error) {
+          // The thread could not be read, so nothing the router confirmed can be evidenced: held, and said.
+          console.error("career evidence: the thread was not read", recent.error.message);
+          const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
+            after: (ctx as any).profile ?? null, out, shown: null, upload: null, events });
+          const held = heldReply(ev);
+          if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
+        } else {
           const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.snapshot as any)?.stores?.profile ?? null,
             after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
-          if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: left unevidenced: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
+          if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
+          // A confirmation the host could not evidence is not claimed: those facts are drafts again, and the reply says so.
+          const held = heldReply(ev);
+          if (held) out = { ...out, reply: held, resultStatus: ev.stamped ? "partial" : "not_confirmed" };
         }
       }
       let taskIntent = null;

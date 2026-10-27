@@ -446,7 +446,10 @@ echo "== career_apply_cloud_runner.test.sql (global and per-portal limits throug
 # Google verification (20261026200011): disconnecting Google deletes the mail rows read from that Gmail; applied twice.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026200011_google_disconnect_erase.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026200011_google_disconnect_erase.sql"
-echo "== google_disconnect_erase.test.sql (a disconnect deletes the mail events, drafts and cursor; a reconnect keeps them; nobody else's)"
+# Family email (20261027103000): the same erase also deletes the undelivered deadline reminder queued in career_outbox; applied twice.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027103000_google_disconnect_erase_outbox.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261027103000_google_disconnect_erase_outbox.sql"
+echo "== google_disconnect_erase.test.sql (a disconnect deletes the mail events, drafts, cursor and the undelivered deadline reminder; a reconnect keeps them; nobody else's)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/google_disconnect_erase.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards on the latest schema (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"

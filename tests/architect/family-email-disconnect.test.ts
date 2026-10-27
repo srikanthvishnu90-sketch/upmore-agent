@@ -10,8 +10,8 @@
 // On #196 as of 2026-10-26: everything but the undelivered reminder (patch: the erase also deletes the person's
 // undelivered career_outbox rows keyed status:deadline:%).
 import assertNode from "node:assert/strict";
-import { pgBinDir, type Pg, startPg } from "../../flow/pg.ts";
-import { careerHandler, supabaseParity } from "../../flow/handler.ts";
+import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
+import { careerHandler, supabaseParity } from "../flow/handler.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);

@@ -50,7 +50,7 @@ LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_
   20261026060006_career_more_providers.sql 20261026060106_career_ingest_runs.sql 20261026070007_career_alert_min_fit.sql
   20261026080008_career_mail_drafts_sent.sql 20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql 20261026100001_career_apply_want_guard.sql
-  20261026140000_career_apply_receipt_store.sql 20261026200011_google_disconnect_erase.sql"
+  20261026140000_career_apply_receipt_store.sql 20261026200011_google_disconnect_erase.sql 20261027103000_google_disconnect_erase_outbox.sql"
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

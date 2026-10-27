@@ -38,6 +38,13 @@
    "eph": "9rliKFC2IkIoiKuk7OHg-91Qffs8yGWgExMH6kVM6gQ",
    "iv": "XN2VnBlqLKJrltPk",
    "wrapped": "D3vuzgou5UFFwj99mPRLA2yEFOfoVqip+9ww9rYLerSvE4shk9iyUtYKxXC1lWn+"
+  },
+  {
+   "secret_env": "HELDOUT_RECOVERY_KEY_20261027",
+   "pub": "QNjfy0E3qztB5X1z49SVVhqfZsdjCln5Iv2yqdXdFEk",
+   "eph": "RSEAzcXqdMFMyUuH66OJtiOY6O8hpVwEGD0B9X2i8WI",
+   "iv": "3DwxwgBCOXXoo9LV",
+   "wrapped": "Xrwrki+IQj3GGL8ElIJU4fZUcYZ+VVWmcAYIF+yEUsquOhqMEDVnWnnwSVz9U4F7"
   }
  ],
  "iv": "dsWVr73trIysfTsN",

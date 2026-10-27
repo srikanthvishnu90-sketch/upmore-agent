@@ -60,6 +60,15 @@ for m in 20260923_000001_agent_rate_limits.sql 20260923_000006_rate_limiter_hard
          20261011050000_broker_vault_cascade.sql; do
   "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
 done
+# LAUNCH READINESS B1 (2026-10-26): the older files that make SECURITY DEFINER functions and are not part of the career
+# list above (referrals, SimpleFIN, Plaid, the action-ledger purge, the exec Vault read), in filename order, as production
+# has them: definer_lockdown.test.sql below then sees every definer function the repo makes, with the grants these files
+# give, and the lockdown (20261026230500, applied by the ledger step, later in file order) must close each one.
+for m in 20260927_000001_referral_program.sql 20260927_000002_simplefin_vault.sql 20260927_000004_simplefin_disconnect.sql \
+         20260927_000005_referral_pending_credit.sql 20260927_000006_plaid_spend_governor.sql \
+         20260928_000009_purge_user_action_ledger.sql 20260928_000010_exec_vault_read.sql; do
+  "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
+done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010120000_chat_lesson_ownership.sql"
 # Idempotent: the agent migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010010000_agent_permissions_ledger.sql"
@@ -197,7 +206,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026060106_career_ingest_runs.sql"
 
 for t in "$HERE"/*.test.sql; do
-  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" || "$t" == "$HERE/career_cloud_hosted_apply.test.sql" ]]; then continue; fi
+  if [[ "$t" == "$HERE/career_apply_jobs.test.sql" || "$t" == "$HERE/career_apply_own.test.sql" || "$t" == "$HERE/career_apply_cards.test.sql" || "$t" == "$HERE/career_apply_card_push.test.sql" || "$t" == "$HERE/career_apply_daily_limit.test.sql" || "$t" == "$HERE/career_apply_questions.test.sql" || "$t" == "$HERE/career_apply_questions_ai_policy.test.sql" || "$t" == "$HERE/career_connector.test.sql" || "$t" == "$HERE/career_events.test.sql" || "$t" == "$HERE/career_resume_tailoring.test.sql" || "$t" == "$HERE/career_voice_mock.test.sql" || "$t" == "$HERE/career_outreach.test.sql" || "$t" == "$HERE/career_brief_digest.test.sql" || "$t" == "$HERE/channel_parity.test.sql" || "$t" == "$HERE/career_mail_erase.test.sql" || "$t" == "$HERE/career_proactive_last_word.test.sql" || "$t" == "$HERE/career_apply_ops.test.sql" || "$t" == "$HERE/career_apply_cloud.test.sql" || "$t" == "$HERE/career_apply_extension.test.sql" || "$t" == "$HERE/career_apply_form_answers.test.sql" || "$t" == "$HERE/career_control_state.test.sql" || "$t" == "$HERE/career_apply_authority.test.sql" || "$t" == "$HERE/career_events_apply_queued.test.sql" || "$t" == "$HERE/career_apply_agent_submit.test.sql" || "$t" == "$HERE/career_apply_agent_contract.test.sql" || "$t" == "$HERE/career_apply_cloud_ask.test.sql" || "$t" == "$HERE/career_apply_cloud_gate_waiver.test.sql" || "$t" == "$HERE/career_apply_message_cards.test.sql" || "$t" == "$HERE/career_batch_approve_exclude.test.sql" || "$t" == "$HERE/career_apply_wanted_candidates.test.sql" || "$t" == "$HERE/career_apply_no_volume_ceiling.test.sql" || "$t" == "$HERE/career_apply_pace_parse.test.sql" || "$t" == "$HERE/career_apply_pace_state.test.sql" || "$t" == "$HERE/career_apply_card_yes_window.test.sql" || "$t" == "$HERE/career_outbox_card_id.test.sql" || "$t" == "$HERE/career_apply_receipt_store.test.sql" || "$t" == "$HERE/career_mail_drafts_sent.test.sql" || "$t" == "$HERE/career_account_memory.test.sql" || "$t" == "$HERE/career_apply_want_guard.test.sql" || "$t" == "$HERE/career_alert_min_fit.test.sql" || "$t" == "$HERE/career_apply_cloud_runner.test.sql" || "$t" == "$HERE/career_cloud_hosted_apply.test.sql" || "$t" == "$HERE/definer_lockdown.test.sql" ]]; then continue; fi
   echo "== $(basename "$t")"
   # -t -A -o /dev/null drops result rows; the "ok" lines arrive as notices.
   "${PSQL[@]}" -t -A -o /dev/null -f "$t" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
@@ -464,4 +473,28 @@ fi
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026230017_career_cloud_hosted_apply.sql"
 echo "== career_cloud_hosted_apply.test.sql (text cards to the cloud behind every switch and cap; hosted preparation limits; the asked-for card shown at once)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/career_cloud_hosted_apply.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+# LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
+# (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
+# no SECURITY DEFINER function anon can run, none without a fixed search_path.
+# Every SECURITY DEFINER function any migration declares (read by scripts/launch/definer-revoke-scan.cjs) exists in this
+# schema, so the lockdown test below covers all of them; a definer-making file the suite does not apply fails here.
+echo "== every definer function a migration declares is built by this suite"
+node "$ROOT/scripts/launch/definer-revoke-scan.cjs" --definer-keys "$ROOT/supabase/migrations" > "$WORK/definer-keys.tsv"
+cat > "$WORK/definer-keys.sql" <<SQL
+create temp table k(file text, sch text, fn text, types text);
+\\copy k from '$WORK/definer-keys.tsv'
+do \$\$
+declare missing text; n int;
+begin
+  select count(*) into n from k;
+  select string_agg(file || ' ' || sch || '.' || fn || '(' || types || ')', '; ' order by file) into missing from k
+  where case when types = '*' then not exists (select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = k.sch and p.proname = k.fn)
+             else to_regprocedure(format('%I.%I(%s)', sch, fn, types)) is null end;
+  if missing is not null then raise exception 'FAIL definer functions a migration declares but this suite never builds: %', missing; end if;
+  raise notice 'ok   all % definer functions the migrations declare exist in the suite''s schema', n;
+end \$\$;
+SQL
+"${PSQL[@]}" -t -A -o /dev/null -f "$WORK/definer-keys.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
+echo "== definer_lockdown.test.sql (the fourteen functions as set live; no definer function anon can run; every one with a search_path)"
+"${PSQL[@]}" -t -A -o /dev/null -f "$HERE/definer_lockdown.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "db tests passed"

@@ -1,0 +1,66 @@
+# Manual, owner-only recovery-recipient addition. No deploys or model calls.
+name: sealed-set-independent-recovery-20261027
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sealed-set-recipient-rewrap
+  cancel-in-progress: false
+jobs:
+  rewrap:
+    if: github.actor == 'srikanthvishnu90-sketch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 77d625fb2f6ce4b5a46470e1b0a5550ed3fe8261
+          persist-credentials: true
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.9.6
+      - name: Validate immutable source and branch head
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "77d625fb2f6ce4b5a46470e1b0a5550ed3fe8261"
+          test "$(git ls-remote origin refs/heads/fix/seal-multi-recipient-20261026 | cut -f1)" = "77d625fb2f6ce4b5a46470e1b0a5550ed3fe8261"
+      - name: Add recovery recipient and verify in memory
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HELDOUT_SEAL_KEY: ${{ secrets.HELDOUT_SEAL_KEY }}
+          HELDOUT_RECOVERY_KEY_20261027: ${{ secrets.HELDOUT_RECOVERY_KEY_20261027 }}
+        run: |
+          set -euo pipefail
+          set +x
+          umask 077
+          deno eval '
+            const { recipientFromSecret, rewrap, open } = await import("./evals/career/sealed/seal.ts");
+            const f = "evals/career/sealed/heldout-sealed.v1.json";
+            const a = JSON.parse(Deno.readTextFileSync(f));
+            const old = a.recipients.find((r) => r.secret_env === "OPENAI_API_KEY");
+            if (!old || !Deno.env.get("OPENAI_API_KEY") || !Deno.env.get("HELDOUT_SEAL_KEY") || !Deno.env.get("HELDOUT_RECOVERY_KEY_20261027")) throw new Error("required recipient or secret missing");
+            if ((await recipientFromSecret(Deno.env.get("OPENAI_API_KEY"))).pub !== old.pub) throw new Error("NOT RUN: original OPENAI_API_KEY no longer matches");
+            console.log("Value-blind original recipient compatibility verified");
+            if(a.items !== 162 || a.sha256 !== "f4c19736b9fe8dd2d2a6ed3a3195b8afe2663ff55f2b42cc468a76e8a3444c35") throw new Error("unexpected sealed set");
+            const b = await rewrap(a, Deno.env, "HELDOUT_RECOVERY_KEY_20261027");
+            for(const k of ["sha256","items","iv","ciphertext","categories"]) if(JSON.stringify(a[k]) !== JSON.stringify(b[k])) throw new Error("encrypted payload changed");
+            for(const r of a.recipients) if(JSON.stringify(b.recipients.find(n => n.secret_env === r.secret_env)) !== JSON.stringify(r)) throw new Error("existing recipient changed");
+            Deno.env.delete("OPENAI_API_KEY"); Deno.env.delete("HELDOUT_SEAL_KEY");
+            const plain = await open(b, {get:(k) => k === "HELDOUT_RECOVERY_KEY_20261027" ? Deno.env.get(k) : undefined});
+            try { if(JSON.parse(new TextDecoder().decode(plain)).items.length !==162) throw new Error("recovery count mismatch"); } finally {plain.fill(0);}
+            Deno.writeTextFileSync(f, JSON.stringify(b,null,1)+"\n");
+            console.log("Verified: encrypted payload unchanged; independent recovery recipient decrypts; no model calls; no plaintext written.");
+          '
+      - name: Commit ciphertext only with non-force branch guard
+        run: |
+          set -euo pipefail
+          f=evals/career/sealed/heldout-sealed.v1.json
+          test "$(git diff --name-only)" = "$f"
+          git config user.name 'seal-recovery[bot]'
+          git config user.email 'seal-recovery[bot]@users.noreply.github.com'
+          git add -- "$f"
+          test "$(git diff --cached --name-only)" = "$f"
+          git commit -m 'chore(seal): add independent recovery recipient, preserve ciphertext'
+          test "$(git ls-remote origin refs/heads/fix/seal-multi-recipient-20261026 | cut -f1)" = "77d625fb2f6ce4b5a46470e1b0a5550ed3fe8261"
+          git push origin HEAD:refs/heads/fix/seal-multi-recipient-20261026

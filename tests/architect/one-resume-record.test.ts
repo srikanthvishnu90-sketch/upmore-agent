@@ -23,6 +23,7 @@
 //   Steps (1) to (5) run with the switch on.
 import assertNode from "node:assert/strict";
 import { pgBinDir, type Pg, startPg } from "../flow/pg.ts";
+import { deleteReply, parseResumeCommand, statusReply } from "../../supabase/functions/_shared/career_resume_record.ts";
 
 const ok = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -364,3 +365,23 @@ Deno.test({ name: "one confirmed resume: entries, readers, change, delete, trick
     await pg.stop();
   }
 } });
+
+// The chat's words for the record: messy phrasings recognised, others left alone, and every reply true to the state.
+Deno.test("one confirmed resume: what the person says, and what they are told", () => {
+  for (const t of ["delete my resume", "Delete my resume pls", "can you remove the resume you have?", "forget my CV", "get rid of my old resume please", "erase my résumé"]) {
+    eq(parseResumeCommand(t), { kind: "delete" }, t);
+  }
+  for (const t of ["what resume do you have?", "which resume will you send", "do you have my resume", "show me my resume on file", "Did you get my resume"]) {
+    eq(parseResumeCommand(t), { kind: "status" }, t);
+  }
+  for (const t of ["here is my resume:\nADA", "delete my account", "tailor my resume for Stripe", "remove Acme from my list", "my resume is attached, delete the old one and use this"]) {
+    eq(parseResumeCommand(t), null, t);
+  }
+  eq(statusReply({ state: "none" }), "I don't have a resume on file for you. Paste your resume here and confirm it when I show you its entries; every application then uses that one.");
+  eq(statusReply({ state: "confirmed", kind: "file", filename: "Ada.pdf", confirmed_at: "2026-10-26T20:00:00Z", file_kept: true }),
+    "The resume on file is the file Ada.pdf you sent and confirmed on 2026-10-26. Every application I prepare uses only it: each one carries that file or a version made from the entries you confirmed in it, and nothing goes out until you approve it. To change it, paste your new resume here and confirm it; to remove it, say \"delete my resume\".");
+  ok(/can't attach it/.test(statusReply({ state: "confirmed", kind: "file", filename: "Ada.pdf", confirmed_at: "2026-10-26", file_kept: false })));
+  eq(deleteReply({ had: true, kind: "file", filename: "Ada.pdf", confirmed_at: "2026-10-26T20:00:00Z", stopped: { cancelled: 2, discarded: 1, being_sent: 1, companies: ["Acme", "Globex"] } }),
+    "Deleted the file Ada.pdf you sent and confirmed on 2026-10-26; I keep no copy of it. 2 approved applications that hadn't gone out were cancelled (Acme, Globex). 1 prepared application was discarded. 1 application was already being sent; one that went out can't be taken back. No application will be prepared or sent until you paste your resume here and confirm it.");
+  eq(deleteReply({ had: false }), "I didn't have a resume on file for you, so there was nothing to delete. No application will be prepared or sent until you paste your resume here and confirm it.");
+});

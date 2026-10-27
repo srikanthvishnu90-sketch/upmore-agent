@@ -24,7 +24,7 @@ const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: '
 const OTHER = HEAD.replace(/^./, (c) => (c === 'a' ? 'b' : 'a'));
 // FEATURE 16: trainee-telegram-link (Telegram's login) ships with the rest, JWT on (trainee-go-live.sh JWT_FNS).
 // 2026-10-26: trainee-inspect (the approval card's inspect and receipt links) ships with the channel webhooks, JWT off.
-const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp', 'trainee-inspect', 'trainee-telegram-link'];
+const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp', 'trainee-inspect', 'career-cloud-runner', 'trainee-telegram-link'];
 
 // Distinctive fakes; none may ever be printed (all labelled fake for tests/no-secrets.test.cjs).
 const FAKE = {

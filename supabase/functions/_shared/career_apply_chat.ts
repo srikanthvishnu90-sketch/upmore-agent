@@ -281,6 +281,11 @@ async function prepareFor(o: { prepare?: (jobIds: string[]) => Promise<PrepareKi
   try { return await o.prepare(ids); } catch { return "failed"; }
 }
 
+// Integration rehearsal: #200's helper, dropped by #194's rewrite of the resume check while #200's callers stayed.
+function prepareRunsNow(o: { prepareOn?: () => boolean }): boolean {
+  if (!o.prepareOn) return true;
+  try { return o.prepareOn() !== false; } catch { return true; }
+}
 const NOTHING_SENT_MANY = (prepares = true) => (prepares
   ? "Nothing is sent and nothing is filled yet: I prepare each one before you ask, from the facts you confirmed and a resume tailored to it; if a form asks something you haven't told me, I'll ask you here."
   : "Nothing is sent and nothing is filled yet: they wait in your queue until the Trainee extension prepares each one on your computer.") +

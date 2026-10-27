@@ -188,6 +188,7 @@ MIGRATIONS=(
   20261026230400_career_kb_postings_recency_index.sql
   20261026230500_definer_execute_lockdown.sql
   20261026235017_career_apply_card_code.sql
+  20261027010000_career_people.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -265,6 +266,7 @@ MIGRATION_MARK=(
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_code_as') and exists (select 1 from pg_proc where proname = 'career_apply_card_push_for' and prosrc like '%APPROVE-CODE%')"
+  "to_regclass('public.career_intro_requests') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

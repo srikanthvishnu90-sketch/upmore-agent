@@ -15,6 +15,7 @@
 import { type AppRow, type ReadApplications, statusAsk, statusReply, supabaseApplications } from "./career_apply_status.ts";
 import { appsFromQueue, appsFromTracker } from "./career_mail_store.ts";
 import { receiptCompanies } from "./career_apply_receipt_read.ts";
+import { supabaseWorkflow, type WorkflowStore, workflowTurn } from "./career_workflow.ts";
 import { type Draft, FOLLOW_UP_DAYS, foldEvents, followUps, mergeApps, sameCompany, type StatusEvent, THANK_YOU_DAYS, type TrackedApp } from "./career_mail.ts";
 
 export const STANDING_INTENT = "career_apply_status"; // the status ask keeps its intent: the queue-only turn's, now with the other records
@@ -25,7 +26,9 @@ export interface DraftRow { draft_key: string; application_ref: string; kind: "f
 // What the reader read, one field per record; a record that failed is null and named in unreadable.
 // receipts (FEATURE 14): the companies with a receipt on record (career_apply_receipts), for the link to it; absent or null: no link.
 export interface StandingRows { jobs: AppRow[] | null; mail: StatusEvent[] | null; tracker: any[] | null; drafts: DraftRow[] | null; read_through?: string | null; receipts?: string[] | null; unreadable: string[] }
-export type ReadStanding = (userId: string) => Promise<StandingRows>;
+// workflow (family: workflows): the reminders and "status?" store, carried on the production reader so the handler's
+// existing standing turn reaches it (career_workflow.ts). Absent (tests' readers): those asks are not answered here.
+export type ReadStanding = ((userId: string) => Promise<StandingRows>) & { workflow?: WorkflowStore };
 // apps: the merged applications (the mail run's mergeApps, then the mail events folded in); tracker: every tracker row as
 // the person told it, unmerged, for the per-employer view.
 // FEATURE 8: sent, the follow-ups the person approved in chat and Trainee sent from their Gmail (state "sent"); never due again.
@@ -52,7 +55,7 @@ export function standingFrom(r: StandingRows, now: number): Standing {
 // The production reader: the four records in one parallel batch; each failure is logged, named and never guessed.
 // deno-lint-ignore no-explicit-any
 export function supabaseStanding(admin: any, read: ReadApplications = supabaseApplications(admin)): ReadStanding {
-  return async (userId) => {
+  const reader: ReadStanding = async (userId) => {
     const unreadable: string[] = [];
     const fail = (name: string) => (e: unknown) => { console.error(`standing: ${name}:`, e instanceof Error ? e.message : String(e)); unreadable.push(name); return null; };
     const q = async <T>(name: string, p: PromiseLike<{ data: any; error: any }>, map: (rows: any[]) => T): Promise<T | null> => {
@@ -70,6 +73,9 @@ export function supabaseStanding(admin: any, read: ReadApplications = supabaseAp
     ]);
     return { jobs, mail, tracker, drafts, read_through: cursor, receipts, unreadable };
   };
+  // CAREER_REMINDER_DELIVERY=on once trainee-deliver runs on a schedule: reminders are queued to be sent; off, kept and listed.
+  reader.workflow = supabaseWorkflow(admin, { deliveryOn: Deno.env.get("CAREER_REMINDER_DELIVERY") === "on" });
+  return reader;
 }
 
 // ------------------------------------------------------------------------------------------------ the asks
@@ -176,6 +182,18 @@ function followupsText(s: Standing): string {
 
 // One chat turn: null when the text is not one of these asks (nothing is read); the one model otherwise.
 export async function standingTurn(o: { message: string; userId: string; now: number; read: ReadStanding }): Promise<{ reply: string; status: string; intent: string } | null> {
+  // Reminders and "status?" first (career_workflow.ts); a store that fails is said, never a guess and never a crash.
+  if (o.read.workflow) {
+    const store = o.read.workflow;
+    const wf = await workflowTurn({ message: o.message, userId: o.userId, now: o.now, store, apps: async () => {
+      const r = await o.read(o.userId);
+      return { jobs: r.jobs, tracker: r.tracker };
+    } }).catch((e) => {
+      console.error("workflow:", e instanceof Error ? e.message : String(e));
+      return { reply: "I couldn't read or save your reminders and status just now, so nothing changed. Ask me again in a minute.", status: "unreadable", intent: "career_reminder_refused" };
+    });
+    if (wf) return wf;
+  }
   const ask = standingAsk(o.message);
   if (!ask) return null;
   let s: Standing;

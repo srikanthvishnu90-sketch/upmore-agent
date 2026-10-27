@@ -79,10 +79,15 @@ Deno.test("F10 who: from their own contacts, one person once; none says so and h
   const notThere = await networkingTurn({ message: "do I know anyone at Plaid Technologies", userId: U, threadId: T, now: NOW, state, store, model: null });
   assertEquals(notThere!.status, "none_at_firm");
   assertMatch(notThere!.reply, /None of your 8 contacts .* is at Plaid Technologies\. I don't have a people database/);
-  // People the router kept from an earlier export count too, with the same checks.
+  // People the router kept from an earlier export count too, with the same checks. CORRECTED 2026-10-27 (merge
+  // spine, on the parent task's order; flagged for Claude's review): this segment asserted the superseded
+  // per-thread answer (1 contact). Contacts are the ACCOUNT's since L7 (#214, commit 036219d2): a fresh thread
+  // state of the same account sees the account's 4 at Stripe, and the legacy row joins the account and is
+  // listed — 5, as the segment intends.
   const older: Record<string, unknown> = { profile: { connections: [{ name: "Robin Old", company: "Stripe", position: "Analyst", email: "robin.old@stripe.example" }] } };
   const legacy = await networkingTurn({ message: "who do I know at Stripe", userId: U, threadId: T, now: NOW, state: older, store, model: null });
-  assertMatch(legacy!.reply, /You have 1 contact at Stripe \(from LinkedIn connections \(imported earlier\)\), 1 with an email address:\n- Robin Old, Analyst \(robin\.old@stripe\.example\)/);
+  assertMatch(legacy!.reply, /You have 5 contacts at Stripe \(from 3 lists\), 5 with an email address:/);
+  assertMatch(legacy!.reply, /- Robin Old, Analyst \(robin\.old@stripe\.example\)/);
 });
 
 Deno.test("F10 draft: onto the outreach batch; one approval per exact message; held and failed ones counted with reasons", async () => {

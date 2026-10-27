@@ -235,11 +235,29 @@ const hourWord = (h: number) => new Intl.DateTimeFormat("en-US", { hour: "numeri
 const LEAD = String.raw`(?:(?:hey|hi|yo|ok(?:ay)?|so|also|and|oh|pls|please|trainee)[,!]?\s+)*(?:(?:can|could|would|will) (?:you|u) (?:please |pls )?|please |pls |i need you to |i want you to |go ahead and )?`;
 const TRIGGER = new RegExp(String.raw`^\s*${LEAD}(?:remind me|set (?:me )?(?:a|up a) reminder|set reminder|add a reminder|make a reminder|ping me|nudge me)\b`, "i");
 export const isReminderAsk = (s: string) => TRIGGER.test(String(s ?? ""));
-// The parts of a longer message: split at commas, semicolons and "and"/"then" before another ask.
+// The parts of a longer message: split at commas, semicolons, sentence boundaries and "and"/"then" before another
+// ask. A sentence boundary counts only before another ask, so "email Dr. Smith" never splits and a decimal never
+// does; without it, "How should I follow up? Remind me Friday …" was one clause no part of which is a reminder ask,
+// and the reminder was never set at all.
 const ACTION = "(?:remind|find|search|look|get|show|tailor|apply|watch|track|draft|write|send|email|message|prep|prepare|set|add|update|make|schedule)";
 export function clausesOf(message: string): string[] {
-  return String(message ?? "").split(new RegExp(String.raw`\s*(?:;|,\s*(?:and\s+|then\s+|and then\s+)?|\s+(?:and then|and|then|also|plus)\s+(?=(?:me\s+)?(?:please\s+)?${ACTION}\b))\s*`, "i"))
+  return String(message ?? "").split(new RegExp(String.raw`\s*(?:;|,\s*(?:and\s+|then\s+|and then\s+)?|[.!?]\s+(?=(?:me\s+)?(?:please\s+)?${ACTION}\b)|\s+(?:and then|and|then|also|plus)\s+(?=(?:me\s+)?(?:please\s+)?${ACTION}\b))\s*`, "i"))
     .map((c) => c.replace(/^[\s,.;:-]+|[\s,.;:!?-]+$/g, "")).filter((c) => c.length > 0);
+}
+// The message's sentences, for the reminder that opens it: a boundary after an abbreviation or an initial
+// ("Dr. Smith", "J. R.") is not one.
+const ABBREV = /^(?:dr|mr|mrs|ms|st|vs|jr|sr|prof|hon|sgt|capt|lt|col|gen|sen|rep|gov)$/i;
+export function sentenceParts(message: string): string[] {
+  const raw = String(message ?? "").replace(/\s+/g, " ").trim();
+  const split = raw.split(/(?<=[.!?])\s+(?=[A-Z"“'(])/);
+  const out: string[] = [];
+  for (const s of split) {
+    const prev = out[out.length - 1];
+    const tail = prev ? /([A-Za-z]+)\.$/.exec(prev.trim()) : null;
+    if (prev && tail && (tail[1].length === 1 || ABBREV.test(tail[1]))) out[out.length - 1] = `${prev} ${s}`;
+    else out.push(s);
+  }
+  return out.map((s) => s.trim()).filter(Boolean);
 }
 export interface ReminderParse { what: string; when: WhenSpec | null; zone: string | null; tooLong: boolean }
 export function reminderParse(clause: string): ReminderParse {
@@ -291,7 +309,20 @@ export function workflowAsk(message: string): WorkflowAsk | null {
   if (zs) { const tz = zoneAnswer(zs[1]) ?? zoneIn(zs[1]); if (tz && /time ?zone|tz| time\b|^ (?:i'?m|i am|we'?re) on /.test(t + " ")) return { kind: "zone_set", tz }; }
   // A message that starts with the ask is one reminder, its "and"s included ("remind me to call Sam and send the deck").
   // A reminder asked after other asks ("find 10 roles, tailor my resume for the top 3, and remind me Friday") is a part.
-  if (isReminderAsk(raw)) return { kind: "remind", parse: reminderParse(raw) };
+  if (isReminderAsk(raw)) {
+    // …unless the reminder is only the message's first sentence: what follows the sentence boundary is other parts,
+    // not more of the reminder's "what" ("Remind me Friday to check the portal. I'm so overwhelmed …" set the
+    // reminder with the whole second sentence buried in its text, and that sentence was never answered). It counts
+    // as split only when the first sentence parses as a reminder with a "what" of its own, or a later sentence is a
+    // question; a fragment that completes the "what" ("Remind me Friday. I need to call Sam") stays one reminder.
+    const sents = sentenceParts(raw);
+    if (sents.length > 1 && isReminderAsk(sents[0])) {
+      const parse = reminderParse(sents[0]);
+      const rest = sents.slice(1);
+      if (parse.what || rest.some((p) => /\?\s*$/.test(p))) return { kind: "remind_part", parse, others: rest };
+    }
+    return { kind: "remind", parse: reminderParse(raw) };
+  }
   const parts = /\b(?:remind me|reminder|ping me|nudge me)\b/i.test(raw) ? clausesOf(raw) : [];
   if (parts.some((p) => isReminderAsk(p))) {
     const i = parts.findIndex((p) => isReminderAsk(p));
@@ -601,6 +632,7 @@ const INTENT_PARTS: [RegExp, RegExp][] = [
   [/^career_watch/, /\b(?:watch|alert|notify|let me know)\b/i],
   [/^career_(?:apply|batch_apply)/, /\bapply\b/i],
   [/^career_(?:track|tracking|apply_status)/, /\b(?:track|applied|status)\b/i],
+  [/^conversation_recall/, /\b(?:discuss|discussed|talk|talked|conversation|recap)\b/i],
 ];
 export async function workflowAfterTurn(o: { message: string; userId: string; now: number; out: { reply: string; intent?: string | null; handler?: string | null }; events: EventStore | null | undefined }): Promise<string | null> {
   if (!o.events || !isReminderAsk(o.message) && !/\bremind me\b/i.test(o.message)) return null;

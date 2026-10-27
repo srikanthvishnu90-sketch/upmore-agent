@@ -62,3 +62,8 @@ export async function admitWebUser(o: { env: AdmissionEnv; rpc: Rpc; personRpc?:
 export const NOT_INVITED_REPLY =
   "Your spot on Trainee hasn't opened yet. We open the waitlist in waves and text you an invite link when yours opens. Open that link to get in.";
 export const ADMISSION_UNAVAILABLE_REPLY = "We couldn't check your access just now. Nothing was saved. Try again in a minute.";
+
+// Whether the database lets this person make applications (trainee_may_act). An error or a thrown call answers no.
+export async function mayAct(rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>, userId: string): Promise<boolean> {
+  try { const r = await rpc("trainee_may_act", { p_user: userId }); return !r.error && r.data === true; } catch { return false; }
+}

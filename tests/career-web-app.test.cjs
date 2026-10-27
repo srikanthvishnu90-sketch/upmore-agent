@@ -70,12 +70,12 @@ test('the home page links to the app on desktop and in the phone menu', () => {
   assert.match(site, /<nav class="mnav" id="mnav"[\s\S]*?<a href="\/app">Sign in<\/a>[\s\S]*?<\/nav>/);
 });
 
-test('the app sends what the server reads: a message within 4,000 characters, a turn key, the same key on a retry', () => {
+test('the app sends what the server reads: text or a resume file, a turn key, the same key on a retry', () => {
   const js = read('web/trainee/app.js');
-  assert.match(read('supabase/functions/agent-chat/handler-career.ts'), /const MAX_MESSAGE_LEN = 4000;/, 'the server cap this app mirrors');
-  assert.match(js, /const MAX_CHARS = 4000;/);
-  assert.match(js, /chatFetch\(\{ message: text, thread_id: thread, turn_key: key \}\)/);
-  assert.match(js, /retry\.addEventListener\('click', \(\) => send\(text, key, mine\)\)/, 'a retry reuses the key');
+  assert.match(js, /const MAX_CHARS = 19400, MAX_FILE = 10 \* 1024 \* 1024;/, 'a whole resume paste and a 10 MB file, as FEATURE 16 reads them; the server decides the rest');
+  assert.match(js, /\.\.\.\(file \? \{ resume_file: file \} : \{\}\)/, 'a file goes whole, as resume_file');
+  assert.match(js, /chatFetch\(\{ message: text, thread_id: thread, turn_key: key, /);
+  assert.match(js, /retry\.addEventListener\('click', \(\) => send\(text, key, mine, file\)\)/, 'a retry reuses the key and the file');
   assert.doesNotMatch(js, /innerHTML|outerHTML|insertAdjacentHTML|document\.write/, 'server text is never written as HTML');
 });
 

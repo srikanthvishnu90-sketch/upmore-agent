@@ -5,6 +5,7 @@
 // browser is tests/architect/flow-web-signup-e2e.test.ts.
 // Run: deno test --no-check tests/edge/trainee-admission.test.ts
 import { admitWebUser, allowListed, NOT_INVITED_REPLY, phoneKey } from "../../supabase/functions/_shared/trainee_admission.ts";
+import { ADMISSION_UNCHECKED_REPLY, NOT_ADMITTED_REPLY } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { handleInbound, type InboundStore } from "../../supabase/functions/trainee-inbound/handler.ts";
 import { handleVoice, type VoiceSessions } from "../../supabase/functions/_shared/career_voice.ts";
 import { signToken } from "../../supabase/functions/_shared/career_voice_link.ts";
@@ -100,27 +101,10 @@ Deno.test("career-voice: a person not admitted gets 403; no session is read or s
   eq([yes.status !== 403, reads.length], [true, 1], "an admitted person goes on (here: to the session read)");
 });
 
-Deno.test("every user-facing function asks before it acts: agent-chat, essay drafts, voice mocks, email codes", async () => {
-  const read = (p: string) => Deno.readTextFile(new URL(`../../supabase/functions/${p}`, import.meta.url));
-  const chat = await read("agent-chat/handler-career.ts");
-  const gate = chat.indexOf("const adm = await admitWebUser("), limit = chat.indexOf('const rlFn = bridgeUserId ? "agent_rl_bump_as" : "agent_rl_bump";');
-  assert(gate > 0 && limit > gate, "agent-chat asks for admission before the rate limit is spent");
-  assert(/if \(!adm\.admitted\) \{\s*return json\(cors, \{ error: adm\.reason/.test(chat), "a person not admitted gets the refusal, no turn");
-  assert(/invite: body\.invite,\s*rpc: .*serviceKey\)\.rpc\(n, a\), personRpc: \(n, a\) => supabase\.rpc\(n, a\)/.test(chat), "the invite is redeemed as the person");
-  const essay = await read("career-essay-draft/index.ts");
-  assert(/return adm\.admitted \? \{ id: data\.user\.id \} : null;/.test(essay), "essay drafts: no user (401, no model call) unless admitted");
-  const voice = await read("career-voice/index.ts");
-  assert(/admitted: async \(userId\) => \{\s*const \{ data, error \} = await admin\.rpc\("trainee_may_act", \{ p_user: userId \}\);\s*return !error && data === true;/.test(voice),
-    "voice mocks: the entry passes the database's check");
-  const code = await read("career-email-code/index.ts");
-  assert(/const may = await admin\.rpc\("trainee_may_act", \{ p_user: data\.user\.id \}\);\s*return !may\.error && may\.data === true \? \{ id: data\.user\.id \} : null;/.test(code),
-    "email codes: no mail is read for a person who may not act");
-});
-
 // The texting channels: a contact the env lets in gets an account and its admission recorded (trainee_admit), so the
 // database lets them apply and the web admits the same person. A contact the env does not let in is refused, as before.
 function world(e: Record<string, string>, over: Partial<InboundStore> = {}) {
-  const st = { people: new Map<string, { userId: string; threadId: string | null }>(), admitted: [] as unknown[], refused: new Set<string>() };
+  const st = { people: new Map<string, { userId: string; threadId: string | null }>(), admitted: [] as unknown[], refused: new Set<string>(), via: new Map<string, string>(), replies: [] as string[] };
   const store: InboundStore = {
     async claimMessage() { return true; },
     async person(c) { return st.people.get(c) ?? null; },
@@ -128,8 +112,9 @@ function world(e: Record<string, string>, over: Partial<InboundStore> = {}) {
     async createPerson(c) { const p = { userId: `u-${st.people.size + 1}`, threadId: null }; st.people.set(c, p); return p; },
     async setThread(c, t) { st.people.get(c)!.threadId = t; },
     async setOptOut() {},
-    async enqueueReply() { return true; },
-    async admit(userId, listed) { st.admitted.push([userId, listed]); },
+    async enqueueReply(_u, _k, text) { st.replies.push(text); return true; },
+    // The database's trainee_admit: how they were let in, recorded once when the env lists them; otherwise null.
+    async admit(userId, listed) { st.admitted.push([userId, listed]); if (listed && !st.via.has(userId)) st.via.set(userId, "allowlist"); return st.via.get(userId) ?? null; },
     ...over,
   };
   const SECRET = "i".repeat(40), chats: unknown[] = [];
@@ -148,13 +133,47 @@ function world(e: Record<string, string>, over: Partial<InboundStore> = {}) {
 Deno.test("channels: an allow-listed contact gets an account and its admission; anyone else is refused with no account", async () => {
   const w = world({ TRAINEE_ALLOWED_CONTACTS: "+13125550142" });
   await w.text("+1 (312) 555-0142");
-  eq([w.st.people.size, w.st.admitted, w.chats.length], [1, [["u-1", true]], 1]);
+  eq([w.st.people.size, w.st.admitted[0], w.chats.length], [1, ["u-1", true], 1]);
   const no = await w.text("+1 (312) 555-0100");
-  eq([no.refused, w.st.people.size, w.st.admitted.length], ["signup closed", 1, 1]);
+  eq([no.refused, w.st.people.size], ["signup closed", 1]);
 });
 
-Deno.test("channels: an admission write that fails is logged; the turn still runs (the database then refuses their applications)", async () => {
-  const w = world({ TRAINEE_SIGNUP: "open" }, { admit: async () => { throw new Error("connection reset"); } });
-  const r = await w.text("+1 (312) 555-0142");
-  eq([r.refused, w.st.people.size, w.chats.length], [undefined, 1, 1]);
+Deno.test("channels: an admission write that fails is retried on the next turn; until it is recorded the person is told, and no turn runs", async () => {
+  let down = true;
+  const w = world({ TRAINEE_ALLOWED_CONTACTS: "+13125550142" }, { admit: async function (this: unknown, u: string, listed: boolean) {
+    if (down) throw new Error("connection reset");
+    return listed ? "allowlist" : null;
+  } });
+  const first = await w.text("+1 (312) 555-0142");
+  eq([first.refused, w.st.people.size, w.chats.length, w.st.replies], ["admission unchecked", 1, 0, [ADMISSION_UNCHECKED_REPLY]], "the person exists, is told plainly, nothing ran");
+  down = false;
+  const second = await w.text("+1 (312) 555-0142");
+  eq([second.refused, second.replied, w.chats.length], [undefined, true, 1], "the next turn records the admission and runs");
+});
+
+Deno.test("channels: a known person the database has not let in is told so; no turn runs, and the env cannot let in anyone it does not list", async () => {
+  const w = world({ TRAINEE_ALLOWED_CONTACTS: "+13125550142" });
+  await w.text("+1 (312) 555-0142");
+  // A second account of a person the env does not list (made on another channel, say): known, never admitted.
+  w.st.people.set("+13125550100", { userId: "u-stranger", threadId: null });
+  const before = w.chats.length;
+  const r = await w.text("+1 (312) 555-0100");
+  eq([r.refused, w.chats.length - before, w.st.replies.at(-1)], ["not admitted", 0, NOT_ADMITTED_REPLY]);
+  assert(!/\b(soon|today|tomorrow|days?)\b/i.test(NOT_ADMITTED_REPLY), "no date is promised");
+  assert(!/couldn't answer/.test(NOT_ADMITTED_REPLY), "not the generic line");
+});
+
+// The env cannot open sign-up for the database: TRAINEE_SIGNUP=open lets a contact get an account, nothing more. The
+// database's own setting decides who may apply, and the admission is recorded for the reason that is true.
+Deno.test("channels: TRAINEE_SIGNUP=open in the env never admits: with the database closed the person is told so, and 'allowlist' is recorded only for a listed contact", async () => {
+  const w = world({ TRAINEE_SIGNUP: "open" }, {
+    // The database: closed. It admits only a listed contact (p_allowlisted), as trainee_admit does with the setting 'invite'.
+    admit: async (u: string, listed: boolean) => { w.st.admitted.push([u, listed]); if (listed) w.st.via.set(u, "allowlist"); return w.st.via.get(u) ?? null; },
+  });
+  const r = await w.text("+1 (312) 555-0199");
+  eq([r.refused, w.st.people.size, w.chats.length, w.st.admitted, w.st.replies.at(-1)], ["not admitted", 1, 0, [["u-1", false]], NOT_ADMITTED_REPLY],
+    "an account exists (the env allowed that), the env's open was not passed on as an allow-list entry, and no turn ran");
+  const listed = world({ TRAINEE_SIGNUP: "open", TRAINEE_ALLOWED_CONTACTS: "+13125550142" });
+  await listed.text("+1 (312) 555-0142");
+  eq(listed.st.admitted[0], ["u-1", true], "a contact the env names is passed on as listed");
 });

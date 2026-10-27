@@ -223,6 +223,7 @@
   // The card under the reply that carries it. Once the card shows its own lines (read from the database and checked
   // against their hashes), the reply's text keeps only its first paragraph, so the answers are not listed twice.
   function mountCard(li, meta) {
+    if (meta && meta.intent === 'career_message_approval') return mountMessageCard(li, meta);
     if (!window.TraineeApplyCard || !TraineeApplyCard.cardIdOf(meta)) return;
     const g = generation;
     TraineeApplyCard.mount(li, meta, { from: (t) => supa.from(t), rpc: (n, a) => supa.rpc(n, a), document, current: () => g === generation })
@@ -234,6 +235,26 @@
         }
         refreshCount();
       }).catch(() => { if (g === generation) { const p = document.createElement('p'); p.textContent = 'This card could not be shown. Nothing was approved.'; p.setAttribute('role', 'alert'); li.appendChild(p); } });
+  }
+  // The other card a reply can carry: an application approval bound to this thread (career_apply_message_cards), read
+  // and approved through its own hash-bound RPCs by the same controller the dashboard uses (src/career-approval-card.js).
+  function mountMessageCard(li, meta) {
+    const id = meta.career_approval_card_id || meta.card_id;
+    if (!window.TraineeApprovalCards || typeof id !== 'string' || !UUID.test(id)) return;
+    const g = generation, uid = session && session.user && session.user.id, th = thread;
+    const call = async (name, args) => { const { data, error } = await supa.rpc(name, args); if (error) throw error; return data; };
+    const box = document.createElement('section'); box.className = 'career-apply-card'; li.appendChild(box);
+    TraineeApprovalCards.createController({
+      testUserId: '', identity: () => uid, thread: () => th,
+      authenticate: async () => { const { data, error } = await supa.auth.getUser(); if (error || !data || !data.user) throw Error('Sign in again to review this approval.'); return data.user.id; },
+      cloudEnabled: async () => (await call('career_apply_message_cloud_enabled_own')) === true,
+      readCard: (cardId) => call('career_apply_message_card_read_own', { p_card: cardId }),
+      approve: ({ card_id, card_hash }) => call('career_apply_message_card_approve_own', { p_card: card_id, p_hash: card_hash }),
+      now: () => Date.now(), document, crypto: window.crypto,
+    }).mount(box, id, { current: () => g === generation }).catch(() => {
+      if (g !== generation) return;
+      box.textContent = 'This approval could not be verified. Nothing was approved.'; box.setAttribute('role', 'alert');
+    });
   }
   function scrollEnd() { const l = $('log').lastElementChild; if (l && l.scrollIntoView) l.scrollIntoView({ block: 'end' }); }
 
@@ -276,22 +297,25 @@
     }
   }
 
-  let attachment = null; // { name, text }
+  // What is added with "Add resume": a text file is read here and sent as the message; any other file (PDF, Word, RTF)
+  // is sent whole as `resume_file` and read by the server (FEATURE 16, career_resume_intake.ts), which answers what it
+  // could read or exactly why it could not. Nothing is cut here.
+  let attachment = null; // { name, text } or { name, file: { data, name, mime, sha256 } }
   let sending = false;
   const newKey = () => 'web_' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^A-Za-z0-9_-]/g, '');
-  async function send(text, key, failedLi) {
+  async function send(text, key, failedLi, file) {
     if (sending) return;
     sending = true;
     const g = generation;
     $('composer-error').textContent = '';
     $('send').disabled = true; $('send').textContent = 'Sending…';
-    const mine = failedLi || bubble('user', text);
+    const mine = failedLi || bubble('user', file ? (text ? text + '\n' : '') + 'Resume: ' + file.name : text);
     if (failedLi) { failedLi.classList.remove('failed'); const why = failedLi.querySelector('.why'); if (why) why.remove(); const r = failedLi.querySelector('.retry'); if (r) r.remove(); }
-    const wait = bubble('assistant', 'Trainee is writing…', 'pending');
+    const wait = bubble('assistant', file ? 'Trainee is reading your resume…' : 'Trainee is writing…', 'pending');
     wait.setAttribute('aria-busy', 'true');
     scrollEnd();
     try {
-      const r = await chatFetch({ message: text, thread_id: thread, turn_key: key });
+      const r = await chatFetch({ message: text, thread_id: thread, turn_key: key, ...(file ? { resume_file: file } : {}) });
       if (g !== generation) return;
       wait.remove();
       if (UUID.test(String(r.thread_id || ''))) { thread = r.thread_id; store.set(THREAD_KEY + session.user.id, thread); }
@@ -307,15 +331,16 @@
       mine.classList.add('failed');
       const why = document.createElement('span'); why.className = 'why';
       // A network failure can lose the answer after the turn ran, so it never says the message was not sent; the retry
-      // carries the same turn key, so it is the same turn either way.
+      // carries the same turn key, so it is the same turn either way. A refusal shows the server's own words.
+      const said = e.body && typeof e.body.reply === 'string' && e.body.reply.trim() ? e.body.reply.trim() : null;
       why.textContent = e.status === 0 ? 'No answer arrived: Trainee couldn\'t be reached. Check your connection, then try again.'
         : e.status === 429 ? 'Not sent: ' + e.message
-        : e.status === 400 ? 'Not sent: ' + (e.body && e.body.error === 'message too long' ? 'this message is too long.' : 'Trainee couldn\'t read this message.')
-        : 'Not sent: Trainee couldn\'t answer just now.';
+        : e.status === 400 ? 'Not sent: ' + (said || (e.body && e.body.error === 'message too long' ? 'this message is too long for one message. Send it in parts.' : e.body && e.body.error === 'message required' && file ? 'Trainee couldn\'t read that file here. Paste the resume text instead.' : 'Trainee couldn\'t read this message.'))
+        : 'Not sent: ' + (said || 'Trainee couldn\'t answer just now.');
       mine.appendChild(why);
       if (e.status !== 400) {
         const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'retry'; retry.textContent = 'Try again';
-        retry.addEventListener('click', () => send(text, key, mine)); // the same turn key: a retry is the same turn, never a second one
+        retry.addEventListener('click', () => send(text, key, mine, file)); // the same turn key: a retry is the same turn, never a second one
         mine.appendChild(retry);
       }
     } finally {
@@ -327,13 +352,14 @@
     ev.preventDefault();
     if (sending) return;
     const typed = $('message').value.trim();
-    let text = typed;
-    if (attachment) text = (typed ? typed + '\n\n' : 'Here is my resume:\n') + attachment.text;
-    if (!text) { $('composer-error').textContent = 'Type a message or add your resume first.'; $('message').focus(); return; }
-    if (text.length > MAX_CHARS) { $('composer-error').textContent = 'This message has ' + text.length.toLocaleString('en-US') + ' characters. Trainee reads up to 4,000 in one message. Send it in parts.'; $('message').focus(); return; }
+    let text = typed, file = null;
+    if (attachment && attachment.file) file = attachment.file;
+    else if (attachment) text = (typed ? typed + '\n\n' : 'Here is my resume:\n') + attachment.text;
+    if (!text && !file) { $('composer-error').textContent = 'Type a message or add your resume first.'; $('message').focus(); return; }
+    if (text.length > MAX_CHARS) { $('composer-error').textContent = 'This message has ' + text.length.toLocaleString('en-US') + ' characters, more than Trainee reads at once (' + MAX_CHARS.toLocaleString('en-US') + '). Send it in parts.'; $('message').focus(); return; }
     $('message').value = ''; autosize();
     clearAttachment();
-    send(text, newKey());
+    send(text, newKey(), undefined, file);
   });
   $('message').addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && window.matchMedia && window.matchMedia('(pointer: fine)').matches) { ev.preventDefault(); $('composer').requestSubmit(); }
@@ -342,26 +368,32 @@
   $('message').addEventListener('input', autosize);
   $('starts').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-say]'); if (b) send(b.dataset.say, newKey()); });
 
-  // agent-chat reads at most 4,000 characters in one message (handler-career.ts MAX_MESSAGE_LEN); a longer file is
-  // refused here with that number, never cut.
-  const MAX_CHARS = 4000;
+  // The most agent-chat takes in one message: a resume pasted whole (FEATURE 16 reads one up to 19,000 characters, plus
+  // the words around it); the server says if a message is too long for what it is. Files up to 10 MB, as the server reads.
+  const MAX_CHARS = 19400, MAX_FILE = 10 * 1024 * 1024;
   function clearAttachment() { attachment = null; $('attached').hidden = true; $('file').value = ''; }
   $('attached-remove').addEventListener('click', () => { clearAttachment(); $('file').focus(); });
+  const b64 = (buf) => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+  const hex = (buf) => Array.from(new Uint8Array(buf), (x) => x.toString(16).padStart(2, '0')).join('');
   $('file').addEventListener('change', async () => {
     const f = $('file').files && $('file').files[0];
     $('composer-error').textContent = '';
     if (!f) return;
     const name = f.name || 'file';
-    if (/\.(pdf|docx?)$/i.test(name) || /pdf|word/.test(f.type || '')) {
-      clearAttachment();
-      $('composer-error').textContent = 'Trainee reads resumes as plain text here. Open your resume, copy the text and paste it in the message box, or save it as a .txt file.';
-      return;
-    }
-    let text = '';
-    try { text = f.size > 1000000 ? '' : (await f.text()).trim(); } catch (e) { text = ''; }
-    if (!text) { clearAttachment(); $('composer-error').textContent = f.size > 1000000 ? 'That file is too large to be a resume.' : 'That file is empty or could not be read.'; return; }
-    if (text.length + 'Here is my resume:\n'.length > MAX_CHARS) { clearAttachment(); $('composer-error').textContent = 'That resume has ' + text.length.toLocaleString('en-US') + ' characters. Trainee reads up to 4,000 in one message, so paste its main sections instead.'; return; }
-    attachment = { name, text };
+    if (f.size > MAX_FILE) { clearAttachment(); $('composer-error').textContent = 'That file is ' + (f.size / (1024 * 1024)).toFixed(1) + ' MB. Trainee reads resume files up to 10 MB.'; return; }
+    if (!f.size) { clearAttachment(); $('composer-error').textContent = 'That file is empty.'; return; }
+    const textFile = /\.(txt|md)$/i.test(name) || /^text\/(plain|markdown)$/.test(f.type || '');
+    try {
+      if (textFile) {
+        const text = (await f.text()).trim();
+        if (!text) { clearAttachment(); $('composer-error').textContent = 'That file is empty.'; return; }
+        attachment = { name, text };
+      } else {
+        const buf = await f.arrayBuffer();
+        const sha = crypto.subtle ? hex(await crypto.subtle.digest('SHA-256', buf)) : null;
+        attachment = { name, file: { data: b64(buf), name, mime: f.type || null, ...(sha ? { sha256: sha } : {}) } };
+      }
+    } catch (e) { clearAttachment(); $('composer-error').textContent = 'That file could not be opened in this browser.'; return; }
     $('attached-name').textContent = 'Resume added: ' + name;
     $('attached').hidden = false;
     $('message').focus();

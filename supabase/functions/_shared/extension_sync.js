@@ -530,7 +530,7 @@ const ExtensionSync = (() => {
   // ---------- the service ----------
   function createExtensionSyncService(deps) {
     const d = deps || {};
-    for (const k of ["portalApply", "track", "verifyToken", "readFlowRows", "findReportByConfirmation", "insertReport"]) {
+    for (const k of ["portalApply", "track", "verifyToken", "readFlowRows", "findReportByConfirmation", "insertReport", "mayAct"]) {
       if (!d[k]) throw coded("EXTENSION_SYNC_NOT_WIRED", `createExtensionSyncService: dependency '${k}' was not wired — the sync refuses rather than inventing a path`);
     }
     const now = () => (typeof d.now === "function" ? d.now() : Date.now());
@@ -541,9 +541,17 @@ const ExtensionSync = (() => {
       return (user && user.id) ? user : null;
     }
 
+    // Launch readiness B7: a person the database has not let in (trainee_may_act) reads nothing and records nothing.
+    // mayAct is required (above); an error or a thrown call answers no.
+    const NOT_ADMITTED = { status: 403, body: { code: "NOT_ADMITTED", message: "This Trainee account isn't let in yet, so the extension has nothing to do for it. Nothing was saved." } };
+    async function mayAct(userId) {
+      try { return (await d.mayAct(userId)) === true; } catch (_) { return false; }
+    }
+
     async function getSavedAnswers(jwt) {
       const user = await authenticate(jwt);
       if (!user) return { status: 401, body: { code: "UNAUTHENTICATED", message: "sign in to the extension with your Trainee account first" } };
+      if (!(await mayAct(user.id))) return NOT_ADMITTED;
       const rows = await d.readFlowRows(user.id);
       const master = masterFromFlowRows(rows);
       if (!master) return { status: 404, body: { code: "PROFILE_NOT_FOUND", message: "no saved answers yet — Trainee builds them from your profile in chat first; there is nothing to sync until then" } };
@@ -554,6 +562,7 @@ const ExtensionSync = (() => {
     async function postSubmissionReport(jwt, body) {
       const user = await authenticate(jwt);
       if (!user) return { status: 401, body: { code: "UNAUTHENTICATED", message: "sign in to the extension with your Trainee account first" } };
+      if (!(await mayAct(user.id))) return NOT_ADMITTED;
       const v = validateSubmissionReport(body, { now: now() });
       if (!v.ok) return { status: 400, body: { code: v.code, message: v.message } };
       const report = v.report;

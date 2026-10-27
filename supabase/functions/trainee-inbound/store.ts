@@ -52,7 +52,9 @@ export function supabaseInboundStore(admin: any): InboundStore {
       return { userId, threadId: null, contact };
     },
     async admit(userId, listed) {
-      must(await admin.rpc("trainee_admit", { p_user: userId, p_allowlisted: listed }), "record the admission");
+      const r = await admin.rpc("trainee_admit", { p_user: userId, p_allowlisted: listed });
+      must(r, "record the admission");
+      return typeof r.data === "string" ? r.data : null;
     },
     async setThread(contact, threadId, userId) {
       // One thread per person: every channel's contact shares it.

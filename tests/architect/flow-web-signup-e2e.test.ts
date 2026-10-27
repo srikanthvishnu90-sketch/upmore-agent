@@ -9,7 +9,8 @@
 //      makes no row (the database refuses them); an invite link they hold is redeemed only through FEATURE WAVES
 //   3. a person whose confirmed phone is on TRAINEE_ALLOWED_CONTACTS signs in by keyboard alone: admitted via the allow-list
 //   4. their first chat turn (agent_messages rows, in their own thread)
-//   5. their resume as a .txt file through "Add resume"; they say it is theirs: every entry confirmed (career_events)
+//   5. "Add resume": a PDF is sent whole (bytes and sha256) and the server's answer shown (FEATURE 16 reads it; without it
+//      the page says the file could not be read and nothing is saved); then the .txt, and "yes": every entry confirmed
 //   6. a posting link queued; the worker's prepare (prepare-ahead.ts) asks only what is unknown; answered in the web chat
 //   7. "show my applications": the card renders under the reply with every exact answer; the Applications tab shows the
 //      same open card
@@ -433,14 +434,13 @@ Deno.test({
         assert(await page.isVisible("#invite-note"), "the page says the invite is ready");
         await signIn(page, INVITEE, false);
         const id = await (async () => { for (let i = 0; i < 50; i++) { const v = await pg.sql(`select id from auth.users where phone = '${INVITEE.auth}'`); if (v) return v; await new Promise((r) => setTimeout(r, 100)); } return ""; })();
+        await page.waitForSelector(waves === "t" ? "#chat:not([hidden])" : "#waiting:not([hidden])");
         assert(chatBodies.some((b) => b.check_access === true && b.invite === TOKEN), "the access check carried the invite");
         if (waves === "t") {
-          await page.waitForSelector("#chat:not([hidden])");
           assertEquals(await pg.sql(`select via from public.trainee_admissions where user_id = '${id}'`), "invite");
           assertEquals(await pg.sql(`select redeemed_user from public.career_invites where phone = '${INVITEE.e164}'`), id, "the invite is bound to this account, once");
         } else {
           // Without FEATURE WAVES there is no invite system here, so the link admits nobody.
-          await page.waitForSelector("#waiting:not([hidden])");
           assertEquals(await pg.sql(`select count(*) from public.trainee_admissions where user_id = '${id}'`), "0", "a token alone admits nobody");
         }
         assertEquals(await page.evaluate(() => sessionStorage.getItem("trainee.invite")), null, "the token is not kept after the check");
@@ -469,11 +469,30 @@ Deno.test({
         assertEquals(await pg.sql(`select content from public.agent_messages where thread_id = '${thread}' and role = 'assistant'`), reply, "the page shows the saved reply");
       });
 
-      await t.step("their resume as a .txt file: refused as a PDF, read as text, shown each entry, confirmed", async () => {
-        await page.setInputFiles("#file", { name: "resume.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4") });
-        assert(/reads resumes as plain text here/.test(await page.textContent("#composer-error") ?? ""), "a PDF is refused with what to do instead");
+      await t.step("their resume as a file: a PDF goes whole (bytes and sha256) and the server's answer is shown; then the .txt, confirmed", async () => {
+        // A damaged PDF: the web sends it as it is; the server (FEATURE 16 when present) reads it and says what it could not.
+        const bad = new TextEncoder().encode("%PDF-1.4 damaged");
+        const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bad)), (x) => x.toString(16).padStart(2, "0")).join("");
+        const msgs0 = await pg.sql(`select count(*) from public.agent_messages m join public.agent_threads t on t.id = m.thread_id where t.user_id = '${PERSON}'`);
+        await page.setInputFiles("#file", { name: "resume.pdf", mimeType: "application/pdf", buffer: Buffer.from(bad) });
+        await page.waitForFunction((t: string) => document.getElementById("attached-name")!.textContent === t, "Resume added: resume.pdf", { timeout: 10000 });
+        await page.click("#send");
+        await page.waitForFunction(() => !document.querySelector("li.msg.pending"), null, { timeout: 60000 });
+        const sent = chatBodies.at(-1);
+        assertEquals([sent.resume_file?.name, sent.resume_file?.mime, sent.resume_file?.sha256, sent.resume_file?.data], ["resume.pdf", "application/pdf", sha, Buffer.from(bad).toString("base64")],
+          "the file went whole, with its sha256");
+        const intake = (() => { try { Deno.statSync(`${ROOT}/supabase/functions/_shared/career_resume_intake.ts`); return true; } catch { return false; } })();
+        if (intake) {
+          const said = await lastReply(page);
+          assert(said.length > 0 && !/Resume saved|on record/i.test(said), `the server says it could not read the file: ${said}`);
+        } else {
+          // Without FEATURE 16 the server reads no files: the page says so, and nothing was saved.
+          await page.locator("li.msg.me.failed .why", { hasText: "Not sent: Trainee couldn't read that file here. Paste the resume text instead." }).waitFor({ timeout: 10000 });
+          assertEquals(await pg.sql(`select count(*) from public.agent_messages m join public.agent_threads t on t.id = m.thread_id where t.user_id = '${PERSON}'`), msgs0, "no turn was saved");
+        }
+        assertEquals(await pg.sql(`select count(*) from public.career_events where user_id = '${PERSON}' and kind = 'fact_confirmed'`), "0", "nothing confirmed from an unreadable file");
         await page.setInputFiles("#file", RESUME_PATH);
-        assertEquals(await page.textContent("#attached-name"), "Resume added: test-resume.txt");
+        await page.waitForFunction((t: string) => document.getElementById("attached-name")!.textContent === t, "Resume added: test-resume.txt", { timeout: 10000 });
         const before = await trainee(page).count();
         await page.click("#send");
         await page.waitForFunction((n: number) => document.querySelectorAll("li.msg.trainee:not(.pending)").length > n && !document.querySelector("li.msg.pending"), before, { timeout: 60000 });
@@ -572,6 +591,12 @@ Deno.test({
         await shot(page, "08-approved-phone");
       });
 
+      await t.step("an application approval card in the thread (career_message_approval) is mounted and fails closed when unverifiable", async () => {
+        const thread = await pg.sql(`select id from public.agent_threads where user_id = '${PERSON}'`);
+        await pg.sql(`insert into public.agent_messages (thread_id, role, content, meta) values ('${thread}', 'assistant', 'Here is the approval for Acme.',
+          '{"intent":"career_message_approval","career_approval_card_id":"00000000-0000-4000-8000-0000000000cc"}'::jsonb)`);
+      });
+
       await t.step("a reload resumes the thread with its history; the answered card says so", async () => {
         const count = await pg.sql(`select count(*) from public.agent_messages m join public.agent_threads t on t.id = m.thread_id where t.user_id = '${PERSON}'`);
         await page.reload();
@@ -579,6 +604,8 @@ Deno.test({
         await page.waitForFunction((n: number) => document.querySelectorAll("#log li.msg").length >= n, Number(count), { timeout: 20000 });
         await page.locator("li.msg.trainee .career-apply-card", { hasText: "This card was already answered." }).first().waitFor({ timeout: 20000 });
         assertEquals(await page.locator("li.msg.trainee .career-apply-card button", { hasText: "Approve" }).count(), 0, "an answered card offers no Approve");
+        await page.locator("li.msg.trainee", { hasText: "Here is the approval for Acme." }).locator(".career-apply-card", { hasText: "Nothing was approved." }).waitFor({ timeout: 20000 });
+        assertEquals(await pg.sql(`select count(*) from public.career_apply_jobs where user_id = '${PERSON}' and company = 'Acme'`), "0", "nothing queued from a card that could not be verified");
       });
 
       await t.step("loading and errors: a slow turn shows that Trainee is writing; a dropped reply keeps the message and retries with the same key", async () => {

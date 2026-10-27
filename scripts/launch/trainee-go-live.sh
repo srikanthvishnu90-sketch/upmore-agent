@@ -165,6 +165,7 @@ MIGRATIONS=(
   20261026100001_career_apply_want_guard.sql
   20261026140000_career_apply_receipt_store.sql
   20261026230000_trainee_web_admission.sql
+  20261026230500_definer_execute_lockdown.sql
   20261026233017_career_invite_waves.sql
 )
 MIGRATION_MARK=(
@@ -234,6 +235,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
   "to_regclass('public.trainee_admissions') is not null and exists (select 1 from pg_proc where proname = 'trainee_may_act')"
+  "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "to_regclass('public.career_invites') is not null and exists (select 1 from pg_proc where proname = 'career_wave_gate_rows') and exists (select 1 from pg_proc where proname = 'career_invite_admit')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

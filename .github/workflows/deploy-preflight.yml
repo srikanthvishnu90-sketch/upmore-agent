@@ -12,7 +12,8 @@ on:
       - ".github/workflows/deploy-preflight.yml"
   # Also on trunk (same paths), so a rehearsal failure that lands on trunk is seen there and not only on the next PR
   # that happens to touch these paths (fe8405586: 5 failures, a stale LIVE_MISSING list, unnoticed until #197). Push runs
-  # only on trunk, as in ci.yml; workflow_dispatch runs both jobs on the chosen ref.
+  # only on trunk, as in ci.yml; workflow_dispatch runs both jobs on the chosen ref. Off a PR the checkout ref is empty, so
+  # actions/checkout takes github.sha; the dry run's HEAD_SHA falls back to github.sha explicitly.
   push:
     branches: [trunk]
     paths:
@@ -32,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with: { node-version: "22.23.3" }
@@ -52,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Go-live's migration step on a live-shaped throwaway Postgres 16
         run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/rehearse_live_migrations.sh

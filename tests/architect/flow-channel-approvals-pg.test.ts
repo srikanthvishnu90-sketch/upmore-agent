@@ -206,8 +206,9 @@ Deno.test({
         return { reply, out, post: r };
       };
       // The inspect link, opened as a phone would (trainee-inspect/handler.ts handleInspect over the same database).
-      const { handleInspect, supabaseInspectDeps } = await import("../../supabase/functions/trainee-inspect/handler.ts");
       const inspect = async (url: string) => {
+        // Imported when first used, so the steps before it run (and fail for their own reasons) on a base without it.
+        const { handleInspect, supabaseInspectDeps } = await import("../../supabase/functions/trainee-inspect/handler.ts");
         const res = await handleInspect(new Request(url), { now: Date.now, ...supabaseInspectDeps(admin) });
         const bytes = new Uint8Array(await res.arrayBuffer());
         return { status: res.status, text: new TextDecoder().decode(bytes), bytes, type: res.headers.get("content-type") };

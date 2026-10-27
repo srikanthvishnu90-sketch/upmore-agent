@@ -40597,16 +40597,22 @@ const CareerRouter = (() => {
     const rt = lc(s(role)).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && w !== "role" && w !== "job" && w !== "position");
     return rt.length > 0 && rt.every((w) => tt.has(w));
   }
-  // ASK-WINS company identity, same normalisation resolveNamedPosting
-  // has always used: a company named in the ask is the company as the
-  // person wrote it ("at Northwind Ledger"), while a pool posting can
-  // carry the "(fictional)" qualifier on its stored name ("Northwind
-  // Ledger (fictional)"). Raw string equality made the named-role
-  // gate refuse its own exact posting (CB-0151 / wedge named-target
-  // regressions, 2026-10-27); stripping the qualifier on BOTH sides
-  // keeps a genuinely different company a mismatch.
+  // ASK-WINS company identity: a company named in the ask is the
+  // company as the person wrote it ("at Northwind Ledger"), while a
+  // pool posting can carry a trailing parenthetical qualifier on its
+  // stored name — "(fictional)" on gauntlet postings, "(TEST)" on
+  // test-board postings ("Quillstone Analytics (TEST)"). The first
+  // version stripped only "(fictional)" (the one resolveNamedPosting
+  // strips), so the gate refused the Quillstone posting while listing
+  // it as its own candidate #1 (f04-tailor-rewrite-handler, CI
+  // 40534552426). Stripping trailing parenthetical qualifiers
+  // generally, on BOTH sides, keeps a genuinely different company a
+  // mismatch while a qualifier never changes identity.
   function askCompanyKey(v) {
-    return lc(s(v || "").replace(/\s*\(fictional\)\s*/gi, " ").replace(/\s+/g, " ").trim());
+    let t = s(v || "");
+    let prev = null;
+    while (prev !== t) { prev = t; t = t.replace(/\s*\([^()]*\)\s*$/, ""); }
+    return lc(t.replace(/\s+/g, " ").trim());
   }
   function askCompanyMatches(postingCompany, namedCompany) {
     if (!namedCompany) return true;

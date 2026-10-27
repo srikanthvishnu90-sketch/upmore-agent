@@ -15855,7 +15855,10 @@ const CareerRouter = (() => {
     return rt.length > 0 && rt.every((w) => tt.has(w));
   }
   function askCompanyKey(v) {
-    return lc(s(v || "").replace(/\s*\(fictional\)\s*/gi, " ").replace(/\s+/g, " ").trim());
+    let t = s(v || "");
+    let prev = null;
+    while (prev !== t) { prev = t; t = t.replace(/\s*\([^()]*\)\s*$/, ""); }
+    return lc(t.replace(/\s+/g, " ").trim());
   }
   function askCompanyMatches(postingCompany, namedCompany) {
     if (!namedCompany) return true;

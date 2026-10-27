@@ -33,6 +33,7 @@ import { prepareBridge, runPrepareRequest } from "../../workers/career-cloud/pre
 import { bridgeQueue, runSandboxJob } from "../../workers/career-cloud/sandbox-runner.ts";
 import { cloudEngineRunner } from "../../workers/career-cloud/worker.ts";
 import { createRunnerHandler } from "../../supabase/functions/_shared/cloud_runner_http.ts";
+import { keepConfirmedResumeForCloud } from "../../supabase/functions/_shared/career_apply_cloud_resume.ts";
 import type { SandboxHost } from "../../supabase/functions/_shared/cloud_runner.ts";
 import { runMail, runReceipts } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { supabaseAlertStore } from "../../supabase/functions/_shared/career_alert_store.ts";
@@ -181,10 +182,17 @@ Deno.test({
         eq(pasted.intent, "career_resume_ingest", pasted.reply);
         const yes = await say("yes, that's my resume");
         eq([yes.intent, yes.resultStatus], ["career_resume_ingest", "completed"], yes.reply);
-        // Setup (named): the Telegram contact linked to this thread (trainee-telegram does this at /start), and the
-        // resume file they sent kept for the cloud (the channel's file upload; career_apply_cloud_resume_put_for).
+        // Setup (named): the Telegram contact linked to this thread (trainee-telegram does this at /start). The
+        // confirmed resume file is kept for the cloud through the production keep (career_apply_cloud_resume.ts)
+        // over this test's pg connection — the same put_for call the confirm seam makes, verified by its hash,
+        // not a raw SQL stand-in.
         await q1(`insert into public.channel_contacts (contact, user_id, thread_id, last_inbound_at, created_at) values ('tg:${CHAT}', '${PERSON}', '${chat.thread()}', now(), now())`);
-        eq(await q1(`select public.career_apply_cloud_resume_put_for('${PERSON}', '${FILE_NAME}', '${b64(FILE)}')`), FILE_SHA);
+        const attach = await keepConfirmedResumeForCloud({
+          async put(userId, filename, b64v) { return await q1(`select public.career_apply_cloud_resume_put_for('${userId}', '${filename}', '${b64v}')`); },
+          async kept(userId) { const raw = await q1(`select public.career_apply_cloud_resume_kept_for('${userId}')`); return raw ? JSON.parse(raw) : null; },
+        }, { userId: PERSON, file: { filename: FILE_NAME, bytes: FILE } });
+        eq(attach.kept, true);
+        eq(attach.sha256, FILE_SHA);
         eq(await q1(`select public.channel_target('${PERSON}', null)`), `tg:${CHAT}`);
       });
 

@@ -37142,6 +37142,25 @@ const CareerRouter = (() => {
     // what you changed" answers from the record instead of falling
     // back (the battery's follow-up died on the generic fallback).
     try { const tm = threadMirrorForWrite(ctx); if (tm) tm.tailor = { company: company || null, title: titleLine, jobId: jobId || null, diff: tailored.diff || null, gaps, at: new Date(nowOf(ctx)).toISOString() }; } catch { /* the artifact itself stands */ }
+    // FAMILY MATERIALS (AM-01, 2026-10-27): every tailored resume becomes a VERSION on the thread record — the
+    // document itself (header, sections AND the flat line list, stored as the tailor made it: the flat list is
+    // NOT derivable from the sections, which also carry uncited note/gap lines the flat list omits, and the
+    // audit reads the flat list), what it was cut against, and which version is current. "Remove the GPA",
+    // "shorter" and "undo that" (handleMaterialEdit) work on this stack: an edit pushes a new version, undo
+    // walks the pointer back. Only the newest few are kept — the stack is a working record, not an archive.
+    try {
+      const tmv = threadMirrorForWrite(ctx);
+      if (tmv && tailored.resume) {
+        const mv = (tmv.materials && typeof tmv.materials === "object" && !Array.isArray(tmv.materials)) ? tmv.materials : (tmv.materials = { versions: [], current: -1 });
+        const doc = tailored.resume;
+        mv.versions = [...(Array.isArray(mv.versions) ? mv.versions : []).filter((v) => v && v.doc && Array.isArray(v.doc.sections)), {
+          versionId: artifact.versionId || null, kind: "resume", company: company || null, title: titleLine, jobId: jobId || null,
+          jd: jdText, posting: posting ? { title: posting.title || null, company: posting.company || null } : null,
+          doc: { header: doc.header || null, family: doc.family || null, sections: doc.sections || [], lines: Array.isArray(doc.lines) ? doc.lines : [] },
+        }].slice(-5);
+        mv.current = mv.versions.length - 1;
+      }
+    } catch { /* the artifact itself stands */ }
     const reply = compose({ headline: headlineOverride || `Your resume is tailored for ${titleLine}.`, facts, nextStep });
     // FEATURE 4 (DIAGNOSIS 2.2): the assembled document, the posting text it was cut against and the posting's name ride
     // the result (never the reply, never the snapshot), so the host can reword its bullets under the truth audit
@@ -38136,7 +38155,7 @@ const CareerRouter = (() => {
   // resume to the recruiter") is never a delivery ask, and neither is
   // the wave itself ("send the first wave" names no document).
   function isDocumentDeliveryAsk(t) {
-    if (!/\b(resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/.test(t)) return false;
+    if (!/\b(resume|cv|cover letter|packet|brief|pdf|docx|word doc|file|document)\b/.test(t)) return false;
     if (/\b(send|email|mail|forward)\b[^.?!]*\bto (the |my |a |an |that |this )?(recruiter|hiring|manager|team|company|firm|employer)\b/.test(t)) return false;
     if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(t)) return false;
     // A NAMED recipient is a third party too: "send Alex my resume"
@@ -38149,7 +38168,11 @@ const CareerRouter = (() => {
     if (/\b(send|email|mail|forward)\b[^.?!]*\bto\s+(?!me\b|this\b)[a-z]/.test(t)) return false;
     return /\b(send|give|share|attach|drop|post|text|email)\b[^.?!]*\b(me|here)\b/.test(t)
       || /\bin this chat\b/.test(t)
-      || /\b(send|give|share|attach)\s+(me\s+)?(my|the|that|this)\s+(resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/.test(t);
+      || /\b(send|give|share|attach)\s+(me\s+)?(my|the|that|this)\s+(resume|cv|cover letter|packet|brief|pdf|docx|file|document)\b/.test(t)
+      // AM-03 (2026-10-27): "can I get it as a word doc" is a delivery ask —
+      // a get/download verb with an explicit file format named. It used to
+      // fall to the catch-all.
+      || /\b(get|download)\b[^.?!]*\b(word doc|docx)\b/.test(t);
   }
   function handleDocumentDelivery(text, ctx) {
     const t = lc(text);
@@ -38165,9 +38188,21 @@ const CareerRouter = (() => {
     const profile = ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
     const stash = profile && Array.isArray(profile._careerRouterArtifacts) ? profile._careerRouterArtifacts : [];
     let art = null;
-    for (let i = stash.length - 1; i >= 0; i--) {
-      const a = stash[i];
-      if (a && a.pdf && typeof a.pdf.base64 === "string" && a.pdf.base64) { art = a; break; }
+    // The CURRENT version's file is the delivery target (after an undo the
+    // newest stash entry is the version that was undone away from); fall
+    // back to the most recent byte-carrying artifact.
+    const curMat = materialStateOf(ctx);
+    if (curMat && curMat.version.versionId) {
+      for (let i = stash.length - 1; i >= 0; i--) {
+        const a = stash[i];
+        if (a && a.versionId === curMat.version.versionId && ((a.pdf && typeof a.pdf.base64 === "string" && a.pdf.base64) || (a.docx && typeof a.docx.base64 === "string" && a.docx.base64))) { art = a; break; }
+      }
+    }
+    if (!art) {
+      for (let i = stash.length - 1; i >= 0; i--) {
+        const a = stash[i];
+        if (a && ((a.pdf && typeof a.pdf.base64 === "string" && a.pdf.base64) || (a.docx && typeof a.docx.base64 === "string" && a.docx.base64))) { art = a; break; }
+      }
     }
     if (!art) {
       // No byte-carrying document exists on this thread: say exactly
@@ -38181,6 +38216,29 @@ const CareerRouter = (() => {
       });
       return { intent: "career_document_delivery", reply, resultStatus: "awaiting_user", sends: 0, documents: [] };
     }
+    // AM-03 (2026-10-27): an ask that names the Word file gets the DOCX
+    // itself — the stash artifact carries it (every render produces both
+    // files). Deferring to "the application packet" while holding the file
+    // was the old behaviour; the deferral line below now stands only when
+    // no DOCX bytes exist.
+    const hasPdf = !!(art.pdf && typeof art.pdf.base64 === "string" && art.pdf.base64);
+    const hasDocx = !!(art.docx && typeof art.docx.base64 === "string" && art.docx.base64);
+    if (hasDocx && (!hasPdf || ((/\bdocx\b/.test(t) || /\bword\b/.test(t)) && !/\bpdf\b/.test(t)))) {
+      const ddoc = {
+        kind: "document", format: "docx",
+        filename: typeof art.docx.filename === "string" && art.docx.filename ? art.docx.filename : "Resume.docx",
+        mime: typeof art.docx.contentType === "string" && art.docx.contentType ? art.docx.contentType : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        base64: art.docx.base64,
+        sha256: typeof art.docx.sha256 === "string" ? art.docx.sha256 : null,
+      };
+      const forLineD = art.company ? ` for ${art.company}` : "";
+      const reply = compose({
+        headline: `Your tailored resume${forLineD} — the Word file (DOCX) is attached to this message.`,
+        facts: [`Document: ${ddoc.filename} — the tailored cut${forLineD} in Word format, rendered from your confirmed facts.`],
+        nextStep: "Say \"send the PDF\" if you want that file too.",
+      });
+      return { intent: "career_document_delivery", reply, resultStatus: "prepared", sends: 0, documents: [ddoc] };
+    }
     const doc = {
       kind: "document", format: "pdf",
       filename: typeof art.pdf.filename === "string" && art.pdf.filename ? art.pdf.filename : "Resume.pdf",
@@ -38190,13 +38248,163 @@ const CareerRouter = (() => {
     };
     const forLine = art.company ? ` for ${art.company}` : "";
     const facts = [`Document: ${doc.filename} — the tailored cut${forLine}, rendered from your confirmed facts.`];
-    if (/\bdocx\b/.test(t) && !/\bpdf\b/.test(t)) facts.push("You asked for the DOCX — the file I can send in this chat is the PDF, attached; the DOCX renders with the application packet.");
+    if (/\bdocx\b/.test(t) && !/\bpdf\b/.test(t) && !hasDocx) facts.push("You asked for the DOCX — the file I can send in this chat is the PDF, attached; the DOCX renders with the application packet.");
     const reply = compose({
       headline: `Your tailored resume${forLine} — the PDF is attached to this message.`,
       facts,
       nextStep: "Want a different cut for another role, or the packet prepared next?",
     });
     return { intent: "career_document_delivery", reply, resultStatus: "prepared", sends: 0, documents: [doc] };
+  }
+  // ── FAMILY MATERIALS — EDIT AND VERSION TURNS (AM-01, 2026-10-27) ──────
+  // Root cause of the pending steps: a tailored resume was a dead end. The
+  // artifact went onto the profile stash and the files rode the tailor turn,
+  // but no turn could work ON that version — "remove the GPA", "shorter" and
+  // "undo that" fell to the catch-all, because nothing kept the document
+  // itself anywhere a later turn could reach. handleTailor now records each
+  // tailored document as a version on the thread record (mir.materials);
+  // these turns edit THAT document deterministically — clauses removed or
+  // lines dropped, never words authored — re-audit it against the confirmed
+  // facts, and return a career_tailor-shaped result so the host renders and
+  // attaches the employer files exactly as it does for a fresh tailoring.
+  // An edit pushes a NEW version (truncating any redo tail); "undo that"
+  // walks the pointer back and re-delivers the earlier version's own saved
+  // file, byte-for-byte.
+  function materialStateOf(ctx) {
+    const mir = threadMirrorOf(ctx);
+    const mv = mir && mir.materials && typeof mir.materials === "object" && !Array.isArray(mir.materials) ? mir.materials : null;
+    if (!mv || !Array.isArray(mv.versions) || !mv.versions.length) return null;
+    const cur = (typeof mv.current === "number" && mv.current >= 0 && mv.current < mv.versions.length) ? mv.current : mv.versions.length - 1;
+    const version = mv.versions[cur];
+    if (!version || version.kind !== "resume" || !version.doc || !Array.isArray(version.doc.sections)) return null;
+    return { mv, cur, version };
+  }
+  function cloneMaterialDoc(doc) {
+    const out = JSON.parse(JSON.stringify(doc || {}));
+    out.sections = Array.isArray(out.sections) ? out.sections : [];
+    out.lines = Array.isArray(out.lines) ? out.lines : [];
+    return out;
+  }
+  // One line-run under the "shorter" rule: every entry keeps its FIRST
+  // bullet, later bullets drop. Used for a section's lines and, per
+  // section-run, for the flat line list, so both stay in step.
+  function shortenLineRun(lines) {
+    const kept = [];
+    let bulletsInGroup = 0;
+    for (const l of (Array.isArray(lines) ? lines : [])) {
+      if (!l || typeof l !== "object") continue;
+      if (l.type === "entry") bulletsInGroup = 0;
+      else if (l.type === "bullet") { bulletsInGroup += 1; if (bulletsInGroup > 1) continue; }
+      kept.push(l);
+    }
+    return kept;
+  }
+  // The GPA clause comes OUT of the line that carries it ("...Computer
+  // Science, GPA 3.6, expected June 2028" → "...Computer Science, expected
+  // June 2028"). Only the clause and its punctuation go; the person's facts
+  // on the profile are never touched — the edit lives in the version only.
+  function stripGpaClause(text) {
+    let out = String(text || "");
+    if (!/\bgpa\b/i.test(out)) return out;
+    out = out.replace(/\s*\(\s*gpa\s*:?\s*\d+(?:\.\d+)?\s*(?:\/\s*\d+(?:\.\d+)?)?\s*\)/gi, "");
+    out = out.replace(/,?\s*\bgpa\s*:?\s*\d+(?:\.\d+)?\s*(?:\/\s*\d+(?:\.\d+)?)?/gi, "");
+    out = out.replace(/\s{2,}/g, " ").replace(/\s+([,.;:])/g, "$1").replace(/,\s*,/g, ",").replace(/^[\s,;:.-]+/, "").replace(/[\s,;]+$/, "").trim();
+    return out;
+  }
+  // "Shorter" keeps every entry and its FIRST bullet and drops the later
+  // bullets — a strict subset of the version's own lines, nothing reworded.
+  function shortenMaterialSections(sections) {
+    return (Array.isArray(sections) ? sections : []).map((sec) => ({ ...sec, lines: shortenLineRun(sec && sec.lines) })).filter((sec) => sec.lines.length);
+  }
+  function shortenMaterialLines(lines) {
+    const out = [];
+    let run = [];
+    let runSection = null;
+    const flush = () => { out.push(...shortenLineRun(run)); run = []; };
+    for (const l of (Array.isArray(lines) ? lines : [])) {
+      const secOf = l && typeof l === "object" ? l.section : null;
+      if (run.length && secOf !== runSection) flush();
+      runSection = secOf;
+      run.push(l);
+    }
+    flush();
+    return out;
+  }
+  function materialEditResult(ctx, state, newDoc, headline, changeFact) {
+    const profile = ctx.profile;
+    const blocked = (why) => ({ intent: "career_material_edit", reply: compose({ headline: why, facts: [], nextStep: "The version you have stands — try a smaller edit, or ask for a fresh tailoring." }), resultStatus: "blocked" });
+    if (!profile || !Tailor || typeof Tailor.auditResume !== "function" || typeof Tailor.render !== "function") return blocked("I cannot re-render that version in this build, so nothing was changed.");
+    const audit = Tailor.auditResume(newDoc, profile);
+    if (!audit || audit.ok !== true) return blocked("I did not make that edit — the changed lines would no longer trace to your confirmed facts.");
+    const rendered = Tailor.render(newDoc, { profile });
+    if (!rendered || rendered.ok === false || !rendered.pdf) return blocked("I did not make that edit — the new version would not render.");
+    const versionId = "resume-v-edit-" + sha256(rendered.text || "").slice(0, 10);
+    const artifact = { kind: "tailored_resume", format: "text", text: rendered.text, markdown: rendered.markdown, pdf: rendered.pdf, sha256: sha256(rendered.text || ""), jobId: state.version.jobId || null, company: state.version.company || null, versionId };
+    if (!Array.isArray(profile._careerRouterArtifacts)) profile._careerRouterArtifacts = [];
+    profile._careerRouterArtifacts.push(artifact);
+    try {
+      const mir = threadMirrorForWrite(ctx);
+      if (mir) {
+        const mv = state.mv;
+        const keep = (Array.isArray(mv.versions) ? mv.versions : []).slice(0, state.cur + 1);
+        keep.push({ versionId, kind: "resume", company: state.version.company || null, title: state.version.title || null, jobId: state.version.jobId || null, jd: state.version.jd || null, posting: state.version.posting || null, doc: { header: newDoc.header || null, family: newDoc.family || null, sections: newDoc.sections, lines: newDoc.lines } });
+        mv.versions = keep.slice(-5);
+        mv.current = mv.versions.length - 1;
+      }
+    } catch { /* the artifact itself stands */ }
+    const reply = compose({ headline,
+      facts: [changeFact, "Saved as PDF and DOCX files for your review — they ride this message."],
+      nextStep: "Say \"undo that\" to go back to the version before this edit, or name the next edit." });
+    return { intent: "career_tailor", reply, resultStatus: "prepared", artifact, gaps: [], tailorDoc: newDoc, tailorJd: state.version.jd || null, tailorPosting: state.version.posting || null };
+  }
+  function handleMaterialEdit(text, ctx) {
+    const state = materialStateOf(ctx);
+    if (!state) return null;
+    const t = lc(text);
+    const { mv, cur, version } = state;
+    const place = version.company ? `the ${s(version.company)} version` : "the current version";
+    // UNDO — back one version, delivering that version's own saved file.
+    if (/^\s*(undo|revert)(\s+(that|it|this))?\s*[.!]?\s*$/.test(t) || /\bundo that\b/.test(t) || (/\b(previous|earlier) version\b/.test(t) && /\b(back|restore|revert|undo|return)\b/.test(t))) {
+      if (cur <= 0) return { intent: "career_material_edit", reply: compose({ headline: `There is only the one version of ${place} on the record — nothing earlier to go back to.`, facts: [], nextStep: "Name an edit, or ask for a fresh tailoring." }), resultStatus: "answered" };
+      const target = mv.versions[cur - 1];
+      mv.current = cur - 1;
+      const stash = ctx.profile && Array.isArray(ctx.profile._careerRouterArtifacts) ? ctx.profile._careerRouterArtifacts : [];
+      const art = [...stash].reverse().find((a) => a && a.versionId === target.versionId && a.pdf && typeof a.pdf.base64 === "string");
+      if (!art) return { intent: "career_material_edit", reply: compose({ headline: `The earlier version of ${place} is on the record, but its saved file is not on this conversation, so I will not pretend to re-send it.`, facts: [], nextStep: "Ask me to tailor it again and the files will ride that turn." }), resultStatus: "answered" };
+      const doc = { format: "pdf", filename: art.pdf.filename || "Resume.pdf", mime: "application/pdf", base64: art.pdf.base64, sha256: art.pdf.sha256 };
+      const reply = compose({
+        headline: `Back to the version before the last edit — ${place}, as it was saved.`,
+        facts: [`Document: ${doc.filename} — the earlier version's own file, attached byte-for-byte; nothing was re-rendered.`],
+        nextStep: "Edits from here work on this version." });
+      return { intent: "career_document_delivery", reply, resultStatus: "answered", documents: [doc] };
+    }
+    // REMOVE THE GPA — the clause comes out of the version, nowhere else.
+    if (/\bgpa\b/.test(t) && (/\b(remove|drop|delete|cut|strip)\b/.test(t) || /\btake\b[^.?!]*\bout\b/.test(t))) {
+      const doc = cloneMaterialDoc(version.doc);
+      let changed = 0;
+      for (const sec of doc.sections) {
+        const kept = [];
+        for (const l of (sec && Array.isArray(sec.lines) ? sec.lines : [])) {
+          if (l && typeof l.text === "string" && /\bgpa\b/i.test(l.text)) { changed += 1; const nt = stripGpaClause(l.text); if (nt) kept.push({ ...l, text: nt }); }
+          else kept.push(l);
+        }
+        sec.lines = kept;
+      }
+      doc.sections = doc.sections.filter((sec) => sec.lines.length);
+      doc.lines = doc.lines.map((l) => (l && typeof l.text === "string" && /\bgpa\b/i.test(l.text)) ? { ...l, text: stripGpaClause(l.text) } : l).filter((l) => l && typeof l.text === "string" && l.text.trim());
+      if (!changed) return { intent: "career_material_edit", reply: compose({ headline: `There is no GPA on ${place} — nothing to remove.`, facts: [], nextStep: "Name another edit, or ask for the files again." }), resultStatus: "answered" };
+      return materialEditResult(ctx, state, doc, `The GPA is off ${place}.`, "The GPA clause came out of the education line — every other line is unchanged and still traces to your confirmed facts. Your profile facts were not touched; the edit lives in this version only.");
+    }
+    // SHORTER — first bullet per entry, the rest stays in the longer version.
+    if (/^\s*(make it\s+)?shorter\b/.test(t) || /\bshorten\b/.test(t) || /\ba shorter (version|one|resume|copy)\b/.test(t)) {
+      const doc = cloneMaterialDoc(version.doc);
+      const before = doc.lines.length;
+      doc.sections = shortenMaterialSections(doc.sections);
+      doc.lines = shortenMaterialLines(doc.lines);
+      if (doc.lines.length >= before) return { intent: "career_material_edit", reply: compose({ headline: `${place.charAt(0).toUpperCase() + place.slice(1)} is already down to one bullet per entry — a shorter cut would have to drop whole entries.`, facts: [], nextStep: "Name an entry to drop, or keep this cut." }), resultStatus: "answered" };
+      return materialEditResult(ctx, state, doc, `A shorter cut of ${place}.`, "Each entry keeps its first bullet and the later bullets are held back — no line was reworded, and the fuller version stays on the record.");
+    }
+    return null;
   }
   // V240 LIVE-FIX (probe j): the resume PASTE itself. The tailor's
   // own reply tells the user "Paste your resume … and the tailored
@@ -47977,6 +48185,11 @@ const CareerRouter = (() => {
     // with a list verdict; the goal itself was never stored).
     const goalTurn = handleGoalFrame(text, c);
     if (goalTurn) return goalTurn;
+    // CONTACT STATEMENT (AM-03): the person's own "my name is… / my email
+    // is…" is a record write, claimed beside the other record frames —
+    // it used to fall to the catch-all and the basics were never set.
+    const contactStmt = handleContactStatement(text, c);
+    if (contactStmt) return contactStmt;
     // BULLET LOOP (spec3 section 5): a pending bullet revision owns
     // its follow-ups (the user's metric, the acceptance) ahead of
     // the ingest confirmation — "yes, use that version" names the
@@ -48207,6 +48420,13 @@ const CareerRouter = (() => {
       if (ct) return ct;
       const pr2 = handleProductRules(text, c);
       if (pr2) return pr2;
+      // FAMILY MATERIALS (AM-01): edit/version turns over the current
+      // tailored version — after the draft-surgery claims above have
+      // stood down (a standing draft keeps its own "shorter"), before
+      // document delivery (an edit produces a new file; it is not a
+      // re-send of the old one).
+      const me = handleMaterialEdit(text, c);
+      if (me) return me;
       const dd = handleDocumentDelivery(text, c);
       if (dd) return dd;
       const sa = handleSendAttempt(text, c);
@@ -50169,6 +50389,42 @@ const CareerRouter = (() => {
   // fall-through is unchanged), and a declaration shape under a
   // question is not claimed here (capture's assertion gate has
   // already recorded nothing from it — BUG-169 discipline).
+  // CONTACT STATEMENT (AM-03, 2026-10-27): "my name is X and my email is Y"
+  // is the person stating their own contact line — an assertion-only record
+  // write of exactly what they typed, onto profile.basics. Root cause of the
+  // live Resume_Resume.pdf: nothing ever put the person's name/email/phone
+  // on the profile (the resume ingest records facts but not the header
+  // basics), so the tailor rendered files with no contact line and a
+  // placeholder filename, and module 123's application path refuses
+  // (no_contact) for the same reason. The claim is narrow on purpose: a
+  // short statement turn (never a pasted document), no question mark, and
+  // only the fields actually stated are written.
+  function handleContactStatement(text, ctx) {
+    const raw = String(text || "");
+    if (!raw || raw.length > 300 || raw.includes("?")) return null;
+    const profile = ctx && ctx.profile && typeof ctx.profile === "object" ? ctx.profile : null;
+    if (!profile) return null;
+    let name = null, email = null, phone = null;
+    const nm = raw.match(/my name is\s+([A-Za-z][A-Za-z'’.-]*(?:\s+[A-Za-z][A-Za-z'’.-]*){0,3})/i);
+    if (nm) {
+      const cand = nm[1].split(/\s+and\s+/i)[0].replace(/[\s.,;:]+$/, "").trim();
+      if (cand && cand.split(/\s+/).length <= 4) name = cand;
+    }
+    const em = raw.match(/my e-?mail(?:\s+address)?\s*(?:is|:)?\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/i);
+    if (em) email = em[1];
+    const ph = raw.match(/my (?:phone|number)(?:\s+number)?\s*(?:is|:)?\s*(\+?\(?\d[\d\s().-]{6,}\d)/i);
+    if (ph) phone = ph[1].replace(/\s+$/, "");
+    if (!name && !email && !phone) return null;
+    if (!profile.basics || typeof profile.basics !== "object") profile.basics = { name: null, email: null, phone: null, location: null, links: {} };
+    const recorded = [];
+    if (name) { profile.basics.name = name; recorded.push(name); }
+    if (email) { profile.basics.email = email; recorded.push(email); }
+    if (phone) { profile.basics.phone = phone; recorded.push(phone); }
+    return { intent: "career_contact_record", reply: compose({
+      headline: "Recorded — that contact line is on your record now.",
+      facts: [`Contact: ${recorded.join(" · ")} — it goes at the top of your resume files.`],
+      nextStep: "Tailor your resume for a role and the files will carry that line." }), resultStatus: "completed" };
+  }
   function handleGoalFrame(text, ctx) {
     const t = lc(text);
     const goal = statedFactsOf(ctx).find((f) => f.kind === "goal");

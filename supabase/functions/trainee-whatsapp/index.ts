@@ -14,6 +14,8 @@ serve((req) => {
   const deliverNow = deliverer(admin, Deno.env);
   return handleWhatsApp(req, {
     env: Deno.env, now: Date.now, store: () => supabaseInboundStore(admin), chat: chatThroughAgent(url, key),
+    // FEATURE 16: a contact who texted STOP gets no document fetched.
+    optedOut: async (contact) => (await admin.rpc("channel_opted_out", { p_contact: contact })).data === true,
     // Everything due for the person, oldest first: what waited for the window goes out before the answer.
     deliver: (a) => deliverNow({ userId: a.userId, key: a.key, now: a.now, wholeUser: true }),
   });

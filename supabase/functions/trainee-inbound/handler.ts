@@ -10,6 +10,9 @@ import { equalSecret } from "../_shared/message_service.ts";
 import type { Send } from "../_shared/channel.ts";
 import { loopMessageAdapter } from "../_shared/loopmessage_adapter.ts";
 import { runInbound, type InboundStore } from "../_shared/channel_inbound.ts";
+import type { InboundUpload } from "../_shared/channel_adapters.ts";
+import type { SmsInboundMessage } from "../_shared/loopmessage_adapter.ts";
+import { mediaHosts, readSmsAttachments } from "../_shared/sms_media.ts";
 
 export { CHAT_DOWN_REPLY, SIGNUP_CLOSED_REPLY, signupAllows, turnKeyFor } from "../_shared/channel_inbound.ts";
 export type { InboundStore, Person } from "../_shared/channel_inbound.ts";
@@ -18,7 +21,12 @@ export interface InboundDeps {
   now: () => number;
   store: () => InboundStore;
   send: (apiKey: string) => Send; // channel commands and the signup refusal go straight out: no account, no outbox row
-  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string }) => Promise<{ status: number; reply: string; threadId: string | null }>;
+  chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; file?: InboundUpload | null }) => Promise<{ status: number; reply: string; threadId: string | null }>;
+  // FEATURE 16 (a resume sent as a text attachment): the fetch for attachment addresses (default: the runtime's), and whether a
+  // contact has texted STOP. The hosts an attachment may come from are LOOPMESSAGE_MEDIA_HOSTS (exact names; unset: none).
+  mediaFetch?: typeof fetch;
+  mediaTimeoutMs?: number;
+  optedOut?: (contact: string) => Promise<boolean>;
   deliverReply: (a: { userId: string; key: string; apiKey: string; now: number }) => Promise<void>;
 }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -38,8 +46,18 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
   const msg = parsed.messages[0];
   if (!msg) return json({ ok: true, ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const send = d.send(apiKey);
+  // FEATURE 16: attachments. A contact who texted STOP gets nothing fetched and nothing run. Otherwise the turn is the core's
+  // (message id claimed once, STOP/START, sign-up rules, the person's thread, the reply through the outbox) and the attachment
+  // is fetched only when that turn is about to run, as the person it belongs to.
+  const media = (msg as SmsInboundMessage).media ?? [];
+  if (media.length && d.optedOut && await d.optedOut(msg.contact).catch(() => false)) return json({ ok: true, ignored: "opted out: the attachment was not opened" });
+  const chat: InboundDeps["chat"] = !media.length ? d.chat : async (a) => {
+    const got = await readSmsAttachments(media, { hosts: mediaHosts(d.env.get("LOOPMESSAGE_MEDIA_HOSTS")), fetch: d.mediaFetch, timeoutMs: d.mediaTimeoutMs });
+    if (!got.ok) { console.error(`inbound: attachment not read (${got.why})`); return { status: 200, reply: got.reply, threadId: a.threadId }; }
+    return await d.chat({ ...a, file: got.upload });
+  };
   const r = await runInbound(msg, {
-    env: d.env, now: d.now, store: d.store(), render: adapter.render, chat: d.chat,
+    env: d.env, now: d.now, store: d.store(), render: adapter.render, chat,
     reply: (contact, bubbles) => send(contact, bubbles),
     deliver: (a) => d.deliverReply({ userId: a.userId, key: a.key, apiKey, now: a.now }),
   });

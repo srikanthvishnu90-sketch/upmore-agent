@@ -6,7 +6,10 @@ import type { Send } from "./channel.ts";
 import { equalSecret } from "./message_service.ts";
 import { normalizeContact, toBubbles } from "./conversation.ts";
 import { loopSend, parseLoopInbound } from "./loopmessage.ts";
-import type { ChannelAdapter, ParseResult } from "./channel_adapters.ts";
+import type { ChannelAdapter, InboundMessage, ParseResult } from "./channel_adapters.ts";
+
+// An inbound text that carried attachments: their addresses ride beside the message, for the webhook to fetch (sms_media.ts).
+export type SmsInboundMessage = InboundMessage & { media?: string[] };
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -31,7 +34,7 @@ export function loopMessageAdapter(o: { apiKey: string; inboundSecret?: string; 
       let contact: string;
       try { contact = normalizeContact(msg.sender); } catch { return { messages: [], ignored: ["not a phone number or address"] }; }
       return { messages: [{ provider: "loopmessage", channel: "imessage", messageId: msg.messageId, kind: "text", contact, address: contact, replyToMessageId: null, /* SERIAL-1462/1480: no verified reply-id path in this integration */
-        phone: contact.startsWith("+") ? contact : null, text: msg.text }] };
+        phone: contact.startsWith("+") ? contact : null, text: msg.text, ...(msg.media.length ? { media: msg.media } : {}) } as SmsInboundMessage] };
     },
   };
 }

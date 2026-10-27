@@ -25,6 +25,7 @@
 //   131049 = held back by the per-user marketing limit (VERIFIED-S:
 //   https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/per-user-limits/).
 //   Either may come back on the send itself or later in a "failed" status (SECONDARY), so both paths hold the message.
+import { waMediaOf } from "./whatsapp_media.ts";
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult, type StatusEvent, WHATSAPP_WINDOW_MS } from "./channel_adapters.ts";
 
@@ -71,7 +72,10 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
         // A typed message, a tap on a template's quick reply, a tap on a reply button or a list row: all read as text.
         const text = m.type === "text" ? m.text?.body : m.type === "button" ? m.button?.text
           : m.type === "interactive" ? (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title) : null;
+        // FEATURE 16: a document or a picture is a turn of its own (whatsapp_media.ts reads it when the turn runs); its caption is the text.
+        const wm = waMediaOf(m);
         if (typeof text === "string" && text.trim()) messages.push({ ...base, kind: "text", text });
+        else if (wm) messages.push({ ...base, kind: "text", text: wm.caption, waMedia: wm.media } as InboundMessage);
         else { messages.push({ ...base, kind: "seen", text: "", file: m.type === "document" || m.type === "image" }); ignored.push(`a ${String(m.type ?? "message").slice(0, 20)} message (not read yet)`); }
       }
       for (const s of Array.isArray(v.statuses) ? v.statuses : []) {

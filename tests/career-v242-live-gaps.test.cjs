@@ -198,7 +198,23 @@ async function stagedApp(db, user, thread) {
           select() { const q = { eq() { return q; }, async maybeSingle() { return { data: null, error: null }; }, then(r) { return r({ data: [], error: null }); } }; return q; },
         };
       }
-      assert.ok(["profiles", "agent_threads", "agent_flow_state", "agent_messages"].includes(table), `unexpected table: ${table}`);
+      // The thread as Supabase serves it to agent-chat's evidence step (newest first, as the commit stored it), and the
+      // event rows that step writes (career_events), so the staged handler reads and writes what production does.
+      if (table === "career_events") {
+        return { async insert(row) { (db.events = db.events || []).push(clone(row)); return { error: null }; } };
+      }
+      if (table === "agent_messages") {
+        const q = { _thread: null, select() { return q; }, eq(k, v) { if (k === "thread_id") q._thread = v; return q; }, order() { return q; },
+          limit(n) { q._limit = n; return q; },
+          then(resolve, reject) {
+            const rows = db.messages.map((m, i) => ({ id: i + 1, ...clone(m) })).filter((m) => !q._thread || m.thread_id === q._thread).reverse();
+            return Promise.resolve({ data: q._limit ? rows.slice(0, q._limit) : rows, error: null }).then(resolve, reject);
+          },
+          async insert(row) { assert.equal(row.thread_id, thread); db.messages.push(clone(row)); return { error: null }; },
+        };
+        return q;
+      }
+      assert.ok(["profiles", "agent_threads", "agent_flow_state"].includes(table), `unexpected table: ${table}`);
       const filters = {};
       const query = {
         select() { return query; },

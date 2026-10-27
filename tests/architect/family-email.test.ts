@@ -28,6 +28,9 @@ import { careerHandler, type Chat, supabaseParity } from "../flow/handler.ts";
 import { runMail } from "../../supabase/functions/_shared/career_proactive_run.ts";
 import { memoryMailStore } from "../../supabase/functions/_shared/career_mail_store.ts";
 import { readMailSince, messageHash } from "../../supabase/functions/_shared/career_mail_gmail.ts";
+import { supabaseConfirmStore } from "../../supabase/functions/_shared/career_apply_confirm.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
+import { SERVICE_KEY, SUPABASE_URL } from "../flow/handler.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
@@ -59,6 +62,8 @@ function inbox(): Fixture[] {
       snippet: "Hi Pat, as the next step for the Data Analyst role, please complete the online assessment within 72 hours of receiving this email. Good luck!" },
     { id: "m-wayne-oa", at: ago(19), domain: "wayne.com", from: "Wayne Enterprises Careers <careers@wayne.com>", subject: "Next step: coding assessment for Data Analyst",
       snippet: `Hi Pat, thanks for applying to the Data Analyst role at Wayne Enterprises. Please complete the coding assessment by ${longDate(explicit)}. The link is personal to you.` },
+    { id: "m-vandelay-oa", at: ago(20), domain: "vandelay.com", from: "Vandelay Industries <jobs@vandelay.com>", subject: "Vandelay: take-home assessment",
+      snippet: "Hi Pat, thanks for applying to the Data Analyst role at Vandelay. Please complete the take-home assessment within 24 hours." },
     { id: "m-initech-offer", at: ago(18), domain: "initech.com", from: "Initech HR <hr@initech.com>", subject: "Offer letter: Data Analyst at Initech",
       snippet: "Hi Pat, we are delighted to extend you an offer for the Data Analyst position at Initech. Please review the attached offer letter and let us know." },
     { id: "m-siemens-de", at: ago(17), domain: "siemens.com", from: "Siemens Talent <talent@siemens.com>", subject: "Ihre Bewerbung als Data Analyst",
@@ -140,7 +145,7 @@ Deno.test({ name: "FAMILY EMAIL: job mail read, classified, tracked and reminded
       const h = crypto.randomUUID().replace(/-/g, "").padEnd(64, "0");
       return `('${who}', 'gh:${company}', '${company}', '${url}', '${payload}'::jsonb, '${h}', '${h}', 'submitted_unconfirmed', now() - interval '${daysAgo} days', now() - interval '${daysAgo} days')`;
     };
-    const companies = ["Globex", "Stripe", "Acme", "Wayne Enterprises", "Initech", "Siemens", "Umbrella"];
+    const companies = ["Globex", "Stripe", "Acme", "Wayne Enterprises", "Initech", "Siemens", "Umbrella", "Vandelay"];
     await pg.sql(`set session_replication_role = replica;
       insert into public.career_apply_jobs (user_id, job_id, company, url, payload, payload_hash, approval_hash, state, created_at, updated_at) values
         ${companies.map((c) => row(me, c, 5)).join(", ")}, ${row(me, "Hooli", 16)};
@@ -175,6 +180,7 @@ Deno.test({ name: "FAMILY EMAIL: job mail read, classified, tracked and reminded
         "Siemens|rejection|Rejected|false",
         "Stripe|rejection|Rejected|false",
         "Umbrella|interview|Interview rounds|false",
+        "Vandelay|assessment|OA/assessment|false",
         "Wayne Enterprises|assessment|OA/assessment|false",
       ].join("\n"), "each employer's own email moved its own application, once; nothing else was recorded");
       assert(/Stripe \(Data Analyst\) said no on \w+ \d+\. Marked Rejected/.test(r.reply), `the HTML-escaped rejection is read:\n${r.reply}`);
@@ -198,19 +204,22 @@ Deno.test({ name: "FAMILY EMAIL: job mail read, classified, tracked and reminded
         `${wayneKey}|status|${Math.round((wayneDue - DAY + 14 * HOUR) / 1000)}|true`,
       ].join("\n"), "one reminder per assessment (a time limit: 24 hours before; a date: the day before, 14:00 UTC); nothing else queued (statuses are said in the chat)");
       assert(new RegExp(`I'll remind you on ${dueWord(acmeDue - DAY)} that the Acme \\(Data Analyst\\) assessment is due`).test(first) && new RegExp(`I'll remind you on ${dueWord(wayneDue - DAY + 14 * HOUR)} that the Wayne Enterprises`).test(first), `the reply says the reminders the rows hold:\n${first}`);
+      // Vandelay's 24 hours end in 4: its reminder (12 hours before) would already be past, so none is queued or promised.
+      assert(new RegExp(`Vandelay \\(Data Analyst\\) sent an assessment on \\w+ \\d+, due ${dueWord(NOW - 20 * HOUR + 24 * HOUR)}`).test(first), first);
+      assert(!/remind you on [^.]*Vandelay/.test(first), first);
       const text = await q(`select text from public.career_outbox where key = '${acmeKey}'`);
       assert(/Reminder: your Acme \(Data Analyst\) assessment is due/.test(text) && /within 72 hours/.test(text), text);
     });
 
     await t.step("injection: instructions inside emails do nothing, and no model ever reads them", async () => {
-      eq(await counts(), "8|0|0", "no application created, no posting queued, no email card made");
+      eq(await counts(), "9|0|0", "no application created, no posting queued, no email card made");
       eq(await q(`select count(*) from public.career_mail_events where user_id = '${me}' and company = 'Globex' and kind = 'offer'`), "0", "the injected 'mark it as an offer' did nothing");
       eq(await q(`select count(*) from public.career_mail_drafts where user_id = '${me}' and company <> 'Hooli'`), "0");
       eq(writes(), [], "Trainee only ever read from Gmail");
       assert(google.gmail().every((c) => !/\/messages\/[^/?]+\?/.test(c.url) || /format=metadata/.test(c.url)), "every message read is metadata only, never a body");
       eq(google.openai.filter((b) => b.toLowerCase().includes("ignore previous instructions")), [], "no model request carried the injected words");
       const brain = await say(chat, "what did my emails say I should do?");
-      eq(await counts(), "8|0|0", `asking about the mail acts on nothing: ${brain.reply}`);
+      eq(await counts(), "9|0|0", `asking about the mail acts on nothing: ${brain.reply}`);
       assert(!/apply(ing)? to 50|applied to 50/i.test(brain.reply), brain.reply);
     });
 
@@ -220,8 +229,15 @@ Deno.test({ name: "FAMILY EMAIL: job mail read, classified, tracked and reminded
       google.doubleList(false);
       eq(r.resultStatus, "nothing_new", r.reply);
       assert(/Nothing in it changes any of your applications/.test(r.reply), r.reply);
-      eq(await q(`select count(*) from public.career_mail_events where user_id = '${me}'`), "8");
+      eq(await q(`select count(*) from public.career_mail_events where user_id = '${me}'`), "9");
       eq(await q(`select count(*) from public.career_outbox where user_id = '${me}'`), "2", "no reminder twice");
+      // The store's own guard: a reminder key already queued is refused (false), and only a mail reminder's key is taken.
+      const store = supabaseConfirmStore(createClient(SUPABASE_URL, SERVICE_KEY));
+      const acmeKey = `status:deadline:${await messageHash(me, "m-acme-oa")}`;
+      eq(await store.remind!(me, { key: acmeKey, text: "again", at: NOW + DAY }), false);
+      await assertNode.rejects(() => store.remind!(me, { key: "status:anything", text: "x", at: NOW }));
+      eq(await q(`select count(*) from public.career_outbox where user_id = '${me}'`), "2");
+      eq(await q(`select count(*) from public.career_outbox where key = '${acmeKey}' and text = 'again'`), "0");
       const stand = await say(chat, "where do I stand with Acme?");
       assert(/Acme/.test(stand.reply) && /OA\/assessment|assessment/.test(stand.reply), stand.reply);
     });

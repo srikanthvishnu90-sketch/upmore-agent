@@ -52,6 +52,23 @@ CI's own list at `32d1aa0e` (run `40448874128`, gate core: 3058 tests, 33 failed
 
 Every other step passed: architect-tests, career-edge 151/0, typecheck, bundle, and gate (browser).
 
+**Full local cross-check.** I ran the gate's whole core node list (270 suites, fresh `HOME`, `CI=true`) at the base, at
+the head and at the join, and compared the failing test names. Failures this container has at base too (browser and
+engine drive suites that pass in CI) are environment, not code.
+- **Head, failing and not failing at base:** exactly CI's list above, plus B-05.
+- **Join, failing and not failing at base:** only B-05.
+- **B-05 (career artifact size) is a local artifact.** Without esbuild the stager measures RAW, an upper bound: head
+  4,263,383 B and join 4,276,533 B, over the 4,200,000 B ceiling. CI sets `ESBUILD_BIN`. With esbuild, B-05 passes
+  everywhere:
+
+  | | Bundled size |
+  |---|---|
+  | base | 3,764,692 B |
+  | head | 3,912,964 B |
+  | join | 3,923,925 B |
+
+  **Watch item:** about 276 KB (6.6%) of headroom remains. The career graph grew 159 KB since the base, mostly the router.
+
 - **Mine, fixed:**
   - v242's staged fake did not serve the `agent_messages` read and the `career_events` insert that my evidence step
     makes, so its control case threw. Fixed in `32d1aa0e` (test fixture only).

@@ -4,6 +4,17 @@ import { deliverDue } from "./channel.ts";
 import { supabaseChannelStore } from "./channel_store.ts";
 import { adaptersFromEnv } from "./channel_registry.ts";
 
+// E-15: the edge runtime's background-task hook, read once by each webhook's composition root: where the runtime
+// offers EdgeRuntime.waitUntil, the webhook claims the provider's message id, answers 200, and the turn runs after
+// (acceptInbound in channel_inbound.ts); where it does not, there is no defer and the turn runs before the answer, as
+// before. One shared probe, so the three roots cannot drift apart; exported so the probe itself is under test
+// (tests/architect/channel-approvals-units.test.ts) — the index.ts files only call it.
+export function deferFromRuntime(): ((p: Promise<unknown>) => void) | undefined {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  return typeof rt?.waitUntil === "function" ? rt.waitUntil.bind(rt) : undefined;
+}
+
 // The turn runs as the person through agent-chat's service-role path, so history, erase, the host's STOP and pause,
 // persistence and the hourly turn limit are the chat's own. The channel is never sent: the brain is channel-blind.
 // agent-chat may answer with `parts` (a reply in several messages, each at most 4,000 characters: channel_inbound.ts

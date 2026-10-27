@@ -273,7 +273,12 @@ Deno.test("keys and tokens are removed from the chat before anything stores them
     const r = gone(m);
     assert(r.key && !r.text.includes(secret) && r.text.includes("[key removed]"), `${m} -> ${r.text}`);
   }
-  const app = redactIdentity("my app password is abcd1234efgh5678");
+  // A live-mode Stripe key, built here from parts so no tracked file holds the live-key shape (the no-secrets scanner
+  // and GitHub push protection both refuse one); the redactor's live branch must remove it.
+  const live = ["sk", "live", "FAKE" + "0".repeat(24)].join("_");
+  const lr = gone(`stripe ${live}`);
+  assert(lr.key && !lr.text.includes(live) && lr.text.includes("[key removed]"), `live-mode key -> ${lr.text}`);
+  const app =redactIdentity("my app password is abcd1234efgh5678");
   assert(!app.text.includes("abcd1234efgh5678") && app.removed.length === 1, app.text);
   for (const m of ["my token expired yesterday", "what is an api key?", "the access token is broken", "skip-this-one please", "I applied to Stripe", "my access token is notarealtokenatall"]) {
     const r = gone(m);

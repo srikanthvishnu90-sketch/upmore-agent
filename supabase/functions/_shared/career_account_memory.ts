@@ -15,6 +15,7 @@
 import { addStanding, type MemoryStore, type Standing } from "./agent/memory.ts";
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 import { evidenceStatedFacts, type StatedEvidence } from "./career_router_evidence.ts";
+import { workflowAfterTurn } from "./career_workflow.ts";
 
 // The router's answers that mean it did not act on the text.
 const UNHANDLED = new Set(["career_catchall", "career_fallback", "honest_unavailable"]);
@@ -35,7 +36,7 @@ export function standingAsk(message: string): { text: string; said: string } | n
   return { text: text.charAt(0).toUpperCase() + text.slice(1), said };
 }
 
-export interface MemoryTurnOut { reply: string; intent?: string | null; resultStatus?: string | null }
+export interface MemoryTurnOut { reply: string; intent?: string | null; resultStatus?: string | null; handler?: string | null }
 // What this module changes on the router's reply (null: nothing), and the reply as the person reads it.
 export interface MemoryPatch { reply: string; intent?: string; resultStatus?: string }
 export interface MemoryTurnResult { patch: MemoryPatch | null; out: MemoryTurnOut; stated: StatedEvidence; standing: "kept" | "refused" | "unreadable" | null }
@@ -97,6 +98,11 @@ export async function accountMemoryAfterTurn(o: {
       patch = { reply: empty ? `Here is what I have on record for you.\n${lines.join("\n")}\nCorrect any of it in your own words, or tell me what to run on it first.` : `${out.reply}\n${lines.join("\n")}` };
     }
   }
+  // Family workflows: a reminder set from part of a longer message (career_workflow.ts) is said on the router's reply,
+  // with the parts of the message nothing started.
+  const wf = await workflowAfterTurn({ message: o.message, userId: o.userId, now: o.now, out: { ...out, ...(patch ?? {}) }, events: o.events }).catch((e) => {
+    console.error("career memory: workflow line", (e as Error)?.message ?? e); return null; });
+  if (wf) patch = { ...(patch ?? {}), reply: `${(patch ?? out).reply}\n${wf}` };
   return { patch, out: patch ? { ...out, ...patch } : out, stated, standing };
 }
 

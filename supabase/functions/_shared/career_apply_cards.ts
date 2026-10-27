@@ -11,6 +11,17 @@
 //
 // WO-027: each answered line is written to the account's timeline (approved, or the reason it was not sent). A timeline
 // that cannot be written never changes the answer.
+//
+// ⚠️ MERGE PLACEHOLDER — NOT A DECISION (merge prep, 2026-10-27). This file currently COMBINES two card models that
+// are a genuine design collision, and the pick between them is the ARCHITECT'S, still open:
+//   (a) trunk/#195's model — a multi-application card (up to 8) with a surface-aware footer:
+//       cardFor(pending, surface), FOOT(count, surface), "Reply \"yes\"…" / "Tap Approve…" wording;
+//   (b) #218's model — ONE application per card answered by a 4-digit code: CODE_SLOT, TOKEN_SLOT, inspectBase(),
+//       Card.approve_code / Card.inspect_token, CardStore.answerCode, "YES <code>".
+// The merge simulation kept (a)'s rendering and took in (b)'s additive exports ONLY so the tree compiles and both
+// sides' code survives. That combination chooses NOTHING: when the architect picks, the losing side's call sites
+// and tests (wo-022-cards, flow-apply-many, the channel approvals) must be reconciled to the pick. Do not read
+// anything in this file as approval of either model, and do not "finish" one model on the strength of this tree.
 import { type EventStore, recordEvent } from "./agent/timeline.ts";
 
 export interface Prepared {

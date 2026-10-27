@@ -37,7 +37,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-LIVE_MISSING_DEFAULT="20261020110000_career_connector.sql 20261020130000_career_resume_tailoring.sql
+# 20261026120018 (one confirmed resume) is NOT APPLIED and replaces career_apply_profile_for, created by 20261025120000.
+LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000_career_connector.sql 20261020130000_career_resume_tailoring.sql
   20261021020000_career_voice_mock.sql 20261021030000_career_hired_backgrounds.sql 20261021090000_career_mail_erase.sql
   20261021100000_career_proactive_last_word.sql 20261021110000_career_board_state.sql
   20261021130000_career_mail_model_calls.sql 20261021220430_career_apply_message_cards.sql

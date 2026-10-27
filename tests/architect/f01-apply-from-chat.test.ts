@@ -100,7 +100,7 @@ Deno.test("F01 positions past the list are named, never guessed; a posting with 
   eq(await gone.keys(), []);
 });
 
-Deno.test("F01 no resume on file: nothing queued, every posting named, what to do said; unknown decides nothing", async () => {
+Deno.test("F01 no resume on file: nothing queued, every posting named, what to do said; an unreadable check queues nothing either", async () => {
   const w = world({ resume: false });
   const r = await w.turn("apply to 1 and 4");
   eq(r?.status, "no_resume");
@@ -112,23 +112,30 @@ Deno.test("F01 no resume on file: nothing queued, every posting named, what to d
   const s = await single.turn("apply to the TEST Analyst role at Alpha Works");
   eq(s?.status, "no_resume", s?.reply);
   assert(s!.reply.startsWith("0/1 queued.") && /no resume on file/.test(s!.reply), s!.reply);
+  // Fail closed (review of PR #194, under the owner's resume rule): a resume check that cannot be made queues nothing.
   const unknown = world({ resume: null });
-  eq((await unknown.turn("apply to the first one"))?.status, "queued", "an unreadable profile is not 'no resume'");
+  const u = await unknown.turn("apply to the first one");
+  eq(u?.status, "resume_unreadable", u?.reply);
+  assert(/couldn't check your resume on file just now, so nothing was queued/.test(u!.reply), u!.reply);
+  eq([await unknown.keys(), unknown.kicks], [[], []]);
 });
 
-Deno.test("F01 no resume on file with the server prepare off: the want is queued, nothing is asked to prepare, and the reply says a confirmed resume comes first", async () => {
+// OWNER RULE (2026-10-26, "never submit applications without a real resume"): this test pinned PR #175's behavior (with
+// the server prepare off, the want was queued without a resume). The owner's written rule supersedes it: nothing is
+// queued without a confirmed resume, prepare on or off. Same worlds, same asks; the expectations are the rule's.
+Deno.test("F01 no resume on file with the server prepare off: nothing queued either (owner rule 2026-10-26), nothing asked to prepare, the reply says what to do", async () => {
   const w = world({ resume: false, prepareOn: false, kick: "off" });
   const r = await w.turn("apply to 1 and 4");
-  eq(r?.status, "queued", r?.reply);
-  assert(r!.reply.startsWith("2/2 queued;"), r!.reply);
-  assert(/I have no confirmed resume on file yet, so nothing can be prepared until you paste or attach your resume and confirm it\./.test(r!.reply), r!.reply);
+  eq(r?.status, "no_resume", r?.reply);
+  assert(r!.reply.startsWith("0/2 queued."), r!.reply);
+  assert(/Paste or attach your resume, confirm it, then ask again\./.test(r!.reply), r!.reply);
   assert(!/started preparing/.test(r!.reply), r!.reply);
-  eq([await w.keys(), w.kicks], [["greenhouse:a:1", "greenhouse:d:4"], []]);
+  eq([await w.keys(), w.kicks], [[], []]);
   const single = world({ resume: false, prepareOn: false, postings: [ON_FILE["greenhouse:a:1"]] });
   const s = await single.turn("apply to the TEST Analyst role at Alpha Works");
-  eq(s?.status, "queued", s?.reply);
-  assert(/no confirmed resume on file yet/.test(s!.reply) && !/started preparing/.test(s!.reply), s!.reply);
-  eq([await single.keys(), single.kicks], [["greenhouse:a:1"], []]);
+  eq(s?.status, "no_resume", s?.reply);
+  assert(/no resume on file/.test(s!.reply) && !/started preparing/.test(s!.reply), s!.reply);
+  eq([await single.keys(), single.kicks], [[], []]);
   const on = world({ resume: false, prepareOn: true });
   eq((await on.turn("apply to 1 and 4"))?.status, "no_resume", "with the prepare on, nothing is queued without a resume");
   eq([await on.keys(), on.kicks], [[], []]);

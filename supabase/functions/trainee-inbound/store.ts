@@ -18,6 +18,12 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
   return r.data as T;
 }
 
+// The undeliverable sign-up address of a contact with no email or phone (a Telegram chat, a WhatsApp username).
+export function channelOnlyEmail(contact: string): string {
+  const m = /^(tg|wa):([A-Za-z0-9._-]{1,128})$/.exec(contact);
+  if (!m) throw new Error("not a channel-only contact");
+  return `${m[1] === "tg" ? "tg" : "wa"}-${m[2].toLowerCase().replace(/[^a-z0-9-]/g, "-")}@users.trainee.invalid`;
+}
 // deno-lint-ignore no-explicit-any
 export function supabaseInboundStore(admin: any): InboundStore {
   return {
@@ -43,9 +49,22 @@ export function supabaseInboundStore(admin: any): InboundStore {
       // An account with the number when the platform gives one (iMessage, WhatsApp), the email for an iMessage email, and
       // neither for Telegram or a WhatsApp username: whether Supabase accepts an account with neither is UNKNOWN (WO-038
       // doc; the owner's smoke run checks it), and a refusal is said to the person once, like any failure here.
+      // FEATURE 16 (launch audit 2026-10-26): Supabase Auth refuses a user with neither an email nor a phone, so a Telegram
+      // chat (which never gives a number) or a WhatsApp username got no account at all. Such a person gets a synthetic,
+      // unique, undeliverable address under the reserved .invalid TLD (RFC 2606), confirmed, with no password, marked
+      // channel-only: nothing ever sends to it (Trainee's mail goes from the person's own Gmail grant, never to the auth
+      // email), and nobody can sign in with it. One chat, one address: a retry finds the same account (channel_contacts).
       const tel = contact.startsWith("+") ? contact : phone ?? null;
+      const channel = contact.startsWith("tg:") ? "telegram" : "whatsapp";
       const created = await admin.auth.admin.createUser(contact.includes("@") && !contact.startsWith("wa:") ? { email: contact, email_confirm: true }
-        : tel ? { phone: tel.slice(1), phone_confirm: true } : { user_metadata: { trainee_channel: contact.startsWith("tg:") ? "telegram" : "whatsapp" } });
+        : tel ? { phone: tel.slice(1), phone_confirm: true }
+        : { email: channelOnlyEmail(contact), email_confirm: true, user_metadata: { trainee_channel: channel, channel_only: true }, app_metadata: { channel_only: true } });
+      // Review of PR #194: a Telegram chat whose channel-only account already exists (it signed up, was linked to a web
+      // account, then unlinked) gets that account back, never a second sign-up (Auth refuses the taken address).
+      if (created.error && contact.startsWith("tg:")) {
+        const back = await admin.rpc("channel_telegram_reattach_as", { p_contact: contact, p_now: iso(at) });
+        if (!back.error && typeof back.data === "string" && back.data) return { userId: back.data, threadId: null, contact };
+      }
       if (created.error || !created.data?.user?.id) throw new Error(`create an account for a new contact: ${created.error?.message ?? "no user returned"}`);
       const userId = created.data.user.id as string;
       must(await admin.from("channel_contacts").upsert({ contact, user_id: userId, updated_at: iso(at), ...(phone && contact.startsWith("wa:") ? { phone } : {}) }, { onConflict: "contact" }), "link the contact");
@@ -106,6 +125,8 @@ export function supabaseInboundStore(admin: any): InboundStore {
     },
     async bindInvite(inviteId, userId, at) {
       must(await admin.rpc("career_invite_bind", { p_invite: inviteId, p_user: userId, p_now: iso(at) }), "bind the invite");
+    async unlinkTelegram(userId, at) {
+      return Number(must<number>(await admin.rpc("channel_telegram_unlink_as", { p_user: userId, p_now: iso(at) }), "unlink Telegram")) || 0;
     },
     async reholdSent(providerMessageId, at, error) {
       return Number(must<number>(await admin.rpc("career_outbox_rehold", { p_provider_id: providerMessageId, p_at: iso(at), p_error: error }), "hold a failed message")) || 0;

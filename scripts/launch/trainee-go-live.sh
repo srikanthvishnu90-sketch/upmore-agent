@@ -168,6 +168,8 @@ MIGRATIONS=(
   20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql
   20261026230000_trainee_web_admission.sql
+  20261026210016_career_resume_required.sql
+  20261026220016_channel_telegram_login.sql
   20261026230500_definer_execute_lockdown.sql
   20261026233017_career_invite_waves.sql
 )
@@ -241,6 +243,8 @@ MIGRATION_MARK=(
   "to_regclass('public.career_turn_gate') is not null and exists (select 1 from pg_proc where proname = 'career_turn_gate_ready')"
   "to_regclass('public.career_kb_postings_posted_at_recent') is not null"
   "to_regclass('public.trainee_admissions') is not null and exists (select 1 from pg_proc where proname = 'trainee_may_act')"
+  "to_regclass('public.career_resume_uploads') is not null and exists (select 1 from pg_trigger where tgname = 'career_apply_jobs_resume_guard') and exists (select 1 from pg_proc where proname = 'career_resume_ok') and exists (select 1 from pg_proc where proname = 'career_apply_card_answer_for' and prosrc like '%no_resume%')"
+  "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "to_regclass('public.career_invites') is not null and exists (select 1 from pg_proc where proname = 'career_wave_gate_rows') and exists (select 1 from pg_proc where proname = 'career_invite_admit')"
 )
@@ -259,7 +263,9 @@ CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}")
+# FEATURE 16: Telegram's login, verified, links a chat to the signed-in person; it takes the person's own session (JWT on).
+JWT_FNS=(trainee-telegram-link)
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -784,6 +790,11 @@ else
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
   for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
+  for fn in "${JWT_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

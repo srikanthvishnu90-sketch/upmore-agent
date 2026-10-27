@@ -257,7 +257,7 @@ sign-up is open, pressing Start makes a new account.
    curl -sS "https://api.telegram.org/bot${TG_TOKEN}/setWebhook" \
      --data-urlencode "url=https://<ref>.supabase.co/functions/v1/trainee-telegram" \
      --data-urlencode "secret_token=${TG_SECRET}" \
-     --data-urlencode 'allowed_updates=["message","my_chat_member"]' \
+     --data-urlencode 'allowed_updates=["message","callback_query","my_chat_member"]' \
      --data-urlencode "drop_pending_updates=true"
    unset TG_TOKEN TG_SECRET
    ```

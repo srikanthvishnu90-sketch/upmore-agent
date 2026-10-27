@@ -49,6 +49,7 @@ const prep = (i: number, lines = 4): Prepared => ({
     ...Array.from({ length: lines - 2 }, (_, k) => `Question ${k}: answer ${i}.${k}`),
     `Sends to https://jobs.lever.co/test/${i}`,
   ],
+  resume_sha256: "b".repeat(64), // OWNER RULE 2026-10-26: the store reads each prepared application's resume hash; none, no card
 });
 
 Deno.test("WO-022/2 a card shows every line of every application verbatim, at most 8, under 1,600 characters with two or more", () => {
@@ -188,7 +189,7 @@ Deno.test("WO-022/6 the loop: prepared on the computer, card, one text yes appro
   const queue: any[] = [];
   let card: any = null, last: string | null = null;
   const store: CardStore = {
-    pending: async () => prepared.map((p) => ({ id: p.id, company: p.payload.company, card_lines: p.card })),
+    pending: async () => prepared.map((p) => ({ id: p.id, company: p.payload.company, card_lines: p.card, resume_sha256: p.payload.resume_sha256 })),
     open: async (_u, ids) => {
       card = {
         id: "C1",

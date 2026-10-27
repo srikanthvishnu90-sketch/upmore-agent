@@ -21,6 +21,7 @@ const NOT_SENT: Record<string, string> = {
   APPROVED_APPLICATION_CHANGED: "the form changed after you approved it, so it was stopped",
   APPROVED_BODY_MISMATCH: "what the page tried to send was not exactly what you approved, so it was stopped",
   RESUME_CHANGED: "your resume file is not the one you approved",
+  NO_RESUME: "no resume was attached to it, and Trainee never applies without your resume",
   HOST_REDIRECT_REFUSED: "the page tried to go somewhere other than the employer's own site",
   PERSON_DID_NOT_SUBMIT: "Submit was not pressed in the window within 10 minutes",
   IDENTITY_NUMBER_REQUESTED: "the form asks for an ID number, which Trainee never fills in",

@@ -303,7 +303,7 @@ function stubbed(env) {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-bin-'));
   const calls = path.join(bin, 'calls.log');
   const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
-  stub('supabase', 'if [[ "$1 $2" == "secrets list" ]]; then printf "NAME | DIGEST\\nTRAINEE_INBOUND_SECRET | 0f0f\\n"; fi; exit 0');
+  stub('supabase', 'if [[ "$1 $2" == "secrets list" ]]; then printf "NAME | DIGEST\\nTRAINEE_INBOUND_SECRET | SECRET-DIGEST-SENTINEL\\n"; fi; exit 0');
   stub('psql', 'exit 0'); stub('deno', 'exit 0');
   // WO-093: a real run ships exactly --sha (HEAD here) from git archive, so git and node are the real ones, but for a
   // clean tree (this checkout may have edits) and the smoke (no network in a test).
@@ -331,7 +331,7 @@ function nonint(args, env, { live = ['TRAINEE_INBOUND_SECRET'], listFails = fals
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'trainee-go-live-nonint-'));
   const calls = path.join(bin, 'calls.log');
   const stub = (name, body) => { fs.writeFileSync(path.join(bin, name), `#!/usr/bin/env bash\necho "${name} $*" >> "${calls}"\n${body}\n`); fs.chmodSync(path.join(bin, name), 0o755); };
-  const rows = live.map((n) => `${n} | 0f0f`).join('\\n');
+  const rows = live.map((n) => `${n} | SECRET-DIGEST-SENTINEL`).join('\\n');
   stub('supabase', `if [[ "$1 $2" == "secrets list" ]]; then ${listFails ? 'echo "Access token not provided" >&2; exit 1' : `printf "NAME | DIGEST\\n${rows}\\n"`}; fi; exit 0`);
   stub('psql', 'exit 0'); stub('deno', 'exit 0');
   stub('node', `if [[ "$1" == *trainee-smoke.cjs ]]; then exit 0; fi\nexec "${process.execPath}" "$@"`);
@@ -377,10 +377,10 @@ test('--non-interactive: a function secret set on the project is kept (never gen
   assert.match(r.calls, /trainee-smoke\.cjs --kept CAREER_INGEST_SECRET,TRAINEE_INBOUND_SECRET --wait-runs 420/);
   assert.equal((r.calls.match(/secrets list/g) || []).length, 1, 'the names are read once');
   for (const v of [...SECRET_VALUES, CI_ENV.SUPABASE_ACCESS_TOKEN]) assert.ok(!r.out.includes(v) && !r.log.includes(v), `${v.slice(0, 12)}… is not printed or logged`);
-  // The secrets list itself is never printed — asserted in the list's own shape (header + "NAME | digest" rows).
-  // A bare /0f0f/ tripwire also matches the 4 hex digits inside the sha256 of any staged file the manifest prints
-  // (router_core.career.js hashed to dd76458b…0f0f5de3… at c4cefa29), which is not a leak.
-  assert.doesNotMatch(r.out + r.log, /NAME \| DIGEST|(?:CAREER_INGEST_SECRET|TRAINEE_INBOUND_SECRET|OPENAI_API_KEY) \| 0f0f/, 'the secrets list itself is never printed');
+  // The sentinel is deliberately non-hex: the preflight prints per-file bundle sha256 digests, and the old hex
+  // sentinel "0f0f" collided with the rebuilt router_core.career.js digest (dd76458b…dbd0f0f5de… at c4cefa29) —
+  // a coincidence, not a leak. A non-hex marker can never appear inside a hex digest.
+  assert.doesNotMatch(r.out + r.log, /SECRET-DIGEST-SENTINEL/, 'the secrets list itself is never printed');
 });
 
 test('--non-interactive: a secret that also lives outside the project is never generated; an unreadable secrets list stops the run', () => {

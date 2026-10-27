@@ -108,7 +108,7 @@ Deno.test("people turn: a paste in parts joins only within the hour and only row
 });
 
 Deno.test("people turn: the drafter's copy in the thread: a new file replaces every earlier copy of the export", async () => {
-  const { say, state } = setup();
+  const { say, state, store } = setup();
   await say("here", { attachments: [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }] });
   const zip = await zipOf([{ name: "Connections.csv", data: new TextEncoder().encode(FIXTURE) }]);
   let bin = ""; for (const b of zip) bin += String.fromCharCode(b);
@@ -116,6 +116,9 @@ Deno.test("people turn: the drafter's copy in the thread: a new file replaces ev
   eq((state.contacts as unknown[]).length, 8);
   const both = await say("both", { attachments: [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }, { name: "friends.csv", mime: "text/csv", text: "Name,Company,Email\nMo Li,Plaid,mo@plaid.example\n" }] });
   nodeAssert.match(both!.reply, /\nfriends\.csv: not read in this message\. Send it on its own and I'll import it\.$/, "a second list is never dropped silently");
+  const all = await say("forget my contacts");
+  eq([all!.status, all!.reply], ["forgotten", "Deleted all the people you gave me: 8 people from your LinkedIn export, Gmail and pages, and 8 rows from this chat's list. Deleted 0 intro requests."]);
+  eq([store.rows.length, (state.contacts as unknown[]).length], [0, 0]);
 });
 
 Deno.test("people turn: a school is kept only for someone on their list; alumni needs a school", async () => {

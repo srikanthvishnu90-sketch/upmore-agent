@@ -456,7 +456,7 @@ async function everyoneAt(o: PeopleTurnIn, d: PeopleDeps, firm: string) {
   return { people: uniq([...stored.filter((p) => p.source !== "gmail"), ...g.rows, ...list]), gmail: g.state };
 }
 const gmailNote = (s: string, firm: string) =>
-  s === "not_connected" ? `Your Gmail isn't connected, so I didn't check who you've emailed at ${firm}; connecting it lets me (read-only):\n${connectUrl("gmail")}`
+  s === "not_connected" ? `Your Gmail isn't connected, so I didn't check who you've emailed at ${firm}. To include them, connect it (read-only):\n${connectUrl("gmail")}`
   : s === "error" ? "I couldn't read your Gmail just now, so people you've emailed aren't included." : "";
 
 async function askForExport(o: PeopleTurnIn, d: PeopleDeps): Promise<string> {
@@ -495,7 +495,7 @@ async function alumniTurn(o: PeopleTurnIn, d: PeopleDeps, firmAsked: string, sch
   const firm = cleanCell(firmAsked, 60);
   const mine = factSchools(o);
   const schools = school ? [cleanCell(school, 80)] : mine;
-  if (!schools.length) return { reply: `Which school? Say "DePaul alumni at ${firm}". I didn't find a confirmed school in your profile to use.`, intent: ALUMNI_INTENT, status: "no_school" };
+  if (!schools.length) return { reply: `Which school? Say "<school> alumni at ${firm}". I didn't find a confirmed school in your profile to use.`, intent: ALUMNI_INTENT, status: "no_school" };
   const { people } = await everyoneAt(o, d, firm);
   if (!people.length) {
     const ask = (await d.store.counts(o.userId)).linkedin_export ? `If ${firm} publishes a team page, send me its link. ${NO_SEARCH}` : await askForExport(o, d);
@@ -580,7 +580,7 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
     o.state.contacts = what === "all" ? [] : contactsOf(o.state).filter((r) => !fromExport(r));
     const fromThread = before - contactsOf(o.state).length;
     n += gone + fromThread;
-    parts.push(what === "all" ? `Deleted all ${plural(gone + fromThread, "contact")} you gave me (LinkedIn, Gmail, pages and lists).` : `Deleted your LinkedIn contacts: ${plural(gone, "person")} from your export${fromThread ? ` and ${fmtN(fromThread)} from this chat's list` : ""}.`);
+    parts.push(what === "all" ? `Deleted all the people you gave me: ${plural(gone, "person")} from your LinkedIn export, Gmail and pages${fromThread ? `, and ${plural(fromThread, "row")} from this chat's list` : ""}.` : `Deleted your LinkedIn contacts: ${plural(gone, "person")} from your export${fromThread ? ` and ${fmtN(fromThread)} from this chat's list` : ""}.`);
   }
   if (what === "gmail") { const gone = await d.store.forget(o.userId, ["gmail"]); n += gone; parts.push(`Deleted ${plural(gone, "person")} read from your Gmail.`); }
   if (what === "jobs") { const gone = await d.store.forgetJobs(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "posting")} read from your Handshake and Indeed emails.`); }

@@ -12,7 +12,7 @@ import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
-import { runOutreachFollowups } from "../_shared/career_outreach_track.ts";
+import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
 const grant = (admin: any): TokenDeps => ({
@@ -90,9 +90,7 @@ serve((req) => {
         if (error) throw new Error(`read who is paused: ${error.message}`);
         return new Set<string>((data ?? []).map((r: any) => String(r.user_id ?? r)));
       };
-      const followups = Deno.env.get("CAREER_OUTREACH_FOLLOWUPS") === "on"
-        ? await runOutreachFollowups({ store, outbox: supabaseAlertStore(admin), now, quiet }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }))
-        : undefined;
+      const followups = await runOutreachFollowupsGated(Deno.env, { store, outbox: supabaseAlertStore(admin), now, quiet }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
       if (Deno.env.get("CAREER_OUTREACH_SEND") !== "on") return { followups };
       const events = supabaseEventStore(admin), deps = grant(admin);
       const token = (u: string, scope: string) => careerTokenFor(deps, scope)(u);

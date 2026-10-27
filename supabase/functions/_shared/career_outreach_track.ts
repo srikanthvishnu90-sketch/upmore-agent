@@ -344,3 +344,12 @@ export async function runOutreachFollowups(o: { store: OutreachStore; outbox: Ou
   }
   return stats;
 }
+
+// The scheduled run's gate (career-proactive/index.ts): follow-up reminders run only when the owner has
+// turned them on (CAREER_OUTREACH_FOLLOWUPS=on). Off — the default — the run does not happen at all: no
+// outbox row is queued and no reminder is marked fired, however many are due. Sending has its own switch
+// (CAREER_OUTREACH_SEND); the reminders need no Gmail, so this gate stands on its own.
+export async function runOutreachFollowupsGated(env: { get(k: string): string | undefined }, o: { store: OutreachStore; outbox: Outbox; now: number; quiet?: (userIds: string[]) => Promise<Set<string>>; limit?: number }) {
+  if (env.get("CAREER_OUTREACH_FOLLOWUPS") !== "on") return undefined;
+  return await runOutreachFollowups(o);
+}

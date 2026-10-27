@@ -58,6 +58,7 @@ import { applyTurn, EMPLOYER_ANSWER_INTENT, EMPLOYER_ASK_INTENT, employerAnswerT
 import { evidenceResumeConfirmation, heldReply, resumeConfirmationContext } from "../_shared/career_router_evidence.ts";
 // FEATURE 9: account memory (stated-fact provenance, standing needs on the router path).
 import { accountMemoryAfterTurn, statedFactsBefore } from "../_shared/career_account_memory.ts";
+import { workflowAfterTurn } from "../_shared/career_workflow.ts";
 import { cloudTurn, supabaseCloudOptinStore } from "../_shared/career_cloud_optin.ts";
 import { CLOUD_CARD_INTENT, cloudCardYesTurn, personCloudCardStore } from "../_shared/career_cloud_card_chat.ts";
 import { boardFetchFeed, supabasePostingsDb, searchWords } from "../_shared/career_ingest.ts"; // FEATURE E2E: boardFetchFeed
@@ -872,6 +873,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           statedBefore: statedFactsBefore(loaded.account, loaded.snapshot), events, standing: supabaseMemoryStore(admin) })
           .catch((e) => { console.error("career memory:", e?.message ?? e); return null; });
         if (mem?.patch) out = { ...out, ...mem.patch };
+      }
+      // Family workflows (#216, patch note for the owner of this file): account memory above is the router's only,
+      // so on a brain turn a reminder set from part of a longer message (career_workflow.ts runs before the router
+      // and the brain alike, and records the note workflowAfterTurn reads) was set but never said. The after-turn
+      // line runs for brain turns too; nothing else of account memory does.
+      if (out.handler === "agent") {
+        const wf = await workflowAfterTurn({ message, userId: user.id, now: Date.now(), out, events })
+          .catch((e) => { console.error("career workflow: brain-turn line", e?.message ?? e); return null; });
+        if (wf) out = { ...out, reply: `${out.reply}\n${wf}` };
       }
       // END FEATURE 9
       let taskIntent = null;

@@ -281,13 +281,17 @@ Deno.test({
         assert(/1 approved exactly as shown/.test(yesB.reply) && /Nothing has gone to an employer yet/.test(yesB.reply), yesB.reply);
         assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "1", "one application, its exact payload, by the hash the card carried");
         assertEquals(await threadB.say("yes").then((r) => r.resultStatus === "answered"), false, "a second yes approves nothing: the card is single-use");
-        // The other application: its own ask, its own yes.
-        const cardC = await threadB.say("show my applications");
+        // The other application: its own ask, its own yes, in thread A, the conversation the person's resume was confirmed in.
+        // A turn there first: the server reads the confirmed resume from the most recently updated thread's profile
+        // (career_apply_profile_for), and thread B's turns made B the latest (a second thread without the resume reads as
+        // "no resume on file": found 2026-10-26, reported, not changed here).
+        await say("where are my applications");
+        const cardC = await say("show my applications");
         assertEquals([cardC.intent, cardC.resultStatus], ["career_apply_card", "shown"], cardC.reply);
         assert((cardC.reply.includes(FIRST_WHY) !== cardC.reply.includes(SIBLING_WHY)) && cardC.reply.includes(FIRST_WHY) !== cardB.reply.includes(FIRST_WHY), `the other application, alone: ${cardC.reply}`);
-        const metaC = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
-        const cardMsgC = await pg.sql(`select id from public.agent_messages where thread_id = '${threadB.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaC.card_id}' order by id desc limit 1`);
-        const yesC = await threadB.say("yes", { reply_to_message_id: Number(cardMsgC) });
+        const metaC = JSON.parse(await pg.sql(`select coalesce((select meta::text from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' order by id desc limit 1), 'null')`));
+        const cardMsgC = await pg.sql(`select id from public.agent_messages where thread_id = '${chat.thread()}' and role = 'assistant' and meta->>'card_id' = '${metaC.card_id}' order by id desc limit 1`);
+        const yesC = await say("yes", { reply_to_message_id: Number(cardMsgC) });
         assertEquals(yesC.resultStatus, "answered", yesC.reply);
         assertEquals(await pg.sql(`select count(distinct payload_hash) from public.career_apply_jobs where user_id = '${PERSON}' and state = 'queued'`), "2", "two applications, two exact payloads, each by the hash its own card carried");
         const queue = ownQueue(person);

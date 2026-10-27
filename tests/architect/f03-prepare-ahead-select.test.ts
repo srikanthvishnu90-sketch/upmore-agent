@@ -42,9 +42,11 @@ Deno.test("aheadCardText: the coverage fraction, the card's own numbered lines, 
   const ready = [1, 2].map((n) => ({ id: `p${n}`, company: `Co ${n}`, card_lines: [`Co ${n}`, "Email: alex@example.test", `Sends to https://co${n}.example`] }));
   const c = aheadCardText({ picked: 3, ready, stops: [{ company: "Co 3", title: "Data Analyst", why: stopWhy({ job_id: "gh:3", outcome: "no_resume", detail: "" }) }] })!;
   assert(c.text.startsWith("2/3 applications ready for your yes."), c.text);
-  assert(c.text.includes("1. Co 1") && c.text.includes("2. Co 2") && c.text.includes("Reply \"yes\" to send all 2"), c.text);
+  // One ask per message (the owner's iMessage spec 7.1): the first ready one is the ask; the other is named as waiting.
+  assert(c.text.includes("Co 1\n   Email: alex@example.test") && !c.text.includes("Sends to https://co2.example") && c.text.includes("Reply \"YES [[APPROVE-CODE]]\" to submit it") /* the database puts the card's code in the slot (20261026235017) */, c.text);
+  assert(c.text.includes('1 more ready: say "show my applications" after this one.'), c.text);
   assert(c.text.includes("Not ready (1):\n- Co 3 (Data Analyst): no resume could be made for it from your confirmed details"), c.text);
-  eq(c.take.map((p) => p.id), ["p1", "p2"], "the ids pushed are the numbered ones");
+  eq(c.take.map((p) => p.id), ["p1"], "the id pushed is the one asked about");
   eq(aheadCardText({ picked: 2, ready: [], stops: [] }), null, "nothing ready, no card");
   const many = Array.from({ length: 40 }, (_, i) => ({ company: `Co ${i}`, title: "Data Analyst", why: "x".repeat(150) }));
   const big = aheadCardText({ picked: 41, ready: ready.slice(0, 1), stops: many })!;

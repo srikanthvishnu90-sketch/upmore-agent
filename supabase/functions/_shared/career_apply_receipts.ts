@@ -48,10 +48,18 @@ export function receiptText(
   row: {
     company?: unknown; url?: unknown; state: string; reason?: unknown; confirmation_id?: unknown;
     email_confirmed_at?: unknown; evidence?: { page_confirmation?: unknown } | null; source?: unknown; tz?: unknown;
+    // The owner's iMessage spec, 7.2 (2026-10-26): the receipt links to exactly what was sent (trainee-inspect, the
+    // approving card's token; its page shows the queued payload and whether it hashes to the approved hash).
+    sent_link?: unknown;
   },
 ): string {
   const company = clean(row.company, 80) || "the employer", url = httpsUrl(row.url);
-  const tail = url ? ` ${url}` : "";
+  const link = /^https?:\/\/\S+$/.test(String(row.sent_link ?? "")) ? String(row.sent_link).slice(0, 500) : "";
+  const tail = (url ? ` ${url}` : "") + (link ? `\nExactly what was sent: ${link}` : "");
+  // 7.4: what failed, why, and the one next step. A retry is a new application the person approves again, never automatic.
+  const again = (why: string) => why === "needs_answers"
+    ? ` Next: say "what do you need from me" to answer them; the application then comes back to you to approve.`
+    : ` Nothing is retried on its own. Next: ${url ? `say "apply me to this: ${url}"` : "ask me to apply again"} and I'll show you the new application to approve first.`;
   const reason = clean(row.reason, 200);
   switch (row.state) {
     case "confirmed": {
@@ -73,14 +81,14 @@ export function receiptText(
     case "needs_user":
       return `${company} is not finished: ${NEEDS_YOU[reason] ?? "it needs you"}. Nothing else was sent.${tail}`;
     case "failed":
-      return `${company} did not accept it${reason ? `: their form said "${reason}"` : ""}.${tail}`;
+      return `${company} did not accept it${reason ? `: their form said "${reason}"` : ""}.${again("")}${tail}`;
     case "not_submitted": {
       // G6: the queue's claim records its own reason in words ("not sent: the application changed after it was approved");
       // that is said as the reason, not wrapped in a second "not sent".
       const said = /^not sent: /i.test(reason) ? reason.replace(/^not sent: /i, "").replace(/[.\s]+$/, "") : "";
       return `Not sent to ${company}: ${
         NOT_SENT[reason] ?? (said || `it stopped before sending${reason ? ` (${reason})` : ""}`)
-      }. Nothing reached the employer.${tail}`;
+      }. Nothing reached the employer.${again(reason)}${tail}`;
     }
     case "unknown_outcome":
       return `${company}: Trainee cannot tell whether it went through, and will not send it again. If they email you a confirmation, it did.${tail}`;
@@ -100,6 +108,7 @@ export interface ReceiptRow {
   email_confirmed_at?: string | null;
   evidence?: { page_confirmation?: boolean } | null;
   source?: string | null;
+  sent_link?: string | null;
 }
 export function planReceipts(rows: ReceiptRow[], now: number) {
   return rows

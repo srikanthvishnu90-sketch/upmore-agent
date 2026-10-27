@@ -9,13 +9,13 @@ import { adaptersFromEnv } from "./channel_registry.ts";
 // agent-chat may answer with `parts` (a reply in several messages, each at most 4,000 characters: channel_inbound.ts
 // replyParts); they are passed on as they are.
 export function chatThroughAgent(url: string, key: string) {
-  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => {
+  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; replyChannel?: string | null }) => {
     const res = await fetch(`${url}/functions/v1/agent-chat`, {
       method: "POST", signal: AbortSignal.timeout(120000),
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
       body: JSON.stringify({ as_user_id: a.userId, message: a.message, turn_key: a.turnKey, ...(a.threadId ? { thread_id: a.threadId } : {}),
-        ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}) }),
+        ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId, ...(a.replyChannel ? { reply_to_channel: a.replyChannel } : {}) } : {}) }),
     });
     const body = await res.json().catch(() => ({})) as Record<string, unknown>;
     if (res.status === 429) return { status: 429, reply: String(body.message || "Slow down a little, then try again."), threadId: null };

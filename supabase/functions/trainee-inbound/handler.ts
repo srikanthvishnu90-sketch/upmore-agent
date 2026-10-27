@@ -8,8 +8,8 @@
 // cover it.
 import { equalSecret } from "../_shared/message_service.ts";
 import type { Send } from "../_shared/channel.ts";
-import { loopMessageAdapter } from "../_shared/loopmessage_adapter.ts";
-import { runInbound, type InboundStore } from "../_shared/channel_inbound.ts";
+import { inboundSecretOf, loopMessageAdapter } from "../_shared/loopmessage_adapter.ts";
+import { acceptInbound, type InboundStore } from "../_shared/channel_inbound.ts";
 
 export { CHAT_DOWN_REPLY, SIGNUP_CLOSED_REPLY, signupAllows, turnKeyFor } from "../_shared/channel_inbound.ts";
 export type { InboundStore, Person } from "../_shared/channel_inbound.ts";
@@ -20,6 +20,9 @@ export interface InboundDeps {
   send: (apiKey: string) => Send; // channel commands and the signup refusal go straight out: no account, no outbox row
   chat: (a: { userId: string; threadId: string | null; message: string; turnKey: string }) => Promise<{ status: number; reply: string; threadId: string | null }>;
   deliverReply: (a: { userId: string; key: string; apiKey: string; now: number }) => Promise<void>;
+  // E-15: LoopMessage disconnects after 15 seconds and retries up to 30 times ("highly recommended ... defer processing";
+  // https://loopmessage.com/apidocs/conversation-api-webhooks): the message id is claimed, 200 goes back, the turn follows.
+  defer?: (work: Promise<unknown>) => void;
 }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -28,7 +31,7 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const secret = d.env.get("TRAINEE_INBOUND_SECRET") || "";
   if (secret.length < 32) return json({ error: "not configured: TRAINEE_INBOUND_SECRET must be set, 32 characters or more" }, 503);
-  const got = new URL(req.url).searchParams.get("secret") || req.headers.get("x-trainee-secret") || "";
+  const got = new URL(req.url).searchParams.get("secret") || req.headers.get("x-trainee-secret") || inboundSecretOf(req);
   if (!equalSecret(got, secret)) return json({ error: "forbidden" }, 403);
   const apiKey = d.env.get("LOOPMESSAGE_API_KEY") || "";
   if (!apiKey) return json({ error: "NOT_WIRED: LOOPMESSAGE_API_KEY is not set; no turn was run" }, 503);
@@ -38,10 +41,11 @@ export async function handleInbound(req: Request, d: InboundDeps): Promise<Respo
   const msg = parsed.messages[0];
   if (!msg) return json({ ok: true, ignored: (parsed.ignored ?? [])[0] ?? "nothing to read" });
   const send = d.send(apiKey);
-  const r = await runInbound(msg, {
+  const r = await acceptInbound(msg, {
     env: d.env, now: d.now, store: d.store(), render: adapter.render, chat: d.chat,
     reply: (contact, bubbles) => send(contact, bubbles),
     deliver: (a) => d.deliverReply({ userId: a.userId, key: a.key, apiKey, now: a.now }),
+    ...(d.defer ? { defer: d.defer } : {}),
   });
   return json(r.body, r.status);
 }

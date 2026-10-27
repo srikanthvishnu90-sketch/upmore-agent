@@ -39059,7 +39059,7 @@ const CareerRouter = (() => {
   function handleHonestUnavailableAction(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw);
-    if (/\bwhat can you (actually |really )?(do|help with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t)) {
+    if (/\bwhat can you (actually |really )?(do|help(?: me)? with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t)) {
       return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: "Fair question — here is the real list.", facts: [CAPABILITY_LINE], nextStep: "Name one and it starts now." }) };
     }
     let label = null, headline = null;

@@ -6,13 +6,57 @@ separately below. There are no secret values here, only the names of settings.
 
 ## Where the code is
 
-| Branch | Head | Pushed | Merged to `trunk` | Merged to `main` | Deployed | Verified live |
-|---|---|---|---|---|---|---|
-| `arch/submit-path` | `d671223c` (and this doc's commit after it) | yes | yes, through the third session's `arch/diagnosis-1240` (merge `f77487ef` of `d671223c`) | **no** | **no**: not by me, not known | **no** |
-| `arch/alerts-watch-bridge` (paused at ALERTS-PAUSE-1126) | `adcf6473` | yes | yes, through `arch/diagnosis-1240` (merge `a6497a80`) | **no** | **no** | **no** |
-| `arch/backend-g6-receipts` (the base) | `6bf3478e` | yes | yes, through the above | **no** | **no** | **no** |
+| Branch | Head | Pushed | GitHub CI on that head | Merged to `trunk` | Merged to `main` | Deployed | Verified live |
+|---|---|---|---|---|---|---|---|
+| `arch/submit-path` | `fd606d9d` | yes | **RED** (`career-and-shared-tests-core`; attribution below) | up to `d671223c` only, through the third session's `arch/diagnosis-1240` (merge `f77487ef`). `352f7071`, `32d1aa0e`, `fd606d9d` (docs and test fixtures) are **not** on trunk | **no** | **no**: not by me, not known | **no** |
+| `arch/submit-path-join-1255` (candidate, CI only) | `986bdf37` = `arch/submit-path` merged onto Muse's `02a40c29` | yes | running at the time of writing (runs `40449759778` and the one after it) | **no** | **no** | **no** | **no** |
+| `arch/alerts-watch-bridge` (paused at ALERTS-PAUSE-1126) | `adcf6473` | yes | not re-checked | yes, through `arch/diagnosis-1240` (merge `a6497a80`) | **no** | **no** | **no** |
+| `arch/backend-g6-receipts` (the base) | `6bf3478e` | yes | green | yes, through the above | **no** | **no** | **no** |
 
 - **Uncommitted:** nothing in any of these worktrees.
+- **Correction:** an earlier version of this doc, and my earlier reports, said "verified" from local runs alone. GitHub
+  CI has been red on every `arch/submit-path` push since the base. The architect-tests step passes there; the node step
+  `career-and-shared-tests-core` fails. "Verified in the repo" below means local runs, which are listed with their
+  counts. It does not mean CI green.
+
+### Why CI is red on `arch/submit-path`, and whose it is
+
+I bisected locally. The base `6bf3478e` passes every one of these suites. I took the head and put back to their base
+versions either the agent-chat handler (mine) or the router files (`142-career-router.js`, `router_core.js`,
+`router_core.career.js`: Muse's branch `muse/2026-10-24-router-messagepath-fixes`, merged in as JOIN-1233 asked).
+
+| Suite (pass/fail) | `6bf3478e` base | head | head, base **handler** | head, base **router** | candidate join on Muse's `02a40c29` |
+|---|---|---|---|---|---|
+| career-alert-intents | 8/0 | 7/1 | 7/1 | 8/0 | 9/0 |
+| career-bundle-reachability | 1/0 | 0/1 | 0/1 | 1/0 | 1/0 |
+| career-depth-memory | 13/0 | 12/1 | 12/1 | 13/0 | 13/0 |
+| career-document-delivery | 6/0 | 5/1 | 5/1 | 6/0 | 6/0 |
+| career-resume-phrase-scope-20261024 | absent | 3/1 | 3/1 | 0/4 (tests the new router) | 4/0 |
+| career-submit-chatpath-20261025 | absent | 6/9 | 6/9 | 5/10 (tests the new router) | 15/0 |
+| career-v240-live-gaps | 11/0 | 10/1 | 10/1 | 11/0 | 11/0 |
+| career-v241-live-gaps | 6/0 | 5/1 | 5/1 | 6/0 | 6/0 |
+| career-v242-live-gaps | 2/0 | 1/1 | 1/1 | 1/1 | 2/0 |
+| career-textpath-heldout-blind1-20261024 (CI, fresh HOME) | absent | 0/15 → 15/15 after `fd606d9d` | | | 15/15 |
+
+- **Mine, fixed:**
+  - v242's staged fake did not serve the `agent_messages` read and the `career_events` insert that my evidence step
+    makes, so its control case threw. Fixed in `32d1aa0e` (test fixture only).
+  - The heldout-blind1 harness appends to `$HOME/workspace/…`, which does not exist on CI runners. That gave 15
+    ENOENT failures, here and on Muse's head (run `40223344044`). Fixed in `fd606d9d`: the harness creates the
+    directory first. The path and the records are unchanged.
+- **Not mine:** every other red row is the router at Muse's `49364988` (the `career_watch_create` misroute and the
+  chatpath suite). They pass on Muse's newer `02a40c29` (REGRESSION-1255) joined with my head, so no router edit is
+  needed from this lane. Bringing `02a40c29` into `arch/submit-path` is a join of router code, and CHECKPOINT-1315
+  pauses that. I pushed it only as the candidate branch above, so CI can show the result. The coordinator decides the
+  join.
+- **Not a defect after all:** the handler's thread read (`handler-career.ts:515`) has no try/catch. supabase-js 2.117.1
+  turns a fetch failure into `{ error }` with default settings and does not throw it (`postgrest-js dist/index.cjs:418`).
+  The handler already holds every fact on `{ error }`. Only a test fake can throw there, so no handler patch is
+  proposed.
+
+The candidate join, run locally: the router bundle is verified. The architect suite gives 1360 passed, 0 failed. Real
+Postgres 16 with Chromium gives flow-real-person, flow-connected, handler-submit-path 11/11 and submit-real-person 16/16.
+The only failure is pending router (c), which is expected red (issue 2).
 - **Edits paused:** CHECKPOINT-1315 holds router_core and 142, the 155 batch stack, the agent-chat handler and the
   career bundles until the coordinator's release.
 - **Never done by this lane:** a real employer submit, a deploy, a migration applied to a live database, a schedule, or
@@ -30,7 +74,7 @@ outcome is recorded → chat reads it back.
 - **Merged to main:** no.
 - **Deployed:** no.
 - **Verified live:** no.
-- **Verified in the repo:** yes. That means synthetic people, a real throwaway Postgres 16, a real Chromium, and an
+- **Verified in the repo:** locally yes; GitHub CI no (red, see above). Locally means synthetic people, a real throwaway Postgres 16, a real Chromium, and an
   employer page on 127.0.0.1. No real site was ever reached.
 
 | Step | What it does | Verified in the repo by |
@@ -65,6 +109,9 @@ npm).
 
 ## Remaining issues (open, in order of what blocks a real person)
 
+0. **GitHub CI is red on `arch/submit-path`.** The cause is the router join, not this lane (see "Why CI is red" above).
+   The fix is the coordinator's call to join Muse's `02a40c29` (candidate: `arch/submit-path-join-1255`). Read that
+   branch's CI result before trusting any "green".
 1. **Not on main, not deployed, not verified live.**
    - **To deploy:** agent-chat (`handler-career.ts` and its `_shared` modules), and the router bundle.
    - **To apply, in this order:** the migrations `20261025100000_career_apply_one_ledger.sql`,

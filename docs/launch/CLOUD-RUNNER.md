@@ -98,7 +98,138 @@ At 60 s per application that is up to ~2,500 applications per minute, about 3.6 
 5 applications a day is ~3,500 a minute at a flat rate; it fits only if each sandbox runs a small batch (3 at a time
 measured above) or the limit is raised (Enterprise). The per-host limits will bind long before Vercel does.
 
-## Owner steps (nothing below has been done)
+## Hosted apply: preparation and sending for a person with only a phone (FEATURE 17)
+
+Nothing below is deployed or applied; go-live ships it when the owner runs it. Proven in
+`tests/architect/flow-hosted-apply.test.ts` (the chat, the hosted door, the preparation sandbox, the card, the tap, the
+send, the outcome loop, a verification check), `tests/architect/hosted-apply-unit.test.ts` and
+`tests/db/career_cloud_hosted_apply.test.sql`.
+
+### How it runs after go-live
+
+```
+Telegram/SMS/WhatsApp text "apply me to <link>"  -> agent-chat (FEATURE 1 apply turn: career_apply_wanted, waiting)
+  └─ kickPrepare  POST <runner>/prepare  (Authorization: Bearer CAREER_PREPARE_AHEAD_TOKEN; 4 s timeout)
+       └─ career_apply_prepare_request_put: only that person's waiting postings; a second kick is the same request
+       └─ 202 and, at once (EdgeRuntime.waitUntil), the preparation dispatcher; pg_cron also ticks it every minute
+pg_cron "career-cloud-prepare-dispatch"  POST <runner>/prepare-dispatch  (x-cloud-dispatch-secret)
+  └─ career_apply_prepare_request_claim(want, global, per person per day, per site per minute)
+  └─ one Vercel Sandbox per request: deno run workers/career-cloud/prepare-runner.ts (request id, sandbox id, token, bridge URL)
+       └─ prepare-ahead.ts prepareAhead: the engine's dry run on the employer's form, confirmed facts and answers only,
+          the resume the person keeps for the cloud byte for byte (career_apply_cloud_resumes); every call via POST <runner>/prep/<op>
+       └─ finish: the card of what is ready, pushed now into their thread and outbox (career_apply_card_push_requested_for);
+          else the form's questions texted now (career_apply_questions_push_requested_for); else why nothing could be prepared
+trainee-deliver (every minute) -> their channel. Their numbered answers -> agent-chat -> prepared again at once (career_hosted_prepare.ts)
+Their tap on the card (Telegram button, career_apply_card_answer_as) -> career_apply_jobs (queued, bound to the card's hash)
+pg_cron "career-cloud-dispatch"  POST <runner>/dispatch -> career_apply_cloud_dispatch_claim2
+  └─ card-cloud jobs through the bridge's own claim, unchanged; then text-card jobs (career_apply_cloud_text_claim_at)
+  └─ one sandbox per job: sandbox-runner.ts -> runCloudJob -> scripts/apply.ts --submit --approved <hash>
+       └─ authorization before the engine and before the one Submit: career_apply_cloud_authorize_any
+       └─ finish -> receipt (career-proactive) -> their channel; "did it go through?" reads the row
+```
+
+**Bound on time, phone to card:** the kick dispatches at once; if it does not, the next minute's tick does. Measured in the
+flow test on a local copy of Ramp's form: the card queued 9.9 to 13.1 s after the person's last message (5 runs: 9,861 to 13,061 ms), the
+engine's dry run being most of it. After the bridge's checks below were added, 18.3 to 27.0 s in 3 runs (18,270 / 21,236 /
+27,007 ms; second card 17,447 / 28,930 / 29,048 ms), on the same machine at a load average of 19 to 33 from other runs, so
+the two sets are not a like-for-like comparison. The flow test holds the bound at 120 s. In production add sandbox creation (26 ms measured from the snapshot, up to 3 tries
+over about 7 s), a real form's own load (the load model above says 30 to 90 s per application), and up to one minute for
+delivery. The preparation's lease is 15 minutes and the sandbox's own timeout 13; a request that does not finish inside
+its lease is expired, never re-run, and its postings stay in the person's queue.
+
+**What the preparation sandbox may store** (review of #202, F5): the sandbox opens the employer's page, which nobody
+trusts, so nothing it sends is trusted. The bridge stores a prepared application only when it is for the link this
+request asked for (`career_apply_prepare_request_posting`: the posting's own link in `career_postings`, exactly) and its
+card says what it sends (`career_prepared_card.ts`): the employer, every answer in the payload's order as the value sent
+(or, for a box, "Yes (checked)"/"No"; for a choice, the person's own confirmed answer that filled it), the kept resume by
+name and hash, the page's own fields, a verification line with no words of its own, the destination, the cover note
+sent, and nothing else. What it cannot check: which option code of a select stands for the answer shown. A try may not
+name a prepared application. The sandbox's token leaves its environment before the engine starts (`takeRunnerEnv`).
+
+**The numbers count postings, not requests:** a request may hold up to 25 postings; per person per day and per host per
+minute count the postings started. A request that fits in part is split (the rest wait in a request of their own, same
+age, and record why: `per_person_day` or `per_site_minute`); "where are my applications" says which (`waiting_day_limit`
+reads "today's preparations are used up", `starting` "waiting its turn"). LinkedIn and Indeed postings are never taken
+(`career_apply_never_automated`). A sandbox that never starts is told to the person (the chat had said it started).
+
+
+**The text-card route** (finding 1, owner approval of code only, 2026-10-26): a job approved on the card shown in chat is
+claimable by the cloud only when every one of these holds at the claim, and again at the authorization before the engine
+and before Submit: the owner's kill switch `CAREER_AGENT_SUBMIT = 'on'`, `CAREER_CLOUD_APPLY = 'on'` and `CAREER_CLOUD_TEXT_CARDS = 'on'`
+(all off by default); the approved sources' digest unchanged since the worker read them (at the authorization); the job is
+exactly the card item's (same person, payload and hash; that number approved and queued; created inside the card's
+showing and its answer; under 24 hours old); the account as approved; greenhouse, lever or ashby; an https destination;
+the gate open or a live waiver with sends left; the person's opt-in for this account; no pause; under the person's daily
+number (least of 15, their opt-in number, their own pace, `CLOUD_MAX_PER_PERSON_DAY`); one employer per 30 days; under
+`CLOUD_MAX_PER_SITE_MINUTE` for the employer's host; their resume kept for the cloud byte for byte. The claim writes a
+marker (`career_apply_cloud_text_claims`) the authorization requires. The gate, the waiver and the bridge are unchanged.
+
+### Secrets and numbers (go-live sets them by name; the values never appear in a log)
+
+| Name | What | Unset |
+|---|---|---|
+| `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID` | the sandbox host | the runner is not wired; it answers 503 |
+| `CLOUD_SANDBOX_SNAPSHOT_ID` | the runner snapshot; `--build-snapshot` builds one at `--sha` (one sandbox, about 25 minutes, Vercel spend) | kept |
+| `CLOUD_RUNNER_SECRET`, `CLOUD_DISPATCH_SECRET`, `CAREER_PREPARE_AHEAD_TOKEN` | the job/request tokens' key, the ticks' header, the chat's kick | generated (48 characters) |
+| `CLOUD_BRIDGE_URL`, `CAREER_PREPARE_AHEAD_URL` | `<project>/functions/v1/career-cloud-runner` and `.../prepare` | derived, never asked |
+| `CLOUD_RUNNER_ENABLED`, `CLOUD_PREPARE_ENABLED` | `on` turns sending / preparation on | not touched: off |
+| `CLOUD_MAX_CONCURRENT`, `CLOUD_MAX_PER_PORTAL`, `CLOUD_MAX_STARTS_PER_TICK` | sending: global, per family, per tick | 2, 1, 2 (wave 1) |
+| `CLOUD_MAX_PER_PERSON_DAY`, `CLOUD_MAX_PER_SITE_MINUTE` | sending: per person per 24 h, per employer host per minute | 3, 1 (wave 1) |
+| `CLOUD_PREPARE_MAX_CONCURRENT`, `CLOUD_PREPARE_STARTS_PER_TICK` | preparation: global, per tick | 2, 2 (wave 1) |
+| `CLOUD_PREPARE_PER_PERSON_DAY`, `CLOUD_PREPARE_PER_SITE_MINUTE` | preparation: postings per person per 24 h, postings per employer host per minute | 10, 2 (wave 1) |
+
+The database switches stay the owner's, by SQL: `insert into career_cloud_settings (key, value) values
+('CAREER_AGENT_SUBMIT', 'on'), ('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on') on conflict (key) do update set value = excluded.value;`
+(`CAREER_AGENT_SUBMIT` is the owner's kill switch for every route that submits; turning it off stops the text-card route at the
+claim and at both authorizations.)
+
+### Recommended caps for the first waves (the code's defaults are wave 1; wave 2 is set by name)
+
+| | Wave 1 (the owner, then up to 10 people) | Wave 2 (up to 100) | Why |
+|---|---|---|---|
+| `CLOUD_MAX_PER_PERSON_DAY` | 3 | 5 | every send on a datacenter IP risks a low reCAPTCHA score under the person's name; the throttle pauses a person at 2 checks a day |
+| `CLOUD_MAX_PER_SITE_MINUTE` | 1 | 2 | Greenhouse and Ashby each serve many employers from one host; one claim a minute per host keeps a burst from reading as a bot |
+| `CLOUD_MAX_CONCURRENT` / `CLOUD_MAX_PER_PORTAL` | 2 / 1 | 5 / 2 | the 2 vCPU sandbox measured 3.5 s per application at 3 at a time on a local form; real forms are 30 to 90 s |
+| `CLOUD_PREPARE_PER_PERSON_DAY` | 10 | 20 | a preparation is a dry run (nothing sent) but loads the employer's page; 10 a day is two days of 5 sends |
+| `CLOUD_PREPARE_PER_SITE_MINUTE` | 2 | 4 | the same host reasoning, for page loads only |
+| `CLOUD_PREPARE_MAX_CONCURRENT` | 2 | 5 | |
+
+Raise a number only after `select career_apply_cloud_check_rates(7)` shows the host's `bot_check_rate` and
+`unconfirmed_after_24h` at or under the owner's threshold, with their counts.
+
+### How the cloud gate opens (unchanged; read from `career_apply_cloud_open`, 20261021080000)
+
+A family (greenhouse, lever, ashby) opens for the cloud only when **3** of its applications are all of:
+1. sent by a person listed in `career_cloud_settings.gate_user_ids` (`'{<owner user id>}'`; none listed: closed);
+2. sent from their own computer or the extension (`source in ('own_computer', 'extension')`; a cloud send never counts);
+3. `state = 'confirmed'` by the employer's email (`email_confirmed_at` and `confirmation_mail_hash` set by the mail run's
+   match, `career_apply_confirm_as`), with that message's `career_mail_events` row (`kind = 'received'`, not flagged) still
+   there for the application. A page's "thank you" never counts. Gmail must be connected for the mail run to see it.
+
+Check: `select career_apply_cloud_open('ashby'), career_apply_cloud_report(30);`
+
+**The owner's Ramp run and the gate: two options (finding 2; the owner chooses).**
+- **(a) His own computer or the extension, with Gmail connected.** He approves the card in Telegram; his own runner
+  (`career_apply_claim_own`, source `own_computer`) or the extension sends it; Ramp's confirmation email, matched by the
+  mail run, makes it `confirmed`. With his user id in `gate_user_ids`, it is **1 of the 3** Ashby needs. It does not use
+  the cloud sender.
+- **(b) The cloud sender under a waiver.** The owner's operator writes one waiver
+  (`insert into career_apply_cloud_gate_waivers (user_id, portal, max_sends, expires_at, note) values ('<his id>', 'ashby', 1,
+  now() + interval '2 days', 'owner first real run');`), turns both switches on and opts in. It tests the cloud path for real,
+  but by design it **does not count** toward the gate (a cloud send never does).
+
+### Verification checks on the hosted path
+
+A visible challenge (reCAPTCHA Enterprise's challenge frame, hCaptcha, Turnstile) at open, review or Submit is detected by
+the engine, never solved: the job ends `needs_user` / `bot_check`, nothing reached the employer, it is never retried, it
+counts for the throttle on its family, and the person's receipt says, word for word: "Ramp is not finished: a verification
+check appeared, and Trainee never solves one, so finish this one yourself: open the link below, enter the answers you
+approved on the card, complete the check on the page, then press Submit. Nothing reached Ramp. <link>". An invisible
+low score that the employer's server drops silently cannot be seen by the engine; it shows up as `submitted_unconfirmed`
+with no email after 24 hours (`unconfirmed_after_24h` in the rates).
+
+## Owner steps (the manual path, for reference; go-live does steps 4 to 6 when VERCEL_TOKEN is given)
+
 
 1. **Vercel.** In team `team_mn5D4XBK4MgqL0KgNlzvzfky`, project `trainee` (`prj_wU2a8WhzB8x1qIbqx3ChnhAVCIGv`): create an
    access token scoped to the team (Account Settings → Tokens). Set Spend Management on the team.
@@ -112,7 +243,7 @@ measured above) or the limit is raised (Enterprise). The per-host limits will bi
 4. **Edge function secrets** (Supabase → Edge Functions → Secrets), by name:
    `CLOUD_RUNNER_SECRET` (random, ≥ 32 characters), `CLOUD_DISPATCH_SECRET` (random), `VERCEL_TOKEN`, `VERCEL_TEAM_ID`,
    `VERCEL_PROJECT_ID`, `CLOUD_SANDBOX_SNAPSHOT_ID`, `CLOUD_BRIDGE_URL` (`https://<project>.supabase.co/functions/v1/career-cloud-runner`),
-   and the limits `CLOUD_MAX_CONCURRENT` (start at 5), `CLOUD_MAX_PER_PORTAL` (start at 2), `CLOUD_MAX_STARTS_PER_TICK` (start at 5).
+   and the limits only to raise them past wave 1 (unset, `CLOUD_MAX_CONCURRENT` 2, `CLOUD_MAX_PER_PORTAL` 1, `CLOUD_MAX_STARTS_PER_TICK` 2).
    Optional: `CLOUD_SANDBOX_REGION` (iad1), `CLOUD_SANDBOX_VCPUS` (2). Then `CLOUD_RUNNER_ENABLED=on`.
 5. **Deploy** `supabase functions deploy career-cloud-runner --no-verify-jwt` (config.toml sets `verify_jwt = false`; the
    dispatcher checks its header secret, the bridge its per-job token).

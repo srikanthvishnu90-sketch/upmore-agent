@@ -32,7 +32,10 @@ const NEEDS_YOU: Record<string, string> = {
   captcha: "the page asks you to complete a verification",
   email_code: "the employer emailed you a code to finish it",
   // WO-039: the cloud met a verification check, which Trainee never solves or gets around. The link is theirs to finish.
-  bot_check: "a verification check appeared, and Trainee never solves one, so finish this one yourself at this link",
+  // FEATURE 17: what to do, exactly: open the link, enter the answers they approved (the card has them), complete the
+  // check, press Submit. The check stopped it before Submit, so nothing reached the employer.
+  bot_check: "a verification check appeared, and Trainee never solves one, so finish this one yourself: open the link below, " +
+    "enter the answers you approved on the card, complete the check on the page, then press Submit",
 };
 
 // WO-032: a row is confirmed only by the employer's email matched to it (career_apply_confirm.ts); its receipt says whose
@@ -79,6 +82,7 @@ export function receiptText(
       }
       return `Sent to ${company}. The employer has not confirmed it yet; their confirmation email is the proof.${tail}`;
     case "needs_user":
+      if (reason === "bot_check") return `${company} is not finished: ${NEEDS_YOU.bot_check}. Nothing reached ${company}.${tail}`;
       return `${company} is not finished: ${NEEDS_YOU[reason] ?? "it needs you"}. Nothing else was sent.${tail}`;
     case "failed":
       return `${company} did not accept it${reason ? `: their form said "${reason}"` : ""}.${again("")}${tail}`;

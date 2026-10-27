@@ -56,9 +56,15 @@ LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000
   20261026230100_career_erase_complete.sql 20261026230300_career_turn_gate.sql
   20261026230400_career_kb_postings_recency_index.sql 20261026230000_trainee_web_admission.sql
   20261026233017_career_invite_waves.sql
-  20261026210016_career_resume_required.sql 20261026220016_channel_telegram_login.sql"
-# 20261026210016 and 20261026220016 (FEATURE 16, NOT APPLIED) are new here, not live; 20261026210016 reads
+  20261026210016_career_resume_required.sql 20261026220016_channel_telegram_login.sql
+  20261026230017_career_cloud_hosted_apply.sql"
 # career_apply_profile_for, created by 20261025120000 (missing above).
+# The last entries are not live: 20261026060006 and 20261026060106 alter career_board_state, created by 20261021110000
+# (missing above); 20261026070007, 20261026080008, 20261026090009, 20261026100001 and 20261026140000 are the
+# 2026-10-26 files trunk's rehearsal names not-live (the same entries as PR #194's); 20261026100000 says NOT APPLIED
+# in its header, and applied to the live mimic before the one ledger it would generate its portal claim from the
+# older claim_at; 20261026230017 (FEATURE 17) is NOT APPLIED and reads career_apply_prepare_attempts, created by
+# 20261025120000 (missing above).
 read -r -a LIVE_MISSING <<<"$(echo ${LIVE_MISSING:-$LIVE_MISSING_DEFAULT})"
 LIVE_SAFE="${LIVE_SAFE_BRIEF_DIGEST:-1}"
 BRIEF=20261021050000_career_brief_digest.sql

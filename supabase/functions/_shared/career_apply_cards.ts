@@ -235,7 +235,7 @@ export async function cardTurn(
     const c = cardFor((await o.store.pending(o.userId)).filter(sendsResume), o.surface ?? "text");
     if (!c) {
       return {
-        reply: "Nothing is prepared yet. Prepare applications on your computer first; they show up here.",
+        reply: 'Nothing is ready for you to approve yet. Send me a job link with "apply me to" and I\'ll prepare it and send its card here; "where are my applications" says what is being prepared.',
         status: "empty",
       };
     }

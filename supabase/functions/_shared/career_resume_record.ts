@@ -56,7 +56,7 @@ export function statusReply(r: ResumeRecord): string {
 export function deleteReply(d: ResumeDeleted): string {
   const s = d.stopped ?? {};
   const parts: string[] = [];
-  parts.push(d.had ? `Deleted ${what(d)}; I keep no copy of it.` : "I didn't have a resume on file for you, so there was nothing to delete.");
+  parts.push(d.had ? `Deleted ${what(d)}; I keep no copy of it. The entries you confirmed from it stay in your profile until you say "forget my career profile", and no application uses them without a resume on file.` : "I didn't have a resume on file for you, so there was nothing to delete.");
   if (s.cancelled) parts.push(`${n(s.cancelled, "approved application that hadn't gone out was", "approved applications that hadn't gone out were")} cancelled${s.companies?.length ? ` (${s.companies.slice(0, 6).join(", ")})` : ""}.`);
   if (s.discarded) parts.push(`${n(s.discarded, "prepared application was", "prepared applications were")} discarded.`);
   if (s.being_sent) parts.push(`${n(s.being_sent, "application was", "applications were")} already being sent; one that went out can't be taken back.`);

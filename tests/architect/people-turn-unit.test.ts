@@ -55,6 +55,10 @@ function memoryStore(): PeopleStore & { rows: (PersonRec & { user_id: string })[
       Object.assign(i, patch); return { ...i };
     },
     async forgetIntros(u) { const n = intros.filter((x) => x.user_id === u).length; for (let k = intros.length - 1; k >= 0; k--) if (intros[k].user_id === u) intros.splice(k, 1); return n; },
+    async dueIntros(nowIso) {
+      return intros.filter((i) => i.follow_up_at && !i.reminded_at && ["approved", "sent"].includes(i.status) && Date.parse(i.follow_up_at) <= Date.parse(nowIso))
+        .sort((a, b) => Date.parse(a.follow_up_at!) - Date.parse(b.follow_up_at!)).map((i) => { const { user_id, ...intro } = i as any; return { userId: user_id as string, intro: intro as Intro }; });
+    },
   };
 }
 let calls = 0;

@@ -18,7 +18,9 @@
 //              school, else a route the target publishes), a short forwardable request drafted from confirmed facts
 //              (career_outreach.ts draftFor and its fact-lock), approved by its exact text, delivered by the person
 //              (copy-ready text, or a mailto link): Trainee never sends and never contacts anyone itself. Tracked
-//              (sent, replied, no reply: the person's word or Gmail's), with a reminder only when they ask for one.
+//              (sent, replied, no reply: the person's word or Gmail's), with a reminder only when they ask for one:
+//              pushed by the scheduled run when CAREER_INTRO_REMINDERS is on (career_people_reminders.ts), and in
+//              any case shown at their next message if it has not been pushed by then.
 //   forget     "forget my LinkedIn contacts" (and Gmail contacts, job emails, intro requests): deleted and read back.
 import { contactsOf, type ContactRow, MX_NOT_WIRED, normalizeFirm, verifyRows } from "./career_contacts.ts";
 import { confirmed, draftFor, factText, type ModelFn, type OutreachStore, type Recipient } from "./career_outreach.ts";
@@ -76,6 +78,9 @@ export interface PeopleStore {
   forgetJobs(userId: string): Promise<number>;
   intros(userId: string): Promise<Intro[]>;
   intro(userId: string, n: number): Promise<Intro | null>;
+  // Every intro whose asked-for reminder is due (armed, unreminded, still approved or sent), oldest due first, across
+  // people: the scheduled push's read (career_people_reminders.ts). Mirrors dueLine's filter below exactly.
+  dueIntros(nowIso: string): Promise<{ userId: string; intro: Intro }[]>;
   addIntro(userId: string, i: Omit<Intro, "id" | "n" | "status" | "status_source" | "approved_hash" | "approved_at" | "sent_at" | "follow_up_days" | "follow_up_at" | "reminded_at" | "created_at">): Promise<Intro>;
   updateIntro(userId: string, n: number, patch: Partial<Intro>, onlyIf?: { status?: string[]; payload_hash?: string }): Promise<Intro | null>;
   forgetIntros(userId: string): Promise<number>;
@@ -131,6 +136,12 @@ export function supabasePeopleStore(admin: any): PeopleStore {
     },
     async forgetJobs(userId) { return (must(await admin.from("career_job_emails").delete().eq("user_id", userId).select("id"), "forget the job emails") ?? []).length; },
     async intros(userId) { return must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).order("n", { ascending: true }).limit(200), "read the intro requests") ?? []; },
+    async dueIntros(nowIso) {
+      const rows = must(await admin.from("career_intro_requests").select("*").not("follow_up_at", "is", null).is("reminded_at", null)
+        .in("status", ["approved", "sent"]).lte("follow_up_at", nowIso).order("follow_up_at", { ascending: true }).limit(500), "read the due intro reminders") ?? [];
+      // deno-lint-ignore no-explicit-any
+      return rows.map((r: any) => { const { user_id, ...intro } = r; return { userId: String(user_id), intro: intro as Intro }; });
+    },
     async intro(userId, n) { return must(await admin.from("career_intro_requests").select("*").eq("user_id", userId).eq("n", n).maybeSingle(), "read the intro request"); },
     async addIntro(userId, i) {
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -158,6 +169,10 @@ export interface PeopleDeps {
   store: PeopleStore;
   gmail: GmailRead | null; // null: no Gmail reading here
   fetch: typeof fetch;     // for a public page the person sent
+  // The scheduled push for intro reminders is wired (CAREER_INTRO_REMINDERS=on at career-proactive): the remind
+  // reply's words follow this flag, the same way the alert copy follows its delivery flag — off, the reminder is
+  // brought up at the person's next message and the reply says exactly that.
+  introPush?: boolean;
 }
 // The live wiring, from the same environment the handler reads. Null where there is no database (the unit tests that call
 // networkingTurn alone): the networking turn then answers exactly as before.
@@ -169,7 +184,7 @@ export async function envPeopleDeps(): Promise<PeopleDeps | null> {
   const { careerGrant } = await import("./career_inbox_followups.ts");
   const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const grant = careerGrant(admin, Deno.env, fetch);
-  return { store: supabasePeopleStore(admin), gmail: { fetch, token: careerTokenFor(grant, CAREER_READ_SCOPE) }, fetch };
+  return { store: supabasePeopleStore(admin), gmail: { fetch, token: careerTokenFor(grant, CAREER_READ_SCOPE) }, fetch, introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" };
 }
 
 export interface PeopleTurnIn {
@@ -761,16 +776,26 @@ async function introCmd(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: 
       if (!["approved", "sent"].includes(i.status)) return R(`Intro ${i.n} is ${i.status.replace("_", " ")}, so there's nothing to follow up on.`, "refused");
       const due = new Date((i.sent_at ? Date.parse(i.sent_at) : o.now) + a.days! * 86400_000).toISOString();
       await d.store.updateIntro(o.userId, i.n, { follow_up_days: a.days!, follow_up_at: due, reminded_at: null });
-      return R(`OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll bring it up the next time you message me after that. I can't message you first yet.`, "reminder_set");
+      // The words follow what the code does, read off the same flag the scheduled run is wired by: with the push on,
+      // the reminder is queued for delivery at its date; off, it can only be brought up in this chat, and says so.
+      return R(d.introPush
+        ? `OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll text you a reminder then; if you message me first, I'll bring it up here.`
+        : `OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll bring it up the next time you message me after that. I can't message you first yet.`, "reminder_set");
     }
   }
 }
 
+// The reminder's words, one composer for both surfaces: shown in this chat at the person's next message (dueLine),
+// and queued to the outbox by the scheduled push (career_people_reminders.ts) — the same text either way, and never
+// the note itself: an introduction is only ever the person's to send (D-033).
+export function introReminderText(due: Intro[]): string {
+  return `Reminder you asked for: ${due.map((i) => `intro ${i.n} to ${i.to_name}${i.route === "mutual" ? ` (for ${i.target_name})` : ""}, sent ${day(i.sent_at) || "earlier"}`).join("; ")} has no reply on record. Say "intro ${due[0].n} replied", "intro ${due[0].n} no reply", or "redo intro ${due[0].n}".`;
+}
 async function dueLine(o: PeopleTurnIn, d: PeopleDeps): Promise<string> {
   const due = (await d.store.intros(o.userId)).filter((i) => i.follow_up_at && !i.reminded_at && ["approved", "sent"].includes(i.status) && Date.parse(i.follow_up_at) <= o.now);
   if (!due.length) return "";
   for (const i of due) await d.store.updateIntro(o.userId, i.n, { reminded_at: new Date(o.now).toISOString() });
-  return `Reminder you asked for: ${due.map((i) => `intro ${i.n} to ${i.to_name}${i.route === "mutual" ? ` (for ${i.target_name})` : ""}, sent ${day(i.sent_at) || "earlier"}`).join("; ")} has no reply on record. Say "intro ${due[0].n} replied", "intro ${due[0].n} no reply", or "redo intro ${due[0].n}".`;
+  return introReminderText(due);
 }
 async function introList(o: PeopleTurnIn, d: PeopleDeps): Promise<PeopleResult> {
   const due = await dueLine(o, d);

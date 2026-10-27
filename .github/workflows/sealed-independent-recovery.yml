@@ -27,7 +27,6 @@ jobs:
           test "$(git ls-remote origin refs/heads/fix/seal-multi-recipient-20261026 | cut -f1)" = "77d625fb2f6ce4b5a46470e1b0a5550ed3fe8261"
       - name: Add recovery recipient and verify in memory
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           HELDOUT_SEAL_KEY: ${{ secrets.HELDOUT_SEAL_KEY }}
           HELDOUT_RECOVERY_KEY_20261027: ${{ secrets.HELDOUT_RECOVERY_KEY_20261027 }}
         run: |
@@ -38,15 +37,18 @@ jobs:
             const { recipientFromSecret, rewrap, open } = await import("./evals/career/sealed/seal.ts");
             const f = "evals/career/sealed/heldout-sealed.v1.json";
             const a = JSON.parse(Deno.readTextFileSync(f));
-            const old = a.recipients.find((r) => r.secret_env === "OPENAI_API_KEY");
-            if (!old || !Deno.env.get("OPENAI_API_KEY") || !Deno.env.get("HELDOUT_SEAL_KEY") || !Deno.env.get("HELDOUT_RECOVERY_KEY_20261027")) throw new Error("required recipient or secret missing");
-            if ((await recipientFromSecret(Deno.env.get("OPENAI_API_KEY"))).pub !== old.pub) throw new Error("NOT RUN: original OPENAI_API_KEY no longer matches");
-            console.log("Value-blind original recipient compatibility verified");
+            const old = a.recipients.find((r) => r.secret_env === "HELDOUT_SEAL_KEY");
+            if (!old || !Deno.env.get("HELDOUT_SEAL_KEY") || !Deno.env.get("HELDOUT_RECOVERY_KEY_20261027")) throw new Error("required recipient or secret missing");
+            if ((await recipientFromSecret(Deno.env.get("HELDOUT_SEAL_KEY"))).pub !== old.pub) throw new Error("NOT RUN: existing HELDOUT_SEAL_KEY no longer matches");
+            console.log("Value-blind existing HELDOUT recipient compatibility verified");
             if(a.items !== 162 || a.sha256 !== "f4c19736b9fe8dd2d2a6ed3a3195b8afe2663ff55f2b42cc468a76e8a3444c35") throw new Error("unexpected sealed set");
+            const prior = await open(a, {get:(k) => k === "HELDOUT_SEAL_KEY" ? Deno.env.get(k) : undefined});
+            try { if(JSON.parse(new TextDecoder().decode(prior)).items.length !==162) throw new Error("existing recovery count mismatch"); } finally {prior.fill(0);}
+            console.log("Verified: existing HELDOUT-only recovery decrypts; recorded SHA-256 matches; no plaintext written.");
             const b = await rewrap(a, Deno.env, "HELDOUT_RECOVERY_KEY_20261027");
             for(const k of ["sha256","items","iv","ciphertext","categories"]) if(JSON.stringify(a[k]) !== JSON.stringify(b[k])) throw new Error("encrypted payload changed");
             for(const r of a.recipients) if(JSON.stringify(b.recipients.find(n => n.secret_env === r.secret_env)) !== JSON.stringify(r)) throw new Error("existing recipient changed");
-            Deno.env.delete("OPENAI_API_KEY"); Deno.env.delete("HELDOUT_SEAL_KEY");
+            Deno.env.delete("HELDOUT_SEAL_KEY");
             const plain = await open(b, {get:(k) => k === "HELDOUT_RECOVERY_KEY_20261027" ? Deno.env.get(k) : undefined});
             try { if(JSON.parse(new TextDecoder().decode(plain)).items.length !==162) throw new Error("recovery count mismatch"); } finally {plain.fill(0);}
             Deno.writeTextFileSync(f, JSON.stringify(b,null,1)+"\n");

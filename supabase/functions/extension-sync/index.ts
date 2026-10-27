@@ -89,7 +89,14 @@ async function insertReport(row: Record<string, unknown>) {
   return data;
 }
 
+// The database's own check (trainee_may_act, 20261026230000): the extension serves a person only once Trainee has let them in.
+async function mayAct(userId: string) {
+  const { data, error } = await admin.rpc("trainee_may_act", { p_user: userId });
+  return !error && data === true;
+}
+
 const service = ExtensionSync.createExtensionSyncService({
+  mayAct,
   portalApply: CareerPortalApply,
   track: CareerTrack,
   verifyToken,

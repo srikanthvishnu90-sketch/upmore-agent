@@ -7,6 +7,7 @@
      career_apply_message_cards       -> approval cards (awaiting / approved)
      career_apply_prepared            -> applications Trainee prepared and checked (reviewed)
      career_apply_jobs                -> the tracker: every application with its recorded state and receipt
+     career_apply_cards (open)        -> the chat's card of prepared applications, mounted by the host (deps.mountApplyCard)
    What it writes: nothing directly. Approving a card goes through TraineeApprovalCards (src/career-approval-card.js),
    the same controller and the same hash-bound RPC (career_apply_message_card_approve_own) the chat card uses. Changing an
    answer, leaving an application off or declining a batch opens the chat with a draft the person sends themselves.
@@ -136,8 +137,14 @@
 
   // Queue: awaiting your approval (open cards), approved (approved cards and applications waiting to send), reviewed
   // (applications Trainee prepared and checked that are not on an open card).
-  function queueView(cards, prepared, jobs, now) {
+  // applyCards (launch readiness B7, 2026-10-26): the chat's open card of prepared applications (career_apply_cards, the
+  // card "show my applications" shows), answered with career_apply_card_answer_own through src/career-apply-card.js.
+  // Its applications wait on it, so they are counted as awaiting and are not listed again as reviewed.
+  function queueView(cards, prepared, jobs, now, applyCards) {
     const awaiting = [], approved = [], expired = [];
+    const openApply = (applyCards || []).filter(c => isRecord(c) && c.state === 'open' && UUID.test(str(c.id)) && Array.isArray(c.items) && c.items.length)
+      .slice().sort(byNewest('shown_at'));
+    const onApply = new Set(openApply.flatMap(c => c.items.map(i => str(i && i.prepared_id))));
     for (const c of (cards || []).slice().sort(byNewest('shown_at'))) {
       const s = cardState(c, now);
       const items = cardItems(c);
@@ -146,9 +153,10 @@
       (s === 'open' ? awaiting : s === 'approved' ? approved : expired).push(row);
     }
     const onCard = new Set(awaiting.flatMap(r => r.items.map(i => i.job_id)));
-    const reviewed = (prepared || []).filter(p => ['ready', 'shown'].includes(p.state) && !onCard.has(p.job_id)).sort(byNewest('updated_at'));
+    const reviewed = (prepared || []).filter(p => ['ready', 'shown'].includes(p.state) && !onCard.has(p.job_id) && !onApply.has(p.id)).sort(byNewest('updated_at'));
     const sending = (jobs || []).filter(j => j.state === 'queued' || j.state === 'driving').sort(byNewest('updated_at'));
-    return Object.freeze({ awaiting, approved, expired, reviewed, sending });
+    const applyAwaiting = openApply.map(c => Object.freeze({ card: c, count: c.items.length }));
+    return Object.freeze({ awaiting, approved, expired, reviewed, sending, applyAwaiting, awaitingCount: awaiting.length + applyAwaiting.reduce((n, r) => n + r.count, 0) });
   }
 
   /* ---------------- tracker ---------------- */
@@ -180,12 +188,13 @@
   async function load(client, uid) {
     if (!client || !UUID.test(str(uid))) throw Error('sign in first');
     const must = r => { if (r.error) throw r.error; return r.data || []; };
-    const [alerts, prefs, cards, prepared, jobs] = await Promise.all([
+    const [alerts, prefs, cards, prepared, jobs, applyCards] = await Promise.all([
       client.from('career_outbox').select('key,created_at,delivered_at').eq('user_id', uid).eq('kind', 'alert').order('created_at', { ascending: false }).limit(100),
       client.from('career_alert_prefs').select('prefs').eq('user_id', uid).limit(1),
       client.from('career_apply_message_cards').select('id,thread_id,payload,payload_hash,shown_at,expires_at,approved_at,approval_expires_at').eq('user_id', uid).order('shown_at', { ascending: false }).limit(50),
       client.from('career_apply_prepared').select('id,job_id,company,url,payload_hash,card_lines,state,created_at,updated_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(100),
       client.from('career_apply_jobs').select('id,job_id,company,url,payload_hash,state,reason,confirmation_id,claimed_at,created_at,updated_at,email_confirmed_at').eq('user_id', uid).order('updated_at', { ascending: false }).limit(200),
+      client.from('career_apply_cards').select('id,items,state,shown_at').eq('user_id', uid).eq('state', 'open').order('shown_at', { ascending: false }).limit(5),
     ]);
     const alertRows = must(alerts), cardRows = must(cards);
     const ids = new Set(alertRows.map(a => str(a.key)).filter(k => k.startsWith('alert:')).map(k => k.slice(6)));
@@ -194,11 +203,11 @@
       ? must(await client.from('career_postings').select('job_id,company,title,location,url,remote,closed_at').in('job_id', [...ids]))
       : [];
     const prefRows = must(prefs);
-    return { alerts: alertRows, prefs: prefRows.length && isRecord(prefRows[0].prefs) ? prefRows[0].prefs : null, cards: cardRows, prepared: must(prepared), jobs: must(jobs), postings };
+    return { alerts: alertRows, prefs: prefRows.length && isRecord(prefRows[0].prefs) ? prefRows[0].prefs : null, cards: cardRows, prepared: must(prepared), jobs: must(jobs), postings, applyCards: must(applyCards) };
   }
 
   /* ---------------- approval: the chat card's controller and RPCs ---------------- */
-  // The RPC names and arguments are the chat card's (src/upmore-app-template.html, careerApprovalCards); a test pins
+  // The RPC names and arguments are the chat card's (the web chat host, careerApprovalCards); a test pins
   // them equal. Each card is bound to its own thread, so the controller's owner/thread/hash checks apply unchanged.
   const RPC = Object.freeze({
     cloudEnabled: 'career_apply_message_cloud_enabled_own',
@@ -372,11 +381,17 @@
     const sec = h(doc, 'section', 'tr-surface');
     sec.setAttribute('data-tr-surface', 'queue');
     const cov = h(doc, 'p', 'tr-coverage');
-    cov.textContent = 'Awaiting your approval ' + view.awaiting.length + ' · Approved ' + (view.approved.length + view.sending.length) + ' · Reviewed ' + view.reviewed.length;
+    cov.textContent = 'Awaiting your approval ' + (view.awaitingCount ?? view.awaiting.length) + ' · Approved ' + (view.approved.length + view.sending.length) + ' · Reviewed ' + view.reviewed.length;
     sec.appendChild(cov);
     const group = (title, key) => { const g = h(doc, 'div', 'tr-group'); g.setAttribute('data-tr-queue', key); g.appendChild(h(doc, 'h2', 'tr-h2', title)); sec.appendChild(g); return g; };
     const aw = group('Awaiting your approval', 'awaiting');
-    if (!view.awaiting.length) aw.appendChild(h(doc, 'p', 'tr-empty', 'Nothing is waiting for you.'));
+    if (!view.awaiting.length && !(view.applyAwaiting || []).length) aw.appendChild(h(doc, 'p', 'tr-empty', 'Nothing is waiting for you.'));
+    for (const row of view.applyAwaiting || []) {
+      const slot = h(doc, 'div', 'tr-apply-slot');
+      slot.setAttribute('data-tr-apply-card', row.card.id);
+      aw.appendChild(slot);
+      mounts.push({ slot, applyCard: row.card });
+    }
     for (const row of view.awaiting) {
       const { node, slot } = renderApprovalCard(doc, row, data, deps);
       aw.appendChild(node);
@@ -545,9 +560,9 @@
   function mount(rootEl, data, deps = {}) {
     const doc = rootEl.ownerDocument;
     const now = (deps.now || Date.now)();
-    const d = Object.assign({ alerts: [], prefs: null, cards: [], prepared: [], jobs: [], postings: [] }, data || {});
+    const d = Object.assign({ alerts: [], prefs: null, cards: [], prepared: [], jobs: [], postings: [], applyCards: [] }, data || {});
     const matches = matchesView(d.alerts, d.postings, d.prefs, d.jobs);
-    const queue = queueView(d.cards, d.prepared, d.jobs, now);
+    const queue = queueView(d.cards, d.prepared, d.jobs, now, d.applyCards);
     const tracker = trackerView(d.jobs);
     rootEl.replaceChildren();
     rootEl.classList.add('tr-dash');
@@ -555,7 +570,7 @@
     head.appendChild(h(doc, 'h1', 'tr-h1', 'Your applications'));
     const sum = h(doc, 'p', 'tr-coverage');
     sum.setAttribute('data-tr-summary', '');
-    sum.textContent = matches.rows.length + ' matches · ' + queue.awaiting.length + ' awaiting approval · Confirmed ' + tracker.coverage.confirmed;
+    sum.textContent = matches.rows.length + ' matches · ' + queue.awaitingCount + ' awaiting approval · Confirmed ' + tracker.coverage.confirmed;
     head.appendChild(sum);
     rootEl.appendChild(head);
     if (!d.prefs && typeof deps.send === 'function') rootEl.appendChild(renderSetup(doc, deps));
@@ -567,13 +582,13 @@
     ];
     const tabs = h(doc, 'div', 'tr-tabs');
     tabs.setAttribute('role', 'tablist');
-    const start = queue.awaiting.length ? 1 : 0;
+    const start = queue.awaitingCount ? 1 : 0;
     const buttons = surfaces.map(([name, surface], i) => {
       const b = h(doc, 'button', 'tr-tab', name);
       b.type = 'button';
       b.setAttribute('role', 'tab');
       b.setAttribute('aria-selected', String(i === start));
-      if (name === 'Queue' && queue.awaiting.length) b.appendChild(h(doc, 'span', 'tr-badge', String(queue.awaiting.length)));
+      if (name === 'Queue' && queue.awaitingCount) b.appendChild(h(doc, 'span', 'tr-badge', String(queue.awaitingCount)));
       surface.hidden = i !== start;
       b.addEventListener('click', () => {
         surfaces.forEach(([, s], j) => { s.hidden = j !== i; });
@@ -589,12 +604,21 @@
     for (const p of Object.keys(PROVIDERS)) foot.appendChild(providerMark(doc, p, deps.brandIcons, ''));
     rootEl.appendChild(foot);
     const pending = [];
+    // The chat's card of prepared applications: mounted by the host (src/career-apply-card.js), or said to be elsewhere.
+    for (const m of mounts.filter(x => x.applyCard)) {
+      if (typeof deps.mountApplyCard === 'function') pending.push(Promise.resolve().then(() => deps.mountApplyCard(m.slot, m.applyCard)).catch(() => {
+        m.slot.textContent = 'This card could not be shown. Nothing was approved.';
+        m.slot.setAttribute('role', 'alert');
+      }));
+      else m.slot.textContent = 'These applications wait on the card in your chat. Nothing was approved.';
+    }
+    const cardMounts = mounts.filter(x => !x.applyCard);
     if (typeof deps.mountCard === 'function') {
-      for (const m of mounts) pending.push(Promise.resolve().then(() => deps.mountCard(m.slot, m.card)).catch(() => {
+      for (const m of cardMounts) pending.push(Promise.resolve().then(() => deps.mountCard(m.slot, m.card)).catch(() => {
         m.slot.textContent = 'This approval could not be verified. Nothing was approved.';
         m.slot.setAttribute('role', 'alert');
       }));
-    } else for (const m of mounts) m.slot.textContent = 'The approval card is not available here. Nothing was approved.';
+    } else for (const m of cardMounts) m.slot.textContent = 'The approval card is not available here. Nothing was approved.';
     return { root: rootEl, ready: Promise.all(pending), matches, queue, tracker };
   }
 

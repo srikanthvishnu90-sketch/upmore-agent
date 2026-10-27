@@ -204,6 +204,10 @@ export interface VoiceDeps {
   mint: (apiKey: string) => Mint;
   deliver?: (userId: string, key: string) => Promise<void>; // send the debrief now instead of at the next delivery run
   log?: (line: string) => void;
+  // Launch readiness B7 (review of PR #195): whether this person may use Trainee now (trainee_may_act). Asked before
+  // anything is read or minted; an error answers false. The career-voice entry always passes it (a voice call costs a
+  // model session); a host that passes none (the module's own unit tests) is not gated here.
+  admitted?: (userId: string) => Promise<boolean>;
 }
 export const NOT_WIRED_TEXT = "Voice mocks aren't on yet. Want the text mock instead? Tap below and it starts in your messages.";
 const REFUSAL: Record<string, string> = {
@@ -211,6 +215,7 @@ const REFUSAL: Record<string, string> = {
   expired: "This link has expired (links last 10 minutes). Text \"start a voice mock\" for a new one.",
   used: "This link was already used. Each link works once. Text \"start a voice mock\" for a new one.",
   done: "This call's debrief was already sent, or the call has closed.",
+  not_admitted: "Your spot on Trainee hasn't opened yet, so voice mocks aren't available to you.",
 };
 
 export async function handleVoice(req: Request, d: VoiceDeps): Promise<Response> {
@@ -234,6 +239,7 @@ export async function handleVoice(req: Request, d: VoiceDeps): Promise<Response>
     return json({ status: "REFUSED", reason, message: REFUSAL[reason] }, reason === "expired" ? 410 : 401);
   }
   const { s: id, u: userId } = v.claims;
+  if (d.admitted && !(await d.admitted(userId).catch(() => false))) return json({ status: "REFUSED", reason: "not_admitted", message: REFUSAL.not_admitted }, 403);
 
   if (action === "start") {
     // Not wired (no OpenAI key, or the owner has not turned voice on): the link is not used up, so the page can still

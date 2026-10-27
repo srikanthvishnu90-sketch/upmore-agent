@@ -1,7 +1,7 @@
 // Brokerage connect, step 1: the signed-in person taps Connect; this returns the broker's own approval URL.
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
-import { corsFor } from "../agent-chat/_shared/chat_cors.ts";
+import { financeCorsFor as corsFor } from "../agent-chat/_shared/chat_cors.ts";
 import { connectDb, connectEnv, handleStart } from "../_shared/broker_connect.ts";
 
 serve((req) => {

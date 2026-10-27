@@ -36,4 +36,9 @@ for b in $BEFORE $AFTER; do
   n=$((n + 1))
 done
 echo "applied $n migrations" >&2
+# Sign-up (20261026230000) is closed by default. The flow tests exercise other features as an open beta would, so it is
+# opened here unless TRAINEE_SIGNUP_GATE=invite asks for the closed default (tests/architect/flow-web-signup-e2e.test.ts).
+if [[ "${TRAINEE_SIGNUP_GATE:-open}" == open ]]; then
+  PGOPTIONS='-c client_min_messages=error' "${PSQL[@]}" -tAc "select public.trainee_set_signup('open')" >/dev/null
+fi
 echo "PGHOST=$WORK PGPORT=$PORT"

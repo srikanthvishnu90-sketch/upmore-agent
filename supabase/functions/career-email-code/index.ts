@@ -5,6 +5,7 @@
 // logged or stored. Logic and tests: ../_shared/career_email_code.ts, tests/architect/wo-096-email-code.test.ts.
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
+import { mayAct } from "../_shared/trainee_admission.ts";
 import { corsFor } from "../agent-chat/_shared/chat_cors.ts";
 import { careerCodeMailbox, fetchVerificationCode, handleEmailCode } from "../_shared/career_email_code.ts";
 import type { TokenDeps } from "../_shared/career_mail_gmail.ts";
@@ -45,7 +46,9 @@ serve((req) => {
     user: async (token) => {
       const client = createClient(url, anon, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
       const { data } = await client.auth.getUser(token);
-      return data?.user ? { id: data.user.id } : null;
+      if (!data?.user) return null;
+      // Launch readiness B7: a person who may not use Trainee yet reads no mail (no user: 401). An error refuses too.
+      return await mayAct((n, a) => admin.rpc(n, a), data.user.id) ? { id: data.user.id } : null;
     },
     job: async (userId, id) => {
       const { data, error } = await admin.from("career_apply_jobs").select("user_id,state,lease_token,url,claimed_at").eq("id", id)

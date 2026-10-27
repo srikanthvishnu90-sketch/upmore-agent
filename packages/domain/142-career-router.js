@@ -12209,11 +12209,19 @@ const CareerRouter = (() => {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;
     }
+    // ITEM-B (2026-10-27): a SINGLE-NOTE draft shape — draft verb,
+    // a note/message/email artifact, and a singular unnamed
+    // recipient ("draft a note to a recruiter") — is not a
+    // sourcing campaign, and the campaign plan never drafts.
+    // The gate stands down for that shape so the turn can reach
+    // the networking/draft path. Plural recipients and counted
+    // sourcing asks stay with the plan.
     if (/\b(find|get|email|reach|build|list|draft|source|gather|network|line up)\b/.test(t)
       && /\b(bankers?|analysts?|associates?|people|persons|contacts?|founders?|recruiters?|traders?|lawyers?|alumni|engineers?|designers?|scientists?|consultants?|residents?|developers?|researchers?|product managers?|pms|swes)\b/.test(t)
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
+      && !(/\bdraft\b/.test(t) && /\b(note|message|email)\b/.test(t) && /\b(?:a|an|the)\s+(?:recruiter|banker|analyst|associate|founder|trader|lawyer|contact|person|engineer|designer|scientist|consultant|resident|developer|researcher)\b/.test(t))
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;

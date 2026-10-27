@@ -21313,6 +21313,7 @@ const CareerRouter = (() => {
       && !/\bwhat does it take\b|\bget hired as\b|\bhiring bar\b|\bwhat (do|does) (postings|employers|companies|firms) (require|look for|want|expect)\b|\bpostings (name|ask|require|usually|emphasize)\b/.test(t)
       && !/\binterviews?\b[^.]*\b(prepar\w*|get ready|getting ready|prep)\b|\b(prepar\w*|get ready|getting ready)\b[^.]*\binterviews?\b/.test(t)
       && !/\b(roles?|jobs?|internships?|positions?|openings?)\b/.test(t)
+      && !(/\bdraft\b/.test(t) && /\b(note|message|email)\b/.test(t) && /\b(?:a|an|the)\s+(?:recruiter|banker|analyst|associate|founder|trader|lawyer|contact|person|engineer|designer|scientist|consultant|resident|developer|researcher)\b/.test(t))
       && !(/\bone company\b/.test(t) && /\b\d{1,3}\s+(?:people|person)\b/.test(text) && /\bwarm/.test(t))) {
       const cp = handleCampaignPlan(text, c);
       if (cp) return cp;

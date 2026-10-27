@@ -19368,17 +19368,19 @@ const CareerRouter = (() => {
     let audit = null;
     if (parsed.kind !== "unspecified" && profile && typeof profile === "object") audit = writeSensitiveCorrection(profile, parsed, text, ctx);
     const inv = recordInvalidation(ctx, "sensitive_fact_corrected", text, "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid");
+    const STALE_CONDITIONAL = "Anything prepared earlier from the old answer — a packet or an approved application — is stale now and will not be submitted; it has to be re-prepared on the corrected answer and confirmed again first.";
     const dstore = ctx && ctx.doorstepState;
     const hasPacket = !!((dstore && (dstore.doorstep || dstore.submission)) || (ctx && ctx.batchApplyState && ctx.batchApplyState.id));
     if (parsed.kind === "unspecified") {
       const reply = hasPacket
         ? compose({ headline: "I will hold that packet while you confirm the new answer.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed.", "Until then the prepared packet counts as stale, because the fact it was built on is changing."], nextStep: "State the new answer and it is put through the record write; re-preparing waits for the confirmed write." })
-        : compose({ headline: "No answer is changed yet — I need the new one in your own words.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed."], nextStep: "State the new answer and it is put through the record write." });
+        : compose({ headline: "No answer is changed yet — I need the new one in your own words.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed.", STALE_CONDITIONAL], nextStep: "State the new answer and it is put through the record write." });
       return { intent: "intent_sensitive_correction", resultStatus: "awaiting_user", reply, correction: parsed, invalidation: inv };
     }
     const factSentence = parsed.kind === "future_need" ? "Your statement, in your own words: you will need sponsorship in the future." : "Your statement, in your own words: you no longer need sponsorship.";
     const facts = [factSentence];
     if (hasPacket) facts.push("The prepared packet built on the old answer is invalid now and will not be submitted.");
+    else facts.push(STALE_CONDITIONAL);
     facts.push("Until the host writer confirms the record write, the correction stands as your stated direction — not as a saved profile answer.");
     const reply = compose({ headline: "Correction noted — I am not calling it saved: the host record write is not confirmed.", facts, nextStep: hasPacket ? "Once the write is confirmed, I can re-prepare on the corrected answer and bring it back for your re-confirmation." : "Once the write is confirmed, the corrected answer is the one used from then on." });
     return { intent: "intent_sensitive_correction", resultStatus: "completed", reply, correction: { kind: parsed.kind, needsSponsorship: parsed.needsSponsorship, clause: parsed.clause }, audit, invalidation: inv };

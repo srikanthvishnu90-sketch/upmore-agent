@@ -111,7 +111,7 @@ function makeWorld(opts) {
     n += 1;
     const threadId = `t-${userId}`;
     const snap = ex.snapshot !== undefined ? ex.snapshot : (store.threads.get(threadId) || null);
-    const input = { userId, threadId, now: NOW + (ex.nowOffset != null ? ex.nowOffset : n * 60000), accountPersistence: true, snapshot: snap, account: {}, watchState: {}, postings: ex.postings || [] };
+    const input = { userId, threadId, now: NOW + (ex.nowOffset != null ? ex.nowOffset : n * 60000), accountPersistence: true, snapshot: snap, account: o.account || {}, watchState: {}, postings: ex.postings || [] };
     if (!ex.omitProfile) input.profile = master;
     const ctx = host.createTurnCtx(input);
     ctx.batchDeps = { log, boardFor: (p) => Object.assign({}, Portal.createSandboxBoard({}), { atsFamily: p.atsFamily }), attestations: ATTEST };
@@ -338,15 +338,47 @@ test("(c) ROUTER-SIDE wording: with no host writer installed, the reply never cl
     `no success wording without a confirmed host write: ${out.reply}`);
   assert.match(out.reply, /not confirmed|not calling it saved|no confirmed .* write/i,
     `the reply says plainly the write is not confirmed: ${out.reply}`);
-  // ROUTER-C adjudication (2026-10-27): this scenario holds NO packet —
-  // no doorstep, no submission, no standing batch — so the reply must
-  // tell no packet story at all: neither a ready claim nor an
-  // invalidation story about a packet that does not exist (the same
-  // guarantee tests/architect/handler-submit-router.test.ts (c) pins).
-  // The stale-packet protection itself is pinned where a packet DOES
-  // exist, in the next test.
-  assert.doesNotMatch(out.reply, /prepared packet|packet is|packet counts|re-prepare/i,
-    `no packet story for a person with no packet: ${out.reply}`);
+  // ROUTER-C adjudication, second round (2026-10-27): this scenario
+  // holds NO packet the router can see — no doorstep, no submission,
+  // no standing batch — so the reply must not claim one exists (the
+  // definite-packet sentence stays out, the same guarantee
+  // tests/architect/handler-submit-router.test.ts (c) pins). But rows
+  // outside the router's sight (career_apply_prepared /
+  // career_apply_jobs) may exist, so the safety is still spoken, in
+  // conditional form: anything prepared earlier from the old answer
+  // is stale and will not be submitted. The definite form is pinned
+  // where a packet DOES exist, in the next test.
+  assert.match(out.reply, /Anything prepared earlier from the old answer[\s\S]*stale now and will not be submitted/,
+    `the stale protection is spoken conditionally: ${out.reply}`);
+  assert.match(out.reply, /re-prepared on the corrected answer and confirmed again/,
+    `and it says what unblocks it: ${out.reply}`);
+  assert.doesNotMatch(out.reply, /The prepared packet built on the old answer is invalid now/,
+    `no definite packet is claimed for a person with none visible: ${out.reply}`);
+});
+
+test("(c) RECORDED: the correction turn changes the account's stated facts — the change the apply fence reads", () => {
+  // The router's invalidation record lives in doorstepState, which the
+  // executors never read. What they read is career_apply_current: a
+  // payload is current only while the account's authority_version has
+  // not moved past its stamp, and the account trigger moves it when
+  // stated_facts change (20261022150000, refreshed 20261026090009).
+  // This test pins the router-side link of that chain: the correction
+  // turn's commit patch carries a stated_facts record whose
+  // sponsorship fact differs from the account's — so the commit moves
+  // the authority and every earlier-stamped payload stops being
+  // current. The DB half (claim refuses, sweep closes, card answer
+  // turns stale) is pinned in tests/db/career_apply_correction_fence.test.sql.
+  const account = { stated_facts: { facts: [{ kind: "sponsorship", value: "needs sponsorship", said: "I will need sponsorship", at: "2026-10-20T00:00:00.000Z" }], offer: null } };
+  const w = makeWorld({ master: WA_MASTER, account });
+  const U = "split-c-recorded";
+  const { out, ctx } = w.say(U, WA_TEXT, { nowOffset: 0 });
+  assert.equal(out.intent, "intent_sensitive_correction", `the turn is the correction: ${out.intent}`);
+  const patch = ctx._hostPatch && ctx._hostPatch.stated_facts;
+  assert.ok(patch, "the turn's commit patch carries a stated_facts record");
+  const all = [...(patch.facts || []), ...(patch.keyed || [])];
+  const sp = all.find((f) => f && f.kind === "sponsorship");
+  assert.ok(sp && sp.value === "does not need sponsorship",
+    `the patch's sponsorship fact is the corrected one: ${JSON.stringify(sp)}`);
 });
 
 test("(c) ROUTER-SIDE wording: with a prepared packet standing, the stale-packet protection IS spoken and recorded", () => {

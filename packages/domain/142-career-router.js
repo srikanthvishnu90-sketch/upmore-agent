@@ -9328,15 +9328,23 @@ const CareerRouter = (() => {
     // ROUTER-C (pending handler-submit-router (c)): a packet exists only
     // when one was actually prepared in this state — a doorstep or a
     // submission on the doorstep store, or a standing batch (the same
-    // existence test handleDoorstepCancel stands down on). The replies
-    // below may speak of holding / invalidating / re-preparing a packet
-    // only then; a person with no packet is told no packet story.
+    // existence test handleDoorstepCancel stands down on). The definite
+    // packet sentences below are spoken only then. But the router
+    // cannot see the prepared/queued rows the apply store holds
+    // (career_apply_prepared / career_apply_jobs), so when no packet
+    // is visible the safety is spoken in conditional form instead of
+    // dropped: those rows are fenced by the account authority the
+    // correction moves (career_apply_current), never by this reply —
+    // the reply's job is to never claim a packet that may not exist
+    // and never leave the person thinking an old-answer application
+    // can still go out.
+    const STALE_CONDITIONAL = "Anything prepared earlier from the old answer — a packet or an approved application — is stale now and will not be submitted; it has to be re-prepared on the corrected answer and confirmed again first.";
     const dstore = ctx && ctx.doorstepState;
     const hasPacket = !!((dstore && (dstore.doorstep || dstore.submission)) || (ctx && ctx.batchApplyState && ctx.batchApplyState.id));
     if (parsed.kind === "unspecified") {
       const reply = hasPacket
         ? compose({ headline: "I will hold that packet while you confirm the new answer.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed.", "Until then the prepared packet counts as stale, because the fact it was built on is changing."], nextStep: "State the new answer and it is put through the record write; re-preparing waits for the confirmed write." })
-        : compose({ headline: "No answer is changed yet — I need the new one in your own words.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed."], nextStep: "State the new answer and it is put through the record write." });
+        : compose({ headline: "No answer is changed yet — I need the new one in your own words.", facts: ["Tell me the new work authorization answer in your own words; it goes to the record write exactly as you say it, and I will call it saved only when that write is confirmed.", STALE_CONDITIONAL], nextStep: "State the new answer and it is put through the record write." });
       return { intent: "intent_sensitive_correction", resultStatus: "awaiting_user", reply, correction: parsed, invalidation: inv };
     }
     // SPLIT-1146 (c): the old headline claimed the save ("I saved
@@ -9349,6 +9357,7 @@ const CareerRouter = (() => {
     const factSentence = parsed.kind === "future_need" ? "Your statement, in your own words: you will need sponsorship in the future." : "Your statement, in your own words: you no longer need sponsorship.";
     const facts = [factSentence];
     if (hasPacket) facts.push("The prepared packet built on the old answer is invalid now and will not be submitted.");
+    else facts.push(STALE_CONDITIONAL);
     facts.push("Until the host writer confirms the record write, the correction stands as your stated direction — not as a saved profile answer.");
     const reply = compose({ headline: "Correction noted — I am not calling it saved: the host record write is not confirmed.", facts, nextStep: hasPacket ? "Once the write is confirmed, I can re-prepare on the corrected answer and bring it back for your re-confirmation." : "Once the write is confirmed, the corrected answer is the one used from then on." });
     return { intent: "intent_sensitive_correction", resultStatus: "completed", reply, correction: { kind: parsed.kind, needsSponsorship: parsed.needsSponsorship, clause: parsed.clause }, audit, invalidation: inv };

@@ -208,6 +208,51 @@ Deno.test("E-15: a texting channel's reply id is read only against that channel'
   eq(await store.cardOfMessage!("TH", "5001", "U", null), "CARD-1", "the app's own message ids are agent_messages ids");
 });
 
+Deno.test("E-15: the runtime probe (deferFromRuntime): no EdgeRuntime or no waitUntil on it means no defer; a real waitUntil is bound to the runtime and is what the webhook defers to", async () => {
+  const { deferFromRuntime } = await import("../../supabase/functions/_shared/channel_runtime.ts");
+  // deno-lint-ignore no-explicit-any
+  const g = globalThis as any;
+  const had = "EdgeRuntime" in g, before = g.EdgeRuntime;
+  try {
+    delete g.EdgeRuntime;
+    eq(deferFromRuntime(), undefined, "no EdgeRuntime: no defer, the turn runs before the answer");
+    g.EdgeRuntime = {};
+    eq(deferFromRuntime(), undefined, "an EdgeRuntime with no waitUntil: no defer");
+    g.EdgeRuntime = { waitUntil: "not a function" };
+    eq(deferFromRuntime(), undefined, "a waitUntil that is not a function: no defer");
+    // A real waitUntil: the probe returns it bound to the runtime object, forwarding the exact promise.
+    const seen: { self: unknown; p: Promise<unknown> }[] = [];
+    const rt = { waitUntil(p: Promise<unknown>) { seen.push({ self: this, p }); } };
+    g.EdgeRuntime = rt;
+    const defer = deferFromRuntime();
+    assert(typeof defer === "function");
+    const work = Promise.resolve("done");
+    defer!(work);
+    eq(seen.length, 1);
+    assert(seen[0].self === rt && seen[0].p === work, "bound to EdgeRuntime, the same promise forwarded");
+    // Composed exactly as the three index.ts roots compose it (const waitUntil = deferFromRuntime(); ...{ defer: waitUntil }):
+    // the probe's defer is the webhook's defer — claim, 200 back, the turn runs only when the runtime settles it.
+    const captured: Promise<unknown>[] = [];
+    g.EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { captured.push(p); } };
+    const secret = "app-secret-0123456789";
+    const a = whatsappAdapter({ token: "t", phoneNumberId: "106540352242922", appSecret: secret, sleep: async () => {}, fetch: (async () => Response.json({ messages: [{ id: "wamid.X" }] })) as typeof fetch });
+    const { whatsappSignature } = await import("../../supabase/functions/_shared/whatsapp.ts");
+    const body = new TextEncoder().encode(JSON.stringify(fixture("whatsapp-text.json")));
+    let release!: () => void, turns = 0;
+    const gate = new Promise<void>((r) => (release = r));
+    const store = memInbound();
+    const deps = { env: { get: () => undefined }, now: () => 0, store, render: (t: string) => [t], reply: async () => ({ ok: true }),
+      chat: async () => { await gate; turns++; return { status: 200, reply: "ok", threadId: "T1" }; }, deliver: async () => {}, defer: deferFromRuntime() };
+    const res = await handleChannelWebhook(new Request("https://fn.test/trainee-whatsapp", { method: "POST", headers: { "x-hub-signature-256": await whatsappSignature(secret, body) }, body }), a, deps);
+    eq([res.status, (await res.json()).results, turns, captured.length], [200, [{ ok: true, accepted: true }], 0, 1], "the runtime's hook holds the turn; the provider already has its 200");
+    release();
+    await Promise.all(captured);
+    eq(turns, 1, "the deferred turn ran when the runtime settled it");
+  } finally {
+    if (had) g.EdgeRuntime = before; else delete g.EdgeRuntime;
+  }
+});
+
 Deno.test("receipts (spec 7.2, 7.4): where it went and the link to exactly what was sent; a failure says what, why and the one next step, and never retries on its own", async () => {
   const { receiptText } = await import("../../supabase/functions/_shared/career_apply_receipts.ts");
   const link = "https://x.supabase.co/functions/v1/trainee-inspect?t=0123456789abcdef0123456789abcdef&f=sent";

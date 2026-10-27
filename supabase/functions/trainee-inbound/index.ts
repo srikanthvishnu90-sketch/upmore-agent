@@ -5,13 +5,12 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import { loopSend } from "../_shared/loopmessage.ts";
-import { chatThroughAgent, deliverer } from "../_shared/channel_runtime.ts";
+import { chatThroughAgent, deferFromRuntime, deliverer } from "../_shared/channel_runtime.ts";
 import { handleInbound } from "./handler.ts";
 import { supabaseInboundStore } from "./store.ts";
 // E-15: the turn runs after the provider has its 200 (Supabase's background tasks: EdgeRuntime.waitUntil keeps the worker
 // until the promise settles, within the plan's wall-clock limit). Where the runtime has none, the turn runs before the answer.
-// deno-lint-ignore no-explicit-any
-const waitUntil = (globalThis as any).EdgeRuntime?.waitUntil?.bind((globalThis as any).EdgeRuntime) as ((p: Promise<unknown>) => void) | undefined;
+const waitUntil = deferFromRuntime();
 
 serve((req) => {
   const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

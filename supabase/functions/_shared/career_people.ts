@@ -28,8 +28,7 @@ import { parseNetworkingAsk } from "./career_networking.ts";
 import { CAREER_READ_SCOPE, careerTokenFor } from "./career_mail_gmail.ts";
 import { connectUrl } from "./agent/integrations.ts";
 import { cleanCell, companyKey, parseCsv, parseExport, type ParsedExport, peopleFileText, type PersonRow, sha256Hex } from "./career_people_import.ts";
-import { correspondentsAt, domainLabelOf, type GmailRead, heardFrom, readJobAlerts } from "./career_people_gmail.ts";
-import { checkUrl, readPage } from "./career_people_page.ts";
+import { correspondentsAt, domainLabelOf, type GmailRead, heardFrom, readJobAlerts } from "./career_people_gmail.ts";import { checkUrl, readPage, type Resolver } from "./career_people_page.ts";
 
 export const IMPORT_INTENT = "career_contacts_import", AT_INTENT = "career_contacts_at", ALUMNI_INTENT = "career_people_alumni";
 export const PAGE_INTENT = "career_people_page", JOBS_INTENT = "career_job_emails", FORGET_INTENT = "career_people_forget";
@@ -84,6 +83,10 @@ export interface PeopleStore {
   addIntro(userId: string, i: Omit<Intro, "id" | "n" | "status" | "status_source" | "approved_hash" | "approved_at" | "sent_at" | "follow_up_days" | "follow_up_at" | "reminded_at" | "created_at">): Promise<Intro>;
   updateIntro(userId: string, n: number, patch: Partial<Intro>, onlyIf?: { status?: string[]; payload_hash?: string }): Promise<Intro | null>;
   forgetIntros(userId: string): Promise<number>;
+  // The drafter's copy of contacts lives in each thread's state (state.career.stores.contacts). A forget is the
+  // account's: drop the matching rows from every OTHER thread of this person (the turn's own thread is its working
+  // state, cleared by the turn and saved with it). Returns the rows removed and the threads they were in.
+  pruneThreadContacts(userId: string, exceptThread: string, drop: (row: ContactRow) => boolean): Promise<{ rows: number; threads: number }>;
 }
 // deno-lint-ignore no-explicit-any
 const must = (r: { data: any; error: any }, what: string): any => { if (r.error) throw new Error(`${what}: ${r.error.message ?? r.error}`); return r.data; };
@@ -161,6 +164,31 @@ export function supabasePeopleStore(admin: any): PeopleStore {
       return r[0] ?? null;
     },
     async forgetIntros(userId) { return (must(await admin.from("career_intro_requests").delete().eq("user_id", userId).select("id"), "forget the intro requests") ?? []).length; },
+    async pruneThreadContacts(userId, exceptThread, drop) {
+      let rows = 0, threads = 0;
+      const all = must(await admin.from("agent_flow_state").select("thread_id,updated_at,state").eq("user_id", userId).neq("thread_id", exceptThread).limit(1000), "read your chats' contact lists") ?? [];
+      for (const t of all) {
+        // A thread that changed between the read and the write is read again (its own turn saved meanwhile), up to 3 times.
+        let cur = t;
+        for (let attempt = 0; ; attempt++) {
+          const career = cur?.state?.career;
+          const list = Array.isArray(career?.stores?.contacts) ? career.stores.contacts as ContactRow[] : [];
+          const kept = list.filter((r) => !drop(r));
+          if (kept.length === list.length) break;
+          // The revision moves, so a turn in that thread that loaded the old list can't save it back over the forget.
+          const next = { ...cur.state, career: { ...career, revision: Number(career.revision ?? 0) + 1, stores: { ...career.stores, contacts: kept } } };
+          const w = must(await admin.from("agent_flow_state").update({ state: next, updated_at: new Date().toISOString() }).eq("user_id", userId).eq("thread_id", cur.thread_id).eq("updated_at", cur.updated_at).select("thread_id"), "forget your chats' contact lists") ?? [];
+          if (w.length) { rows += list.length - kept.length; threads++; break; }
+          if (attempt >= 2) throw new Error("forget your chats' contact lists: a chat kept changing");
+          cur = must(await admin.from("agent_flow_state").select("thread_id,updated_at,state").eq("user_id", userId).eq("thread_id", cur.thread_id).maybeSingle(), "read a chat's contact list");
+          if (!cur) break;
+        }
+      }
+      // Read back: no other thread of this person still holds a dropped row.
+      const left = must(await admin.from("agent_flow_state").select("thread_id,contacts:state->career->stores->contacts").eq("user_id", userId).neq("thread_id", exceptThread).limit(1000), "read back your chats' contact lists") ?? [];
+      if (left.some((t: any) => Array.isArray(t.contacts) && t.contacts.some(drop))) throw new Error("forget your chats' contact lists: rows remain after the delete");
+      return { rows, threads };
+    },
   };
 }
 
@@ -173,19 +201,27 @@ export interface PeopleDeps {
   // reply's words follow this flag, the same way the alert copy follows its delivery flag — off, the reminder is
   // brought up at the person's next message and the reply says exactly that.
   introPush?: boolean;
+  // Whether this person has a texting channel the push can reach. Absent, or false: the reply never promises a text.
+  canText?: (userId: string) => Promise<boolean>;
+  // The page reader's DNS (career_people_page.ts); absent: the runtime's.
+  resolve?: Resolver;
 }
-// The live wiring, from the same environment the handler reads. Null where there is no database (the unit tests that call
-// networkingTurn alone): the networking turn then answers exactly as before.
-// Loaded lazily, so a module that only parses never pulls the client or the scheduled run's reader.
-export async function envPeopleDeps(): Promise<PeopleDeps | null> {
-  const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) return null;
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
-  const { careerGrant } = await import("./career_inbox_followups.ts");
-  const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const grant = careerGrant(admin, Deno.env, fetch);
-  return { store: supabasePeopleStore(admin), gmail: { fetch, token: careerTokenFor(grant, CAREER_READ_SCOPE) }, fetch, introPush: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" };
+// The live wiring, built by the caller (agent-chat/handler-career.ts) from the clients it already holds and passed in as
+// `people`; this module never reads the process environment or makes a client of its own. No `people` (the unit tests
+// that call networkingTurn alone): there is no people turn, and the networking turn answers exactly as before.
+// deno-lint-ignore no-explicit-any
+export function supabasePeopleDeps(admin: any, o: { fetch: typeof fetch; token: GmailRead["token"]; introPush: boolean; resolve?: Resolver }): PeopleDeps {
+  return {
+    store: supabasePeopleStore(admin), gmail: { fetch: o.fetch, token: o.token }, fetch: o.fetch, introPush: o.introPush, resolve: o.resolve,
+    // A texting channel the outbox can deliver to (channel_contacts, not opted out): the scheduled push reaches only them.
+    canText: async (userId) => {
+      const r = await admin.from("channel_contacts").select("contact").eq("user_id", userId).eq("opted_out", false).limit(1);
+      if (r.error) throw new Error(`read the texting channel: ${r.error.message}`);
+      return (r.data ?? []).length > 0;
+    },
+  };
 }
+export { CAREER_READ_SCOPE, careerTokenFor };
 
 export interface PeopleTurnIn {
   message: string; userId: string; threadId: string; now: number;
@@ -292,23 +328,28 @@ const fmtN = (n: number) => n.toLocaleString("en-US");
 const plural = (n: number, w: string) => `${fmtN(n)} ${n === 1 ? w : w === "person" ? "people" : w === "named person" ? "named people" : `${w}s`}`;
 const day = (iso: string | null) => (iso ? String(iso).slice(0, 10) : "");
 
+export const STORE_ERROR = "Something went wrong with your saved contacts just now, so I can't confirm that anything was read, saved or deleted. Please try again in a minute.";
+// Only a message that is a people ask (a LinkedIn export sent or pasted, the next part of one, or an ask parsePeopleAsk
+// reads) ever touches the store, so a store that is down answers with an error only for those; every other message
+// (a plain contacts list, small talk, anything another turn answers) goes on exactly as if this turn weren't here.
 export async function peopleTurn(o: PeopleTurnIn): Promise<PeopleResult | null> {
-  const deps = o.people === undefined ? await envPeopleDeps() : o.people;
+  const deps = o.people ?? null;
   if (!deps) return null;
+  const failed = (e: unknown): PeopleResult => {
+    console.error("people turn:", e instanceof Error ? e.message : e);
+    return { reply: STORE_ERROR, intent: AT_INTENT, status: "error" };
+  };
+  const files = (o.attachments ?? []).filter((f) => f && typeof f === "object");
+  if (files.length) { try { const r = await fileTurn(o, deps, files); if (r) return r; } catch (e) { return failed(e); } }
+  const paste = pasteKind(o.message);
+  if (paste) { try { const r = await pasteTurn(o, deps, paste); if (r) return r; } catch (e) { return failed(e); } }
+  const ask = parsePeopleAsk(o.message);
+  if (!ask) return null;
   try {
-    const files = (o.attachments ?? []).filter((f) => f && typeof f === "object");
-    if (files.length) { const r = await fileTurn(o, deps, files); if (r) return r; }
-    const pasted = await pasteTurn(o, deps);
-    if (pasted) return pasted;
-    const ask = parsePeopleAsk(o.message);
-    if (!ask) return null;
     const due = ask.kind === "intro_list" ? "" : await dueLine(o, deps);
     const r = await answer(o, deps, ask);
     return r && due ? { ...r, reply: `${due}\n\n${r.reply}` } : r;
-  } catch (e) {
-    console.error("people turn:", e instanceof Error ? e.message : e);
-    return { reply: "Something went wrong with your saved contacts just now, so I can't confirm that anything was read, saved or deleted. Please try again in a minute.", intent: AT_INTENT, status: "error" };
-  }
+  } catch (e) { return failed(e); }
 }
 
 async function answer(o: PeopleTurnIn, d: PeopleDeps, a: Ask): Promise<PeopleResult | null> {
@@ -367,10 +408,18 @@ async function fileTurn(o: PeopleTurnIn, d: PeopleDeps, files: NonNullable<Peopl
 }
 
 const LINKEDIN_HEADER = /(^|\n)\s*"?first name"?\s*,\s*"?last name"?\s*,.*connected on/i;
-async function pasteTurn(o: PeopleTurnIn, d: PeopleDeps): Promise<PeopleResult | null> {
-  const text = String(o.message ?? "");
+// Pure, before any read: is this message a pasted export ("header") or rows shaped like the export's ("rows": each row
+// has a LinkedIn profile link or a "14 Mar 2025" date), the only pastes that are this turn's.
+function pasteKind(message: string): "header" | "rows" | null {
+  const text = String(message ?? "");
   if (!/\n/.test(text) || !/,/.test(text)) return null;
-  if (LINKEDIN_HEADER.test(text)) {
+  if (LINKEDIN_HEADER.test(text)) return "header";
+  const rows = parseCsv(text).filter((r) => !(r.length === 1 && !r[0].trim()));
+  return rows.length >= 1 && rows.every((r) => /linkedin\.com\/in\//i.test(r.join(",")) || r.some((c) => /^\d{1,2} [A-Za-z]{3} \d{4}$/.test(c.trim()))) ? "rows" : null;
+}
+async function pasteTurn(o: PeopleTurnIn, d: PeopleDeps, kind: "header" | "rows"): Promise<PeopleResult | null> {
+  const text = String(o.message ?? "");
+  if (kind === "header") {
     const parsed = parseExport(LINKEDIN_FILE, text);
     if (!parsed.ok || parsed.kind !== "linkedin_export") return null;
     const header = text.split(/\r?\n/).find((l) => /first name/i.test(l) && /connected on/i.test(l))!.trim().slice(0, 2000);
@@ -384,7 +433,7 @@ async function pasteTurn(o: PeopleTurnIn, d: PeopleDeps): Promise<PeopleResult |
   if (!p.paste_header || !p.paste_at || o.now - Date.parse(p.paste_at) > PASTE_WINDOW_MS) return null;
   const width = parseCsv(p.paste_header)[0]?.length ?? 0;
   const rows = parseCsv(text).filter((r) => !(r.length === 1 && !r[0].trim()));
-  if (rows.length < 1 || width < 3 || rows.some((r) => r.length !== width) || !rows.every((r) => /linkedin\.com\/in\//i.test(r.join(",")) || r.some((c) => /^\d{1,2} [A-Za-z]{3} \d{4}$/.test(c.trim())))) return null;
+  if (rows.length < 1 || width < 3 || rows.some((r) => r.length !== width)) return null;
   const parsed = parseExport(p.paste_file ?? LINKEDIN_FILE, `${p.paste_header}\n${text}`);
   if (!parsed.ok) return null;
   await d.store.setPrefs(o.userId, { paste_at: new Date(o.now).toISOString() });
@@ -540,7 +589,7 @@ const PAGE_WHY: Record<string, string> = {
 async function pageTurn(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: "page" }>): Promise<PeopleResult> {
   const c = checkUrl(a.url);
   if (!c.ok) return { reply: `I didn't open it: ${PAGE_WHY[c.why]}.`, intent: PAGE_INTENT, status: "refused" };
-  const r = await readPage(d.fetch, a.url);
+  const r = await readPage(d.fetch, a.url, d.resolve);
   if (!r.ok) return { reply: `I didn't read it: ${PAGE_WHY[r.why]}${r.detail && r.why === "http" ? ` (${r.detail})` : ""}. Nothing was saved.`, intent: PAGE_INTENT, status: "refused" };
   const company = cleanCell(a.firm ?? r.org ?? "", 200);
   let people = r.people;
@@ -591,11 +640,15 @@ async function forgetTurn(o: PeopleTurnIn, d: PeopleDeps, what: Extract<Ask, { k
   if (what === "linkedin" || what === "all") {
     const sources: Source[] = what === "all" ? ["linkedin_export", "gmail", "company_page"] : ["linkedin_export"];
     const gone = await d.store.forget(o.userId, sources);
+    // Every copy, in every chat of theirs: the other chats first (read back there), then this one's working state.
+    const drop = what === "all" ? () => true : (r: ContactRow) => fromExport(r);
+    const others = await d.store.pruneThreadContacts(o.userId, o.threadId, drop);
     const before = contactsOf(o.state).length;
-    o.state.contacts = what === "all" ? [] : contactsOf(o.state).filter((r) => !fromExport(r));
-    const fromThread = before - contactsOf(o.state).length;
-    n += gone + fromThread;
-    parts.push(what === "all" ? `Deleted all the people you gave me: ${plural(gone, "person")} from your LinkedIn export, Gmail and pages${fromThread ? `, and ${plural(fromThread, "row")} from this chat's list` : ""}.` : `Deleted your LinkedIn contacts: ${plural(gone, "person")} from your export${fromThread ? ` and ${fmtN(fromThread)} from this chat's list` : ""}.`);
+    o.state.contacts = contactsOf(o.state).filter((r) => !drop(r));
+    const fromChats = before - contactsOf(o.state).length + others.rows;
+    n += gone + fromChats;
+    const chats = others.threads ? `your chats' lists (${plural(others.threads + (before > contactsOf(o.state).length ? 1 : 0), "chat")})` : "this chat's list";
+    parts.push(what === "all" ? `Deleted all the people you gave me: ${plural(gone, "person")} from your LinkedIn export, Gmail and pages${fromChats ? `, and ${plural(fromChats, "row")} from ${chats}` : ""}.` : `Deleted your LinkedIn contacts: ${plural(gone, "person")} from your export${fromChats ? ` and ${fmtN(fromChats)} from ${chats}` : ""}.`);
   }
   if (what === "gmail") { const gone = await d.store.forget(o.userId, ["gmail"]); n += gone; parts.push(`Deleted ${plural(gone, "person")} read from your Gmail.`); }
   if (what === "jobs") { const gone = await d.store.forgetJobs(o.userId); n += gone; parts.push(`Deleted ${plural(gone, "posting")} read from your Handshake and Indeed emails.`); }
@@ -776,10 +829,14 @@ async function introCmd(o: PeopleTurnIn, d: PeopleDeps, a: Extract<Ask, { kind: 
       if (!["approved", "sent"].includes(i.status)) return R(`Intro ${i.n} is ${i.status.replace("_", " ")}, so there's nothing to follow up on.`, "refused");
       const due = new Date((i.sent_at ? Date.parse(i.sent_at) : o.now) + a.days! * 86400_000).toISOString();
       await d.store.updateIntro(o.userId, i.n, { follow_up_days: a.days!, follow_up_at: due, reminded_at: null });
-      // The words follow what the code does, read off the same flag the scheduled run is wired by: with the push on,
-      // the reminder is queued for delivery at its date; off, it can only be brought up in this chat, and says so.
-      return R(d.introPush
+      // The words follow what the code does: with the push on (the same flag the scheduled run is wired by) AND a texting
+      // channel on record for them, the reminder is queued for delivery to that channel at its date. Otherwise it can
+      // only be brought up in this chat, and the reply says so, and why when the only thing missing is their channel.
+      const texted = d.introPush && d.canText ? await d.canText(o.userId) : false;
+      return R(texted
         ? `OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll text you a reminder then; if you message me first, I'll bring it up here.`
+        : d.introPush
+        ? `OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll bring it up the next time you message me after that. I can only message you first by text, and you haven't connected a texting app.`
         : `OK: if there's no reply to intro ${i.n} by ${day(due)}, I'll bring it up the next time you message me after that. I can't message you first yet.`, "reminder_set");
     }
   }

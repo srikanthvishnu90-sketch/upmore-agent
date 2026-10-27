@@ -27,12 +27,20 @@ export async function runIntroReminders(o: {
   outbox: Outbox;
   now: number;
   markReminded: (userId: string, n: number) => Promise<void>;
+  // Whether the person has a texting channel the outbox delivers to. Someone without one is left alone (not queued,
+  // not marked), so the in-chat line still brings the reminder up at their next message. Absent: everyone has one.
+  canText?: (userId: string) => Promise<boolean>;
 }): Promise<number> {
   const rows = await o.due(new Date(o.now).toISOString());
   let queued = 0;
   const failed: string[] = [];
+  const reach = new Map<string, boolean>();
   for (const r of rows) {
     try {
+      if (o.canText) {
+        if (!reach.has(r.userId)) reach.set(r.userId, await o.canText(r.userId));
+        if (!reach.get(r.userId)) continue;
+      }
       const fresh = await o.outbox.enqueue(r.userId, { key: introReminderKey(r.intro), kind: "followup", text: introReminderText([r.intro]), at: o.now });
       // Queued now or queued by an earlier run that stopped before marking: either way the push has it, so the
       // in-chat line must not say it again. Only a fresh queue counts toward the run.

@@ -35,6 +35,7 @@ function memoryStore() {
   const rows: (PersonRec & { user_id: string; dedupe_key: string })[] = [];
   const store: PeopleStore & { introsOf: typeof intros } = {
     introsOf: intros,
+    async pruneThreadContacts() { return { rows: 0, threads: 0 }; },
     async importRows(u, source, _file, _sha, rs, _read, _skipped, replace) {
       let replaced = 0;
       if (replace) for (let i = rows.length - 1; i >= 0; i--) if (rows[i].user_id === u && rows[i].source === source) { rows.splice(i, 1); replaced++; }
@@ -134,6 +135,16 @@ Deno.test("intro reminders: a re-armed reminder queues again under its new due t
   assert(keys[0] !== keys[1], "two armings, two keys");
 });
 
+Deno.test("intro reminders: a person with no texting channel is not queued and not marked, so the in-chat line still brings it up", async () => {
+  const store = memoryStore(), outbox = memoryAlertStore();
+  seed(store, { n: 1 });
+  seed(store, { n: 1, user_id: "u-web" });
+  const n = await runIntroReminders({ due: (t) => store.dueIntros(t), outbox, now: NOW, canText: async (u) => u === U, markReminded: async (u, k) => { await store.updateIntro(u, k, { reminded_at: iso(NOW) }); } });
+  eq(n, 1);
+  eq(outbox.dump().outbox.map((o) => o.userId), [U]);
+  eq((await store.intro("u-web", 1))!.reminded_at, null, "left for the in-chat line");
+});
+
 Deno.test("intro reminders: one person's failure does not stop another's, and the run says so", async () => {
   const store = memoryStore(), outbox = memoryAlertStore();
   seed(store, { n: 1 });
@@ -153,17 +164,23 @@ const model = async (p: any) => {
   return { content: [{ type: "text", text: `Subject: A quick question\n\nHi ${first},\n\nWould you be open to a short call?` }], stop_reason: "end_turn" };
 };
 const facts = [{ id: "F-001", kind: "experience", text: "Data analyst intern at Acme Corp", status: "confirmed" }];
-Deno.test("intro reminders: the remind reply says what the code now does — push on vs push off", async () => {
-  const off = await driveToRemind(false);
-  assert(/I can't message you first yet/.test(off), off);
-  const on = await driveToRemind(true);
+Deno.test("intro reminders: the remind reply says what the code now does — push on vs push off, and only a person with a texting channel is promised a text", async () => {
+  const off = await driveToRemind(false, true);
+  assert(/I can't message you first yet/.test(off) && !/text you/.test(off), off);
+  const on = await driveToRemind(true, true);
   assert(!/I can't message you first yet/.test(on), on);
   assert(/I'll text you a reminder then/.test(on) && /message me first/.test(on), on);
+  // review of #217/L8: a web-only person (no texting channel on record) is never told "I'll text you"
+  const webOnly = await driveToRemind(true, false);
+  assert(!/text you/.test(webOnly) && /I'll bring it up the next time you message me/.test(webOnly) && /haven't connected a texting app/.test(webOnly), webOnly);
+  const unknown = await driveToRemind(true, undefined);
+  assert(!/text you/.test(unknown), `no channel check wired: no promise of a text: ${unknown}`);
 });
 
-async function driveToRemind(introPush: boolean): Promise<string> {
+async function driveToRemind(introPush: boolean, texting: boolean | undefined): Promise<string> {
   const store = memoryStore();
-  const deps: PeopleDeps = { store, gmail: null, fetch: (async () => new Response("no", { status: 599 })) as typeof fetch, introPush };
+  const deps: PeopleDeps = { store, gmail: null, fetch: (async () => new Response("no", { status: 599 })) as typeof fetch, introPush,
+    ...(texting === undefined ? {} : { canText: async (u: string) => texting && u === U }) };
   const out = memoryOutreachStore();
   const state: Record<string, unknown> = { profile: { facts } };
   const say = (message: string, extra: { attachments?: any[] } = {}) =>

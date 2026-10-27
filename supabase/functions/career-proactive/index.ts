@@ -11,7 +11,7 @@ import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_b
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
-import { supabasePeopleStore } from "../_shared/career_people.ts";
+import { supabasePeopleDeps } from "../_shared/career_people.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
 
 // The career Google grant (vault oauth_google_career_<uid>), read the same way by mail tracking and outreach.
@@ -93,10 +93,12 @@ serve((req) => {
     } : undefined,
     // Introduction reminders (D-033) queue the reminder a person asked for to the outbox at its date; the run record's
     // count needs 20261027020000_career_intro_reminder_push.sql, so this runs only once the owner turns it on at
-    // deploy, after that migration. The chat reads the same switch for its words (envPeopleDeps' introPush).
+    // deploy, after that migration. The chat reads the same switch for its words (supabasePeopleDeps' introPush, wired in
+    // agent-chat), and both read the same texting-channel check: a person with no texting channel is never queued.
     introReminders: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" ? (() => {
-      const people = supabasePeopleStore(admin);
-      return { due: (nowIso: string) => people.dueIntros(nowIso),
+      const deps = supabasePeopleDeps(admin, { fetch, token: async () => null, introPush: true });
+      const people = deps.store;
+      return { due: (nowIso: string) => people.dueIntros(nowIso), canText: deps.canText,
         markReminded: async (userId: string, n: number) => { await people.updateIntro(userId, n, { reminded_at: new Date().toISOString() }); } };
     })() : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only

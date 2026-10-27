@@ -5,18 +5,23 @@
 // What counts as a person: a schema.org Person the page itself publishes (JSON-LD: name, jobTitle, worksFor, alumniOf,
 // email), and an address the page publishes as a mailto: link, named only when the link's own words are a name. Page
 // prose is never mined for names, and no address is ever made up: an email is only one the page wrote.
-// Never LinkedIn, Indeed or Handshake (owner rule: never automate them), never a private or local address, never a
-// non-HTTPS page, never a page the site's robots.txt disallows; at most 3 redirects, each checked again; 2 MB, 8 s.
-import { cleanCell, cleanEmail } from "./career_people_import.ts";
-import { registrable } from "./career_people_gmail.ts";
+// Never LinkedIn, Indeed or Handshake on any country domain or subdomain (owner rule: never automate them;
+// career_people_sites.ts), never a private or local address (checked on the name AND on every address the name
+// resolves to, before the first request and again on every redirect), never a non-HTTPS page, never a page the site's
+// robots.txt disallows; at most 3 redirects, each checked again; 2 MB, 8 s.
+// Not closed here: the runtime's fetch resolves the name again itself, so a name whose DNS answer changes between this
+// check and the request (rebinding with a near-zero TTL) is not caught by this check alone.
+import { cleanCell, cleanEmail, readsAsInstruction } from "./career_people_import.ts";
+import { neverOpen } from "./career_people_sites.ts";
 
 export const PAGE_MAX_BYTES = 2_000_000, PAGE_TIMEOUT_MS = 8_000, MAX_REDIRECTS = 3, MAX_PEOPLE = 200;
 export const UA = "TraineeBot/1.0 (reads one page a person sent; no crawling)";
-const BLOCKED = ["linkedin.com", "lnkd.in", "indeed.com", "indeedemail.com", "indeedmail.com", "joinhandshake.com"];
 
 export type PageWhy = "bad_url" | "not_https" | "blocked_site" | "private_host" | "robots" | "too_large" | "not_html" | "http" | "timeout" | "network" | "redirects";
 export interface PagePerson { name: string | null; title: string; company: string; school: string; email: string | null; how: "schema.org Person" | "mailto link" }
 export type PageRead = { ok: true; url: string; people: PagePerson[]; org: string | null } | { ok: false; why: PageWhy; detail?: string };
+// Every address a host name resolves to (A and AAAA). Throws, or returns none, when the name doesn't resolve.
+export type Resolver = (host: string) => Promise<string[]>;
 
 // A host Trainee may fetch: a public DNS name with a dot, never an IP literal, never localhost or an internal suffix.
 export function checkUrl(raw: string): { ok: true; url: URL } | { ok: false; why: PageWhy } {
@@ -25,9 +30,83 @@ export function checkUrl(raw: string): { ok: true; url: URL } | { ok: false; why
   if (u.protocol !== "https:") return { ok: false, why: "not_https" };
   if (u.username || u.password || (u.port && u.port !== "443")) return { ok: false, why: "bad_url" };
   const h = u.hostname.toLowerCase().replace(/\.$/, "");
-  if (BLOCKED.includes(registrable(h).full)) return { ok: false, why: "blocked_site" };
+  if (neverOpen(h)) return { ok: false, why: "blocked_site" };
   if (!h.includes(".") || /^\[|^[\d.]+$|^0x|:/.test(h) || /(^|\.)(localhost|local|internal|intranet|lan|home|corp|test|example|invalid|arpa)$/.test(h)) return { ok: false, why: "private_host" };
   return { ok: true, url: u };
+}
+
+// ------------------------------------------------------------------------------------------------ addresses
+const v4 = (s: string): number[] | null => {
+  const p = s.split(".");
+  if (p.length !== 4 || !p.every((x) => /^\d{1,3}$/.test(x) && Number(x) <= 255)) return null;
+  return p.map(Number);
+};
+// Public unicast IPv4 only: never this-network, private (RFC 1918), CGNAT (100.64/10), loopback, link-local with the
+// cloud metadata address (169.254/16), the IETF, TEST-NET, benchmark and 6to4-relay ranges, multicast, reserved, broadcast.
+function publicV4(b: number[]): boolean {
+  const [a, c, d] = b;
+  if (a === 0 || a === 10 || a === 127 || a >= 224) return false;
+  if (a === 100 && c >= 64 && c <= 127) return false;
+  if (a === 169 && c === 254) return false;
+  if (a === 172 && c >= 16 && c <= 31) return false;
+  if (a === 192 && c === 168) return false;
+  if (a === 192 && c === 0 && (d === 0 || d === 2)) return false;
+  if (a === 192 && c === 88 && d === 99) return false;
+  if (a === 198 && (c === 18 || c === 19)) return false;
+  if (a === 198 && c === 51 && d === 100) return false;
+  if (a === 203 && c === 0 && d === 113) return false;
+  return true;
+}
+// Eight 16-bit groups, or null. Takes "::", a dotted IPv4 tail and a zone id (dropped).
+function v6(s: string): number[] | null {
+  let t = s.toLowerCase().replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  const tail = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(t);
+  if (tail) { const b = v4(tail[1]); if (!b) return null; t = t.slice(0, -tail[1].length) + `${((b[0] << 8) | b[1]).toString(16)}:${((b[2] << 8) | b[3]).toString(16)}`; }
+  const halves = t.split("::");
+  if (halves.length > 2) return null;
+  const part = (x: string) => (x ? x.split(":") : []);
+  const head = part(halves[0]), rest = halves.length === 2 ? part(halves[1]) : [];
+  if (![...head, ...rest].every((g) => /^[0-9a-f]{1,4}$/.test(g))) return null;
+  const fill = 8 - head.length - rest.length;
+  if (halves.length === 1 ? fill !== 0 : fill < 1) return null;
+  return [...head, ...Array(halves.length === 2 ? fill : 0).fill("0"), ...rest].map((g) => parseInt(g, 16));
+}
+// Public unicast IPv6 only: global unicast (2000::/3) minus documentation, ORCHID, Teredo and 6to4 (which carry an IPv4
+// address), and IPv4-mapped, IPv4-compatible and NAT64 addresses judged by the IPv4 address they carry. Never loopback,
+// unspecified, unique-local (fc00::/7: fd00::/8, so AWS's fd00:ec2::254 metadata address), link-local or multicast.
+function publicV6(g: number[]): boolean {
+  const carried = () => [g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255];
+  if (g.slice(0, 5).every((x) => x === 0) && (g[5] === 0xffff || g[5] === 0)) return g[5] === 0 && g[6] === 0 ? false : publicV4(carried());
+  if (g[0] === 0x64 && g[1] === 0xff9b) return publicV4(carried());
+  if ((g[0] & 0xe000) !== 0x2000) return false;
+  if (g[0] === 0x2001 && (g[1] === 0x0db8 || g[1] < 0x0200 || (g[1] & 0xfff0) === 0x0010 || (g[1] & 0xfff0) === 0x0020)) return false;
+  if (g[0] === 0x2002) return false;
+  return true;
+}
+// True only for an address on the public internet. Anything that doesn't parse is not public.
+export function publicAddress(ip: string): boolean {
+  const s = String(ip ?? "").trim();
+  const b = v4(s);
+  if (b) return publicV4(b);
+  const g = v6(s);
+  return g ? publicV6(g) : false;
+}
+// The runtime's DNS: A and AAAA together; a name with neither does not resolve.
+export const dnsResolver: Resolver = async (host) => {
+  const got = await Promise.allSettled([Deno.resolveDns(host, "A"), Deno.resolveDns(host, "AAAA")]);
+  const ips = got.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+  if (!ips.length) throw new Error(`no address for ${host}`);
+  return ips;
+};
+// The URL check, then every address the name resolves to: one private address refuses it (a name may answer with several).
+export async function checkHost(raw: string, resolve: Resolver): Promise<{ ok: true; url: URL } | { ok: false; why: PageWhy; detail?: string }> {
+  const c = checkUrl(raw);
+  if (!c.ok) return c;
+  let ips: string[];
+  try { ips = await resolve(c.url.hostname.replace(/\.$/, "")); } catch (e) { return { ok: false, why: "network", detail: e instanceof Error ? e.message : String(e) }; }
+  if (!ips.length) return { ok: false, why: "network", detail: "no address" };
+  if (!ips.every(publicAddress)) return { ok: false, why: "private_host" };
+  return c;
 }
 
 async function timed(f: typeof fetch, url: string, init: RequestInit): Promise<Response> {
@@ -71,9 +150,9 @@ export function robotsAllows(txt: string, path: string): boolean {
   return best.allow;
 }
 
-export async function readPage(f: typeof fetch, raw: string): Promise<PageRead> {
-  const c = checkUrl(raw);
-  if (!c.ok) return { ok: false, why: c.why };
+export async function readPage(f: typeof fetch, raw: string, resolve: Resolver = dnsResolver): Promise<PageRead> {
+  const c = await checkHost(raw, resolve);
+  if (!c.ok) return c.detail ? { ok: false, why: c.why, detail: c.detail } : { ok: false, why: c.why };
   let url = c.url;
   try {
     const rob = await timed(f, `${url.origin}/robots.txt`, { headers: { "user-agent": UA }, redirect: "manual" }).catch(() => null);
@@ -84,8 +163,8 @@ export async function readPage(f: typeof fetch, raw: string): Promise<PageRead> 
       if (r.status >= 300 && r.status < 400 && r.headers.get("location")) {
         await r.body?.cancel().catch(() => {});
         if (hop >= MAX_REDIRECTS) return { ok: false, why: "redirects" };
-        const next = checkUrl(new URL(r.headers.get("location")!, url).toString());
-        if (!next.ok) return { ok: false, why: next.why };
+        const next = await checkHost(new URL(r.headers.get("location")!, url).toString(), resolve);
+        if (!next.ok) return next.detail ? { ok: false, why: next.why, detail: next.detail } : { ok: false, why: next.why };
         url = next.url;
         continue;
       }
@@ -102,11 +181,12 @@ export async function readPage(f: typeof fetch, raw: string): Promise<PageRead> 
   }
 }
 
+// A page's field, cleaned; one that reads as an instruction to a reader (readsAsInstruction) is dropped, never kept.
 const str = (v: unknown, max: number): string => {
-  if (typeof v === "string") return cleanCell(v, max);
-  if (v && typeof v === "object" && typeof (v as any).name === "string") return cleanCell((v as any).name, max);
-  if (Array.isArray(v)) return str(v[0], max);
-  return "";
+  const s = typeof v === "string" ? cleanCell(v, max)
+    : v && typeof v === "object" && typeof (v as any).name === "string" ? cleanCell((v as any).name, max)
+    : Array.isArray(v) ? str(v[0], max) : "";
+  return readsAsInstruction(s) ? "" : s;
 };
 const isType = (o: any, t: string) => { const x = o?.["@type"]; return Array.isArray(x) ? x.includes(t) : x === t; };
 const NAME_LIKE = /^\p{Lu}[\p{L}'’.-]+(?:\s+\p{Lu}[\p{L}'’.-]*){1,3}$/u;
@@ -141,7 +221,7 @@ export function peopleOnPage(html: string): { people: PagePerson[]; org: string 
     const email = cleanEmail(decodeURIComponent(m[1]).trim());
     if (!email) continue;
     const words = cleanCell(m[2].replace(/<[^>]*>/g, " "), 200);
-    const name = NAME_LIKE.test(words) ? words : null;
+    const name = NAME_LIKE.test(words) && !readsAsInstruction(words) ? words : null;
     if ([...people].some((p) => p.email === email)) continue;
     add({ name, title: "", company: "", school: "", email, how: "mailto link" });
   }

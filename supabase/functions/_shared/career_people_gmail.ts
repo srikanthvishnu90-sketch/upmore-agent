@@ -6,17 +6,17 @@
 //                   ("ramp.com" for Ramp), and a role inbox (careers@, noreply@) is never a person. A name is the display
 //                   name the mail itself carried, or none: never made from the address.
 //   job alerts      postings in the person's own Handshake and Indeed alert emails. Only mail from the senders those sites
-//                   publish (Indeed: indeed.com, indeedemail.com, indeedmail.com, per its help page "How to verify emails
-//                   from Indeed"; Handshake: joinhandshake.com and its subdomains, per "About Student Emails"), and only
-//                   when Gmail's own authentication result passes for that domain (career_mail.ts authenticated). The
-//                   body is read (format=full) for these senders alone, held in memory for the run, and only each
-//                   posting's title, the words beside it and its link are kept. A link is kept exactly as the email
-//                   carried it and only when it points at the same site; nothing is fetched from Indeed or Handshake.
+//                   publish (career_people_sites.ts JOB_ALERT_SENDERS, data only, with its sources), and only when
+//                   Gmail's own authentication result passes for that domain (career_mail.ts authenticated). The body is
+//                   read (format=full) for these senders alone, held in memory for the run, and only each posting's
+//                   title, the words beside it and its link are kept. A link is kept exactly as the email carried it and
+//                   only when it points at the same site; nothing is opened on either site.
 //                   Neither site documents its alert format: a posting is an anchor whose link is a job link on that
 //                   site; anything else in the mail is left alone.
 import { authenticated } from "./career_mail.ts";
+import { JOB_ALERT_SENDERS, type JobSite } from "./career_people_sites.ts";
 import { ROLE_LOCALS } from "./career_contacts.ts";
-import { cleanCell, cleanEmail, companyKey } from "./career_people_import.ts";
+import { cleanCell, cleanEmail, companyKey, readsAsInstruction } from "./career_people_import.ts";
 
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 export type Token = (userId: string) => Promise<string | null>;
@@ -55,7 +55,8 @@ export function addresses(header: string): { name: string | null; email: string 
     const email = cleanEmail(m[2]);
     if (!email) continue;
     const n = cleanCell(m[1] ?? "", 200).replace(/^'+|'+$/g, "");
-    out.push({ name: n && !n.includes("@") && /\p{L}/u.test(n) ? n : null, email });
+    // A display name is whatever the sender typed: one that reads as an instruction is no name at all.
+    out.push({ name: n && !n.includes("@") && /\p{L}/u.test(n) && !readsAsInstruction(n) ? n : null, email });
   }
   return out;
 }
@@ -118,8 +119,8 @@ export async function heardFrom(d: GmailRead, userId: string, email: string, sin
 }
 
 // ------------------------------------------------------------------------------------------------ job alerts
-export type JobSite = "handshake" | "indeed";
-const SITE: Record<JobSite, string[]> = { indeed: ["indeed.com", "indeedemail.com", "indeedmail.com"], handshake: ["joinhandshake.com"] };
+export type { JobSite };
+const SITE = JOB_ALERT_SENDERS;
 export const siteOfDomain = (domain: string): JobSite | null => {
   const r = registrable(domain).full;
   return (Object.keys(SITE) as JobSite[]).find((s) => SITE[s].includes(r)) ?? null;
@@ -153,11 +154,12 @@ export function postingsIn(site: JobSite, html: string): { title: string; detail
     try { u = new URL(href); } catch { continue; }
     if (u.protocol !== "https:" || u.username || u.password || siteOfDomain(u.hostname) !== site || !JOB_PATH[site].test(u.pathname + u.search)) continue;
     const title = textOf(m[4]).trim();
-    if (title.length < 2 || title.length > 200 || !/\p{L}/u.test(title) || NOT_A_TITLE.test(title) || /https?:\/\//i.test(title)) continue;
-    // The words right after the link, up to the next link: the company and place, as the email wrote them.
+    if (title.length < 2 || title.length > 200 || !/\p{L}/u.test(title) || NOT_A_TITLE.test(title) || /https?:\/\//i.test(title) || readsAsInstruction(title)) continue;
+    // The words right after the link, up to the next link: the company and place, as the email wrote them (a line that
+    // reads as an instruction is left out).
     const after = src.slice(re.lastIndex, re.lastIndex + 1500);
     const stop = after.search(/<a\b/i);
-    const detail = linesOf(stop >= 0 ? after.slice(0, stop) : after).slice(0, 2).join(" · ").slice(0, 300);
+    const detail = linesOf(stop >= 0 ? after.slice(0, stop) : after).filter((l) => !readsAsInstruction(l)).slice(0, 2).join(" · ").slice(0, 300);
     const url = u.toString().slice(0, 2048);
     if (seen.has(url)) continue;
     seen.add(url);

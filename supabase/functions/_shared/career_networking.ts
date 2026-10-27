@@ -13,7 +13,7 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { peopleTurn } from "./career_people.ts";
+import { type PeopleDeps, peopleTurn } from "./career_people.ts";
 import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
@@ -137,6 +137,7 @@ export interface NetworkingDeps {
   model: ModelFn | null; // null: drafting is not switched on here (no model call is made)
   mx?: MxResolver;
   previousAsk?: () => Promise<string | null>; // the person's message before this one (for the signature answer)
+  people?: PeopleDeps | null; // D-033 people finding, wired by the caller; absent or null: no people turn
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 

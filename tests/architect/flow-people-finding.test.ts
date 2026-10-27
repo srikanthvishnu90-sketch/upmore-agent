@@ -72,6 +72,7 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
   const env = { CAREER_NETWORKING_DRAFT: "on", OPENAI_API_KEY: "sk-test-not-real", CAREER_MODEL: "gpt-5-mini" };
   for (const [k, v] of Object.entries(env)) Deno.env.set(k, v);
   const outside: string[] = [];
+  let restoreDns = () => {};
   try {
     await supabaseParity(pg);
     for (const id of Object.values(PEOPLE)) {
@@ -91,6 +92,15 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       if (u.host === "rampfixture.com" && u.pathname === "/team") return new Response(TEAM, { headers: { "content-type": "text/html" } });
       return new Response("not faked", { status: 599 });
     }) as typeof fetch;
+    // DNS, faked like every other outside service: the one company site answers with a public address; any other name
+    // doesn't resolve (the page reader checks every address a name resolves to before it fetches).
+    const realDns = Deno.resolveDns;
+    restoreDns = () => { (Deno as any).resolveDns = realDns; };
+    (Deno as any).resolveDns = async (host: string, type: string) => {
+      outside.push(`DNS ${host}/${type}`);
+      if (host === "rampfixture.com") return type === "A" ? ["93.184.215.14"] : [];
+      throw new Error(`NXDOMAIN ${host}`);
+    };
     const { handleChat } = await import("../../supabase/functions/agent-chat/handler-career.ts");
     // The texting bridge's call (channel_runtime.ts): service role, as the person, the thread the channel keeps.
     const bridge = (userId: string) => {
@@ -307,12 +317,52 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       assert(/1 email that claimed to be from them didn't pass Gmail's sender check/.test(jobs.reply) && /I never log in to Handshake or Indeed/.test(jobs.reply), jobs.reply);
     });
 
-    await t.step("forget: LinkedIn contacts (both copies), job emails, intro requests; Gmail disconnect; forget everything", async () => {
-      const f = await say("forget my LinkedIn contacts");
+    await t.step("the scheduled push's read on Postgres: only approved or sent intros with a reminder armed and due, never replied, cancelled or no-reply ones", async () => {
+      const { supabasePeopleStore } = await import("../../supabase/functions/_shared/career_people.ts");
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.117.1");
+      const store = supabasePeopleStore(createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }));
+      const row = (n: number, status: string) => `('${A}', ${n}, 'direct', 'T${n}', 'x', 'you named them', 'P${n}', null, 'copy', 's', 'b', '${"a".repeat(64)}', '${status}',
+        ${status === "approved" ? `'${"a".repeat(64)}'` : "null"}, now() - interval '2 days', now() - interval '1 hour', null)`;
+      await pg.sql(`insert into public.career_intro_requests (user_id, n, route, target_name, target_company, target_ref, to_name, to_email, delivery, subject, body, payload_hash, status, approved_hash, sent_at, follow_up_at, reminded_at) values
+        ${[[901, "approved"], [902, "sent"], [903, "replied"], [904, "cancelled"], [905, "no_reply"], [906, "drafted"]].map(([n, s]) => row(n as number, s as string)).join(",\n")}`);
+      const due = (await store.dueIntros(new Date().toISOString())).filter((d) => d.userId === A && d.intro.n >= 900).map((d) => [d.intro.n, d.intro.status]);
+      eq(due, [[901, "approved"], [902, "sent"]], "replied, cancelled, no-reply and drafted intros with a reminder still armed are never pushed");
+      await pg.sql(`delete from public.career_intro_requests where user_id = '${A}' and n >= 900`);
+    });
+
+    await t.step("the remind reply on the web with the push on: no texting channel, so no promise of a text", async () => {
+      Deno.env.set("CAREER_INTRO_REMINDERS", "on");
+      try {
+        const n = Number(await q(`select max(n) from public.career_intro_requests where user_id = '${A}'`));
+        await pg.sql(`update public.career_intro_requests set status = 'sent', status_source = 'person', sent_at = now(), follow_up_at = null where user_id = '${A}' and n = ${n}`);
+        const r = await say(`remind me about intro ${n} in 4 days`);
+        eq(r.resultStatus, "reminder_set", r.reply);
+        assert(!/text you/.test(r.reply) && /haven't connected a texting app/.test(r.reply), r.reply);
+        await pg.sql(`insert into public.channel_contacts (contact, user_id) values ('tg:4242', '${A}')`);
+        const t2 = await say(`remind me about intro ${n} in 5 days`);
+        assert(/I'll text you a reminder then/.test(t2.reply), t2.reply);
+        await pg.sql(`delete from public.channel_contacts where user_id = '${A}'; update public.career_intro_requests set follow_up_at = null, follow_up_days = null where user_id = '${A}' and n = ${n}`);
+      } finally { Deno.env.delete("CAREER_INTRO_REMINDERS"); }
+    });
+
+    await t.step("forget: LinkedIn contacts (every copy, in every chat of theirs), job emails, intro requests; Gmail disconnect; forget everything", async () => {
+      // A second chat of the same person (a new thread), where they send the export again: both chats now hold a copy.
+      const second: Chat = handler!.chat("tok-a");
+      const s1 = await second.say("here's my linkedin export again", { attachments: [{ name: "Connections.csv", mime: "text/csv", text: FIXTURE }] });
+      eq(s1.resultStatus, "imported", s1.reply);
+      const threadA = web.thread()!, threadB = second.thread()!;
+      assert(threadA && threadB && threadA !== threadB, "two chats");
+      const copies = async (tid: string) => (await q(`select coalesce(state->'career'->'stores'->'contacts', '[]') from public.agent_flow_state where thread_id = '${tid}'`)).filter((r: any) => /Connections/.test(r.file)).length;
+      eq([await copies(threadA), await copies(threadB)], [8, 8]);
+      // forgotten from the second chat: every copy goes, and the reply counts all of them
+      const f = await second.say("forget my LinkedIn contacts");
       eq([f.intent, f.resultStatus], ["career_people_forget", "forgotten"], f.reply);
-      assert(/Deleted your LinkedIn contacts: 8 people from your export and 8 from this chat's list/.test(f.reply) && /intro requests are kept/.test(f.reply), f.reply);
+      assert(/Deleted your LinkedIn contacts: 8 people from your export and 16 from your chats' lists \(2 chats\)/.test(f.reply) && /intro requests are kept/.test(f.reply), f.reply);
       eq([await count("career_people", A, "and source = 'linkedin_export'"), await count("career_people_imports", A, "and source = 'linkedin_export'")], [0, 0]);
-      eq((await stateContacts()).filter((r: any) => /Connections/.test(r.file)).length, 0);
+      eq([await copies(threadA), await copies(threadB)], [0, 0], "no copy left in either chat");
+      // back in the first chat, nobody from the export is listed
+      const who = await say("who do I know at Ramp?");
+      assert(!/Lee Park|Alex O'Brien|Priya Shah/.test(who.reply), who.reply);
       eq(await count("career_people", B), 6, "another person's people stay");
       eq((await say("forget my job emails")).resultStatus, "forgotten");
       eq(await count("career_job_emails", A), 0);
@@ -321,19 +371,30 @@ Deno.test({ name: "people finding and intros at the real handler: import, who, a
       eq(await count("career_people", A, "and source = 'gmail'"), 1);
       await pg.sql(`delete from public.user_oauth_connections where user_id = '${A}'`);
       eq(await count("career_people", A, "and source = 'gmail'"), 0, "disconnecting Gmail deletes what was read from it");
+      // "forget everything" (the account epoch moves): seed a row in EACH of the five tables right before it, so the
+      // erase trigger is what empties every one of them (the asks above already emptied some).
+      await pg.sql(`insert into public.career_people (user_id, source, name, company, company_key, source_ref, dedupe_key) values ('${A}', 'linkedin_export', 'Seed Person', 'Ramp', 'ramp', 'seed, row 1', 'n:seed');
+        insert into public.career_people_imports (user_id, source, file_name, rows_read, imported) values ('${A}', 'linkedin_export', 'seed.csv', 1, 1);
+        insert into public.career_people_prefs (user_id, export_asked_at) values ('${A}', now()) on conflict (user_id) do update set export_asked_at = now();
+        insert into public.career_job_emails (user_id, source, title, url, message_hash, received_at) values ('${A}', 'indeed', 'Seed Job', 'https://www.indeed.com/viewjob?jk=5eed5eed5eed5eed', '${"b".repeat(64)}', now());
+        insert into public.career_intro_requests (user_id, n, route, target_name, target_ref, to_name, delivery, subject, body, payload_hash) values ('${A}', 77, 'direct', 'Seed', 'seed', 'Seed', 'copy', 's', 'b', '${"c".repeat(64)}');`);
+      const tables = ["career_people", "career_people_imports", "career_people_prefs", "career_job_emails", "career_intro_requests"];
+      for (const tbl of tables) assert(await count(tbl, A) >= 1, `${tbl} seeded`);
       await pg.sql(`update public.career_watch_kv set value = jsonb_set(value, '{epoch}', '1') where user_id = '${A}' and key = 'career:account'`);
-      for (const tbl of ["career_people", "career_people_imports", "career_people_prefs", "career_job_emails", "career_intro_requests"]) eq(await count(tbl, A), 0, tbl);
+      for (const tbl of tables) eq(await count(tbl, A), 0, tbl);
       eq(await count("career_people", B), 6);
     });
 
     await t.step("the network: only the fakes; never LinkedIn, Indeed or Handshake; never a send", () => {
-      const hosts = [...new Set(outside.map((c) => c.split(" ")[1].split("/")[0]))].sort();
+      const hosts = [...new Set(outside.filter((c) => !c.startsWith("DNS ")).map((c) => c.split(" ")[1].split("/")[0]))].sort();
+      eq([...new Set(outside.filter((c) => c.startsWith("DNS ")).map((c) => c.split(" ")[1].split("/")[0]))], ["rampfixture.com"], "only the page's own name was resolved");
       eq(hosts, ["api.openai.com", "gmail.googleapis.com", "rampfixture.com"], outside.join("\n"));
       assert(!outside.some((c) => /\/send|messages\/send/.test(c)), "nothing sent");
     });
     eq(await q(`select count(*) from public.career_outreach_drafts`), 0, "no outreach drafts: intros never ride the sender");
   } finally {
     handler?.restore();
+    restoreDns();
     await pg.stop();
   }
 } });

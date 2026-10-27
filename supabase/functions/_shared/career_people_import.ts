@@ -72,15 +72,29 @@ export function parseCsv(text: string, maxRows = MAX_ROWS + 50): string[][] {
 
 // ------------------------------------------------------------------------------------------------ cells
 const plain = (s: unknown) => String(s ?? "").toLowerCase().replace(/[’']/g, "").replace(/&/g, " and ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-// A spreadsheet runs a cell as a formula when it starts with = + - @ (or a tab or CR before one), and DDE payloads ride
-// the same doorway. "-" and "+" alone, or before a digit or a space ("- Analyst", "+1 312"), are ordinary text.
+// The OWASP CSV-injection rule: a cell that starts with = + - @, a tab or a carriage return (after any leading spaces) is
+// one a spreadsheet may run as a formula, and DDE payloads ride the same doorway (-2+3+cmd|' /C calc'!A0); so is a cell
+// that carries a pipe command anywhere (Kim |calc, x|'/C calc'!A0). Two shapes are let through on purpose, because they
+// can't call or reference anything: a lone "-" or "+" (a blank placeholder), and a phone number (+1 312 555 0100: one
+// leading +, then only digits, spaces, dots, dashes and parentheses, at least 7 digits). Everything else that starts
+// that way is blanked, "- Analyst" included (a spreadsheet reads it as a formula too).
+const PHONE = /^\+\d[\d ().-]{5,24}$/;
+const PIPE_CMD = /\|\s*['"]?\s*(?:\/[a-z]\b|[\w.-]+\s*['"]?\s*!|(?:calc|cmd|command|powershell|pwsh|sh|bash|mshta|rundll32|regsvr32|certutil|wscript|cscript|msexcel|excel|winword)(?:\.exe)?\b)/i;
 export function isFormula(v: string): boolean {
-  const t = v.replace(/^[\t\r\n ]+/, "");
-  if (!t) return false;
-  if (/^[=@]/.test(t)) return true;
-  if (/^[+-][A-Za-z(]/.test(t)) return true;
-  return /^[\t\r]/.test(v) && /^[=+\-@]/.test(t);
+  const s = String(v ?? "");
+  if (/^[ ]*[\t\r]/.test(s)) return true;
+  const t = s.replace(/^[\n ]+/, "");
+  if (PIPE_CMD.test(t)) return true;
+  if (!/^[=+\-@]/.test(t)) return false;
+  if (/^[+-]$/.test(t.trim())) return false;
+  return !(PHONE.test(t.trim()) && (t.match(/\d/g) ?? []).length >= 7);
 }
+// Text written by someone else (a page's jobTitle, a Gmail display name, an alert email's link words) that talks to a
+// reader instead of describing a person or a job: "ignore previous instructions", "you are now ...", "system prompt",
+// "approve intro 1", "forget my contacts". Such a field is never kept, so it can't reach a reply, a draft's prompt or
+// the person's memory; a row is kept without it (a page Person keeps its name, an address keeps no display name).
+const INSTRUCTION = /\b(?:ignore|disregard|forget|override|bypass)\b[^.]{0,40}\b(?:instructions?|prompts?|rules?|above|previous|prior|everything|contacts?|messages?)\b|\b(?:system|developer)\s*(?:prompt|message|instructions?)\b|^\s*(?:system|assistant|user|developer)\s*[:>]|\byou\s+(?:are\s+now|must\s+now|will\s+now|should\s+now)\b|\bnew\s+instructions?\b|\b(?:approve|send|cancel|redo|forget|delete)\s+(?:all\b|intro(?:duction)?s?\b|my\b|every\b)|\bdo\s+not\s+(?:tell|show|inform)\b|\bact\s+as\b|<\|?(?:im_start|system|endoftext)/i;
+export const readsAsInstruction = (v: unknown): boolean => INSTRUCTION.test(String(v ?? ""));
 // Control characters, angle-bracket markup and zero-width/bidi tricks are never kept; whitespace is collapsed.
 export function cleanCell(v: unknown, max: number): string {
   return String(v ?? "")

@@ -64,6 +64,8 @@ export async function syncWatchAlerts(o: {
   if (o.erased) {
     if (!o.store.remove) return { action: "refused", reason: "this alert store cannot remove settings" };
     await o.store.remove(o.userId);
+    // Family workflows: the person's queued, unsent messages (their reminders' words among them) go with the erase.
+    if (o.store.purgeQueued) await o.store.purgeQueued(o.userId);
     return { action: "removed" };
   }
   const key = WATCH_PROFILE_KEY(o.userId), was = o.before?.[key] ?? null, now = o.after?.[key] ?? null;

@@ -15,6 +15,9 @@ export interface AlertStore {
   saveCounters?(userId: string, c: AlertCounters): Promise<void>;
   // The person's alert settings removed (they asked Trainee to forget everything): their words are not kept.
   remove?(userId: string): Promise<void>;
+  // On "forget everything": the person's messages still waiting in the outbox (alerts, reports, reminders) are deleted,
+  // so their words are not kept and nothing goes out after the erase. Sent rows are left to the erase itself.
+  purgeQueued?(userId: string): Promise<number>;
   active(): Promise<AlertRow[]>; // everyone with alerts on
   // WO-037: alerts per person whose delivery time is at or after `sinceIso` (the weekly cap's count). A store without it
   // sends no alerts (the run fails closed).
@@ -116,6 +119,10 @@ export function supabaseAlertStore(admin: any): AlertStore & Outbox {
     async get(id) { const r = must<any>(await admin.from("career_alert_prefs").select("*").eq("user_id", id).maybeSingle(), "read alert settings"); return r ? fromDb(r) : null; },
     async save(row) { must(await admin.from("career_alert_prefs").upsert(toDb(row), { onConflict: "user_id" }), "save alert settings"); },
     async remove(id) { must(await admin.from("career_alert_prefs").delete().eq("user_id", id), "remove alert settings"); },
+    async purgeQueued(id) {
+      const r = must<any[]>(await admin.from("career_outbox").delete().eq("user_id", id).in("status", ["queued", "failed", "held"]).select("id"), "remove queued messages");
+      return (r ?? []).length;
+    },
     async saveCounters(id, c) {
       must(await admin.from("career_alert_prefs").update({ last_checked_at: c.last_checked_at, instant_sent_today: c.instant_sent_today, sent_on: c.sent_on,
         last_report_on: c.last_report_on, held: (c.held || []).slice(0, 200), updated_at: new Date().toISOString() }).eq("user_id", id), "save alert counters");

@@ -1,7 +1,9 @@
 // FEATURE 10 (2026-10-25): networking from chat, code-first on the live path (agent-chat/handler-career.ts), before the
 // router. Three asks, each answered from the person's OWN contacts only (there is no people source by decision: D-018a):
-//   (a) a contacts CSV pasted in the message, or attached (`attachments` on the request): imported into the thread's
-//       contacts by career_contacts.ts importContactsFile (the same import the brain uses), with a coverage fraction;
+//   (a) a contacts CSV pasted in the message, or attached (`attachments` on the request): imported into the person's
+//       contacts by career_contacts.ts importContactsFile (the same import the brain uses), with a coverage fraction.
+//       Contacts are the ACCOUNT's — one list per person in the outreach store (career_watch_kv 'career:contacts'),
+//       like every outreach record; the thread state carries the turn's working copy (hydrated below);
 //   (b) "who do I know at Stripe", "find my connections at X": the contacts at that firm, or plainly none, and how to add them;
 //   (c) "email Maya at Stripe about the data analyst role", "draft intros to my 3 contacts at X": drafts written by
 //       career_outreach.ts draftFor (every claim traced to a confirmed fact by outreachLock) and shown as the outreach
@@ -11,11 +13,12 @@
 // Never an invented address: a recipient is a row of the person's own contacts, with the address on that row, or no one.
 // The model writes only when the caller passes one (CAREER_NETWORKING_DRAFT=on, metered); without it the reply names who
 // would be written to and that nothing was drafted.
-import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
+import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MAX_CONTACTS, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
 import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
+import { trackTurn } from "./career_outreach_track.ts";
 
 export const IMPORT_INTENT = "career_contacts_import";
 export const AT_INTENT = "career_contacts_at";
@@ -39,7 +42,7 @@ const NUM: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5
 const numberOf = (w: string | undefined) => (w ? (/^\d+$/.test(w) ? Number(w) : NUM[w.toLowerCase()] ?? null) : null);
 const NUMW = "(\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)";
 const GROUP = "(?:contacts|connections|people|friends|folks|alums|alumni)";
-const FILLER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls|can you|could you|would you|will you|help me)[, ]+)+/i;
+const FILLER = /^(?:(?:so|ok|okay|hey|hi|and|now|also|please|pls|can you|could you|would you|will you|help me|actually|wait|oh|oops|no)[, ]+)+/i;
 // A firm as typed: the words after "at"/"from", up to the topic or the end.
 function firmOf(raw: string): string | null {
   const f = raw.replace(/\s+(?:about|regarding|re|for|who|that|to|and ask|asking|right now|please)\b.*$/i, "").replace(/[?.!,;:]+$/, "").replace(/^the\s+/i, "").trim();
@@ -49,7 +52,7 @@ function firmOf(raw: string): string | null {
 
 // (b) and (c): what the message asks, or null when it is not a networking ask (the rest of the chain answers it).
 export function parseNetworkingAsk(message: string): Ask | null {
-  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").trim();
+  const t = String(message ?? "").replace(/\s+/g, " ").trim().replace(FILLER, "").replace(/[?!.]+$/, "").replace(/,?\s+instead$/i, "").trim();
   if (!t || t.length > 300) return null;
   const who = [
     /^(?:who|which (?:people|contacts|connections))(?: else)? (?:do i know|do i have|in my (?:network|contacts|connections)|(?:are|is) (?:in )?my (?:contacts|connections|network))(?: (?:who |that )?works?| working)? (?:at|from|in) (.+)$/i,
@@ -62,7 +65,7 @@ export function parseNetworkingAsk(message: string): Ask | null {
     const m = rx.exec(t);
     if (m) { const firm = firmOf(m[1]); return firm ? { kind: "who", firm } : null; }
   }
-  const verb = new RegExp(`^(?:email|e-mail|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
+  const verb = new RegExp(`^(?:email|e-mail|emial|emal|eamil|message|reach out to|intro(?:duce)? me to|write(?: an?)?(?: (?:email|note|intro|message))? to|send(?: an?)?(?: (?:email|intro|note|message))? to|draft(?: me)?(?: an?| some| ${NUMW})?(?: cold| short| quick| networking)?(?: (?:emails?|intros?|introductions?|notes?|messages?|outreach(?: emails?)?))(?: to| for)?) (.+)$`, "i").exec(t);
   if (!verb) return null;
   const verbCount = numberOf(verb[1]);
   let rest = verb[2].trim(), topic: string | null = null;
@@ -114,6 +117,7 @@ const lineOf = (r: ContactRow) => `- ${r.name}${r.title ? `, ${r.title}` : ""}${
 const fileWord = (rows: ContactRow[]) => { const f = [...new Set(rows.map((r) => r.file))]; return f.length === 1 ? f[0] : `${f.length} lists`; };
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
+const CONTACTED = "you already have a draft or email to them";
 // Why a row can't be written to, or null when it can (draft_outreach's rule: an address that passed every check that ran,
 // never anyone already written to, never the do-not-contact list).
 async function heldWhy(r: ContactRow, contacted: Set<string>, dnc: Set<string>): Promise<string | null> {
@@ -122,15 +126,37 @@ async function heldWhy(r: ContactRow, contacted: Set<string>, dnc: Set<string>):
     const c = r.check;
     return c?.syntax === "fail" ? `"${r.email}" is not a valid address` : c?.role === "flagged" ? `${r.email} is a shared inbox, not a person` : c?.disposable === "flagged" ? `${r.email} is a throwaway address` : c?.mx === "fail" ? `${r.email}'s domain has no mail server` : `${r.email} did not pass the address checks`;
   }
-  if (contacted.has(r.email.toLowerCase())) return "you already have a draft or email to them";
+  if (contacted.has(r.email.toLowerCase())) return CONTACTED;
   if (dnc.has(await emailHash(r.email))) return "they asked not to be contacted";
   return null;
 }
 const recipientOf = (r: ContactRow): Recipient => ({ name: r.name, firm: r.firm, title: r.title, school: r.school, email: r.email!, source: `${r.file}, row ${r.row}` });
 
+// FAMILY NETWORKING: an address the person typed for the person they named ("email Maya Chen at Stripe about a coffee
+// chat, her email is maya@stripe.com"): taken out of the ask, and kept as their own contact row (never guessed, never
+// a name made up for an address).
+const ADDR = /[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,24}/;
+export function typedAddress(message: string): { text: string; email: string | null } {
+  const m = String(message ?? "");
+  const a = ADDR.exec(m);
+  if (!a || (m.match(new RegExp(ADDR.source, "g")) ?? []).length > 1) return { text: m, email: null };
+  const clause = new RegExp(`\\s*(?:[,;.(-]\\s*)?(?:and\\s+)?(?:(?:her|his|their|the|my contact's)\\s+)?(?:(?:e-?mail|email address|address)\\s*(?:is|:|=)?\\s*|(?:she|he|they)(?:'s| is| are)\\s+(?:at\\s+)?|at\\s+|<)?${a[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}>?\\)?`, "i");
+  const text = m.replace(clause, "").replace(/\s+/g, " ").trim();
+  return { text, email: a[0].toLowerCase() };
+}
+export const TYPED_FILE = "what you typed in chat";
+async function keepTyped(o: NetworkingDeps, name: string, firm: string | null, email: string): Promise<void> {
+  const all = contactsOf(o.state);
+  if (all.some((r) => (r.email ?? "").toLowerCase() === email)) return;
+  const row = all.filter((r) => r.file === TYPED_FILE).length + 1;
+  const f = firm ? normalizeFirm(firm) : "";
+  const [checked] = await verifyRows([{ file: TYPED_FILE, row, name, email, firm: f, firm_raw: firm ?? "", company: f, title: "", school: "", connected_on: null }], o.mx ?? MX_NOT_WIRED);
+  o.state.contacts = [...all, checked];
+}
+
 export interface NetworkingDeps {
   message: string; userId: string; threadId: string; now: number;
-  state: Record<string, unknown>; // the thread's career state (ctx): contacts and profile
+  state: Record<string, unknown>; // the thread's career state (ctx): the contacts working copy and the profile
   attachments?: Attachment[];
   store: OutreachStore; events?: EventStore | null;
   model: ModelFn | null; // null: drafting is not switched on here (no model call is made)
@@ -139,13 +165,57 @@ export interface NetworkingDeps {
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 
+// Contacts live on the account (the outreach store), not the thread: a list imported in one thread answers in
+// every thread of the same person. The turn runs on the thread state's working copy, so hydrate it from the
+// account first — rows only the thread holds (kept before this, or in the same turn) are kept and join the
+// account — and write the copy back when it no longer matches what the account held. A store without the
+// contacts methods keeps the old thread-only behaviour exactly.
+const contactKeys = (r: ContactRow) => [r.email ? `e:${r.email.toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`, `${r.file}#${r.row}`];
+async function hydrateContacts(o: NetworkingDeps): Promise<ContactRow[] | null> {
+  if (!o.store.contacts) return null;
+  const account = await o.store.contacts(o.userId).catch(() => null);
+  if (!account) return null;
+  const seen = new Set(account.flatMap(contactKeys));
+  const merged = [...account];
+  for (const r of contactsOf(o.state)) if (!contactKeys(r).some((k) => seen.has(k))) { contactKeys(r).forEach((k) => seen.add(k)); merged.push(r); }
+  o.state.contacts = merged.slice(-MAX_CONTACTS);
+  return account;
+}
+async function persistContacts(o: NetworkingDeps, account: ContactRow[] | null): Promise<void> {
+  if (!account || !o.store.saveContacts) return;
+  const now = contactsOf(o.state);
+  if (JSON.stringify(now) !== JSON.stringify(account)) await o.store.saveContacts(o.userId, now).catch(() => {});
+}
+
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
+  const account = await hydrateContacts(o);
+  try {
+    return await networkingTurnInner(o);
+  } finally {
+    await persistContacts(o, account);
+  }
+}
+
+async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
   const files = (o.attachments ?? []).slice(0, MAX_FILES);
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);
-  const ask = parseNetworkingAsk(o.message);
+  // FAMILY NETWORKING: after the draft: marked sent by the person, replies, follow-up reminders, the list of who they
+  // reached out to, a follow-up drafted, and LinkedIn automation refused (career_outreach_track.ts).
+  const tracked = await trackTurn({ message: o.message, userId: o.userId, threadId: o.threadId, now: o.now, store: o.store, events: o.events,
+    facts: (((o.state.profile as any)?.facts ?? []) as unknown[]), model: o.model,
+    contactsWithEmail: (name) => contactsOf(o.state).filter((r) => r.email && plain(r.name).split(" ")[0] === plain(name)).map((r) => `${r.name}${r.firm ? ` at ${r.firm}` : ""}`) });
+  if (tracked) return tracked;
+  const typed = typedAddress(o.message);
+  let ask = parseNetworkingAsk(typed.text);
+  // An address with no name for it: never a name made up from the address; ask once for who it is.
+  if (typed.email && !(ask?.kind === "draft" && ask.target.by === "name")) {
+    ask = parseNetworkingAsk(o.message);
+    if (!ask && /^\s*(?:please\s+|can you\s+|could you\s+)?(?:email|e-mail|emial|write(?: an?)?(?: email)? to|draft(?: an?)? (?:email|note|intro) to|send(?: an?)? (?:email|note|intro) to)\b/i.test(o.message))
+      return { reply: `Who is ${typed.email}? Send their name and firm with the address, for example "email Maya Chen at Stripe about a coffee chat, ${typed.email}", and I'll draft it for your approval. I never make up a name for an address.`, intent: DRAFT_INTENT, status: "needs_name" };
+  }
   if (ask?.kind === "who") return whoTurn(o, ask.firm, await peopleOf(o));
-  if (ask?.kind === "draft") return await draftTurn(o, ask);
+  if (ask?.kind === "draft") return await draftTurn(o, ask, typed.email);
   // The answer to "how do you sign your emails?": saved, then the ask that needed it runs.
   if ((await o.store.lastAssistantIntent(o.threadId).catch(() => null)) === SIGNATURE_INTENT) return await signatureTurn(o);
   return null;
@@ -211,7 +281,8 @@ function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): Netwo
   };
 }
 
-async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>): Promise<NetworkingResult> {
+async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>, typedEmail: string | null = null): Promise<NetworkingResult> {
+  if (typedEmail && ask.target.by === "name") await keepTyped(o, ask.target.name.trim(), ask.target.firm, typedEmail);
   const all = await peopleOf(o), t = ask.target;
   const firmName = t.firm ? normalizeFirm(t.firm) : null;
   if (!all.length) return { reply: `You haven't sent me any contacts yet, so there's no one I can write to${firmName ? ` at ${firmName}` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "no_contacts" };
@@ -239,10 +310,19 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
   }
   const want = Math.max(1, Math.min(BATCH_MAX, t.by === "group" && t.count ? t.count : BATCH_MAX));
   const [dnc, contacted] = await Promise.all([o.store.dnc(o.userId), o.store.contacted(o.userId)]);
+  // FAMILY NETWORKING: who was already written to, and how far it went. A by-name ask for someone whose only draft is
+  // still waiting (never approved or sent) replaces that draft: the person changed their mind about what to say.
+  const hist = o.store.history ? await o.store.history(o.userId, 500).catch(() => []) : [];
+  const live = (email: string) => hist.filter((d) => d.recipient.email.toLowerCase() === email && d.status !== "skipped");
+  const replace: OutreachDraft[] = [];
   const pick: ContactRow[] = [], held: { name: string; why: string }[] = [];
   for (const r of pool) {
     if (pick.length >= want) break;
-    const why = await heldWhy(r, contacted, dnc);
+    let why = await heldWhy(r, contacted, dnc);
+    const mine = r.email ? live(r.email.toLowerCase()) : [];
+    if (why === CONTACTED && t.by === "name" && mine.length && mine.every((d) => d.status === "shown")) { replace.push(...mine); why = null; }
+    else if (why === CONTACTED && mine.some((d) => d.status === "approved")) why = `you approved an email to them that isn't sent yet (draft ${mine.find((d) => d.status === "approved")!.n}; say "cancel ${mine.find((d) => d.status === "approved")!.n}" to write a new one)`;
+    else if (why === CONTACTED && mine.some((d) => ["sent", "replied"].includes(d.status))) why = `you already emailed them; say "follow up with ${r.name.split(" ")[0]}" for a follow-up`;
     if (why) held.push({ name: r.name, why }); else pick.push(r);
   }
   const considered = pick.length + held.length;
@@ -253,10 +333,10 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
   if (!o.model) return { reply: `Drafting emails isn't switched on here yet, so nothing was written or sent. From your contacts I would write to: ${pick.map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""} <${r.email}>`).join("; ")}.${heldLine ? ` ${heldLine}` : ""}`, intent: DRAFT_INTENT, status: "drafting_off" };
   const prefs = await o.store.prefs(o.userId);
   if (!prefs.signature) return { reply: SIGN_ASK, intent: SIGNATURE_INTENT, status: "needs_signature" };
-  return await writeBatch(o, pick, held, considered, ask.topic, prefs.signature, facts);
+  return await writeBatch(o, pick, held, considered, ask.topic, prefs.signature, facts, replace);
 }
 
-async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: string; why: string }[], considered: number, topic: string | null, signature: string, facts: unknown[]): Promise<NetworkingResult> {
+async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: string; why: string }[], considered: number, topic: string | null, signature: string, facts: unknown[], replace: OutreachDraft[] = []): Promise<NetworkingResult> {
   const results: Drafted[] = [];
   for (let k = 0; k < pick.length; k += 5) results.push(...await Promise.all(pick.slice(k, k + 5).map((r) => draftFor({ model: o.model!, facts, r: recipientOf(r), topic }))));
   const footer = footerOf(signature), ok: Omit<OutreachDraft, "id" | "batch_id" | "thread_id">[] = [];
@@ -273,7 +353,13 @@ async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: s
   if (!ok.length) return { reply: `Nothing was drafted (0/${considered}). ${notLine}`, intent: DRAFT_INTENT, status: "not_drafted" };
   const saved = await o.store.saveBatch(o.userId, o.threadId, ok, o.now);
   for (const d of saved) await recordOutreach(o.events, o.userId, "outreach_drafted", d, o.now, { from: "chat" });
-  const head = `Drafted ${saved.length}/${considered}.${notLine ? ` ${notLine}` : ""}`;
+  // The waiting drafts this one replaces are dropped, so only the new one can be approved.
+  const gone: string[] = [];
+  for (const d of replace) {
+    if (!saved.some((x) => x.recipient.email.toLowerCase() === d.recipient.email.toLowerCase())) continue;
+    if (await o.store.update(o.userId, { ...d, status: "skipped", approved_hash: null, approved_at: null, result: "replaced" }, { status: "shown" })) gone.push(d.recipient.name);
+  }
+  const head = `Drafted ${saved.length}/${considered}.${notLine ? ` ${notLine}` : ""}${gone.length ? ` This replaces your earlier draft to ${[...new Set(gone)].join(", ")}, which won't be sent.` : ""}`;
   const parts = [head, ...batchMessages(saved)];
   return { reply: parts.join("\n\n"), intent: OUTREACH_INTENT, status: "drafted", parts };
 }
@@ -284,9 +370,10 @@ async function signatureTurn(o: NetworkingDeps): Promise<NetworkingResult | null
   if (!sig || sig.length > 300 || lines.length > 4 || /\?\s*$/.test(sig) || /https?:/i.test(sig)) return null;
   await o.store.setPrefs(o.userId, { signature: sig });
   const before = o.previousAsk ? await o.previousAsk().catch(() => null) : null;
-  const ask = before ? parseNetworkingAsk(before) : null;
+  const typed = before ? typedAddress(before) : null;
+  const ask = typed ? parseNetworkingAsk(typed.text) : null;
   if (ask?.kind === "draft") {
-    const r = await draftTurn(o, ask);
+    const r = await draftTurn(o, ask, typed?.email ?? null);
     return { ...r, reply: `Saved your signature.\n\n${r.reply}`, parts: r.parts ? [`Saved your signature.`, ...r.parts] : undefined };
   }
   return { reply: `Saved your signature:\n${sig}\nIt goes at the bottom of every email I draft for you.`, intent: "career_outreach_signature_saved", status: "saved" };

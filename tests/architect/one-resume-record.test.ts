@@ -352,6 +352,9 @@ Deno.test({ name: "one confirmed resume: entries, readers, change, delete, trick
       const rec = await w.record(u);
       eq([rec.state, rec.kind, rec.sha256, rec.filename, rec.generation], ["confirmed", "file", await shaBytes(PDF_B), "From My Laptop.pdf", 2]);
       eq(await w.cloud(u), `${await shaBytes(PDF_B)}:${b64(PDF_B)}`, "one kept file, the record's");
+      // The same file kept again changes nothing (no new generation, nothing stopped).
+      eq((await pg.asPerson(u).rpc("career_apply_cloud_resume_put_own", { p_filename: "From My Laptop.pdf", p_b64: b64(PDF_B) })).error, null);
+      eq((await w.record(u)).generation, 2);
       // The service keeping a file (not the person's session) is not a confirmation.
       const v = await w.person();
       await pg.sql(`insert into public.career_apply_cloud_resumes (user_id, sha256, filename, bytes, privacy_epoch) values ('${v}', '${await shaBytes(PDF_A)}', 'x.pdf', decode('${b64(PDF_A)}', 'base64'), 0)`);

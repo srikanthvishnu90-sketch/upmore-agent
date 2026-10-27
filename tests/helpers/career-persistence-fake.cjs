@@ -5,6 +5,8 @@ module.exports=async function rpc(db,user,thread,name,args={}) {
   if(name==='agent_rl_bump')return {data:true,error:null};
   // Launch readiness B7: the person these fixtures chat as is an admitted account (trainee_admit, 20261026230000).
   if(name==='trainee_admit')return {data:'existing',error:null};
+  // FEATURE WAVES: no sign-up record (an account that did not come in by an invite), as for nearly every account.
+  if(name==='career_signup_state')return {data:null,error:null};
   if(name==='career_task_turn_commit_v1') {
     const intent=args.p_intent,base=args.p_base;
     if(intent.user_id!==user||intent.thread_id!==thread||intent.turn_key!==base.p_key||intent.request_hash!==base.p_hash)throw Error('fixture intent binding mismatch');

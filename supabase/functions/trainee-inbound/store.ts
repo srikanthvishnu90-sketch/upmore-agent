@@ -2,7 +2,14 @@
 // provider), channel_contacts (a person's contacts, one per channel, sharing one thread; STOPs and closed-signup refusals
 // kept by contact), career_outbox (the reply, bound to the channel it answers), and the linking functions of
 // 20261021070000_channel_parity.sql.
-import type { InboundStore, Person } from "../_shared/channel_inbound.ts";
+import type { InboundStore, InviteTaken, Person } from "../_shared/channel_inbound.ts";
+
+const REFUSALS = ["invalid", "used", "expired", "stopped", "none", "need_last4", "wrong_last4", "locked", "format"] as const;
+function taken(r: any): InviteTaken {
+  if (r && typeof r.invite_id === "string") return { ok: true, inviteId: r.invite_id };
+  const why = (REFUSALS as readonly string[]).includes(r?.error) ? r.error : "invalid";
+  return { ok: false, why, ...(typeof r?.tries_left === "number" ? { triesLeft: r.tries_left } : {}) };
+}
 
 const iso = (t: number) => new Date(t).toISOString();
 const duplicate = (e: { code?: string; message: string } | null) => !!e && (e.code === "23505" || /duplicate key/i.test(e.message));
@@ -86,6 +93,19 @@ export function supabaseInboundStore(admin: any): InboundStore {
       const r = must<any>(await admin.rpc("channel_link_nonce_redeem", { p_nonce: nonce, p_contact: contact, p_now: iso(at) }), "use a link");
       if (r?.user_id) return { ok: true, userId: r.user_id, threadId: r.thread_id ?? null };
       return { ok: false, why: r?.error === "linked_elsewhere" ? "linked_elsewhere" : "invalid" };
+    },
+    // FEATURE WAVES: invites (20261026233017_career_invite_waves.sql).
+    async redeemInvite(token, contact, via, at) {
+      return taken(must<any>(await admin.rpc("career_invite_redeem_for", { p_token: token, p_contact: contact, p_via: via, p_now: iso(at) }), "use the invite"));
+    },
+    async answerInviteLast4(contact, last4, via, at) {
+      return taken(must<any>(await admin.rpc("career_invite_answer_last4", { p_contact: contact, p_last4: last4, p_via: via, p_now: iso(at) }), "check the invite's last digits"));
+    },
+    async redeemInviteByPhone(phone, contact, via, at) {
+      return taken(must<any>(await admin.rpc("career_invite_redeem_phone", { p_phone: phone, p_contact: contact, p_via: via, p_now: iso(at) }), "use the invite"));
+    },
+    async bindInvite(inviteId, userId, at) {
+      must(await admin.rpc("career_invite_bind", { p_invite: inviteId, p_user: userId, p_now: iso(at) }), "bind the invite");
     },
     async reholdSent(providerMessageId, at, error) {
       return Number(must<number>(await admin.rpc("career_outbox_rehold", { p_provider_id: providerMessageId, p_at: iso(at), p_error: error }), "hold a failed message")) || 0;

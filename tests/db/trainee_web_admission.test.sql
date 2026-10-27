@@ -152,7 +152,9 @@ comment on table public.trainee_admissions is null;
 \i :root/supabase/migrations/20261026230000_trainee_web_admission.sql
 select t.ok((select count(*) = 2 from public.trainee_admissions where batch = 'backfill-20261026' and via = 'existing'
   and user_id in ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000b004')), 'the first run admitted the two, tagged with its batch');
-select t.ok(not exists (select 1 from public.trainee_admissions where user_id in ('00000000-0000-0000-0000-00000000b002', '00000000-0000-0000-0000-00000000b003', '00000000-0000-0000-0000-00000000a001')),
+-- (a001 may already hold an admission by an invite when FEATURE WAVES' tables are in this database, above; what is asserted here is that
+-- the backfill did not give it, or the others, one.)
+select t.ok(not exists (select 1 from public.trainee_admissions where batch = 'backfill-20261026' and user_id in ('00000000-0000-0000-0000-00000000b002', '00000000-0000-0000-0000-00000000b003', '00000000-0000-0000-0000-00000000a001')),
   'and not an account with no event, an unconfirmed email, or a confirmed phone with no event');
 select t.ok(public.trainee_grandfather(array['00000000-0000-0000-0000-00000000b002'::uuid, '00000000-0000-0000-0000-00000000b001'::uuid, '00000000-0000-0000-0000-0000000000ff'::uuid]) = 1,
   'the owner''s list admits who is not admitted yet (an unknown id and an already admitted one add nothing)');

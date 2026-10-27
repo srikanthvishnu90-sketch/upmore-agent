@@ -81,6 +81,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { commitSignupTurn, SIGNUP_UNAVAILABLE_REPLY, signupTurn } from "../_shared/career_signup.ts"; // FEATURE WAVES
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -358,6 +359,31 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       turnEffects.on = true;
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
+      // FEATURE WAVES: invite waves (GB-01). An invite link's first message on the web (`invite`: the token) is redeemed as
+      // the signed-in person; a person who came in by invite answers the sign-up steps (18+, then the terms and privacy
+      // policy, each recorded with its version) before any other turn. Accounts with no sign-up record are untouched.
+      {
+        // Fails closed: when the sign-up record can't be read or a step can't be saved, the turn stops with a plain "try again"
+        // (503), never carries on to the agent. An invitee who hasn't said they are 18+ or accepted the terms must not get the
+        // full agent because a read failed. Only a database with no sign-up table at all (readGate: the migration isn't applied,
+        // so no invite could exist) is "no sign-up record".
+        let signup: Awaited<ReturnType<typeof signupTurn>>;
+        try {
+          signup = await signupTurn({ admin, person: isBridgeCall ? null : supabase, userId: user.id, message, invite: body.invite, bridge: isBridgeCall, env: Deno.env, now: Date.now() });
+        } catch (e) {
+          console.error("signup turn failed (closed):", e instanceof Error ? e.message : String(e));
+          flowCtx.note = null;
+          return json(cors, { error: "signup_unavailable", reply: SIGNUP_UNAVAILABLE_REPLY }, 503);
+        }
+        if (signup) {
+          const sctx = host.createTurnCtx({ userId: user.id, threadId: tid, now: Date.now(), accountPersistence: true, accountMemory: Deno.env.get("CAREER_ACCOUNT_MEMORY") === "on", snapshot: loaded.snapshot, account: loaded.account, watchState: loaded.watchState, postings: [], batchRunRecord: null });
+          const response = { thread_id: tid, reply: flowCtx.note ? `${flowCtx.note} ${signup.reply}` : signup.reply, action: null, capabilities: [], turn_key: turnKey, reminders: [], meta: { career: true, intent: signup.intent, result_status: signup.status, contained: false } };
+          const kept = await commitSignupTurn(persistence, { userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(sctx), input: userContent, response });
+          flowCtx.note = null;
+          return json(cors, kept, 200);
+        }
+      }
+      // FEATURE WAVES end
       // LAUNCH READINESS X3: the pool is read only on a turn that reaches the router and whose message the router answers
       // with postings (agent-chat/career_pool_need.ts); ensurePool() below reads it once, then puts it on the turn.
       let postings: any[] = [];

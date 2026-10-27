@@ -102,7 +102,7 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
 // LAUNCH READINESS (2026-10-26): what a person reads when their turn could not be saved, in plain words. A conflict (a
 // second message, or an erase, changed the conversation while this one was answered) saves nothing; an unconfirmed save
 // may or may not have landed. Anything that goes to an employer or a contact still needs their approval of exactly it.
-export const CONFLICT_REPLY = "I couldn't save this reply because your conversation changed while I was answering it, so nothing from this message was saved or started. Send it again and I'll answer it.";
+export const CONFLICT_REPLY = "I couldn't save this reply because your conversation changed while I was answering it, so nothing from this message was saved. Nothing new was started. Send it again and I'll answer it.";
 export const UNSAVED_REPLY = "I couldn't confirm this reply was saved. Send your message again; nothing goes to an employer or a contact until you approve exactly what is sent.";
 export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
@@ -331,7 +331,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       jobs: { roleFamily: CareerJobs.roleFamily, seniorityBand: CareerJobs.seniorityBand, stripHtml: CareerJobs.stripHtml },
     });
     try {
-      gate = await enterTurnGate(admin, user.id, turnKey);
+      gate = await enterTurnGate(admin, user.id, turnKey, { thread: tid });
       const loaded = await persistence.load({ userId: user.id, threadId: tid, turnKey, requestHash });
       if (loaded.replay) { flowCtx.note = null; return json(cors, loaded.replay, 200); }
       // LAUNCH READINESS X3: the pool is read only on a turn that reaches the router and whose message the router answers

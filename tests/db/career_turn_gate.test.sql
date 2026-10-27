@@ -1,4 +1,4 @@
--- Launch readiness R1 (20261026230300_career_turn_gate.sql): a person's turns are let through one at a time in the order
+-- Launch readiness R1 (20261026230300_career_turn_gate.sql): a conversation's turns are let through one at a time in the order
 -- they took their tickets; a lapsed ticket never blocks; other people are never held; only the service role uses it.
 \set ON_ERROR_STOP on
 begin;
@@ -22,8 +22,17 @@ set role service_role;
 select t.ok((select career_turn_gate_ready('00000000-0000-4000-8000-00000000a302',b2) from tk2), 'a ticket past its lease does not block the next turn');
 select t.must_fail($$select career_turn_gate_enter('00000000-0000-4000-8000-00000000a301','x',0)$$,'invalid turn gate','a lease outside 5 to 600 seconds is refused');
 reset role;
-select t.ok(not has_function_privilege('authenticated','public.career_turn_gate_enter(uuid,text,integer)','EXECUTE')
+select t.ok(not has_function_privilege('authenticated','public.career_turn_gate_enter(uuid,text,integer,text)','EXECUTE')
   and not has_function_privilege('anon','public.career_turn_gate_ready(uuid,bigint)','EXECUTE')
   and not has_table_privilege('authenticated','public.career_turn_gate','select'),
   'a person''s session and anon cannot take, check or read tickets');
+-- Two threads of one account do not hold each other; two turns of one thread do.
+set role service_role;
+create temp table tk3 as select
+  career_turn_gate_enter('00000000-0000-4000-8000-00000000a301','t-1',90,'thread-x') x1,
+  career_turn_gate_enter('00000000-0000-4000-8000-00000000a301','t-2',90,'thread-y') y1,
+  career_turn_gate_enter('00000000-0000-4000-8000-00000000a301','t-3',90,'thread-x') x2;
+select t.ok((select career_turn_gate_ready('00000000-0000-4000-8000-00000000a301',y1) from tk3), 'another thread of the same account is not held');
+select t.ok((select not career_turn_gate_ready('00000000-0000-4000-8000-00000000a301',x2) from tk3), 'the second text of one thread still waits for the first');
+reset role;
 rollback;

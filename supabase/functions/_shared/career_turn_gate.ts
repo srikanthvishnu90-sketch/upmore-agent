@@ -1,4 +1,4 @@
-// Launch readiness R1 (2026-10-26): a person's chat turns run one at a time, in the order agent-chat received them
+// Launch readiness R1 (2026-10-26): a conversation's chat turns run one at a time, in the order agent-chat received them
 // (20261026230300_career_turn_gate.sql). Two texts sent close together used to run two turns on the same thread
 // revision; the second to commit was refused with revision_conflict and the person read "I couldn't answer that just now".
 //
@@ -13,13 +13,13 @@ export const LEASE_SECONDS = 90, WAIT_MS = 60_000, POLL_MS = 120;
 
 export interface TurnGate { ticket: number | null; waitedMs: number; outcome: "first" | "waited" | "timed_out" | "unavailable"; leave(): Promise<void> }
 
-export async function enterTurnGate(admin: any, userId: string, turnKey: string, o: { waitMs?: number; pollMs?: number; sleep?: (ms: number) => Promise<void>; now?: () => number } = {}): Promise<TurnGate> {
+export async function enterTurnGate(admin: any, userId: string, turnKey: string, o: { thread?: string; waitMs?: number; pollMs?: number; sleep?: (ms: number) => Promise<void>; now?: () => number } = {}): Promise<TurnGate> {
   const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const now = o.now ?? Date.now, started = now(), waitMs = o.waitMs ?? WAIT_MS, pollMs = o.pollMs ?? POLL_MS;
   const none = (outcome: TurnGate["outcome"]): TurnGate => ({ ticket: null, waitedMs: now() - started, outcome, leave: async () => {} });
   let ticket: number;
   try {
-    const r = await admin.rpc("career_turn_gate_enter", { p_user: userId, p_turn_key: turnKey, p_lease_seconds: LEASE_SECONDS });
+    const r = await admin.rpc("career_turn_gate_enter", { p_user: userId, p_turn_key: turnKey, p_lease_seconds: LEASE_SECONDS, p_thread: o.thread ?? "" });
     if (r.error || r.data === null || r.data === undefined) { console.error("career turn gate: no ticket:", r.error?.message ?? "empty"); return none("unavailable"); }
     ticket = Number(r.data);
   } catch (e) { console.error("career turn gate: no ticket:", (e as Error)?.message ?? e); return none("unavailable"); }

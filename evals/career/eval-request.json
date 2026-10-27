@@ -1,0 +1,7 @@
+{
+ "note": "What a push to ci/brain-eval measures (brain-eval.yml). set: dev (the 38 in heldout-live.json, a development set) or sealed (evals/career/sealed/heldout-sealed.v1.json, the bar; one run per sealed hash, recorded in evals/career/sealed/RUNS.json). brains: any of router, staged, agent, each run for `passes` passes. action: eval, or pubkey (derive the sealed set's recipient key from the CI secret and commit evals/career/sealed/recipient.json; no model call, no spend).",
+ "action": "eval",
+ "set": "dev",
+ "brains": ["router", "staged", "agent"],
+ "passes": 5
+}

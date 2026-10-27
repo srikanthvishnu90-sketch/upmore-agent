@@ -53,6 +53,7 @@ Deno.test({
     const pg = await startPg({ gate: "invite" });
     const realFetch = globalThis.fetch;
     const outbound: string[] = [];
+    let breakGate = false;
     try {
       await supabaseParity(pg);
       eq(await pg.sql(`select public.trainee_signup_mode()`), "invite", "sign-up is closed, as production has it");
@@ -73,6 +74,8 @@ Deno.test({
       globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
         const req = input instanceof Request && !init ? input : new Request(input as never, init);
         const u = new URL(req.url);
+        // The database cannot answer the gate's questions (the settings below): every call to them errors.
+        if (breakGate && /\/rest\/v1\/rpc\/(trainee_may_act|trainee_admit)$/.test(u.pathname)) return Response.json({ message: "db down", code: "XX000" }, { status: 500 });
         if (u.origin === new URL(SUPABASE_URL).origin) return await double.fetch(req);
         outbound.push(`${u.hostname}${u.pathname}`);
         return Response.json({ error: "no real host in this test" }, { status: 502 });
@@ -158,6 +161,22 @@ Deno.test({
       eq((await rows()).proofs, 0, "no proof row for A");
       const xB = await ext(xp(TB, "application-proofs"));
       eq(xB.status !== 403, true, "the extension goes on for B");
+
+      // The gate cannot be asked (the database errors): even B, who IS let in, is refused by every entry, and nothing is
+      // written or spent. Failing open here would let any signed-in person through whenever the check breaks.
+      outbound.length = 0; Object.assign(zero, await rows());
+      breakGate = true;
+      try {
+        const gB2 = await gmail(post("gmail-oauth", TB, { action: "start_career" }));
+        eq([gB2.status, "url" in await gB2.json()], [403, false], "broken gate: no consent link");
+        const cb2 = await gmail(new Request(`${SUPABASE_URL}/functions/v1/gmail-oauth?code=abc&state=${encodeURIComponent(stateB)}`));
+        eq(cb2.headers.get("location")?.endsWith("#you?career=error"), true, "broken gate: the callback lands on the error page");
+        eq((await code(post("career-email-code", TB, { job_id: crypto.randomUUID() }))).status, 401, "broken gate: no mail is read");
+        eq((await essay(post("career-essay-draft", TB, essayBody))).status, 401, "broken gate: no draft");
+        eq((await ext(xp(TB, "application-proofs"))).status, 403, "broken gate: the extension records nothing");
+        eq((await voice(new Request(`${SUPABASE_URL}/functions/v1/career-voice`, { method: "POST", body: JSON.stringify({ action: "start", token: await link(B) }) }))).status, 403, "broken gate: no voice session");
+        await unchanged("every entry with the gate unavailable");
+      } finally { breakGate = false; }
     } finally {
       globalThis.fetch = realFetch;
       await pg.stop();

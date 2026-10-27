@@ -4,7 +4,7 @@
 // refuse every application write of a person not admitted) is tests/db/trainee_web_admission.test.sql; the whole path in a
 // browser is tests/architect/flow-web-signup-e2e.test.ts.
 // Run: deno test --no-check tests/edge/trainee-admission.test.ts
-import { admitWebUser, allowListed, NOT_INVITED_REPLY, phoneKey } from "../../supabase/functions/_shared/trainee_admission.ts";
+import { admitWebUser, allowListed, mayAct, NOT_INVITED_REPLY, phoneKey } from "../../supabase/functions/_shared/trainee_admission.ts";
 import { ADMISSION_UNCHECKED_REPLY, NOT_ADMITTED_REPLY } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { handleInbound, type InboundStore } from "../../supabase/functions/trainee-inbound/handler.ts";
 import { handleVoice, type VoiceSessions } from "../../supabase/functions/_shared/career_voice.ts";
@@ -125,8 +125,8 @@ function world(e: Record<string, string>, over: Partial<InboundStore> = {}) {
     deliverReply: async () => {},
   };
   let n = 0;
-  const text = async (from: string) => await (await handleInbound(new Request(`https://fn.test/trainee-inbound?secret=${SECRET}`, { method: "POST",
-    body: JSON.stringify({ alert_type: "message_inbound", message_id: `m${++n}`, recipient: from, text: "hi" }) }), deps as any)).json();
+  const text = async (from: string, said = "hi") => await (await handleInbound(new Request(`https://fn.test/trainee-inbound?secret=${SECRET}`, { method: "POST",
+    body: JSON.stringify({ alert_type: "message_inbound", message_id: `m${++n}`, recipient: from, text: said }) }), deps as any)).json();
   return { st, chats, text };
 }
 
@@ -176,4 +176,27 @@ Deno.test("channels: TRAINEE_SIGNUP=open in the env never admits: with the datab
   const listed = world({ TRAINEE_SIGNUP: "open", TRAINEE_ALLOWED_CONTACTS: "+13125550142" });
   await listed.text("+1 (312) 555-0142");
   eq(listed.st.admitted[0], ["u-1", true], "a contact the env names is passed on as listed");
+});
+
+Deno.test("channels: a person not let in cannot link a channel or get a Telegram code: nothing but the plain reply runs", async () => {
+  const calls: string[] = [];
+  const w = world({ TRAINEE_SIGNUP: "open", TELEGRAM_BOT_USERNAME: "trainee_bot", TELEGRAM_BOT_TOKEN: "t" }, {
+    admit: async () => null, // the database: never let in
+    confirmLink: async () => { calls.push("confirmLink"); return { contact: "tg:1", key: null }; },
+    issueLinkNonce: async () => { calls.push("issueLinkNonce"); return "nonce"; },
+  });
+  await w.text("+1 (312) 555-0199"); // creates the account (the env allows that), not admitted
+  for (const said of ["yes", "connect telegram"]) {
+    const r = await w.text("+1 (312) 555-0199", said);
+    eq([r.refused, w.st.replies.at(-1)], ["not admitted", NOT_ADMITTED_REPLY], said);
+  }
+  eq([calls, w.chats.length], [[], 0], "no link was confirmed, no code was issued, no turn ran");
+});
+
+Deno.test("mayAct fails closed: an error, a throw or any answer but true is a no; only true is yes", async () => {
+  const ans = (data: unknown, error: unknown = null) => async () => ({ data, error });
+  eq(await mayAct(ans(true), U), true);
+  for (const data of [false, null, "t", 1, {}, "true"]) eq(await mayAct(ans(data), U), false, JSON.stringify(data));
+  eq(await mayAct(ans(true, { message: "db down" }), U), false, "an error with data true is still no");
+  eq(await mayAct(async () => { throw new Error("connection reset"); }, U), false, "a throw is no");
 });

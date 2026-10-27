@@ -1,7 +1,9 @@
 // FEATURE 10 (2026-10-25): networking from chat, code-first on the live path (agent-chat/handler-career.ts), before the
 // router. Three asks, each answered from the person's OWN contacts only (there is no people source by decision: D-018a):
-//   (a) a contacts CSV pasted in the message, or attached (`attachments` on the request): imported into the thread's
-//       contacts by career_contacts.ts importContactsFile (the same import the brain uses), with a coverage fraction;
+//   (a) a contacts CSV pasted in the message, or attached (`attachments` on the request): imported into the person's
+//       contacts by career_contacts.ts importContactsFile (the same import the brain uses), with a coverage fraction.
+//       Contacts are the ACCOUNT's — one list per person in the outreach store (career_watch_kv 'career:contacts'),
+//       like every outreach record; the thread state carries the turn's working copy (hydrated below);
 //   (b) "who do I know at Stripe", "find my connections at X": the contacts at that firm, or plainly none, and how to add them;
 //   (c) "email Maya at Stripe about the data analyst role", "draft intros to my 3 contacts at X": drafts written by
 //       career_outreach.ts draftFor (every claim traced to a confirmed fact by outreachLock) and shown as the outreach
@@ -11,7 +13,7 @@
 // Never an invented address: a recipient is a row of the person's own contacts, with the address on that row, or no one.
 // The model writes only when the caller passes one (CAREER_NETWORKING_DRAFT=on, metered); without it the reply names who
 // would be written to and that nothing was drafted.
-import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
+import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MAX_CONTACTS, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
 import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
@@ -154,7 +156,7 @@ async function keepTyped(o: NetworkingDeps, name: string, firm: string | null, e
 
 export interface NetworkingDeps {
   message: string; userId: string; threadId: string; now: number;
-  state: Record<string, unknown>; // the thread's career state (ctx): contacts and profile
+  state: Record<string, unknown>; // the thread's career state (ctx): the contacts working copy and the profile
   attachments?: Attachment[];
   store: OutreachStore; events?: EventStore | null;
   model: ModelFn | null; // null: drafting is not switched on here (no model call is made)
@@ -163,7 +165,38 @@ export interface NetworkingDeps {
 }
 export interface NetworkingResult { reply: string; intent: string; status: string; parts?: string[] }
 
+// Contacts live on the account (the outreach store), not the thread: a list imported in one thread answers in
+// every thread of the same person. The turn runs on the thread state's working copy, so hydrate it from the
+// account first — rows only the thread holds (kept before this, or in the same turn) are kept and join the
+// account — and write the copy back when it no longer matches what the account held. A store without the
+// contacts methods keeps the old thread-only behaviour exactly.
+const contactKeys = (r: ContactRow) => [r.email ? `e:${r.email.toLowerCase()}` : `n:${plain(r.name)}@${plain(r.firm)}`, `${r.file}#${r.row}`];
+async function hydrateContacts(o: NetworkingDeps): Promise<ContactRow[] | null> {
+  if (!o.store.contacts) return null;
+  const account = await o.store.contacts(o.userId).catch(() => null);
+  if (!account) return null;
+  const seen = new Set(account.flatMap(contactKeys));
+  const merged = [...account];
+  for (const r of contactsOf(o.state)) if (!contactKeys(r).some((k) => seen.has(k))) { contactKeys(r).forEach((k) => seen.add(k)); merged.push(r); }
+  o.state.contacts = merged.slice(-MAX_CONTACTS);
+  return account;
+}
+async function persistContacts(o: NetworkingDeps, account: ContactRow[] | null): Promise<void> {
+  if (!account || !o.store.saveContacts) return;
+  const now = contactsOf(o.state);
+  if (JSON.stringify(now) !== JSON.stringify(account)) await o.store.saveContacts(o.userId, now).catch(() => {});
+}
+
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
+  const account = await hydrateContacts(o);
+  try {
+    return await networkingTurnInner(o);
+  } finally {
+    await persistContacts(o, account);
+  }
+}
+
+async function networkingTurnInner(o: NetworkingDeps): Promise<NetworkingResult | null> {
   const files = (o.attachments ?? []).slice(0, MAX_FILES);
   const pasted = files.length ? null : pastedCsv(o.message);
   if (files.length || pasted) return await importTurn(o, files, pasted);

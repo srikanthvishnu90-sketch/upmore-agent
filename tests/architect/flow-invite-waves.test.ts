@@ -12,10 +12,13 @@
 //   3. Approval needs the exact text's sha256, STOP wording and the exact count.
 //   4. STOP on iMessage before the send stops that invite; quiet hours send nothing; the send sends exactly the
 //      approved text with each person's own link, and records it (token gone, expiry set).
-//   5. Telegram's Start with the invite makes the account and the first reply (the 18+ question); the sign-up steps
-//      record each consent with its version; then the router answers.
-//   6. A second chat with the same invite, or the same chat again: refused, no second account.
-//   7. The web: the first message with the invite token redeems it as the signed-in person; under 18 is blocked.
+//   5. Telegram's Start with the invite asks for the last 4 digits of the invited number; the right digits make the
+//      account and the first reply (the 18+ question); the sign-up steps record each consent with its version; then the
+//      router answers.
+//   6. A second chat with the same invite, or the same chat again: refused, no second account. A stranger holding a valid
+//      link with wrong digits, or right digits without the link, gets nothing.
+//   7. The web: the first message with the invite token redeems it as the signed-in person who confirmed the invited
+//      number; under 18 is blocked.
 //   8. An expired invite is refused and makes no account; a first text from an invited number makes the account.
 //   9. STOP stops everything for that person: opted out, the account quiet, every unredeemed invite to them stopped.
 //  10. The web gate (20261026230000's admission core, closed) on the same invites, the whole path: wave -> invite -> web
@@ -23,6 +26,7 @@
 //      not admitted without one, a forged or someone else's token refused, a person not admitted refused at the triggers.
 //  11. Sign-up opened by the owner (trainee_set_signup('open')): the gate admits everyone, so an invite link's token is
 //      redeemed by the sign-up turn instead, and its steps begin.
+//  12. The sign-up record can't be read: the turn stops with a plain "try again" (503); the agent never runs.
 //
 // Run: the gate runs it with CI=true (a missing Postgres throws). Locally add --import-map=tests/flow/supabase-npm.json.
 import assertNode from "node:assert/strict";
@@ -34,8 +38,8 @@ import { handleTelegram } from "../../supabase/functions/trainee-telegram/handle
 import { telegramAdapter } from "../../supabase/functions/_shared/telegram.ts";
 import { runInbound } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { CHANNEL_REPLIES } from "../../supabase/functions/_shared/channel.ts";
-import { INVITE_ALREADY_MEMBER, INVITE_REFUSED, sendWave, sha256Hex } from "../../supabase/functions/_shared/career_invites.ts";
-import { SIGNUP_AGE_AGAIN, SIGNUP_AGE_ASK, SIGNUP_DONE, SIGNUP_UNDER18, termsAsk, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
+import { INVITE_ALREADY_MEMBER, INVITE_ASK_LAST4, INVITE_REFUSED, inviteLast4Wrong, sendWave, sha256Hex } from "../../supabase/functions/_shared/career_invites.ts";
+import { SIGNUP_AGE_AGAIN, SIGNUP_AGE_ASK, SIGNUP_DONE, SIGNUP_UNAVAILABLE_REPLY, SIGNUP_UNDER18, termsAsk, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
 import { NOT_INVITED_REPLY } from "../../supabase/functions/_shared/trainee_admission.ts";
 
 const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
@@ -50,6 +54,7 @@ const ENV: Record<string, string> = {
   TRAINEE_PRIVACY_URL: "https://trainee.test/privacy", TRAINEE_PRIVACY_VERSION: "2026-10-26",
   TELEGRAM_BOT_TOKEN: TG_TOKEN, TELEGRAM_WEBHOOK_SECRET: TG_SECRET,
 };
+const SIGNUP_CLOSED = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 const TEMPLATE = "Trainee: your spot is open. Start on the web: {link} or on Telegram: {telegram} Reply STOP to opt out.";
 const phone = (n: number) => `+131255501${String(n).padStart(2, "0")}`;
 
@@ -200,7 +205,11 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
   await t.step("5. Telegram's Start with the invite makes the account and the first reply; the sign-up steps record each consent", async () => {
     clock = Date.parse("2026-10-26T19:00:00Z");
     const users = createdUsers;
-    const r = await telegram(1001, `/start inv_${tok1()}`);
+    const ask = await telegram(1001, `/start inv_${tok1()}`);
+    eq([ask.direct, createdUsers, await one(`select state from public.career_invites where phone = '${phone(1)}'`)], [[INVITE_ASK_LAST4], users, "sent"], "the link alone makes no account and takes nothing");
+    const wrong = await telegram(1001, "9999");
+    eq([wrong.direct, createdUsers], [[inviteLast4Wrong(4)], users], "wrong digits: nothing");
+    const r = await telegram(1001, phone(1).slice(-4));
     eq(createdUsers, users + 1, `one account: ${JSON.stringify(r.body)}`);
     tgUser = await userOf("tg:1001");
     assert(/^[0-9a-f-]{36}$/.test(tgUser), "the chat is linked to the new account");
@@ -236,6 +245,15 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     eq(forged.direct, [INVITE_REFUSED.invalid]);
     eq(createdUsers, users);
     eq(await num(`select count(*) from public.career_invites where redeemed_user is not null`), 1);
+    // A stranger holding a valid link (phone 4's, still unused) does not know the number's last digits: nothing is taken.
+    const strangerAsk = await telegram(1006, `/start inv_${tok4()}`);
+    eq(strangerAsk.direct, [INVITE_ASK_LAST4]);
+    const guess = await telegram(1006, "1234");
+    eq([guess.direct, createdUsers, await userOf("tg:1006")], [[inviteLast4Wrong(4)], users, ""], "wrong digits: no account");
+    eq(await one(`select state from public.career_invites where phone = '${phone(4)}'`), "sent", "and the invite is still unused");
+    // The right digits without the link (no pending question for this chat) do nothing either: the sign-up stays closed.
+    const noLink = await telegram(1007, phone(4).slice(-4));
+    eq([noLink.direct, createdUsers, await userOf("tg:1007")], [[SIGNUP_CLOSED], users, ""], "digits alone open nothing");
   });
 
   await t.step("7. the web: the first message with the invite redeems it as the signed-in person; under 18 is blocked", async () => {
@@ -243,6 +261,11 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     const bad = await web.say("hi", { invite: "B".repeat(32) });
     eq([bad.status, bad.reply], [403, NOT_INVITED_REPLY], "an invalid token admits nobody (the web gate)");
     eq(await num(`select count(*) from public.career_signup_gate where user_id = '${WEB}'`) + await num(`select count(*) from public.trainee_admissions where user_id = '${WEB}'`), 0, "an invalid token starts nothing");
+    const held = await web.say("hi", { invite: tok4() });
+    eq([held.status, held.reply], [403, NOT_INVITED_REPLY], "a valid link on an account that never confirmed the invited number takes nothing");
+    eq(await one(`select state from public.career_invites where phone = '${phone(4)}'`), "sent");
+    // The invite is bound to the invited phone: the account signed in with a code sent to that number (here: confirmed).
+    await pg.sql(`update auth.users set phone = '${phone(4).slice(1)}', phone_confirmed_at = now() where id = '${WEB}'`);
     const first = await web.say("hi", { invite: tok4() });
     eq([first.status, first.reply, first.intent], [200, SIGNUP_AGE_ASK, "career_signup_age"]);
     eq(await one(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${phone(4)}'`), `redeemed,${WEB},web`);
@@ -340,6 +363,14 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
     const before = sent.length;
     eq((await sendWave({ db: admin, wave: w4.data.wave_id, send: fakeSend, env: Deno.env, now })).sent, 1);
     const tok8 = tokenIn(sent[before].text);
+    // Holding the link is not enough: this account has not confirmed the invited number.
+    const stranger = await w2().say("hi", { invite: tok8 });
+    eq([stranger.status, stranger.reply], [403, NOT_INVITED_REPLY], "an account that did not sign in with the invited number takes nothing");
+    eq(await one(`select state from public.career_invites where phone = '${phone(8)}'`), "sent", "and the invite is still unused");
+    await pg.sql(`update auth.users set phone = '${phone(1).slice(1, 11)}0', phone_confirmed_at = now() where id = '${WEB2}'`);
+    const other = await w2().say("hi", { invite: tok8 });
+    eq([other.status, other.reply], [403, NOT_INVITED_REPLY], "signed in with a different confirmed number: still nothing");
+    await pg.sql(`update auth.users set phone = '${phone(8).slice(1)}', phone_confirmed_at = now() where id = '${WEB2}'`);
     const ok = await w2().say("hi", { invite: tok8 });
     eq([ok.status, ok.reply], [200, SIGNUP_AGE_ASK], JSON.stringify(ok.body));
     eq(await one(`select via || ',' || (waitlist_id is not null) from public.trainee_admissions where user_id = '${WEB2}'`), "waitlist,true", "admitted via the waitlist, by the invite");
@@ -369,12 +400,30 @@ Deno.test({ name: "invite waves: wave open -> invites -> approved send -> redeem
       const before = sent.length;
       eq((await sendWave({ db: admin, wave: w5.data.wave_id, send: fakeSend, env: Deno.env, now })).sent, 1);
       const tok9 = tokenIn(sent[before].text);
+      const wrongNumber = await handler.chat("tok-wave-web3").say("hi", { invite: tok9 });
+      eq([wrongNumber.status, wrongNumber.reply, wrongNumber.intent], [200, INVITE_REFUSED.wrong_number, "career_invite_refused"], "sign-up is open, but the link is still the invited number's");
+      eq(await one(`select state from public.career_invites where phone = '${phone(9)}'`), "sent");
+      await pg.sql(`update auth.users set phone = '${phone(9).slice(1)}', phone_confirmed_at = now() where id = '${WEB3}'`);
       const r = await handler.chat("tok-wave-web3").say("hi", { invite: tok9 });
       eq([r.status, r.reply], [200, SIGNUP_AGE_ASK], JSON.stringify(r.body));
       eq(await one(`select state || ',' || redeemed_user || ',' || redeemed_via from public.career_invites where phone = '${phone(9)}'`), `redeemed,${WEB3},web`);
       eq(await one(`select via from public.trainee_admissions where user_id = '${WEB3}'`), "open", "admitted by the open setting first; the invite still starts the steps");
       eq(await one(`select public.trainee_may_act('${WEB3}')::text`), "false", "an invitee applies only after the steps, even with sign-up open");
     } finally { await pg.sql(`select public.trainee_set_signup('invite')`); }
+  });
+
+  await t.step("12. the sign-up record can't be read: the turn stops with a plain try-again (503) and the agent never runs", async () => {
+    const w2 = () => handler.chat("tok-wave-web2");
+    const messages = () => num(`select count(*) from public.agent_messages m join public.agent_threads th on th.id = m.thread_id where th.user_id = '${WEB2}'`);
+    const before = await messages();
+    await pg.sql(`revoke execute on function public.career_signup_state(uuid) from service_role`);
+    try {
+      const r = await w2().say("find me software jobs in Chicago");
+      eq([r.status, r.reply], [503, SIGNUP_UNAVAILABLE_REPLY], JSON.stringify(r.body));
+      eq(await messages(), before, "no agent turn ran and nothing was saved");
+    } finally { await pg.sql(`grant execute on function public.career_signup_state(uuid) to service_role`); }
+    const back = await w2().say("what can you do?");
+    eq(back.status, 200, "readable again: the product answers");
   });
 
   handler.restore();

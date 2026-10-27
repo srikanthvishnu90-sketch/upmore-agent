@@ -21,6 +21,7 @@ export const termsAsk = (t: Terms) =>
   `Last step: please read Trainee's Terms of Service (version ${t.termsVersion}): ${t.termsUrl}\nand Privacy Policy (version ${t.privacyVersion}): ${t.privacyUrl}\nReply "I agree" to accept both.`;
 export const SIGNUP_TERMS_DECLINED = "Without accepting the terms and privacy policy I can't set you up. Reply \"I agree\" any time to accept them.";
 export const SIGNUP_TERMS_AGAIN = "Reply \"I agree\" to accept the Terms of Service and Privacy Policy, or \"no\" if you don't.";
+export const SIGNUP_UNAVAILABLE_REPLY = "I couldn't check your sign-up just now. Try again in a minute.";
 export const SIGNUP_DONE = "You're set up. To start, paste your resume here as text and tell me the kind of job you want.";
 
 export interface Terms { termsUrl: string; termsVersion: string; privacyUrl: string; privacyVersion: string }
@@ -137,13 +138,15 @@ function promptFor(step: string, env: Env): SignupAnswer | null {
 }
 
 async function readGate(admin: any, userId: string): Promise<{ step: string; asked_at: string | null } | null> {
-  const r = await admin.from("career_signup_gate").select("step,asked_at").eq("user_id", userId).limit(1);
+  const r = await admin.rpc("career_signup_state", { p_user: userId });
   if (r.error) {
-    // Migration 20261026233017 not applied yet: there is no gate to keep, and no invite could have made one.
-    if (/career_signup_gate|PGRST205|42P01/.test(`${r.error.code ?? ""} ${r.error.message ?? ""}`) && /does not exist|not find|schema cache/i.test(r.error.message ?? "")) return null;
+    // Migration 20261026233017 not applied yet: there is no sign-up function, so there is no record and no invite could have
+    // made one. Any other failure (permissions, the database down, a timeout) is an error, and the turn stops on it.
+    if (/career_signup_state|PGRST202|42883/.test(`${r.error.code ?? ""} ${r.error.message ?? ""}`) && /does not exist|not find|schema cache/i.test(r.error.message ?? "")) return null;
     throw new Error(`read the sign-up record: ${r.error.message}`);
   }
-  return r.data?.[0] ?? null;
+  const g = r.data as { step?: string; asked_at?: string | null } | null;
+  return g && typeof g.step === "string" ? { step: g.step, asked_at: g.asked_at ?? null } : null;
 }
 
 // The sign-up reply is saved like every turn (the thread's messages, the turn key's replay): the same commit, with the

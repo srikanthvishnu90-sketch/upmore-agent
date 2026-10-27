@@ -9,13 +9,20 @@ import type { Send } from "./channel.ts";
 
 // Telegram's Start carries "inv_<token>" (Telegram's start parameter allows A-Z, a-z, 0-9, _ and -, up to 64).
 export const INVITE_PAYLOAD = /^inv_([A-Za-z0-9_-]{32})$/;
-export type InviteRefusal = "invalid" | "used" | "expired" | "stopped";
+export type InviteRefusal = "invalid" | "used" | "expired" | "stopped" | "locked" | "wrong_number";
 export const INVITE_REFUSED: Record<InviteRefusal, string> = {
   invalid: "That invite link isn't valid. Open the whole link from the text you got, or ask for a new invite.",
   used: "That invite was already used. If it was you, text Trainee from the chat you signed up in.",
   expired: "That invite has expired, so I can't set you up from it. Ask for a new invite.",
   stopped: "That number unsubscribed from Trainee, so its invite was cancelled.",
+  locked: "Too many wrong answers, so this invite is locked for an hour. Try again then.",
+  wrong_number: "This invite was texted to a different phone number. Sign in with the number it was sent to, or text Trainee from it.",
 };
+// Telegram: the link alone does not redeem (a chat has no phone number to compare), so the chat is asked for the last four
+// digits of the number the invite was texted to.
+export const INVITE_ASK_LAST4 = "Almost there. To make sure this invite is yours, reply with the last 4 digits of the phone number it was texted to.";
+export const INVITE_LAST4_FORMAT = "Reply with just the last 4 digits of the phone number the invite was texted to.";
+export const inviteLast4Wrong = (left: number) => `Those digits don't match the number this invite was sent to. ${left > 0 ? `${left} ${left === 1 ? "try" : "tries"} left.` : ""}`.trim();
 export const INVITE_ALREADY_MEMBER = "This chat already has a Trainee account, so the invite wasn't used. Text here any time.";
 
 export interface Rpc { rpc(name: string, args?: Record<string, unknown>): PromiseLike<{ data: any; error: { message: string } | null }> }

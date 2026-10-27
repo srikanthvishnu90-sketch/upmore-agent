@@ -89,9 +89,13 @@ create table if not exists public.career_invites (
   redeemed_contact text,
   redeemed_user uuid unique references auth.users(id) on delete set null,
   stopped_at timestamptz,
+  wrong_tries int not null default 0 check (wrong_tries >= 0), -- wrong last-4 answers (Telegram); five lock the invite for an hour
+  locked_until timestamptz,
   check (state not in ('sent', 'redeemed', 'expired') or (sent_at is not null and expires_at is not null)),
   check (state <> 'sent' or token is null)
 );
+alter table public.career_invites add column if not exists wrong_tries int not null default 0 check (wrong_tries >= 0);
+alter table public.career_invites add column if not exists locked_until timestamptz;
 create unique index if not exists career_invites_phone on public.career_invites (phone);
 create index if not exists career_invites_wave_state on public.career_invites (wave_id, state, signed_up_at, id);
 
@@ -119,6 +123,14 @@ create table if not exists public.career_consents (
   unique (user_id, kind, version)
 );
 
+-- Telegram has no phone number to compare, so the link alone does not redeem: the chat is asked for the last four digits of
+-- the number the invite was texted to, and the pending question is kept here (one per chat, 30 minutes).
+create table if not exists public.career_invite_checks (
+  holder text primary key check (length(holder) between 1 and 200),
+  invite_id uuid not null references public.career_invites(id) on delete cascade,
+  created_at timestamptz not null
+);
+
 create table if not exists public.career_reply_truth_samples (
   id bigserial primary key,
   run_at timestamptz not null,
@@ -131,11 +143,12 @@ alter table public.career_wave_policy enable row level security;
 alter table public.career_invite_waves enable row level security;
 alter table public.career_invites enable row level security;
 alter table public.career_signup_gate enable row level security;
+alter table public.career_invite_checks enable row level security;
 alter table public.career_consents enable row level security;
 alter table public.career_reply_truth_samples enable row level security;
-revoke all on public.career_wave_policy, public.career_invite_waves, public.career_invites, public.career_signup_gate,
+revoke all on public.career_wave_policy, public.career_invite_waves, public.career_invites, public.career_signup_gate, public.career_invite_checks,
   public.career_consents, public.career_reply_truth_samples from public, anon, authenticated;
-grant all on public.career_wave_policy, public.career_invite_waves, public.career_invites, public.career_signup_gate,
+grant all on public.career_wave_policy, public.career_invite_waves, public.career_invites, public.career_signup_gate, public.career_invite_checks,
   public.career_consents, public.career_reply_truth_samples to service_role;
 grant usage, select on sequence public.career_invite_waves_id_seq, public.career_consents_id_seq,
   public.career_reply_truth_samples_id_seq to service_role;
@@ -360,9 +373,31 @@ begin
   return jsonb_build_object('wave_id', p_wave, 'approved', n, 'replayed', false);
 end $$;
 
+-- The +1 area codes whose local time is NOT inside 8 am-9 pm when it is 16:00-01:00 UTC, or whose place is not one this
+-- file can reason about: Hawaii, Alaska (the Aleutians), Guam, the Northern Marianas, American Samoa, all of Canada (Atlantic
+-- Canada is UTC-3 in summer, 9 pm = 00:00Z; Newfoundland is UTC-2:30, 9 pm = 23:30Z; and Canada has its own consent law) and
+-- the non-US Caribbean and Atlantic (NANP codes outside the US: Bahamas, Bermuda, Jamaica, Dominican Republic, ...).
+-- Read on 2026-10-26 from the public area-code lists (Canada: 55 codes + the non-geographic 600 and 622). An area code is where
+-- a number was first issued, not where its owner is today: the window is an approximation the owner can see (docs), never a
+-- promise about one person.
+create or replace function public.career_wave_held_npa() returns text[]
+language sql immutable set search_path = public, pg_temp as $$
+  select array[
+    '808', '907', '671', '670', '684',
+    -- Canada
+    '204', '226', '236', '249', '250', '257', '263', '289', '306', '343', '354', '365', '367', '368', '382', '403', '416', '418',
+    '428', '431', '437', '438', '450', '468', '474', '506', '514', '519', '548', '579', '581', '584', '587', '600', '604', '613',
+    '622', '639', '647', '672', '683', '705', '709', '742', '753', '778', '780', '782', '807', '819', '825', '867', '873', '879',
+    '902', '905', '942',
+    -- Caribbean and Atlantic, outside the US (Puerto Rico 787/939 and the US Virgin Islands 340 are US and stay inside the window)
+    '242', '246', '264', '268', '284', '345', '441', '473', '649', '658', '664', '721', '758', '767', '784', '809', '829', '849',
+    '868', '869', '876'
+  ]
+$$;
+
 -- One invite to send, or why not. Quiet hours (47 CFR 64.1200(c)(1): 8 am to 9 pm at the called party's location): sends
--- only 16:00-01:00 UTC, inside 8 am-9 pm in every continental US time zone in both standard and daylight time; numbers in
--- Hawaii, Alaska and the Pacific territories (area codes 808, 907, 671, 670, 684) and outside +1 are held for the owner.
+-- only 16:00-01:00 UTC, inside 8 am-9 pm in every continental US time zone in both standard and daylight time; the numbers
+-- in career_wave_held_npa() and numbers outside +1 are held for the owner.
 create or replace function public.career_invite_claim_send(p_wave bigint, p_now timestamptz) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare w public.career_invite_waves%rowtype; i public.career_invites%rowtype; h int;
@@ -383,7 +418,7 @@ begin
     if public.channel_opted_out(i.phone) then
       update public.career_invites set state = 'skipped_opt_out', stopped_at = p_now where id = i.id; continue;
     end if;
-    if i.phone !~ '^\+1' or substr(i.phone, 3, 3) in ('808', '907', '671', '670', '684') then
+    if i.phone !~ '^\+1' or substr(i.phone, 3, 3) = any (public.career_wave_held_npa()) then
       update public.career_invites set state = 'held', send_error = 'quiet hours unknown for this number: held for the owner' where id = i.id; continue;
     end if;
     if i.channel <> 'imessage' then
@@ -449,16 +484,68 @@ begin
   return jsonb_build_object('invite_id', i.id, 'phone', i.phone, 'resumed', false);
 end $$;
 
--- A channel's /start inv_<token> (Telegram), from the service role.
+-- The last four digits answered for an invite: 'ok', 'wrong', 'locked' or 'format'. Five wrong answers lock the invite for an
+-- hour (the token is long; this is the second factor that keeps a forwarded or leaked link from being used by a stranger).
+create or replace function public.career_invite_check_last4(p_id uuid, p_last4 text, p_now timestamptz) returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare i public.career_invites%rowtype; n int;
+begin
+  select * into i from public.career_invites where id = p_id for update;
+  if not found then return 'wrong'; end if;
+  if p_last4 is null or p_last4 !~ '^[0-9]{4}$' then return 'format'; end if;
+  if i.locked_until is not null and i.locked_until > p_now then return 'locked'; end if;
+  if right(regexp_replace(i.phone, '\D', '', 'g'), 4) = p_last4 then
+    update public.career_invites set wrong_tries = 0, locked_until = null where id = i.id;
+    return 'ok';
+  end if;
+  n := case when i.locked_until is not null then 1 else i.wrong_tries + 1 end;
+  update public.career_invites set wrong_tries = n, locked_until = case when n >= 5 then p_now + interval '1 hour' end where id = i.id;
+  return case when n >= 5 then 'locked' else 'wrong' end;
+end $$;
+
+-- A channel's /start inv_<token> (Telegram), from the service role. The link alone does not redeem: a chat has no phone
+-- number to compare, so the first call keeps a pending question for this chat and answers need_last4; the chat's answer
+-- (career_invite_answer_last4) redeems. An invite that can't be used says why now, before anything is asked.
 create or replace function public.career_invite_redeem_for(p_token text, p_contact text, p_via text, p_now timestamptz) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare id uuid;
+declare i public.career_invites%rowtype;
 begin
   if p_token is null or p_token !~ '^[A-Za-z0-9_-]{32}$' or p_contact is null or length(p_contact) > 200
      or p_via not in ('telegram', 'imessage', 'whatsapp') then return jsonb_build_object('error', 'invalid'); end if;
-  select i.id into id from public.career_invites i where i.token_hash = public.career_invite_hash(p_token);
-  if id is null then return jsonb_build_object('error', 'invalid'); end if;
-  return public.career_invite_take_core(id, p_contact, p_via, p_now);
+  select * into i from public.career_invites where token_hash = public.career_invite_hash(p_token);
+  if not found then return jsonb_build_object('error', 'invalid'); end if;
+  -- This very chat took it (it answered the question) and the account was not made yet: pick up where it stopped.
+  if i.state = 'redeemed' and i.redeemed_user is null and i.redeemed_contact = p_contact then return public.career_invite_take_core(i.id, p_contact, p_via, p_now); end if;
+  if i.state = 'redeemed' then return jsonb_build_object('error', 'used'); end if;
+  if i.state in ('stopped', 'skipped_opt_out') or public.channel_opted_out(i.phone) then return jsonb_build_object('error', 'stopped'); end if;
+  if i.state = 'expired' or (i.state = 'sent' and i.expires_at <= p_now) then
+    update public.career_invites set state = 'expired' where id = i.id and state = 'sent';
+    return jsonb_build_object('error', 'expired');
+  end if;
+  if i.state <> 'sent' then return jsonb_build_object('error', 'invalid'); end if;
+  insert into public.career_invite_checks (holder, invite_id, created_at) values (p_contact, i.id, p_now)
+  on conflict (holder) do update set invite_id = excluded.invite_id, created_at = excluded.created_at;
+  return jsonb_build_object('error', 'need_last4');
+end $$;
+
+-- The chat's answer: the last four digits of the invited number. Right: the invite is taken for this chat. Wrong: nothing is
+-- taken and the tries are counted. No pending question for this chat (or one older than 30 minutes): 'none'.
+create or replace function public.career_invite_answer_last4(p_contact text, p_last4 text, p_via text, p_now timestamptz) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare c public.career_invite_checks%rowtype; r text; left_ int;
+begin
+  if p_contact is null or p_via not in ('telegram', 'imessage', 'whatsapp') then return jsonb_build_object('error', 'none'); end if;
+  select * into c from public.career_invite_checks where holder = p_contact and created_at > p_now - interval '30 minutes';
+  if not found then return jsonb_build_object('error', 'none'); end if;
+  r := public.career_invite_check_last4(c.invite_id, p_last4, p_now);
+  if r = 'format' then return jsonb_build_object('error', 'format'); end if;
+  if r = 'locked' then delete from public.career_invite_checks where holder = p_contact; return jsonb_build_object('error', 'locked'); end if;
+  if r = 'wrong' then
+    select 5 - wrong_tries into left_ from public.career_invites where id = c.invite_id;
+    return jsonb_build_object('error', 'wrong_last4', 'tries_left', left_);
+  end if;
+  delete from public.career_invite_checks where holder = p_contact;
+  return public.career_invite_take_core(c.invite_id, p_contact, p_via, p_now);
 end $$;
 
 -- A text from an invited number with no account (iMessage, or WhatsApp with the number): that number's sent invite.
@@ -504,19 +591,26 @@ end $$;
 -- that existed before the invite (it has a sign-up record), takes nothing.
 create or replace function public.career_invite_redeem_own(p_token text) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare u uuid := auth.uid(); r jsonb; id uuid;
+declare u uuid := auth.uid(); r jsonb; id uuid; ph text; want text;
 begin
   if u is null then raise exception 'sign in first'; end if;
   if exists (select from public.career_invites where redeemed_user = u) then return jsonb_build_object('error', 'already_in'); end if;
   if p_token is null or p_token !~ '^[A-Za-z0-9_-]{32}$' then return jsonb_build_object('error', 'invalid'); end if;
-  select i.id into id from public.career_invites i where i.token_hash = public.career_invite_hash(p_token);
+  select i.id, public.trainee_phone_digits(i.phone) into id, want from public.career_invites i where i.token_hash = public.career_invite_hash(p_token);
   if id is null then return jsonb_build_object('error', 'invalid'); end if;
+  -- The link is bound to the invited phone: the account must have signed in (confirmed) with that very number. Checked
+  -- before anything is taken, so a stranger holding the link uses nothing up.
+  select case when a.phone_confirmed_at is not null then public.trainee_phone_digits(a.phone) end into ph from auth.users a where a.id = u;
+  if ph is null or want is null or ph <> want then
+    return jsonb_build_object('error', 'wrong_number');
+  end if;
   r := public.career_invite_take_core(id, 'web:' || u::text, 'web', clock_timestamp());
   if r ? 'error' then return r; end if;
   return public.career_invite_bind(id, u, clock_timestamp());
 end $$;
 
--- The invite's unsubscribe (the web page behind the link, no account needed): the token stops that number everywhere.
+-- The invite's unsubscribe: the token stops that number everywhere. Service role only (the page behind the link, when one is
+-- built, calls it through an edge function that rate-limits it); an anonymous caller can't run it.
 create or replace function public.career_invite_stop(p_token text) returns boolean
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare ph text;
@@ -527,6 +621,14 @@ begin
   perform public.channel_set_opt_out(ph, true, clock_timestamp());
   return true;
 end $$;
+
+-- The sign-up record of an account, for the chat handler's first read of every turn (service role): {step, asked_at}, or null
+-- when the account has none (almost every account). One call, no table read, so a handler can tell "no record" from "could
+-- not read it".
+create or replace function public.career_signup_state(p_user uuid) returns jsonb
+language sql stable security definer set search_path = public, pg_temp as $$
+  select (select jsonb_build_object('step', g.step, 'asked_at', g.asked_at) from public.career_signup_gate g where g.user_id = p_user)
+$$;
 
 -- A sign-up step answered (compare-and-set on the step; a stale answer changes nothing). Consents ride along.
 create or replace function public.career_signup_step(p_user uuid, p_from text, p_to text, p_age_answer text, p_consents jsonb, p_now timestamptz) returns text
@@ -605,16 +707,17 @@ revoke all on function public.career_wave_hours(interval), public.career_invite_
   public.career_wave_approve_send(bigint, text, text, int, timestamptz), public.career_invite_claim_send(bigint, timestamptz),
   public.career_invite_mark_sent(uuid, boolean, text, text, timestamptz), public.career_wave_close(bigint, text, timestamptz),
   public.career_invite_take_core(uuid, text, text, timestamptz), public.career_invite_redeem_for(text, text, text, timestamptz),
+  public.career_invite_check_last4(uuid, text, timestamptz), public.career_invite_answer_last4(text, text, text, timestamptz),
   public.career_invite_redeem_phone(text, text, text, timestamptz), public.career_invite_bind(uuid, uuid, timestamptz),
   public.career_invite_redeem_own(text), public.career_invite_stop(text),
-  public.career_signup_step(uuid, text, text, text, jsonb, timestamptz), public.career_invites_on_opt_out()
+  public.career_signup_step(uuid, text, text, text, jsonb, timestamptz), public.career_signup_state(uuid), public.career_invites_on_opt_out()
   from public, anon, authenticated;
 grant execute on function public.career_wave_gate_rows(timestamptz), public.career_wave_eligible(),
   public.career_wave_recommendation(timestamptz), public.career_wave_open(int, text, text, timestamptz), public.career_wave_invite_list(bigint),
   public.career_wave_approve_send(bigint, text, text, int, timestamptz), public.career_invite_claim_send(bigint, timestamptz),
   public.career_invite_mark_sent(uuid, boolean, text, text, timestamptz), public.career_wave_close(bigint, text, timestamptz),
-  public.career_invite_redeem_for(text, text, text, timestamptz), public.career_invite_redeem_phone(text, text, text, timestamptz),
+  public.career_invite_redeem_for(text, text, text, timestamptz), public.career_invite_answer_last4(text, text, text, timestamptz),
+  public.career_invite_redeem_phone(text, text, text, timestamptz),
   public.career_invite_bind(uuid, uuid, timestamptz), public.career_invite_stop(text),
-  public.career_signup_step(uuid, text, text, text, jsonb, timestamptz) to service_role;
+  public.career_signup_step(uuid, text, text, text, jsonb, timestamptz), public.career_signup_state(uuid) to service_role;
 grant execute on function public.career_invite_redeem_own(text) to authenticated;
-grant execute on function public.career_invite_stop(text) to anon, authenticated;

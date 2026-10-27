@@ -73,13 +73,15 @@ This was the architect's decision on 2026-10-26.
   - Each person's text is the approved template with their own links, and the hash is checked again before the send.
   - Every result is recorded: sent (with the provider id, the token dropped, 14 days to use it) or failed (with the error).
   - A number that opted out is skipped.
-  - Sending happens only 16:00–01:00 UTC, which is inside 8 am–9 pm in every continental US time zone. Numbers in area codes 808, 907, 671, 670 and 684, and numbers outside +1, are held.
+  - Sending happens only 16:00–01:00 UTC, which is inside 8 am–9 pm in every continental US time zone. These are held for the owner, never sent: numbers outside +1; area codes 808, 907, 671, 670 and 684 (Hawaii, Alaska, Guam, the Northern Marianas, American Samoa); every Canadian area code (Atlantic Canada is UTC-3 in summer, so 9 pm is 00:00Z, and Newfoundland's 9 pm is 23:30Z; Canada also has its own consent law); and the non-US Caribbean and Atlantic codes (Bahamas, Bermuda, Jamaica, the Dominican Republic and the rest). The full list is `career_wave_held_npa()`, read from the public area-code lists on 2026-10-26. Puerto Rico (787, 939) and the US Virgin Islands (340) are US and stay inside the window.
+  - **Known limit**: an area code is where a number was first issued, not where its owner is today. A ported number can be anywhere. The window is an approximation, not a promise about one person.
   - The gates are checked first and every 50 sends. A failing gate closes the wave and holds whatever is unsent.
   - The channel is iMessage through LoopMessage (`channel = 'imessage'`). An `sms` invite is held as NOT_WIRED.
-- **Redeem** (once per invite):
-  - **Telegram**: `/start inv_<token>` makes the account for that chat (`career_invite_redeem_for`, then `createPerson`, then `career_invite_bind`). The turn then runs as `/start`, so the first reply is the 18+ question, sent through the outbox.
-  - **iMessage**: the invited number's first text does the same (`career_invite_redeem_phone`).
-  - **Web**: the first message carries `invite`, and it's redeemed as the signed-in person (`career_invite_redeem_own`).
+- **Redeem** (once per invite). **The link is bound to the invited phone**, so holding the link is not enough:
+  - **iMessage / WhatsApp**: the invited number's first text does it (`career_invite_redeem_phone`). The sender is the invited number.
+  - **Web**: the signed-in account must have **confirmed that very number** with a code (`auth.users.phone_confirmed_at`). `career_invite_redeem_own` compares it with the invited number before it takes anything. A stranger holding the link, an account on another number, an unconfirmed number and an email-only account all get "wrong_number", and the invite stays unused. (An email-only account therefore can't redeem on the web. It signs in with the number, texts Trainee from it, or uses Telegram.)
+  - **Telegram**: a chat has no phone number to compare, so the link alone redeems nothing. `/start inv_<token>` makes Trainee ask "reply with the last 4 digits of the phone number it was texted to" and keeps that question pending for the chat for 30 minutes (`career_invite_checks`). The right digits redeem it (`career_invite_answer_last4`, then `createPerson`, then `career_invite_bind`). Five wrong answers lock the invite for an hour. The digits alone, without the link, do nothing.
+  - **Known limit**: on Telegram the second factor is four digits of a phone number, which someone who knows the invitee can guess in ten thousand tries; the lock allows five an hour, and the attacker still needs the link. It keeps a forwarded or leaked link from being used by a stranger. It does not stop someone who knows both the link and the person's number.
   - What is refused:
     - A second chat with the same invite: "used".
     - A chat that already has an account: the invite isn't used up.
@@ -134,6 +136,7 @@ Starting at 100, ten doublings reach 102,400, which is more than 98k.
 
 ## 6. Not done
 - **Telegram accounts**: on trunk, `createPerson` asks Supabase Auth for a user with neither an email nor a phone. Real Supabase refuses that. PR #194 fixes it. The flow test fakes GoTrue's create, so a live Telegram redemption needs #194.
-- **The unsubscribe page**: the database side is `career_invite_stop(token)`, which anyone with the token can call. No web page calls it yet.
+- **The unsubscribe page**: the database side is `career_invite_stop(token)`. It is **service role only** (not callable with the anon key); the page, when it is built, calls it through an edge function that rate-limits it. No page calls it yet.
+- **The web's words for a wrong number**: the admission gate (#195's) tells a person who holds a link but signed in with another number that their spot hasn't opened, and the sign-up turn (owner opened sign-up) says the invite was texted to a different number. A clearer message on the gate's 403 is #195's file.
 - **Failed sends**: they stay `failed`. There's no retry command.
 - **Reply-truth samples**: nothing writes `career_reply_truth_samples` until #193's suite (or the owner) does. Until then the gate warns and the size holds.

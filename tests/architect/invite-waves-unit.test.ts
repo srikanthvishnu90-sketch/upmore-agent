@@ -2,7 +2,7 @@
 // database side and the whole path are tests/db/career_invite_waves.test.sql and flow-invite-waves.test.ts.
 import assertNode from "node:assert/strict";
 import { INVITE_PAYLOAD, inviteLinks, renderInvite, type Rpc, sendWave, sha256Hex } from "../../supabase/functions/_shared/career_invites.ts";
-import { readAge, readAgree, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
+import { readAge, readAgree, signupTurn, termsFrom } from "../../supabase/functions/_shared/career_signup.ts";
 
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const env = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
@@ -111,4 +111,49 @@ Deno.test("the web gate (20261026230000's admitWebUser) on the invites: the toke
   eq(await admitWebUser({ env: env({}), rpc, user, invite: "short", personRpc: personRpc({ step: "age" }) }), { admitted: false, reason: "not_invited" }, "a malformed token is never sent");
   eq(redeemed, [TOK], "only the well-formed token reached the database");
   eq(await admitWebUser({ env: env({}), rpc, user }), { admitted: false, reason: "not_invited" }, "no token: not invited");
+});
+
+Deno.test("send: the gates are read again every gateEvery sends, and a failure there closes the wave and stops the run", async () => {
+  const text = "Trainee: {link} Reply STOP to opt out.", sha = await sha256Hex(text);
+  const calls: string[] = [];
+  let reads = 0, left = 10;
+  const db: Rpc = {
+    async rpc(name, args = {}) {
+      calls.push(name);
+      if (name === "career_wave_recommendation") { reads++; return { data: { status: reads >= 2 ? "fail" : "pass", gates: reads >= 2 ? [{ gate: "telegram_429", status: "fail" }] : [] }, error: null }; }
+      if (name === "career_wave_close") return { data: 0, error: null };
+      if (name === "career_invite_claim_send") { if (left <= 0) return { data: { done: true }, error: null }; left--; return { data: { invite_id: `i-${left}`, phone: "+13125550100", token: TOK, text, text_sha256: sha }, error: null }; }
+      if (name === "career_invite_mark_sent") return { data: "sent", error: null };
+      return { data: null, error: { message: `unexpected ${name}` } };
+    },
+  };
+  const r = await sendWave({ db, wave: 3, env: E, now: () => 0, gateEvery: 3, send: async () => ({ ok: true, id: "x" }) });
+  eq([r.sent, r.stoppedBy], [3, "gates_failed"], "three sent, then the periodic read failed");
+  eq(calls.filter((c) => c === "career_wave_recommendation").length, 2, "read once before the first send and once after the third, never in between");
+  eq(calls.slice(-2), ["career_wave_recommendation", "career_wave_close"], "the wave is closed when the recheck fails");
+  eq(left, 7, "nothing was claimed after the failure");
+});
+
+Deno.test("the sign-up record: a missing table is no record; any other read error is an error (the handler then stops, never carrying on)", async () => {
+  const E2 = env({});
+  const adminWith = (error: { code?: string; message: string } | null, data: unknown = null) => ({
+    rpc: async (name: string, args: Record<string, unknown>) => { eq([name, args], ["career_signup_state", { p_user: "u-1" }]); return { data, error }; },
+  });
+  const run = (admin: unknown) => signupTurn({ admin, person: null, userId: "u-1", message: "hello", invite: undefined, bridge: false, env: E2, now: 0 });
+  eq(await run(adminWith({ code: "PGRST202", message: "Could not find the function public.career_signup_state(p_user) in the schema cache" })), null, "migration not applied: no sign-up record");
+  eq(await run(adminWith({ code: "42883", message: "function public.career_signup_state(uuid) does not exist" })), null);
+  eq(await run(adminWith(null, null)), null, "an account with no record is untouched");
+  eq(await run(adminWith(null, { step: "active", asked_at: null })), null, "an active account is untouched");
+  for (const error of [{ code: "42501", message: "permission denied for function career_signup_state" }, { message: "connection reset" }, { code: "PGRST301", message: "JWT expired" }]) {
+    await assertNode.rejects(() => run(adminWith(error)), /read the sign-up record/, error.message);
+  }
+});
+
+Deno.test("Telegram's last-4 words: ask, wrong with the tries left, and the refusals for a wrong number and a locked invite", async () => {
+  const m = await import("../../supabase/functions/_shared/career_invites.ts");
+  assertNode.match(m.INVITE_ASK_LAST4, /last 4 digits/);
+  eq(m.inviteLast4Wrong(4), "Those digits don't match the number this invite was sent to. 4 tries left.");
+  eq(m.inviteLast4Wrong(1), "Those digits don't match the number this invite was sent to. 1 try left.");
+  assertNode.match(m.INVITE_REFUSED.wrong_number, /different phone number/);
+  assertNode.match(m.INVITE_REFUSED.locked, /locked for an hour/);
 });

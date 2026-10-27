@@ -15,7 +15,7 @@ import { channelCommand, CHANNEL_REPLIES } from "./channel.ts";
 import { fitOutbox as fitReply, normalizeContact, OUTBOX_CHARS } from "./conversation.ts";
 import { type Channel, CHANNEL_NAME, channelOf, type ChannelAdapter, type InboundMessage, packMessages, type Provider, type StatusEvent } from "./channel_adapters.ts";
 import { telegramDeepLink } from "./telegram.ts";
-import { INVITE_ALREADY_MEMBER, INVITE_PAYLOAD, INVITE_REFUSED, type InviteRefusal } from "./career_invites.ts"; // FEATURE WAVES
+import { INVITE_ALREADY_MEMBER, INVITE_ASK_LAST4, INVITE_LAST4_FORMAT, INVITE_PAYLOAD, INVITE_REFUSED, inviteLast4Wrong, type InviteRefusal } from "./career_invites.ts"; // FEATURE WAVES
 
 export const SIGNUP_CLOSED_REPLY = "Trainee is invite-only right now, so I can't set you up yet. Nothing about you was saved except that you texted.";
 export const CHAT_DOWN_REPLY = "I couldn't answer that just now. Try again in a minute.";
@@ -57,10 +57,11 @@ export interface InboundStore {
   // FEATURE WAVES (optional): an invite taken once by its token (Telegram's Start) or by the invited number (a first text),
   // then bound to the account made for it (the bind records the admission).
   redeemInvite?(token: string, contact: string, via: string, at: number): Promise<InviteTaken>;
+  answerInviteLast4?(contact: string, last4: string, via: string, at: number): Promise<InviteTaken>; // the answer to "the last 4 digits of the invited number?"
   redeemInviteByPhone?(phone: string, contact: string, via: string, at: number): Promise<InviteTaken>;
   bindInvite?(inviteId: string, userId: string, at: number): Promise<void>;
 }
-export type InviteTaken = { ok: true; inviteId: string } | { ok: false; why: InviteRefusal | "none" };
+export type InviteTaken = { ok: true; inviteId: string } | { ok: false; why: InviteRefusal | "none" | "need_last4" | "wrong_last4" | "format"; triesLeft?: number };
 export interface CoreDeps {
   env: { get(k: string): string | undefined };
   now: () => number;
@@ -111,6 +112,13 @@ export async function turnKeyFor(messageId: string): Promise<string> {
 // LoopMessage keeps its keys (reply:<id>); the other providers' ids are namespaced, so a Telegram update id and a
 // LoopMessage id that happen to be equal never collide in one person's outbox.
 const scoped = (m: InboundMessage) => (m.provider === "loopmessage" ? m.messageId : `${m.provider === "telegram" ? "tg" : "wa"}:${m.messageId}`);
+// What a channel says to an invite that was not taken.
+function inviteWords(t: Extract<InviteTaken, { ok: false }>): string {
+  if (t.why === "need_last4") return INVITE_ASK_LAST4;
+  if (t.why === "format") return INVITE_LAST4_FORMAT;
+  if (t.why === "wrong_last4") return inviteLast4Wrong(t.triesLeft ?? 0);
+  return INVITE_REFUSED[t.why === "none" ? "invalid" : t.why];
+}
 const YES = /^yes[.!]*$/i, CONNECT_TELEGRAM = /^connect telegram[.!]*$/i;
 
 export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out> {
@@ -143,11 +151,26 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     if (inv && store.redeemInvite && store.bindInvite) {
       if (person) { const s = await d.reply(contact, d.render(INVITE_ALREADY_MEMBER)); return ok({ invite: "already_member", sent: s.ok }); }
       const taken = await store.redeemInvite(inv[1], contact, msg.channel, now);
-      if (!taken.ok) { const s = await d.reply(contact, d.render(INVITE_REFUSED[taken.why === "none" ? "invalid" : taken.why])); return ok({ invite: taken.why, sent: s.ok }); }
+      if (!taken.ok) { const s = await d.reply(contact, d.render(inviteWords(taken))); return ok({ invite: taken.why, sent: s.ok }); }
       person = await store.createPerson(contact, now, msg.phone ?? null);
       await store.bindInvite(taken.inviteId, person.userId, now);
       if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
       invitedNow = true;
+    }
+    // The answer to "the last 4 digits of the number this invite was texted to?" (asked when the link was opened). Only a
+    // chat with no account and a pending question reads a 4-digit message this way; anything else goes on as usual.
+    let answeredLast4 = false;
+    if (!person && !invitedNow && msg.channel === "telegram" && store.answerInviteLast4 && store.bindInvite && /^\s*\d{4}\s*$/.test(msg.text ?? "")) {
+      const a = await store.answerInviteLast4(contact, (msg.text ?? "").trim(), msg.channel, now);
+      if (a.ok) {
+        person = await store.createPerson(contact, now, msg.phone ?? null);
+        await store.bindInvite(a.inviteId, person.userId, now);
+        if (store.sawInbound) await store.sawInbound(contact, now, { alias: msg.alias ?? null, phone: msg.phone ?? null });
+        invitedNow = true; answeredLast4 = true;
+      } else if (a.why !== "none") {
+        const s = await d.reply(contact, d.render(inviteWords(a)));
+        return ok({ invite: a.why, sent: s.ok });
+      }
     }
     // FEATURE WAVES end
     if (!invitedNow && msg.startPayload && store.redeemLinkNonce) {
@@ -244,7 +267,7 @@ export async function runInbound(msg: InboundMessage, d: CoreDeps): Promise<Out>
     try {
       const turnKey = await turnKeyFor(msg.provider === "loopmessage" ? msg.messageId : `${msg.provider}:${msg.messageId}`);
       // Telegram's /start and /help come as a command with no text; the brain reads them as the command itself.
-      const said = invitedNow && msg.command === "start" ? "/start" : msg.text || (command ? `/${command}` : "");
+      const said = invitedNow && (msg.command === "start" || answeredLast4) ? "/start" : msg.text || (command ? `/${command}` : "");
       // The brain gets the person, the thread, the words and a turn key, and the reply-to id only when the platform gave one.
       const out = await d.chat({ userId: person.userId, threadId: person.threadId, message: said.slice(0, 4000), turnKey, ...(msg.replyToMessageId ? { replyToMessageId: msg.replyToMessageId } : {}) });
       reply = out.reply.trim() || CHAT_DOWN_REPLY;

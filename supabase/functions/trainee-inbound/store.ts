@@ -4,11 +4,11 @@
 // 20261021070000_channel_parity.sql.
 import type { InboundStore, InviteTaken, Person } from "../_shared/channel_inbound.ts";
 
-const REFUSALS = ["invalid", "used", "expired", "stopped", "none"] as const;
+const REFUSALS = ["invalid", "used", "expired", "stopped", "none", "need_last4", "wrong_last4", "locked", "format"] as const;
 function taken(r: any): InviteTaken {
   if (r && typeof r.invite_id === "string") return { ok: true, inviteId: r.invite_id };
   const why = (REFUSALS as readonly string[]).includes(r?.error) ? r.error : "invalid";
-  return { ok: false, why };
+  return { ok: false, why, ...(typeof r?.tries_left === "number" ? { triesLeft: r.tries_left } : {}) };
 }
 
 const iso = (t: number) => new Date(t).toISOString();
@@ -95,6 +95,9 @@ export function supabaseInboundStore(admin: any): InboundStore {
     // FEATURE WAVES: invites (20261026233017_career_invite_waves.sql).
     async redeemInvite(token, contact, via, at) {
       return taken(must<any>(await admin.rpc("career_invite_redeem_for", { p_token: token, p_contact: contact, p_via: via, p_now: iso(at) }), "use the invite"));
+    },
+    async answerInviteLast4(contact, last4, via, at) {
+      return taken(must<any>(await admin.rpc("career_invite_answer_last4", { p_contact: contact, p_last4: last4, p_via: via, p_now: iso(at) }), "check the invite's last digits"));
     },
     async redeemInviteByPhone(phone, contact, via, at) {
       return taken(must<any>(await admin.rpc("career_invite_redeem_phone", { p_phone: phone, p_contact: contact, p_via: via, p_now: iso(at) }), "use the invite"));

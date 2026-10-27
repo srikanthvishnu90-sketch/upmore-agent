@@ -17,7 +17,7 @@
 //      the address, so an erase of the career profile never re-opens them).
 // Declining a batch is "send none", never "stop": over SMS, STOP is the carrier's opt-out keyword (WO-013a).
 import { type EventStore, dayIn, localMidnight, recordEvent } from "./agent/timeline.ts";
-import { normalizeFirm, sameFirm } from "./career_contacts.ts";
+import { MAX_CONTACTS, normalizeFirm, sameFirm, type ContactRow } from "./career_contacts.ts";
 import { factLock } from "./essay_draft.ts";
 import { CareerProfile } from "./router_core.career.js";
 
@@ -62,6 +62,8 @@ export interface OutreachStore {
   followups?(userId: string): Promise<Followup[]>;
   saveFollowups?(userId: string, items: Followup[]): Promise<void>;
   allFollowups?(limit: number): Promise<{ user_id: string; items: Followup[] }[]>;
+  contacts?(userId: string): Promise<ContactRow[]>; // the person's contacts: one list per account, read by every thread
+  saveContacts?(userId: string, rows: ContactRow[]): Promise<void>;
 }
 // One follow-up reminder: on the draft the person sent (from Trainee or themselves), due on a day, fired at most once.
 export interface Followup {
@@ -69,6 +71,10 @@ export interface Followup {
   sent_at: string; due_at: string; set_at: string; fired_at: string | null; asked: boolean;
 }
 export const FOLLOWUP_DAYS = 7, FOLLOWUP_KEY = "career:outreach:followups";
+// The person's contacts: ONE list per account, on the same footing as the follow-up reminders above (a
+// career_watch_kv row, erased with the account). Contacts used to live only in the thread's state while
+// every outreach record was per-account, so a list imported in one thread was invisible in another.
+export const CONTACTS_KEY = "career:contacts";
 
 export const OUTREACH_INTENT = "career_outreach_batch";
 export const LAPSE_NOTE = "Any not sent within 7 days of your approval lapse unsent; when you next ask I'll say how many, and you can approve them again.";
@@ -658,6 +664,7 @@ export async function runOutreachReplies(o: { store: OutreachStore; read: ReplyR
 export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (OutreachDraft & { user_id: string })[]; dnc: Record<string, string[]>; prefs: Record<string, Prefs> }; setIntent(threadId: string, intent: string | null): void; setQuiet(userId: string, on: boolean): void } {
   const drafts: (OutreachDraft & { user_id: string })[] = [], dnc: Record<string, Set<string>> = {}, prefs: Record<string, Prefs> = {}, intents: Record<string, string | null> = {};
   const follow: Record<string, Followup[]> = {};
+  const contactsByUser: Record<string, ContactRow[]> = {};
   const quiet = new Set<string>(); // paused, opted out or erased (career_user_quiet in the database)
   let seq = 0;
   const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -714,6 +721,8 @@ export function memoryOutreachStore(): OutreachStore & { dump(): { drafts: (Outr
     async followups(u: string) { return copy(follow[u] ?? []); },
     async saveFollowups(u: string, items: Followup[]) { follow[u] = copy(items); },
     async allFollowups(limit: number) { return copy(Object.entries(follow).filter(([, v]) => v.length).slice(0, limit).map(([user_id, items]) => ({ user_id, items }))); },
+    async contacts(u: string) { return copy(contactsByUser[u] ?? []); },
+    async saveContacts(u: string, rows: ContactRow[]) { contactsByUser[u] = copy(rows.slice(-MAX_CONTACTS)); },
     async lapsed(u: string) { return copy(drafts.filter((d) => d.user_id === u && d.status === "skipped" && d.result === "expired").sort((a, z) => String(a.approved_at ?? a.created_at).localeCompare(String(z.approved_at ?? z.created_at)))); },
     setIntent(threadId: string, intent: string | null) { intents[threadId] = intent; },
     setQuiet(userId: string, on: boolean) { if (on) quiet.add(userId); else quiet.delete(userId); },
@@ -766,6 +775,13 @@ export function supabaseOutreachStore(admin: any): OutreachStore {
     async allFollowups(limit) {
       const rows = must(await admin.from("career_watch_kv").select("user_id,value").eq("key", FOLLOWUP_KEY).limit(limit), "read follow-up reminders");
       return (rows ?? []).map((x: any) => ({ user_id: x.user_id, items: Array.isArray(x.value?.items) ? x.value.items : [] }));
+    },
+    async contacts(u) {
+      const r = must(await admin.from("career_watch_kv").select("value").eq("user_id", u).eq("key", CONTACTS_KEY).maybeSingle(), "read your contacts");
+      return Array.isArray(r?.value?.items) ? r.value.items : [];
+    },
+    async saveContacts(u, rows) {
+      must(await admin.from("career_watch_kv").upsert({ user_id: u, key: CONTACTS_KEY, value: { items: rows.slice(-MAX_CONTACTS) }, updated_at: new Date().toISOString() }, { onConflict: "user_id,key" }), "save your contacts");
     },
     async dnc(u) {
       const rows = must(await admin.from("career_outreach_dnc").select("email_hash").eq("user_id", u).limit(10000), "read the do-not-contact list");

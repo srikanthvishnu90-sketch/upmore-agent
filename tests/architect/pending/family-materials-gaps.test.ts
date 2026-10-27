@@ -90,14 +90,11 @@ Deno.test({ name: "PENDING materials gaps: a new person's asks the router does n
       assert(/Built a customer dashboard|Reduced page load time|Automated weekly loan reports|StudyBuddy/.test(r.reply), `the critique names one of their own lines: ${r.reply}`);
     });
 
-    // Owner: 142 (PRs #200, #201) intake of contact lines, or the intake (PR #201): the name and email the person pasted,
-    // or typed, go on the top of the file. Trunk: no name, no email, no phone on any tailored file.
-    await t.step("AM-03 the contact line: name and email at the top of the file", async () => {
-      await say("my name is Jordan Rivera and my email is jordan.rivera@example.test");
-      const r = await say("tailor my resume for the Ramp frontend intern role");
-      const f = await files(pg, r);
-      assert(f.pdf && f.pdf.includes("Jordan Rivera") && f.pdf.includes("jordan.rivera@example.test"), `the name and email are on the PDF: ${f.pdf}`);
-    });
+    // GRADUATED 2026-10-27 (lane L6): "AM-03 the contact line" moved to tests/architect/family-materials.test.ts
+    // (materials (5)) — handleContactStatement in 142 puts the typed name/email on profile.basics. The contact
+    // statement itself is still said here, before the steps below run, as it was in the original sequence:
+    await say("my name is Jordan Rivera and my email is jordan.rivera@example.test");
+    await say("tailor my resume for the Ramp frontend intern role");
 
     // Owner: 142 (PRs #200, #201). Trunk: catchall ("I did not catch what to do with that one").
     await t.step("AM-01 change of mind in plain words: 'actually do the quillstone data analyst intern one instead'", async () => {
@@ -106,29 +103,9 @@ Deno.test({ name: "PENDING materials gaps: a new person's asks the router does n
       assert(/Quillstone/.test(r.reply), r.reply);
     });
 
-    // Owner: 142 (PRs #200, #201) + a version store. Trunk: catchall for all three.
-    let withGpa: string | null = null;
-    await t.step("AM-01 'remove the GPA' -> a new version without it; 'undo that' -> the previous version, byte for byte", async () => {
-      const before = await say("tailor my resume for the Ramp frontend intern role");
-      withGpa = (await files(pg, before)).pdfB64;
-      const r = await say("remove the GPA");
-      const f = await files(pg, r);
-      assert(f.pdf && !/GPA/.test(f.pdf) && /DePaul University/.test(f.pdf), `a new file without the GPA: ${r.reply}`);
-      const u = await say("undo that");
-      eq((await files(pg, u)).pdfB64, withGpa, `the previous version comes back: ${u.reply}`);
-    });
-    await t.step("AM-01 'shorter' -> a shorter version, every line still traced", async () => {
-      const r = await say("shorter");
-      const f = await files(pg, r);
-      assert(f.pdf && f.pdf.length < 600, `a shorter file: ${r.reply}`);
-    });
-
-    // Owner: 142 handleDocumentDelivery (PRs #200, #201): trunk catchall for these words, and for "send me the docx" it
-    // says the DOCX "renders with the application packet" though the tailor turn attaches it (this PR).
-    await t.step("AM-03 'can I get it as a word doc' -> the DOCX of the latest version", async () => {
-      const r = await say("can I get it as a word doc");
-      assert((r.body.artifacts ?? []).some((a: any) => a.mime === DOCX), `a DOCX rides the reply: ${r.reply}`);
-    });
+    // GRADUATED 2026-10-27 (lane L6): "AM-01 'remove the GPA' / 'undo that'", "AM-01 'shorter'" and
+    // "AM-03 'can I get it as a word doc'" moved to tests/architect/family-materials.test.ts (materials (5)) —
+    // handleMaterialEdit + the version stack in 142, and DOCX delivery in handleDocumentDelivery.
 
     // Owner: 142 handleTailor's cover-letter branch (PRs #200, #201); career_essay_card.ts drafts letters for the
     // extension only. Trunk: "Cover letters only where the portal actually asks", no letter.

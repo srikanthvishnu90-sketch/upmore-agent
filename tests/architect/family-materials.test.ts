@@ -38,6 +38,7 @@ const PEOPLE: Record<string, string> = {
   "tok-m1": "7b0f8f8e-6a43-4a49-9d2c-00000000a301",
   "tok-m2": "7b0f8f8e-6a43-4a49-9d2c-00000000a302",
   "tok-m3": "7b0f8f8e-6a43-4a49-9d2c-00000000a303",
+  "tok-m4": "7b0f8f8e-6a43-4a49-9d2c-00000000a304",
 };
 // A resume as a student pastes it: name and contact on top, a GPA, two entries, a project, a skills line.
 const RESUME = `Jordan Rivera
@@ -327,6 +328,53 @@ Deno.test("materials (4): the employer copy refuses a line no confirmed fact sup
   assert(employerFiles(nm, named, p));
   eq(nm.artifact.pdf.filename, "Jordan_Rivera_Resume.pdf");
 });
+
+// ------------------------------------------------------------------------------------------------ (5) graduated edit/version turns
+// Graduated 2026-10-27 (lane L6, from #213's pending file) — the four steps owned by 142's materials turns.
+// Root causes fixed in 142: a tailored resume was a dead end (nothing kept the document where a later turn
+// could edit it — handleTailor now records each tailored document as a version on the thread record and
+// handleMaterialEdit works on that stack); isDocumentDeliveryAsk's noun gate did not know "word doc" and the
+// delivery handler deferred a DOCX it already held to "the application packet"; and a typed "my name is… /
+// my email is…" statement never reached profile.basics — the live Resume_Resume.pdf with no contact line.
+Deno.test({ name: "materials (5): the contact line lands on the file; 'remove the GPA', 'undo that' and 'shorter' edit the stored version; the word doc is delivered", sanitizeResources: false, sanitizeOps: false, async fn(t) {
+  if (skip()) return;
+  const { handler: h } = await world();
+  const person = PEOPLE["tok-m4"], chat = h.chat("tok-m4");
+  await onboard(chat);
+
+  // Owner: 142 (PRs #200, #201) intake of contact lines, or the intake (PR #201): the name and email the person pasted,
+  // or typed, go on the top of the file. Trunk: no name, no email, no phone on any tailored file.
+  await t.step("AM-03 the contact line: name and email at the top of the file", async () => {
+    await say(chat, "my name is Jordan Rivera and my email is jordan.rivera@example.test");
+    const r = await say(chat, "tailor my resume for the Ramp frontend intern role");
+    const f = await filesOf(person, r);
+    assert(f.pdfText && f.pdfText.includes("Jordan Rivera") && f.pdfText.includes("jordan.rivera@example.test"), `the name and email are on the PDF: ${f.pdfText}`);
+  });
+
+  // Owner: 142 (PRs #200, #201) + a version store. Trunk: catchall for all three.
+  let withGpa: string | null = null;
+  await t.step("AM-01 'remove the GPA' -> a new version without it; 'undo that' -> the previous version, byte for byte", async () => {
+    const before = await say(chat, "tailor my resume for the Ramp frontend intern role");
+    withGpa = (await filesOf(person, before)).pdf?.bytes.toString("base64") ?? null;
+    const r = await say(chat, "remove the GPA");
+    const f = await filesOf(person, r);
+    assert(f.pdfText && !/GPA/.test(f.pdfText) && /DePaul University/.test(f.pdfText), `a new file without the GPA: ${r.reply}`);
+    const u = await say(chat, "undo that");
+    eq((await filesOf(person, u)).pdf?.bytes.toString("base64") ?? null, withGpa, `the previous version comes back: ${u.reply}`);
+  });
+  await t.step("AM-01 'shorter' -> a shorter version, every line still traced", async () => {
+    const r = await say(chat, "shorter");
+    const f = await filesOf(person, r);
+    assert(f.pdfText && f.pdfText.length < 600, `a shorter file: ${r.reply}`);
+  });
+
+  // Owner: 142 handleDocumentDelivery (PRs #200, #201): trunk catchall for these words, and for "send me the docx" it
+  // says the DOCX "renders with the application packet" though the tailor turn attaches it (this PR).
+  await t.step("AM-03 'can I get it as a word doc' -> the DOCX of the latest version", async () => {
+    const r = await say(chat, "can I get it as a word doc");
+    assert((r.body.artifacts ?? []).some((a: any) => a.mime === DOCX), `a DOCX rides the reply: ${r.reply}`);
+  });
+} });
 
 // ------------------------------------------------------------------------------------------------ measurement
 Deno.test({ name: "materials: measured turns, wall time and model calls (printed; this machine, not production)", sanitizeResources: false, sanitizeOps: false, async fn() {

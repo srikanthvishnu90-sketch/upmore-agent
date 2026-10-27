@@ -27,14 +27,15 @@ function eq(a: unknown, b: unknown, m = "") { const x = JSON.stringify(a), y = J
 
 type Handler = (req: Request) => Response | Promise<Response>;
 // An entry file's request handler: its index.ts loaded unchanged, std's `serve` (Deno.serve) captured instead of listening.
-async function entry(path: string): Promise<Handler> {
+// The import is written out at each call (a literal specifier), so Deno prepares the entry's remote modules with the graph.
+async function entry(path: string, load: () => Promise<unknown>): Promise<Handler> {
   let handler: Handler | undefined;
   const real = Deno.serve;
   (Deno as unknown as { serve: unknown }).serve = (...a: unknown[]) => {
     handler = (a.find((x) => typeof x === "function") ?? (a[0] as { handler: Handler })?.handler) as Handler;
     return { finished: Promise.resolve(), shutdown() {}, ref() {}, unref() {}, addr: {} };
   };
-  try { await import(`../../supabase/functions/${path}`); } finally { (Deno as unknown as { serve: unknown }).serve = real; }
+  try { await load(); } finally { (Deno as unknown as { serve: unknown }).serve = real; }
   if (!handler) throw new Error(`${path} registered no handler`);
   return handler;
 }
@@ -102,7 +103,7 @@ Deno.test({
       Object.assign(zero, afterB); // from here on, B's own turn is the baseline
 
       // career-essay-draft: the model is the first thing it would spend
-      const essay = await entry("career-essay-draft/index.ts");
+      const essay = await entry("career-essay-draft/index.ts", () => import("../../supabase/functions/career-essay-draft/index.ts"));
       const essayBody = { question: "Why do you want this role?", employer: "Acme", role: "Analyst" };
       const eA = await essay(post("career-essay-draft", TA, essayBody));
       eq(eA.status, 401, "essay draft refuses A");
@@ -111,7 +112,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // career-email-code: Gmail is the first thing it would read
-      const code = await entry("career-email-code/index.ts");
+      const code = await entry("career-email-code/index.ts", () => import("../../supabase/functions/career-email-code/index.ts"));
       const cA = await code(post("career-email-code", TA, { job_id: crypto.randomUUID() }));
       eq(cA.status, 401, "email code refuses A");
       await unchanged("email code for A");
@@ -119,7 +120,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // career-voice: its signed link names the person
-      const voice = await entry("career-voice/index.ts");
+      const voice = await entry("career-voice/index.ts", () => import("../../supabase/functions/career-voice/index.ts"));
       const link = async (u: string) => await signToken({ s: crypto.randomUUID(), u, k: "start", exp: Date.now() + 600_000 }, SERVICE_KEY);
       const vA = await voice(new Request(`${SUPABASE_URL}/functions/v1/career-voice`, { method: "POST", body: JSON.stringify({ action: "start", token: await link(A) }) }));
       eq([vA.status, (await vA.json()).reason], [403, "not_admitted"], "voice refuses A");
@@ -129,7 +130,7 @@ Deno.test({
       outbound.length = 0; Object.assign(zero, await rows());
 
       // gmail-oauth: the consent link, then the callback that would store the tokens
-      const gmail = await entry("gmail-oauth/index.ts");
+      const gmail = await entry("gmail-oauth/index.ts", () => import("../../supabase/functions/gmail-oauth/index.ts"));
       const gA = await gmail(post("gmail-oauth", TA, { action: "start_career" }));
       const gAbody = await gA.json();
       eq([gA.status, gAbody.error, "url" in gAbody], [403, "not_admitted", false], "no consent link for A");
@@ -145,7 +146,7 @@ Deno.test({
       outbound.length = 0;
 
       // extension-sync: the proof is the row it would insert
-      const ext = await entry("extension-sync/index.ts");
+      const ext = await entry("extension-sync/index.ts", () => import("../../supabase/functions/extension-sync/index.ts"));
       const proof = { employer: "Acme", role: "Analyst", posting: { url: "https://job-boards.greenhouse.io/acme/jobs/1" }, confirmation: { confirmationId: "X-1", confirmationText: "Thanks", successText: true, formStillOpen: false },
         answersSubmitted: {}, observedAt: new Date().toISOString() };
       const xp = (token: string, p: string, method = "POST") => new Request(`${SUPABASE_URL}/functions/v1/extension-sync/${p}`,

@@ -204,8 +204,11 @@ begin
   foreach t in array array['career_apply_prepared', 'career_apply_cards', 'career_apply_jobs', 'career_apply_wanted',
                            'career_apply_message_cards', 'career_apply_batch_approvals'] loop
     if to_regclass('public.' || t) is not null then
+      -- Named to sort before the other row guards (Postgres fires BEFORE triggers by name): who may act is asked first, so a
+      -- person not let in is told not_admitted, never a lesser reason such as a missing resume.
       execute format('drop trigger if exists trainee_admitted on public.%I', t);
-      execute format('create trigger trainee_admitted before insert on public.%I for each row execute function public.trainee_require_admitted()', t);
+      execute format('drop trigger if exists a0_trainee_admitted on public.%I', t);
+      execute format('create trigger a0_trainee_admitted before insert on public.%I for each row execute function public.trainee_require_admitted()', t);
     end if;
   end loop;
 end $$;

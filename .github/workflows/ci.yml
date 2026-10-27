@@ -212,25 +212,34 @@ jobs:
           # Deno's own errors (load failures, type errors), which are not TAP lines; color codes stripped.
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/gate.log" | grep -E '^error: |TS[0-9]+ \[ERROR\]|^ERRORS?$|FAILED \(exit' | head -10 | while read -r l; do echo "::error title=gate error::$(printf '%s' "$l" | cut -c1-300)"; done
           exit 0
-  gate-coverage:
-    name: gate (forms-ci coverage)
+  gate-coverage-shard:
+    name: gate (forms-ci coverage shard ${{ matrix.shard }}/5)
     runs-on: ubuntu-24.04
-    # The forms-ci coverage suite alone (see the gate job's correction note): 40 serial Chromium fixture drives
-    # whose cost is irreducible inside any shared job's sum, so the suite gets a parallel job of its own. It
-    # reads its committed expected pin and writes only to a temp dir; its verdict gates exactly as it did inside
-    # the single job — nothing about the suite, its assertions or its artifacts changes, only its scheduling.
-    # The 60 here is measured, not padded: timed locally on the fix VM, this suite's first form drives took
-    # 152.7 s and 327.6 s apiece (a second local run independently put the same first drive at 148 s), and
-    # there are 11 form drives plus the suite's own re-drives — the suite alone sums past any 30-minute job
-    # it shares, and past 30 even solo on a slow VM. Speeding the drives instead (a shared browser context)
-    # was rejected: the suite's fresh-session-per-form isolation is part of what its pins prove, and changing
-    # it would change the artifact, not just the schedule. So the coverage job's budget is set from the
-    # measurement, to be re-baselined from the first green CI run's duration and recorded in the gate job's
-    # history. Headroom, not a target: the finding stands — this suite's serial drive cost is the gate's
-    # long pole, and it grows with every captured form.
+    # The forms-ci coverage suite (tests/career-forms-ci-coverage.test.cjs), split across parallel shards
+    # 2026-10-26. Measured before the split: the single gate (forms-ci coverage) job took 45.3 min on trunk
+    # 9d4226fc0 (run 40423628274) and 45.2 min on fe8405586 (run 40372383659); checkout, setup and installs took
+    # ~25 s of that, and the one node invocation over this one suite 2,683 s and 2,676 s — the suite's tests run
+    # serially in one process, so caching or parallel setup could not move it; only splitting the suite's tests
+    # across processes could. Each shard runs the same file, unedited, under node's own --test-name-pattern /
+    # --test-skip-pattern selection (table and completeness rules: scripts/forms-ci-shards.cjs). The last shard
+    # runs every test not named in another shard, so a new or renamed test can never fall out of CI; the
+    # read-only proof runs in every shard. Each shard reports the tests that passed in it (artifact + a notice with
+    # per-test seconds, readable through the checks API), and the aggregate job below — which keeps the required
+    # check name — fails unless every shard succeeded and every test of the suite passed in some shard. The suite
+    # history above stands: its fresh-session-per-form drives and its pins are unchanged; only scheduling moved.
+    # First sharded run (PR #209, run 40441854421, 4 shards): the coverage check completed 14.0 min after the run
+    # started (shards 668 / 619 / 793 / 616 s of tests; their sum, 2,696 s, matches the single job's 2,676-2,683 s,
+    # and all 27 of the suite's tests passed). Four shards cannot go below ~790 s (the WPP-redriving guard and EOS
+    # must share one), so the table moved to five shards, whose floor is Anduril's own 668 s drive.
+    # The 60-minute budget is unchanged (headroom, not a target).
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
     env:
       GATE_PARTITION: coverage
+      GATE_COVERAGE_SHARD: ${{ matrix.shard }}/5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -293,13 +302,53 @@ jobs:
             node scripts/forms-ci-diag-annotations.cjs "$FORMS_CI_COVERAGE_DIAG" || true
           fi
           exit 0
+      - name: Report the tests this shard ran
+        # The names (and seconds) of the suite's tests that passed or failed in this shard, from the gate log's TAP
+        # lines, for the aggregate job's completeness check; also printed as a notice for rebalancing the table.
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/shard-report"
+          test -f "$RUNNER_TEMP/gate.log" || exit 0
+          node scripts/forms-ci-shards.cjs report "$RUNNER_TEMP/gate.log" "$RUNNER_TEMP/shard-report/shard-${{ matrix.shard }}.json"
+      - name: Upload the shard report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms-ci-coverage-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/shard-report/shard-${{ matrix.shard }}.json
+          if-no-files-found: ignore
       - name: Upload forms-ci coverage diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: forms-ci-coverage-diag
+          name: forms-ci-coverage-diag-shard-${{ matrix.shard }}
           path: ${{ runner.temp }}/forms-ci-coverage-diag.jsonl
           if-no-files-found: ignore
+  gate-coverage:
+    name: gate (forms-ci coverage)
+    runs-on: ubuntu-24.04
+    # The required check. It passes only when every coverage shard above succeeded AND every test the suite defines
+    # passed in some shard (scripts/forms-ci-shards.cjs verify lists the suite's tests statically and compares them
+    # with the shards' reports). always() so a failed or cancelled shard fails this check rather than skipping it.
+    needs: gate-coverage-shard
+    if: always()
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.23.3" }
+      - name: Every coverage shard succeeded
+        run: |
+          echo "coverage shards: ${{ needs.gate-coverage-shard.result }}"
+          test "${{ needs.gate-coverage-shard.result }}" = success
+      - uses: actions/download-artifact@v4
+        if: always()
+        with:
+          pattern: forms-ci-coverage-shard-*
+          path: ${{ runner.temp }}/shard-reports
+      - name: Every test of the suite passed in some shard
+        if: always()
+        run: node scripts/forms-ci-shards.cjs verify "$RUNNER_TEMP/shard-reports"
   database:
     runs-on: ubuntu-24.04
     steps:

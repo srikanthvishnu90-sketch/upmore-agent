@@ -163,6 +163,7 @@ MIGRATIONS=(
   20261026090009_career_account_memory.sql
   20261026100000_career_apply_cloud_runner.sql
   20261026100001_career_apply_want_guard.sql
+  20261026120018_career_resume_one_record.sql
   20261026140000_career_apply_receipt_store.sql
 )
 MIGRATION_MARK=(
@@ -230,6 +231,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_host_commit' and prosrc like '%invalid account memory%')"
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim')"
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
+  "to_regclass('public.career_resume_record') is not null and exists (select 1 from pg_trigger where tgname = 'career_resume_from_event') and exists (select 1 from pg_trigger where tgname = 'career_resume_jobs_guard')"
   "to_regclass('public.career_apply_receipt_files') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.

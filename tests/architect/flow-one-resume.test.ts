@@ -108,7 +108,7 @@ Deno.test({ name: "one confirmed resume, a new person on a texting channel and t
     await t.step("web: 'delete my resume pls' deletes every copy and says what follows", async () => {
       const d = await say("delete my resume pls");
       eq(d.intent, "career_resume_record", d.reply);
-      ok(/^Deleted the resume you pasted and confirmed on \d{4}-\d{2}-\d{2}; I keep no copy of it\. No application will be prepared or sent until you paste your resume here and confirm it\.$/.test(d.reply), d.reply);
+      ok(/^Deleted the resume you pasted and confirmed on \d{4}-\d{2}-\d{2}; I keep no copy of it\. The entries you confirmed from it stay in your profile until you say "forget my career profile", and no application uses them without a resume on file\. No application will be prepared or sent until you paste your resume here and confirm it\.$/.test(d.reply), d.reply);
       const r = await record();
       eq([r.state, r.sha256], ["deleted", null]);
       eq(await pg.sql(`select count(*) from public.career_apply_cloud_resumes where user_id = '${PERSON}'`), "0");

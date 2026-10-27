@@ -191,6 +191,8 @@ MIGRATIONS=(
   20261026235017_career_apply_card_code.sql
   20261026200011_google_disconnect_erase.sql
   20261027103000_google_disconnect_erase_outbox.sql
+  20261027010000_career_people.sql
+  20261027020000_career_intro_reminder_push.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -271,6 +273,7 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_code_as') and exists (select 1 from pg_proc where proname = 'career_apply_card_push_for' and prosrc like '%APPROVE-CODE%')"
   "exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_google_erase')"
   "exists (select 1 from pg_proc where proname = 'google_career_disconnect_erase' and prosrc like '%career_outbox%')"
+  "to_regclass('public.career_intro_requests') is not null"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql

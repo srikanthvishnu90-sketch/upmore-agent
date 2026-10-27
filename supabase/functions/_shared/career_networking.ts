@@ -15,6 +15,7 @@
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MAX_CONTACTS, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
+import { peopleTurn } from "./career_people.ts";
 import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
@@ -190,6 +191,8 @@ async function persistContacts(o: NetworkingDeps, account: ContactRow[] | null):
 export async function networkingTurn(o: NetworkingDeps): Promise<NetworkingResult | null> {
   const account = await hydrateContacts(o);
   try {
+  // PEOPLE FINDING (D-033): the LinkedIn export kept per person, Gmail correspondents, public pages, job emails, intros.
+  const people = await peopleTurn(o); if (people) return people;
     return await networkingTurnInner(o);
   } finally {
     await persistContacts(o, account);

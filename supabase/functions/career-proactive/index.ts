@@ -11,6 +11,7 @@ import { supabaseDigestStore, supabaseInterviewStore } from "../_shared/career_b
 import { supabaseConfirmStore } from "../_shared/career_apply_confirm.ts";
 import { handleProactive } from "./handler.ts";
 import { runOutreachReplies, runOutreachSends, supabaseOutreachStore } from "../_shared/career_outreach.ts";
+import { supabasePeopleStore } from "../_shared/career_people.ts";
 import { gmailSender, gmailThreadReader } from "../_shared/career_outreach_gmail.ts";
 import { runOutreachFollowupsGated } from "../_shared/career_outreach_track.ts";
 
@@ -109,6 +110,14 @@ serve((req) => {
       const replies = await runOutreachReplies({ store, read: gmailThreadReader({ fetch, token }), now, events }).catch(msg);
       return { ...sends, replies, ...(followups ? { followups } : {}) };
     } : undefined,
+    // Introduction reminders (D-033) queue the reminder a person asked for to the outbox at its date; the run record's
+    // count needs 20261027020000_career_intro_reminder_push.sql, so this runs only once the owner turns it on at
+    // deploy, after that migration. The chat reads the same switch for its words (envPeopleDeps' introPush).
+    introReminders: Deno.env.get("CAREER_INTRO_REMINDERS") === "on" ? (() => {
+      const people = supabasePeopleStore(admin);
+      return { due: (nowIso: string) => people.dueIntros(nowIso),
+        markReminded: async (userId: string, n: number) => { await people.updateIntro(userId, n, { reminded_at: new Date().toISOString() }); } };
+    })() : undefined,
     // Briefs, interview drafts and the weekly digest (WO-034) need 20261021050000_career_brief_digest.sql, so they run only
     // once the owner turns them on at deploy, after that migration.
     briefs: Deno.env.get("CAREER_BRIEF_DIGEST") === "on" ? {
@@ -167,6 +176,7 @@ serve((req) => {
       // WO-091c: every rail's failure, by rail (the column is 20261022120000_career_control_state.sql's).
       if (r.errors) row.errors = r.errors;
       if (Deno.env.get("CAREER_BRIEF_DIGEST") === "on") Object.assign(row, { briefs: r.briefs ?? 0, brief_ms_max: r.brief_ms_max ?? null, digests: r.digests ?? 0 });
+      if (Deno.env.get("CAREER_INTRO_REMINDERS") === "on") row.intro_reminders = r.intro_reminders ?? 0;
       const { error } = await admin.from("career_proactive_runs").insert(row);
       if (error) throw new Error(`record run: ${error.message}`);
     },

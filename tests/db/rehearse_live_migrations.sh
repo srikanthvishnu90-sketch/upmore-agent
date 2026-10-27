@@ -57,7 +57,8 @@ LIVE_MISSING_DEFAULT="20261026120018_career_resume_one_record.sql 20261020110000
   20261026230400_career_kb_postings_recency_index.sql 20261026230000_trainee_web_admission.sql
   20261026233017_career_invite_waves.sql
   20261026210016_career_resume_required.sql 20261026220016_channel_telegram_login.sql
-  20261026230017_career_cloud_hosted_apply.sql 20261026200011_google_disconnect_erase.sql 20261027103000_google_disconnect_erase_outbox.sql"
+  20261026230017_career_cloud_hosted_apply.sql 20261026200011_google_disconnect_erase.sql 20261027103000_google_disconnect_erase_outbox.sql
+  20261027010000_career_people.sql 20261027020000_career_intro_reminder_push.sql"
 # career_apply_profile_for, created by 20261025120000 (missing above).
 # The last entries are not live: 20261026060006 and 20261026060106 alter career_board_state, created by 20261021110000
 # (missing above); 20261026070007, 20261026080008, 20261026090009, 20261026100001 and 20261026140000 are the

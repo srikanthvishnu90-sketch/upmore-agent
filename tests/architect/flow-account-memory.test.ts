@@ -20,7 +20,12 @@ const assert = (v: unknown, m?: string) => assertNode.ok(v, m);
 const eq = (a: unknown, b: unknown, m?: string) => assertNode.deepStrictEqual(a, b, m);
 const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 const CI = Deno.env.get("CI") === "true";
-const RESUME = await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`);
+// This flow stands in for a REAL person's resume. The fixture file's first line declares it a synthetic
+// fixture, and since the 2026-10-27 fixture guards a self-declared fixture is (correctly) never promoted
+// to the account — so the declaration line is stripped here. The parser skips that line anyway, so the
+// parsed drafts are identical; the guard behaviour itself is asserted in
+// tests/career-fixture-guards-20261027.test.cjs.
+const RESUME = (await Deno.readTextFile(`${ROOT}/packages/career-data/fixtures/test-resume.txt`)).split("\n").filter((l) => !/synthetic fixture/i.test(l)).join("\n");
 const PEOPLE: Record<string, string> = {
   "tok-m1": "7b0f8f8e-6a43-4a49-9d2c-0000000009a1",
   "tok-m2": "7b0f8f8e-6a43-4a49-9d2c-0000000009a2",

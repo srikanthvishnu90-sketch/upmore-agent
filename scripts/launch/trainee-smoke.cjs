@@ -14,7 +14,11 @@
 //     empty body, which it ignores: no turn, no text.
 //   - --allow-send only: trainee-inbound gets a LoopMessage-shaped HELP from TRAINEE_SMOKE_CONTACT, and the help reply IS
 //     texted to that number through LoopMessage. Use your own number. Without the flag that check is skipped.
-//   - agent-chat with UPMORE_TEST_JWT: one "hi" turn for that test user (a thread, one of its 60 turns an hour).
+//   - agent-chat with UPMORE_TEST_JWT: one "hi" turn for that test user (a thread, one of its 60 turns an hour),
+//     wrapped in the NO-TRACE assertion (see checkChatHiNoTrace): the account's stated-facts count is read before
+//     and after the turn over SUPABASE_DB_URL, and any growth FAILS the launch — that account is the owner's real
+//     account today, and a smoke turn must prove it left nothing behind. Without a database handle the assertion
+//     is NOT RUN, never a pass.
 //   - with SUPABASE_DB_URL: reads only (psql): the three pg_cron jobs, their last run, and each run record's newest row.
 //   - WO-038, each only when its secrets are given (otherwise NOT RUN: that channel is NOT_WIRED, never a failure):
 //     trainee-telegram refuses a wrong X-Telegram-Bot-Api-Secret-Token and ignores an empty update with the right one
@@ -167,6 +171,57 @@ async function checkChatHi({ base, jwt, fetchFn }) {
   return r('FAIL', name, `HTTP ${x.status || 'none'}: ${said(x)}`);
 }
 
+// ---------------------------------------------------------------------------
+// NO-TRACE ASSERTION (2026-10-27): the "hi" turn above runs as
+// UPMORE_TEST_JWT — and that account is, today, the OWNER'S REAL ACCOUNT
+// (the same user id the channel bridges resolve test-phase senders to;
+// see CHANNEL_TEST_USER_ID). A greeting turn should write no stated
+// facts, but "should" is how the Oct 2026 fixture contamination started:
+// test traffic through the live surface, trusted to be harmless. So the
+// smoke PROVES it: the account's stated-facts count (facts + keyed, on
+// career_watch_kv 'career:account') is read before and after the turn,
+// and any growth FAILS the launch. The product has no read-only turn
+// type, so the assertion is the guard. When the count cannot be read
+// (no database handle, an unparseable JWT, a failed read) the assertion
+// is reported NOT RUN — never a pass — through the returned traceNote.
+// Which account the smoke runs as is the identity/config question and
+// is deliberately NOT changed here.
+// ---------------------------------------------------------------------------
+function jwtSubject(jwt) {
+  const parts = String(jwt || '').split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const sub = payload && payload.sub;
+    return typeof sub === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sub) ? sub : null;
+  } catch { return null; }
+}
+function statedFactCountSql(userId) {
+  const len = (k) => `case when jsonb_typeof(w.value->'stated_facts'->'${k}') = 'array' then jsonb_array_length(w.value->'stated_facts'->'${k}') else 0 end`;
+  return `select coalesce((select (${len('facts')}) + (${len('keyed')}) from public.career_watch_kv w where w.user_id = '${userId}' and w.key = 'career:account'), 0)`;
+}
+async function readFactCount(sql, userId) {
+  const raw = String(await sql(statedFactCountSql(userId))).split('\n')[0].trim();
+  const n = Number(raw);
+  return raw !== '' && Number.isFinite(n) ? n : null;
+}
+async function checkChatHiNoTrace({ base, jwt, fetchFn, sql }) {
+  const name = 'smoke turn leaves no trace on the account it runs as';
+  const sub = jwtSubject(jwt);
+  if (!sql) return { results: [await checkChatHi({ base, jwt, fetchFn })], traceNote: 'no database handle (SUPABASE_DB_URL): the stated-facts count was not read' };
+  if (!sub) return { results: [await checkChatHi({ base, jwt, fetchFn })], traceNote: 'UPMORE_TEST_JWT carries no UUID subject claim: the account to count could not be named' };
+  let before = null;
+  try { before = await readFactCount(sql, sub); } catch { before = null; }
+  const hi = await checkChatHi({ base, jwt, fetchFn });
+  if (before === null) return { results: [hi], traceNote: 'the stated-facts count could not be read before the turn' };
+  let after = null;
+  try { after = await readFactCount(sql, sub); } catch { after = null; }
+  if (after === null) return { results: [hi], traceNote: 'the stated-facts count could not be read after the turn' };
+  if (hi.status !== 'PASS') return { results: [hi], traceNote: 'the hi turn did not pass; the trace assertion does not judge a failed turn' };
+  if (after > before) return { results: [hi, r('FAIL', name, `stated facts on the account grew ${before} → ${after} across the smoke turn: a smoke turn must write nothing`)] };
+  return { results: [hi, r('PASS', name, `stated facts unchanged at ${before}`)] };
+}
+
 // Reads only. sql(query) returns psql -tA output ("a|b" rows).
 async function checkRuns({ sql }) {
   const out = [];
@@ -240,12 +295,16 @@ async function main(argv, env, deps = {}) {
   else optional(r('NOT RUN', "Telegram's webhook", 'Telegram NOT_WIRED: no TELEGRAM_BOT_TOKEN given'));
   if (env.WHATSAPP_VERIFY_TOKEN) add(await checkWhatsApp({ base, verifyToken: env.WHATSAPP_VERIFY_TOKEN, fetchFn }));
   else optional(r('NOT RUN', 'trainee-whatsapp', 'WhatsApp NOT_WIRED: no WHATSAPP_VERIFY_TOKEN given'));
-  if (env.UPMORE_TEST_JWT) add(await checkChatHi({ base, jwt: env.UPMORE_TEST_JWT, fetchFn }));
+  const sql = deps.sql || (env.SUPABASE_DB_URL ? psqlRunner(env.SUPABASE_DB_URL) : null);
+  if (env.UPMORE_TEST_JWT) {
+    const traced = await checkChatHiNoTrace({ base, jwt: env.UPMORE_TEST_JWT, fetchFn, sql });
+    add(traced.results);
+    if (traced.traceNote) optional(r('NOT RUN', 'smoke turn leaves no trace on the account it runs as', traced.traceNote));
+  }
   else add(r('NOT RUN', 'agent-chat answers "hi" for the test user', 'missing UPMORE_TEST_JWT'));
 
-  if (!env.SUPABASE_DB_URL && !deps.sql) add(r('NOT RUN', 'schedules and run records', 'missing SUPABASE_DB_URL'));
+  if (!sql) add(r('NOT RUN', 'schedules and run records', 'missing SUPABASE_DB_URL'));
   else {
-    const sql = deps.sql || psqlRunner(env.SUPABASE_DB_URL);
     const deadline = now() + opts.waitRuns * 1000;
     let runs;
     for (let first = true; ; first = false) {
@@ -261,5 +320,5 @@ async function main(argv, env, deps = {}) {
   return n('FAIL') ? 1 : 0;
 }
 
-module.exports = { GATED, RUNS, CHANNEL_SECRETS, checkGate, checkInboundHelp, checkTelegram, checkTelegramWebhook, checkWhatsApp, checkChatNoJwt, checkChatHi, checkRuns, helpBody, main };
+module.exports = { GATED, RUNS, CHANNEL_SECRETS, checkGate, checkInboundHelp, checkTelegram, checkTelegramWebhook, checkWhatsApp, checkChatNoJwt, checkChatHi, checkChatHiNoTrace, jwtSubject, statedFactCountSql, checkRuns, helpBody, main };
 if (require.main === module) main(process.argv.slice(2), process.env).then((code) => { process.exitCode = code; }, (e) => { console.log(`FAIL    trainee smoke crashed: ${e && e.message}`); process.exitCode = 1; });

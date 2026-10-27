@@ -12936,7 +12936,27 @@ const CareerRouter = (() => {
   // A later statement with the same kind+key REPLACES the value — a
   // correction ("actually it's Friday") never duplicates. Key "" is
   // the unscoped ("default") slot.
+  // FIXTURE QUARANTINE (2026-10-27): a session carrying a test-fixture
+  // profile never writes stated facts. The thread state has NO dedicated
+  // test-session marker (searched: this module, career_host, the handler
+  // and the channel bridges carry none), so the guard keys on the
+  // narrowest existing signals — the profile's own fixture markers:
+  // isTestFixture (the F1 fixture flag; 122.profileFromData preserves it
+  // and 122.ingestResume now sets it when a document declares itself a
+  // synthetic fixture) and kind "test_profile" (the labelled test
+  // account's marker). The Oct 2026 contamination was exactly this hole:
+  // gauntlet probes run as the real account committed fictional
+  // statements ("my target firm is Northwind Ledger…") as account facts
+  // through the two recorders below. Both recorders are the single store
+  // choke point — every stated fact enters ctx.statedFacts through one
+  // of them — so the refusal lives here and every caller inherits it.
+  // A session with no fixture marker records exactly as before.
+  function fixtureSessionOf(ctx) {
+    const p = ctx && ctx.profile;
+    return !!(p && typeof p === "object" && (p.isTestFixture === true || p.kind === "test_profile"));
+  }
   function recordKeyedFact(ctx, kind, key, value, evidence) {
+    if (fixtureSessionOf(ctx)) return false;
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
     if (!clean) return false;
@@ -12961,6 +12981,7 @@ const CareerRouter = (() => {
     return true;
   }
   function recordThreadFact(ctx, kind, value, evidence) {
+    if (fixtureSessionOf(ctx)) return false;
     if (!value) return false;
     const clean = s(value).replace(/\s+/g, " ").replace(/[,;.]+$/, "").trim();
     if (!clean) return false;

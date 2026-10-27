@@ -52,7 +52,12 @@ test('a tracker row logged in one thread is in a new thread; the thread frame st
 test('a resume confirmed in one thread is the profile of a new thread; thread frames never reach the account', async () => {
   await setup();
   const fs = require('node:fs');
-  const resume = fs.readFileSync(path.join(ROOT, 'packages/career-data/fixtures/test-resume.txt'), 'utf8');
+  // This test stands in for a REAL person's resume. The fixture file's first line declares it a synthetic
+  // fixture, and since the 2026-10-27 fixture guards a self-declared fixture is (correctly) never promoted
+  // to the account — so the declaration line is stripped here. The parser skips that line anyway, so the
+  // parsed drafts are identical; the fixture-guard behaviour itself is asserted in
+  // tests/career-fixture-guards-20261027.test.cjs.
+  const resume = fs.readFileSync(path.join(ROOT, 'packages/career-data/fixtures/test-resume.txt'), 'utf8').split('\n').filter((l) => !/synthetic fixture/i.test(l)).join('\n');
   const w = world();
   w.turn('A', `here is my resume:\n${resume}`);
   w.turn('A', "yes, that's my resume");

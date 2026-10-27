@@ -229,7 +229,18 @@ const CareerHost = (() => {
   function memoryOf(ctx) {
     const before = plainObject(ctx._accountMemory) ? ctx._accountMemory : {};
     const trackerSrc = ctx.trackStore || (plainObject(ctx.profile) ? ctx.profile._careerTrackStore : null);
-    const profile = accountProfileOf(ctx.profile) || (plainObject(before.profile) ? before.profile : null);
+    // FIXTURE GUARD (2026-10-27): a fixture-flagged profile (122 marks it
+    // at ingest when a document declares itself a synthetic fixture, and
+    // fixture data loads carry it) is TEST data: it is never promoted to
+    // the account record. The account keeps the profile it already held;
+    // the fixture profile lives on in its own thread, fully usable there.
+    // This is the merge the Oct 2026 contamination came through — the
+    // gauntlet fixture, ingested unmarked into a live thread, became the
+    // account's profile on the next commit.
+    const fixtureProfile = plainObject(ctx.profile) && ctx.profile.isTestFixture === true;
+    const profile = fixtureProfile
+      ? (plainObject(before.profile) ? before.profile : null)
+      : (accountProfileOf(ctx.profile) || (plainObject(before.profile) ? before.profile : null));
     const tracker = accountTrackerOf(trackerSrc) || (plainObject(before.tracker) ? before.tracker : null);
     return { profile, tracker };
   }

@@ -382,6 +382,15 @@ const CareerProfile = (() => {
   }
   const normKeyText = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   function draftKey(d) { return d.kind === "skill" ? `skill|${normKeyText(d.name || d.title)}` : `${d.kind}|${normKeyText(d.title || d.text)}`; }
+  // FIXTURE DECLARATION (2026-10-27): a synthetic fixture RESUME declares
+  // itself in its own header — the gauntlet fixture's first line is "TEST
+  // RESUME - synthetic fixture, not a real person", the same phrase the
+  // fixture JSONs carry as their label. A document that says this about
+  // itself is test data by its own word; no real resume contains the
+  // phrase. Only the head of the document is scanned: a declaration is a
+  // header, and a passing mention deep in prose changes nothing.
+  const FIXTURE_DECLARATION_RE = /synthetic fixture,?\s+not a real person/i;
+  function declaresTestFixture(text) { return FIXTURE_DECLARATION_RE.test(String(text || "").slice(0, 1000)); }
   function ingestResume(profile, input, opts) {
     const cls = classifyResumeIngest(input);
     if (!cls.ok) return ingestFailure(cls);
@@ -404,8 +413,23 @@ const CareerProfile = (() => {
       drafts.push(f);
       audit.push({ action: "added_draft", fact_id: f.id, kind: f.kind, source: "resume-ingest", precedence: "draft — needs confirmation; confirmed facts win" });
     }
+    // FIXTURE MARKING (2026-10-27): if the document declares itself a
+    // synthetic fixture — or the caller already knows it is one — the
+    // PROFILE carries the flag from here on. Before this, the flag died
+    // at ingest: a fresh profile defaults isTestFixture=false
+    // (createProfile) and nothing in the ingest path ever set it, so the
+    // Oct 2026 gauntlet fixture was ingested into a live thread as an
+    // unmarked profile and later promoted to the account record. The
+    // flag is only ever SET here, never cleared: an ingest cannot make a
+    // fixture un-happen. Downstream guards key on it (the host's account
+    // merge never promotes a fixture-flagged profile; 142's stated-fact
+    // recorders refuse to record from a fixture-flagged session).
+    if ((opts && opts.isTestFixture === true) || declaresTestFixture(cls.text)) {
+      if (!profile.isTestFixture) audit.push({ action: "marked_test_fixture", reason: "the document declares itself a synthetic fixture (or the caller flagged it); the profile is test data and is never promoted to the account record" });
+      profile.isTestFixture = true;
+    }
     refreshSkillFlags(profile);
-    const record = { at: (opts && opts.now) || null, file_name: cls.file_name || null, added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, outcome: "ingested_as_drafts" };
+    const record = { at: (opts && opts.now) || null, file_name: cls.file_name || null, added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, outcome: "ingested_as_drafts", test_fixture: profile.isTestFixture === true };
     profile.profile_ingest_audit = [...(profile.profile_ingest_audit || []), record];
     return { ok: true, failure: null, drafts, factIds: drafts.map((f) => f.id), added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, audit };
   }

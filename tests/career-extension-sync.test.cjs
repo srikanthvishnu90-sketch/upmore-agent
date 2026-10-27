@@ -85,16 +85,19 @@ if (!vm.SourceTextModule) {
       "user-c": [],
     };
     const reports = [];
+    const letIn = new Set(["user-a", "user-b", "user-c"]); // the people Trainee has let in (the database's trainee_may_act)
+    const reads = [];
     const service = Sync.createExtensionSyncService({
+      mayAct: async (uid) => letIn.has(uid),
       portalApply: CareerPortalApply,
       track: CareerTrack,
       verifyToken: async (jwt) => users[jwt] || null,
-      readFlowRows: async (uid) => flow[uid] || [],
+      readFlowRows: async (uid) => { reads.push(uid); return flow[uid] || []; },
       findReportByConfirmation: async (uid, cid) => reports.find((r) => r.user_id === uid && r.confirmation_id === cid) || null,
       insertReport: async (row) => { const rec = { ...row, id: `receipt-${reports.length + 1}`, reported_at: "2026-10-20T12:00:00.000Z" }; reports.push(rec); return rec; },
       now: () => NOW,
     });
-    return { service, reports };
+    return { service, reports, letIn, reads };
   }
   const req = (method, p, token, body) => new Request(`https://example.test/functions/v1/extension-sync${p}`, {
     method,
@@ -450,12 +453,38 @@ if (!vm.SourceTextModule) {
     assert.equal(typeof ns.CareerProfile.profileFromData, "function");
   });
 
+  // Launch readiness B7 (review of PR #195): a signed-in person Trainee has not let in reads nothing and records nothing.
+  test("not admitted: the proof is refused with 403, no row is written and no saved answers are read; admitted, the same call records", async () => {
+    const Sync = await core();
+    const w = makeWorld(Sync);
+    w.letIn.delete("user-a");
+    const post = await Sync.handleRequest(req("POST", "/application-proofs", "token-a", goodReport({ confirmationId: "CONF-ADMIT-1" })), w.service);
+    const get = await Sync.handleRequest(req("GET", "/saved-answers", "token-a"), w.service);
+    assert.deepEqual([post.status, get.status, (await post.json()).code, w.reports.length, w.reads.length], [403, 403, "NOT_ADMITTED", 0, 0]);
+    w.letIn.add("user-a");
+    const ok = await Sync.handleRequest(req("POST", "/application-proofs", "token-a", goodReport({ confirmationId: "CONF-ADMIT-1" })), w.service);
+    assert.deepEqual([ok.status, w.reports.length], [200, 1]);
+  });
+  test("not admitted: a check that errors refuses too, and a service built without the check refuses to start", async () => {
+    const Sync = await core();
+    const w = makeWorld(Sync);
+    const broken = Sync.createExtensionSyncService({
+      portalApply: CareerPortalApply, track: CareerTrack, verifyToken: async () => ({ id: "user-a" }), readFlowRows: async () => [], findReportByConfirmation: async () => null,
+      insertReport: async () => { throw new Error("must not be reached"); }, mayAct: async () => { throw new Error("db down"); }, now: () => NOW,
+    });
+    const r = await Sync.handleRequest(req("POST", "/application-proofs", "t", goodReport()), broken);
+    assert.equal(r.status, 403);
+    assert.throws(() => Sync.createExtensionSyncService({ portalApply: CareerPortalApply, track: CareerTrack, verifyToken: async () => null, readFlowRows: async () => [],
+      findReportByConfirmation: async () => null, insertReport: async () => ({}) }), /mayAct/);
+    assert.ok(w.service);
+  });
+
   test("the Deno wrapper parses (types stripped) and wires the real deps", () => {
     const { stripTypeScriptTypes } = require("node:module");
     const src = fs.readFileSync(path.join(ROOT, "supabase/functions/extension-sync/index.ts"), "utf8");
     const stripped = stripTypeScriptTypes(src);
     new vm.Script(stripped.replace(/^import[^;]+;$/gm, "").replace(/^export /gm, ""), { filename: "index.ts" }); // syntax only
-    for (const needle of ["auth/v1/user", "agent_flow_state", "extension_submission_reports", "createExtensionSyncService", "handleRequest"]) {
+    for (const needle of ["auth/v1/user", "agent_flow_state", "extension_submission_reports", "createExtensionSyncService", "handleRequest", "trainee_may_act"]) {
       assert.ok(src.includes(needle), `wrapper must wire ${needle}`);
     }
   });

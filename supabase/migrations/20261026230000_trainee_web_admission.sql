@@ -1,7 +1,9 @@
 -- Trainee sign-up in waves, enforced in the database (launch readiness B7/X1; review of PR #195).
 --
 -- Who may act: a person is admitted once, and the way is recorded (trainee_admissions.via):
---   existing   every account that exists the first time this runs (nobody who uses Trainee today is locked out);
+--   existing   accounts that already use Trainee when this first runs: a confirmed email or phone AND at least one real
+--              career event (career_events), or a list the owner passes (trainee_grandfather). Tagged with a batch, so
+--              every one of them can be taken back (trainee_revoke_batch / trainee_revoke). NOT every account.
 --   allowlist  their CONFIRMED PHONE is on TRAINEE_ALLOWED_CONTACTS (the edge function checks the env; an email never
 --              counts: an email can be confirmed without its owner when Supabase Auth auto-confirms);
 --   invite     they redeemed a single-use invite (FEATURE WAVES, career_invites.redeemed_user: the one invite system);
@@ -14,6 +16,19 @@
 -- extension and message-card paths; or a service path). A person who came in by invite and has not finished the
 -- sign-up steps (career_signup_gate.step not 'active') is refused the same way.
 -- Nothing here sends a message. Idempotent: every statement can run again.
+--
+-- OWNER: REVIEW THE LIST BEFORE YOU APPLY THIS. The first run admits the accounts this query returns, and nobody else
+-- (run it in the SQL editor first; it only reads):
+--   select u.id, u.email, u.phone, count(e.id) as events, max(e.at) as last_event
+--     from auth.users u join public.career_events e on e.user_id = u.id
+--    where u.email_confirmed_at is not null or u.phone_confirmed_at is not null
+--    group by u.id, u.email, u.phone order by last_event desc;
+-- An address Supabase Auth auto-confirmed proves nothing about its owner, so an email-only account with events is
+-- still on this list: remove anyone you do not recognize AFTER applying with
+--   select public.trainee_revoke(array['<user id>'::uuid, ...]);       -- or everyone the run admitted:
+--   select public.trainee_revoke_batch('backfill-20261026');
+-- and add people the query missed with  select public.trainee_grandfather(array['<user id>'::uuid, ...]);  Revoking
+-- takes back only these tagged rows; allow-list, invite and open admissions are never touched by it.
 
 create table if not exists public.trainee_settings (
   key text primary key check (key in ('web_signup')),
@@ -31,8 +46,11 @@ create table if not exists public.trainee_admissions (
   -- 'waitlist': an invite bound by FEATURE WAVES from a waitlist row (waitlist_id), the same as 'invite' here.
   via text not null check (via in ('existing', 'allowlist', 'invite', 'waitlist', 'open')),
   waitlist_id uuid references public.site_waitlist(id) on delete set null,
-  admitted_at timestamptz not null default now()
+  admitted_at timestamptz not null default now(),
+  -- Set on admissions made in bulk (the first-run backfill, trainee_grandfather): what trainee_revoke undoes. Null otherwise.
+  batch text
 );
+alter table public.trainee_admissions add column if not exists batch text;
 alter table public.trainee_admissions enable row level security;
 drop policy if exists trainee_admissions_read_own on public.trainee_admissions;
 create policy trainee_admissions_read_own on public.trainee_admissions for select to authenticated using (user_id = auth.uid());
@@ -40,11 +58,54 @@ revoke all on public.trainee_admissions from anon, authenticated;
 grant select on public.trainee_admissions to authenticated;
 grant select, insert, update, delete on public.trainee_admissions to service_role;
 
--- Every account that exists the first time this runs keeps working. The table's comment marks that it ran, so running
--- the file again later never admits the accounts created since.
+-- Accounts already using Trainee keep working: a confirmed email or phone AND a real career event. The table's comment marks
+-- that the first run happened, so running the file again later never admits the accounts created since.
+create or replace function public.trainee_grandfather_candidates()
+returns table (user_id uuid, email text, phone text, events bigint, last_event timestamptz)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select u.id, u.email::text, u.phone::text, count(e.id), max(e.at)
+    from auth.users u join public.career_events e on e.user_id = u.id
+   where u.email_confirmed_at is not null or u.phone_confirmed_at is not null
+   group by u.id, u.email, u.phone
+$$;
+
+-- The owner's own list: these accounts are admitted as existing users, tagged so they can be taken back.
+create or replace function public.trainee_grandfather(p_users uuid[], p_batch text default 'owner-list') returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare n integer;
+begin
+  if p_users is null or p_batch is null or length(trim(p_batch)) = 0 then raise exception 'a list and a batch name'; end if;
+  with ins as (
+    insert into public.trainee_admissions (user_id, via, batch)
+    select u.id, 'existing', p_batch from auth.users u where u.id = any(p_users)
+    on conflict (user_id) do nothing returning 1)
+  select count(*) into n from ins;
+  return n;
+end $$;
+
+-- Taking back bulk admissions: only rows tagged with a batch, never an allow-list, invite or open admission.
+create or replace function public.trainee_revoke(p_users uuid[]) returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare n integer;
+begin
+  with del as (delete from public.trainee_admissions where user_id = any(p_users) and batch is not null returning 1)
+  select count(*) into n from del;
+  return n;
+end $$;
+create or replace function public.trainee_revoke_batch(p_batch text) returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare n integer;
+begin
+  with del as (delete from public.trainee_admissions where batch = p_batch returning 1)
+  select count(*) into n from del;
+  return n;
+end $$;
+revoke all on function public.trainee_grandfather_candidates(), public.trainee_grandfather(uuid[], text), public.trainee_revoke(uuid[]), public.trainee_revoke_batch(text) from public, anon, authenticated;
+grant execute on function public.trainee_grandfather_candidates(), public.trainee_grandfather(uuid[], text), public.trainee_revoke(uuid[]), public.trainee_revoke_batch(text) to service_role;
+
 do $$ begin
   if obj_description('public.trainee_admissions'::regclass, 'pg_class') is distinct from 'trainee admissions: existing accounts admitted' then
-    insert into public.trainee_admissions (user_id, via) select id, 'existing' from auth.users on conflict (user_id) do nothing;
+    insert into public.trainee_admissions (user_id, via, batch) select user_id, 'existing', 'backfill-20261026' from public.trainee_grandfather_candidates() on conflict (user_id) do nothing;
     comment on table public.trainee_admissions is 'trainee admissions: existing accounts admitted';
   end if;
 end $$;

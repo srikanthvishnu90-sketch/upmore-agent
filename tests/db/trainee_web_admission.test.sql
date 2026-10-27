@@ -70,6 +70,29 @@ from (select (select p from pl) || jsonb_build_object('user_id','00000000-0000-0
 select t.ok((select count(*) = 1 from public.career_apply_prepared where user_id = '00000000-0000-0000-0000-00000000a002'), 'an admitted person''s prepared application is written');
 select t.must_fail($$select public.trainee_admit('00000000-0000-0000-0000-0000000000ff', true)$$, 'invalid admission', 'an account that does not exist is refused');
 
+-- An admitted person still in the sign-up steps (career_signup_gate, FEATURE WAVES) may not apply until the steps are done.
+-- Run here, on this migration alone, with a stand-in for the gate table (same two columns the function reads; rolled back with
+-- the rest), so removing that condition from trainee_may_act fails on this PR and not only once FEATURE WAVES lands.
+do $$ begin
+  if to_regclass('public.career_signup_gate') is null then
+    create table public.career_signup_gate (user_id uuid primary key, step text not null);
+    insert into public.career_signup_gate values ('00000000-0000-0000-0000-00000000a002', 'terms');
+    perform t.ok(public.trainee_signup_unfinished('00000000-0000-0000-0000-00000000a002'), 'in the sign-up steps: unfinished');
+    perform t.ok(not public.trainee_may_act('00000000-0000-0000-0000-00000000a002'), 'an admitted person in the sign-up steps may not act');
+    begin
+      insert into public.career_apply_prepared (user_id, job_id, company, url, payload, payload_hash, card_lines)
+      select '00000000-0000-0000-0000-00000000a002', 'TEST-GATE-3', 'Gate Co', 'https://jobs.lever.co/gate/3', q, public.career_apply_payload_hash(q), array['Gate Co: Analyst']
+      from (select (select p from pl) || jsonb_build_object('user_id','00000000-0000-0000-0000-00000000a002','job_id','TEST-GATE-3','url','https://jobs.lever.co/gate/3') as q) x;
+      perform t.ok(false, 'a prepared application was written for a person still in the sign-up steps');
+    exception when others then
+      perform t.ok(sqlerrm like '%not_admitted%', 'and their application is refused (not_admitted)');
+    end;
+    update public.career_signup_gate set step = 'active' where user_id = '00000000-0000-0000-0000-00000000a002';
+    perform t.ok(public.trainee_may_act('00000000-0000-0000-0000-00000000a002'), 'once the steps are done they may act');
+    drop table public.career_signup_gate;
+  end if;
+end $$;
+
 -- FEATURE WAVES (the one invite system): a redeemed invite admits once the sign-up steps are done. Run when its tables
 -- are in this database; without them no account is ever treated as invited.
 do $$ begin
@@ -107,6 +130,44 @@ select t.must_fail($$select public.trainee_set_signup('open')$$, 'permission den
 select t.must_fail($$select public.trainee_may_act('00000000-0000-0000-0000-00000000a001')$$, 'permission denied', 'a person cannot probe the gate');
 select t.must_fail($$insert into public.trainee_admissions (user_id, via) values ('00000000-0000-0000-0000-00000000a001', 'open')$$, 'permission denied', 'a person cannot write an admission');
 select t.must_fail($$update public.trainee_settings set value = 'open'$$, 'permission denied', 'or the setting');
+reset role;
+-- Grandfathering is explicit and reversible. The first run admits a confirmed email or phone WITH a real career event, and
+-- nobody else; every such row is tagged so it can be taken back; the owner can pass a list. Re-run as the first run (the
+-- marker removed) with these people present:
+--   g1 confirmed email + event (listed)   g2 confirmed email, no event (not)   g3 unconfirmed email + event (not)
+--   g4 confirmed phone + event (listed)   a001 (above): confirmed phone, no event (not)
+\getenv root UPMORE_ROOT
+insert into auth.users (id, email, email_confirmed_at) values
+  ('00000000-0000-0000-0000-00000000b001', 'g1@example.com', now()), ('00000000-0000-0000-0000-00000000b002', 'g2@example.com', now()),
+  ('00000000-0000-0000-0000-00000000b003', 'g3@example.com', null);
+insert into auth.users (id, phone, phone_confirmed_at) values ('00000000-0000-0000-0000-00000000b004', '13125550777', now());
+insert into public.profiles (id) values ('00000000-0000-0000-0000-00000000b001'), ('00000000-0000-0000-0000-00000000b002'),
+  ('00000000-0000-0000-0000-00000000b003'), ('00000000-0000-0000-0000-00000000b004') on conflict do nothing;
+insert into public.career_events (user_id, kind, subject) values ('00000000-0000-0000-0000-00000000b001', 'search', 'x'),
+  ('00000000-0000-0000-0000-00000000b003', 'search', 'x'), ('00000000-0000-0000-0000-00000000b004', 'search', 'x');
+select t.ok((select array_agg(user_id order by user_id) from public.trainee_grandfather_candidates() where user_id::text like '00000000-0000-0000-0000-00000000b%')
+  = array['00000000-0000-0000-0000-00000000b001'::uuid, '00000000-0000-0000-0000-00000000b004'::uuid],
+  'candidates: a confirmed email or phone with a career event, and only those');
+comment on table public.trainee_admissions is null;
+\i :root/supabase/migrations/20261026230000_trainee_web_admission.sql
+select t.ok((select count(*) = 2 from public.trainee_admissions where batch = 'backfill-20261026' and via = 'existing'
+  and user_id in ('00000000-0000-0000-0000-00000000b001', '00000000-0000-0000-0000-00000000b004')), 'the first run admitted the two, tagged with its batch');
+select t.ok(not exists (select 1 from public.trainee_admissions where user_id in ('00000000-0000-0000-0000-00000000b002', '00000000-0000-0000-0000-00000000b003', '00000000-0000-0000-0000-00000000a001')),
+  'and not an account with no event, an unconfirmed email, or a confirmed phone with no event');
+select t.ok(public.trainee_grandfather(array['00000000-0000-0000-0000-00000000b002'::uuid, '00000000-0000-0000-0000-00000000b001'::uuid, '00000000-0000-0000-0000-0000000000ff'::uuid]) = 1,
+  'the owner''s list admits who is not admitted yet (an unknown id and an already admitted one add nothing)');
+select t.ok(public.trainee_may_act('00000000-0000-0000-0000-00000000b002') and (select batch from public.trainee_admissions where user_id = '00000000-0000-0000-0000-00000000b002') = 'owner-list', 'tagged owner-list');
+select t.ok(public.trainee_revoke(array['00000000-0000-0000-0000-00000000b002'::uuid]) = 1, 'revoking one removes their admission');
+select t.ok(not public.trainee_may_act('00000000-0000-0000-0000-00000000b002'), 'and they may not act');
+select t.ok(public.trainee_revoke(array['00000000-0000-0000-0000-00000000a002'::uuid]) = 0, 'revoke finds nothing to take back on an allow-list admission (no batch)');
+select t.ok(public.trainee_may_act('00000000-0000-0000-0000-00000000a002'), 'and they still may act');
+select t.ok(public.trainee_revoke_batch('backfill-20261026') = 2, 'revoking the batch takes back everyone the first run admitted');
+select t.ok(not public.trainee_may_act('00000000-0000-0000-0000-00000000b001') and not public.trainee_may_act('00000000-0000-0000-0000-00000000b004'), 'and they may not act');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000b002', true);
+select t.must_fail($$select public.trainee_grandfather(array['00000000-0000-0000-0000-00000000b002'::uuid])$$, 'permission denied', 'a person cannot admit themselves by the owner''s list');
+select t.must_fail($$select public.trainee_revoke_batch('backfill-20261026')$$, 'permission denied', 'or revoke');
+select t.must_fail($$select * from public.trainee_grandfather_candidates()$$, 'permission denied', 'or read who is a candidate');
 reset role;
 set local role anon;
 select t.must_fail($$select public.trainee_admit('00000000-0000-0000-0000-00000000a001', true)$$, 'permission denied', 'anon cannot admit');

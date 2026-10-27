@@ -15854,6 +15854,14 @@ const CareerRouter = (() => {
     const rt = lc(s(role)).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && w !== "role" && w !== "job" && w !== "position");
     return rt.length > 0 && rt.every((w) => tt.has(w));
   }
+  function askCompanyKey(v) {
+    return lc(s(v || "").replace(/\s*\(fictional\)\s*/gi, " ").replace(/\s+/g, " ").trim());
+  }
+  function askCompanyMatches(postingCompany, namedCompany) {
+    if (!namedCompany) return true;
+    const want = askCompanyKey(namedCompany);
+    return want !== "" && askCompanyKey(postingCompany) === want;
+  }
   function tailorNamedRoleOf(text, ctx) {
     const t = lc(text);
     let role = null;
@@ -21537,10 +21545,10 @@ const CareerRouter = (() => {
       if (namedRoleAsk) {
         const stagedP = c.posting || null;
         const stagedFits = !!stagedP && roleTitleMatches(stagedP.title, namedRoleAsk.role)
-          && (!namedRoleAsk.company || lc(stagedP.company || "") === lc(namedRoleAsk.company));
+          && askCompanyMatches(stagedP.company, namedRoleAsk.company);
         if (!stagedFits) {
           const poolHit = postingsFromCtx(c).find((p) => p && roleTitleMatches(p.title, namedRoleAsk.role)
-            && (!namedRoleAsk.company || lc(p.company || "") === lc(namedRoleAsk.company)));
+            && askCompanyMatches(p.company, namedRoleAsk.company));
           if (poolHit) {
             const chained = handleTailor(text, Object.assign({}, c, { posting: poolHit }));
             if (chained && chained.artifact) { chained.chained_from = "named_role"; return chained; }

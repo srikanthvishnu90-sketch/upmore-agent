@@ -40597,6 +40597,22 @@ const CareerRouter = (() => {
     const rt = lc(s(role)).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && w !== "role" && w !== "job" && w !== "position");
     return rt.length > 0 && rt.every((w) => tt.has(w));
   }
+  // ASK-WINS company identity, same normalisation resolveNamedPosting
+  // has always used: a company named in the ask is the company as the
+  // person wrote it ("at Northwind Ledger"), while a pool posting can
+  // carry the "(fictional)" qualifier on its stored name ("Northwind
+  // Ledger (fictional)"). Raw string equality made the named-role
+  // gate refuse its own exact posting (CB-0151 / wedge named-target
+  // regressions, 2026-10-27); stripping the qualifier on BOTH sides
+  // keeps a genuinely different company a mismatch.
+  function askCompanyKey(v) {
+    return lc(s(v || "").replace(/\s*\(fictional\)\s*/gi, " ").replace(/\s+/g, " ").trim());
+  }
+  function askCompanyMatches(postingCompany, namedCompany) {
+    if (!namedCompany) return true;
+    const want = askCompanyKey(namedCompany);
+    return want !== "" && askCompanyKey(postingCompany) === want;
+  }
   // ASK-WINS (2026-10-27): the role (and company, when named) a
   // tailor ask explicitly names — "tailor my resume for a product
   // analyst role", "tailor for the Data Analyst role at BrightPath".
@@ -48881,10 +48897,10 @@ const CareerRouter = (() => {
       if (namedRoleAsk) {
         const stagedP = c.posting || null;
         const stagedFits = !!stagedP && roleTitleMatches(stagedP.title, namedRoleAsk.role)
-          && (!namedRoleAsk.company || lc(stagedP.company || "") === lc(namedRoleAsk.company));
+          && askCompanyMatches(stagedP.company, namedRoleAsk.company);
         if (!stagedFits) {
           const poolHit = postingsFromCtx(c).find((p) => p && roleTitleMatches(p.title, namedRoleAsk.role)
-            && (!namedRoleAsk.company || lc(p.company || "") === lc(namedRoleAsk.company)));
+            && askCompanyMatches(p.company, namedRoleAsk.company));
           if (poolHit) {
             const chained = handleTailor(text, Object.assign({}, c, { posting: poolHit }));
             if (chained && chained.artifact) { chained.chained_from = "named_role"; return chained; }

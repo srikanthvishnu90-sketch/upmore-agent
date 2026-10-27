@@ -251,3 +251,5 @@ begin
  update public.career_apply_cards set state = 'answered', answered_at = p_now, answer = jsonb_build_object('approve', to_jsonb(coalesce(p_approve, '{}')), 'results', out) where id = c.id;
  return out;
 end $$;
+-- Same privileges as 20261020030000: only the definer wrappers (career_apply_card_answer_own/_as) call it.
+revoke all on function public.career_apply_card_answer_for(uuid, uuid, int[], timestamptz) from public, anon, authenticated, service_role;

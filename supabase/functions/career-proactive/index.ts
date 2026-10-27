@@ -42,11 +42,19 @@ serve((req) => {
     recentPostings: (since) => postings.newSince(since), postingsById: (ids) => postings.getMany(ids),
     finishedApplications: async (since) => {
       // An application emailed from the chat was already said there when it went (WO-032); it gets no second receipt.
-      const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id,email_confirmed_at,evidence,source")
+      const { data, error } = await admin.from("career_apply_jobs").select("id,user_id,company,url,state,reason,confirmation_id,email_confirmed_at,evidence,source,approval_hash")
         .in("state", ["confirmed", "submitted_unconfirmed", "needs_user", "failed", "not_submitted", "unknown_outcome"]).gte("updated_at", since)
         .or("source.is.null,source.neq.email").limit(2000);
       if (error) throw new Error(`read finished applications: ${error.message}`);
-      return data ?? [];
+      // 2026-10-26 (spec 7.2): the link to exactly what was sent, by the approving card's inspect token. Unread: no link.
+      const base = `${url.replace(/\/+$/, "")}/functions/v1/trainee-inspect`;
+      const rows = data ?? [];
+      for (const r of rows) {
+        if (!/^[0-9a-f]{64}$/.test(String(r.approval_hash ?? "")) || !["confirmed", "submitted_unconfirmed"].includes(r.state)) continue;
+        const t = await admin.rpc("career_apply_inspect_token_for", { p_user: r.user_id, p_hash: r.approval_hash });
+        if (!t.error && typeof t.data === "string" && /^[0-9a-f]{32}$/.test(t.data)) r.sent_link = `${base}?t=${t.data}&f=sent`;
+      }
+      return rows;
     },
     readyApplications: async () => {
       const { data, error } = await admin.from("career_apply_prepared").select("id,user_id,company,card_lines,created_at")

@@ -47,7 +47,8 @@ export function supabaseChannelStore(admin: any, o: { only?: { userId: string; k
       // FEATURE 16: a Telegram row that carries an open card goes out with the card's Approve and Decline buttons, bound
       // to that card and its items' hashes (channel_card_tap.ts). A read that fails sends the text without them: the
       // card can still be answered by a reply to it, or in the app.
-      const tg = out.filter((r) => String(r.contact).startsWith("tg:")).map((r) => r.id);
+      // 2026-10-26 (E-5): WhatsApp's rows too, as reply buttons (whatsapp.ts send). iMessage has no buttons.
+      const tg = out.filter((r) => /^(tg|wa):/.test(String(r.contact))).map((r) => r.id);
       if (tg.length) {
         try {
           const buttons = await buttonsForRows(admin, tg);

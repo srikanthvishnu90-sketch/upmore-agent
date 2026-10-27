@@ -44,7 +44,7 @@ export const TAP_EXPIRED = "That card is more than a day old, so nothing was app
 export const TAP_FAILED = "Nothing was approved: the card could not be answered just now. Try the button again in a minute.";
 
 // toast: the short line on the button (answerCallbackQuery); reply: the message in the chat, when there is one.
-export async function tapCard(o: { userId: string; data: string; now: number; store: TapStore; events?: EventStore | null }):
+export async function tapCard(o: { userId: string; data: string; now: number; store: TapStore; events?: EventStore | null; via?: string }):
   Promise<{ toast: string; reply: string; status: string }> {
   const t = parseTap(o.data);
   if (!t) return { toast: "Nothing was approved.", reply: TAP_UNKNOWN, status: "unknown" };
@@ -71,7 +71,7 @@ export async function tapCard(o: { userId: string; data: string; now: number; st
   for (const r of results) {
     await recordEvent(o.events, {
       user_id: o.userId, at: o.now, kind: r.result === "queued" ? "application_approved" : "status_change", subject: r.company,
-      detail: { card: card.id, n: r.n, result: r.result, via: "telegram button" }, source: "card",
+      detail: { card: card.id, n: r.n, result: r.result, via: o.via ?? "telegram button" }, source: "card",
     });
   }
   const queued = results.filter((r) => r.result === "queued").length;

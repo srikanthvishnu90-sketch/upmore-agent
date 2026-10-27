@@ -440,9 +440,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // SERIAL-1461: the id of the message this text replies to, when the channel passes one (a string or a number). A
       // text yes approves a card only in direct reply to the message that carried it.
       const replyTo = typeof body.reply_to_message_id === "string" || typeof body.reply_to_message_id === "number" ? body.reply_to_message_id : null;
+      // E-15: the texting channel the reply id comes from (trainee-* webhooks send it), so a Telegram message_id is never
+      // read as an agent_messages id. Absent: the app's own message ids.
+      const replyChannel = ["telegram", "whatsapp", "imessage"].includes(String(body.reply_to_channel ?? "")) ? String(body.reply_to_channel) : null;
       const card = !careerTask && !careerBatch && !host.isHostControlled(message, ctx)
-        // FEATURE WEB-ADMISSION (B7) + FEATURE 16: a signed-in web person reads the card with its buttons; no card without a confirmed resume on file (resumeReady).
-        ? await cardTurn({ surface: bridgeUserId ? "text" : "web", message, userId: user.id, threadId: tid, now: Date.now(), replyTo, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
+        // FEATURE WEB-ADMISSION (B7) + FEATURE 16 + E-15: web surface or text; no card without a confirmed resume; the reply id's channel travels with the turn.
+        ? await cardTurn({ surface: bridgeUserId ? "text" : "web", message, userId: user.id, threadId: tid, now: Date.now(), replyTo, replyChannel, resumeReady: resumeOnFileReader(admin, user.id), store: supabaseCardStore(admin), events })
         : null;
       // WO-025: the text mock interview, code's like the card: "mock me for <role> at <company>", "end mock", and the answers
       // while the mock's question is this thread's last word. Same guards as the card; the card goes first.

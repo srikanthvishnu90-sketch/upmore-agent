@@ -18,6 +18,9 @@ const MAX_LISTED = 8, RECENT_DAYS = 30;
 export interface AppRow {
   id: string; company: string; state: string; reason?: string | null; confirmation_id?: string | null;
   email_confirmed_at?: string | null; created_at: string; updated_at: string; title?: string | null;
+  // 2026-10-26 (the owner's iMessage spec, 7.5): the link to exactly what was approved and queued for it (trainee-inspect,
+  // by the approving card's token), when one is on record.
+  detail_link?: string | null;
 }
 export type ReadApplications = (userId: string) => Promise<AppRow[]>;
 
@@ -25,10 +28,21 @@ export type ReadApplications = (userId: string) => Promise<AppRow[]>;
 // deno-lint-ignore no-explicit-any
 export function supabaseApplications(admin: any): ReadApplications {
   return async (userId) => {
-    const r = await admin.from("career_apply_jobs").select("id,company,state,reason,confirmation_id,email_confirmed_at,created_at,updated_at,title:payload->>title")
+    const r = await admin.from("career_apply_jobs").select("id,company,state,reason,confirmation_id,email_confirmed_at,created_at,updated_at,title:payload->>title,approval_hash")
       .eq("user_id", userId).order("updated_at", { ascending: false }).limit(500);
     if (r.error) throw new Error(`read the applications: ${r.error.message}`);
-    return (r.data ?? []) as AppRow[];
+    const rows = (r.data ?? []) as (AppRow & { approval_hash?: string | null })[];
+    // The detail links: each application's approving card, by the hash the card showed. Unread: no links, same status.
+    try {
+      // deno-lint-ignore no-explicit-any
+      const base = String((globalThis as any).Deno?.env?.get?.("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+      const cards = base ? await admin.from("career_apply_cards").select("inspect_token,items").eq("user_id", userId).not("inspect_token", "is", null)
+        .order("shown_at", { ascending: false }).limit(500) : { data: [] };
+      const byHash = new Map<string, string>();
+      for (const c of cards.data ?? []) for (const it of Array.isArray(c.items) ? c.items : []) if (!byHash.has(it?.payload_hash)) byHash.set(it?.payload_hash, c.inspect_token);
+      for (const a of rows) { const t = a.approval_hash ? byHash.get(a.approval_hash) : null; if (t && /^[0-9a-f]{32}$/.test(t)) a.detail_link = `${base}/functions/v1/trainee-inspect?t=${t}&f=sent`; }
+    } catch (e) { console.error("applications status: detail links:", e instanceof Error ? e.message : String(e)); }
+    return rows;
   };
 }
 
@@ -86,6 +100,13 @@ export function statusLine(a: AppRow): string {
   }
 }
 
+// How long an application has been in its recorded stage (since its row last changed).
+export function inStage(updated: string | null | undefined, now: number): string {
+  const t = Date.parse(String(updated ?? ""));
+  if (!Number.isFinite(t) || t > now + 60_000) return "";
+  const h = Math.floor((now - t) / 3_600_000), d = Math.floor(h / 24);
+  return ` (${h < 1 ? "under an hour" : h < 24 ? `${h} hour${h === 1 ? "" : "s"}` : `${d} day${d === 1 ? "" : "s"}`} in this stage)`;
+}
 // The reply to a status question, from the rows (null: they could not be read). Null when the text is not one.
 export function statusReply(message: string, rows: AppRow[] | null, now: number): { reply: string; status: string; intent: string } | null {
   const ask = statusAsk(message);
@@ -106,7 +127,10 @@ export function statusReply(message: string, rows: AppRow[] | null, now: number)
   const recent = rows.filter((a) => Date.parse(a.updated_at) >= now - RECENT_DAYS * 86_400_000 || ["queued", "driving", "needs_user"].includes(a.state));
   if (!recent.length) return { reply: `No applications are on record from the last ${RECENT_DAYS} days: nothing was sent for you through Trainee.`, status: "none", intent: STATUS_INTENT };
   const more = recent.length > MAX_LISTED ? `\n…and ${recent.length - MAX_LISTED} more.` : "";
-  return { reply: `Your applications, newest first:\n${recent.slice(0, MAX_LISTED).map((a) => `- ${statusLine(a)}`).join("\n")}${more}`, status: "shown", intent: STATUS_INTENT };
+  // 7.5: one line per application, newest first: who, the stage as recorded, how long it has been in it, and the link to
+  // exactly what was sent. Only recorded states are said (nothing like "viewed", which no record shows).
+  const line = (a: AppRow) => `- ${statusLine(a)}${inStage(a.updated_at, now)}${a.detail_link ? ` ${a.detail_link}` : ""}`;
+  return { reply: `Your applications, newest first:\n${recent.slice(0, MAX_LISTED).map(line).join("\n")}${more}`, status: "shown", intent: STATUS_INTENT };
 }
 
 // One chat turn: the read only for a status question; a read that fails is said, never guessed.

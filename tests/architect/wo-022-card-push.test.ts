@@ -36,12 +36,13 @@ function pusher(result: (u: string) => string | null | Error = () => "C1") {
   };
 }
 
-Deno.test("WO-022/P1 a settled batch goes on one card, every line verbatim; a batch still being prepared waits", async () => {
+Deno.test("WO-022/P1 a settled batch: its oldest application goes on one ask, every line verbatim (one ask per message, spec 7.1); a batch still being prepared waits", async () => {
   const p = pusher();
   const rows = [ready("A", 1, 30), ready("A", 2, 20), ready("A", 3, 12)];
   eq(await runCards({ now: T, ready: async () => rows, push: p.push }), 1);
-  eq(p.calls.map((c) => c.ids), [["A-P1", "A-P2", "A-P3"]]);
-  for (const r of rows) for (const l of r.card_lines) assert(p.calls[0].text.includes(l), "missing: " + l);
+  eq(p.calls.map((c) => c.ids), [["A-P1"]]);
+  for (const l of rows[0].card_lines) assert(p.calls[0].text.includes(l), "missing: " + l);
+  assert(!p.calls[0].text.includes("TEST Employer 2") && p.calls[0].text.includes('Reply "YES [[APPROVE-CODE]]" to submit it'), p.calls[0].text);
   const q = pusher();
   eq(await runCards({ now: T, ready: async () => [...rows, ready("A", 4, 3)], push: q.push }), 0);
   eq(q.calls.length, 0, "the newest is under 10 minutes old: the batch is not split across cards");
@@ -59,12 +60,12 @@ Deno.test("WO-022/P2 never in quiet hours (the person's, or 10pm to 7am New York
   eq(await runCards({ now: at3am, ready: async () => rows("Asia/Tokyo", 15, 18), push: p.push }), 0, "their own quiet hours");
 });
 
-Deno.test("WO-022/P3 at most 8, one card per person per run, an application too long for a text never holds back the rest", async () => {
+Deno.test("WO-022/P3 one application per ask, one card per person per run, an application too long for a text never holds back the rest", async () => {
   const p = pusher();
   const many = Array.from({ length: 11 }, (_, i) => ready("A", i + 1, 60 - i));
   const other = [ready("B", 1, 15, 200), ready("B", 2, 14)];
   eq(await runCards({ now: T, ready: async () => [...many, ...other], push: p.push }), 2);
-  eq(p.calls.map((c) => [c.userId, c.ids.length]), [["A", 8], ["B", 1]]);
+  eq(p.calls.map((c) => [c.userId, c.ids.length]), [["A", 1], ["B", 1]]);
   eq(p.calls[1].ids, ["B-P2"], "B's 200-line application is left for the app");
 });
 
@@ -118,12 +119,12 @@ Deno.test("WO-022/P5 the scheduled run pushes cards and records how many; then o
   );
   eq(res.status, 200);
   eq(runs.map((r) => [r.cards, r.error]), [[1, null]]);
-  const bare = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store });
+  const bare = await cardTurn({ message: "yes", userId: "A", threadId: "TH", now: T + 60000, store });
   eq(bare?.status, "needs_reply", "SERIAL-1461: a yes with no reply id approves nothing");
-  const out = await cardTurn({ message: "yes but not 2", userId: "A", threadId: "TH", now: T + 60000, store, replyTo: "M-C1" });
-  eq(out?.status, "answered", "SERIAL-1440 (1): one text yes to the pushed card approves the batch it names, within 10 minutes");
-  eq(approved, [[1, 3]], "exactly 1 and 3");
+  const out = await cardTurn({ message: "yes", userId: "A", threadId: "TH", now: T + 60000, store, replyTo: "M-C1" });
+  eq(out?.status, "answered", "SERIAL-1440 (1): a text yes to the pushed card approves the one application it names, within 10 minutes");
+  eq(approved, [[1]], "exactly the one");
   const late = await cardTurn({ message: "yes", userId: "A", threadId: "TH", now: T + 11 * 60000, store, replyTo: "M-C1" });
   eq(late?.status, "stale_card", "11 minutes after the card: nothing approved");
-  eq(approved, [[1, 3]]);
+  eq(approved, [[1]]);
 });

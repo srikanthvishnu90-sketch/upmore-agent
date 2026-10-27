@@ -13,7 +13,7 @@ import { adaptersFromEnv } from "./channel_registry.ts";
 // was saved, so the same turn key is sent once more and agent-chat runs it again on a fresh read; any other refusal is not retried.
 export const CONFLICT_RETRIES = 1;
 export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: number } = {}) {
-  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null }) => {
+  return async (a: { userId: string; threadId: string | null; message: string; turnKey: string; replyToMessageId?: string | null; replyChannel?: string | null }) => {
     let res: Response, body: Record<string, unknown>;
     for (let attempt = 0; ; attempt++) {
       res = await fetch(`${url}/functions/v1/agent-chat`, {
@@ -21,7 +21,7 @@ export function chatThroughAgent(url: string, key: string, o: { retryDelayMs?: n
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         // SERIAL-1462: the provider's reply-to id travels to the turn; a card's text yes counts only in reply to the card.
         body: JSON.stringify({ as_user_id: a.userId, message: a.message, turn_key: a.turnKey, ...(a.threadId ? { thread_id: a.threadId } : {}),
-          ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId } : {}) }),
+          ...(a.replyToMessageId ? { reply_to_message_id: a.replyToMessageId, ...(a.replyChannel ? { reply_to_channel: a.replyChannel } : {}) } : {}) }),
       });
       body = await res.json().catch(() => ({})) as Record<string, unknown>;
       // Only a turn that did nothing before its refused save is run again: one that answered a card, sent an email or

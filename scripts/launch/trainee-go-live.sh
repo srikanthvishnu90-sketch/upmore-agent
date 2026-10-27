@@ -172,6 +172,7 @@ MIGRATIONS=(
   20261026220016_channel_telegram_login.sql
   20261026230500_definer_execute_lockdown.sql
   20261026233017_career_invite_waves.sql
+  20261026235017_career_apply_card_code.sql
 )
 MIGRATION_MARK=(
   "to_regclass('public.channel_threads') is not null"
@@ -247,6 +248,7 @@ MIGRATION_MARK=(
   "to_regclass('public.channel_telegram_logins') is not null and exists (select 1 from pg_proc where proname = 'channel_telegram_link_as')"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
   "to_regclass('public.career_invites') is not null and exists (select 1 from pg_proc where proname = 'career_wave_gate_rows') and exists (select 1 from pg_proc where proname = 'career_invite_admit')"
+  "exists (select 1 from pg_proc where proname = 'career_apply_card_answer_code_as') and exists (select 1 from pg_proc where proname = 'career_apply_card_push_for' and prosrc like '%APPROVE-CODE%')"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
 EARLIER=(20261015010000_career_knowledge_base.sql 20261015020000_career_watch_kv.sql 20261015234000_career_task_intents_v1.sql
@@ -259,7 +261,8 @@ EARLIER_MARK=("to_regclass('public.career_kb_roles') is not null"
 SCHEDULED=(career-ingest career-proactive trainee-deliver trainee-inbound)
 SCHED_VARS=(CAREER_INGEST_SECRET CAREER_PROACTIVE_SECRET TRAINEE_DELIVER_SECRET TRAINEE_INBOUND_SECRET)
 # WO-038: the Telegram and WhatsApp webhooks (deployed always; without their secrets they answer 503 NOT_WIRED).
-CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
+# 2026-10-26: trainee-inspect serves an approval card's inspect and receipt links (its 128-bit token is the gate).
+CHANNEL_FNS=(trainee-telegram trainee-whatsapp trainee-inspect)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
@@ -637,7 +640,7 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts supabase/functions/trainee-inspect/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok

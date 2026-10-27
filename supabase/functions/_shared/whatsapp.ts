@@ -25,6 +25,17 @@
 //   131049 = held back by the per-user marketing limit (VERIFIED-S:
 //   https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/per-user-limits/).
 //   Either may come back on the send itself or later in a "failed" status (SECONDARY), so both paths hold the message.
+// - Reply buttons (2026-10-26, VERIFIED against the official page, fetched 2026-10-26:
+//   https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/interactive-reply-buttons-messages):
+//   type "interactive", interactive {type:"button", body {text, "Maximum 1024 characters"}, action {buttons [{type:"reply",
+//   reply {id ("Maximum 256 characters"), title ("Maximum 20 characters")}}]}}, "Supports up to 3 buttons". A tap comes
+//   back as messages[].type "interactive", interactive {type:"button_reply", button_reply {id, title}}, with context.id
+//   the message that carried the button. The card's Approve and Decline ride as reply buttons whose id is the card's
+//   bound data (channel_card_tap.ts "tca:<card>:<digest>"), so a tap answers exactly as Telegram's does.
+// - Webhooks (VERIFIED, https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview/):
+//   a request not answered 200 is retried "with decreasing frequency until the request succeeds, for up to 7 days",
+//   and "these retries can result in duplicate webhook notifications": messages[].id is claimed once
+//   (channel_inbound.ts), and the turn runs after the answer (E-15).
 import { equalSecret } from "./message_service.ts";
 import { type ChannelAdapter, type InboundMessage, packMessages, pacer, type ParseResult, type SendResult, type StatusEvent, WHATSAPP_WINDOW_MS } from "./channel_adapters.ts";
 
@@ -35,6 +46,8 @@ export const DEFAULT_DAILY_TEMPLATES = 250; // a new account's business-initiate
 export const HOLD_CODES = new Set([131047, 131049]);
 const RETRY_CODES = new Set([130429, 131056, 80007]); // throughput, pair rate, rate limit (SECONDARY): nothing went out
 const PACK = 1500;
+export const INTERACTIVE_BODY = 1024; // an interactive message's body text (reply buttons page)
+export const BUTTONS_BODY = "Approve or decline exactly what the card above shows.";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 async function hmacHex(secret: string, body: Uint8Array<ArrayBuffer>): Promise<string> {
@@ -68,6 +81,12 @@ export function parseWhatsAppBody(b: any, phoneNumberId?: string): { messages: I
           aliases: waId && bsuid ? [`wa:${bsuid}`] : [], alias: waId && bsuid ? bsuid : null,
           phone: waId && waId.length >= 8 && waId.length <= 15 ? `+${waId}` : null,
         };
+        // A tap on one of the card's reply buttons (its id is the card's bound data): a button tap, answered as Telegram's.
+        const tapId = m.type === "interactive" && m.interactive?.type === "button_reply" ? m.interactive?.button_reply?.id : null;
+        if (typeof tapId === "string" && /^tc[ad]:[0-9a-f-]{36}:[0-9a-f]{16}$/.test(tapId)) {
+          messages.push({ ...base, kind: "callback", text: "", callback: { id: base.messageId, data: tapId, messageId: base.replyToMessageId } });
+          continue;
+        }
         // A typed message, a tap on a template's quick reply, a tap on a reply button or a list row: all read as text.
         const text = m.type === "text" ? m.text?.body : m.type === "button" ? m.button?.text
           : m.type === "interactive" ? (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title) : null;
@@ -134,13 +153,24 @@ export function whatsappAdapter(o: {
       try { body = JSON.parse(new TextDecoder().decode(raw)); } catch { /* not JSON: ignored below */ }
       return parseWhatsAppBody(body, o.phoneNumberId);
     },
-    async send(address, bubbles): Promise<SendResult> {
+    async send(address, bubbles, opts): Promise<SendResult> {
       if (!bubbles.length) return { ok: false, error: "nothing to send: the message has no text", retryable: false };
       const ids: string[] = [];
-      for (let i = 0; i < bubbles.length; i++) {
+      // The card's buttons (data buttons only; at most 3, titles at most 20 characters, ids at most 256): on the last part
+      // when it fits an interactive body (1,024 characters), else as one short message of their own after the card.
+      const buttons = (opts?.buttons ?? []).flat().filter((b) => typeof b.data === "string" && b.data && !b.loginUrl).slice(0, 3)
+        .map((b) => ({ type: "reply", reply: { id: String(b.data).slice(0, 256), title: b.text.slice(0, 20) } }));
+      const parts: { text: string; buttons: boolean }[] = bubbles.map((t) => ({ text: t, buttons: false }));
+      if (buttons.length) {
+        if (parts[parts.length - 1].text.length <= INTERACTIVE_BODY) parts[parts.length - 1].buttons = true;
+        else parts.push({ text: BUTTONS_BODY, buttons: true });
+      }
+      for (let i = 0; i < parts.length; i++) {
         await pace(address);
-        const after = i ? ` after ${i} of ${bubbles.length} messages went out` : "";
-        const r = await post({ ...target(address), type: "text", text: { preview_url: true, body: bubbles[i].slice(0, WHATSAPP_CHARS) } });
+        const after = i ? ` after ${i} of ${parts.length} messages went out` : "";
+        const r = await post(parts[i].buttons
+          ? { ...target(address), type: "interactive", interactive: { type: "button", body: { text: parts[i].text.slice(0, INTERACTIVE_BODY) }, action: { buttons } } }
+          : { ...target(address), type: "text", text: { preview_url: true, body: parts[i].text.slice(0, WHATSAPP_CHARS) } });
         if (r.ok) { if (r.id) ids.push(r.id); continue; }
         // The window closed or the marketing limit held it: nothing of this message went out, so the whole row waits for
         // the person's next message. (After a first message went out, the rest would duplicate it: final, as LoopMessage.)

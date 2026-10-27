@@ -92,10 +92,11 @@ async function checkGate(g, { base, secret, fetchFn }) {
   return out;
 }
 
-// The body parseLoopInbound (supabase/functions/_shared/loopmessage.ts) reads as an inbound text: alert_type, message_id,
-// recipient (the texting contact), text. A fresh id each run, so the dedupe table never answers "duplicate webhook".
+// The body parseLoopInbound (supabase/functions/_shared/loopmessage.ts) reads as an inbound text: event, contact (the
+// texting contact), text, message_id. A fresh id each run, so the dedupe table never answers "duplicate webhook".
 function helpBody(contact, now) {
-  return { alert_type: 'message_inbound', message_id: `trainee-smoke-${now}-${crypto.randomBytes(4).toString('hex')}`, recipient: contact, text: 'HELP' };
+  // LoopMessage's documented inbound shape (https://loopmessage.com/apidocs/conversation-api-webhooks, read 2026-10-26).
+  return { event: 'message_inbound', contact, text: 'HELP', message_type: 'text', message_id: `trainee-smoke-${now}-${crypto.randomBytes(4).toString('hex')}`, webhook_id: `trainee-smoke-webhook-${now}`, api_version: '1.0' };
 }
 async function checkInboundHelp({ base, secret, contact, fetchFn, now }) {
   const g = GATED.find((x) => x.fn === 'trainee-inbound');

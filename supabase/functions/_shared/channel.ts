@@ -54,7 +54,7 @@ export interface ChannelStore {
   nudgesOn?(day: string): Promise<number>;
   setNudged?(contact: string, at: number): Promise<void>;
 }
-export type Send = (contact: string, bubbles: string[]) => Promise<{ ok: true; id: string | null } | { ok: false; error: string; retryable: boolean }>;
+export type Send = (contact: string, bubbles: string[]) => Promise<{ ok: true; id: string | null; ids?: string[] } | { ok: false; error: string; retryable: boolean }>;
 
 // The answer to a message the person sent (trainee-inbound queues it as reply:<provider message id>).
 export const isReply = (key: string) => String(key ?? "").startsWith("reply:");

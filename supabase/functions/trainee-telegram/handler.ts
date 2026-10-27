@@ -21,6 +21,7 @@ export interface ProviderWebhookDeps {
   adapter?: (env: ProviderWebhookDeps["env"]) => ChannelAdapter; // tests inject one over a fake fetch
   // deno-lint-ignore no-explicit-any
   admin?: any; // FEATURE 16: the service client, for the resume file and the card's buttons
+  defer?: (work: Promise<unknown>) => void; // E-15: the turn after the provider's answer (channel_inbound.ts CoreDeps.defer)
 }
 export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): CoreDeps {
   const admin = d.admin;
@@ -31,7 +32,9 @@ export function webhookDeps(adapter: ChannelAdapter, d: ProviderWebhookDeps): Co
       resumeFile: async (a: Parameters<NonNullable<CoreDeps["resumeFile"]>>[0]) =>
         await ingestResumeFile({ userId: a.userId, channel: "telegram", doc: a.doc, fetchFile: (id, max) => adapter.fetchFile!(id, max), record: supabaseUploadRecorder(admin) }),
     } : {}),
-    ...(admin ? { cardTap: async (a: { userId: string; data: string; now: number }) => await tapCard({ ...a, store: supabaseTapStore(admin), events: supabaseEventStore(admin) }) } : {}),
+    ...(admin ? { cardTap: async (a: { userId: string; data: string; now: number }) => await tapCard({ ...a, store: supabaseTapStore(admin), events: supabaseEventStore(admin), via: `${adapter.channel} button` }) } : {}),
+    // E-15: the turn after the answer, where the runtime gives background tasks (index.ts: EdgeRuntime.waitUntil).
+    ...(d.defer ? { defer: d.defer } : {}),
     ...(adapter.answerCallback ? { answerCallback: (id: string, text: string) => adapter.answerCallback!(id, text) } : {}),
     ...(admin && adapter.sendDocument ? {
       sendArtifacts: async (a: { userId: string; threadId: string | null; contact: string; artifacts: { ref: string }[] }) => {

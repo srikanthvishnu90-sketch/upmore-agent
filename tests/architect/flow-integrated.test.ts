@@ -108,7 +108,7 @@ Deno.test({
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'ada.tester@example.test');
         insert into public.profiles (id) values ('${PERSON}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false,"daily_limit":"3"}');
-        ${confirmedResumeSql(PERSON)}
+        ${confirmedResumeSql(PERSON, "%PDF-1.4\n% synthetic integrated-test resume\n%%EOF\n")}
         insert into public.agent_threads (id, user_id, title) values ('${THREAD}', '${PERSON}', 'TEST');
         insert into public.agent_messages (thread_id, role, content, created_at) values
           ('${THREAD}', 'user', 'I''m authorized to work in the US', '2026-10-20T15:00:00Z'),

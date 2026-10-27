@@ -3,10 +3,11 @@
 // turn, the card, the engine. The database's half is tests/db/career_resume_required.test.sql.
 import assertNode from "node:assert/strict";
 import { parseTelegramUpdate, telegramAdapter } from "../../supabase/functions/_shared/telegram.ts";
-import { DOC_NOT_SENT_REPLY, FILE_NOT_READ_REPLY, PHOTO_NOT_READ_REPLY, runInbound, VOICE_NOT_READ_REPLY } from "../../supabase/functions/_shared/channel_inbound.ts";
+import { DOC_NOT_SENT_REPLY, FILE_NOT_READ_REPLY, PHOTO_NOT_READ_REPLY, runInbound, TELEGRAM_CHANNEL_ONLY_REPLY, TELEGRAM_UNLINKED_REPLY, VOICE_NOT_READ_REPLY } from "../../supabase/functions/_shared/channel_inbound.ts";
 import { chatThroughAgent } from "../../supabase/functions/_shared/channel_runtime.ts";
 import { webhookDeps } from "../../supabase/functions/trainee-telegram/handler.ts";
 import { cardButtons, cardDigest, parseTap, TAP_ANSWERED, TAP_CHANGED, TAP_STALE, TAP_UNKNOWN, tapCard, type TapStore } from "../../supabase/functions/_shared/channel_card_tap.ts";
+import { resumeOnFileReader } from "../../supabase/functions/_shared/career_apply_from_chat.ts";
 import { FILE_KIND_REPLY, FILE_NO_TEXT_REPLY, ingestResumeFile, resumeMessage } from "../../supabase/functions/_shared/channel_resume_upload.ts";
 import { statusAsk, statusReply } from "../../supabase/functions/_shared/career_apply_status.ts";
 import { applyTurn } from "../../supabase/functions/_shared/career_apply_chat.ts";
@@ -92,7 +93,10 @@ Deno.test("F16 Telegram download (review of PR #194): the size getFile reports d
   eq(await a.fetchFile!("NOSIZE", 1000), { ok: false, error: "Telegram getFile gave no file size" });
   eq(await a.fetchFile!("HUGE", 1e12), { ok: false, error: "too_large" }, "over Telegram's 20 MB whatever the caller allows");
   eq(downloads, [], "neither is downloaded");
-  eq(await a.fetchFile!("LIAR", 200_000), { ok: false, error: "too_large" });
+  // Compared as a summary, never as bytes: a reader that ignored the cap would hand back 4 MB, and a deep diff of that
+  // would cost far more than the read itself (re-review of #194: the test must fail on its assertion, not its memory).
+  const liar: any = await a.fetchFile!("LIAR", 200_000);
+  eq({ ok: liar.ok, error: liar.error ?? null, got: liar.bytes?.length ?? 0 }, { ok: false, error: "too_large", got: 0 });
   assert(streamed <= 200_000 + 3 * 65536, `stopped near the cap, not read whole: ${streamed} bytes pulled`);
   eq(await a.fetchFile!("OK", 1000), { ok: true, bytes: new Uint8Array([37, 80, 68, 70]) });
 });
@@ -573,4 +577,64 @@ Deno.test("F16 PDF: streams that together pass the 20 MB total are not all infla
   const file = new Uint8Array([...enc.encode("%PDF-1.4\n"), ...Array.from({ length: 10 }, (_, i) => obj(i + 2, near)).flat(), ...obj(1, text), ...enc.encode("%%EOF")]);
   const r = await ingestResumeFile({ userId: "u", channel: "telegram", doc: { fileId: "F", uniqueId: "UT2", name: "cv.pdf", mime: "application/pdf", size: file.length }, fetchFile: async () => ({ ok: true, bytes: file }), record: async () => "id" });
   eq(r.ok, false, "10 x 4.5 MB passes the 20 MB total: the text stream behind them is not inflated");
+});
+
+// ---- Re-review of #194 (2026-10-27) ----
+Deno.test("OWNER RULE resume on file, fail closed: only career_resume_on_file answers; an error, a throw or a non-boolean is unknown, never the profile alone", async () => {
+  const confirmedProfile = { facts: [{ status: "confirmed", needs_confirmation: false, confirmation_event_id: "ev", kind: "experience" }] };
+  const calls: string[] = [];
+  const admin = (onFile: () => any) => ({ rpc: async (name: string) => { calls.push(name); return name === "career_resume_on_file" ? onFile() : { data: confirmedProfile, error: null }; } });
+  eq(await resumeOnFileReader(admin(() => ({ data: true, error: null })), "u")(), true);
+  eq(await resumeOnFileReader(admin(() => ({ data: false, error: null })), "u")(), false);
+  eq(await resumeOnFileReader(admin(() => ({ data: null, error: { message: "function career_resume_on_file does not exist" } })), "u")(), null, "missing function: unknown");
+  eq(await resumeOnFileReader(admin(() => { throw new Error("network"); }), "u")(), null, "a throw: unknown");
+  eq(await resumeOnFileReader(admin(() => ({ data: "yes", error: null })), "u")(), null, "not a boolean: unknown");
+  eq(calls.filter((c) => c !== "career_resume_on_file"), [], "the profile-only check (no event check) is never consulted");
+});
+
+Deno.test("F16 Telegram chat: 'unlink telegram' on a Telegram-only account says it can't be unlinked; a linked chat is unlinked; each said exactly", async () => {
+  for (const [n, want] of [[-1, TELEGRAM_CHANNEL_ONLY_REPLY], [1, TELEGRAM_UNLINKED_REPLY]] as const) {
+    const w = inbound();
+    const asked: any[] = [];
+    w.d.store.unlinkTelegram = async (u: string) => { asked.push(u); return n; };
+    await runInbound(w.msg({ text: "unlink telegram" }) as any, w.d);
+    eq([asked, w.direct, w.chats], [["u1"], [want], []]);
+  }
+  assert(!/\bis unlinked\b/i.test(TELEGRAM_CHANNEL_ONLY_REPLY) && /Nothing changed/.test(TELEGRAM_CHANNEL_ONLY_REPLY), "never says it was unlinked");
+});
+
+Deno.test("F16 PDF: at most 400 streams are read; a text stream after 400 others is not reached and the file is refused", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const enc = new TextEncoder();
+  const text = new Uint8Array(deflateSync(enc.encode(PARAS.map((l, i) => `BT /F1 9 Tf 1 0 0 1 40 ${700 - i * 12} Tm (${l}) Tj ET`).join("\n"))));
+  const tiny = new Uint8Array(deflateSync(enc.encode("q Q")));
+  const obj = (n: number, body: Uint8Array) => [...enc.encode(`${n} 0 obj\n<< /Length ${body.length} /Filter /FlateDecode >>\nstream\n`), ...body, ...enc.encode("\nendstream\nendobj\n")];
+  const pdf = (others: number) => new Uint8Array([...enc.encode("%PDF-1.4\n"), ...Array.from({ length: others }, (_, i) => obj(i + 2, tiny)).flat(), ...obj(1, text), ...enc.encode("%%EOF")]);
+  const read = async (f: Uint8Array, id: string) => await ingestResumeFile({ userId: "u", channel: "telegram", doc: { fileId: "F", uniqueId: id, name: "cv.pdf", mime: "application/pdf", size: f.length }, fetchFile: async () => ({ ok: true, bytes: f }), record: async () => "id" });
+  const under = await read(pdf(399), "S399");
+  eq(under.ok && under.message, `here is my resume:\n${PARAS.join("\n")}`, "the 400th stream is read");
+  eq((await read(pdf(400), "S400")).ok, false, "the 401st is not");
+});
+
+Deno.test("F16 zip bomb (.docx): 50 copies of word/document.xml, each past the 5 MB cap, are each charged against the 20 MB total; a real one after them is not reached", async () => {
+  const { deflateRawSync } = await import("node:zlib");
+  const bombRaw = new Uint8Array(deflateRawSync(new Uint8Array(64 * MB)));
+  const entries = [...Array.from({ length: 50 }, () => ({ name: "word/document.xml", data: new Uint8Array(0), raw: bombRaw, size: 64 * MB, crc: 0 })),
+    { name: "word/document.xml", data: docXml(PARAS) }];
+  const file = await zipOf(entries);
+  const t0 = performance.now();
+  const r = await ingestResumeFile({ userId: "u", channel: "telegram", doc: { ...docxDoc, size: file.length }, fetchFile: async () => ({ ok: true, bytes: file }), record: async () => "id" });
+  eq(r.ok, false, "after 4 failed parts the 20 MB is spent: nothing more is inflated");
+  assert(performance.now() - t0 < 5000, "bounded");
+});
+
+Deno.test("F16 zip bomb (.pdf): streams that each fail past the 5 MB cap are charged against the 20 MB total; a text stream after them is not reached", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const enc = new TextEncoder();
+  const text = new Uint8Array(deflateSync(enc.encode(PARAS.map((l, i) => `BT /F1 9 Tf 1 0 0 1 40 ${700 - i * 12} Tm (${l}) Tj ET`).join("\n"))));
+  const bomb = new Uint8Array(deflateSync(new Uint8Array(64 * MB)));
+  const obj = (n: number, body: Uint8Array) => [...enc.encode(`${n} 0 obj\n<< /Length ${body.length} /Filter /FlateDecode >>\nstream\n`), ...body, ...enc.encode("\nendstream\nendobj\n")];
+  const file = new Uint8Array([...enc.encode("%PDF-1.4\n"), ...Array.from({ length: 6 }, (_, i) => obj(i + 2, bomb)).flat(), ...obj(1, text), ...enc.encode("%%EOF")]);
+  const r = await ingestResumeFile({ userId: "u", channel: "telegram", doc: { fileId: "F", uniqueId: "UPC", name: "cv.pdf", mime: "application/pdf", size: file.length }, fetchFile: async () => ({ ok: true, bytes: file }), record: async () => "id" });
+  eq(r.ok, false, "6 failed 64 MB streams spend the 20 MB total (4 x 5 MB): the text behind them is not inflated");
 });

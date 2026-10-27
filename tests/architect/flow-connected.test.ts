@@ -167,7 +167,7 @@ Deno.test({
       await pg.sql(`insert into auth.users (id, email) values ('${PERSON}', 'flow.tester@example.test');
         insert into public.profiles (id) values ('${PERSON}');
         insert into public.career_watch_kv (user_id, key, value) values ('${PERSON}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
-        ${confirmedResumeSql(PERSON)}`);
+        ${confirmedResumeSql(PERSON, "%PDF-1.4\n% synthetic flow-test resume\n%%EOF\n")}`);
       const factsPath = `${work}/facts.json`, resumePath = `${work}/resume.pdf`;
       await Deno.writeTextFile(factsPath, JSON.stringify(FACTS));
       await Deno.writeFile(resumePath, new TextEncoder().encode("%PDF-1.4\n% synthetic flow-test resume\n%%EOF\n"));

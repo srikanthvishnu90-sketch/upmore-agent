@@ -93,16 +93,29 @@ set session_replication_role = origin;
 select t.must_fail($$select career_apply_card_open_for('00000000-0000-4000-8000-000000001602', array[(select id from career_apply_prepared where job_id = 'TEST-RR-2-with')], now())$$,
  'no_resume', 'a card never shows an application with no resume');
 
--- 3b. prepared on the person's own signed-in computer: the file stays there; its sha256 is that computer's attestation.
+-- 3b. prepared on the person's own signed-in computer: the file stays there. Its sha256 counts only when it is a resume
+-- file the person confirmed (a fact_confirmed event names it as the uploaded file); any other 64-hex is refused
+-- (review of #194, 2026-10-27).
 select t.as_user('00000000-0000-4000-8000-000000001601');set role authenticated;
-select t.ok((select (career_apply_prepare_own(p || jsonb_build_object('resume_sha256', repeat('f',64), 'job_id', 'TEST-RR-1-device'), array['RR device line'])) is not null from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001601'),
- 'the person''s own computer prepares with the resume file it holds');
+select t.must_fail($$select career_apply_prepare_own(p || jsonb_build_object('resume_sha256', repeat('f',64), 'job_id', 'TEST-RR-1-random'), array['RR device line']) from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001601'$$,
+ 'no_resume', 'a random 64-hex from the person''s own computer is not a resume');
 reset role;
-select t.ok((select career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('f',64))), 'that file counts as theirs');
-select t.ok((select not career_resume_stored('00000000-0000-4000-8000-000000001602', repeat('f',64))), 'and as no one else''s');
+select t.ok((select not career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('f',64))), 'and is not recorded as theirs');
+insert into career_events(user_id,kind,subject,detail) values ('00000000-0000-4000-8000-000000001601','fact_confirmed','RR file',
+ jsonb_build_object('confirmation_event_id','ev-rr-file','upload',jsonb_build_object('kind','file','ref','TEST local file','sha256',repeat('e',64))));
+insert into career_events(user_id,kind,subject,detail) values ('00000000-0000-4000-8000-000000001601','fact_confirmed','RR pasted',
+ jsonb_build_object('confirmation_event_id','ev-rr-msg','upload',jsonb_build_object('kind','message','ref','TEST pasted','sha256',repeat('d',64))));
+select t.as_user('00000000-0000-4000-8000-000000001601');set role authenticated;
+select t.must_fail($$select career_apply_prepare_own(p || jsonb_build_object('resume_sha256', repeat('d',64), 'job_id', 'TEST-RR-1-pasted'), array['RR device line']) from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001601'$$,
+ 'no_resume', 'the hash of pasted text is not a resume file');
+select t.ok((select (career_apply_prepare_own(p || jsonb_build_object('resume_sha256', repeat('e',64), 'job_id', 'TEST-RR-1-device'), array['RR device line'])) is not null from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001601'),
+ 'the person''s own computer prepares with the resume file they confirmed');
+reset role;
+select t.ok((select career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('e',64))), 'that file counts as theirs');
+select t.ok((select not career_resume_stored('00000000-0000-4000-8000-000000001602', repeat('e',64))), 'and as no one else''s');
 set role service_role;
-select t.must_fail($$select career_apply_enqueue(p || jsonb_build_object('resume_sha256', repeat('f',64), 'job_id', 'TEST-RR-2-device'), career_apply_payload_hash(p || jsonb_build_object('resume_sha256', repeat('f',64), 'job_id', 'TEST-RR-2-device')), career_apply_payload_hash(p || jsonb_build_object('resume_sha256', repeat('f',64), 'job_id', 'TEST-RR-2-device')), 15) from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001602'$$,
- 'no_resume', 'another person cannot queue with a file someone else''s computer holds');
+select t.must_fail($$select career_apply_enqueue(p || jsonb_build_object('resume_sha256', repeat('e',64), 'job_id', 'TEST-RR-2-device'), career_apply_payload_hash(p || jsonb_build_object('resume_sha256', repeat('e',64), 'job_id', 'TEST-RR-2-device')), career_apply_payload_hash(p || jsonb_build_object('resume_sha256', repeat('e',64), 'job_id', 'TEST-RR-2-device')), 15) from rr_p where k = 'with' and u = '00000000-0000-4000-8000-000000001602'$$,
+ 'no_resume', 'another person cannot queue with a file someone else confirmed');
 reset role;
 
 -- 4. the resume on file: a confirmed entry counts only with its fact_confirmed event recorded.
@@ -122,13 +135,22 @@ select t.must_fail($$select career_resume_on_file('00000000-0000-4000-8000-00000
 select t.must_fail($$select career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('a',64))$$, 'permission denied', 'nor about anyone''s files');
 reset role;
 
--- 5. a resume sent as a file counts as stored; erased with the account
+-- 5. a resume sent as a file counts as stored; erased with the account. The bytes must be the declared size and sha256
+-- (review of #194, folds in #206): a fabricated fingerprint stores nothing.
 set role service_role;
-select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',12,repeat('b',64),'JVBERi0xLjQK',repeat('c',64)) is not null),
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:forged','resume.pdf','application/pdf',9,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))$$,
+ 'invalid resume upload', 'a fabricated sha256 is refused');
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:bad-base64','resume.pdf','application/pdf',9,repeat('b',64),'@not-base64!',repeat('c',64))$$,
+ 'invalid symbol', 'malformed base64 is refused');
+select t.must_fail($$select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:bad-size','resume.pdf','application/pdf',10,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64))$$,
+ 'invalid resume upload', 'a wrong declared size is refused');
+select t.ok((select count(*) = 0 from career_resume_uploads where user_id = '00000000-0000-4000-8000-000000001601'), 'the refused uploads stored nothing');
+select t.ok((select not career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('b',64))), 'a fabricated sha256 is no stored resume');
+select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64)) is not null),
  'the upload is recorded by its reference and sha256');
-select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',12,repeat('b',64),'JVBERi0xLjQK',repeat('c',64))
-  = (select id from career_resume_uploads where sha256 = repeat('b',64))), 'the same upload twice is one row');
-select t.ok((select career_resume_stored('00000000-0000-4000-8000-000000001601', repeat('b',64))), 'the file the person sent is a stored resume');
+select t.ok((select career_resume_upload_record_as('00000000-0000-4000-8000-000000001601','telegram','telegram:AgADrr','resume.pdf','application/pdf',9,encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'),'JVBERi0xLjQK',repeat('c',64))
+  = (select id from career_resume_uploads where sha256 = encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'))), 'the same upload twice is one row');
+select t.ok((select career_resume_stored('00000000-0000-4000-8000-000000001601', encode(sha256(decode('JVBERi0xLjQK','base64')),'hex'))), 'the file the person sent is a stored resume');
 reset role;
 select t.as_user('00000000-0000-4000-8000-000000001602');set role authenticated;
 select t.ok((select count(*) = 0 from career_resume_uploads), 'nobody else reads it');

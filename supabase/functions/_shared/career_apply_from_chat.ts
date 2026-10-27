@@ -89,16 +89,15 @@ export async function checkListed(picks: Listed[], get?: ((id: string) => Promis
 // holds at least one resume entry the person confirmed with its recorded event (the trust contract's minimum); false when
 // it holds none; null when it could not be read (unknown decides nothing).
 // OWNER RULE (2026-10-26): the entries' events must be on record too (career_resume_on_file, 20261026210016: each
-// confirmed entry's confirmation_event_id names a fact_confirmed event of this person). Where that function is not
-// applied yet the profile alone is read, as before; it still needs an event id on each entry.
+// confirmed entry's confirmation_event_id names a fact_confirmed event of this person). Only that function answers:
+// when it errors, is missing or says anything but true/false, the answer is null (unknown), which every caller treats
+// as "no resume" (fail closed). There is no weaker profile-only fallback (review of #194, 2026-10-27).
 export function resumeOnFileReader(admin: { rpc(name: string, args: Record<string, unknown>): PromiseLike<any> }, userId: string): () => Promise<boolean | null> {
   return async () => {
     let r: any;
-    try { r = await admin.rpc("career_resume_on_file", { p_user: userId }); } catch { r = null; }
+    try { r = await admin.rpc("career_resume_on_file", { p_user: userId }); } catch { return null; }
     if (r && !r.error && typeof r.data === "boolean") return r.data;
-    try { r = await admin.rpc("career_apply_profile_for", { p_user: userId }); } catch { return null; }
-    if (r?.error) return null;
-    return hasConfirmedResume(r?.data);
+    return null;
   };
 }
 // deno-lint-ignore no-explicit-any

@@ -90,7 +90,7 @@ Deno.test({
       for (const id of [PERSON, OTHER]) {
         await pg.sql(`insert into auth.users (id, email) values ('${id}', '${id}@example.test'); insert into public.profiles (id) values ('${id}');
           insert into public.career_watch_kv (user_id, key, value) values ('${id}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
-          ${confirmedResumeSql(id)}`);
+          ${confirmedResumeSql(id, "%PDF-1.4\n% synthetic receipt-test resume\n%%EOF\n")}`);
       }
       const url = `${site.base}/apply`;
       const factsPath = `${work}/facts.json`, resumePath = `${work}/resume.pdf`;

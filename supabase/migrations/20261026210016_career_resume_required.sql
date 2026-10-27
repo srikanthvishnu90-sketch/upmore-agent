@@ -44,14 +44,27 @@ create trigger career_apply_jobs_resume_guard before insert or update of state o
  for each row execute function public.career_apply_jobs_resume_guard();
 
 -- 3. prepared and carded
+-- A resume file the person confirmed: a fact_confirmed event of theirs names, as its evidence, an uploaded FILE (not pasted
+-- text) with this sha256 (career_router_evidence.ts: detail.upload {kind:'file', sha256}). Review of #194 (2026-10-27): a
+-- hash the person's own computer reports counts only when it is one of these, never any 64-hex value.
+create or replace function public.career_resume_confirmed_file(p_user uuid, p_sha256 text) returns boolean
+language sql stable security definer set search_path = public, pg_temp as $$
+ select coalesce(p_sha256, '') ~ '^[a-f0-9]{64}$' and exists (select from public.career_events e
+  where e.user_id = p_user and e.kind = 'fact_confirmed' and e.detail->'upload'->>'kind' = 'file' and e.detail->'upload'->>'sha256' = p_sha256)
+$$;
+revoke all on function public.career_resume_confirmed_file(uuid, text) from public, anon, authenticated;
+grant execute on function public.career_resume_confirmed_file(uuid, text) to service_role;
+
 create or replace function public.career_apply_prepared_resume_guard() returns trigger
 language plpgsql security definer set search_path = public, pg_temp as $$
 begin
  -- Prepared on the person's own signed-in computer (career_apply_prepare_own under their session: the request's role is
  -- authenticated and auth.uid() is them; never the service role's server prepare): the
- -- resume is the file on that computer, which the server never holds; the computer's attestation of its sha256 is
- -- recorded, and the engine there checks the file's bytes against it before it fills anything (approve-first.ts).
- if current_setting('role', true) = 'authenticated' and auth.uid() is not null and auth.uid() = new.user_id and public.career_resume_bound(new.payload) then
+ -- resume is the file on that computer, which the server never holds. Its sha256 is recorded only when it is a resume
+ -- file the person confirmed (career_resume_confirmed_file); any other hash is refused below. The engine there hashes the
+ -- file's bytes again right before it uploads them (portal-browser-helper.cjs RESUME_SHA_MISMATCH).
+ if current_setting('role', true) = 'authenticated' and auth.uid() is not null and auth.uid() = new.user_id
+    and public.career_resume_confirmed_file(new.user_id, new.payload->>'resume_sha256') then
   insert into public.career_resume_devices(user_id, sha256, at) values (new.user_id, new.payload->>'resume_sha256', now())
   on conflict (user_id, sha256) do update set at = excluded.at;
  end if;
@@ -137,7 +150,11 @@ revoke all on public.career_resume_devices from public, anon, authenticated;
 
 -- A resume stored for this person under this sha256: the tailored render (career-resumes/<user>/<sha256>.pdf, WO-028), a
 -- resume the cloud holds for them (career_apply_cloud_resumes), a file they sent (career_resume_uploads), or the file
--- their own signed-in computer prepared with (career_resume_devices).
+-- their own signed-in computer prepared with and that they confirmed as a file (career_resume_devices).
+-- What this checks: a row by that name or hash exists for this person. It does not read bytes (storage objects are
+-- matched by name). The bytes are checked where they are used: the cloud worker re-hashes the file it is handed against
+-- the approved resume_sha256 before the engine starts (workers/career-cloud/worker.ts, RESUME_CHANGED), uploads are
+-- hashed on the way in (career_resume_upload_record_as), and the engine re-hashes the file right before it attaches it.
 create or replace function public.career_resume_stored(p_user uuid, p_sha256 text) returns boolean
 language sql stable security definer set search_path = public, pg_temp as $$
  select coalesce(p_sha256, '') ~ '^[a-f0-9]{64}$' and (
@@ -163,6 +180,13 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare rid uuid;
 begin
  if p_user is null then raise exception 'invalid resume upload'; end if;
+ -- Review of #194 (folds in #206): a claimed fingerprint is not proof of a file. The decoded bytes must be the declared
+ -- size and hash to the declared sha256, or nothing is stored.
+ if p_content_b64 is null or p_sha256 is null or p_bytes is null
+    or octet_length(decode(p_content_b64, 'base64')) <> p_bytes
+    or encode(sha256(decode(p_content_b64, 'base64')), 'hex') <> p_sha256 then
+  raise exception 'invalid resume upload: content does not match size and sha256';
+ end if;
  insert into public.career_resume_uploads (user_id, channel, provider_ref, filename, mime, bytes, sha256, content_b64, message_sha256)
  values (p_user, p_channel, p_ref, p_filename, p_mime, p_bytes, p_sha256, p_content_b64, p_message_sha256)
  on conflict (user_id, sha256, message_sha256) do update set created_at = public.career_resume_uploads.created_at

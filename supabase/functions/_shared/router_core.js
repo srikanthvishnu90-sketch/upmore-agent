@@ -50174,8 +50174,29 @@ const CareerRouter = (() => {
     else { status = "awaiting_user"; reply = compose({ headline: "No employer is on your record yet.", facts: ["You have not told me where you work, and the record holds only what you state."], nextStep: "Where do you work now?" }); }
     return { intent: "conversation_recall", reply, resultStatus: status, sends: 0 };
   }
-  function factLine(f) {
-    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${f.key ? ` at ${f.key}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${f.key ? ` at ${f.key}` : ""} is ${f.value}`, interview_day: `your interview${f.key ? ` at ${f.key}` : ""} is on ${f.value}`, company_preference: `for ${f.key || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
+  // ITEM-C (2026-10-27): render-only key sanitation. Stored keys
+  // are under a contamination hold — legacy rows keyed before the
+  // capture-side garble fix can carry a trailing conjunction
+  // ("northwind ledger and") and stored lowercase. The DATA is
+  // never touched here: the rendering strips a trailing
+  // conjunction and restores display case only from text the
+  // record itself carries (this fact's evidence, or a peer
+  // fact's value/evidence). Case the record does not carry is
+  // never invented.
+  function displayKey(f, peers) {
+    let k = s(f && f.key).replace(/\s+/g, " ").trim();
+    if (!k) return "";
+    k = k.replace(/[\s,;:]+$/, "").replace(/\s+(?:and|or|&)$/i, "").replace(/[\s,;:]+$/, "").trim();
+    if (!k || /[A-Z]/.test(k)) return k;
+    const sources = [s(f && f.evidence), s(f && f.value)];
+    if (Array.isArray(peers)) for (const p of peers) sources.push(s(p && p.evidence), s(p && p.value));
+    const pat = new RegExp(`\\b${k.split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+")}\\b`, "i");
+    for (const src of sources) { const m = src && src.match(pat); if (m) return m[0]; }
+    return k;
+  }
+  function factLine(f, peers) {
+    const dk = displayKey(f, peers);
+    return { year: `you're a ${f.value}`, majors: `you study ${f.value}`, geography: `you're targeting ${f.value}`, experience: experienceLine(f), school: `you go to ${f.value}`, target_firm: `your target firm is ${f.value}`, level: `you want ${f.value} first`, excluded_level: `not ${f.value}`, tone: `the tone is ${f.value} from here`, target_role: `your dream role is ${f.value}`, recruiter_contact: `your recruiter contact${dk ? ` at ${dk}` : ""} is ${f.value}`, hiring_manager: `the hiring manager${dk ? ` at ${dk}` : ""} is ${f.value}`, interview_day: `your interview${dk ? ` at ${dk}` : ""} is on ${f.value}`, company_preference: `for ${dk || "that company"} you only want ${f.value}`, sponsorship: f.value === "does not need sponsorship" ? "you do not need sponsorship" : "you need sponsorship", citizenship: f.value === "not a US citizen" ? "you're not a US citizen" : "you're a US citizen", interview_company: `you have an interview at ${f.value}`, goal: `your career goal is ${f.value}` }[f.kind] || `${f.kind}: ${f.value}`;
   }
   // DEPTH LANE A (MI-013): the stated-facts -> profile bridge. Facts
   // the user states in chat were captured into ctx.statedFacts but
@@ -50719,13 +50740,20 @@ const CareerRouter = (() => {
       const w = selfCheck[1];
       const hit = C.facts.find((f) => lc(f.value).includes(w) || lc(f.kind) === w);
       const reply = hit
-        ? compose({ headline: `From your record: ${factLine(hit)}.`, facts: ["That is what you stated earlier — it is the same record your searches, drafts, and prep are built from."], nextStep: "Correct it in your own words if it is wrong, and the record re-aims." })
-        : compose({ headline: "That is not on your record — you have not told me yet.", facts: ["Nothing about your year, major, or targets is assumed here: the record holds only what you state, and this piece is not in it.", ...(C.facts.length ? [`What IS on record: ${C.facts.map(factLine).join("; ")}.`] : [])], nextStep: "State it in your own words and it is recorded in this turn." });
+        ? compose({ headline: `From your record: ${factLine(hit, C.facts)}.`, facts: ["That is what you stated earlier — it is the same record your searches, drafts, and prep are built from."], nextStep: "Correct it in your own words if it is wrong, and the record re-aims." })
+        : compose({ headline: "That is not on your record — you have not told me yet.", facts: ["Nothing about your year, major, or targets is assumed here: the record holds only what you state, and this piece is not in it.", ...(C.facts.length ? [`What IS on record: ${factLine(C.facts[0], C.facts)}.`, ...C.facts.slice(1).map((f) => `${factLine(f, C.facts)}.`)] : [])], nextStep: "State it in your own words and it is recorded in this turn." });
       return { intent: "career_guidance", reply, resultStatus: "awaiting_user", sends: 0 };
     }
     if (!/\bwhere('s| is) my (search|focus|head)\b|\bwhere am i (focused|looking|targeting|searching)\b|\bwhat do you have (on record|on me|about me)\b|\bwhat('s| is) on (record|file) for me\b|\bwhat do you know about me\b|\bremind me\b[^.]*\b(focus|target|city|major|year|told you|said)\b/.test(t)) return null;
     const lines = [];
-    if (C.facts.length) lines.push(`On record, in your words: ${C.facts.map(factLine).join("; ")}.`);
+    // ITEM-C (2026-10-27): one fact per line — the composer breaks
+    // on sentences, so a "; "-join of every factLine renders the
+    // whole record as one block. The lead-in rides the first fact;
+    // the rest stand as their own facts.
+    if (C.facts.length) {
+      lines.push(`On record, in your words: ${factLine(C.facts[0], C.facts)}.`);
+      for (const f of C.facts.slice(1)) lines.push(`${factLine(f, C.facts)}.`);
+    }
     if (C.thread && (C.thread.firm || C.thread.amount || C.thread.deadline)) lines.push(`The offer record: ${C.thread.firm || "firm not stated"}${C.thread.amount ? `, $${Number(C.thread.amount).toLocaleString()}` : ""}${C.thread.deadline ? `, decide by ${C.thread.deadline}` : ""}.`);
     if (C.rows.length) lines.push(`The tracker holds ${C.rows.length} application${C.rows.length === 1 ? "" : "s"}: ${C.rows.slice(0, 3).map((r) => `${r.company || "company not stated"} — ${r.stage || "recorded"}`).join("; ")}.`);
     if (!lines.length) lines.push("Nothing is on record yet — no facts, no offer, no tracker rows. Anything you state from here is captured in your words and used from then on.");

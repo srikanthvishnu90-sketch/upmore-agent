@@ -1,10 +1,17 @@
 // FEATURE 10 follow-up (2026-10-27): a draft-note ask whose recipient is a role with no name and no firm
 // ("Draft a short note to a recruiter asking about next steps. Do not send it.") is the networking path's to
-// answer: the recipient is unresolved, so the reply asks which specific person — naming the matches in the
-// person's own contacts — and says the note will be drafted and held for approval. It must never fall through
-// to a send plan, and it must never be silence. Before the fix, parseNetworkingAsk returned null for this
-// phrasing (the role target required a firm; the name target's STOP list rejected "a"/"recruiter"), so the
-// turn fell to the router, which answered with a campaign send-plan and no draft (live v253, msg 19441→19442).
+// answer. Two steps landed in order:
+//   1. The recipient being unresolved must not lose the turn: parseNetworkingAsk used to return null for this
+//      phrasing (the role target required a firm; the name target's STOP list rejected "a"/"recruiter"), so
+//      the turn fell to the router, which answered with a campaign send-plan and no draft (live v253, msg
+//      19441→19442). The parse fix claimed the phrasing and answered with a which-recruiter clarification.
+//   2. Judged against the raw ask, a clarification is still not what was requested: the person asked for a
+//      short generic note. A recipient is needed before a SEND (approval-gated, off) — not before a DRAFT.
+//      So an unresolved role WITH a topic now gets a template draft, composed deterministically with NO model
+//      call: placeholders [Name] and [Company] stand in for the recipient, only facts the record carries
+//      (a confirmed goal) are woven in, it is presented as held for approval with nothing sent, and it is
+//      never persisted as a sendable batch. Naming a specific person remains available as personalisation.
+//      The clarification survives only where a draft cannot be composed at all: the ask names no topic.
 // Run: deno test -A --no-check tests/architect/f10-networking-draft-note.test.ts
 import nodeAssert from "node:assert/strict";
 const assert = (v: unknown, m?: string) => nodeAssert.ok(v, m);
@@ -46,50 +53,99 @@ Deno.test("parse: a role recipient with no firm is a draft ask, recipient unreso
   assertEquals(parseNetworkingAsk("email my resume to them"), null);
 });
 
-Deno.test("turn: the live string gets a clarification naming the matches on file — no draft, no plan, no model call", async () => {
+Deno.test("turn: the live string gets a generic draft with placeholders — held, not sent, not persisted, no model call", async () => {
   const store = memoryOutreachStore(), state = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
-  await store.setPrefs(U, { signature: "Alex" }); // a resolved ask could draft with this on file; this one must clarify first
+  await store.setPrefs(U, { signature: "Alex" }); // on file; the template signs with it, and still drafts to no one
   let calls = 0;
   const counting = async (p: any) => { calls++; return await model(p); };
   const r = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state, store, model: counting });
   assert(r, "the networking path must claim the turn, not pass it on");
-  assertEquals([r!.intent, r!.status], ["career_networking_draft", "which"]);
-  assertMatch(r!.reply, /Which recruiter should the note go to\?/);
-  assertMatch(r!.reply, /Sam Rivera, Technical Recruiter at Stripe/);
+  assertEquals([r!.intent, r!.status], ["career_networking_draft", "template_draft"]);
+  // The requested output: a complete short draft note — subject, greeting, body — with placeholders.
+  assertMatch(r!.reply, /Subject: Asking about next steps/);
+  assertMatch(r!.reply, /Hi \[Name\],/);
+  assertMatch(r!.reply, /I'm writing to ask about next steps at \[Company\]\./);
+  assertMatch(r!.reply, /Alex/); // the signature on file signs it
+  // Held, not sent; a recipient is needed before a send, not before a draft.
   assertMatch(r!.reply, /held for your approval/);
   assertMatch(r!.reply, /nothing is sent/i);
+  assert(!/Which recruiter should the note go to/.test(r!.reply), r!.reply);
   assert(!/wave|send plan/i.test(r!.reply), r!.reply);
-  assertEquals(calls, 0, "no model call: nothing is drafted until the recipient is one specific person");
-  assertEquals(await store.latestBatch(U), []);
-  // With drafting off (the live configuration) the same clarification comes first: drafting_off is not what
-  // this phrasing reaches, because the recipient is resolved before any drafting is considered.
+  // Personalisation stays available as the secondary line: the matches on file are named.
+  assertMatch(r!.reply, /Sam Rivera, Technical Recruiter at Stripe/);
+  assertEquals(calls, 0, "no model call: the template is composed deterministically");
+  assertEquals(await store.latestBatch(U), [], "no batch or draft is persisted for a send");
+  // With drafting off (the live configuration) the same template comes back: it never needed the model.
   const off = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state, store, model: null });
-  assertEquals([off!.intent, off!.status], ["career_networking_draft", "which"]);
+  assertEquals([off!.intent, off!.status], ["career_networking_draft", "template_draft"]);
+  assertMatch(off!.reply, /Hi \[Name\],/);
+  assertEquals(await store.latestBatch(U), []);
 });
 
-Deno.test("turn: no matching role in contacts — the clarification says what it needs; the hiring-manager variant is handled the same way", async () => {
+Deno.test("turn: no matching role in contacts — the generic draft still comes back; the hiring-manager variant is handled the same way", async () => {
   const store = memoryOutreachStore(), state = await imported([{ name: "contacts.csv", text: CONTACTS }]);
   let calls = 0;
   const counting = async (p: any) => { calls++; return await model(p); };
   const r = await networkingTurn({ message: "draft a note to a recruiter about next steps", userId: U, threadId: T, now: NOW, state, store, model: counting });
-  assertEquals([r!.intent, r!.status], ["career_networking_draft", "which"]);
-  assertMatch(r!.reply, /There's no recruiter in your 2 contacts yet, so I don't have one specific person to draft to/);
-  assertMatch(r!.reply, /held for your approval; nothing is sent/);
+  assertEquals([r!.intent, r!.status], ["career_networking_draft", "template_draft"]);
+  assertMatch(r!.reply, /Hi \[Name\],/);
+  assertMatch(r!.reply, /ask about next steps at \[Company\]/);
+  assertMatch(r!.reply, /held for your approval/);
+  assertMatch(r!.reply, /nothing is sent/i);
   assertEquals(calls, 0);
   assertEquals(await store.latestBatch(U), []);
   const state2 = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
   const hm = await networkingTurn({ message: HM, userId: U, threadId: T, now: NOW, state: state2, store, model: counting });
-  assertEquals([hm!.intent, hm!.status], ["career_networking_draft", "which"]);
-  assertMatch(hm!.reply, /There's no hiring manager in your 6 contacts yet/);
+  assertEquals([hm!.intent, hm!.status], ["career_networking_draft", "template_draft"]);
+  assertMatch(hm!.reply, /draft to a hiring manager/);
+  assertMatch(hm!.reply, /Hi \[Name\],/);
   assertEquals(calls, 0);
+  assertEquals(await store.latestBatch(U), []);
 });
 
-Deno.test("turn: no contacts at all — the live string gets the plain no-contacts answer, not silence", async () => {
+Deno.test("turn: no contacts at all — a generic draft needs no recipient on file, so the live string still gets one", async () => {
   const store = memoryOutreachStore(), state: Record<string, unknown> = { profile: { facts: FACTS } };
   const r = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state, store, model: null });
   assert(r);
-  assertEquals([r!.intent, r!.status], ["career_networking_draft", "no_contacts"]);
-  assertMatch(r!.reply, /haven't sent me any contacts yet/);
+  assertEquals([r!.intent, r!.status], ["career_networking_draft", "template_draft"]);
+  assertMatch(r!.reply, /Subject: Asking about next steps/);
+  assertMatch(r!.reply, /Hi \[Name\],/);
+  assertMatch(r!.reply, /\[Your name\]/); // no signature on file: the sign-off is a placeholder too
+  assertEquals(await store.latestBatch(U), []);
+});
+
+Deno.test("turn: a confirmed goal on record is woven into the template in the person's own words; an unconfirmed one is not used", async () => {
+  const store = memoryOutreachStore(), state = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
+  (state.profile as any).facts = [...FACTS, { id: "g1", kind: "goal", text: "a data analyst internship for summer 2027", status: "confirmed" }];
+  const r = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state, store, model: null });
+  assertEquals(r!.status, "template_draft");
+  assertMatch(r!.reply, /I'm looking for a data analyst internship for summer 2027\./);
+  const state2 = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
+  (state2.profile as any).facts = [...FACTS, { id: "g1", kind: "goal", text: "a data analyst internship for summer 2027", status: "confirmed", needs_confirmation: true }];
+  const q = await networkingTurn({ message: LIVE, userId: U, threadId: T, now: NOW, state: state2, store, model: null });
+  assertEquals(q!.status, "template_draft");
+  assert(!/data analyst internship/.test(q!.reply), q!.reply);
+  assertMatch(q!.reply, /Hi \[Name\],/);
+});
+
+Deno.test("turn: no topic at all — there is no ask to compose, so the clarification is what remains", async () => {
+  const store = memoryOutreachStore(), state = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
+  let calls = 0;
+  const counting = async (p: any) => { calls++; return await model(p); };
+  const r = await networkingTurn({ message: "draft a note to a recruiter", userId: U, threadId: T, now: NOW, state, store, model: counting });
+  assertEquals([r!.intent, r!.status], ["career_networking_draft", "which"]);
+  assertMatch(r!.reply, /Which recruiter should the note go to\?/);
+  assert(!/Subject:/.test(r!.reply), r!.reply);
+  assertEquals(calls, 0);
+  assertEquals(await store.latestBatch(U), []);
+});
+
+Deno.test("control: a role at a named firm is a group ask, not the generic draft — it keeps the group path", async () => {
+  const store = memoryOutreachStore(), state = await imported([{ name: "Connections.csv", text: LINKEDIN }]);
+  const r = await networkingTurn({ message: "email a recruiter at Stripe about next steps", userId: U, threadId: T, now: NOW, state, store, model: null });
+  assert(r);
+  assert(r!.status !== "template_draft", r!.status);
+  assert(!/Hi \[Name\],/.test(r!.reply), r!.reply);
 });
 
 Deno.test("drafting_off: a resolved ask with drafting off says nothing was written, sent or queued", async () => {

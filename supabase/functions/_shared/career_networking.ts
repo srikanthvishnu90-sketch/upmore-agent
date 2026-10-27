@@ -9,14 +9,19 @@
 //       message, hash-bound. Sending stays the scheduled run's (career-proactive, CAREER_OUTREACH_SEND), through the
 //       database's claim (caps, do-not-contact, recipient cap). Nothing here sends.
 //   (c2) a role with no name and no firm ("draft a note to a recruiter asking about next steps"): the recipient is
-//       unresolved, so the reply asks which specific person — naming the matches in the person's own contacts —
-//       and states the note will be drafted and held for approval. This path can only draft or clarify, never send.
+//       unresolved, but a draft needs no recipient — only a send does, and sending stays approval-gated and off.
+//       With a topic, the reply is a generic template draft (deterministic, no model): [Name] and [Company]
+//       placeholders, only the record's own confirmed facts woven in, presented as held for approval with
+//       nothing sent and nothing persisted as a sendable batch; naming a specific person stays available as
+//       personalisation. The which-person clarification remains only when the ask names no topic at all —
+//       there is no ask to compose — or asks for several notes at once. This path can only draft or clarify,
+//       never send.
 // Never an invented address: a recipient is a row of the person's own contacts, with the address on that row, or no one.
 // The model writes only when the caller passes one (CAREER_NETWORKING_DRAFT=on, metered); without it the reply names who
 // would be written to and that nothing was drafted.
 import { type ContactRow, contactsOf, importContactsCsv, importContactsFile, MX_NOT_WIRED, type MxResolver, normalizeFirm, sameFirm, verifyRows } from "./career_contacts.ts";
 import { legacyRows } from "./career_referrals.ts";
-import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
+import { BATCH_MAX, batchMessages, confirmed, draftFor, type Drafted, emailHash, factText, footerOf, messageOf, type ModelFn, OUTREACH_INTENT, type OutreachDraft,
   type OutreachStore, payloadHash, type Recipient, recordOutreach } from "./career_outreach.ts";
 import type { EventStore } from "./agent/timeline.ts";
 
@@ -237,6 +242,10 @@ function whoTurn(o: NetworkingDeps, firmAsked: string, all: ContactRow[]): Netwo
 async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>): Promise<NetworkingResult> {
   const all = await peopleOf(o), t = ask.target;
   const firmName = t.firm ? normalizeFirm(t.firm) : null;
+  // (c2) A single note to an unresolved role, with a topic: the generic template draft answers it. It needs
+  // no contacts, no confirmed facts and no model, so it runs ahead of every gate below — those gates exist
+  // for addressed drafts, and a recipient is only needed before a send, never before a draft.
+  if (t.by === "role" && ask.topic && t.count === 1) return await templateNoteTurn(o, ask, all);
   if (!all.length) return { reply: `You haven't sent me any contacts yet, so there's no one I can write to${firmName ? ` at ${firmName}` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "no_contacts" };
   // Who: the rows the ask names, from the person's own contacts only.
   let pool: ContactRow[];
@@ -250,9 +259,10 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
     if (!pool.length) return { reply: `No one named ${t.name}${firmName ? ` at ${firmName}` : ""} is in your contacts${firmName && atFirm(all, firmName).length ? ` (your contacts there: ${atFirm(all, firmName).slice(0, 5).map((r) => r.name).join(", ")})` : ""}. ${NO_FINDER} ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "not_in_contacts" };
     if (pool.length > 1) return { reply: `More than one ${t.name} is in your contacts:\n${pool.slice(0, LIST_MAX).map((r) => `${lineOf(r)}${r.firm ? ` at ${r.firm}` : ""}`).join("\n")}\nSay which, with the full name and firm ("email ${pool[0].name} at ${pool[0].firm || "<firm>"}").`, intent: DRAFT_INTENT, status: "which" };
   } else if (t.by === "role") {
-    // The recipient is unresolved (a role, no name, no firm): a draft is written to one specific person from the
-    // person's own contacts, so ask which one — naming the matches on file — and state what happens on the
-    // answer: the note is drafted and held for approval. Nothing here plans or makes a send.
+    // What reaches here: an unresolved role with no topic (there is no ask to compose a draft around), or
+    // several notes at once. A draft is written to one specific person from the person's own contacts, so ask
+    // which one — naming the matches on file — and state what happens on the answer: the note is drafted and
+    // held for approval. Nothing here plans or makes a send.
     const matches = rolePool(uniq(all), t.role);
     if (!matches.length) return { reply: `There's no ${t.role} in your ${plural(all.length, "contact")} yet, so I don't have one specific person to draft to. Tell me who you mean — their name, and their firm if they're in your contacts. The note will be drafted and held for your approval; nothing is sent from here. ${ADD_CONTACTS}`, intent: DRAFT_INTENT, status: "which" };
     return { reply: `Which ${t.role} should the note go to? A draft is written to one specific person from your contacts, then held for your approval — nothing is sent. In your contacts: ${matches.slice(0, LIST_MAX).map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}. Say the name (with the firm, to be exact) and I'll draft it.`, intent: DRAFT_INTENT, status: "which" };
@@ -282,6 +292,38 @@ async function draftTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>
   const prefs = await o.store.prefs(o.userId);
   if (!prefs.signature) return { reply: SIGN_ASK, intent: SIGNATURE_INTENT, status: "needs_signature" };
   return await writeBatch(o, pick, held, considered, ask.topic, prefs.signature, facts);
+}
+
+// (c2) The generic draft for an unresolved role recipient, composed from a template here beside draftTurn —
+// career_outreach.draftFor is model-only (payload → model → fact-lock) and has no template pieces to reuse,
+// and its batch formatting (draftText/batchMessages) renders a persisted OutreachDraft addressed to a
+// Recipient with an email. This draft has no recipient, is never persisted, and is never sendable as shown,
+// so it is presented in the reply only. Deterministic: no model call, whether or not one is configured.
+// Nothing is invented: the topic is the person's own words from this turn, the one fact woven in is a
+// confirmed goal on record in their own words, and everything else is a placeholder.
+async function templateNoteTurn(o: NetworkingDeps, ask: Extract<Ask, { kind: "draft" }>, all: ContactRow[]): Promise<NetworkingResult> {
+  const t = ask.target as Extract<Target, { by: "role" }>;
+  const topic = String(ask.topic ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+  const goalFact = confirmed(((o.state.profile as any)?.facts ?? []) as unknown[]).find((f: any) => f?.kind === "goal");
+  const goalText = goalFact ? String((goalFact as any).text ?? factText(goalFact)).replace(/\s+/g, " ").replace(/[.;\s]+$/, "").trim() : "";
+  const prefs = await o.store.prefs(o.userId).catch(() => ({ daily_cap: null, signature: null }));
+  const sign = prefs.signature?.trim() ? prefs.signature.trim() : "[Your name]";
+  const body = [
+    `Hi [Name],`,
+    `I'm writing to ask about ${topic} at [Company].${goalText && goalText.length <= 140 ? ` I'm looking for ${goalText}.` : ""} If there's anything I should prepare or send over in the meantime, I'm happy to.`,
+    `Thanks for your time,\n${sign}`,
+  ].join("\n\n");
+  const matches = all.length ? rolePool(uniq(all), t.role) : [];
+  const next = matches.length
+    ? `In your contacts: ${matches.slice(0, LIST_MAX).map((r) => `${r.name}${r.title ? `, ${r.title}` : ""}${r.firm ? ` at ${r.firm}` : ""}`).join("; ")}. Say the name (with the firm, to be exact) and I'll address it to them — an addressed draft is the one that can be approved to send.`
+    : `When you know who it's for, tell me their name and firm and I'll address it to them — an addressed draft is the one that can be approved to send.`;
+  const reply = [
+    `Here is a short draft to a ${t.role}, ready to use once the placeholders are filled in. It is held for your approval — nothing is sent, and it is not saved as a sendable draft: a recipient is only needed before a send, and sending stays off until you approve an exact message.`,
+    `Subject: Asking about ${topic}`,
+    body,
+    next,
+  ].join("\n\n");
+  return { reply, intent: DRAFT_INTENT, status: "template_draft" };
 }
 
 async function writeBatch(o: NetworkingDeps, pick: ContactRow[], held: { name: string; why: string }[], considered: number, topic: string | null, signature: string, facts: unknown[]): Promise<NetworkingResult> {

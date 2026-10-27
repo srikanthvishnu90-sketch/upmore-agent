@@ -144,6 +144,14 @@ const ADMIT: Record<Exclude<Admit, "ok">, string> = {
   spacing: "Trainee sent an email for you less than 90 seconds ago", recipient_cap: "that address already got 3 emails through Trainee this month",
 };
 
+// Someone the person wrote to through Trainee (their own outreach drafts), by full name or first name.
+async function isOutreachPerson(store: OutreachStore, userId: string, name: string): Promise<boolean> {
+  if (!store.history) return false;
+  const want = String(name ?? "").toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!want) return false;
+  const rows = await store.history(userId, 500).catch(() => []);
+  return rows.some((d) => { const n = String(d.recipient?.name ?? "").toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ").trim(); return n === want || n.split(" ")[0] === want; });
+}
 // Which follow-up the person means: the drafted one for that employer first, then the due one, of the kind they named.
 function pick(rows: { drafts: DraftRow[]; due: Draft[] }, company: string, which: Card["kind"] | null): Card[] {
   const drafted: Card[] = rows.drafts.filter((d) => sameCompany(d.company, company)).map((d) => ({ key: d.draft_key, ref: d.application_ref, kind: d.kind, company: d.company, role: d.role, text: d.text, basis: d.basis }));
@@ -180,9 +188,10 @@ async function checkTurn(o: { userId: string; deps: FollowupDeps }, connected: b
   return { reply: [head, ...(found.length ? found : ["Nothing in it changes any of your applications."])].join("\n\n"), status: found.length ? "updated" : "nothing_new", intent: CHECK_INTENT };
 }
 
-async function cardTurn(o: { userId: string; threadId: string; now: number; deps: FollowupDeps }, ask: Extract<FollowupAsk, { kind: "card" }>): Promise<FollowupTurn> {
+async function cardTurn(o: { userId: string; threadId: string; now: number; deps: FollowupDeps }, ask: Extract<FollowupAsk, { kind: "card" }>): Promise<FollowupTurn | null> {
   const done = (reply: string, status: string): FollowupTurn => ({ reply, status, intent: FOLLOWUP_ANSWER_INTENT });
   const s = standingFrom(await o.deps.read(o.userId), o.now);
+  if ((s.unreadable.includes("mail") || s.unreadable.includes("drafts")) && await isOutreachPerson(o.deps.outreach, o.userId, ask.company)) return null;
   if (s.unreadable.includes("mail") || s.unreadable.includes("drafts")) return done(`I couldn't read your mail record just now, so I can't tell whether ${clip(ask.company, 80)} replied; nothing was drafted or sent. Ask me again in a minute.`, "unreadable");
   const what = ask.which ? word(ask.which) : "follow-up";
   const found = pick(s, ask.company, ask.which);
@@ -190,6 +199,9 @@ async function cardTurn(o: { userId: string; threadId: string; now: number; deps
     const sent = (s.sent ?? []).find((d) => sameCompany(d.company, ask.company) && (!ask.which || d.kind === ask.which));
     if (sent) return done(`Your ${word(sent.kind)} to ${clip(sent.company, 80)} was already sent from your Gmail on your yes; nothing more is due for it.`, "already_sent");
     const known = s.apps.some((a) => sameCompany(a.company, ask.company)) || s.tracker.some((a) => sameCompany(a.company, ask.company));
+    // FAMILY NETWORKING: "follow up with Maya" names a person the person emailed through Trainee, not an employer: the
+    // networking turn after this one answers it (career_outreach_track.ts). Only when no application matches the name.
+    if (!known && await isOutreachPerson(o.deps.outreach, o.userId, ask.company)) return null;
     return done(known
       ? `No ${what} is due for ${clip(ask.company, 80)} right now: an application gets a follow-up after 14 days with no reply, and an interview step a thank-you after 7 days with nothing since. Nothing was drafted or sent.`
       : `There's no application to ${clip(ask.company, 80)} on record, so there's no ${what} to send. Nothing was drafted or sent.`, "none_due");

@@ -75,6 +75,7 @@ import { missingIntegration } from "../_shared/agent/integrations.ts";
 import { documentsOf, materializeArtifacts } from "../_shared/channel_artifacts.ts";
 import { askFromRouter, judgePromptTurn, searchJudgeTurn, supabaseJudgeCache, supabaseSearchSources } from "../_shared/career_search_judge.ts"; // FEATURE 5
 import { offerChatTurn } from "../_shared/career_offer_chat.ts"; // FEATURE 12
+import { afterRouter, commitIntakeAnswer, fileUploadFor, INPUT_MAX, intakeRawMessage, INTAKE_STATE_KEY, resumeFileIntake, resumeIntakeTurn } from "../_shared/career_resume_intake.ts"; // FEATURE 16
 import { networkingTurn } from "../_shared/career_networking.ts"; // FEATURE 10
 import { CareerWriting } from "../_shared/router_core.career.js"; // FEATURE 4
 import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.ts"; // FEATURE 4
@@ -96,7 +97,8 @@ async function recordTurnCost(admin: any, userId: string, threadId: string, mete
 
 // WO-106 (F5): the reply to a batch ask the router would have "handed to the browser worker": what happened, nothing more.
 export const BATCH_NOT_STARTED_REPLY = "I haven't started that batch: nothing was searched, prepared or sent. Applying runs in the Trainee extension in your browser, one posting at a time, and it shows you each filled application before anything is sent. Tell me the role and city, and I'll find live postings you can pick from.";
-const MAX_MESSAGE_LEN = 4000; // M2: cap input size (same cap as handler.ts)
+// M2: the input cap. A plain message is read up to 4,000 characters (PLAIN_MESSAGE_MAX, as handler.ts); FEATURE 16 takes a
+// longer one only as a resume, up to INPUT_MAX, and answers anything else in plain words (career_resume_intake.ts).
 
 type TurnCtx = { note: string | null; user: string | null; thread: string | null };
 // Host routes and task/batch planners share this existing JSON reply boundary.
@@ -198,16 +200,30 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       );
     }
 
-    const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    const { thread_id, message: sentMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     // WO-100: the person's situation (every task in flight, the next steps, what Trainee can do), read once per turn,
     // before anything answers; a source that fails is named in it, never guessed. A code an employer emailed them, while
     // waiting, is removed from this text like a labeled one.
     const situation = await readSituation(admin, user.id, Date.now()).catch((e) => { console.error("situation:", e?.message ?? e); return null; });
+    // FEATURE 16: resume files and long pastes (career_resume_intake.ts). A file on the request (`resume_file`) is read
+    // here and its text is the turn's message (redacted below like any message); a message past what can be stored is
+    // cut at a line, and the reply will say so. A long message is taken up to INPUT_MAX; the intake turn below reads it
+    // only as a resume and answers anything else in plain words.
+    // A texting channel's turn (the service-role bridge): long messages can arrive there in parts (Telegram sends at most
+    // 4,096 characters a message). The channel itself is never sent to the turn (WO-038), so every bridge turn counts.
+    const f16Channel = isBridgeCall ? "channel" : null;
+    const f16File = await resumeFileIntake(body as Record<string, unknown>, f16Channel ?? "web");
+    const f16Raw = intakeRawMessage(sentMessage, f16File);
+    // The turn's text: what was sent, or the file's text under its "[resume file: name]" line (the request hash below is
+    // over it too, so a retried upload replays and a different file under the same turn key conflicts).
+    const rawMessage = f16Raw.raw;
     // Text, photos, or both (a photo alone is a message: spec 16 item 12).
-    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN, { codePending: codePending(situation) });
+    const input = chatInput(rawMessage, images, INPUT_MAX, { codePending: codePending(situation) });
     if (!input.ok) return json(cors, { error: input.error }, 400);
-    const { message, userContent, imageBlocks } = input;
+    // END FEATURE 16 (input)
+    let { message, userContent } = input;
+    const { imageBlocks } = input;
     flowCtx.note = redactionNote(input.redacted);
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
@@ -348,6 +364,28 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       };
       // WO-100: module 120's "what's connected" reads the live grants, the extension and the phone link (no address).
       if (situation) ctx.statusRecords = statusRecordsFrom(situation.capabilities);
+      // FEATURE 16: resume intake. A file's refusal, a long message that is not a resume, and a held part of a split paste
+      // are answered here and saved like any turn; a file read, a long resume paste and joined parts go on as this turn's
+      // message to the router's own resume step, which shows every entry for one yes.
+      const f16Prior = (ctx as any)[INTAKE_STATE_KEY] ?? null;
+      const f16 = !careerTask && !careerBatch && (f16File || !host.isHostControlled(message, ctx))
+        ? await resumeIntakeTurn({ file: f16File, message, userContent, pasteCut: f16Raw.cut, channel: f16Channel, state: f16Prior, now: Date.now() })
+        : null;
+      if (f16?.kind === "answer") {
+        if (f16.state) (ctx as any)[INTAKE_STATE_KEY] = f16.state; else delete (ctx as any)[INTAKE_STATE_KEY];
+        const f16Reply = flowCtx.note ? `${flowCtx.note} ${f16.reply}` : f16.reply;
+        const f16Reminders = Array.isArray(loaded.reminders) ? loaded.reminders : [];
+        const f16Lines = f16Reminders.map((r: any) => typeof r.speak_line === "string" ? r.speak_line.slice(0, 2000) : "").filter(Boolean);
+        const f16Response = { thread_id: tid, reply: [f16Reply, ...f16Lines].join("\n"), action: null, turn_key: turnKey, reminders: f16Reminders, meta: { career: true, intent: f16.intent, result_status: f16.status, contained: false } };
+        const f16Saved = await commitIntakeAnswer(persistence, { userId: user.id, threadId: tid, turnKey, requestHash, revision: loaded.revision, accountVersion: loaded.accountVersion, snapshot: host.extractSnapshot(ctx), patch: ctx._hostPatch, input: userContent, response: f16Response });
+        flowCtx.note = null;
+        return json(cors, f16Saved.response, 200);
+      }
+      if (f16?.kind === "route") {
+        message = f16.message; userContent = f16.userContent;
+        if (f16.note) flowCtx.note = flowCtx.note ? `${flowCtx.note} ${f16.note}` : f16.note;
+      }
+      // END FEATURE 16 (intake)
       // WO-002 (D-008): the agent brain answers when CAREER_BRAIN=agent; structured task/batch requests stay on the
       // router path. A model failure falls back to the router so an outage never leaves the person with nothing.
       let out: CareerTurnResult;
@@ -712,6 +750,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (held) out = { ...out, reply: held, resultStatus: "not_confirmed" };
         } else {
           const seen = await resumeConfirmationContext((recent.data ?? []) as any[], (ctx as any).profile);
+          seen.upload = fileUploadFor(seen.upload, f16Prior); // FEATURE 16: entries read from a file name the file (its reference and sha256)
           const ev = await evidenceResumeConfirmation({ userId: user.id, now: Date.now(), message, before: (loaded.account as any)?.memory?.profile ?? (loaded.snapshot as any)?.stores?.profile ?? null,
             after: (ctx as any).profile ?? null, out, shown: seen.shown, upload: seen.upload, events });
           if (ev.unshown || ev.untraced || ev.refused) console.error(`career evidence: held as drafts: ${ev.unshown} not shown, ${ev.untraced} not in the upload, ${ev.refused} event not recorded`);
@@ -755,6 +794,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (mem?.patch) out = { ...out, ...mem.patch };
       }
       // END FEATURE 9
+      // FEATURE 16: the file a presented resume was read from stays on the thread until the yes; an erase clears it.
+      {
+        const after = afterRouter(f16, out, f16Prior, ctx._hostPatch?.erase === true, f16File?.filename ?? null);
+        if (after.state) (ctx as any)[INTAKE_STATE_KEY] = after.state; else delete (ctx as any)[INTAKE_STATE_KEY];
+        if (after.reply) out = { ...out, reply: after.reply, intent: "career_resume_file", resultStatus: "not_saved" };
+      }
+      // END FEATURE 16
       let taskIntent = null;
       let batchIntent = null;
       const pausedReadback = careerTask && ["status", "reconcile"].includes(careerTask.action) && out.intent === "career_paused" && !ctx._hostPatch;

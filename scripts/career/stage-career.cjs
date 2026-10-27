@@ -1,6 +1,6 @@
 "use strict";
 // B-05 staged-size staging (Crew A, 2026-10-15): stages the career-only
-// deploy tree by walking the static import graph from the career entry
+// deploy tree by walking the import graph (static imports, and literal relative import("./x")) from the career entry
 // (agent-chat/index-career.ts, staged as agent-chat/index.ts) — the same
 // method that produced the v222 artifact (8 files, 2,011,240 B). Vendored
 // from the prune lane's stage-graph.cjs so the size discipline runs in CI
@@ -35,13 +35,13 @@ function findEsbuild() {
 }
 const ESBUILD = findEsbuild();
 
-const IMPORT_RE = /(?:import|export)[^"']*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']/g;
+const IMPORT_RE = /(?:import|export)[^"']*?from\s*["']([^"']+)["']|import\s*["']([^"']+)["']|import\(\s*["'](\.\.?\/[^"']+)["']\s*\)/g;
 function importsOf(file) {
   const src = fs.readFileSync(file, "utf8");
   const out = [];
   let m;
   while ((m = IMPORT_RE.exec(src))) {
-    const spec = m[1] || m[2];
+    const spec = m[1] || m[2] || m[3];
     if (spec && (spec.startsWith("./") || spec.startsWith("../"))) out.push(spec);
   }
   return out;

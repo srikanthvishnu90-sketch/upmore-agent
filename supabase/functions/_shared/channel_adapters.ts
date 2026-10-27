@@ -52,7 +52,11 @@ export interface InboundMessage {
   // the build container), so no id is read there. A card's text yes approves only when this id is the message that
   // carried the card (career_apply_cards.ts).
   replyToMessageId?: string | null;
+  // FEATURE 16: the file itself, when the adapter downloaded it (Telegram getFile): its bytes, name and type, and the
+  // platform's own reference (Telegram: tg-file:<file_unique_id>). The turn reads it as a resume (career_resume_intake.ts).
+  upload?: InboundUpload | null;
 }
+export interface InboundUpload { bytes: Uint8Array; name: string; mime: string; ref: string; sha256?: string | null }
 // A WhatsApp status callback: a message we sent failed after Meta accepted it. hold: it failed for the window (131047)
 // or the per-user marketing limit (131049), so it goes back in the queue for the person's next message.
 export interface StatusEvent { providerMessageId: string; code: number | null; hold: boolean; error: string }

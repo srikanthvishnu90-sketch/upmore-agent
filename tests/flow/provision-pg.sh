@@ -7,6 +7,9 @@
 # Nothing here touches the live project.
 # Usage: [INCLUDE_BRIDGE=1] bash tests/flow/provision-pg.sh <work-dir> <port>     (stop: pg_ctl -D <work-dir>/data -m immediate stop)
 set -euo pipefail
+# The career schema runs UTF8, as the Supabase project does (C collation, so ordering stays byte order): under the
+# old default (SQL_ASCII) length() counted bytes, so a 200-character event subject with one en dash broke
+# career_events_subject_check here and nowhere in production (FEATURE 16, 2026-10-26).
 export LC_ALL=C LANG=C
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK="$1"; PORT="$2"
@@ -14,7 +17,7 @@ PGBIN="${PGBIN:-$(dirname "$(command -v postgres 2>/dev/null || echo /usr/lib/po
 BRIDGE=20261024130000_career_apply_card_cloud_bridge.sql
 # initdb refuses to run as root (containers); the postgres account owns the cluster there. CI runs unprivileged.
 AS=(); if [[ "$(id -u)" == "0" ]]; then AS=(runuser -u postgres --); chown postgres "$WORK"; fi
-"${AS[@]}" "$PGBIN/initdb" -D "$WORK/data" -U postgres --auth=trust >/dev/null
+"${AS[@]}" "$PGBIN/initdb" -D "$WORK/data" -U postgres --auth=trust -E UTF8 --locale=C >/dev/null
 "${AS[@]}" "$PGBIN/pg_ctl" -D "$WORK/data" -o "-p $PORT -k $WORK -c listen_addresses=''" -l "$WORK/log" -w start >/dev/null
 PSQL=(psql -X -q -v ON_ERROR_STOP=1 -h "$WORK" -p "$PORT" -U postgres -d postgres)
 PGOPTIONS='-c client_min_messages=error' "${PSQL[@]}" -f "$ROOT/tests/db/stubs.sql" >/dev/null 2>&1

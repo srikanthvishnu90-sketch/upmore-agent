@@ -480,7 +480,6 @@ if [[ -f "$BRIDGE_PATH" ]]; then
     -c "select set_config('upmore.test.disposable','card-cloud-daily-cap',false)" \
     -f "$HERE/pending/career_apply_card_cloud_daily_cap.test.sql"
 fi
-<<<<<<< HEAD
 # FEATURE 16 (20261026210016): OWNER RULE 2026-10-26, never queued, claimed, prepared or carded without a resume; applied
 # twice (idempotent), last, after every phase (the bridge's pending tests included) that queues synthetic payloads.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261026210016_career_resume_required.sql"
@@ -495,7 +494,6 @@ echo "== channel_telegram_login.test.sql (a signed sign-in links once; a replay,
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/channel_telegram_login.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== claim guards after the resume rule (scripts/launch/verify-claim-guards.sql)"
 "${PSQL[@]}" -f "$ROOT/scripts/launch/verify-claim-guards.sql"
-=======
 # LAUNCH READINESS B1 (2026-10-26, audit PR #192): the definer lockdown, last, on the schema every phase above left
 # (the card-cloud bridge included). The test applies it (twice) over production's shape, then checks the whole schema:
 # no SECURITY DEFINER function anon can run, none without a fixed search_path.
@@ -520,5 +518,4 @@ SQL
 "${PSQL[@]}" -t -A -o /dev/null -f "$WORK/definer-keys.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
 echo "== definer_lockdown.test.sql (the fourteen functions as set live; no definer function anon can run; every one with a search_path)"
 "${PSQL[@]}" -t -A -o /dev/null -f "$HERE/definer_lockdown.test.sql" 2>&1 | sed -E 's/^psql:[^ ]+ NOTICE:  /  /'
->>>>>>> fix/web-trainee-launch-20261026
 echo "db tests passed"

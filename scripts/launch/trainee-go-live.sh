@@ -37,8 +37,9 @@
 #                 with --brain agent, CAREER_BRAIN=staged only with --brain staged (--brain router unsets it; without
 #                 --brain it is not touched)
 #   4 deploy      agent-chat from the staged career-only tree (index-career.ts as agent-chat/index.ts, JWT on), then
-#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp
-#                 with --no-verify-jwt (pg_cron, LoopMessage, Telegram and Meta carry no JWT; each checks its own secret),
+#                 career-ingest, career-proactive, trainee-deliver, trainee-inbound, trainee-telegram, trainee-whatsapp,
+#                 career-connect with --no-verify-jwt (pg_cron, LoopMessage, Telegram, Meta and Google's redirect carry no
+#                 JWT; each checks its own secret or signed state), then career-email-code with JWT on,
 #                 all from the staged commit; each deploy writes its ledger row (sha, bundle sha256, platform version)
 #   5 schedules   the three pg_cron jobs, each secret passed by env exactly as the script's header says (it goes to Vault)
 #   6 smoke       scripts/launch/trainee-smoke.cjs against the live project (waits for each schedule to fire once
@@ -164,6 +165,8 @@ MIGRATIONS=(
   20261026100000_career_apply_cloud_runner.sql
   20261026100001_career_apply_want_guard.sql
   20261026140000_career_apply_receipt_store.sql
+  20261026160000_career_connect_needs.sql
+  20261026200011_google_disconnect_erase.sql
   20261026230500_definer_execute_lockdown.sql
 )
 MIGRATION_MARK=(
@@ -232,6 +235,8 @@ MIGRATION_MARK=(
   "exists (select 1 from pg_proc where proname = 'career_apply_cloud_dispatch_claim')"
   "exists (select 1 from pg_proc where proname = 'career_apply_want_put_for' and prosrc like '%company_cooldown%')"
   "to_regclass('public.career_apply_receipt_files') is not null"
+  "exists (select 1 from pg_proc where proname = 'career_connect_link_finish') and to_regclass('public.career_needs_asked') is not null"
+  "exists (select 1 from pg_trigger where tgname = 'user_oauth_connections_google_erase')"
   "not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and ((p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')) or (p.proname in ('exec_vault_read', 'plaid_month_spend') and has_function_privilege('authenticated', p.oid, 'EXECUTE'))))"
 )
 # The career chat (agent-chat's career entry) already reads these; checked, never applied here.
@@ -249,7 +254,12 @@ CHANNEL_FNS=(trainee-telegram trainee-whatsapp)
 CHANNEL_HIDDEN=(TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET WHATSAPP_TOKEN WHATSAPP_APP_SECRET WHATSAPP_VERIFY_TOKEN)
 CHANNEL_PLAIN=(TELEGRAM_BOT_USERNAME WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TEMPLATE_UPDATES WHATSAPP_TEMPLATE_LANGUAGE WHATSAPP_DAILY_TEMPLATES)
 # Every function step 4 deploys, in its order: the provenance manifest hashes each, the ledger records each.
-DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}")
+# FEATURE NEEDS: Gmail connect from the chat. career-connect serves the one-time link and is the OAuth client's redirect
+# URI (public, --no-verify-jwt: the token and the signed state are the authentication); career-email-code (WO-096) reads
+# an employer's emailed code with the person's own session (verify_jwt on). gmail-oauth is not deployed here.
+CONNECT_FNS=(career-connect)
+JWT_FNS=(career-email-code)
+DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${CONNECT_FNS[@]}" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
 PROV="$REPO/scripts/launch/deploy-provenance.cjs"
@@ -621,7 +631,8 @@ fi
 if [[ -z "$ONLY_SMOKE" && -z "$SKIP_DEPLOY" ]]; then
   CHECK=(supabase/functions/agent-chat/index-career.ts supabase/functions/career-ingest/index.ts supabase/functions/career-proactive/index.ts
     supabase/functions/trainee-deliver/index.ts supabase/functions/trainee-inbound/index.ts
-    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts)
+    supabase/functions/trainee-telegram/index.ts supabase/functions/trainee-whatsapp/index.ts
+    supabase/functions/career-connect/index.ts supabase/functions/career-email-code/index.ts)
   run "deno check ${CHECK[*]}" deno check "${CHECK[@]}"
 fi
 ok
@@ -772,8 +783,13 @@ else
     ledger_function agent-chat
   fi
   # career-voice (WO-035) authorizes each call with its own signed link; it stays off until CAREER_VOICE=on is set.
-  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}"; do
+  for fn in "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "${CONNECT_FNS[@]}"; do
     run "supabase functions deploy $fn --project-ref $REF --no-verify-jwt --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --no-verify-jwt --use-docker
+    if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
+    else ledger_function "$fn"; fi
+  done
+  for fn in "${JWT_FNS[@]}"; do
+    run "supabase functions deploy $fn --project-ref $REF --use-docker" supabase functions deploy "$fn" --project-ref "$REF" --use-docker
     if [[ -n "$DRY" ]]; then echo "DRY: psql *** -c: insert into public.career_deploy_ledger (${SHIP_SHA:-<sha>}, $fn, its bundle sha256, the platform version, --label)"
     else ledger_function "$fn"; fi
   done

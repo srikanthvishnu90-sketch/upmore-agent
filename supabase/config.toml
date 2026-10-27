@@ -46,6 +46,11 @@ verify_jwt = true
 [functions.career-email-code]
 verify_jwt = true
 
+# FEATURE NEEDS: Gmail connect's one-time link and Google's OAuth callback (a chat link and Google's redirect carry no
+# JWT; the one-time token and the signed state are the authentication).
+[functions.career-connect]
+verify_jwt = false
+
 # Trainee landing page capture: public endpoints (the static page ships no
 # credentials). Handlers write with the service role into RLS-locked tables
 # (site_waitlist, site_careers_applications) and a private storage bucket.

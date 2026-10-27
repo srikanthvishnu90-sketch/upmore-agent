@@ -5,10 +5,10 @@
 #   PGBIN=/usr/lib/postgresql/16/bin bash tests/db/rehearse_live_migrations.sh
 #
 # The live snapshot (2026-10-26, read-only queries of project mrwngntwmnaqrqhupvlt): every MIGRATION_MARK read true but
-# the 16 below, plus the 2026-10-25 files after 20261025100000 and every 2026-10-26 file (not yet applied anywhere live;
-# re-read 2026-10-26 ~14:30 CDT, read-only: career_board_state absent, and the marks of 20261026060006, 060106, 070007,
-# 080008, 100000 and 140000 all false, so the rehearsal had been treating six unapplied files as live and failing on them). Override with
-# LIVE_MISSING="<file> <file> ..." when the live project moves on.
+# the 16 below, plus the 2026-10-25 files after 20261025100000 (not yet applied anywhere live), plus the eight
+# 2026-10-26 files trunk added the same day (the launch-readiness audit, PR #192, read all 32 as missing live: 33 of
+# go-live's 65 marks true). Without those eight the mimic applied them before what they need and the job failed on
+# trunk itself. Override with LIVE_MISSING="<file> <file> ..." when the live project moves on.
 #   And one hand edit: 20261021050000_career_brief_digest.sql was applied live as a "live_safe" variant that skipped
 #   its career_outbox kind/key check changes (the career_host_commit with career_interviews is there; the outbox
 #   constraints are what the migrations before it left). LIVE_SAFE_BRIEF_DIGEST=0 applies the full file instead.

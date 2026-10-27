@@ -22,7 +22,7 @@ const REAL_GIT = execFileSync('bash', ['-c', 'command -v git'], { encoding: 'utf
 const REAL_PY = execFileSync('bash', ['-c', 'command -v python3'], { encoding: 'utf8' }).trim();
 const HEAD = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 const OTHER = HEAD.replace(/^./, (c) => (c === 'a' ? 'b' : 'a'));
-const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp'];
+const FNS = ['agent-chat', 'career-ingest', 'career-proactive', 'trainee-deliver', 'trainee-inbound', 'career-voice', 'trainee-telegram', 'trainee-whatsapp', 'career-cloud-runner'];
 
 // Distinctive fakes; none may ever be printed (all labelled fake for tests/no-secrets.test.cjs).
 const FAKE = {

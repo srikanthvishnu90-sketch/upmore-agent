@@ -2774,7 +2774,7 @@ const CareerRouter = (() => {
   function handleHonestUnavailableAction(text, ctx) {
     const raw = s(text).trim();
     const t = lc(raw);
-    if (/\bwhat can you (actually |really )?(do|help(?: me)? with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t)) {
+    if (/\bwhat can you (actually |really )?(do|help(?: me)? with)\b|\bwhat do you (actually )?do\b|\bwhat are you (for|able to do)\b|\byour capabilities\b/.test(t) || /^help( me)?[.!?]*$/.test(t)) {
       return { intent: "honest_unavailable", resultStatus: "awaiting_user", reply: compose({ headline: "Fair question — here is the real list.", facts: [CAPABILITY_LINE], nextStep: "Name one and it starts now." }) };
     }
     let label = null, headline = null;
@@ -2879,6 +2879,19 @@ const CareerRouter = (() => {
       related = develop && asksOrOwns;
     }
     if (!related) return null;
+    // LIVE-STRINGS (2026-10-27): a turn with no recognizable word
+    // of its own (keyboard mash: "asdf qwerty zxcv") is not a case
+    // follow-up, however much served context the thread carries —
+    // standing context alone cannot make it one, and asking it for
+    // a role and a date assumes a case it never named. Stand down
+    // so the host's not-understood reply answers instead.
+    const recognizable = LEXICON.test(t)
+      || /\b(ghosted|ghosting|heard nothing|no response|never heard|passed over|written up|demot\w*|laid off|let go|fired)\b/.test(t)
+      || /\b(learn|learning|study|studying|skills?|courses?|certifications?|certificates?|masters|master's|degrees?|bootcamp|training)\b/.test(t)
+      || /\b(the|a|an|i|you|me|my|mine|we|it|that|this|what|how|when|where|which|who|can|could|would|should|do|does|did|is|are|was|were|am|and|or|but|to|for|with|at|on|in|of|them|they|he|she|first|next|one|two|yes|no|not|so|if|then|again|still|just|about|get|got|want|need|know|think|feel|feels|felt|last|week|month|year|today|now|here|there|back|out|up|down|over|after|before|about)\b/.test(t)
+      || /\b(january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(t)
+      || /[A-Z][a-z]/.test(raw);
+    if (!recognizable) return null;
     // AMENDED shape (coordinator 2026-10-24 14:09): the reply
     // does NOT claim understanding and does NOT restate the
     // user's intent as if parsed. It says it did not catch what

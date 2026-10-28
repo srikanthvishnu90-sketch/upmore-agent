@@ -38,6 +38,9 @@ select t.ok(career_outlook_send_finish('00000000-0000-4000-8000-0000000c4a01','o
 select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0002',repeat('a',64),'outreach',repeat('c',64),now()) = 'go', 'a rate-limited key goes again later');
 select t.ok(career_outlook_send_finish('00000000-0000-4000-8000-0000000c4a01','outreach:k-0002','rate_limited','retry',now()), 'and waits again');
 -- Whoever calls the rail: never a recipient who asked to stop, never a bounced address; nothing is recorded as going.
+reset role;
+insert into public.profiles(id) values ('00000000-0000-4000-8000-0000000c4a01') on conflict do nothing;
+set role service_role;
 insert into public.career_outreach_dnc(user_id, email_hash) values ('00000000-0000-4000-8000-0000000c4a01', repeat('e',64));
 select t.ok(career_outlook_send_begin('00000000-0000-4000-8000-0000000c4a01','outreach:k-0003',repeat('a',64),'outreach',repeat('e',64),now()) = 'opted_out', 'an opted-out recipient is refused');
 select t.ok(not exists (select 1 from public.career_outlook_sends where idem_key = 'outreach:k-0003'), 'and no send is recorded for them');

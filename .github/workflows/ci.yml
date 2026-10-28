@@ -360,7 +360,7 @@ jobs:
       # The failing lines as annotations, readable through the checks API where the raw log is not.
       - name: Failure lines as annotations
         if: failure()
-        run: grep -E "ERROR|FAIL|Traceback|Error|^== " "$RUNNER_TEMP/db.log" | grep -v "^  ok " | tail -n 25 | sed 's/^/::error::/'
+        run: echo "::error::$(tail -n 60 "$RUNNER_TEMP/db.log" | grep -v '^  ok ' | tail -n 30 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
   send-rail-load:
     name: load (send rail)
     runs-on: ubuntu-24.04

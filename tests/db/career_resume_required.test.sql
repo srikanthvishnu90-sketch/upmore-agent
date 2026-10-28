@@ -69,6 +69,35 @@ select t.ok((select bool_and(state = 'queued' and attempts = 0) from career_appl
 select t.ok((select bool_and(state = 'not_submitted' and reason like 'not sent: no resume%') from career_apply_jobs where job_id in ('TEST-RR-2-none', 'TEST-RR-2-fake')),
  'rows queued before the rule without a stored resume are closed as not sent');
 
+-- 2b. any other way into a sending state (review of #194, 2026-10-27): the emailed application is reserved straight into
+-- driving, and one Gmail refused is tried again (not_submitted -> driving). Both carry the same rule.
+create temp table rr_mail as select u, jsonb_build_object('kind','email','version',1,'user_id',u,'job_id','TEST-RR-MAIL-'||right(u,1),'company','RR Mail Employer '||right(u,1),
+   'title','Analyst','url','https://example.test/rr-mail','to','jobs@example.test','subject','Application','body','Hello',
+   'attachment',jsonb_build_object('filename','resume.pdf','sha256',repeat('a',64),'size',100,'tailored',true),'resume_sha256',repeat('a',64),'resume_tailored',true) p
+ from (values ('00000000-0000-4000-8000-000000001601'), ('00000000-0000-4000-8000-000000001603')) v(u);
+grant select on rr_mail to service_role;
+insert into career_watch_kv(user_id,key,value) select u::uuid, 'career:email-card',
+ jsonb_build_object('id','rr-mail','state','shown','payload',p,'payload_hash',career_apply_payload_hash(p),'shown_at',now(),'thread','t') from rr_mail;
+set role service_role;
+select t.must_fail($$select career_apply_email_reserve_as(u::uuid, p, career_apply_payload_hash(p)) from rr_mail where u = '00000000-0000-4000-8000-000000001603'$$,
+ 'no_resume', 'an emailed application with no confirmed resume on file is never reserved into driving');
+select t.ok((select (career_apply_email_reserve_as(u::uuid, p, career_apply_payload_hash(p))).state = 'driving' from rr_mail where u = '00000000-0000-4000-8000-000000001601'),
+ 'with a confirmed resume on file and the stored render it attaches: reserved, as before');
+reset role;
+-- The retry: an emailed application Gmail refused (not_submitted), written past the guard as a restore could, then tried again.
+set session_replication_role = replica;
+insert into career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash,state,source,attempts)
+ select u::uuid, p->>'job_id', p->>'company', p->>'url', p, career_apply_payload_hash(p), career_apply_payload_hash(p), 'not_submitted', 'email', 1
+ from rr_mail where u = '00000000-0000-4000-8000-000000001603';
+set session_replication_role = origin;
+set role service_role;
+select t.must_fail($$select career_apply_email_reserve_as(u::uuid, p, career_apply_payload_hash(p)) from rr_mail where u = '00000000-0000-4000-8000-000000001603'$$,
+ 'no_resume', 'an emailed application tried again (not_submitted -> driving) with no confirmed resume is refused');
+reset role;
+select t.ok((select state = 'not_submitted' from career_apply_jobs where job_id = 'TEST-RR-MAIL-3'), 'and it stays not sent');
+select t.must_fail($$update career_apply_jobs set state = 'driving' where job_id = 'TEST-RR-MAIL-3'$$,
+ 'no_resume', 'no direct update moves it into driving either');
+
 -- 3. prepared and carded; the card's answer names the reason
 select t.must_fail($$insert into career_apply_prepared(user_id,job_id,company,url,payload,payload_hash,card_lines)
  select u::uuid, p->>'job_id', p->>'company', p->>'url', p, career_apply_payload_hash(p), array['RR line'] from rr_p where k = 'none' and u = '00000000-0000-4000-8000-000000001601'$$,

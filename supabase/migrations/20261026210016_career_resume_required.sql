@@ -8,6 +8,9 @@
 --      path (career_apply_enqueue, the card's career_apply_card_answer_for, the message card's tap) inserts through here.
 --   2. the claim: a queued row that fails the same rule is never handed to a drive (the person's computer, the extension, the
 --      cloud): the claim's update skips it. Rows queued before this rule are closed as not sent, with the reason.
+--      Any other way into a sending state is refused too: a row inserted straight into driving (the emailed application,
+--      career_apply_email_reserve_for) and an emailed application tried again (not_submitted -> driving). Rows recorded
+--      in a finished state (career_apply_record_own: what the person sent themselves) send nothing and are not checked.
 --   3. prepared and carded: a prepared application that fails it is never stored, and a card never shows one.
 --   6. the card's answer says why: an item the queue refused for its resume reads "no_resume", not "refused".
 --   4. career_resume_on_file(p_user): the person has resume entries they confirmed with provenance (a fact_confirmed
@@ -26,15 +29,22 @@ $$;
 create or replace function public.career_apply_jobs_resume_guard() returns trigger
 language plpgsql set search_path = public, pg_temp as $$
 begin
+ -- Any way into a sending state is checked: queued (approved, waiting) and driving (being sent). Review of #194
+ -- (2026-10-27): the email path (career_apply_email_reserve_for) inserts straight into driving, and a retry moves
+ -- not_submitted -> driving; both went past a guard that read only INSERT queued and the queued -> driving claim.
+ -- Rows written in a finished state (career_apply_record_own: what the person already sent themselves, recorded after
+ -- the fact) send nothing and are not checked here.
  if tg_op = 'INSERT' then
-  if new.state = 'queued' and not public.career_resume_ok(new.user_id, new.payload) then
+  if new.state in ('queued', 'driving') and not public.career_resume_ok(new.user_id, new.payload) then
    raise exception 'no_resume: an application is queued only with the resume it sends (owner rule 2026-10-26)';
   end if;
   return new;
  end if;
- -- 2. the claim: queued -> driving only with a bound resume; otherwise the row is not handed out (skipped).
- if old.state = 'queued' and new.state = 'driving' and not public.career_resume_ok(new.user_id, new.payload) then
-  return null;
+ if new.state = 'driving' and old.state is distinct from 'driving' and not public.career_resume_ok(new.user_id, new.payload) then
+  -- 2. the claim: queued -> driving only with a bound resume; otherwise the row is not handed out (skipped).
+  if old.state = 'queued' then return null; end if;
+  -- Any other way into driving (an emailed application tried again) is refused outright.
+  raise exception 'no_resume: an application is sent only with the resume it sends (owner rule 2026-10-26)';
  end if;
  return new;
 end $$;

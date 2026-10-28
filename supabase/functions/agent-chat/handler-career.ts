@@ -449,6 +449,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           canSend: async (u) => !!(await sendToken(u)), send: countSend(turnEffects, (u: string, m: any) => sendMail({ fetch, token: sendToken }, u, m)),
           // WO-091c: email goes from people's own Gmail only once the owner turns it on, like outreach.
           sendOn: Deno.env.get("CAREER_EMAIL_SEND") === "on",
+          // OWNER RULE: the same fail-closed resume check as the chat's apply turn and the card.
+          resumeOnFile: resumeOnFileReader(admin, user.id),
         } })
         : null;
       if (draftMeter.calls) {

@@ -413,6 +413,8 @@ async function answer(o: PeopleTurnIn, d: PeopleDeps, a: Ask): Promise<PeopleRes
 // An ask findTargets answers. "my school alumni at Stripe" (no school named) stays alumniTurn's, which uses the
 // person's confirmed education.
 function targetAskOf(message: string): TargetAsk | null {
+  // An ask that names LinkedIn, Indeed or Handshake is never a search of ours: the refusal turn answers it plainly.
+  if (/\b(?:linked ?in|indeed|handshake)\b/i.test(message)) return null;
   const t = parseTargetAsk(tidy(message)) ?? parseTargetAsk(message);
   if (t?.kind === "alumni" && (/^(?:my|our|fellow|the|any|some)\b/i.test(t.school) || /^(?:school|college|university)$/i.test(t.school))) return null;
   return t;

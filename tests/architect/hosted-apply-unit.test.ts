@@ -251,7 +251,8 @@ Deno.test("F17 after answers: prepared again now (the reply says so, not 'on you
   const reply = "Saved. I won't ask these again:\n1. no\nThey go on the forms the next time you prepare applications on your computer.";
   const admin = (open: number, waiting: string[]) => ({
     rpc: async () => ({ data: Array(open).fill({}), error: null }),
-    from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: waiting.map((k) => ({ posting_key: k })), error: null }) }) }) }) }),
+    // NO LIMITS: the waiting postings are read page by page (order + range), never cut at a number.
+    from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ range: async (a: number, b: number) => ({ data: waiting.slice(a, b + 1).map((k) => ({ posting_key: k })), error: null }) }) }) }) }) }),
   });
   const env = (on: boolean) => ({ get: (k: string) => (on ? ({ CAREER_PREPARE_AHEAD_URL: "https://r.test/prepare", CAREER_PREPARE_AHEAD_TOKEN: "t" } as any)[k] : undefined) });
   const bodies: any[] = [];

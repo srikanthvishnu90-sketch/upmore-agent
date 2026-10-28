@@ -121,7 +121,7 @@ test('CAREER_BRAIN=agent is set only with --brain agent; --brain router unsets i
   assert.doesNotMatch(plain, /secrets unset CAREER_BRAIN/);
   assert.match(plain, /CAREER_BRAIN not touched/);
   const agent = dry(['--brain', 'agent']).out;
-  assert.match(agent, /--env-file <0600 temp file: [^>]*CAREER_BRAIN=agent[ >]/);
+  assert.match(agent, /--env-file <0600 temp file: [^>]*CAREER_BRAIN=agent>/);
   const router = dry(['--brain=router']).out;
   assert.doesNotMatch(router, /CAREER_BRAIN=agent/);
   assert.match(router, /DRY: supabase secrets unset CAREER_BRAIN --project-ref abcdefghijklmnopqrst/);

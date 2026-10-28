@@ -369,9 +369,11 @@ Deno.test({
         const r = await post({ callback_query: { id, from: { id: CHAT, is_bot: false }, message: { message_id: cardMsg, chat: { id: CHAT, type: "private" }, date: 1 }, data } }, updateId);
         return { r, calls: bot.calls.slice(mark), id };
       };
-      await t.step("6b. a text yes with no reply, a forged button, a changed card and a late reply-yes approve nothing", async () => {
-        const yes = await text(CHAT, "yes");
-        assert(/Nothing was approved/.test(yes.reply) && /reply directly to the card/.test(yes.reply), yes.reply);
+      await t.step("6b. an unclear reply, a forged button, a changed card and a late reply-yes approve nothing", async () => {
+        // D-MS-1 (owner, 2026-10-27; replaces the reply-only rule): a plain "yes" right after the card would approve it
+        // (mass-submit-*.test.ts). Here an unclear "maybe" approves nothing and the card stays open for the tap below.
+        const maybe = await text(CHAT, "maybe");
+        assert(/nothing was approved/i.test(maybe.reply), maybe.reply);
         const forged = await tap(`tca:${card.id}:${"0".repeat(16)}`);
         const ans = forged.calls.find((c) => c.method === "answerCallbackQuery");
         eq([ans?.body.callback_query_id, ans?.body.text], [forged.id, "Nothing was approved."]);

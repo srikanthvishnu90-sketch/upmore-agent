@@ -45,7 +45,7 @@ import { linkChecker } from "../_shared/link_check.ts";
 import { AGENT_BRAIN_RELEASED, chooseBrain, agentTurn, HISTORY_WINDOW, historyWindow, summaryFor } from "./career_brain.ts";
 import { STAGED_TOOL_POLICY, stagedRoute } from "./career_staged.ts";
 import { supabaseEventStore } from "../_shared/agent/timeline.ts";
-import { CARD_INTENT, cardTurn, supabaseCardStore } from "../_shared/career_apply_cards.ts";
+import { CARD_ANSWER_INTENT, CARD_INTENT, cardTurn, cardWaiting, supabaseCardStore } from "../_shared/career_apply_cards.ts";
 import { mockTurn, supabaseMockStore as supabaseMockStoreUncapped } from "../_shared/career_mock.ts";
 import { hiredSourceFromEnv } from "../_shared/career_hired.ts";
 import { QUESTIONS_INTENT, questionsTurn, supabaseQuestionStore } from "../_shared/career_apply_questions.ts";
@@ -88,6 +88,7 @@ import { rewriteOn, tailorRewriteTurn } from "../_shared/career_tailor_rewrite.t
 import { careerGrant, followupTurn, gmailReadNow, mailNow, supabaseFollowupStores } from "../_shared/career_inbox_followups.ts";
 import { gmailSender } from "../_shared/career_outreach_gmail.ts";
 import { fileUploadFor } from "../_shared/channel_resume_upload.ts"; // FEATURE 16
+import { factsForTurn, replyWriterOn, writable, writeReply, writerChannel } from "../_shared/career_reply_writer.ts"; // V1 TEXTING VOICE
 
 // WO-033: whether the person's career Google grant carries a scope (gmail.send for outreach). Read failures say "no".
 async function careerGrantHas(admin: any, userId: string, scope: string): Promise<boolean> {
@@ -609,11 +610,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (googleOff) {
         out = { reply: disconnectReply(googleOff), intent: "career_google_disconnect", resultStatus: googleOff.ok ? (googleOff.had.length || googleOff.mailErased ? "completed" : "nothing") : "failed", contained: false, handler: "google_disconnect" };
       } else if (card) {
-        // A card still waiting for its answer stays this thread's last word; an answered one does not.
-        const waiting = ["shown", "not_on_card", "change"].includes(card.status);
-        out = { reply: card.reply, intent: waiting ? CARD_INTENT : "career_apply_card_answer", resultStatus: card.status, contained: false, handler: "cards" };
-        // SERIAL-1451: the shown card's id rides the reply, so a yes in this thread answers this card and no other.
-        if (card.status === "shown" && card.card_id) agentMeta = { card_id: card.card_id };
+        // A card still waiting for its answer stays this thread's last word (D-MS-1: also after "wait", an unclear reply
+        // or a number not on it); an answered one does not.
+        const waiting = cardWaiting(card);
+        out = { reply: card.reply, intent: waiting ? CARD_INTENT : CARD_ANSWER_INTENT, resultStatus: card.status, contained: false, handler: "cards", ...(card.parts ? { parts: card.parts } : {}) };
+        // SERIAL-1451: the waiting card's id rides the reply, so the next yes in this thread answers this card and no other.
+        if (waiting && card.card_id) agentMeta = { card_id: card.card_id };
       } else if (mock) {
         // The mock's own intent: MOCK_INTENT while its question waits, so only then is the next text an answer.
         out = { reply: mock.reply, intent: mock.intent, resultStatus: mock.status, contained: false, handler: "mock" };
@@ -844,6 +846,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // nothing is committed, the run is not kept, and the reply says exactly what happened and where applying runs.
         delete (ctx as any).batchApplyState;
         out = { ...out, reply: BATCH_NOT_STARTED_REPLY, resultStatus: "not_started" };
+      }
+      // V1 TEXTING VOICE (_shared/career_reply_writer.ts; PRODUCT AUDIT 2026-10-28): the final reply, written in Trainee's
+      // texting voice and checked against this turn's facts (D-007); a rejected or failed write falls back to today's reply
+      // with its boilerplate and internal sentences taken out. CAREER_REPLY_WRITER=on only; turns that show an exact
+      // payload the person approves are never rewritten. Nothing upstream changes.
+      if (replyWriterOn(Deno.env) && writable(out, agentMeta, { structured: !!(careerTask || careerBatch) })) {
+        const wMeter = newMeter();
+        const wCfg = { ...modelConfig(Deno.env, "chat"), model: Deno.env.get("CAREER_MODEL") || "gpt-5-mini" };
+        const written = await writeReply({ on: true, message, channel: writerChannel((body as any)?.channel),
+          facts: factsForTurn({ reply: out.reply, intent: out.intent, resultStatus: out.resultStatus ?? null, effects: turnEffects, situation }),
+          model: (payload) => callModel(wCfg, payload, { meter: wMeter, role: "chat" }) })
+          .catch((e) => { console.error("reply writer: today's reply stands:", e?.message ?? e); return null; });
+        if (written && written.text.trim()) {
+          if (written.text !== out.reply) out = { ...out, reply: written.text };
+          agentMeta = { ...(agentMeta || {}), reply_writer: { source: written.source, rejected: written.rejected.slice(0, 8) } };
+        }
+        if (wMeter.calls) await recordTurnCost(admin, user.id, tid, wMeter);
       }
       for (const rec of ctx.containmentRecords ?? []) console.error("career containment:", JSON.stringify(rec));
       // CHANNEL-DOC-1: documents the turn produced (the tailored

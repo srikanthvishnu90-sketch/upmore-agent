@@ -60,15 +60,25 @@ export function unsafe(m: Mail): string | null {
   if (typeof m.text !== "string" || !m.text.trim() || m.text.length > 20000 || /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(m.text)) return "a plain text body";
   return null;
 }
+// Cold outreach carries List-Unsubscribe (RFC 2369): a mailto to the person's own address with the subject
+// "unsubscribe" (runReplyCheck reads those into the opt-out list), plus a one-click HTTPS link (RFC 8058) when one is
+// given. Both are built only from checked values: a plain address and an https URL without spaces or angle brackets.
+export interface Unsubscribe { mailto: string; url?: string | null }
+const ONE_CLICK = /^https:\/\/[A-Za-z0-9.-]+\/[A-Za-z0-9._~\/?=&%+-]*$/;
+export function unsubscribeHeaders(u: Unsubscribe | null | undefined): string[] {
+  if (!u || !ONE_ADDRESS.test(u.mailto)) return [];
+  const url = u.url && ONE_CLICK.test(u.url) ? u.url : null;
+  return [`List-Unsubscribe: <mailto:${u.mailto}?subject=unsubscribe>${url ? `, <${url}>` : ""}`, ...(url ? ["List-Unsubscribe-Post: List-Unsubscribe=One-Click"] : [])];
+}
 // RFC 2822 / MIME, base64 body (so no body line can ever be read as a header or a boundary).
-export function buildMime(m: Mail): string {
+export function buildMime(m: Mail, o: { unsubscribe?: Unsubscribe | null } = {}): string {
   const why = unsafe(m);
   if (why) throw new Error(`refused: ${why}`);
   const body = m.text.replace(/\r?\n/g, "\r\n");
-  const head = [`To: ${m.to}`, `Subject: ${encodedWord(m.subject)}`, "MIME-Version: 1.0", 'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64"];
+  const head = [`To: ${m.to}`, `Subject: ${encodedWord(m.subject)}`, ...unsubscribeHeaders(o.unsubscribe), "MIME-Version: 1.0", 'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64"];
   return `${head.join("\r\n")}\r\n\r\n${b64(utf8(body)).replace(/.{1,76}/g, "$&\r\n")}`;
 }
-export const rawOf = (m: Mail) => b64(utf8(buildMime(m))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+export const rawOf = (m: Mail, o: { unsubscribe?: Unsubscribe | null } = {}) => b64(utf8(buildMime(m, o))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 // The approval hash of an exact message: the same SHA-256 the outreach approval binds (career_outreach.ts payloadHash).
 export const mailHash = (m: Mail) => payloadHash({ to: m.to, subject: m.subject, text: m.text });
 
@@ -80,15 +90,20 @@ export type AddressType = "published" | "known" | "inferred";
 export const ADDRESS_TYPES: readonly AddressType[] = ["published", "known", "inferred"];
 export interface SendItem {
   kind: Kind; sourceId: string; approvalHash: string; to: string; subject: string; text: string;
-  followUpOf?: string | null; provider?: "gmail" | "outlook";
+  // followUpOf: the first email of the sequence (or any email in it); sendAt: not before this time (a sequence's spacing,
+  // set by the person).
+  followUpOf?: string | null; sendAt?: string | null; provider?: "gmail" | "outlook";
   addressType?: AddressType | null; addressFormat?: string | null;
   // Never accepted: present at all, the item is refused (D-MN-2: nothing the person was not shown).
   cc?: unknown; bcc?: unknown;
 }
 export type QueueResult = { sourceId: string; status: "queued" | "already_queued" | "refused"; reason?: string; id?: string };
-const PROVIDERS_WIRED = new Set(["gmail"]);
 
-export async function queueApproved(d: Rpc, userId: string, items: SendItem[]): Promise<QueueResult[]> {
+// Which mailbox sends an item the caller did not pin: the person's connected one that can send (mail_providers.ts
+// sendProviders, most recently connected first), else Gmail. The database refuses one that is not connected.
+export interface QueueDeps extends Rpc { which?: (userId: string) => Promise<{ id: "gmail" | "outlook" }[]> }
+export async function queueApproved(d: QueueDeps, userId: string, items: SendItem[]): Promise<QueueResult[]> {
+  const chosen = items.some((x) => x && !x.provider) && d.which ? (await d.which(userId).catch(() => []))[0]?.id ?? "gmail" : "gmail";
   const out: (QueueResult | null)[] = [];
   const ok: { i: number; p: Record<string, unknown> }[] = [];
   for (const [i, it] of items.entries()) {
@@ -97,13 +112,13 @@ export async function queueApproved(d: Rpc, userId: string, items: SendItem[]): 
     out.push(null);
     if ("cc" in it || "bcc" in it) { refuse("cc_bcc_not_approved"); continue; }
     if (!["outreach", "application", "general"].includes(it.kind)) { refuse("invalid"); continue; }
-    if (!PROVIDERS_WIRED.has(it.provider ?? "gmail")) { refuse("not_wired"); continue; }
+    if (it.provider != null && it.provider !== "gmail" && it.provider !== "outlook") { refuse("invalid"); continue; }
     const m: Mail = { to: String(it.to ?? ""), subject: String(it.subject ?? ""), text: String(it.text ?? "") };
     if (unsafe(m)) { refuse("unsafe_header"); continue; }
     if ((await mailHash(m)) !== it.approvalHash) { refuse("changed"); continue; }
     if (it.addressType != null && !ADDRESS_TYPES.includes(it.addressType)) { refuse("invalid"); continue; }
-    ok.push({ i, p: { kind: it.kind, source_id: it.sourceId, approval_hash: it.approvalHash, to: m.to, subject: m.subject, body: m.text, provider: it.provider ?? "gmail",
-      ...(it.followUpOf ? { follow_up_of: it.followUpOf } : {}), ...(it.addressType ? { address_type: it.addressType } : {}), ...(it.addressFormat ? { address_format: String(it.addressFormat).toLowerCase() } : {}) } });
+    ok.push({ i, p: { kind: it.kind, source_id: it.sourceId, approval_hash: it.approvalHash, to: m.to, subject: m.subject, body: m.text, provider: it.provider ?? chosen,
+      ...(it.followUpOf ? { follow_up_of: it.followUpOf } : {}), ...(it.sendAt ? { send_at: it.sendAt } : {}), ...(it.addressType ? { address_type: it.addressType } : {}), ...(it.addressFormat ? { address_format: String(it.addressFormat).toLowerCase() } : {}) } });
   }
   if (ok.length) {
     const res: any[] = await call(d, "career_send_enqueue", { user: userId, items: ok.map((x) => x.p) });
@@ -117,7 +132,7 @@ export async function queueApproved(d: Rpc, userId: string, items: SendItem[]): 
 
 // N2's hand-off (career_outreach.ts outreachTurn onApproved): each approved draft read back by id and re-hashed from its
 // stored text; a draft that is gone, not approved, or whose text no longer hashes to its approval is refused.
-export interface OutreachDeps extends Rpc { drafts(userId: string, ids: string[]): Promise<OutreachDraft[]> }
+export interface OutreachDeps extends QueueDeps { drafts(userId: string, ids: string[]): Promise<OutreachDraft[]> }
 // The address type rides on the draft's recipient row (recipient.address_type / address_format, written by the people
 // lanes) or on the item; the draft's own wins.
 export async function queueApprovedOutreach(d: OutreachDeps, userId: string, items: { draftId: string; approvalHash: string; addressType?: AddressType | null; addressFormat?: string | null }[]): Promise<QueueResult[]> {
@@ -167,7 +182,12 @@ export async function outreachSendStatus(d: Rpc, userId: string): Promise<SendSt
   if (account?.state === "backoff" && account.resume_at && Date.parse(account.resume_at) > Date.now()) parts.push(`Gmail has paused sending from your account for now (it limits how much one account can send); Trainee carries on automatically around ${at(account.resume_at)}.`);
   if (account?.state === "needs_reconnect") parts.push(`Sending is stopped: Google says your Gmail connection no longer allows it. Say "connect gmail" to reconnect, and what's waiting goes out.`);
   if (account?.state === "disconnected") parts.push("Gmail is disconnected, so nothing more will be sent from it.");
+  if (account?.state === "paused") parts.push(`Sending from your Gmail is paused${account.reason ? ` (${account.reason})` : ""}. Say "resume sending" when you want what's waiting to go.`);
   return { counts: c, waiting, sent, nextAt: s?.next_at ?? null, account: account ? { state: account.state, resume_at: account.resume_at ?? null, reason: account.reason ?? null } : null, line: parts.join(" ") };
+}
+// "resume sending" after a pause (bounces, or Gmail's spam or policy refusal): 'resumed', or the account's state.
+export async function resumeSending(d: Rpc, userId: string): Promise<string> {
+  return String(await call(d, "career_send_resume", { user: userId }));
 }
 export async function cancelQueued(d: Rpc, userId: string, sourceIds?: string[]): Promise<number> {
   return Number(await call(d, "career_send_cancel", { user: userId, ...(sourceIds ? { source_ids: sourceIds } : {}) })) || 0;
@@ -179,8 +199,11 @@ export type GmailAnswer =
   | { kind: "quota"; resumeAt: number; detail: string }
   | { kind: "reconnect"; detail: string }
   | { kind: "retry"; detail: string }
+  | { kind: "policy"; detail: string }
   | { kind: "failed"; detail: string };
 const RATE = /rateLimitExceeded|userRateLimitExceeded|dailyLimitExceeded|quotaExceeded|sending limit|rate limit/i;
+// Gmail refusing a message as spam, abuse or against its policy: the account pauses until the person says so.
+const POLICY = /spam|abus|policy|blocked|suspend|message rejected|reputation|phishing/i;
 // How long Gmail asked us to wait: Retry-After (seconds or a date), else "Retry after <ISO time>" in its message, else a
 // doubling wait from one minute. Never shorter than a second.
 export function resumeAfter(r: { headers: Headers }, message: string, attempt: number, now: number): number {
@@ -205,6 +228,7 @@ export async function classifyGmail(r: Response, attempt: number, now: number): 
   try { const j = JSON.parse(text); msg = [j?.error?.message, ...(j?.error?.errors ?? []).map((e: any) => `${e?.reason ?? ""} ${e?.message ?? ""}`)].filter(Boolean).join("; ") || text; } catch { /* not JSON */ }
   const detail = `HTTP ${r.status}${msg ? `: ${msg.slice(0, 200)}` : ""}`;
   if (r.status === 429 || (r.status === 403 && RATE.test(msg))) return { kind: "quota", resumeAt: resumeAfter(r, msg, attempt, now), detail };
+  if ((r.status === 400 || r.status === 403 || r.status === 550) && POLICY.test(msg)) return { kind: "policy", detail };
   if (r.status === 401 || r.status === 403) return { kind: "reconnect", detail };
   if (r.status >= 500) return { kind: "retry", detail };
   return { kind: "failed", detail };
@@ -215,6 +239,7 @@ export interface Claimed {
   id: string; user_id: string; kind: Kind; source_id: string; approval_hash: string; provider: string;
   to: string; subject: string; body: string; attempts: number; first_claimed_at: string; follow_up_of: string | null;
   address_type?: AddressType | null;
+  from_email?: string | null; // the person's own address, for List-Unsubscribe
   // Outreach only: the draft as stored when it was claimed (its row locked), re-hashed before the send.
   draft?: Pick<OutreachDraft, "recipient" | "subject" | "body" | "footer"> | null;
 }
@@ -227,10 +252,21 @@ export interface WorkerDeps extends Rpc {
   // the local-part format the address was inferred from (null when it was published or known). Absent: not told.
   recordBounce?: RecordBounce;
   recordReply?: RecordBounce;
+  // A one-click unsubscribe link for an outreach email (RFC 8058), when Trainee serves one. Absent: the mailto alone.
+  unsubscribeUrl?: (it: Claimed) => string | null;
+  // Other mailboxes (#226 mail_providers.ts MailProvider: send(userId, mail, {idemKey, purpose}) -> SendStatus). Gmail
+  // is sent here directly (its thread ids, the Sent check, List-Unsubscribe); an Outlook item goes to providers.outlook.
+  providers?: Partial<Record<"outlook", MailProviderLike>>;
+}
+// The shape of #226's MailProvider and SendStatus, structurally (that module ships with the Outlook connector).
+export interface MailProviderLike {
+  send(userId: string, mail: { to: string; subject: string; text: string }, o: { idemKey: string; purpose: "outreach" | "application" | "followup" | "general" }): Promise<
+    | { status: "sent"; id?: string | null; thread_id?: string | null } | { status: "already_sent" } | { status: "NOT_WIRED" | "NEEDS_RECONNECT"; reason: string }
+    | { status: "REFUSED" | "CHANGED" | "CANCELLED" | "UNKNOWN"; detail: string } | { status: "RATE_LIMITED"; retryAfterMs: number }>;
 }
 export type RecordBounce = (domain: string, localPartFormat: string | null, o: { addressType: AddressType | null }) => Promise<void>;
 export interface WorkerOpts { worker: string; accounts?: number; perAccount?: number; leaseSeconds?: number; deadlineMs?: number; idleStop?: boolean }
-export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; refused: number; failed: number; stale: number; errors: number; error: string | null }
+export interface WorkerStats { claims: number; sent: number; already_sent: number; retry: number; quota: number; reconnect: number; policy: number; refused: number; failed: number; stale: number; errors: number; error: string | null }
 
 // Was this exact message already sent (an earlier try that reached Gmail before the worker stopped)? Looks in the
 // person's Sent mail for this recipient since the first claim, comparing the subject exactly. null: could not look.
@@ -272,16 +308,18 @@ async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats): Promise<
     }
   }
   // A second try: only after the person's Sent mail shows the first did not go.
-  if (it.attempts > 1) {
+  if (it.attempts > 1 && it.provider !== "outlook") {
     const seen = await inSent(d, it.user_id, it);
     if (seen === null) { stats.retry++; return out("retry", { detail: "could not check Sent before a second try", retry_at: new Date(now() + 60_000).toISOString() }); }
     if (seen) { stats.already_sent++; return out("already_sent", { gmail_id: seen.id, thread_id: seen.threadId }); }
   }
+  if (it.provider === "outlook") return await viaProvider(d, it, m, stats, out);
   const token = await d.token(it.user_id, GMAIL_SEND_SCOPE).catch(() => null);
   if (!token) { stats.reconnect++; return out("reconnect", { untried: true, detail: "no Google grant that may send" }); }
   let ans: GmailAnswer;
   try {
-    const r = await d.fetch(`${GMAIL_API}/messages/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw: rawOf(m) }) });
+    const unsubscribe = it.kind === "outreach" && it.from_email ? { mailto: it.from_email, url: d.unsubscribeUrl?.(it) ?? null } : null;
+    const r = await d.fetch(`${GMAIL_API}/messages/send`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ raw: rawOf(m, { unsubscribe }) }) });
     ans = await classifyGmail(r, it.attempts, now());
   } catch (e) {
     ans = { kind: "retry", detail: `network: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200) };
@@ -289,12 +327,38 @@ async function sendOne(d: WorkerDeps, it: Claimed, stats: WorkerStats): Promise<
   if (ans.kind === "sent") { stats.sent++; return out("sent", { gmail_id: ans.id, thread_id: ans.threadId }); }
   if (ans.kind === "quota") { stats.quota++; return out("quota", { untried: true, detail: ans.detail, resume_at: new Date(ans.resumeAt).toISOString() }); }
   if (ans.kind === "reconnect") { stats.reconnect++; return out("reconnect", { untried: true, detail: ans.detail }); }
+  if (ans.kind === "policy") { stats.policy++; return out("policy", { untried: true, detail: ans.detail }); }
   if (ans.kind === "retry") {
     stats.retry++;
     return out("retry", { detail: ans.detail, retry_at: new Date(now() + Math.min(30_000 * 2 ** Math.max(0, it.attempts - 1), 3600_000)).toISOString() });
   }
   stats.failed++;
   return out("failed", { detail: ans.detail });
+}
+
+// An Outlook item through #226's provider. Its own ledger is exactly-once per idemKey; its UNKNOWN (a 5xx or a break: it
+// may have gone) is never retried, so it is recorded as failed and said plainly. Graph returns no message id: the key's
+// hash stands in for it.
+async function viaProvider(d: WorkerDeps, it: Claimed, m: Mail, stats: WorkerStats, out: (o: string, x?: Record<string, unknown>) => Outcome): Promise<Outcome> {
+  const p = d.providers?.outlook;
+  const now = d.now ?? Date.now;
+  if (!p) { stats.retry++; return out("retry", { untried: true, detail: "Outlook sending is not available yet", retry_at: new Date(now() + 3600_000).toISOString() }); }
+  const purpose = it.kind === "application" ? "application" : it.follow_up_of ? "followup" : it.kind === "outreach" ? "outreach" : "general";
+  const idemKey = `send:${it.id}`;
+  const r = await p.send(it.user_id, m, { idemKey, purpose }).catch((e) => ({ status: "UNKNOWN" as const, detail: String(e) }));
+  const keyId = `outlook:${(await payloadHash({ to: idemKey, subject: "", text: "" })).slice(0, 32)}`;
+  switch (r.status) {
+    case "sent": stats.sent++; return out("sent", { gmail_id: (r as any).id || keyId, thread_id: (r as any).thread_id ?? "" });
+    case "already_sent": stats.already_sent++; return out("already_sent", { gmail_id: keyId });
+    case "NOT_WIRED": case "NEEDS_RECONNECT": stats.reconnect++; return out("reconnect", { untried: true, detail: `Outlook: ${(r as any).reason}` });
+    case "RATE_LIMITED": stats.quota++; return out("quota", { untried: true, detail: "Outlook rate limit", resume_at: new Date(now() + Math.max(1000, r.retryAfterMs)).toISOString() });
+    case "CHANGED": stats.refused++; return out("refused", { detail: "changed after approval" });
+    case "CANCELLED": stats.refused++; return out("refused", { detail: "outlook disconnected" });
+    case "REFUSED":
+      if (/spam|abus|policy|blocked|suspend|reputation/i.test(r.detail)) { stats.policy++; return out("policy", { untried: true, detail: `Outlook: ${r.detail}`.slice(0, 200) }); }
+      stats.failed++; return out("failed", { detail: `Outlook refused: ${r.detail}`.slice(0, 200) });
+    default: stats.failed++; return out("failed", { detail: `Outlook: may have gone, not retried (${(r as any).detail ?? r.status})`.slice(0, 200) });
+  }
 }
 
 // Outcomes are recorded in batches of up to RECORD_EVERY (one transaction each): a send that reached Gmail and was not yet
@@ -306,7 +370,7 @@ export const RECORD_EVERY = 10;
 // emails straight back (they wait with the account). A failure on one account is counted; the others carry on.
 export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<WorkerStats> {
   const now = d.now ?? Date.now;
-  const stats: WorkerStats = { claims: 0, sent: 0, already_sent: 0, retry: 0, quota: 0, reconnect: 0, refused: 0, failed: 0, stale: 0, errors: 0, error: null };
+  const stats: WorkerStats = { claims: 0, sent: 0, already_sent: 0, retry: 0, quota: 0, reconnect: 0, policy: 0, refused: 0, failed: 0, stale: 0, errors: 0, error: null };
   const end = now() + (o.deadlineMs ?? 100_000);
   while (now() < end) {
     const got = await call(d, "career_send_claim", { worker: o.worker, accounts: o.accounts ?? 20, per_account: o.perAccount ?? 25, lease_seconds: o.leaseSeconds ?? 120, now: new Date(now()).toISOString() });
@@ -332,7 +396,7 @@ export async function runSendWorker(d: WorkerDeps, o: WorkerOpts): Promise<Worke
           }
           const r = await sendOne(d, it, stats);
           pending.push(r);
-          stop = r.outcome === "quota" || r.outcome === "reconnect";
+          stop = r.outcome === "quota" || r.outcome === "reconnect" || r.outcome === "policy";
           if (pending.length >= RECORD_EVERY) await record(false);
         }
         await record(true);
@@ -358,9 +422,12 @@ export function classifyIncoming(m: ThreadMail, recipient: string): "bounce" | "
   if (AUTO.test(m.subject)) return "other"; // an out-of-office is not an answer
   return OPT_OUT.test(m.snippet) || OPT_OUT.test(m.subject.replace(/^\s*re:\s*/i, "")) ? "stop" : "reply";
 }
-export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckSeconds?: number } = {}) {
+// pause: mailbox protection after a bounce (career_send_record): the account's last `window` sends, at least `bounces`
+// bounced and at least `rate` of them. Defaults 50, 5, 0.1; CAREER_SEND_BOUNCE_WINDOW / _BOUNCES / _RATE in career-send.
+export interface PauseRule { window?: number; bounces?: number; rate?: number }
+export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckSeconds?: number; pause?: PauseRule } = {}) {
   const stats = { checked: 0, bounces: 0, stops: 0, replies: 0, not_wired: 0, errors: 0, error: null as string | null };
-  const due: { id: string; user_id: string; recipient_email: string; gmail_id: string; gmail_thread: string; address_type: AddressType | null; address_format: string | null }[] =
+  const due: { id: string; user_id: string; recipient_email: string; gmail_id: string; gmail_thread: string; address_type: AddressType | null; address_format: string | null; sent_at: string }[] =
     await call(d, "career_send_replies_due", { limit: o.limit ?? 200, recheck_seconds: o.recheckSeconds ?? 900 });
   for (const row of due) {
     try {
@@ -371,11 +438,17 @@ export async function runReplyCheck(d: WorkerDeps, o: { limit?: number; recheckS
       stats.checked++;
       const j: any = await r.json().catch(() => ({}));
       const h = (m: any, n: string) => String((m?.payload?.headers ?? []).find((x: any) => String(x?.name ?? "").toLowerCase() === n)?.value ?? "");
-      const kinds = (j?.messages ?? []).filter((m: any) => m?.id !== row.gmail_id && !(m?.labelIds ?? []).includes("SENT"))
+      const kinds: string[] = (j?.messages ?? []).filter((m: any) => m?.id !== row.gmail_id && !(m?.labelIds ?? []).includes("SENT"))
         .map((m: any) => classifyIncoming({ from: h(m, "from"), subject: h(m, "subject"), snippet: String(m?.snippet ?? "") }, row.recipient_email));
+      // The List-Unsubscribe mailto arrives as a new email from the recipient (subject "unsubscribe"), outside the thread.
+      if (!kinds.includes("stop") && !kinds.includes("bounce")) {
+        const since = Math.floor(Date.parse(row.sent_at) / 1000) - 60;
+        const u = await d.fetch(`${GMAIL_API}/messages?q=${encodeURIComponent(`from:${row.recipient_email} subject:unsubscribe after:${since}`)}&maxResults=5`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+        if (u?.ok && ((await u.json().catch(() => ({})))?.messages ?? []).length) kinds.push("stop");
+      }
       const k = kinds.includes("bounce") ? "bounce" : kinds.includes("stop") ? "stop" : kinds.includes("reply") ? "reply" : null;
       if (!k) continue;
-      await call(d, "career_send_record", { id: row.id, kind: k });
+      await call(d, "career_send_record", { id: row.id, kind: k, ...(o.pause ? { pause: o.pause } : {}) });
       if (k === "bounce") stats.bounces++; else if (k === "stop") stats.stops++; else stats.replies++;
       // The learner hears about it after the address is already marked: a learner failure never un-marks a bounce.
       const hook = k === "bounce" ? d.recordBounce : d.recordReply;

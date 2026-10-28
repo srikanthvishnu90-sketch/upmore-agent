@@ -27,7 +27,11 @@ export async function handleSend(req: Request, d: SendFnDeps): Promise<Response>
   const num = (k: string, dflt: number) => { const v = Number(d.env.get(k)); return Number.isInteger(v) && v > 0 ? v : dflt; };
   const msg = (e: unknown) => ({ error: e instanceof Error ? e.message : String(e) });
   const sends = await runSendWorker(rail, { worker, accounts: num("CAREER_SEND_CLAIM_ACCOUNTS", 20), perAccount: num("CAREER_SEND_CLAIM_PER_ACCOUNT", 25), leaseSeconds: 120, deadlineMs: 100_000 }).catch(msg);
-  const replies = await runReplyCheck(rail, { limit: 200 }).catch(msg);
+  // Mailbox protection after a bounce: the account's last WINDOW sends, at least BOUNCES of them bounced and at least
+  // RATE of them; then that account pauses until the person says "resume sending". A reaction to Gmail's signal, not a cap.
+  const rate = Number(d.env.get("CAREER_SEND_BOUNCE_RATE"));
+  const pause = { window: num("CAREER_SEND_BOUNCE_WINDOW", 50), bounces: num("CAREER_SEND_BOUNCE_COUNT", 5), rate: rate > 0 && rate <= 1 ? rate : 0.1 };
+  const replies = await runReplyCheck(rail, { limit: 200, pause }).catch(msg);
   const failed = !("claims" in sends);
   return json({ worker, sends, replies, ms: d.now() - started }, failed ? 500 : 200);
 }

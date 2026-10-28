@@ -37,7 +37,8 @@ export async function prepareToken(secret: string, id: string, lease: string, sa
   return hex(await crypto.subtle.sign("HMAC", key, enc.encode(`trainee-cloud-prepare.v1.${id}.${lease}.${sandbox}`)));
 }
 
-export interface PrepareLimits { want: number; global: number; perPersonDay: number; perSiteMinute: number }
+// perPersonDay / perSiteMinute: a number someone set, or null (none: NO LIMITS).
+export interface PrepareLimits { want: number; global: number; perPersonDay: number | null; perSiteMinute: number | null }
 export interface PrepareRequestRow { id: string; user_id: string; job_ids: string[]; lease_token: string; state?: string; claimed_at?: string }
 export interface PrepareDispatchResult { claimed: number; started: { request: string; sandbox: string }[]; unavailable: { request: string; why: string }[]; claim_error?: string }
 
@@ -86,12 +87,13 @@ export async function dispatchPrepare(o: {
   return out;
 }
 
-// The chat's kick (agent-chat kickPrepare): { user_id, job_ids }. 202 when the request is accepted (it runs now or within
-// the minute); 429 when the person's preparations for today are used (the chat then says it has not started); 400/409 on
-// anything else. The token is checked by the caller.
-export async function handlePrepareDoor(body: any, d: { rpc: Rpc; perPersonDay: number; kick?: () => void }): Promise<{ status: number; body: unknown }> {
+// The chat's kick (agent-chat kickPrepare): { user_id, job_ids }, any number of them (the database splits a big request
+// into parts; nothing is cut). 202 when the request is accepted (it runs now or within the minute); 429 only when a
+// per-person number was set and today's is used (the chat then says it has not started); 400/409 on anything else. The
+// token is checked by the caller.
+export async function handlePrepareDoor(body: any, d: { rpc: Rpc; perPersonDay: number | null; kick?: () => void }): Promise<{ status: number; body: unknown }> {
   const user = String(body?.user_id ?? "");
-  const ids = Array.isArray(body?.job_ids) ? body.job_ids.map(String).filter((x: string) => x && x.length <= 300).slice(0, 100) : [];
+  const ids = Array.isArray(body?.job_ids) ? body.job_ids.map(String).filter((x: string) => x && x.length <= 300) : [];
   if (!UUID.test(user) || !ids.length) return { status: 400, body: { error: "bad request" } };
   let r: any;
   try {
@@ -102,7 +104,7 @@ export async function handlePrepareDoor(body: any, d: { rpc: Rpc; perPersonDay: 
   }
   if (!r?.accepted) return { status: 429, body: { request: r?.id ?? null, waiting_for: r?.waiting_for ?? "per_person_day" } };
   d.kick?.();
-  return { status: 202, body: { accepted: ids.length, request: r.id } };
+  return { status: 202, body: { accepted: typeof r.postings === "number" ? r.postings : ids.length, request: r.id } };
 }
 
 // ------------------------------------------------------------------------------------------------ the bridge

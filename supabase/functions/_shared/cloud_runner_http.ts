@@ -10,23 +10,30 @@ import { dispatch, handleBridge, type ClaimedJob, type Rpc, type SandboxHost, ve
 import { dispatchPrepare, handlePrepareBridge, handlePrepareDoor, type PrepareRequestRow } from "./cloud_prepare.ts";
 
 export interface RunnerEnv { get(k: string): string | undefined }
-// The numbers the runner reads, with the defaults used when one is unset (docs/launch/CLOUD-RUNNER.md, "Limits").
-// The defaults are the first wave's numbers ("Recommended caps for the first waves"): an unset number is never looser than
-// what the owner was told the first wave runs at. Raising one is setting it, by name.
+// The numbers the runner reads (docs/launch/CLOUD-RUNNER.md, "Limits"). Only infrastructure sizing has a default (how many
+// sandboxes at once, per family, per tick: the runner's own capacity). The owner's NO LIMITS rule (2026-10-27, D-MS-2):
+// Trainee has no per-person or per-site number of its own; those are optional (OPTIONAL_LIMITS), null when unset, and
+// the only brake by default is an outside system refusing (a portal's 429 or bot wall pauses the family).
 export const LIMIT_DEFAULTS = {
-  CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_PER_PERSON_DAY: 3, CLOUD_MAX_PER_SITE_MINUTE: 1,
-  CLOUD_PREPARE_STARTS_PER_TICK: 2, CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_PER_PERSON_DAY: 10, CLOUD_PREPARE_PER_SITE_MINUTE: 2,
+  CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1,
+  CLOUD_PREPARE_STARTS_PER_TICK: 2, CLOUD_PREPARE_MAX_CONCURRENT: 2,
 } as const;
+export const OPTIONAL_LIMITS = ["CLOUD_MAX_PER_PERSON_DAY", "CLOUD_MAX_PER_SITE_MINUTE", "CLOUD_PREPARE_PER_PERSON_DAY", "CLOUD_PREPARE_PER_SITE_MINUTE"] as const;
 export function runnerLimits(env: RunnerEnv) {
   const num = (k: keyof typeof LIMIT_DEFAULTS) => {
     const n = Number(env.get(k) ?? "");
     return Number.isFinite(n) && n >= 1 ? Math.floor(n) : LIMIT_DEFAULTS[k];
   };
+  // A number someone set, or null (no number: unset, empty or nonsense is never turned into a default).
+  const opt = (k: typeof OPTIONAL_LIMITS[number]): number | null => {
+    const n = Number(env.get(k) ?? "");
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : null;
+  };
   return {
     send: { want: num("CLOUD_MAX_STARTS_PER_TICK"), global: num("CLOUD_MAX_CONCURRENT"), perPortal: num("CLOUD_MAX_PER_PORTAL"),
-      perPersonDay: num("CLOUD_MAX_PER_PERSON_DAY"), perSiteMinute: num("CLOUD_MAX_PER_SITE_MINUTE") },
-    prepare: { want: num("CLOUD_PREPARE_STARTS_PER_TICK"), global: num("CLOUD_PREPARE_MAX_CONCURRENT"), perPersonDay: num("CLOUD_PREPARE_PER_PERSON_DAY"),
-      perSiteMinute: num("CLOUD_PREPARE_PER_SITE_MINUTE") },
+      perPersonDay: opt("CLOUD_MAX_PER_PERSON_DAY"), perSiteMinute: opt("CLOUD_MAX_PER_SITE_MINUTE") },
+    prepare: { want: num("CLOUD_PREPARE_STARTS_PER_TICK"), global: num("CLOUD_PREPARE_MAX_CONCURRENT"), perPersonDay: opt("CLOUD_PREPARE_PER_PERSON_DAY"),
+      perSiteMinute: opt("CLOUD_PREPARE_PER_SITE_MINUTE") },
   };
 }
 

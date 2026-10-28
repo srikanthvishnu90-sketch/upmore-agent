@@ -522,8 +522,11 @@ test('FEATURE 17 dry run: without VERCEL_TOKEN the cloud runner is not wired (de
   assert.match(out, /supabase functions deploy career-cloud-runner --project-ref abcdefghijklmnopqrst --no-verify-jwt --use-docker/);
   assert.doesNotMatch(out, /CLOUD_RUNNER_SECRET=|CAREER_PREPARE_AHEAD_URL=|schedule-career-cloud\.sql/);
   assert.match(out, /cloud runner schedules: not touched/);
-  const bad = dry([], { ...CLOUD, CLOUD_MAX_PER_PERSON_DAY: '99' });
-  assert.notEqual(bad.code, 0); assert.match(bad.out, /CLOUD_MAX_PER_PERSON_DAY is at most 50/);
+  // NO LIMITS (owner, 2026-10-27): a per-person number someone sets is taken at any size; a non-number still stops the run.
+  const big = dry([], { ...CLOUD, CLOUD_MAX_PER_PERSON_DAY: '500' });
+  assert.equal(big.code, 0, big.out); assert.ok(big.out.includes('CLOUD_MAX_PER_PERSON_DAY=500'), 'a per-person number is set as given, any size');
+  const bad = dry([], { ...CLOUD, CLOUD_MAX_PER_PERSON_DAY: 'lots' });
+  assert.notEqual(bad.code, 0); assert.match(bad.out, /CLOUD_MAX_PER_PERSON_DAY must be a whole number from 1/);
   const sw = dry([], { ...CLOUD, CLOUD_RUNNER_ENABLED: 'yes' });
   assert.notEqual(sw.code, 0); assert.match(sw.out, /CLOUD_RUNNER_ENABLED takes on or off/);
   const snap = dry(['--build-snapshot'], { ...CLOUD, CLOUD_SANDBOX_SNAPSHOT_ID: '' });
@@ -531,14 +534,16 @@ test('FEATURE 17 dry run: without VERCEL_TOKEN the cloud runner is not wired (de
   assert.match(snap.out, /DRY: VERCEL_TOKEN=\*\*\* [^\n]*deno run -A scripts\/cloud-runner\/build-snapshot\.ts/, 'the snapshot step only with --build-snapshot');
   assert.ok(!snap.out.includes(CLOUD.VERCEL_TOKEN));
 });
-test('FEATURE 17: a number not given is set to its first-wave value, explicitly, and those values are the runner\'s defaults', () => {
+test('FEATURE 17: sizing not given is set to the runner\'s default; a per-person or per-site number not given is never set (NO LIMITS)', () => {
   const { code, out } = dry([], { ...CLOUD, CLOUD_MAX_CONCURRENT: '', CLOUD_MAX_PER_PORTAL: '', CLOUD_MAX_PER_PERSON_DAY: '', CLOUD_MAX_PER_SITE_MINUTE: '',
     CLOUD_PREPARE_MAX_CONCURRENT: '', CLOUD_PREPARE_PER_PERSON_DAY: '', CLOUD_PREPARE_PER_SITE_MINUTE: '' });
   assert.equal(code, 0, out);
   const set = out.match(/supabase secrets set --project-ref abcdefghijklmnopqrst --env-file <0600 temp file: ([^>]*)>/)[1].split(' ');
-  const wave1 = { CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_MAX_PER_PERSON_DAY: 3, CLOUD_MAX_PER_SITE_MINUTE: 1,
-    CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_STARTS_PER_TICK: 2, CLOUD_PREPARE_PER_PERSON_DAY: 10, CLOUD_PREPARE_PER_SITE_MINUTE: 2 };
+  const wave1 = { CLOUD_MAX_CONCURRENT: 2, CLOUD_MAX_PER_PORTAL: 1, CLOUD_MAX_STARTS_PER_TICK: 2, CLOUD_PREPARE_MAX_CONCURRENT: 2, CLOUD_PREPARE_STARTS_PER_TICK: 2 };
   for (const [k, v] of Object.entries(wave1)) assert.ok(set.includes(`${k}=${v}`), `${k}=${v} in ${set.join(' ')}`);
+  for (const k of ['CLOUD_MAX_PER_PERSON_DAY', 'CLOUD_MAX_PER_SITE_MINUTE', 'CLOUD_PREPARE_PER_PERSON_DAY', 'CLOUD_PREPARE_PER_SITE_MINUTE']) {
+    assert.ok(!set.some((x) => x.startsWith(`${k}=`)), `${k} is not set when not given: ${set.join(' ')}`);
+  }
   const http = fs.readFileSync(path.join(root, 'supabase/functions/_shared/cloud_runner_http.ts'), 'utf8');
   for (const [k, v] of Object.entries(wave1)) assert.match(http, new RegExp(`\\b${k}: ${v},`), `the runner's default for ${k} is ${v}`);
   const given = dry([], CLOUD);

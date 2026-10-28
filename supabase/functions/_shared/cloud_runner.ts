@@ -57,11 +57,11 @@ export interface DispatchLimits {
   want: number; // at most this many new applications per tick
   global: number; // at most this many applications driven by the cloud at once
   perPortal: number; // at most this many at once on one portal family (greenhouse, lever, ashby)
-  // FEATURE 17: with both, the dispatcher also claims text-card approvals (career_apply_cloud_dispatch_claim2): at most
-  // perPersonDay sent per person in 24 hours (under the database's own 15 and the person's pace), at most perSiteMinute
-  // claims per employer host per minute.
-  perPersonDay?: number;
-  perSiteMinute?: number;
+  // FEATURE 17: with both given (a number or null), the dispatcher also claims text-card approvals
+  // (career_apply_cloud_dispatch_claim2). null: no such number (NO LIMITS; only the person's own pace binds); a number:
+  // at most perPersonDay sent per person in 24 hours, at most perSiteMinute claims per employer host per minute.
+  perPersonDay?: number | null;
+  perSiteMinute?: number | null;
 }
 export interface DispatchResult {
   claimed: number;

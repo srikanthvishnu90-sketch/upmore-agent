@@ -19,8 +19,16 @@ export async function prepareAfterAnswers(asked: { reply: string; status?: strin
     asked.reply = asked.reply.replace(ON_COMPUTER, "Once the rest are answered, I'll prepare your application again here.");
     return "skipped";
   }
-  const w = await o.admin.from("career_apply_wanted").select("posting_key").eq("user_id", o.userId).eq("state", "waiting").limit(25);
-  const ids = w.error ? [] : (w.data ?? []).map((r: { posting_key: string }) => String(r.posting_key));
+  // Every posting waiting in their queue (NO LIMITS: read page by page, never cut at a number).
+  const ids: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const w = await o.admin.from("career_apply_wanted").select("posting_key").eq("user_id", o.userId).eq("state", "waiting")
+      .order("posting_key", { ascending: true }).range(from, from + 999);
+    if (w.error) break;
+    const page = (w.data ?? []).map((r: { posting_key: string }) => String(r.posting_key));
+    ids.push(...page);
+    if (page.length < 1000) break;
+  }
   if (!ids.length) return "skipped";
   const k = await kickPrepare({ env: o.env, fetch: o.fetch, userId: o.userId, jobIds: ids });
   if (k === "off") return "off";
@@ -67,7 +75,9 @@ export async function withPending(ans: { reply: string; intent?: string | null }
   if (!rows) { ans.reply = `${ans.reply}\nI couldn't read the applications still being prepared just now.`; return 0; }
   const mine = ask.company ? rows.filter((p) => norm(p.company) && (norm(p.company) === norm(ask.company!) || norm(p.company).startsWith(norm(ask.company!) + " "))) : rows;
   if (!mine.length) return 0;
+  // A reply lists 8 for readability; the rest are counted, never dropped silently.
   const lines = mine.slice(0, 8).map((p) => (ask.company ? pendingLine(p) : `- ${pendingLine(p)}`));
+  if (mine.length > 8) lines.push(`…and ${mine.length - 8} more still with me; say "show my applications" for every one.`);
   ans.reply = ask.company && /I have no application to .* on record/.test(ans.reply)
     ? lines.join("\n")
     : `${ans.reply}\n${ask.company ? "" : "Not sent yet, still with me:\n"}${lines.join("\n")}`;

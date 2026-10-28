@@ -194,6 +194,16 @@ update career_apply_cards set shown_at=(select shown_at from k3), answered_at=(s
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3) is null,'restored: it may go');
 -- Per person per day: one already went today, the dispatcher's number is 1.
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3,1)='daily_limit','the per-person number is held');
+-- NO LIMITS (owner, 2026-10-27, D-MS-2): with no number given (the default) and no pace of their own, there is no daily
+-- number at all: twenty applications already gone today hold nothing back.
+set session_replication_role = replica;
+insert into career_apply_jobs(user_id,job_id,company,url,payload,payload_hash,approval_hash,state,attempts,source,claimed_at)
+ select '00000000-0000-4000-8000-00000000f171','TEST-NOLIMIT-'||g,'No Limit '||g,'https://example.org/nl/'||g,'{}',repeat('a',64),repeat('a',64),'confirmed',1,'own_computer',now()
+ from generate_series(1,20) g;
+set session_replication_role = origin;
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3) is null,'no number given: twenty gone today, this one may still go (no Trainee daily cap)');
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3,21)='daily_limit','a number someone chose still holds');
+delete from career_apply_jobs where job_id like 'TEST-NOLIMIT-%';
 -- Per site per minute: one Ashby claim this minute, the number is 1.
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f171',3,15,1)='site_rate','the per-site number is held');
 select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,1)),'the dispatcher with a per-site 1 claims nothing more there this minute');
@@ -218,11 +228,12 @@ select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f172',7)='not_opted_in'
 -- An erase (the epoch moves): the opt-in and the kept resume go with it; the job is stale.
 insert into career_apply_cloud_gate_waivers(user_id,portal,max_sends,expires_at,note) values('00000000-0000-4000-8000-00000000f173','ashby',5,now()+interval '1 day','TEST C');
 select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6) is null,'C with a waiver may go');
--- One employer per 30 days on this route too: an application to Hosted Employer 6 that went another way this month.
--- (C's other application, the directly queued one, made out to the same employer for this check, then put back.)
+-- No employer cooldown (D-MS-3: only the exact posting is a duplicate): another application to Hosted Employer 6 this
+-- month, by another way, does not hold this one back. (C's other application, the directly queued one, made out to the
+-- same employer for this check, then put back.)
 alter table career_apply_jobs disable trigger user;
 update career_apply_jobs set company='Hosted Employer 6' where job_id='TEST-HOSTED-4';
-select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6)='company_cooldown','an employer with another application this month is refused');
+select t.ok(pg_temp.why('00000000-0000-4000-8000-00000000f173',6) is null,'another application to the same employer this month: this posting may still go');
 update career_apply_jobs set company='Hosted Employer 4' where job_id='TEST-HOSTED-4';
 alter table career_apply_jobs enable trigger user;
 -- The dispatcher's room: one text job is in flight (A's, claimed above). With a global 1, or 1 per family, C's waits.
@@ -525,4 +536,26 @@ select t.ok(not pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000
 update career_cloud_settings set value='on' where key='CAREER_AGENT_SUBMIT';
 select t.ok((select count(*)=0 from career_apply_cloud_dispatch_claim2(10,10,10,15,10) where user_id='00000000-0000-4000-8000-00000000f179'),'a job no card approved is not claimed');
 select t.ok(pg_temp.holds(hashtextextended('00000000-0000-4000-8000-00000000f179',0)),'but the claim held the person''s lock while it read the job');
+
+-- NO LIMITS (owner, 2026-10-27; D-MS-2): no number of Trainee's own on the dispatcher, the card, or preparation.
+select t.ok((select count(*)>=0 from career_apply_cloud_dispatch_claim2(10,10,10,null,null)),'the dispatcher takes no per-person or per-site number (unset by default)');
+select t.ok((select count(*)>=0 from career_apply_cloud_dispatch_claim2(10,10,10,500,600)),'and any number someone chooses (no ceiling of 50)');
+select t.must_fail($$select * from career_apply_cloud_dispatch_claim2(1,1,1,0,null)$$,'invalid dispatch limits','a zero per-person number is still refused');
+insert into career_apply_cloud_text_claims(job_id,user_id,card_id,item_n,host,claimed_at)
+ select id,user_id,gen_random_uuid(),9,'jobs.ashbyhq.com',now() from career_apply_jobs where job_id='TEST-HOSTED-79';
+select t.ok((select item_n=9 from career_apply_cloud_text_claims where job_id=(select id from career_apply_jobs where job_id='TEST-HOSTED-79')),
+ 'a card of any size: its ninth application can be claimed (one yes covers the whole batch)');
+delete from career_apply_cloud_text_claims where job_id=(select id from career_apply_jobs where job_id='TEST-HOSTED-79');
+select t.must_fail(format($$select career_apply_card_push_requested_for(%L,gen_random_uuid(),array(select gen_random_uuid() from generate_series(1,9)),'x',now())$$,
+ '00000000-0000-4000-8000-00000000f177'),'not a requested preparation','nine applications on one asked-for card are not refused for their number');
+insert into career_apply_wanted(user_id,posting_key,url,company,title)
+ select '00000000-0000-4000-8000-00000000f177','ashby:bulk:'||g,'https://jobs.ashbyhq.com/bulk'||g||'/'||g,'Bulk '||g,'Intern' from generate_series(1,130) g;
+create temp table rb as select career_apply_prepare_request_put('00000000-0000-4000-8000-00000000f177',array(select 'ashby:bulk:'||g from generate_series(1,130) g),null) v;
+select t.ok((select (v->>'accepted')::boolean and (v->>'postings')::int=130 and jsonb_array_length(v->'requests')=6 from rb),
+ 'one request for 130 postings, no number given: accepted whole, in 6 parts (never cut at 25 or 100)');
+select t.ok((select sum(cardinality(job_ids))=130 and count(*)=6 and max(cardinality(job_ids))=25 from career_apply_prepare_requests
+ where id in (select (jsonb_array_elements_text(v->'requests'))::uuid from rb)),'every one of the 130 is in a part; none is dropped');
+update career_apply_prepare_requests set state='done', finished_at=now() where state='running';
+create temp table pb as select * from career_apply_prepare_request_claim(10,10,null,null);
+select t.ok((select count(*)=6 from pb where user_id='00000000-0000-4000-8000-00000000f177'),'no per-person or per-site number: all six parts start');
 rollback;

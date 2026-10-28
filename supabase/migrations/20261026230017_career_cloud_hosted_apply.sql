@@ -17,15 +17,18 @@
 --       the gate is open for the family (3 hand submissions confirmed by email, 20261021080000, unchanged) or the person
 --       holds a live waiver with sends left (20261024120000, unchanged);
 --       the person's opt-in is on for this account (an erase ends it), neither the family nor the person is paused;
---       the person's day: fewer than least(15, their opt-in number, their own pace, the dispatcher's per-person number)
---       applications went in the last 24 hours; one employer per 30 days on the one ledger;
---       the dispatcher's per-site number of claims per minute for the employer's host is not reached;
+--       the person's own pace only (the number they set, CAPS-1390), when they set one; Trainee
+--       has no number of its own (owner, 2026-10-27, D-MS-2 and NO LIMITS: no per-person daily cap, no default pacing
+--       number); no employer cooldown (D-MS-3: only the exact posting is a duplicate, kept by the queue's own unique
+--       rule); a per-site number of claims per minute only when the dispatcher is given one (configurable, unset by
+--       default: the brake is the portal's own refusal, which pauses the family);
 --       the resume the payload names is kept for the cloud, for this account, byte for byte.
 --     Claimed jobs get a marker (career_apply_cloud_text_claims); the authorization requires it. Nothing here changes the
 --     gate, the waiver, the bridge or any earlier claim.
 --  2. Hosted preparation requests (career_apply_prepare_requests): the chat's "prepare these now" for one person's queued
---     postings, claimed by the dispatcher under a global, a per-person-per-day and a per-site-per-minute number, run in a
---     sandbox under a lease, finished once.
+--     postings, claimed by the dispatcher under a global number (infrastructure sizing) and, only when given, a
+--     per-site-per-minute number; no per-person or per-request ceiling (a request of any size is split into parts of 25
+--     postings, one sandbox each, all accepted); run in a sandbox under a lease, finished once.
 --  3. A bounded card push for postings the person asked for in chat (career_apply_card_push_requested_for): the same
 --     checks as the scheduled push (career_apply_card_push_for) except the 30-minute "conversation under way" hold, which
 --     is what kept the card the person had just asked for from being shown. Only for prepared rows from a preparation
@@ -57,7 +60,7 @@ create table if not exists public.career_apply_cloud_text_claims (
   job_id uuid primary key references public.career_apply_jobs(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
   card_id uuid not null,
-  item_n integer not null check (item_n between 1 and 8),
+  item_n integer not null check (item_n >= 1),
   host text not null check (length(host) between 1 and 300),
   claimed_at timestamptz not null
 );
@@ -105,7 +108,8 @@ create or replace function public.career_apply_cloud_destination_ok(p_dest text)
 language sql immutable set search_path = pg_catalog as $$ select coalesce(p_dest, '') ~ '^https://' $$;
 
 -- Why the cloud may not take this text-card job now, or null. p_phase: 'claim' (queued, unclaimed) or 'authorize' (the
--- same job, driving under this route's claim). p_per_person_day / p_per_site_minute: the dispatcher's numbers, or null.
+-- same job, driving under this route's claim). p_per_person_day / p_per_site_minute: the dispatcher's numbers, or null
+-- (unset by default; NO LIMITS).
 create or replace function public.career_apply_cloud_text_refusal(j public.career_apply_jobs, p_now timestamptz, p_phase text,
  p_per_person_day integer default null, p_per_site_minute integer default null) returns text
 language plpgsql stable security definer set search_path = public, pg_temp as $$
@@ -148,11 +152,13 @@ begin
  if o.user_id is null or not o.enabled or o.privacy_epoch is distinct from coalesce((a->>'epoch')::bigint, 0) then return 'not_opted_in'; end if;
  if exists (select from public.career_apply_cloud_pauses where scope = 'portal' and portal = fam and until > p_now) then return 'portal_paused'; end if;
  if exists (select from public.career_apply_cloud_pauses where scope = 'person' and user_id = j.user_id and until > p_now) then return 'person_paused'; end if;
- cap := least(15, coalesce(o.daily, 15), public.career_apply_daily_limit(j.user_id), p_per_person_day);
- if (select count(*) from public.career_apply_jobs x where x.user_id = j.user_id and x.id <> j.id and x.state = any(went)
+ -- Only a number someone chose: the person's own pace as it is now (career_apply_daily_limit, CAPS-1390) and the
+ -- dispatcher's, if it was given one. Not the opt-in row's daily copy: the card-cloud bridge's opt-in writes least(15, ...)
+ -- there, Trainee's number, not the person's. least() skips nulls; with neither, there is no daily number (NO LIMITS).
+ -- No employer cooldown (D-MS-3).
+ cap := least(public.career_apply_daily_limit(j.user_id), p_per_person_day);
+ if cap is not null and (select count(*) from public.career_apply_jobs x where x.user_id = j.user_id and x.id <> j.id and x.state = any(went)
   and x.claimed_at > p_now - interval '1 day') >= cap then return 'daily_limit'; end if;
- if co <> '' and exists (select from public.career_apply_ledger(j.user_id, p_now - interval '30 days') l
-  where l.company_key = co and l.ref is distinct from j.id::text) then return 'company_cooldown'; end if;
  if p_phase = 'claim' and p_per_site_minute is not null and (select count(*) from public.career_apply_cloud_text_claims t
   where t.host = v_host and t.claimed_at > p_now - interval '1 minute') >= p_per_site_minute then return 'site_rate'; end if;
  if not exists (select from public.career_apply_cloud_resumes r where r.user_id = j.user_id and r.sha256 = j.payload->>'resume_sha256'
@@ -238,8 +244,8 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare live jsonb; room int; f text; n int; got int; j public.career_apply_jobs; first int := 0;
 begin
  if p_want is null or p_want not between 0 and 500 or p_global is null or p_global not between 1 and 10000
-  or p_per_portal is null or p_per_portal not between 1 and 10000 or p_per_person_day is null or p_per_person_day not between 1 and 50
-  or p_per_site_minute is null or p_per_site_minute not between 1 and 600 then raise exception 'invalid dispatch limits'; end if;
+  or p_per_portal is null or p_per_portal not between 1 and 10000 or p_per_person_day < 1 or p_per_site_minute < 1 then
+  raise exception 'invalid dispatch limits'; end if;
  perform pg_advisory_xact_lock(hashtextextended('career-cloud-dispatch-v1', 0));
  for j in select * from public.career_apply_cloud_dispatch_claim(p_want, p_global, p_per_portal) loop
   first := first + 1;
@@ -333,30 +339,40 @@ grant select on public.career_apply_prepare_requests to service_role;
 -- The chat's request: the person's own queued postings (career_apply_wanted, waiting) and nothing else, never one on
 -- LinkedIn or Indeed (Trainee never automates either). A second request for the same postings while one is waiting or
 -- running is the same request (a double tap or a retried kick). hosts[i] is the employer host of job_ids[i].
--- The numbers count postings, not requests: one request may hold up to 25. Returns {id, state, accepted, waiting_for}:
--- waiting_for 'per_person_day' when today's postings are already used (the request waits, and says so when asked).
+-- The numbers count postings, not requests. A request of any size is accepted whole and split into parts of 25 postings
+-- (one sandbox each; a part is a batch, never a ceiling: NO LIMITS). p_per_person_day: a number someone chose, or null
+-- (unset by default); only then can a part wait for the next day. Returns {id (the first part), state, accepted,
+-- waiting_for, requests (every part's id), postings (how many in all)}.
 create or replace function public.career_apply_prepare_request_put(p_user uuid, p_job_ids text[], p_per_person_day integer)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare ids text[]; r public.career_apply_prepare_requests; used int;
+declare ids text[]; part text[]; r public.career_apply_prepare_requests; used int; parts uuid[] := '{}'; first public.career_apply_prepare_requests;
+ i int; waits boolean;
 begin
- if p_user is null or p_job_ids is null or cardinality(p_job_ids) not between 1 and 100 or p_per_person_day is null
-  or p_per_person_day not between 1 and 200 then raise exception 'invalid prepare request'; end if;
+ if p_user is null or p_job_ids is null or cardinality(p_job_ids) < 1 or p_per_person_day < 1 then raise exception 'invalid prepare request'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 7));
  ids := array(select distinct w.posting_key from public.career_apply_wanted w where w.user_id = p_user and w.state = 'waiting'
-  and w.posting_key = any(p_job_ids) and not public.career_apply_never_automated(w.url) order by 1 limit 25);
+  and w.posting_key = any(p_job_ids) and not public.career_apply_never_automated(w.url) order by 1);
  if cardinality(ids) = 0 then raise exception 'nothing_to_prepare'; end if;
- select * into r from public.career_apply_prepare_requests where user_id = p_user and state in ('queued', 'running')
-  and job_ids @> ids and job_ids <@ ids and created_at > clock_timestamp() - interval '15 minutes' order by created_at desc limit 1;
  used := public.career_apply_prepare_postings_today(p_user, clock_timestamp());
- if r.id is null then
-  insert into public.career_apply_prepare_requests (user_id, job_ids, hosts, outcome)
-  values (p_user, ids, array(select coalesce(public.career_apply_url_host(w.url), '') from unnest(ids) with ordinality k(pk, n)
-   join public.career_apply_wanted w on w.user_id = p_user and w.posting_key = k.pk order by k.n),
-   case when used >= p_per_person_day then '{"waiting_for":"per_person_day"}'::jsonb else '{}'::jsonb end)
-  returning * into r;
- end if;
- return jsonb_build_object('id', r.id, 'state', r.state, 'accepted', used < p_per_person_day,
-  'waiting_for', case when used >= p_per_person_day then 'per_person_day' end);
+ waits := p_per_person_day is not null and used >= p_per_person_day;
+ i := 1;
+ while i <= cardinality(ids) loop
+  part := ids[i : i + 24];
+  select * into r from public.career_apply_prepare_requests where user_id = p_user and state in ('queued', 'running')
+   and job_ids @> part and job_ids <@ part and created_at > clock_timestamp() - interval '15 minutes' order by created_at desc limit 1;
+  if r.id is null then
+   insert into public.career_apply_prepare_requests (user_id, job_ids, hosts, outcome)
+   values (p_user, part, array(select coalesce(public.career_apply_url_host(w.url), '') from unnest(part) with ordinality k(pk, n)
+    join public.career_apply_wanted w on w.user_id = p_user and w.posting_key = k.pk order by k.n),
+    case when waits then '{"waiting_for":"per_person_day"}'::jsonb else '{}'::jsonb end)
+   returning * into r;
+  end if;
+  if first.id is null then first := r; end if;
+  parts := parts || r.id;
+  i := i + 25;
+ end loop;
+ return jsonb_build_object('id', first.id, 'state', first.state, 'accepted', not waits,
+  'waiting_for', case when waits then 'per_person_day' end, 'requests', to_jsonb(parts), 'postings', cardinality(ids));
 end $$;
 
 -- Postings Trainee started preparing for this person in the 24 hours before p_at.
@@ -372,9 +388,9 @@ language sql immutable set search_path = pg_catalog as $$
 $$;
 
 -- The dispatcher's claim: requests running past their 15-minute lease are expired (never re-run: a sandbox may still be
--- writing); then the oldest queued ones, at most p_want, never more than p_global running at once. The numbers count
--- postings: at most p_per_person_day postings started per person in 24 hours, at most p_per_site_minute postings started
--- per employer host per minute. A request that fits only in part is split: the postings that fit run now, the rest wait in
+-- writing); then the oldest queued ones, at most p_want, never more than p_global running at once (infrastructure
+-- sizing). The numbers count postings: p_per_person_day / p_per_site_minute only when given (null by default, NO LIMITS):
+-- at most that many postings started per person in 24 hours / per employer host per minute. A request that fits only in part is split: the postings that fit run now, the rest wait in
 -- a request of their own (same age, same order). A request that does not fit at all records why it waits.
 -- Requests older than 24 hours that never fit are expired, and the person told.
 create or replace function public.career_apply_prepare_request_claim(p_want integer, p_global integer, p_per_person_day integer,
@@ -384,7 +400,7 @@ declare r public.career_apply_prepare_requests; running int; got int := 0; n tim
  left_person int; take text[]; take_h text[]; rest text[]; rest_h text[]; i int; h text; site jsonb; why text;
 begin
  if p_want is null or p_want not between 0 and 500 or p_global is null or p_global not between 1 and 10000
-  or p_per_person_day is null or p_per_person_day not between 1 and 200 or p_per_site_minute is null or p_per_site_minute not between 1 and 600 then
+  or p_per_person_day < 1 or p_per_site_minute < 1 then
   raise exception 'invalid prepare limits'; end if;
  perform pg_advisory_xact_lock(hashtextextended('career-prepare-dispatch-v1', 0));
  -- Each expiry is told to the person once (unless they said STOP): what happened, that nothing was sent, what to do.
@@ -396,7 +412,7 @@ begin
  for r in update public.career_apply_prepare_requests set state = 'expired', finished_at = n,
   outcome = outcome || jsonb_build_object('reason', 'not started within 24 hours')
   where state = 'queued' and created_at < n - interval '24 hours' returning * loop
-  perform public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, 'I couldn''t start preparing the application you asked for within a day: today''s preparations were used up. Nothing was sent, and it is still in your queue. Say "apply me to" with the link to try again.');
+  perform public.career_apply_prepare_tell(r.user_id, 'status:prepare:' || r.id, 'I couldn''t start preparing the application you asked for within a day. Nothing was sent, and it is still in your queue. Say "apply me to" with the link to try again.');
  end loop;
  select count(*) into running from public.career_apply_prepare_requests where state = 'running';
  -- Postings started this minute, per host.
@@ -404,12 +420,12 @@ begin
   where x.claimed_at > n - interval '1 minute' group by u.host) y;
  for r in select * from public.career_apply_prepare_requests where state = 'queued' order by created_at, id for update skip locked loop
   exit when got >= p_want or running + got >= p_global;
-  left_person := p_per_person_day - public.career_apply_prepare_postings_today(r.user_id, n);
+  left_person := case when p_per_person_day is null then null else p_per_person_day - public.career_apply_prepare_postings_today(r.user_id, n) end;
   take := '{}'; take_h := '{}'; rest := '{}'; rest_h := '{}'; why := null;
   for i in 1 .. cardinality(r.job_ids) loop
    h := coalesce(r.hosts[i], '');
-   if cardinality(take) >= left_person then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_person_day');
-   elsif coalesce((site->>h)::int, 0) >= p_per_site_minute then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_site_minute');
+   if left_person is not null and cardinality(take) >= left_person then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_person_day');
+   elsif p_per_site_minute is not null and coalesce((site->>h)::int, 0) >= p_per_site_minute then rest := rest || r.job_ids[i]; rest_h := rest_h || h; why := coalesce(why, 'per_site_minute');
    else take := take || r.job_ids[i]; take_h := take_h || h; site := site || jsonb_build_object(h, coalesce((site->>h)::int, 0) + 1);
    end if;
   end loop;
@@ -482,7 +498,7 @@ create or replace function public.career_apply_card_push_requested_for(p_user uu
 returns uuid language plpgsql security definer set search_path = public, pg_temp as $$
 declare thread uuid; c public.career_apply_cards; home_contact text; seen timestamptz; req public.career_apply_prepare_requests; web_only boolean := false;
 begin
- if p_user is null or p_request is null or p_ids is null or cardinality(p_ids) not between 1 and 8 or p_now is null
+ if p_user is null or p_request is null or p_ids is null or cardinality(p_ids) < 1 or p_now is null
   or p_text is null or length(p_text) not between 1 and 4000 then raise exception 'invalid card push'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 1));
  select * into req from public.career_apply_prepare_requests where id = p_request and user_id = p_user and created_at > p_now - interval '2 hours';

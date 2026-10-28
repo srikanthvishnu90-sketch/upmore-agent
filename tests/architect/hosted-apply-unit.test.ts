@@ -31,6 +31,10 @@ Deno.test("F17 door: 202 accepted and the dispatcher kicked; 429 over today's nu
   eq((await handlePrepareDoor({ user_id: U, job_ids: ["capped"] }, { rpc, perPersonDay: 7, kick: () => { kicked++; } })).status, 429);
   eq(kicked, 1, "an over-the-number request starts nothing now");
   eq(await handlePrepareDoor({ user_id: U, job_ids: ["not-theirs"] }, { rpc, perPersonDay: 7 }), { status: 409, body: { error: "nothing to prepare" } });
+  // NO LIMITS: a kick of any size goes to the database whole (it splits into parts), with no per-person number by default.
+  const many = Array.from({ length: 250 }, (_, i) => `ashby:bulk:${i}`);
+  eq((await handlePrepareDoor({ user_id: U, job_ids: many }, { rpc, perPersonDay: null })).status, 202);
+  eq([calls.at(-1).args.p_job_ids.length, calls.at(-1).args.p_per_person_day], [250, null], "all 250 ids, no number of Trainee's own");
   for (const bad of [{}, { user_id: "x", job_ids: ["a"] }, { user_id: U, job_ids: [] }, { user_id: U, job_ids: "a" }]) {
     eq((await handlePrepareDoor(bad, { rpc, perPersonDay: 7 })).status, 400, JSON.stringify(bad));
   }
@@ -222,10 +226,16 @@ Deno.test("F17 runner routes: each door checks its own secret; preparation off a
   eq((await post(h(env), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) })).status, 200);
   eq(await (await post(h(env), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) })).json(), { skipped: "CLOUD_RUNNER_ENABLED is not on" });
   await post(h({ ...env, CLOUD_RUNNER_ENABLED: "on", CLOUD_MAX_PER_PERSON_DAY: "3", CLOUD_MAX_PER_SITE_MINUTE: "1" }), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) });
-  eq(JSON.parse(seen.at(-1)!), { p_want: 2, p_global: 2, p_per_portal: 1, p_per_person_day: 3, p_per_site_minute: 1 }, "the send numbers from the env, the first wave's defaults for the rest");
+  eq(JSON.parse(seen.at(-1)!), { p_want: 2, p_global: 2, p_per_portal: 1, p_per_person_day: 3, p_per_site_minute: 1 }, "the send numbers from the env, the runner's sizing defaults for the rest");
+  // NO LIMITS (owner, 2026-10-27): with no per-person or per-site number given, none is sent (null), never a default.
+  await post(h({ ...env, CLOUD_RUNNER_ENABLED: "on" }), "/dispatch", { "x-cloud-dispatch-secret": "D".repeat(40) });
+  eq(JSON.parse(seen.at(-1)!), { p_want: 2, p_global: 2, p_per_portal: 1, p_per_person_day: null, p_per_site_minute: null }, "no number of Trainee's own");
   eq((await post(h({ ...env, CLOUD_RUNNER_SECRET: "short" }), "/dispatch")).status, 503, "no runner secret: not configured");
-  eq(runnerLimits({ get: () => undefined }).send.perPersonDay, LIMIT_DEFAULTS.CLOUD_MAX_PER_PERSON_DAY);
-  eq(runnerLimits({ get: (k) => (k === "CLOUD_PREPARE_PER_SITE_MINUTE" ? "0" : "x") }).prepare.perSiteMinute, LIMIT_DEFAULTS.CLOUD_PREPARE_PER_SITE_MINUTE, "a nonsense number is the default");
+  eq(runnerLimits({ get: () => undefined }).send.perPersonDay, null, "unset: no per-person number");
+  eq(runnerLimits({ get: () => undefined }).prepare.perPersonDay, null, "unset: no per-person number for preparation");
+  eq(runnerLimits({ get: (k) => (k === "CLOUD_PREPARE_PER_SITE_MINUTE" ? "0" : "x") }).prepare.perSiteMinute, null, "a nonsense number is no number, never a default");
+  eq(runnerLimits({ get: (k) => (k === "CLOUD_MAX_PER_PERSON_DAY" ? "500" : undefined) }).send.perPersonDay, 500, "a number someone set, at any size");
+  eq(runnerLimits({ get: () => "x" }).send.global, LIMIT_DEFAULTS.CLOUD_MAX_CONCURRENT, "sizing still has its default");
 });
 
 Deno.test("F17 the dispatcher keeps the old door without the new numbers, and takes both routes with them", async () => {
@@ -354,7 +364,7 @@ Deno.test("F5 the card must be the application: every derivable line checked aga
   for (const [why, p, c, k] of bad) assert(preparedCardProblem(p, c, k) !== null, why);
 });
 
-Deno.test("F2 the runner's default numbers are the first wave's, exactly as the launch doc tells the owner", () => {
+Deno.test("F2 the runner's default sizing is exactly as the launch doc tells the owner; no per-person or per-site default (NO LIMITS)", () => {
   const doc = Deno.readTextFileSync(new URL("../../docs/launch/CLOUD-RUNNER.md", import.meta.url));
   const wave1: Record<string, number> = {};
   for (const row of doc.split("\n").filter((l) => l.startsWith("| `CLOUD_"))) {
@@ -363,10 +373,12 @@ Deno.test("F2 the runner's default numbers are the first wave's, exactly as the 
     const values = cells[2].split("/").map((v) => Number(v.trim()));
     if (names.length === values.length && values.every((v) => Number.isInteger(v))) names.forEach((n, i) => (wave1[n] = values[i]));
   }
-  const want = ["CLOUD_MAX_PER_PERSON_DAY", "CLOUD_MAX_PER_SITE_MINUTE", "CLOUD_MAX_CONCURRENT", "CLOUD_MAX_PER_PORTAL", "CLOUD_PREPARE_PER_PERSON_DAY",
-    "CLOUD_PREPARE_PER_SITE_MINUTE", "CLOUD_PREPARE_MAX_CONCURRENT"];
-  eq(Object.keys(wave1).sort(), [...want].sort(), "the wave table names each number once");
+  const want = ["CLOUD_MAX_CONCURRENT", "CLOUD_MAX_PER_PORTAL", "CLOUD_PREPARE_MAX_CONCURRENT"];
+  eq(Object.keys(wave1).sort(), [...want].sort(), "the sizing table names each number once");
   for (const k of want) eq(LIMIT_DEFAULTS[k as keyof typeof LIMIT_DEFAULTS], wave1[k], k);
+  for (const k of ["CLOUD_MAX_PER_PERSON_DAY", "CLOUD_MAX_PER_SITE_MINUTE", "CLOUD_PREPARE_PER_PERSON_DAY", "CLOUD_PREPARE_PER_SITE_MINUTE"]) {
+    assert(!(k in LIMIT_DEFAULTS), `${k} has no default`);
+  }
   assert(LIMIT_DEFAULTS.CLOUD_MAX_STARTS_PER_TICK <= LIMIT_DEFAULTS.CLOUD_MAX_CONCURRENT && LIMIT_DEFAULTS.CLOUD_PREPARE_STARTS_PER_TICK <= LIMIT_DEFAULTS.CLOUD_PREPARE_MAX_CONCURRENT);
 });
 

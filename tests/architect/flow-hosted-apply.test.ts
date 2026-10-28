@@ -27,6 +27,7 @@
 // exact payload; it then stops: a dry run. Nothing here reaches Ramp, Ashby, Vercel or any other real host.
 import assertNode from "node:assert/strict";
 import { pgBinDir, startPg } from "../flow/pg.ts";
+import { confirmedResumeSql } from "../flow/resume-seed.ts";
 import { careerHandler, type Chat, SERVICE_KEY, SUPABASE_URL, supabaseParity } from "../flow/handler.ts";
 import { engineRunner } from "../../workers/career-browser/approve-first.ts";
 import { prepareBridge, runPrepareRequest } from "../../workers/career-cloud/prepare-runner.ts";
@@ -446,6 +447,9 @@ Deno.test({
           await q1(`insert into auth.users (id, email) values ('${B}', 'b@example.test'); insert into public.profiles (id) values ('${B}');
             insert into public.career_watch_kv (user_id, key, value) values ('${B}', 'career:account', '{"epoch":0,"version":0,"paused":false}');
             select public.career_apply_cloud_resume_put_for('${B}', '${FILE_NAME}', '${b64(FILE)}');`);
+          // #194's resume rule (20261026210016): an application goes into driving only for a person with a confirmed resume on
+          // file (an entry with its fact_confirmed event); B is set up with one, as the product holds it.
+          await q1(confirmedResumeSql(B));
           const { engineApprovalFromPayload, factsFromPayload } = await import("../../workers/career-browser/approve-first.ts");
           const { trustedManifest } = await import("../../extension/src/apply_core.ts");
           const p: any = structuredClone(prepared.payload);

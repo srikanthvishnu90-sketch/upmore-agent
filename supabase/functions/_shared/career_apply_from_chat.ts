@@ -127,7 +127,8 @@ export async function kickPrepare(o: {
     const res = await o.fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ user_id: o.userId, job_ids: o.jobIds.slice(0, 100) }),
+      // Every id (NO LIMITS): the door splits a big request into parts; nothing is cut here.
+      body: JSON.stringify({ user_id: o.userId, job_ids: o.jobIds }),
       signal: AbortSignal.timeout(4000),
     });
     await res.body?.cancel().catch(() => {});

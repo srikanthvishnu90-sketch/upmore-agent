@@ -33,10 +33,12 @@
 #                                                      (one sandbox for ~25 minutes, Vercel spend) and uses its id
 #   CLOUD_RUNNER_SECRET, CLOUD_DISPATCH_SECRET, CAREER_PREPARE_AHEAD_TOKEN   function secrets (Enter generates each)
 #   CLOUD_BRIDGE_URL and CAREER_PREPARE_AHEAD_URL      derived from the project ref, never asked
-#   the numbers, each optional; one not given is set to its first-wave value (CLOUD_WAVE1 below, the same numbers as
-#   cloud_runner_http.ts LIMIT_DEFAULTS and docs/launch/CLOUD-RUNNER.md), so the project always holds all nine explicitly:
-#     CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE
-#     CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE
+#   the numbers, each optional. Infrastructure sizing not given is set to the runner's default (CLOUD_WAVE1 below, the
+#   same numbers as cloud_runner_http.ts LIMIT_DEFAULTS and docs/launch/CLOUD-RUNNER.md):
+#     CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK
+#   The per-person and per-site numbers are never set unless given (owner, 2026-10-27, NO LIMITS: no number of Trainee's
+#   own; the brake is an outside system's refusal); given, any whole number from 1:
+#     CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE
 #   CLOUD_RUNNER_ENABLED, CLOUD_PREPARE_ENABLED        'on' turns sending / preparation on; unset: not touched (off
 #                                                      until set). The database's own switches still decide every claim.
 # Steps, each a numbered STEP line ending OK or FAILED; the run stops at the first failure:
@@ -289,10 +291,9 @@ CLOUD_HIDDEN=(CLOUD_RUNNER_SECRET CLOUD_DISPATCH_SECRET CAREER_PREPARE_AHEAD_TOK
 CLOUD_PLAIN=(VERCEL_TEAM_ID VERCEL_PROJECT_ID CLOUD_SANDBOX_SNAPSHOT_ID CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK
   CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY
   CLOUD_PREPARE_PER_SITE_MINUTE CLOUD_RUNNER_ENABLED CLOUD_PREPARE_ENABLED)
-# The first wave's numbers (the owner's decision, 2026-10-26: phone-only sending within these), set by name when not given.
-declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD_MAX_STARTS_PER_TICK]=2 [CLOUD_MAX_PER_PERSON_DAY]=3
-  [CLOUD_MAX_PER_SITE_MINUTE]=1 [CLOUD_PREPARE_MAX_CONCURRENT]=2 [CLOUD_PREPARE_STARTS_PER_TICK]=2 [CLOUD_PREPARE_PER_PERSON_DAY]=10
-  [CLOUD_PREPARE_PER_SITE_MINUTE]=2)
+# The runner's infrastructure sizing, set by name when not given. No per-person or per-site number (NO LIMITS, 2026-10-27).
+declare -A CLOUD_WAVE1=([CLOUD_MAX_CONCURRENT]=2 [CLOUD_MAX_PER_PORTAL]=1 [CLOUD_MAX_STARTS_PER_TICK]=2
+  [CLOUD_PREPARE_MAX_CONCURRENT]=2 [CLOUD_PREPARE_STARTS_PER_TICK]=2)
 DEPLOY_FNS=(agent-chat "${SCHEDULED[@]}" career-voice "${CHANNEL_FNS[@]}" "$CLOUD_FN" "${JWT_FNS[@]}")
 # WO-093: what is staged from `git archive <sha>`: everything a deploy, a migration, a schedule or the smoke reads.
 STAGE_PATHS=(supabase scripts packages corpus)
@@ -655,9 +656,8 @@ if [[ -z "$ONLY_SMOKE" ]]; then
     if [[ -n "${VERCEL_TOKEN:-}" ]] && ! env_safe "$VERCEL_TOKEN"; then fail "VERCEL_TOKEN has a space, quote, # or backslash (the value is not shown)"; fi
     for v in CLOUD_MAX_CONCURRENT CLOUD_MAX_PER_PORTAL CLOUD_MAX_STARTS_PER_TICK CLOUD_MAX_PER_PERSON_DAY CLOUD_MAX_PER_SITE_MINUTE \
       CLOUD_PREPARE_MAX_CONCURRENT CLOUD_PREPARE_STARTS_PER_TICK CLOUD_PREPARE_PER_PERSON_DAY CLOUD_PREPARE_PER_SITE_MINUTE; do
-      [[ -z "${!v:-}" || "${!v}" =~ ^[1-9][0-9]{0,4}$ ]] || fail "$v must be a whole number from 1"
+      [[ -z "${!v:-}" || "${!v}" =~ ^[1-9][0-9]{0,8}$ ]] || fail "$v must be a whole number from 1"
     done
-    [[ -z "${CLOUD_MAX_PER_PERSON_DAY:-}" || "$CLOUD_MAX_PER_PERSON_DAY" -le 50 ]] || fail "CLOUD_MAX_PER_PERSON_DAY is at most 50 (the database refuses more)"
     for v in CLOUD_RUNNER_ENABLED CLOUD_PREPARE_ENABLED; do
       [[ -z "${!v:-}" || "${!v}" == on || "${!v}" == off ]] || fail "$v takes on or off"
     done
@@ -808,7 +808,7 @@ else
     for v in "${CLOUD_PLAIN[@]}"; do
       if [[ -n "${!v:-}" ]]; then add "$v" "${!v}" "${!v}"
       elif [[ -n "${CLOUD_WAVE1[$v]:-}" ]]; then add "$v" "${CLOUD_WAVE1[$v]}" "${CLOUD_WAVE1[$v]}"; echo "  $v: not given, set to the first wave's ${CLOUD_WAVE1[$v]}"
-      else echo "  kept: $v (not given; off for a switch)"; fi
+      else echo "  kept: $v (not given; off for a switch, no number for a per-person or per-site limit)"; fi
     done
     add CLOUD_BRIDGE_URL "$BASE/functions/v1/$CLOUD_FN" "$BASE/functions/v1/$CLOUD_FN"
     add CAREER_PREPARE_AHEAD_URL "$BASE/functions/v1/$CLOUD_FN/prepare" "$BASE/functions/v1/$CLOUD_FN/prepare"

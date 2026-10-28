@@ -146,10 +146,11 @@ name and hash, the page's own fields, a verification line with no words of its o
 sent, and nothing else. What it cannot check: which option code of a select stands for the answer shown. A try may not
 name a prepared application. The sandbox's token leaves its environment before the engine starts (`takeRunnerEnv`).
 
-**The numbers count postings, not requests:** a request may hold up to 25 postings; per person per day and per host per
-minute count the postings started. A request that fits in part is split (the rest wait in a request of their own, same
-age, and record why: `per_person_day` or `per_site_minute`); "where are my applications" says which (`waiting_day_limit`
-reads "today's preparations are used up", `starting` "waiting its turn"). LinkedIn and Indeed postings are never taken
+**The numbers count postings, not requests:** a request of any size is accepted whole and split into parts of 25
+postings, one sandbox each (a batch, never a ceiling: NO LIMITS). Per person per day and per host per minute apply only
+when someone set them (unset by default) and count the postings started. A part that fits only in part is split again
+(the rest wait in a part of their own, same age, and record why: `per_person_day` or `per_site_minute`); "where are my
+applications" says which (`waiting_day_limit`, `starting` "waiting its turn"). LinkedIn and Indeed postings are never taken
 (`career_apply_never_automated`). A sandbox that never starts is told to the person (the chat had said it started).
 
 
@@ -160,8 +161,9 @@ and before Submit: the owner's kill switch `CAREER_AGENT_SUBMIT = 'on'`, `CAREER
 exactly the card item's (same person, payload and hash; that number approved and queued; created inside the card's
 showing and its answer; under 24 hours old); the account as approved; greenhouse, lever or ashby; an https destination;
 the gate open or a live waiver with sends left; the person's opt-in for this account; no pause; under the person's daily
-number (least of 15, their opt-in number, their own pace, `CLOUD_MAX_PER_PERSON_DAY`); one employer per 30 days; under
-`CLOUD_MAX_PER_SITE_MINUTE` for the employer's host; their resume kept for the cloud byte for byte. The claim writes a
+number only if someone chose one (their opt-in number, their own pace, `CLOUD_MAX_PER_PERSON_DAY` when set; Trainee has
+no number of its own: NO LIMITS, D-MS-2); no employer cooldown (D-MS-3: only the exact posting is a duplicate); under
+`CLOUD_MAX_PER_SITE_MINUTE` for the employer's host, when set; a card of any size (its items are claimed by number); their resume kept for the cloud byte for byte. The claim writes a
 marker (`career_apply_cloud_text_claims`) the authorization requires. The gate, the waiver and the bridge are unchanged.
 
 ### Secrets and numbers (go-live sets them by name; the values never appear in a log)
@@ -174,28 +176,29 @@ marker (`career_apply_cloud_text_claims`) the authorization requires. The gate, 
 | `CLOUD_BRIDGE_URL`, `CAREER_PREPARE_AHEAD_URL` | `<project>/functions/v1/career-cloud-runner` and `.../prepare` | derived, never asked |
 | `CLOUD_RUNNER_ENABLED`, `CLOUD_PREPARE_ENABLED` | `on` turns sending / preparation on | not touched: off |
 | `CLOUD_MAX_CONCURRENT`, `CLOUD_MAX_PER_PORTAL`, `CLOUD_MAX_STARTS_PER_TICK` | sending: global, per family, per tick | 2, 1, 2 (wave 1) |
-| `CLOUD_MAX_PER_PERSON_DAY`, `CLOUD_MAX_PER_SITE_MINUTE` | sending: per person per 24 h, per employer host per minute | 3, 1 (wave 1) |
+| `CLOUD_MAX_PER_PERSON_DAY`, `CLOUD_MAX_PER_SITE_MINUTE` | sending: per person per 24 h, per employer host per minute | no number (NO LIMITS) |
 | `CLOUD_PREPARE_MAX_CONCURRENT`, `CLOUD_PREPARE_STARTS_PER_TICK` | preparation: global, per tick | 2, 2 (wave 1) |
-| `CLOUD_PREPARE_PER_PERSON_DAY`, `CLOUD_PREPARE_PER_SITE_MINUTE` | preparation: postings per person per 24 h, postings per employer host per minute | 10, 2 (wave 1) |
+| `CLOUD_PREPARE_PER_PERSON_DAY`, `CLOUD_PREPARE_PER_SITE_MINUTE` | preparation: postings per person per 24 h, postings per employer host per minute | no number (NO LIMITS) |
 
 The database switches stay the owner's, by SQL: `insert into career_cloud_settings (key, value) values
 ('CAREER_AGENT_SUBMIT', 'on'), ('CAREER_CLOUD_APPLY', 'on'), ('CAREER_CLOUD_TEXT_CARDS', 'on') on conflict (key) do update set value = excluded.value;`
 (`CAREER_AGENT_SUBMIT` is the owner's kill switch for every route that submits; turning it off stops the text-card route at the
 claim and at both authorizations.)
 
-### Recommended caps for the first waves (the code's defaults are wave 1; wave 2 is set by name)
+### Sizing (the code's defaults are the runner's capacity; a larger pool is set by name)
 
-| | Wave 1 (the owner, then up to 10 people) | Wave 2 (up to 100) | Why |
+The owner's NO LIMITS rule (2026-10-27, D-MS-2/D-MS-3): Trainee has no number of its own on how many applications a person
+sends or prepares, and no employer cooldown (only the exact posting is a duplicate). The per-person and per-site numbers
+above are left unset; the brake is an outside system refusing (a portal's 429 or bot wall pauses that family, and a check
+ends needs_user). The person's own pace, when they set one, still binds. What is sized here is the runner itself:
+
+| | Default | Larger pool | Why |
 |---|---|---|---|
-| `CLOUD_MAX_PER_PERSON_DAY` | 3 | 5 | every send on a datacenter IP risks a low reCAPTCHA score under the person's name; the throttle pauses a person at 2 checks a day |
-| `CLOUD_MAX_PER_SITE_MINUTE` | 1 | 2 | Greenhouse and Ashby each serve many employers from one host; one claim a minute per host keeps a burst from reading as a bot |
 | `CLOUD_MAX_CONCURRENT` / `CLOUD_MAX_PER_PORTAL` | 2 / 1 | 5 / 2 | the 2 vCPU sandbox measured 3.5 s per application at 3 at a time on a local form; real forms are 30 to 90 s |
-| `CLOUD_PREPARE_PER_PERSON_DAY` | 10 | 20 | a preparation is a dry run (nothing sent) but loads the employer's page; 10 a day is two days of 5 sends |
-| `CLOUD_PREPARE_PER_SITE_MINUTE` | 2 | 4 | the same host reasoning, for page loads only |
 | `CLOUD_PREPARE_MAX_CONCURRENT` | 2 | 5 | |
 
-Raise a number only after `select career_apply_cloud_check_rates(7)` shows the host's `bot_check_rate` and
-`unconfirmed_after_24h` at or under the owner's threshold, with their counts.
+`select career_apply_cloud_check_rates(7)` shows each host's `bot_check_rate` and `unconfirmed_after_24h` with their
+counts: what an outside system is refusing, which is what slows work down.
 
 ### How the cloud gate opens (unchanged; read from `career_apply_cloud_open`, 20261021080000)
 

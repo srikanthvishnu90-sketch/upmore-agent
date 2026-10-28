@@ -339,10 +339,10 @@ export function fakeOpenAI(o: { invent?: (prompt: string) => boolean } = {}) {
       const b = hit.body ?? {};
       const msgs: any[] = Array.isArray(b.messages) ? b.messages : Array.isArray(b.input) ? b.input : [];
       const prompt = msgs.map((m) => typeof m.content === "string" ? m.content : Array.isArray(m.content) ? m.content.map((c: any) => c.text ?? "").join(" ") : "").join("\n");
+      // Only the recipient's first name and the ask: nothing a fact-lock has to trace.
       const first = /- name: ([A-Za-z'-]+)/.exec(prompt)?.[1] ?? "there";
-      const firm = /- firm: ([^\n]+)/.exec(prompt)?.[1]?.trim();
       const extra = o.invent?.(prompt) ? " I led the infrastructure team at Google for three years." : "";
-      const text = `Subject: A quick question\n\nHi ${first},\n\nI'd be grateful for 15 minutes to hear how you got started${firm ? ` at ${firm}` : ""}.${extra} Would you be open to a short call?`;
+      const text = `Subject: A quick question\n\nHi ${first},\n\nI'd be grateful for 15 minutes to hear how you got started.${extra} Would you be open to a short call?`;
       const usage = { prompt_tokens: 300, completion_tokens: 60, input_tokens: 300, output_tokens: 60 };
       if (hit.path === "/v1/responses") return json({ id: "resp-instinct", model: b.model, output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text }] }], output_text: text, usage });
       return json({ id: "chatcmpl-instinct", model: b.model, choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }], usage });

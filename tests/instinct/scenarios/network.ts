@@ -107,22 +107,33 @@ async function networking(w: World, ws: Workers, card: Scorecard, ch: Channel, n
       check(vault === 1, `${vault} vault entries for the grant`);
       return `google_career connected as ${account} with gmail.send; tokens in the vault, never in a table`;
     });
-    await run.step("connects Outlook too (Microsoft Graph: mail send, read, calendar)", async () => {
-      const t = await p.say("i also use outlook for school email, can you connect that too");
+    await run.step("connects Outlook too (Microsoft Graph: mail send, read, calendar), from the link the chat gives", async () => {
+      const t = await p.say("i also use outlook for school email, connect my outlook too");
       const fns = [...Deno.readDirSync(`${ROOT}/supabase/functions`)].map((d) => d.name).filter((x) => /outlook|microsoft|ms-?oauth|graph/i.test(x));
       if (!fns.length) notBuilt(`no Outlook/Microsoft connector function in supabase/functions; the reply: "${t.text.slice(0, 160)}"`, "an Outlook connector: Microsoft OAuth start/callback storing a Graph grant (Mail.Send, Mail.Read, Calendars.ReadWrite)");
-      let url: string | null = null;
-      for (const fn of fns) for (const action of ["start", "start_outlook", "start_microsoft", "connect"]) {
-        if (url) break;
-        const r = await w.call(fn, { method: "POST", headers: { Authorization: `Bearer ${p.token}`, "content-type": "application/json" }, body: JSON.stringify({ action }) });
-        if (typeof r.body?.url === "string" && /login\.microsoftonline\.com/.test(r.body.url)) url = r.body.url;
+      const link = (t.text.match(/https?:\/\/\S+/g) ?? []).map((x) => x.replace(/[).,]+$/, "")).find((x) => /outlook|microsoft|functions\/v1/i.test(x));
+      check(link, `the chat gave no link to connect Outlook: "${t.text.slice(0, 200)}"`, "\"connect my outlook\" answered with a one-time link on every channel");
+      // The person opens the link, reads the page, and taps Continue: what a browser does, step by step.
+      const open = await fetch(link!, { redirect: "manual" });
+      let next: Response = open;
+      if (open.status === 200) {
+        const html = await open.text();
+        const action = /<form[^>]*action="([^"]+)"/i.exec(html)?.[1];
+        const fields = Object.fromEntries([...html.matchAll(/<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"/gi)].map((m) => [m[1], m[2].replace(/&amp;/g, "&")]));
+        check(action, `the link's page has no form to continue: ${html.replace(/<[^>]+>/g, " ").slice(0, 160)}`);
+        next = await fetch(new URL(action!.replace(/&amp;/g, "&"), link!).toString(), { method: "POST", redirect: "manual", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields) });
       }
-      check(url, `functions ${fns.join(", ")} gave no Microsoft consent URL`);
-      const back = new URL(w.fakes.microsoft.consent(url!, `${p.p.first.toLowerCase()}.${n}@school.example`));
-      const cb = await w.call(fns[0], { method: "GET", path: back.search });
-      const conn = await w.rows(`select provider, email from public.user_oauth_connections where user_id = '${u()}'`);
-      check(conn.some((c: any) => /microsoft|outlook/i.test(c.provider)), `after the callback (${cb.status}) the connections are ${JSON.stringify(conn)}`);
-      return `Outlook connected: ${JSON.stringify(conn.filter((c: any) => /microsoft|outlook/i.test(c.provider)))}`;
+      const to = next.headers.get("location") ?? "";
+      check(/login\.microsoftonline\.com/.test(to), `continuing did not lead to Microsoft's sign-in (${next.status} ${to.slice(0, 120)})`);
+      check(/Mail\.Send/i.test(decodeURIComponent(to)) && /Calendars\.ReadWrite/i.test(decodeURIComponent(to)), `the consent does not ask for Mail.Send and Calendars.ReadWrite: ${decodeURIComponent(to).slice(0, 200)}`);
+      const back = w.fakes.microsoft.consent(to, `${p.p.first.toLowerCase()}.${n}@school.example`);
+      const cb = await fetch(back, { redirect: "manual" });
+      const conn = await w.rows(`select provider, email, scopes from public.user_oauth_connections where user_id = '${u()}'`);
+      const ms = conn.filter((c: any) => /microsoft|outlook/i.test(c.provider));
+      check(ms.length === 1, `after Microsoft's callback (${cb.status}) the connections are ${JSON.stringify(conn.map((c: any) => c.provider))}`);
+      const vault = Number(await w.one(`select count(*) from vault.secrets where name like 'oauth_%' and name like '%${u()}' and name ~ '(microsoft|outlook)'`));
+      check(vault === 1, `${vault} vault entries for the Outlook grant`);
+      return `Outlook connected as ${ms[0].email}; the grant in the vault; consent asked for Mail.Send and Calendars.ReadWrite`;
     });
   }
 
